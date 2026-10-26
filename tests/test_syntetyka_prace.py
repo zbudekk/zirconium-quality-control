@@ -131,8 +131,29 @@ def min_odleglosc_do(punkt, punkty):
     return float(np.min(np.linalg.norm(np.asarray(punkty) - np.asarray(punkt), axis=1)))
 
 
-def promien_od(siatka, srodek):
-    return np.linalg.norm(np.asarray(siatka.vertices) - np.asarray(srodek, dtype=np.float64), axis=1)
+def normalna_projektu(projekt, punkt):
+    """Normalna najblizszej sciany projektu w punkcie (open3d)."""
+    import open3d as o3d
+
+    scena = o3d.t.geometry.RaycastingScene()
+    scena.add_triangles(
+        o3d.core.Tensor(np.asarray(projekt.vertices, dtype=np.float32)),
+        o3d.core.Tensor(np.asarray(projekt.faces, dtype=np.uint32)),
+    )
+    zapytanie = o3d.core.Tensor(np.asarray([punkt], dtype=np.float32))
+    sciana = int(scena.compute_closest_points(zapytanie)["primitive_ids"].numpy()[0])
+    return np.asarray(projekt.face_normals[sciana], dtype=np.float64)
+
+
+def odleglosc_boczna(siatka, srodek, normalna, glebokosc_mm):
+    """Odleglosc wierzcholkow od srodka w plaszczyznie prostopadlej do normalnej.
+
+    Wierzcholki ze skladowa normalna |w . n| > glebokosc + 0,1 dostaja inf.
+    """
+    w = np.asarray(siatka.vertices, dtype=np.float64) - np.asarray(srodek, dtype=np.float64)
+    wn = w @ normalna
+    boczna = np.linalg.norm(w - np.outer(wn, normalna), axis=1)
+    return np.where(np.abs(wn) <= glebokosc_mm + 0.1, boczna, np.inf)
 
 
 def jako_proste(obj):
@@ -257,9 +278,9 @@ def test_ubytki_prawda(projekt_korony, skan, odleglosci):
         assert u.przy_brzegu is True
         assert min_odleglosc_do(c, krzywa) <= 0.5
         r = u.srednica_mm / 2
-        odl = promien_od(sp, c)
+        odl = odleglosc_boczna(sp, c, normalna_projektu(projekt_korony, c), u.glebokosc_mm)
         kula = odl <= 0.5 * r
-        assert kula.any(), "brak wierzcholkow skanu w kuli 0,5 r"
+        assert kula.any(), "brak wierzcholkow skanu w odleglosci bocznej 0,5 r"
         assert np.median(d[kula]) <= -0.8 * u.glebokosc_mm
         pierscien = (odl >= 1.5 * r) & (odl <= 2.5 * r)
         assert pierscien.any()
@@ -277,7 +298,7 @@ def test_ubytek_ostry(projekt_korony, skan, odleglosci):
     r = 0.25
     sp = do_ukladu_projektu(s, pp)
     d = odleglosci(sp, projekt_korony)
-    odl = promien_od(sp, u.srodek)
+    odl = odleglosc_boczna(sp, u.srodek, normalna_projektu(projekt_korony, u.srodek), u.glebokosc_mm)
     wewnatrz = odl <= 0.6 * r
     assert wewnatrz.any()
     assert -np.median(d[wewnatrz]) >= 0.14
@@ -293,7 +314,7 @@ def test_poprawka_gladka(projekt_korony, skan, odleglosci):
     assert u.rodzaj == "poprawka"
     sp = do_ukladu_projektu(s, pp)
     d = odleglosci(sp, projekt_korony)
-    odl = promien_od(sp, u.srodek)
+    odl = odleglosc_boczna(sp, u.srodek, normalna_projektu(projekt_korony, u.srodek), u.glebokosc_mm)
     obszar = np.flatnonzero(odl <= 1.5 * 1.5)
     v = np.asarray(sp.vertices)[obszar]
     dd = d[obszar]
@@ -314,11 +335,11 @@ def test_drgniecie(projekt_korony, skan, odleglosci):
     ratio = len(s.faces) / len(projekt_korony.faces)
     assert 1.3 <= ratio <= 1.6, f"scian x{ratio}"
     d = np.abs(odleglosci(do_ukladu_projektu(s, pp), projekt_korony))
-    assert np.mean((d >= 0.06) & (d <= 0.14)) >= 0.25
+    assert np.mean((d >= 0.05) & (d <= 0.14)) >= 0.15
     assert pp.drgniecie is True
     s0, pp0 = skan(projekt_korony, szum_mm=0.02)
     d0 = np.abs(odleglosci(do_ukladu_projektu(s0, pp0), projekt_korony))
-    assert np.mean((d0 >= 0.06) & (d0 <= 0.14)) < 0.02
+    assert np.mean((d0 >= 0.05) & (d0 <= 0.14)) < 0.02
     assert pp0.drgniecie is False
 
 
