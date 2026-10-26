@@ -1,0 +1,87 @@
+name: testy
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      system:
+        description: "System dla testow"
+        type: choice
+        options: [ubuntu, windows]
+        default: ubuntu
+      pelne:
+        description: "Uruchom tez testy wolne"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  szybkie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Biblioteki systemowe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgl1 libgomp1 libegl1
+      - name: Zaleznosci
+        run: python -m pip install -r requirements-ci.txt
+      - name: Wersje stosu
+        run: python -c "import open3d, trimesh, numpy; print(open3d.__version__, trimesh.__version__, numpy.__version__)"
+      - name: Testy szybkie
+        run: python -m pytest -q -m "not wolne" --durations=10
+
+  pelne:
+    if: github.event_name == 'push' || inputs.pelne
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Biblioteki systemowe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgl1 libgomp1 libegl1
+      - name: Zaleznosci
+        run: python -m pip install -r requirements-ci.txt
+      - name: Wersje stosu
+        run: python -c "import open3d, trimesh, numpy; print(open3d.__version__, trimesh.__version__, numpy.__version__)"
+      - name: Testy pelne
+        run: python -m pytest -q --durations=15
+
+  windows:
+    if: github.event_name == 'workflow_dispatch' && inputs.system == 'windows'
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Zaleznosci
+        run: python -m pip install -r requirements-ci.txt
+      - name: Testy szybkie
+        run: python -m pytest -q -m "not wolne"

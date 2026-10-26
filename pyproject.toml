@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qc"
+version = "0.1.0"
+description = "Stanowisko kontroli koron i mostow z cyrkonii"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["numpy>=2.2", "trimesh>=5", "open3d>=0.19"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["qc*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["wolne: testy > 20 s (pelne metryki); PR uruchamia -m 'not wolne'"]
