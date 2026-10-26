@@ -17,9 +17,9 @@ htmlcov/
 .claude/settings.local.json
 
 # Dane produkcyjne - nigdy w repo (RODO: nazwiska w nazwach folderow, prace pacjentow)
-dane/
-skany/
-logi/
+/dane/
+/skany/
+/logi/
 *.db
 *.sqlite
 *.sqlite3
