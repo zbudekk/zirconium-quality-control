@@ -1,0 +1,182 @@
+[
+ {
+  "id": "korona-01",
+  "ziarno": 1000,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-02",
+  "ziarno": 1001,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-03",
+  "ziarno": 1002,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-04",
+  "ziarno": 1003,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-05",
+  "ziarno": 1004,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-06",
+  "ziarno": 1005,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-07",
+  "ziarno": 1006,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-08",
+  "ziarno": 1007,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-09",
+  "ziarno": 1008,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-10",
+  "ziarno": 1009,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-11",
+  "ziarno": 1010,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-12",
+  "ziarno": 1011,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-13",
+  "ziarno": 1012,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-14",
+  "ziarno": 1013,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-15",
+  "ziarno": 1014,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-16",
+  "ziarno": 1015,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-17",
+  "ziarno": 1016,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-18",
+  "ziarno": 1017,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-19",
+  "ziarno": 1018,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-20",
+  "ziarno": 1019,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-21",
+  "ziarno": 1020,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-22",
+  "ziarno": 1021,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-23",
+  "ziarno": 1022,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-24",
+  "ziarno": 1023,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-25",
+  "ziarno": 1024,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-26",
+  "ziarno": 1025,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-27",
+  "ziarno": 1026,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-28",
+  "ziarno": 1027,
+  "rodzaj": "trzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-29",
+  "ziarno": 1028,
+  "rodzaj": "przedtrzonowiec",
+  "krok_mm": 0.1
+ },
+ {
+  "id": "korona-30",
+  "ziarno": 1029,
+  "rodzaj": "siekacz",
+  "krok_mm": 0.1
+ }
+]
