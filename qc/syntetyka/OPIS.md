@@ -38,7 +38,8 @@ Tylko numpy i trimesh (bez scipy: normalne wierzcholkow liczone w numpy, bez `sp
 - `skan_pracy`: `(Trimesh, PrawdaPracy)`. Kolejnosc: ubytki (uklad projektu) -> pokrycie -> szum
   N(0, szum) wzdluz normalnych liczonych przed ubytkami -> drgniecie -> widocznosc -> skala k
   (`T_projekt_do_skanu` = diag(k, k, k, 1)) -> tasowanie wierzcholkow i scian.
-- Ukruszenie: srodek = wierzcholek sciany zewnetrznej 0,30-0,55 mm nad plaszczyzna brzegu (<= 0,5 mm od
+- Ukruszenie: srodek = wierzcholek sciany zewnetrznej od 0,5 r + 0,85 glebokosci + 0,05 (0,19-0,45) do
+  0,55 mm nad plaszczyzna brzegu (<= 0,5 mm od
   krzywej brzegu); ubytek nie przecina krawedzi brzegu (dno nie schodzi pod z = 0). Srednica 0,2-0,6,
   glebokosc 0,1-0,3, profil ostry (pelna glebokosc do 0,7 r, liniowo do 0 w r). Srodki parami >= 2 mm.
 - Male ubytki lokalnie zageszczaja siatke (podzial trojkatow w kuli 2r): liczba scian rosnie, a na
