@@ -1,0 +1,56 @@
+# Ustawienia stanowiska qc: sciezki i progi wykrywania (jedyne miejsce na progi, nie w kodzie).
+#
+# Nadpisanie lokalne: obok tego pliku utworz ustawienia.lokalne.toml (gitignorowany) i wpisz tylko
+# zmieniane klucze w ich sekcjach, np.
+#   [sciezki]
+#   cyrkon = "D:/OneDrive/Cyrkon"
+# Plik lokalny moze tylko nadpisywac klucze istniejace tutaj; nieznany klucz = blad przy starcie.
+# Inny plik ustawien: zmienna srodowiskowa QC_USTAWIENIA (ma pierwszenstwo przed argumentem).
+#
+# Sciezki wzgledne sa liczone wzgledem katalogu tego pliku. Sciezki produkcyjne ponizej to
+# placeholdery - prawdziwe wpisuj tylko w ustawienia.lokalne.toml na laptopie stanowiska.
+
+[sciezki]
+cyrkon = "C:/ONEDRIVE/Cyrkon"
+prywatne = "C:/ONEDRIVE/Prywatne"
+raporty_millbox = "C:/MILLBOX/raporty"
+eksport_skanera = "C:/SKANER/eksport"
+baza = "dane/qc.sqlite"
+log_excela = "logi/excel-log.csv"
+wspolczynniki = "dane/wspolczynniki.csv"
+
+[plytki]
+wieczorna = "modele/plytka-wieczorna.json"
+poranna = "modele/plytka-poranna.json"
+
+[skaner]
+gestosc_mm = 0.08
+
+[dopasowanie]
+tolerancja_objetosci = 0.15
+tolerancja_wymiarow_mm = 1.0
+odleglosc_mm = 0.05
+min_pokrycie_wieczor = 0.85
+min_pokrycie_rano = 0.60
+margines_pewnosci = 0.10
+voxel_fpfh_mm = 0.5
+max_kandydatow = 8
+
+[ubytki]
+min_glebokosc_mm = 0.08
+min_srednica_mm = 0.2
+max_srednica_mm = 1.5
+pas_brzegu_mm = 1.5
+poprawka_min_srednica_mm = 2.0
+drgniecie_udzial = 0.15
+drgniecie_odleglosc_mm = 0.08
+
+[plytka]
+max_blad_wyrownania_mm = 0.1
+margines_gniazda_mm = 1.0
+min_pole_pracy_mm2 = 5.0
+
+[pula]
+dni_rano = 4
+dni_wieczor = 2
+usuwaj_po_dniach = 10
