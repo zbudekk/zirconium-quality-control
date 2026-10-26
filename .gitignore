@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Claude Code
+.claude/worktrees/
+.claude/settings.local.json
+
+# Dane produkcyjne - nigdy w repo (RODO: nazwiska w nazwach folderow, prace pacjentow)
+dane/
+skany/
+logi/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+excel-log*.csv
+ustawienia.lokalne.*
+
+# Skany i projekty prac - tylko syntetyczne dane testowe w tests/dane/
+*.stl
+*.ply
+*.obj
+!tests/dane/**/*.stl
+!modele/**/*.stl
+
+# Raporty MillBox i dokumenty
+*.pdf
+*.html.bak
+
+# System / edytory
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
