@@ -256,7 +256,7 @@ def test_skan_szum(projekt_korony, skan, odleglosci):
 
 
 def test_skan_skala(projekt_korony, skan):
-    s, pp = skan(projekt_korony, wspolczynnik=1.23)
+    s, pp = skan(projekt_korony, wspolczynnik=1.23, szum_mm=0)
     assert np.allclose(s.extents, 1.23 * projekt_korony.extents, rtol=0.01)
     assert pp.wspolczynnik == 1.23
     T = np.asarray(pp.T_projekt_do_skanu, dtype=np.float64)
@@ -345,7 +345,7 @@ def test_drgniecie(projekt_korony, skan, odleglosci):
 
 def test_pokrycie(projekt_korony, skan):
     k = 1.22
-    s, pp = skan(projekt_korony, wspolczynnik=k, pokrycie=0.7)
+    s, pp = skan(projekt_korony, wspolczynnik=k, pokrycie=0.7, szum_mm=0)
     udzial = s.area / (projekt_korony.area * k ** 2)
     assert 0.6 <= udzial <= 0.8, f"udzial pola {udzial}"
     assert pp.pokrycie == 0.7
@@ -376,6 +376,12 @@ def test_wzorce_zgodne(nazwa):
     assert plik_stl.is_file(), f"brak {plik_stl}"
     assert plik_stl.stat().st_size <= 300 * 1024
     opis = json.loads(plik_json.read_text(encoding="utf-8"))
+    # zmiana losowania parametrow generatora = inny przepis niz zapisany we wzorcu
+    oczekiwany = {
+        "korona-wzorzec": lambda: prace.przepis(1, "trzonowiec", 0.8),
+        "most-wzorzec": lambda: prace.przepis_mostu(1, 3, 1.0),
+    }[nazwa]()
+    assert opis["przepis"] == json.loads(json.dumps(oczekiwany))
     wygenerowana = prace.z_przepisu(opis["przepis"])
     wzorzec = trimesh.load(plik_stl, process=False, force="mesh")
     assert len(wygenerowana.faces) == len(wzorzec.faces)
