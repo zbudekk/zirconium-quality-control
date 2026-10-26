@@ -1,11 +1,11 @@
 """Testy szkieletu pakietu qc: import, stos, ustawienia, pyproject, CI, .gitattributes, brak danych."""
 
 import importlib
-import os
 import re
 import shutil
+import subprocess
 import tomllib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 
@@ -188,14 +188,11 @@ def test_gitattributes():
 
 def test_brak_danych_produkcyjnych():
     zakazane = {".stl", ".ply", ".obj", ".pdf", ".sqlite", ".db"}
-    dozwolone = [KORZEN / "tests" / "dane", KORZEN / "modele"]
-    znalezione = []
-    for katalog, podkatalogi, pliki in os.walk(KORZEN):
-        podkatalogi[:] = [d for d in podkatalogi if d != ".git"]
-        sciezka_katalogu = Path(katalog)
-        if any(sciezka_katalogu == d or d in sciezka_katalogu.parents for d in dozwolone):
-            continue
-        for nazwa in pliki:
-            if Path(nazwa).suffix.lower() in zakazane:
-                znalezione.append(str((sciezka_katalogu / nazwa).relative_to(KORZEN)))
+    dozwolone = ("tests/dane/", "modele/")
+    wynik = subprocess.run(["git", "ls-files", "-z"], cwd=KORZEN, capture_output=True, check=True)
+    sledzone = [s for s in wynik.stdout.decode("utf-8").split("\0") if s]
+    assert sledzone, "git ls-files nie zwrocil plikow"
+    znalezione = [
+        s for s in sledzone if PurePosixPath(s).suffix.lower() in zakazane and not s.startswith(dozwolone)
+    ]
     assert znalezione == [], f"pliki danych poza tests/dane i modele: {znalezione}"
