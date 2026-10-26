@@ -194,8 +194,14 @@ def _siatka_korony(p: dict, krok_mm: float) -> trimesh.Trimesh:
 # --- przepisy -----------------------------------------------------------------
 
 
+def _sprawdz_krok(krok_mm) -> None:
+    if not krok_mm > 0:
+        raise ValueError(f"krok_mm musi byc > 0, jest {krok_mm}")
+
+
 def przepis(ziarno: int, rodzaj: str | None = None, krok_mm: float = 0.1) -> dict:
     """Przepis korony: komplet parametrow do odtworzenia siatki (bez geometrii)."""
+    _sprawdz_krok(krok_mm)
     rng, rodzaj = _rodzaj_z_ziarna(ziarno, rodzaj)
     return {
         "typ": "korona",
@@ -209,7 +215,8 @@ def przepis(ziarno: int, rodzaj: str | None = None, krok_mm: float = 0.1) -> dic
 def przepis_mostu(ziarno: int, punkty: int = 4, krok_mm: float = 0.1) -> dict:
     """Przepis mostu: 3 lub 4 korony w szeregu wzdluz X z lacznikami walcowymi."""
     if punkty not in (3, 4):
-        raise ValueError("most ma 3 albo 4 punkty")
+        raise ValueError(f"most ma 3 albo 4 punkty, podano {punkty}")
+    _sprawdz_krok(krok_mm)
     rng = np.random.default_rng(ziarno)
     zakres_sr = (7.0, 9.0) if punkty == 4 else (8.0, 10.5)
     wys = float(rng.uniform(6.5, 8.5))
@@ -270,6 +277,7 @@ def _siatka_mostu(prz: dict) -> trimesh.Trimesh:
 
 def z_przepisu(prz: dict) -> trimesh.Trimesh:
     """Siatka z przepisu korony albo mostu."""
+    _sprawdz_krok(prz.get("krok_mm", 0))
     if prz.get("typ", "korona") == "most":
         m = _siatka_mostu(prz)
         m.metadata["id"] = f"most-{int(prz['ziarno']):02d}"

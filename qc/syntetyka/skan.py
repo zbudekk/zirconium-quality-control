@@ -79,7 +79,7 @@ def brzeg(projekt) -> np.ndarray:
 
 def _specyfikacje(ubytki, rodzaj: str, rng: np.random.Generator) -> list[dict]:
     zakres = ZAKRESY_UBYTKOW[rodzaj]
-    lista = [{} for _ in range(ubytki)] if isinstance(ubytki, int) else [dict(u) for u in ubytki]
+    lista = [{} for _ in range(int(ubytki))] if isinstance(ubytki, (int, np.integer)) else [dict(u) for u in ubytki]
     for u in lista:
         u["rodzaj"] = rodzaj
         for klucz, (a, b) in zakres.items():
@@ -88,12 +88,13 @@ def _specyfikacje(ubytki, rodzaj: str, rng: np.random.Generator) -> list[dict]:
     return lista
 
 
-def _wybierz_srodki(siatka, spec, rng) -> None:
-    """Uzupelnia spec o srodek (wierzcholek powierzchni zewnetrznej przy brzegu)."""
+def _wybierz_srodki(siatka, spec, rng) -> np.ndarray:
+    """Uzupelnia spec o srodek (wierzcholek powierzchni zewnetrznej przy brzegu); zwraca krzywa brzegu."""
     v = np.asarray(siatka.vertices, dtype=np.float64)
     zmax = max([u["srednica_mm"] / 2 + 0.3 if u["rodzaj"] == "poprawka" else 0.6 for u in spec] + [0.6])
+    # jedno wywolanie _zewnetrzne: kandydaci na srodki i krzywa brzegu (pas |z| < 0,3) naraz
     kand = _zewnetrzne(siatka, -PAS_BRZEGU_MM, zmax)
-    krzywa = brzeg(siatka)
+    krzywa = v[kand[np.abs(v[kand, 2]) < PAS_BRZEGU_MM]]
     zajete = [(np.asarray(u["srodek"], dtype=np.float64), u["srednica_mm"] / 2) for u in spec if "srodek" in u]
     for u in spec:
         if "srodek" in u:
@@ -120,6 +121,7 @@ def _wybierz_srodki(siatka, spec, rng) -> None:
         c = v[int(rng.choice(pula))].copy()
         u["srodek"] = c
         zajete.append((c, r))
+    return krzywa
 
 
 def _zagesc(v, f, n, srodek, r, krok):
@@ -169,18 +171,18 @@ def _drgniecie(v, f, rng):
     return np.vstack([v, nowe_v]), np.vstack([f, nowe_f])
 
 
-def _pokrycie(v, f, pokrycie, pole_projektu, rng):
-    """Usuwa sciany w 3-6 platach (kule wokol losowych scian), az pole skanu = pokrycie x pole projektu.
+def _pokrycie(v, f, pokrycie, rng):
+    """Usuwa sciany w 3-6 platach (kule wokol losowych scian) do udzialu pola = pokrycie.
 
-    Pole liczone na siatce z szumem (szum zwieksza pole o kilkanascie procent), tak jak mierzy je
-    porownanie skanu z projektem.
+    Wolane PRZED szumem: udzial liczony z pol scian bez szumu (szum zawyza pole o kilkanascie procent),
+    wiec prawda.pokrycie nie zalezy od szum_mm.
     """
     _, pole = _normalne_scian(v, f)
     c = v[f].mean(axis=1)
     n_platow = int(rng.integers(3, 7))
     ziarna = c[rng.choice(len(f), n_platow, replace=False, p=pole / pole.sum())]
     odl = np.min(np.linalg.norm(c[:, None, :] - ziarna[None, :, :], axis=2), axis=1)
-    cel = max(pole.sum() - pokrycie * pole_projektu, 0.0)
+    cel = (1 - pokrycie) * pole.sum()
     lo, hi = 0.0, float(odl.max())
     for _ in range(40):
         sr = (lo + hi) / 2
@@ -191,23 +193,37 @@ def _pokrycie(v, f, pokrycie, pole_projektu, rng):
     return f[odl >= hi]
 
 
+def _sprawdz_argumenty(wspolczynnik, szum_mm, ubytki, poprawki, pokrycie, widocznosc) -> None:
+    if not wspolczynnik > 0:
+        raise ValueError(f"wspolczynnik musi byc > 0, jest {wspolczynnik}")
+    if not szum_mm >= 0:
+        raise ValueError(f"szum_mm nie moze byc ujemny, jest {szum_mm}")
+    if not 0 < pokrycie <= 1:
+        raise ValueError(f"pokrycie musi byc w przedziale (0; 1], jest {pokrycie}")
+    for nazwa, wartosc in (("ubytki", ubytki), ("poprawki", poprawki)):
+        if isinstance(wartosc, (int, np.integer)) and not isinstance(wartosc, bool):
+            if wartosc < 0:
+                raise ValueError(f"{nazwa} nie moze byc ujemne, jest {wartosc}")
+        elif not isinstance(wartosc, (list, tuple)):
+            raise ValueError(f"{nazwa}: oczekiwano liczby albo listy slownikow, jest {type(wartosc).__name__}")
+    if widocznosc not in ("pelna", "z_gory"):
+        raise ValueError(f"nieznana widocznosc: {widocznosc} (dozwolone: pelna, z_gory)")
+
+
 def skan_pracy(projekt, ziarno: int, wspolczynnik: float = 1.0, szum_mm: float = 0.02,
                ubytki=0, poprawki=0, drgniecie: bool = False, pokrycie: float = 1.0,
                widocznosc: str = "pelna") -> tuple[trimesh.Trimesh, PrawdaPracy]:
     """Syntetyczny skan pracy i prawda o nim (srodki ubytkow w ukladzie projektu)."""
-    if widocznosc not in ("pelna", "z_gory"):
-        raise ValueError(f"nieznana widocznosc: {widocznosc}")
+    _sprawdz_argumenty(wspolczynnik, szum_mm, ubytki, poprawki, pokrycie, widocznosc)
     m = _siatka(projekt)
     rng = np.random.default_rng(ziarno)
     v = np.array(m.vertices, dtype=np.float64)
     f = np.array(m.faces, dtype=np.int64)
     n = normalne_wierzcholkow(v, f)
-    pole_projektu = float(_normalne_scian(v, f)[1].sum())
     krok = float(np.linalg.norm(v[f[:, 0]] - v[f[:, 1]], axis=1).mean())
 
     spec = _specyfikacje(ubytki, "ukruszenie", rng) + _specyfikacje(poprawki, "poprawka", rng)
-    _wybierz_srodki(m, spec, rng)
-    krzywa = brzeg(m) if spec else np.zeros((0, 3))
+    krzywa = _wybierz_srodki(m, spec, rng) if spec else np.zeros((0, 3))
 
     for u in spec:
         c = np.asarray(u["srodek"], dtype=np.float64)
@@ -227,13 +243,15 @@ def skan_pracy(projekt, ziarno: int, wspolczynnik: float = 1.0, szum_mm: float =
             profil = g * np.exp(-rho[maska] ** 2 / (2 * (r / 2) ** 2))
         v[maska] -= n[maska] * profil[:, None]
 
+    if pokrycie < 1.0:
+        f = _pokrycie(v, f, pokrycie, rng)
+
     # szum wzdluz normalnych liczonych przed ubytkami
-    v += n * rng.normal(0.0, szum_mm, len(v))[:, None] if szum_mm > 0 else 0.0
+    if szum_mm > 0:
+        v = v + n * rng.normal(0.0, szum_mm, len(v))[:, None]
 
     if drgniecie:
         v, f = _drgniecie(v, f, rng)
-    if pokrycie < 1.0:
-        f = _pokrycie(v, f, pokrycie, pole_projektu, rng)
     if widocznosc == "z_gory":
         ns, _ = _normalne_scian(v, f)
         f = f[ns[:, 2] >= -0.3]

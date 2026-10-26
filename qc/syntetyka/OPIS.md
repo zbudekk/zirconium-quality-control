@@ -35,16 +35,28 @@ Tylko numpy i trimesh (bez scipy: normalne wierzcholkow liczone w numpy, bez `sp
   most 20-45 mm, niezamkniety - konkatenacja czesci). `metadata["id"]`, `metadata["przepis"]`.
 - `Projekt(id, rodzaj, siatka, parametry)` w puli; przepisy sa slownikami JSON bez geometrii.
 - `brzeg`: (N, 3) wierzcholki powierzchni zewnetrznej w pasie |z| < 0,3 mm.
-- `skan_pracy`: `(Trimesh, PrawdaPracy)`. Skan = projekt z ubytkami (w ukladzie projektu), szumem
-  N(0, szum) wzdluz normalnych liczonych przed ubytkami, potem skala k (`T_projekt_do_skanu` =
-  diag(k, k, k, 1)) i tasowanie wierzcholkow i scian. Ukruszenie: srodek <= 0,5 mm od brzegu (na
-  scianie, nad plaszczyzna brzegu), srednica 0,2-0,6, glebokosc 0,1-0,3, profil ostry; male ubytki
-  lokalnie zageszczaja siatke (liczba scian rosnie). Poprawka: srednica 2,5-4, glebokosc 0,08-0,2,
-  profil gaussowski, srodek ~r nad brzegiem. Srodki parami >= 2 mm. Drgniecie: kopia ~40 % scian
-  (polowa bryly od strony losowego kierunku poziomego, sciany najbardziej zgodne z tym kierunkiem)
-  przesunieta o 0,10 mm wzdluz sredniej normalnej platu. Pokrycie < 1: 3-6 platow usunietych tak, by
-  pole skanu (z szumem) = pokrycie x pole projektu. `widocznosc="z_gory"` usuwa sciany o normalnej
-  z < -0,3.
+- `skan_pracy`: `(Trimesh, PrawdaPracy)`. Kolejnosc: ubytki (uklad projektu) -> pokrycie -> szum
+  N(0, szum) wzdluz normalnych liczonych przed ubytkami -> drgniecie -> widocznosc -> skala k
+  (`T_projekt_do_skanu` = diag(k, k, k, 1)) -> tasowanie wierzcholkow i scian.
+- Ukruszenie: srodek = wierzcholek sciany zewnetrznej 0,30-0,55 mm nad plaszczyzna brzegu (<= 0,5 mm od
+  krzywej brzegu); ubytek nie przecina krawedzi brzegu (dno nie schodzi pod z = 0). Srednica 0,2-0,6,
+  glebokosc 0,1-0,3, profil ostry (pelna glebokosc do 0,7 r, liniowo do 0 w r). Srodki parami >= 2 mm.
+- Male ubytki lokalnie zageszczaja siatke (podzial trojkatow w kuli 2r): liczba scian rosnie, a na
+  granicy podzialu powstaja T-junctions - skan NIE jest wodoszczelny. Inne moduly nie moga wymagac
+  `is_watertight` skanu (projekt korony jest wodoszczelny, most nie).
+- Poprawka: srednica 2,5-4, glebokosc 0,08-0,2, profil gaussowski (sigma r/2), srodek ~r nad brzegiem.
+- Drgniecie: plat = 40 % scian najbardziej zgodnych z losowym kierunkiem poziomym u (z polowy bryly od
+  strony u), w tym czesc scian wewnetrznych; kopia platu przesunieta o 0,10 mm wzdluz sredniej normalnej
+  platu (normalne wyrownane znakiem do u) i dodana do siatki. Tylko ok. 50 % scian platu ma
+  |n . n_sr| >= 0,7 (spojny plat o zgodnych normalnych to najwyzej ok. 15-20 % scian korony).
+- Pokrycie < 1: 3-6 platow usunietych PRZED szumem tak, by pole pozostalych scian bez szumu =
+  pokrycie x pole projektu (x k^2 po skali); prawda.pokrycie nie zalezy od szum_mm. Pole skanu z szumem
+  jest wieksze (szum 0,02 przy kroku 0,1 zawyza pole o ok. 14 %).
+- `widocznosc="z_gory"` usuwa sciany o normalnej z < -0,3.
+- Bledne argumenty (krok_mm <= 0, pokrycie poza (0; 1], wspolczynnik <= 0, szum_mm < 0, ubytki/poprawki
+  < 0, nieznana widocznosc) -> `ValueError` z polskim komunikatem.
+- Normalne wierzcholkow licz `qc.syntetyka.skan.normalne_wierzcholkow(v, f)` - `trimesh.vertex_normals`
+  bez scipy przechodzi na wolna petle (ok. 2 min na korone).
 - Prawda JSON (`Prawda.do_json` / `Prawda.z_json`): macierze jako listy list, srodki ubytkow w
   ukladzie projektu bez skali.
 
