@@ -52,6 +52,10 @@ drgniecie_odleglosc_mm = 0.08
 max_blad_wyrownania_mm = 0.1
 margines_gniazda_mm = 1.0
 min_pole_pracy_mm2 = 5.0
+# sciana skanu dalej od modelu plytki niz prog = praca
+prog_od_plytki_mm = 0.25
+# druga skladowa w gniezdzie stozkowym = osobna praca (podwojne) od tego udzialu pola najwiekszej
+min_udzial_drugiej_pracy = 0.2
 
 [pula]
 dni_rano = 4

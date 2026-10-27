@@ -799,3 +799,46 @@ def test_wspolczynniki_kodowanie(tmp_path):
     with pytest.raises(ValueError, match=r"zapisz jako CSV UTF-8") as e:
         w.wczytaj(puste)
     assert re.search(r"\b1\b", str(e.value))
+
+
+# --- nazwy: kod albo imie po numerze kuwety -----------------------------------
+
+
+@pytest.mark.parametrize("folder, kuweta, nazwisko", [
+    ("Kowalski 1784 PG", "1784", "Kowalski"),
+    ("Kowalski 1784PG", "1784", "Kowalski"),
+    ("Kowalski 1784 Patrycja", "1784", "Kowalski"),
+    ("Kowalski 1784pg", "1784", "Kowalski"),
+    ("Kowalski 0041AB", "41", "Kowalski"),
+    ("Kowalski 12345", None, "Kowalski"),
+    ("Kowalski 12345PG", None, "Kowalski"),
+    # litery przed cyframi: liczba nie jest samodzielna -> brak kuwety, nazwisko = caly kod literowy
+    ("PG1784", None, "PG"),
+    ("Kowalski PG1784", None, "Kowalski"),
+    # cyfry Unicode (pelnej szerokosci) i NFC jak dotad
+    ("Kowalski \uff11\uff17\uff18\uff14PG", "1784", "Kowalski"),
+    ("Wis\u0301niewska 3PG", "3", "Wi\u015bniewska"),
+])
+def test_rozbierz_kod_po_numerze(folder, kuweta, nazwisko):
+    z = _nazwy().rozbierz(folder)
+    assert z.kuweta == kuweta
+    assert z.nazwisko == nazwisko
+    assert z.prywatne is False
+
+
+def test_znormalizuj_kod_po_numerze():
+    zn = _nazwy().znormalizuj
+    assert zn("Kowalski 1784PG") == "kowalski 1784 pg"
+    assert zn("Kowalski 1784PG") == zn("Kowalski 1784 PG")
+    assert zn("Kowalski 0041ab") == "kowalski 41 ab"
+    assert zn("Kowalski 1784 Patrycja") == "kowalski 1784 patrycja"
+    assert zn("PG1784") == "pg1784"
+
+
+@pytest.mark.parametrize("plik, numer", [
+    ("Kowalski 1784PG 36.stl", 36),
+    ("Kowalski_1784PG_47.stl", 47),
+    ("36PG.stl", None),
+])
+def test_numer_zeba_kod_po_numerze(plik, numer):
+    assert _nazwy().numer_zeba(plik) == numer

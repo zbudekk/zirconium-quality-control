@@ -7,6 +7,11 @@ from pathlib import PurePath
 
 # samodzielna liczba: bez cyfr i liter tuz obok (podkreslnik, spacja, kropka, lacznik = separator)
 _LICZBA = re.compile(r"(?<![^\W_])\d+(?![^\W_])")
+# numer kuwety: jak wyzej, ale wolno mu przylegac z prawej do liter kodu ("1784PG"); litery przed
+# cyframi ("PG1784") nadal wykluczaja liczbe
+_KUWETA = re.compile(r"(?<![^\W_])\d+(?!\d)")
+# granica liczba -> litery ("1784PG" -> "1784 PG")
+_LICZBA_LITERY = re.compile(r"(?<=\d)(?=[^\W\d_])")
 _PRYWATNE = re.compile(r"#\s*(\d+)")
 _NAZWISKO = re.compile(r"[^\W\d_]+(?:-[^\W\d_]+)*")
 _ZEBY = {10 * c + z for c in range(1, 5) for z in range(1, 9)}
@@ -26,21 +31,23 @@ class Zlecenie:
 
 
 def rozbierz(folder: str) -> Zlecenie:
-    """Folder zlecenia -> kuweta (pierwsza samodzielna liczba 1-4 cyfr bez zer wiodacych), nazwisko."""
+    """Folder zlecenia -> kuweta (pierwsza samodzielna liczba 1-4 cyfr bez zer wiodacych, z prawej
+    moze byc sklejona z kodem literowym: "Kowalski 1784PG" -> "1784"), nazwisko."""
     folder = _nfc(folder)
     prywatne = _PRYWATNE.search(folder)
     if prywatne:
         kuweta = "#" + prywatne.group(1)
     else:
-        kuweta = next((str(int(m.group())) for m in _LICZBA.finditer(folder) if len(m.group()) <= 4), None)
+        kuweta = next((str(int(m.group())) for m in _KUWETA.finditer(folder) if len(m.group()) <= 4), None)
     nazwisko = _NAZWISKO.search(folder)
     return Zlecenie(kuweta=kuweta, nazwisko=nazwisko.group() if nazwisko else None, nazwa=folder,
                     prywatne=prywatne is not None)
 
 
 def znormalizuj(tekst: str) -> str:
-    """Male litery, pojedyncze spacje, bez spacji na koncach, liczby bez zer wiodacych."""
-    tekst = " ".join(_nfc(tekst).lower().split())
+    """Male litery, pojedyncze spacje, bez spacji na koncach, liczby bez zer wiodacych, spacja miedzy
+    liczba a sklejonymi z nia z prawej literami ("1784PG" i "1784 PG" -> "1784 pg")."""
+    tekst = " ".join(_LICZBA_LITERY.sub(" ", _nfc(tekst)).lower().split())
     return re.sub(r"\d+", lambda m: str(int(m.group())), tekst)
 
 
