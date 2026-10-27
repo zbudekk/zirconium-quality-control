@@ -335,11 +335,13 @@ def test_baza_schemat(tmp_path):
             assert [(w[1], w[2].upper(), w[3], w[5]) for w in info] == oczekiwane, tabela
         dflt = {w[1]: w[4] for w in pol.execute("PRAGMA table_info(projekty)")}
         assert dflt["usuniety"] == "0"
-        unikalne = []
+        # sciezka unikalna w obrebie zrodla (decyzja wlasciciela): UNIQUE(zrodlo, sciezka)
+        unikalne = set()
         for w in pol.execute("PRAGMA index_list(projekty)"):
             if w[2]:
-                unikalne += [k[2] for k in pol.execute(f"PRAGMA index_info('{w[1]}')")]
-        assert "sciezka" in unikalne
+                unikalne.add(tuple(k[2] for k in pol.execute(f"PRAGMA index_info('{w[1]}')")))
+        assert ("zrodlo", "sciezka") in unikalne
+        assert ("sciezka",) not in unikalne
 
     przed = _opis_tabel(sciezka)
     _baza().Baza(sciezka).utworz()
@@ -602,3 +604,198 @@ def test_baza_sciezki_wzgledne(tmp_path, pula30, monkeypatch):
     shutil.rmtree(stare / "Prywatne")
     r = _indeks().skanuj(ust2, b2, teraz)
     assert (r.nowe, r.zmienione, r.usuniete) == (0, 0, 0)
+
+
+# --- poprawki po recenzji -----------------------------------------------------
+#
+# Kontrakt dopisany po recenzji PR #4:
+# - RaportIndeksu.bledy: int i RaportIndeksu.bledne: list[str] (sciezki wzgledne z "/"); plik, ktorego nie
+#   da sie wczytac, dostaje rekord z cechami None, skan idzie dalej; ponowna proba po zmianie mtime/rozmiaru.
+# - skanuj pomija pliki z mtime starszym niz pula.usuwaj_po_dniach (bez rekordu i bez cech), a istniejacego
+#   rekordu takiego pliku nie oznacza jako usuniety.
+# - pula_wieczor zwraca krotke (wpisy, brakujace) z dodatkowym atrybutem `niejednoznaczne: int`.
+# - pula_rano(..., ustawienia=None), pula_wieczor(..., ustawienia=None): dni domyslnie z ustawien.
+
+
+def _ustawienia_z(katalog: Path, monkeypatch, **pula):
+    """Jak _ustawienia, z nadpisanymi kluczami sekcji [pula]."""
+    _ustawienia(katalog, monkeypatch)
+    plik = katalog / "ustawienia.toml"
+    tekst = plik.read_text(encoding="utf-8")
+    for klucz, wartosc in pula.items():
+        tekst, n = re.subn(rf'(?m)^{klucz}\s*=.*$', f'{klucz} = {wartosc}', tekst, count=1)
+        assert n == 1, klucz
+    plik.write_text(tekst, encoding="utf-8")
+    return wczytaj(plik)
+
+
+def test_ta_sama_sciezka_w_dwoch_zrodlach(tmp_path, pula30, monkeypatch):
+    teraz = datetime(2026, 10, 27, 10, 0)
+    katalog = tmp_path / "stanowisko"
+    ust = _ustawienia(katalog, monkeypatch)
+    _zapisz_stl(pula30[0].siatka, katalog / "Cyrkon" / "Testowy 101" / "11.stl", teraz - timedelta(hours=2))
+    _zapisz_stl(pula30[1].siatka, katalog / "Prywatne" / "Testowy 101" / "11.stl", teraz - timedelta(hours=2))
+    b = _nowa_baza(ust)
+    r = _indeks().skanuj(ust, b, teraz)
+    assert r.nowe == 2
+    rekordy = _wedlug_sciezki(b.projekty())
+    assert set(rekordy) == {("cyrkon", "Testowy 101/11.stl"), ("prywatne", "Testowy 101/11.stl")}
+    assert rekordy[("cyrkon", "Testowy 101/11.stl")]["objetosc_mm3"] == pytest.approx(
+        pula30[0].siatka.volume, rel=0.01)
+    assert rekordy[("prywatne", "Testowy 101/11.stl")]["objetosc_mm3"] == pytest.approx(
+        pula30[1].siatka.volume, rel=0.01)
+    r = _indeks().skanuj(ust, b, teraz)
+    assert (r.nowe, r.zmienione, r.usuniete) == (0, 0, 0)
+
+
+def test_indeks_bledne_pliki(tmp_path, pula30, monkeypatch):
+    teraz = datetime(2026, 10, 27, 10, 0)
+    kiedy = teraz - timedelta(hours=2)
+    katalog = tmp_path / "stanowisko"
+    ust = _ustawienia(katalog, monkeypatch)
+    for i in range(4):
+        _zapisz_stl(pula30[i].siatka, katalog / "Cyrkon" / f"Testowy {101 + i}" / "11.stl", kiedy)
+    uszkodzony = katalog / "Cyrkon" / "Testowy 105" / "11.stl"
+    uszkodzony.parent.mkdir()
+    uszkodzony.write_bytes(np.random.default_rng(7).integers(0, 256, 3000, dtype=np.uint8).tobytes())
+    _ustaw_czas(uszkodzony, kiedy)
+    _zapisz_stl(pula30[5].siatka, katalog / "Cyrkon" / "Testowy 106" / "11.stl", kiedy)
+
+    oryginal = trimesh.load
+
+    def load_z_blokada(plik, *a, **kw):
+        if "Testowy 106" in str(plik):
+            raise PermissionError(13, "plik zablokowany przez inny proces", str(plik))
+        return oryginal(plik, *a, **kw)
+
+    monkeypatch.setattr(trimesh, "load", load_z_blokada)
+    b = _nowa_baza(ust)
+    r = _indeks().skanuj(ust, b, teraz)
+    assert r.bledy == 2
+    assert sorted(r.bledne) == ["Testowy 105/11.stl", "Testowy 106/11.stl"]
+    rekordy = {x["folder"]: x for x in b.projekty()}
+    assert len(rekordy) == 6
+    z_cechami = {f for f, x in rekordy.items() if x["d2"] is not None and x["wym1_mm"] is not None}
+    assert z_cechami == {f"Testowy {101 + i}" for i in range(4)}
+    assert rekordy["Testowy 105"]["d2"] is None and rekordy["Testowy 105"]["objetosc_mm3"] is None
+
+    # bez zmiany pliku nie ma ponownej proby
+    r = _indeks().skanuj(ust, b, teraz)
+    assert (r.nowe, r.zmienione, r.usuniete, r.bledy) == (0, 0, 0, 0)
+
+    # plik poprawiony (inny mtime i rozmiar) -> ponowna proba, cechy wypelnione
+    monkeypatch.setattr(trimesh, "load", oryginal)
+    _zapisz_stl(pula30[6].siatka, uszkodzony, teraz - timedelta(hours=1))
+    r = _indeks().skanuj(ust, b, teraz)
+    assert (r.zmienione, r.bledy) == (1, 0)
+    po = {x["folder"]: x for x in b.projekty()}["Testowy 105"]
+    assert po["objetosc_mm3"] == pytest.approx(pula30[6].siatka.volume, rel=0.01)
+
+
+def test_indeks_pomija_stare_pliki(tmp_path, pula30, monkeypatch):
+    teraz = datetime(2026, 10, 27, 10, 0)
+    katalog = tmp_path / "stanowisko"
+    ust = _ustawienia(katalog, monkeypatch)
+    assert ust.pula.usuwaj_po_dniach == 10
+    _zapisz_stl(pula30[0].siatka, katalog / "Cyrkon" / "Stary 101" / "11.stl", teraz - timedelta(days=11))
+    _zapisz_stl(pula30[1].siatka, katalog / "Cyrkon" / "Prawie 102" / "11.stl",
+                teraz - timedelta(days=9, hours=12))
+    _zapisz_stl(pula30[2].siatka, katalog / "Cyrkon" / "Nowy 103" / "11.stl", teraz - timedelta(hours=1))
+    b = _nowa_baza(ust)
+    r = _indeks().skanuj(ust, b, teraz)
+    assert r.nowe == 2
+    assert {x["folder"] for x in b.projekty(usuniete=True)} == {"Prawie 102", "Nowy 103"}
+
+    # dzien pozniej: "Prawie 102" ma juz 10,5 dnia - nie wraca jako nowy ani usuniety
+    jutro = teraz + timedelta(days=1)
+    r = _indeks().skanuj(ust, b, jutro)
+    assert (r.nowe, r.zmienione, r.usuniete) == (0, 0, 0)
+    assert b.usun_starsze_niz(ust.pula.usuwaj_po_dniach, jutro) == 1
+    r = _indeks().skanuj(ust, b, jutro)
+    assert (r.nowe, r.zmienione, r.usuniete) == (0, 0, 0)
+    assert {x["folder"] for x in b.projekty(usuniete=True)} == {"Nowy 103"}
+
+
+def test_pula_wieczor_te_same_nazwy(tmp_path, pula30, monkeypatch):
+    teraz = datetime(2026, 10, 27, 10, 0)  # wtorek
+    katalog = tmp_path / "stanowisko"
+    ust = _ustawienia(katalog, monkeypatch)
+    pliki = {
+        "Stary 101/36.stl": datetime(2026, 10, 22, 12, 0),
+        "Nowy 102/36.stl": datetime(2026, 10, 26, 12, 0),
+        "Nowy A 201/47.stl": datetime(2026, 10, 26, 12, 0),
+        "Nowy B 202/47.stl": datetime(2026, 10, 27, 8, 0),
+    }
+    for i, (sciezka, kiedy) in enumerate(pliki.items()):
+        _zapisz_stl(pula30[i].siatka, katalog / "Cyrkon" / sciezka, kiedy)
+    b = _nowa_baza(ust)
+    _indeks().skanuj(ust, b, teraz)
+    ids = {x["sciezka"]: x["id"] for x in b.projekty()}
+
+    csv = _zapisz_csv(tmp_path / "wspolczynniki.csv", [
+        "36.stl;K-01;1,2101;2026-10-27",  # bez folderu: Stary 101 poza oknem -> tylko Nowy 102
+        "Stary 101\\36.STL;K-01;1,2102;2026-10-26",  # z folderem: dokladnie Stary 101
+        "47.stl;K-02;1,2103;2026-10-26",  # dwoch kandydatow w oknie -> blizszy dacie z CSV
+        "47.stl;K-02;1,2104;2026-10-27",
+        "Brak 999/36.stl;K-03;1,2105;2026-10-27",  # folder podany, ale nie ma go w bazie
+    ])
+    wynik = _indeks().pula_wieczor(b, _wspolczynniki().wczytaj(csv), teraz, ustawienia=ust)
+    wpisy, brakujace = wynik
+    assert brakujace == 1
+    assert wynik.niejednoznaczne == 2
+    assert [(x.projekt_id, x.wspolczynnik) for x in wpisy] == [
+        (ids["Nowy 102/36.stl"], pytest.approx(1.2101)),
+        (ids["Stary 101/36.stl"], pytest.approx(1.2102)),
+        (ids["Nowy A 201/47.stl"], pytest.approx(1.2103)),
+        (ids["Nowy B 202/47.stl"], pytest.approx(1.2104)),
+    ]
+
+
+def test_pule_z_ustawien(tmp_path, pula30, monkeypatch):
+    teraz = datetime(2026, 10, 28, 10, 0)  # sroda
+    katalog = tmp_path / "stanowisko"
+    ust = _ustawienia_z(katalog, monkeypatch, dni_rano=1, dni_wieczor=1)
+    daty = {
+        "Piatek 203": datetime(2026, 10, 23, 15, 0),
+        "Wtorek 207": datetime(2026, 10, 27, 23, 30),
+        "Dzis 208": datetime(2026, 10, 28, 7, 0),
+    }
+    _drzewo_dat(katalog, pula30, daty)
+    b = _nowa_baza(ust)
+    _indeks().skanuj(ust, b, teraz)
+    wpisy = _indeks().pula_rano(b, teraz, ustawienia=ust)
+    assert {b.projekt(w.projekt_id)["folder"] for w in wpisy} == {"Wtorek 207", "Dzis 208"}
+
+    csv = _zapisz_csv(tmp_path / "wspolczynniki.csv", [
+        "Wtorek 207/11.stl;K-01;1,22;2026-10-27",
+        "Dzis 208/11.stl;K-01;1,23;2026-10-28",
+    ])
+    wpisy, brakujace = _indeks().pula_wieczor(b, _wspolczynniki().wczytaj(csv), teraz, ustawienia=ust)
+    assert brakujace == 0
+    assert [b.projekt(w.projekt_id)["folder"] for w in wpisy] == ["Dzis 208"]
+
+
+def test_nazwy_nfc():
+    n = _nazwy()
+    z = n.rozbierz("Wis\u0301niewska 3")
+    assert z.nazwisko == "Wi\u015bniewska"
+    assert z.kuweta == "3"
+    assert n.znormalizuj("  Wis\u0301niewska  003 ") == "wi\u015bniewska 3"
+    assert n.numer_zeba("Wis\u0301niewska 36.stl") == 36
+
+
+def test_wspolczynniki_kodowanie(tmp_path):
+    w = _wspolczynniki()
+    tekst = ("plik;krazek;wspolczynnik;data\n36.stl;K-01;1,22;2026-10-27\n"
+             "Wi\u015bniewska.stl;K-01;1,23;2026-10-27\n")
+    cp1250 = tmp_path / "cp1250.csv"
+    cp1250.write_bytes(tekst.encode("cp1250"))
+    with pytest.raises(ValueError, match=r"zapisz jako CSV UTF-8") as e:
+        w.wczytaj(cp1250)
+    assert re.search(r"\b3\b", str(e.value))
+
+    puste = tmp_path / "puste.csv"
+    puste.write_text("\n\n" + tekst, encoding="utf-8")
+    with pytest.raises(ValueError, match=r"zapisz jako CSV UTF-8") as e:
+        w.wczytaj(puste)
+    assert re.search(r"\b1\b", str(e.value))
