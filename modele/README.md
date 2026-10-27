@@ -34,7 +34,7 @@ wszystkie 3 dolki; plytka o numerze n ma tylko dolki bitow = 1 i relief cyfry (`
 ## Wyjatek od konwencji ASCII
 
 Pola tekstowe `coords` zawieraja polskie znaki (UTF-8), bo pliki pochodza ze zrodla zewnetrznego
-(skrypt ramki). Pliki sa w repo bajt w bajt jak z ramki (UTF-8, konce linii LF); qc czyta je jako UTF-8.
+(skrypt ramki). Pliki sa w repo bajt w bajt jak z ramki (UTF-8, konce linii CRLF, bez konwersji: `-text` w .gitattributes); qc czyta je jako UTF-8.
 Nie poprawiac ich recznie.
 
 ## Podmiana po zmianie ramki
