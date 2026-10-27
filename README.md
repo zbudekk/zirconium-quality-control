@@ -39,6 +39,15 @@ python -m pytest
 
 Pierwsze polecenie uruchamia testy szybkie (jak CI dla PR), drugie wszystkie, razem z wolnymi metrykami.
 
+## Watki i biblioteki numeryczne
+
+Wielowatkowy OpenBLAS (mnozenia `@` w numpy) wolany z watku Pythona rownolegle z open3d (OpenMP) w
+innym watku konczyl sie access violation. Dlatego `import qc` ustawia jeden watek BLAS
+(`OPENBLAS_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, przez `setdefault`), a gdy numpy jest juz zaladowane -
+`qc.ogranicz_blas()` ustawia to samo w bibliotece OpenBLAS numpy przez ctypes. Program rownolegli
+prace w watkach Pythona, wiec BLAS nie musi. open3d zostaje wielowatkowy (`OMP_NUM_THREADS` bez zmian).
+Program stanowiska importuje `qc` przed numpy; testy ustawiaja zmienna na poczatku `tests/conftest.py`.
+
 ## Ustawienia
 
 Sciezki i progi wykrywania sa w `ustawienia.toml` (nie w kodzie). Sciezki wzgledne liczone sa wzgledem

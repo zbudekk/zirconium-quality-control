@@ -4,7 +4,12 @@ Importy modulow qc.syntetyka i open3d sa wewnatrz fixtures, zeby blad jednej cze
 nie blokowal zbierania testow pozostalych czesci.
 """
 
-import numpy as np
+import os
+
+# Jeden watek BLAS przed pierwszym importem numpy (pytest laduje conftest przed qc); patrz qc/__init__.py.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+
+import numpy as np  # noqa: E402
 import pytest
 
 
