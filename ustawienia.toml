@@ -42,6 +42,9 @@ min_srednica_mm = 0.2
 max_srednica_mm = 1.5
 pas_brzegu_mm = 1.5
 poprawka_min_srednica_mm = 2.0
+# ostra krawedz ukruszenia: min. stromosc obwodu (mm glebokosci na mm promienia, miedzy 0,3 a 0,7 glebokosci);
+# gladsze i szersze niz poprawka_min_srednica_mm = poprawka
+ostrosc_min = 0.25
 drgniecie_udzial = 0.15
 drgniecie_odleglosc_mm = 0.08
 

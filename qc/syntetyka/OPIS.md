@@ -25,7 +25,7 @@ Tylko numpy i trimesh (bez scipy: normalne wierzcholkow liczone w numpy, bez `sp
   `prace.przepis_mostu(ziarno, punkty, krok_mm)`, `prace.z_przepisu(przepis)`.
 - `skan.brzeg(projekt)`.
 - `skan.skan_pracy(projekt, ziarno, wspolczynnik=1.0, szum_mm=0.02, ubytki=0, poprawki=0,
-  drgniecie=False, pokrycie=1.0, widocznosc="pelna")` - `ubytki`/`poprawki` jako liczba albo lista
+  drgniecie=False, pokrycie=1.0, widocznosc="pelna", zageszczaj=True)` - `ubytki`/`poprawki` jako liczba albo lista
   slownikow (`srednica_mm`, `glebokosc_mm`, opcjonalnie `srodek`; brakujace pola losowane).
 - Uklad projektu: mm, brzeg w z ~ 0, powierzchnia zujaca w gore, os wprowadzenia Z.
 
@@ -45,6 +45,8 @@ Tylko numpy i trimesh (bez scipy: normalne wierzcholkow liczone w numpy, bez `sp
 - Male ubytki lokalnie zageszczaja siatke (podzial trojkatow w kuli 2r): liczba scian rosnie, a na
   granicy podzialu powstaja T-junctions - skan NIE jest wodoszczelny. Inne moduly nie moga wymagac
   `is_watertight` skanu (projekt korony jest wodoszczelny, most nie).
+- `zageszczaj=False` wylacza lokalne zageszczenie: siatka skanu ma gestosc projektu (np. krok 0,08 mm),
+  jak w prawdziwym skanerze; sluzy do sprawdzenia, ze czulosc inspekcji nie zalezy od podzialu siatki.
 - Poprawka: srednica 2,5-4, glebokosc 0,08-0,2, profil gaussowski (sigma r/2), srodek ~r nad brzegiem.
 - Drgniecie: plat = 40 % scian najbardziej zgodnych z losowym kierunkiem poziomym u (z polowy bryly od
   strony u), w tym czesc scian wewnetrznych; kopia platu przesunieta o 0,10 mm wzdluz sredniej normalnej
