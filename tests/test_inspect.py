@@ -379,3 +379,116 @@ def test_metryki_pelne(pula30, ustawienia):
     razem = sum(tabela[(0.02, k)][0] + tabela[(0.02, k)][1] for k in ("0,3-0,4", "0,4-0,6"))
     assert razem > 0
     assert w / razem >= 0.85, (w, razem)
+
+
+# --- testy po recenzji: zaburzone T, plytkie szerokie ukruszenia, siatka bez zageszczania ----------
+
+
+def zaburzenie(rng, przesuniecie_mm=0.05, obrot_st=0.1):
+    """Macierz 4x4: obrot o obrot_st wokol losowej osi i przesuniecie w losowym kierunku."""
+    os_obrotu = rng.normal(size=3)
+    os_obrotu /= np.linalg.norm(os_obrotu)
+    kierunek = rng.normal(size=3)
+    kierunek /= np.linalg.norm(kierunek)
+    kat = np.radians(obrot_st)
+    K = np.array([[0, -os_obrotu[2], os_obrotu[1]], [os_obrotu[2], 0, -os_obrotu[0]],
+                  [-os_obrotu[1], os_obrotu[0], 0]])
+    D = np.eye(4)
+    D[:3, :3] = np.eye(3) + np.sin(kat) * K + (1 - np.cos(kat)) * K @ K
+    D[:3, 3] = przesuniecie_mm * kierunek
+    return D
+
+
+def _licz_z_T(zadanie, ustawienia, inspekcja=True):
+    """Jak _licz, ale T = prawda.T @ D (D = zadanie[3] albo None); prawda nadal liczona przez prawda.T."""
+    projekt, ziarno, kw, D = zadanie
+    fragment, prawda = modul_skan.skan_pracy(projekt, ziarno=ziarno, **kw)
+    T = prawda.T_projekt_do_skanu if D is None else prawda.T_projekt_do_skanu @ D
+    wynik = _inspect().sprawdz(fragment, projekt, T, ustawienia) if inspekcja else None
+    return {"projekt": projekt, "fragment": fragment, "prawda": prawda, "wynik": wynik, "T": T}
+
+
+def licz_rownolegle_z_T(zadania, ustawienia, inspekcja=True):
+    watki = min(8, os.cpu_count() or 1)
+    with ThreadPoolExecutor(max_workers=watki) as pula_watkow:
+        return list(pula_watkow.map(lambda z: _licz_z_T(z, ustawienia, inspekcja), zadania))
+
+
+@pytest.fixture(scope="session")
+def pula30_008():
+    """Pula 30 projektow jak pula30, ale krok siatki 0,08 mm."""
+    from qc.syntetyka import prace
+
+    return prace.pula_projektow(30, 1, krok_mm=0.08)
+
+
+ZESTAWY_RECENZJI = {
+    # nazwa: (pula, ziarno, liczba prac, ubytki, kwargs skan_pracy, zaburzenie T)
+    "duze_zaburzone": ("pula30", 101, 20, (3, (0.4, 0.6), (0.12, 0.3)), dict(szum_mm=0.02), True),
+    "plytkie_1_0": ("pula30", 111, 10, [{"srednica_mm": 1.0, "glebokosc_mm": 0.12}], dict(szum_mm=0.02), False),
+    "plytkie_1_2": ("pula30", 112, 10, [{"srednica_mm": 1.2, "glebokosc_mm": 0.10}], dict(szum_mm=0.02), False),
+    "plytkie_1_5": ("pula30", 113, 10, [{"srednica_mm": 1.5, "glebokosc_mm": 0.15}], dict(szum_mm=0.02), False),
+    "srednie_bez_zag": ("pula30_008", 121, 20, (3, (0.3, 0.4), (0.10, 0.2)),
+                        dict(szum_mm=0.02, zageszczaj=False), False),
+    "male_bez_zag": ("pula30_008", 122, 20, (3, (0.2, 0.3), (0.08, 0.15)),
+                     dict(szum_mm=0.02, zageszczaj=False), False),
+}
+
+
+@pytest.fixture(scope="session")
+def bank_recenzji(pula30, pula30_008, ustawienia):
+    """Fabryka: bank_recenzji(nazwa) -> rekordy {projekt, fragment, prawda, wynik, T} (liczona raz)."""
+    pule = {"pula30": pula30, "pula30_008": pula30_008}
+    pamiec = {}
+
+    def _bank(nazwa):
+        if nazwa not in pamiec:
+            pula, ziarno, n, ubytki, kw, zaburz = ZESTAWY_RECENZJI[nazwa]
+            rng = np.random.default_rng(ziarno + 7)
+            zadania = [(p, z, a, zaburzenie(rng) if zaburz else None)
+                       for p, z, a in przygotuj_prace(pule[pula], ziarno, n, ubytki, **kw)]
+            pamiec[nazwa] = licz_rownolegle_z_T(zadania, ustawienia)
+        return pamiec[nazwa]
+
+    return _bank
+
+
+def test_t_zaburzone(bank_recenzji):
+    rekordy = bank_recenzji("duze_zaburzone")
+    drgniete = sum(1 for r in rekordy if r["wynik"].drgniecie)
+    wykryte, pominiete, falszywe, _, _ = sumuj(rekordy)
+    print(f"T zaburzone 0,05 mm / 0,1 st.: drgniecie {drgniete}/20, wykryte {wykryte}/60, "
+          f"pominiete {pominiete}, falszywe {falszywe}")
+    assert drgniete <= 1
+    assert wykryte >= 48
+    assert falszywe <= 3
+
+
+def test_drgniecie_przy_zaburzonym_t(pula30, ustawienia):
+    inspect = _inspect()
+    rng = np.random.default_rng(131)
+    zadania = [(p, z, a, zaburzenie(rng))
+               for p, z, a in przygotuj_prace(pula30, 131, 5, None, szum_mm=0.02, drgniecie=True)]
+    rekordy = licz_rownolegle_z_T(zadania, ustawienia, inspekcja=False)
+    wyniki = [inspect.wykryj_drgniecie(r["fragment"], r["projekt"], r["T"], ustawienia) for r in rekordy]
+    assert wyniki == [True] * 5, wyniki
+
+
+@pytest.mark.parametrize("nazwa", ["plytkie_1_0", "plytkie_1_2", "plytkie_1_5"])
+def test_ukruszenia_plytkie_szerokie(bank_recenzji, nazwa):
+    rekordy = bank_recenzji(nazwa)
+    wykryte, pominiete, falszywe, _, _ = sumuj(rekordy)
+    print(f"{nazwa}: wykryte {wykryte}/10, pominiete {pominiete}, falszywe {falszywe}")
+    assert wykryte >= 8
+
+
+def test_bez_zageszczania(bank_recenzji):
+    wykryte, pominiete, falszywe, _, _ = sumuj(bank_recenzji("srednie_bez_zag"))
+    print(f"bez zageszczania, krok 0,08, srednie: wykryte {wykryte}/60, pominiete {pominiete}, "
+          f"falszywe {falszywe}")
+    assert wykryte >= 48
+    assert falszywe <= 2
+    wykryte, pominiete, falszywe, _, _ = sumuj(bank_recenzji("male_bez_zag"))
+    print(f"bez zageszczania, krok 0,08, male: wykryte {wykryte}/60, pominiete {pominiete}, "
+          f"falszywe {falszywe}")
+    assert wykryte >= 10
