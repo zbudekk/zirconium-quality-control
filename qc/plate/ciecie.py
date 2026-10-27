@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import itertools
+import threading
 from dataclasses import dataclass
 
 import numpy as np
@@ -11,17 +11,16 @@ import trimesh
 
 from qc.uklad import Uklad
 
-from .kod import numer_plytki
-from .wyrownanie import siatka_referencyjna
+from .wyrownanie import klucz_ukladu, siatka_referencyjna
 
-PROG_OD_PLYTKI_MM = 0.25  # srodek sciany dalej od modelu plytki = praca
 ZAPAS_NAD_PLYTKA_MM = 0.5  # sciany wyzej niz najwyzszy punkt modelu + zapas = praca bez liczenia odleglosci
 SCALANIE_MM = 0.2  # mala skladowa blizej niz tyle od duzej = ta sama praca (T-junctions, przerwy siatki)
-ZAPAS_PRZECIECIA_MM = 0.3
-MIN_PRZECIEC = 30  # krawedzi przebijajacych druga skladowa (most: setki; prace na sobie: 0)
 MIN_Z_W_GNIEZDZIE_MM = -1.0  # praca w gniezdzie siega glebiej niz wierzch plytki
+ZAPAS_RELIEFU_MM = 1.0  # obszar reliefu numeru: kwadrat o boku wysokosci tekstu + 2 x zapas
+ZAPAS_WYSOKOSCI_RELIEFU_MM = 0.2
+_BLOKADA_SCENY = threading.Lock()
+_SCENY: dict = {}
 STANY = ("puste", "praca", "podwojne", "poza_gniazdem")
-_BRAK = object()
 
 
 @dataclass
@@ -35,10 +34,18 @@ def _pusta_siatka() -> trimesh.Trimesh:
     return trimesh.Trimesh(np.zeros((0, 3)), np.zeros((0, 3), dtype=np.int64), process=False)
 
 
+def _reindeksuj(f: np.ndarray, n: int) -> tuple[np.ndarray, np.ndarray]:
+    """(indeksy uzytych wierzcholkow rosnaco, sciany z nowymi indeksami) bez sortowania (O(n))."""
+    uzyte = np.zeros(n, dtype=bool)
+    uzyte[f.ravel()] = True
+    nowe = np.cumsum(uzyte) - 1
+    return np.flatnonzero(uzyte), nowe[f]
+
+
 def _podsiatka(v: np.ndarray, f: np.ndarray) -> trimesh.Trimesh:
     """Siatka ze scian f tylko z uzywanymi wierzcholkami."""
-    uzyte, nowe = np.unique(f, return_inverse=True)
-    return trimesh.Trimesh(v[uzyte], nowe.reshape(f.shape), process=False)
+    uzyte, nowe = _reindeksuj(f, len(v))
+    return trimesh.Trimesh(v[uzyte], nowe, process=False)
 
 
 def _pola(v: np.ndarray, f: np.ndarray) -> np.ndarray:
@@ -46,12 +53,28 @@ def _pola(v: np.ndarray, f: np.ndarray) -> np.ndarray:
     return np.linalg.norm(np.cross(b - a, c - a), axis=1) / 2
 
 
-def _odleglosci_od_plytki(ref: trimesh.Trimesh, punkty: np.ndarray) -> np.ndarray:
-    """Odleglosc bez znaku od modelu plytki; jedna RaycastingScene na wywolanie."""
-    scena = o3d.t.geometry.RaycastingScene()
-    scena.add_triangles(o3d.core.Tensor(np.asarray(ref.vertices, dtype=np.float32)),
-                        o3d.core.Tensor(np.asarray(ref.faces, dtype=np.uint32)))
-    wynik = scena.compute_distance(o3d.core.Tensor(np.asarray(punkty, dtype=np.float32)))
+def scena_plytki(uklad: Uklad):
+    """RaycastingScene modelu bazowego plytki, raz na uklad (cache pod blokada).
+
+    Pierwsze zapytanie (commit sceny Embree) wykonywane przy tworzeniu pod blokada; pozniejsze zapytania
+    tylko czytaja scene, wiec mozna je wolac z wielu watkow.
+    """
+    klucz = (klucz_ukladu(uklad), "scena")
+    with _BLOKADA_SCENY:
+        scena = _SCENY.get(klucz)
+        if scena is None:
+            ref = siatka_referencyjna(uklad, None)
+            scena = o3d.t.geometry.RaycastingScene()
+            scena.add_triangles(o3d.core.Tensor(np.asarray(ref.vertices, dtype=np.float32)),
+                                o3d.core.Tensor(np.asarray(ref.faces, dtype=np.uint32)))
+            scena.compute_distance(o3d.core.Tensor(np.zeros((1, 3), dtype=np.float32)))
+            _SCENY[klucz] = scena
+    return scena
+
+
+def _odleglosci_od_plytki(uklad: Uklad, punkty: np.ndarray) -> np.ndarray:
+    """Odleglosc bez znaku od modelu plytki."""
+    wynik = scena_plytki(uklad).compute_distance(o3d.core.Tensor(np.asarray(punkty, dtype=np.float32)))
     return wynik.numpy().astype(np.float64)
 
 
@@ -77,56 +100,24 @@ def skladowe_wierzcholkowe(f: np.ndarray, n: int) -> np.ndarray:
         rodzic = nowy
 
 
-def _scal_przecinajace(vl: np.ndarray, fl: np.ndarray, et_s: np.ndarray, duze: np.ndarray) -> np.ndarray:
-    """Duze skladowe, ktorych powierzchnie sie przecinaja (most z czesci bez boolean), w jedna etykiete.
+def _w_reliefie(uklad: Uklad, p: np.ndarray) -> bool:
+    """Skladowa w calosci w obszarze reliefu numeru i nie wyzej niz relief = relief, nie praca."""
+    if uklad.relief_numeru is None:
+        return False
+    rx, ry, wysokosc_tekstu, wysokosc = uklad.relief_numeru
+    pol = wysokosc_tekstu / 2 + ZAPAS_RELIEFU_MM
+    return bool(np.all(np.abs(p[:, 0] - rx) <= pol) and np.all(np.abs(p[:, 1] - ry) <= pol)
+                and p[:, 2].max() <= wysokosc + ZAPAS_WYSOKOSCI_RELIEFU_MM)
 
-    Przeciecie = krawedzie jednej skladowej przebijaja trojkaty drugiej (>= MIN_PRZECIEC); prace lezace
-    na sobie (stan podwojne) sie nie przecinaja.
-    """
-    if len(duze) < 2:
-        return et_s
-    sciany = {s: fl[et_s == s] for s in duze}
-    pudla = {}
-    for s, f in sciany.items():
-        p = vl[np.unique(f)]
-        pudla[s] = (p.min(axis=0) - ZAPAS_PRZECIECIA_MM, p.max(axis=0) + ZAPAS_PRZECIECIA_MM)
-    rodzic = {s: s for s in duze}
 
-    def korzen(s):
-        while rodzic[s] != s:
-            rodzic[s] = rodzic[rodzic[s]]
-            s = rodzic[s]
-        return s
-
-    sceny = {}
-    for a, b in itertools.combinations(duze, 2):
-        (amin, amax), (bmin, bmax) = pudla[a], pudla[b]
-        if np.any(amin > bmax) or np.any(bmin > amax) or korzen(a) == korzen(b):
-            continue
-        # krawedzie mniejszej skladowej w pudle wiekszej
-        a, b = (a, b) if len(sciany[a]) <= len(sciany[b]) else (b, a)
-        bmin, bmax = pudla[b]
-        f = sciany[a]
-        w_pudle = np.all((vl[f] >= bmin) & (vl[f] <= bmax), axis=2).any(axis=1)
-        if not w_pudle.any():
-            continue
-        f = f[w_pudle]
-        kraw = np.unique(np.sort(np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]]), axis=1), axis=0)
-        p0, p1 = vl[kraw[:, 0]], vl[kraw[:, 1]]
-        dl = np.linalg.norm(p1 - p0, axis=1)
-        if b not in sceny:
-            scena = o3d.t.geometry.RaycastingScene()
-            scena.add_triangles(o3d.core.Tensor(vl.astype(np.float32)),
-                                o3d.core.Tensor(sciany[b].astype(np.uint32)))
-            sceny[b] = scena
-        promienie = np.concatenate([p0, (p1 - p0) / np.maximum(dl, 1e-12)[:, None]], axis=1)
-        t = sceny[b].cast_rays(o3d.core.Tensor(promienie.astype(np.float32)))["t_hit"].numpy()
-        if np.count_nonzero(t <= dl) >= MIN_PRZECIEC:
-            rodzic[korzen(a)] = korzen(b)
-    mapa = np.arange(et_s.max() + 1)
-    for s in duze:
-        mapa[s] = korzen(s)
-    return mapa[et_s]
+def _stan(g, pola: list[float], min_udzial: float) -> str:
+    """Stan gniazda ze skladowych: w rynience (tylko mosty) zawsze jedna praca; w stozku osobna praca
+    = skladowa o polu >= min_udzial x najwieksza (mniejsze wyspy, np. przy dnie gniazda, naleza do pracy)."""
+    if g.rodzaj == "rynienka":
+        return "praca"
+    najwieksza = max(pola)
+    prace = sum(1 for p in pola if p >= min_udzial * najwieksza)
+    return "praca" if prace == 1 else "podwojne"
 
 
 def _odleglosc_od_obrysu(g, x: float, y: float) -> float:
@@ -141,37 +132,43 @@ def najblizsze_gniazdo(uklad: Uklad, x: float, y: float) -> int:
     return min(uklad.gniazda, key=lambda g: _odleglosc_od_obrysu(g, x, y)).nr
 
 
-def potnij(skan_wyrownany: trimesh.Trimesh, uklad: Uklad, ustawienia, numer=_BRAK) -> list[Fragment]:
+def potnij(skan_wyrownany: trimesh.Trimesh, uklad: Uklad, ustawienia) -> list[Fragment]:
     """Fragment na kazde gniazdo (puste / praca / podwojne) + fragmenty "poza_gniazdem".
 
-    numer = numer plytki (do modelu z reliefem i dolkami); domyslnie liczony z dolkow kodu.
+    Model plytki bazowy (3 dolki, bez reliefu) niezaleznie od numeru: wypelniony dolek kodu to wyspa
+    ok. 3 mm2 (< min_pole_pracy_mm2), relief numeru pomijany regula obszaru reliefu.
     """
-    if numer is _BRAK:
-        numer = numer_plytki(skan_wyrownany, uklad)
-    ref = siatka_referencyjna(uklad, numer)
+    ref = siatka_referencyjna(uklad, None)
     v = np.asarray(skan_wyrownany.vertices, dtype=np.float64)
     f = np.asarray(skan_wyrownany.faces, dtype=np.int64)
     margines = float(ustawienia.plytka.margines_gniazda_mm)
     min_pole = float(ustawienia.plytka.min_pole_pracy_mm2)
+    prog = float(ustawienia.plytka.prog_od_plytki_mm)
+    min_udzial = float(ustawienia.plytka.min_udzial_drugiej_pracy)
 
     fragmenty_gniazd = {g.nr: [] for g in uklad.gniazda}
     poza = []
     if len(f):
-        srodki = v[f].mean(axis=1)
+        # odleglosc wierzcholkow od modelu (2x mniej zapytan niz srodki scian); sciana = srednia z 3
+        uzyte_w = np.zeros(len(v), dtype=bool)
+        uzyte_w[f.ravel()] = True
         z_max = float(np.asarray(ref.vertices)[:, 2].max())
-        praca = srodki[:, 2] > z_max + ZAPAS_NAD_PLYTKA_MM
-        do_sprawdzenia = np.flatnonzero(~praca)
+        odl = np.zeros(len(v))
+        wysoko = uzyte_w & (v[:, 2] > z_max + ZAPAS_NAD_PLYTKA_MM + prog)
+        odl[wysoko] = np.inf
+        do_sprawdzenia = np.flatnonzero(uzyte_w & ~wysoko)
         if len(do_sprawdzenia):
-            praca[do_sprawdzenia] = _odleglosci_od_plytki(ref, srodki[do_sprawdzenia]) > PROG_OD_PLYTKI_MM
-        fp = f[praca]
+            odl[do_sprawdzenia] = _odleglosci_od_plytki(uklad, v[do_sprawdzenia])
+        odl_s = np.minimum(odl[f], 1e6).mean(axis=1)
+        fp = f[odl_s > prog]
     else:
         fp = f
     if len(fp):
-        uzyte, fl = np.unique(fp, return_inverse=True)
-        fl = fl.reshape(fp.shape)
+        uzyte, fl = _reindeksuj(fp, len(v))
         vl = v[uzyte]
         et_w = skladowe_wierzcholkowe(fl, len(uzyte))
-        _, et_w = np.unique(et_w, return_inverse=True)
+        korzenie = et_w == np.arange(len(et_w))
+        et_w = (np.cumsum(korzenie) - 1)[et_w]  # etykiety 0..k-1
         et_s = et_w[fl[:, 0]]
         pola_s = _pola(vl, fl)
         pola = np.bincount(et_s, weights=pola_s)
@@ -194,8 +191,6 @@ def potnij(skan_wyrownany: trimesh.Trimesh, uklad: Uklad, ustawienia, numer=_BRA
             mapa = np.where(cel >= 0, cel, np.arange(len(pola)))
             et_s = mapa[et_s]
             pola = np.bincount(et_s, weights=pola_s, minlength=len(pola))
-        et_s = _scal_przecinajace(vl, fl, et_s, np.flatnonzero(pola >= min_pole))
-        pola = np.bincount(et_s, weights=pola_s, minlength=len(pola))
         srodki_s = vl[fl].mean(axis=1)
         for s in np.flatnonzero(pola >= min_pole):
             maska = et_s == s
@@ -203,14 +198,16 @@ def potnij(skan_wyrownany: trimesh.Trimesh, uklad: Uklad, ustawienia, numer=_BRA
             c = (srodki_s[maska] * w[:, None]).sum(axis=0) / max(w.sum(), 1e-12)
             nr = uklad.gniazdo_dla_xy(float(c[0]), float(c[1]), margines=margines)
             sciany = fl[maska]
+            if _w_reliefie(uklad, vl[sciany.ravel()]):
+                continue
             if nr is not None and uklad.gniazdo_dla_xy(float(c[0]), float(c[1])) is None and \
-                    vl[np.unique(sciany), 2].min() > MIN_Z_W_GNIEZDZIE_MM:
+                    vl[sciany.ravel(), 2].min() > MIN_Z_W_GNIEZDZIE_MM:
                 nr = None  # srodek tylko w pasie marginesu i praca nie siega w glab gniazda = na sciance
             if nr is None:
                 poza.append(Fragment(najblizsze_gniazdo(uklad, float(c[0]), float(c[1])),
                                      _podsiatka(vl, sciany), "poza_gniazdem"))
             else:
-                fragmenty_gniazd[nr].append(sciany)
+                fragmenty_gniazd[nr].append((sciany, float(pola[s])))
 
     wynik = []
     for g in uklad.gniazda:
@@ -218,6 +215,6 @@ def potnij(skan_wyrownany: trimesh.Trimesh, uklad: Uklad, ustawienia, numer=_BRA
         if not czesci:
             wynik.append(Fragment(g.nr, _pusta_siatka(), "puste"))
         else:
-            stan = "praca" if len(czesci) == 1 else "podwojne"
-            wynik.append(Fragment(g.nr, _podsiatka(vl, np.concatenate(czesci)), stan))
+            stan = _stan(g, [p for _, p in czesci], min_udzial)
+            wynik.append(Fragment(g.nr, _podsiatka(vl, np.concatenate([c for c, _ in czesci])), stan))
     return wynik + poza

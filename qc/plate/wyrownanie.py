@@ -6,6 +6,8 @@ Siatka referencyjna = model plytki stanowiska (qc.syntetyka.plytka.siatka_plytki
 
 from __future__ import annotations
 
+import dataclasses
+import hashlib
 import itertools
 import math
 import threading
@@ -20,9 +22,14 @@ from qc.syntetyka.skan import normalne_wierzcholkow
 from qc.uklad import Uklad
 
 # plaszczyzna wierzchu
-PROBKA_PLASZCZYZNY = 150_000
+VOXEL_PLASZCZYZNY_MM = 0.5  # probka rownomierna po powierzchni (geste prace nie dominuja)
 PROG_PLASZCZYZNY_MM = 0.15
-ITERACJE_PLASZCZYZNY = 500
+ITERACJE_PLASZCZYZNY = 3000
+CO_KTORY_DO_KANDYDATOW = 2  # wykrywanie na co drugim wierzcholku; pomiar i ICP na wszystkich
+CO_KTORY_DO_VOXELA = 2  # wierzcholki co drugi przed voxelem (skaner ~0,1-0,2 mm << voxel)
+ZIARNA_PLASZCZYZNY = (1, 2, 3)  # staly seed RANSAC, kolejne przy za malej plaszczyznie
+MIN_POLE_PLASZCZYZNY = 0.3  # x rozmiar^2: pole inlierow (liczba x voxel^2) wierzchu albo dna plytki
+ITERACJE_DOPRECYZOWANIA = 3
 PAS_GNIAZD_MM = (0.3, 4.5)  # zaglebienia gniazd pod wierzchem: odroznia wierzch od dna plytki
 UDZIAL_DRUGIEJ_PLASZCZYZNY = 0.2
 
@@ -34,6 +41,8 @@ PIERSCIEN_MM = (0.4, 1.0)  # pierscien plaszczyzny poza obrysem stozka: r w (R +
 MAX_ODCHYLKA_PIERSCIENIA_MM = 0.25
 GLEBIEJ_NIZ_ZNACZNIK_MM = 2.0  # glebiej = kieszen magnesu od spodu (ignorowana)
 TOL_BOKU_MM = 0.5
+PROMIEN_POMIARU_ZNACZNIKA = 0.8  # x R: punkty stozka do pomiaru wierzcholka
+ITERACJE_STOZKA = 8
 
 # ICP
 OTOCZENIE_ZNACZNIKA_MM = 6.0
@@ -59,18 +68,24 @@ class BladPlytki(Exception):
 class Wyrownanie:
     T_skan_do_plytki: np.ndarray  # 4x4
     blad_mm: float  # RMS par ICP (inliery)
-    znaczniki_xyz: np.ndarray  # (3, 3) wierzcholki stozkow A, B, C w ukladzie skanu (wg dopasowania)
+    znaczniki_xyz: np.ndarray  # (3, 3) zmierzone wierzcholki stozkow A, B, C w ukladzie skanu
 
 
 # --- siatka referencyjna (cache, bezpieczny dla watkow) ---------------------------
 
 _BLOKADA = threading.Lock()
+_BLOKADA_RANSAC = threading.Lock()  # open3d.utility.random.seed jest globalny
 _REFERENCJE: dict = {}
+
+
+def klucz_ukladu(uklad: Uklad) -> str:
+    """Skrot tresci ukladu (bez sciezki pliku): ten sam uklad = ten sam klucz, takze bez pliku."""
+    return hashlib.sha1(repr(dataclasses.replace(uklad, plik=None)).encode("utf-8")).hexdigest()
 
 
 def siatka_referencyjna(uklad: Uklad, numer: int | None) -> trimesh.Trimesh:
     """Model plytki numer (None = bazowy, 3 dolki) z krokiem jak skaner; liczony raz na uklad i numer."""
-    klucz = (uklad.nazwa, str(uklad.plik), numer)
+    klucz = (klucz_ukladu(uklad), numer)
     with _BLOKADA:
         siatka = _REFERENCJE.get(klucz)
     if siatka is None:
@@ -82,7 +97,7 @@ def siatka_referencyjna(uklad: Uklad, numer: int | None) -> trimesh.Trimesh:
 
 def _cel_icp(uklad: Uklad) -> o3d.geometry.PointCloud:
     """Punkty referencji z normalnymi w obszarach uzywanych przez ICP (cache)."""
-    klucz = ("icp", uklad.nazwa, str(uklad.plik))
+    klucz = (klucz_ukladu(uklad), "icp")
     with _BLOKADA:
         chmura = _REFERENCJE.get(klucz)
     if chmura is not None:
@@ -99,6 +114,17 @@ def _cel_icp(uklad: Uklad) -> o3d.geometry.PointCloud:
 
 def _maska_icp(uklad: Uklad, p: np.ndarray, zapas: float = 0.0) -> np.ndarray:
     """Otoczenia znacznikow i pas plaskiego wierzchu przy krawedziach, bez dolkow kodu i reliefu."""
+    # wstepnie tylko pas przy krawedziach plytki (znaczniki i pas leza tam), potem dokladnie
+    od_krawedzi = min(min(max(abs(m[0]), abs(m[1])) for m in uklad.znaczniki.values()) - OTOCZENIE_ZNACZNIKA_MM,
+                      PAS_KRAWEDZI_MM[0]) - zapas - 1.0
+    wybrane = np.flatnonzero((np.maximum(np.abs(p[:, 0]), np.abs(p[:, 1])) > od_krawedzi) &
+                             (p[:, 2] > -uklad.grubosc / 2) & (p[:, 2] < 1.0 + zapas))
+    maska = np.zeros(len(p), dtype=bool)
+    maska[wybrane] = _maska_icp_dokladna(uklad, p[wybrane], zapas)
+    return maska
+
+
+def _maska_icp_dokladna(uklad: Uklad, p: np.ndarray, zapas: float) -> np.ndarray:
     x, y, z = p[:, 0], p[:, 1], p[:, 2]
     przy_znaczniku = np.zeros(len(p), dtype=bool)
     for mx, my, _, glebokosc in uklad.znaczniki.values():
@@ -119,8 +145,24 @@ def _maska_icp(uklad: Uklad, p: np.ndarray, zapas: float = 0.0) -> np.ndarray:
 # --- geometria pomocnicza ---------------------------------------------------------
 
 
-def _przenies(p: np.ndarray, T: np.ndarray) -> np.ndarray:
-    return p @ T[:3, :3].T + T[:3, 3]
+# Duze tablice bez BLAS: wielowatkowy OpenBLAS (numpy @) rownolegle z OpenMP open3d w innym watku Pythona
+# konczy sie access violation (Windows, plytka 24 + 2, 3 watki); einsum bez optimize (petla C numpy) jest
+# bezpieczny.
+
+
+def przenies(p: np.ndarray, T: np.ndarray) -> np.ndarray:
+    """Punkty (N, 3) przez T 4x4 (bez BLAS)."""
+    p = np.asarray(p, dtype=np.float64)
+    T = np.asarray(T, dtype=np.float64)
+    return np.einsum("ij,kj->ik", p, T[:3, :3]) + T[:3, 3]
+
+
+def _iloczyn(p: np.ndarray, n: np.ndarray) -> np.ndarray:
+    """p (N, 3) . n (3,) bez BLAS."""
+    return np.einsum("ij,j->i", p, n)
+
+
+_przenies = przenies
 
 
 def _obrot_do_z(n: np.ndarray) -> np.ndarray:
@@ -138,8 +180,10 @@ def _obrot_do_z(n: np.ndarray) -> np.ndarray:
 def _plaszczyzna_lsq(p: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """(punkt, normalna) plaszczyzny najmniejszych kwadratow."""
     c = p.mean(axis=0)
-    _, _, vt = np.linalg.svd(p - c, full_matrices=False)
-    return c, vt[2]
+    q = p - c
+    C = np.einsum("ij,ik->jk", q, q)  # bez BLAS (einsum bez optimize)
+    _, wektory = np.linalg.eigh(C)
+    return c, wektory[:, 0]
 
 
 def kabsch(zrodlo: np.ndarray, cel: np.ndarray) -> np.ndarray:
@@ -158,18 +202,34 @@ def kabsch(zrodlo: np.ndarray, cel: np.ndarray) -> np.ndarray:
 # --- kroki ------------------------------------------------------------------------
 
 
+def _plaszczyzna_ransac(probka: np.ndarray, min_inlierow: int) -> tuple[np.ndarray, float]:
+    """(n, d) najwiekszej plaszczyzny n.p + d = 0: RANSAC open3d ze stalym seedem, ponowienie innym seedem."""
+    chmura = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(probka))
+    najlepszy, inliery = None, -1
+    for ziarno in ZIARNA_PLASZCZYZNY:
+        with _BLOKADA_RANSAC:
+            o3d.utility.random.seed(ziarno)
+            model, idx = chmura.segment_plane(PROG_PLASZCZYZNY_MM, 3, ITERACJE_PLASZCZYZNY)
+        if len(idx) > inliery:
+            najlepszy, inliery = model, len(idx)
+        if inliery >= min_inlierow:
+            break
+    if inliery < min_inlierow:
+        raise BladPlytki(f"brak znacznikow: brak plaszczyzny plytki w skanie (najwieksza {inliery} z "
+                         f"{len(probka)} punktow)")
+    n = np.asarray(najlepszy[:3], dtype=np.float64)
+    dl = np.linalg.norm(n)
+    return n / dl, float(najlepszy[3]) / dl
+
+
 def _uklad_wstepny(v: np.ndarray, uklad: Uklad) -> np.ndarray:
     """T 4x4 skan -> uklad wstepny: wierzch plytki w z = 0, prace po stronie +Z."""
-    krok = max(1, len(v) // PROBKA_PLASZCZYZNY)
-    probka = v[::krok]
-    chmura = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(probka))
-    model, _ = chmura.segment_plane(PROG_PLASZCZYZNY_MM, 3, ITERACJE_PLASZCZYZNY)
-    n = np.asarray(model[:3], dtype=np.float64)
-    dl = np.linalg.norm(n)
-    if dl < 1e-9:
-        raise BladPlytki("brak plaszczyzny wierzchu plytki w skanie")
-    n, d0 = n / dl, float(model[3]) / dl
-    d = probka @ n + d0
+    chmura = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(v[::CO_KTORY_DO_VOXELA]))
+    probka = np.asarray(chmura.voxel_down_sample(VOXEL_PLASZCZYZNY_MM).points, dtype=np.float64)
+    if len(probka) < 100:
+        raise BladPlytki("brak znacznikow: za malo punktow skanu")
+    n, d0 = _plaszczyzna_ransac(probka, int(MIN_POLE_PLASZCZYZNY * uklad.rozmiar**2 / VOXEL_PLASZCZYZNY_MM**2))
+    d = _iloczyn(probka, n) + d0
     g = float(uklad.grubosc)
 
     def w_pasie(h):
@@ -178,7 +238,6 @@ def _uklad_wstepny(v: np.ndarray, uklad: Uklad) -> np.ndarray:
     na = np.count_nonzero(np.abs(d) < PROG_PLASZCZYZNY_MM)
     plus = np.count_nonzero(np.abs(d - g) < PROG_PLASZCZYZNY_MM)
     minus = np.count_nonzero(np.abs(d + g) < PROG_PLASZCZYZNY_MM)
-    # hipotezy (przesuniecie wierzchu wzdluz n, znak kierunku "w gore")
     if max(plus, minus) >= UDZIAL_DRUGIEJ_PLASZCZYZNY * na:
         druga = g if plus >= minus else -g
         # wierzch = plaszczyzna, pod ktora (w strone drugiej) jest wiecej zaglebien gniazd
@@ -192,15 +251,48 @@ def _uklad_wstepny(v: np.ndarray, uklad: Uklad) -> np.ndarray:
     else:
         # bez dna w skanie: skaner patrzy z gory (+Z skanera)
         gora, przes = (1.0 if n[2] >= 0 else -1.0), 0.0
+    # dopasowanie najmniejszych kwadratow do punktow wierzchu, kilka razy (wynik nie zalezy od probki RANSAC)
+    nn, p0 = gora * n, None
     h = gora * (d - przes)
-    # dopasowanie plaszczyzny najmniejszych kwadratow do punktow wierzchu
-    p0, nn = _plaszczyzna_lsq(probka[np.abs(h) < PROG_PLASZCZYZNY_MM])
-    if nn @ (gora * n) < 0:
-        nn = -nn
+    for _ in range(ITERACJE_DOPRECYZOWANIA):
+        p0, nowa = _plaszczyzna_lsq(probka[np.abs(h) < PROG_PLASZCZYZNY_MM])
+        nn = nowa if nowa @ nn >= 0 else -nowa
+        h = _iloczyn(probka - p0, nn)
     T = np.eye(4)
     T[:3, :3] = _obrot_do_z(nn)
     T[:3, 3] = -T[:3, :3] @ p0
     return T
+
+
+def _zmierz_znaczniki(v: np.ndarray, T: np.ndarray, uklad: Uklad) -> np.ndarray:
+    """(3, 3) zmierzone wierzcholki (dna) stozkow A, B, C w ukladzie skanu.
+
+    Dopasowanie stozka o znanym nachyleniu z = z0 + s r do punktow skanu wokol osi (Gauss-Newton) w ukladzie
+    plytki, wynik przeniesiony odwrotnoscia T.
+    """
+    p = _przenies(v, T)
+    od_krawedzi = min(max(abs(m[0]), abs(m[1])) - m[2] for m in uklad.znaczniki.values())
+    p = p[np.maximum(np.abs(p[:, 0]), np.abs(p[:, 1])) > od_krawedzi]
+    wynik = []
+    for nazwa in ("A", "B", "C"):
+        mx, my, d, glebokosc = uklad.znaczniki[nazwa]
+        R = d / 2
+        s = glebokosc / R
+        r = np.hypot(p[:, 0] - mx, p[:, 1] - my)
+        q = p[(r < PROMIEN_POMIARU_ZNACZNIKA * R) & (p[:, 2] > -glebokosc - 0.5) & (p[:, 2] < 0.0)]
+        x = np.array([mx, my, -glebokosc], dtype=np.float64)
+        if len(q) >= 6:
+            for _ in range(ITERACJE_STOZKA):
+                dx, dy = q[:, 0] - x[0], q[:, 1] - x[1]
+                rr = np.maximum(np.hypot(dx, dy), 1e-6)
+                reszta = q[:, 2] - (x[2] + s * rr)
+                J = np.column_stack([-s * dx / rr, -s * dy / rr, np.ones(len(q))])
+                krok, *_ = np.linalg.lstsq(J, reszta, rcond=None)
+                x = x + krok
+                if np.abs(krok).max() < 1e-7:
+                    break
+        wynik.append(x)
+    return _przenies(np.array(wynik), np.linalg.inv(T))
 
 
 def _kandydaci_znacznikow(p: np.ndarray, uklad: Uklad) -> list[np.ndarray]:
@@ -291,7 +383,7 @@ def wyrownaj(skan: trimesh.Trimesh, uklad: Uklad, ustawienia) -> Wyrownanie:
         raise BladPlytki("brak znacznikow: skan pusty")
     T_w = _uklad_wstepny(v, uklad)
     p = _przenies(v, T_w)
-    kandydaci = _kandydaci_znacznikow(p, uklad)
+    kandydaci = _kandydaci_znacznikow(p[::CO_KTORY_DO_KANDYDATOW], uklad)
     if len(kandydaci) < 3:
         raise BladPlytki(f"brak znacznikow: znaleziono {len(kandydaci)} z 3 dolkow znacznikow A, B, C")
     t_w = _trojka(kandydaci, uklad)
@@ -330,6 +422,5 @@ def wyrownaj(skan: trimesh.Trimesh, uklad: Uklad, ustawienia) -> Wyrownanie:
     if np.count_nonzero(w_wycieciu) > MAX_PUNKTOW_W_WYCIECIU:
         raise BladPlytki("zly uklad: material w miejscu wyciecia D (plytka odwrocona albo inny uklad)")
 
-    # wierzcholki stozkow wg dopasowania (model przeniesiony do ukladu skanu)
-    znaczniki = _przenies(cel, np.linalg.inv(T))
+    znaczniki = _zmierz_znaczniki(v, T, uklad)
     return Wyrownanie(T_skan_do_plytki=T, blad_mm=blad, znaczniki_xyz=znaczniki)

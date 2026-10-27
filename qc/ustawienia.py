@@ -55,12 +55,21 @@ SCHEMAT: dict[str, dict[str, type]] = {
         "max_blad_wyrownania_mm": float,
         "margines_gniazda_mm": float,
         "min_pole_pracy_mm2": float,
+        "prog_od_plytki_mm": float,
+        "min_udzial_drugiej_pracy": float,  # 0-1
     },
     "pula": {
         "dni_rano": int,
         "dni_wieczor": int,
         "usuwaj_po_dniach": int,
     },
+}
+
+
+# Zakresy (min, max] wybranych kluczy: wartosc <= min albo > max = blad przy wczytaniu.
+ZAKRESY: dict[tuple[str, str], tuple[float | None, float | None]] = {
+    ("plytka", "prog_od_plytki_mm"): (0.0, None),
+    ("plytka", "min_udzial_drugiej_pracy"): (0.0, 1.0),
 }
 
 
@@ -171,6 +180,11 @@ def _sprawdz_zawartosc(dane: dict, plik: Path, wymagaj_wszystkich: bool) -> dict
             klucz: _sprawdz_typ(sekcja, klucz, wartosc, SCHEMAT[sekcja][klucz], plik)
             for klucz, wartosc in wartosci.items()
         }
+        for klucz, wartosc in wynik[sekcja].items():
+            dol, gora = ZAKRESY.get((sekcja, klucz), (None, None))
+            if (dol is not None and wartosc <= dol) or (gora is not None and wartosc > gora):
+                raise BladUstawien(f"[{sekcja}] {klucz} w {plik}: wartosc {wartosc} poza zakresem "
+                                   f"({dol if dol is not None else '-inf'}; {gora if gora is not None else 'inf'}]")
     if wymagaj_wszystkich:
         for sekcja, klucze in SCHEMAT.items():
             if sekcja not in wynik:
