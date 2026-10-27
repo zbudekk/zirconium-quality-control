@@ -11,6 +11,12 @@ z wspolczynnikiem skali k).
   samodzielna liczba 1-4 cyfr bez zer wiodacych ("Nowak 0041" -> "41"), "#1234" -> kuweta "#1234" i
   prywatne; nazwisko = pierwsze slowo literowe (z lacznikiem). `numer_zeba(plik)` = numer FDI
   (11-18, 21-28, 31-38, 41-48) jako samodzielna liczba w nazwie pliku. `znormalizuj` do porownan.
+  Wzory nazw folderow (nazwisko fikcyjne): "Kowalski 1784 PG", "Kowalski 1784PG", "Kowalski 1784
+  Patrycja" - po numerze kuwety bywa kod (litery, sklejone z numerem albo nie) albo imie. Regula:
+  numer kuwety moze byc z prawej sklejony z literami ("1784PG" -> "1784", "0041AB" -> "41"), ale nie
+  z cyframi ("12345" -> brak) ani z literami z lewej ("PG1784" -> brak kuwety, nazwisko "PG").
+  `znormalizuj` wstawia spacje na granicy liczba -> litery, wiec "1784PG" i "1784 PG" daja
+  "kowalski 1784 pg" (dopasowanie z Excelem). Numer zeba w nazwie pliku nadal tylko samodzielny.
 - `cechy.py` - `policz(siatka, ziarno)`: objetosc (tylko bryla zamknieta, inaczej None), pole, wymiary
   = rozpietosc wzdluz osi PCA wierzcholkow (numpy eigh) malejaco, D2 = histogram odleglosci 20 000
   losowych par punktow z `trimesh.sample.sample_surface` (64 koszyki od 0 do 1,05 x przekatna wymiarow,
