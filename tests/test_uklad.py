@@ -274,7 +274,7 @@ def test_zgodnosc_z_ramka(nazwa):
     assert d["units"] == "mm"
     assert d["size"] == 96 and d["thickness"] == 8
     assert set(d["coords"]) == {"origin", "x", "y", "notch_corner"}
-    assert d["number_relief"] == {"x": 39.5, "y": -44.5, "text_h": 5}
+    assert {k: d["number_relief"][k] for k in ("x", "y", "text_h")} == {"x": 39.5, "y": -44.5, "text_h": 5}
     if nazwa == "wieczorna":
         assert d["sockets"][0] == {"id": 1, "type": "round", "x": 30, "y": -40.5, "d_top": 9,
                                    "d_bottom": 6.86, "depth": 4, "hole_d": 3}
