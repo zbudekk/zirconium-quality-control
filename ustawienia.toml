@@ -38,12 +38,16 @@ max_kandydatow = 8
 # pokrycie i progi ponizej liczone na fragmencie wygladzonym (1 krok usredniania z sasiadami), patrz qc/match/OPIS.md
 # fitness zgrubny (udzial punktow <= 0,25 mm od siatki) ponizej progu = kandydat odrzucony (wlasciwe >= 0,84)
 prog_zgrubny = 0.7
+# sito przed budowa sceny siatki: fitness od chmury rzadkiej ponizej = kandydat odrzucony
+prog_sita = 0.55
 # pokrycie konczace szukanie (wczesne wyjscie, drugi etap)
 wczesne_pokrycie = 0.97
 # wyraznosc osi PCA fragmentu ponizej progu = zgrubne FPFH + RANSAC (zmierzone min 0,068)
 prog_wyraznosci_osi = 0.05
 # top-1 i jego poza obrocona o 180 st. wokol osi z pokryciem blizej niz o tyle = "dwuznaczny"
 margines_obrotu_180 = 0.005
+# poza obrocona blizej niz tyle mm (max przesuniecie punktu) od top-1 = ta sama poza
+obrot_inna_poza_mm = 0.5
 
 [ubytki]
 min_glebokosc_mm = 0.08

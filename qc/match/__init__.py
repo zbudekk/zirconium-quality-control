@@ -19,13 +19,11 @@ WCZESNE_ODLEGLOSC = 2.0
 MAX_HIPOTEZ = 5  # hipotezy oceniane pokryciem po 1. etapie ICP (pozy symetryczne maja podobny fitness)
 KATY = 12  # przeglad obrotu wokol osi co 30 st.
 ICP_NA_RAMKE = 4  # zgrubne ICP z 4 katow (co >= 90 st.) na kazda z 6 ramek (3 osie x 2 zwroty)
-SITO_ODSTEP = 0.15  # sito (chmura, 1 start na ramke): wlasciwe >= 0,71, bledne mediana 0,48
 PROG_HIPOTEZY = 0.9  # kolejna hipoteza oceniana, gdy jej fitness >= 0,9 x najlepszej
 PUNKTY_OCENY = 4_000  # pokrycie hipotez (blad udzialu ok. 0,002 przy 0,99)
 PUNKTY_POKRYCIA = 12_000  # pokrycie koncowe (blad udzialu ok. 0,001 przy 0,99)
 ZIARNO = 0
 DRUGI_ETAP_WIECZOR = 1  # wieczorem drugi etap najwyzej 1 x max_kandydatow wpisow; rano bez limitu
-OBROT_INNA_POZA_MM = 0.5  # pozy rozniace sie mniej (max przesuniecie punktu) = ta sama poza
 
 
 class _Projekt:
@@ -89,6 +87,7 @@ class _Fragment:
         self.gesta = self.pc.voxel_down_sample(_d.VOXEL_ICP_MM)
         self.uklady, self.wyraznosc = _d.uklady_osi(np.asarray(self.gesta.points))
         self.fpfh = None
+        self.wpisy_ransac = 0
         self.voxel = voxel
 
 
@@ -121,8 +120,10 @@ def _ocen_wpis(frag: _Fragment, wpis: WpisPuli, prog_min: float, d, pamiec: dict
         if najlepszy is None or (pokr, -rms) > (najlepszy[0], -najlepszy[1]):
             najlepszy = (pokr, rms, T_f2p)
 
-    if frag.wyraznosc < d.prog_wyraznosci_osi:
-        # zabezpieczenie: os PCA fragmentu nieokreslona -> zgrubne FPFH + RANSAC (2 proby, rozne ziarna)
+    if frag.wyraznosc < d.prog_wyraznosci_osi and frag.wpisy_ransac < d.max_kandydatow:
+        # zabezpieczenie: os PCA fragmentu nieokreslona -> zgrubne FPFH + RANSAC (2 proby, rozne ziarna);
+        # najwyzej max_kandydatow wpisow na wywolanie (rano drugi etap bez limitu), dalej PCA
+        frag.wpisy_ransac += 1
         if frag.fpfh is None:
             frag.fpfh = _d.cechy_fpfh(frag.pc, frag.voxel)
         if proj.fpfh is None:
@@ -132,14 +133,14 @@ def _ocen_wpis(frag: _Fragment, wpis: WpisPuli, prog_min: float, d, pamiec: dict
             if najlepszy[0] >= prog_min:
                 break
     else:
-        # sito: 1 start na ramke, odleglosc od chmury rzadkiej (bez BVH siatki), prog obnizony o SITO_ODSTEP
+        # zgrubne ICP raz; sito: fitness od chmury rzadkiej (bez BVH siatki) >= prog_sita,
+        # potem fitness tych samych poz od siatki (scena) >= prog_zgrubny
         hipotezy = _d.hipotezy_pca(frag.zgrubna, frag.uklady, proj.rzadka, proj.uklad, katy=KATY,
-                                   odleglosc=proj.odleglosc, liczba_icp=1)
-        if not hipotezy or hipotezy[0][0] < d.prog_zgrubny - SITO_ODSTEP:
+                                   odleglosc=proj.odleglosc, liczba_icp=ICP_NA_RAMKE)
+        if not hipotezy or hipotezy[0][0] < d.prog_sita:
             return None
-        hipotezy = _d.hipotezy_pca(frag.zgrubna, frag.uklady, proj.rzadka, proj.uklad, katy=KATY,
-                                   odleglosc=_d.odleglosc_od_sceny(proj.scena, proj.k), liczba_icp=ICP_NA_RAMKE)
-        if not hipotezy or hipotezy[0][0] < d.prog_zgrubny:
+        hipotezy = _d.przelicz_fitness(frag.zgrubna, hipotezy, _d.odleglosc_od_sceny(proj.scena, proj.k))
+        if hipotezy[0][0] < d.prog_zgrubny:
             return None
         for fit, T0 in hipotezy[:MAX_HIPOTEZ]:
             if fit < PROG_HIPOTEZY * hipotezy[0][0]:
@@ -148,12 +149,11 @@ def _ocen_wpis(frag: _Fragment, wpis: WpisPuli, prog_min: float, d, pamiec: dict
     return _dokoncz(frag, proj, wpis, najlepszy[2], d.odleglosc_mm)
 
 
-def _obrot_180(frag: _Fragment, wpis: WpisPuli, top: Kandydat, d, pamiec: dict) -> tuple[Kandydat, bool]:
+def _obrot_180(frag: _Fragment, wpis: WpisPuli, top: Kandydat, d, pamiec: dict) -> Kandydat:
     """Kontrola pozy obroconej o 180 st. wokol osi wyroznionej projektu (korona prawie symetryczna).
 
     Poza obrocona (po ICP) zastepuje top-1 tylko przy pokryciu wiekszym o > margines_obrotu_180; rms nie
-    rozstrzyga (zmierzone: zdominowane szumem, wskazuje zla poze w ok. polowie bliskich przypadkow).
-    Zwraca (kandydat, niejednoznaczny); niejednoznaczny = pokrycia rozniace sie <= margines_obrotu_180.
+    rozstrzyga (zmierzone: zdominowane szumem). Pewnosci nie zmienia.
     """
     proj = _projekt(wpis, frag.voxel, pamiec)
     S = _skala(wpis)
@@ -169,10 +169,9 @@ def _obrot_180(frag: _Fragment, wpis: WpisPuli, top: Kandydat, d, pamiec: dict) 
     przesuniecie = np.max(np.linalg.norm(
         _d.przenies(probne, np.linalg.inv(inny.T_projekt_do_fragmentu))
         - _d.przenies(probne, np.linalg.inv(top.T_projekt_do_fragmentu)), axis=1))
-    if przesuniecie < OBROT_INNA_POZA_MM:
-        return top, False
-    roznica = inny.pokrycie - top.pokrycie
-    return (inny if roznica > d.margines_obrotu_180 else top), abs(roznica) <= d.margines_obrotu_180
+    if przesuniecie < d.obrot_inna_poza_mm or inny.pokrycie - top.pokrycie <= d.margines_obrotu_180:
+        return top
+    return inny
 
 
 def dopasuj(fragment: trimesh.Trimesh, pula: list[WpisPuli], ustawienia, tryb: str = "wieczor",
@@ -223,12 +222,10 @@ def dopasuj(fragment: trimesh.Trimesh, pula: list[WpisPuli], ustawienia, tryb: s
                 break
 
     uporzadkowani = ranking.uporzadkuj(kandydaci)
-    niejednoznaczny = False
-    if uporzadkowani and uporzadkowani[0].pokrycie >= prog_min:
+    if tryb == "wieczor" and uporzadkowani and uporzadkowani[0].pokrycie >= prog_min:
+        # tylko wieczorem (T idzie do inspect); rano liczy sie projekt, nie poza
         top = uporzadkowani[0]
-        uporzadkowani[0], niejednoznaczny = _obrot_180(frag, wpisy[id(top)], top, d, pamiec)
+        uporzadkowani[0] = _obrot_180(frag, wpisy[id(top)], top, d, pamiec)
     wynik = ranking.wynik(uporzadkowani, ustawienia, tryb)
-    if niejednoznaczny and wynik.pewnosc == "pewny":
-        wynik.pewnosc = "dwuznaczny"
     wynik.kandydaci = wynik.kandydaci[:d.max_kandydatow]
     return wynik

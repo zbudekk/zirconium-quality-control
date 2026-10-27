@@ -44,6 +44,8 @@ SCHEMAT: dict[str, dict[str, type]] = {
         "wczesne_pokrycie": float,
         "prog_wyraznosci_osi": float,
         "margines_obrotu_180": float,
+        "prog_sita": float,
+        "obrot_inna_poza_mm": float,
     },
     "ubytki": {
         "min_glebokosc_mm": float,
@@ -84,6 +86,8 @@ ZAKRESY: dict[tuple[str, str], tuple[float | None, float | None]] = {
     ("dopasowanie", "wczesne_pokrycie"): (0.0, 1.0),
     ("dopasowanie", "prog_wyraznosci_osi"): (0.0, 1.0),
     ("dopasowanie", "margines_obrotu_180"): (0.0, 1.0),
+    ("dopasowanie", "prog_sita"): (0.0, 1.0),
+    ("dopasowanie", "obrot_inna_poza_mm"): (0.0, None),
 }
 
 

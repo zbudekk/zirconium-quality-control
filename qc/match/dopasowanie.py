@@ -23,6 +23,7 @@ ZIARNO_PROBKI = 0
 ZIARNO_RANSAC = 1
 VOXEL_ICP_MM = 0.4
 ETAPY_ICP_MM = (0.5, 0.1)
+PRZESUNIECIA_OSI = (0.0, -0.1, 0.1, -0.2, 0.2)  # x dlugosc projektu wzdluz osi wyroznionej
 
 
 @dataclass(eq=False)
@@ -240,8 +241,13 @@ def _odleglosci_poz(punkty: np.ndarray, pozy: list[np.ndarray], odleglosc) -> np
 
 def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt_pc: o3d.geometry.PointCloud,
                  uklad_projektu, katy: int = 8, max_odleglosc: float = 1.5, prog_oceny: float = 0.25,
-                 odleglosc=None, liczba_icp: int = 2) -> list[tuple[float, np.ndarray]]:
+                 odleglosc=None, liczba_icp: int = 2,
+                 przesuniecia=PRZESUNIECIA_OSI) -> list[tuple[float, np.ndarray]]:
     """Odrebne pozy fragment -> projekt po zgrubnym ICP z ustawien osi (2 zwroty x katy obrotu wokol osi).
+
+    przesuniecia: ulamki dlugosci projektu wzdluz osi wyroznionej dodawane do dopasowania srodkow
+    (tylko przy szeregowaniu z odleglosc): niepelny skan mostu przesuwa srodek o kilka mm; kazdy kat
+    bierze najlepsze przesuniecie, liczba ICP sie nie zmienia.
 
     uklady_fragmentu: lista ramek (srodek, R) - os z kazdej ramki ustawiana na os wyrozniona projektu.
     odleglosc(punkty w ukladzie projektu przeskalowanego) -> odleglosci od powierzchni projektu
@@ -254,19 +260,26 @@ def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt
     cp, Rp = uklad_projektu
     punkty = np.asarray(fragment_pc.points)
     probne = punkty[:: max(1, len(punkty) // 50)]
-    pozy = []
+    os_p = Rp[:, 2]
+    rzut = np.asarray(projekt_pc.points) @ os_p
+    dlugosc = float(rzut.max() - rzut.min()) if len(rzut) else 0.0
+    przes = list(przesuniecia) if odleglosc is not None else [0.0]
+    pozy = []  # kolejnosc: ramka x zwrot, kat, przesuniecie
     for (cf, Rf), zwrot in [(u, z) for u in uklady_fragmentu for z in (1.0, -1.0)]:
         Rfz = Rf * np.array([zwrot, 1.0, zwrot])  # obrot o 180 st. wokol osi y ramki
         for k in range(katy):
             R = Rp @ _obrot_z(2 * np.pi * k / katy) @ Rfz.T
-            T = np.eye(4)
-            T[:3, :3] = R
-            T[:3, 3] = cp - R @ cf
-            pozy.append(T)
+            for u in przes:
+                T = np.eye(4)
+                T[:3, :3] = R
+                T[:3, 3] = cp + u * dlugosc * os_p - R @ cf
+                pozy.append(T)
     if odleglosc is not None and katy > liczba_icp:
         # w kazdej ramce i zwrocie liczba_icp katow: kolejno najlepszy, odlegly >= 90 st. od wybranych
         # (korona bywa prawie symetryczna o 180 st. - sasiednie katy zbiegaja do tej samej pozy)
-        oceny = _odleglosci_poz(probne, pozy, odleglosc).reshape(-1, katy)
+        oceny = _odleglosci_poz(probne, pozy, odleglosc).reshape(-1, katy, len(przes))
+        najlepsze_przes = oceny.argmin(axis=2)
+        oceny = oceny.min(axis=2)
         odstep = max(1, katy // 4)
         wybrane = []
         for g, rzad in enumerate(oceny):
@@ -276,7 +289,7 @@ def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt
                     ramka.append(int(k))
                 if len(ramka) == liczba_icp:
                     break
-            wybrane += [pozy[g * katy + k] for k in ramka]
+            wybrane += [pozy[(g * katy + k) * len(przes) + int(najlepsze_przes[g, k])] for k in ramka]
         pozy = wybrane
     po_icp = []
     for T in pozy:
@@ -290,7 +303,22 @@ def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt
         fitness = (d.reshape(len(po_icp), len(punkty)) <= prog_oceny).mean(axis=1)
     else:
         fitness = [reg.evaluate_registration(fragment_pc, projekt_pc, prog_oceny, T).fitness for T in po_icp]
-    wyniki = sorted(zip((float(f) for f in fitness), po_icp), key=lambda x: -x[0])
+    return _odrebne(sorted(zip((float(f) for f in fitness), po_icp), key=lambda x: -x[0]), probne)
+
+
+def przelicz_fitness(fragment_pc: o3d.geometry.PointCloud, hipotezy: list[tuple[float, np.ndarray]], odleglosc,
+                     prog_oceny: float = 0.25) -> list[tuple[float, np.ndarray]]:
+    """Fitness tych samych poz (bez ICP) wzgledem innej odleglosci (np. od siatki zamiast od chmury)."""
+    if not hipotezy:
+        return []
+    punkty = np.asarray(fragment_pc.points)
+    d = odleglosc(np.concatenate([punkty @ T[:3, :3].T + T[:3, 3] for _, T in hipotezy]))
+    fitness = (d.reshape(len(hipotezy), len(punkty)) <= prog_oceny).mean(axis=1)
+    return sorted(((float(f), T) for f, (_, T) in zip(fitness, hipotezy)), key=lambda x: -x[0])
+
+
+def _odrebne(wyniki: list[tuple[float, np.ndarray]], probne: np.ndarray) -> list[tuple[float, np.ndarray]]:
+    """Scala pozy rozniace sie < 0,5 mm (max przesuniecie punktow probnych), zostawia najlepsza."""
     odrebne = []
     for fit, T in wyniki:
         p = probne @ T[:3, :3].T + T[:3, 3]
