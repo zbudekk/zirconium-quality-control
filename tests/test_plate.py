@@ -478,3 +478,109 @@ def test_wynik_dla_inspect(wieczorna, pula30, ustawienia):
         wszystkie += c.wykryte + c.pominiete
     assert wszystkie == 6
     assert wykryte >= 5, f"wykryte {wykryte}/6"
+
+
+# --- 15-19. odpornosc (poprawki po recenzji) --------------------------------------------
+
+
+def _bez_scian(siatka, usun):
+    """Kopia skanu bez wskazanych scian (wierzcholki zostaja; zakresy prawdy nieaktualne)."""
+    return trimesh.Trimesh(np.asarray(siatka.vertices), np.asarray(siatka.faces)[~usun], process=False)
+
+
+def _sprawdz_powtarzalnosc(siatka, uklad, ustawienia, n):
+    plate = _plate()
+    macierze = []
+    for _ in range(n):
+        macierze.append(np.asarray(plate.wyrownaj(siatka, uklad, ustawienia).T_skan_do_plytki, dtype=np.float64))
+    for i, T in enumerate(macierze[1:], start=1):
+        assert np.allclose(T, macierze[0], atol=1e-6), f"wywolanie {i}: max roznica {np.abs(T - macierze[0]).max():.2e}"
+    return macierze[0]
+
+
+@pytest.mark.wolne
+def test_wyrownanie_powtarzalne(plytka_pelna, wieczorna, ustawienia):
+    _, siatka, pr = plytka_pelna
+    T = _sprawdz_powtarzalnosc(siatka, wieczorna, ustawienia, 10)
+    dt, dk = blad_T(T, _T_prawdy(pr))
+    assert dt <= 0.05 and dk <= 0.05, f"{dt:.4f} mm, {dk:.4f} st."
+
+
+def test_wyrownanie_powtarzalne_szybkie(wieczorna, pula_z_mostami, ustawienia):
+    _, siatka, pr = _skan(wieczorna, NUMER, pula_z_mostami, 12, 2, ziarno=71)
+    T = _sprawdz_powtarzalnosc(siatka, wieczorna, ustawienia, 5)
+    dt, dk = blad_T(T, _T_prawdy(pr))
+    assert dt <= 0.05 and dk <= 0.05, f"{dt:.4f} mm, {dk:.4f} st."
+
+
+def test_skan_z_gory(plytka_6, wieczorna, ustawienia):
+    """Skan tylko z gory (bez scian o normalnej z < -0,3) i z szumem plytki 0,03 mm wzdluz normalnych."""
+    from qc.syntetyka.skan import normalne_wierzcholkow
+
+    _, siatka, pr = plytka_6
+    v = np.asarray(siatka.vertices, dtype=np.float64).copy()
+    f = np.asarray(siatka.faces, dtype=np.int64)
+    koniec_plytki = min(p.zakres_scian[0] for p in pr.prace)
+    w_plytki = np.unique(f[:koniec_plytki])
+    n = normalne_wierzcholkow(v, f)
+    rng = np.random.default_rng(17)
+    v[w_plytki] += n[w_plytki] * rng.normal(0.0, 0.03, len(w_plytki))[:, None]
+    zaszumiona = trimesh.Trimesh(v, f, process=False)
+    z_gory = _bez_scian(zaszumiona, np.asarray(zaszumiona.face_normals)[:, 2] < -0.3)
+    assert len(z_gory.faces) < len(f)
+    wynik = _plate().analizuj(z_gory, wieczorna, ustawienia)
+    assert wynik.numer == NUMER
+    dt, dk = blad_T(wynik.wyrownanie.T_skan_do_plytki, _T_prawdy(pr))
+    assert dt <= 0.05, f"translacja {dt:.4f} mm"
+    assert dk <= 0.05, f"kat {dk:.4f} st."
+    _sprawdz_gniazda(wieczorna, wynik)
+    assert _liczba(wynik, "podwojne") == 0
+    assert _liczba(wynik, "poza_gniazdem") == 0
+    assert _liczba(wynik, "praca") == 7
+    assert {f.gniazdo for f in wynik.fragmenty if f.stan == "praca"} == {p.gniazdo for p in pr.prace}
+
+
+@pytest.fixture(scope="session")
+def plytka_nr3(wieczorna, pula30):
+    """Plytka wieczorna nr 3 (dolki A, B; relief): 2 korony, T losowa."""
+    return _skan(wieczorna, 3, pula30, 2, 0, ziarno=81)
+
+
+def _srodki_w_plytce(siatka, pr):
+    return _przenies(_srodki_scian(siatka), _T_prawdy(pr))
+
+
+def test_dolek_zakryty(plytka_nr3, wieczorna, ustawienia):
+    plate = _plate()
+    _, siatka, pr = plytka_nr3
+    T = _T_prawdy(pr)
+    assert plate.numer_plytki(_przeksztalc(siatka, T), wieczorna) == 3
+    c = _srodki_w_plytce(siatka, pr)
+    dx, dy = wieczorna.dolki_kodu["A"]
+    w_kole = np.hypot(c[:, 0] - dx, c[:, 1] - dy) < 1.5
+    # caly dolek A bez danych: bit nieznany -> None (nie 2)
+    bez_dolka = _bez_scian(siatka, w_kole)
+    assert plate.numer_plytki(_przeksztalc(bez_dolka, T), wieczorna) is None
+    wynik = plate.analizuj(bez_dolka, wieczorna, ustawienia)
+    assert wynik.numer is None
+    assert any("dolek" in u or "kod" in u for u in wynik.uwagi), wynik.uwagi
+    # polowa dolka wystarcza
+    pol = _bez_scian(siatka, w_kole & (c[:, 0] < dx))
+    assert plate.numer_plytki(_przeksztalc(pol, T), wieczorna) == 3
+
+
+def test_relief_nie_praca(plytka_nr3, wieczorna, ustawienia):
+    plate = _plate()
+    _, siatka, pr = plytka_nr3
+    T = _T_prawdy(pr)
+    c = _srodki_w_plytce(siatka, pr)
+    przyciety = _przeksztalc(_bez_scian(siatka, (np.abs(c[:, 0]) > 43) | (np.abs(c[:, 1]) > 43)), T)
+    fragmenty = plate.potnij(przyciety, wieczorna, ustawienia)
+    rx, ry = wieczorna.relief_numeru[:2]
+    poza = [f for f in fragmenty if f.stan == "poza_gniazdem"]
+    assert not poza, [(f.gniazdo, len(f.siatka.faces), np.asarray(f.siatka.vertices).mean(axis=0).round(1).tolist())
+                      for f in poza]
+    assert sum(f.stan == "praca" for f in fragmenty) == 2
+    # pelna plytka: relief takze nie jest praca
+    assert not [f for f in plate.potnij(_przeksztalc(siatka, T), wieczorna, ustawienia) if f.stan == "poza_gniazdem"]
+    assert abs(rx) <= 48 and abs(ry) <= 48
