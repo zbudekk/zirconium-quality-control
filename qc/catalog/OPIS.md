@@ -19,6 +19,8 @@ z wspolczynnikiem skali k).
   (wzgledna) i `tolerancja_wymiarow_mm`; objetosc pomijana, gdy skan jest otwarty (None).
 - `baza.py` - `Baza(sciezka)`: schemat (tabele `projekty`, `wspolczynniki`, PRAGMA user_version = 1),
   rekordy jako dict kolumn, d2 jako BLOB float32. Polaczenie na kazde wywolanie.
+  Uwaga: schemat ma `sciezka UNIQUE` bez zrodla - kolizja tej samej sciezki wzglednej w Cyrkon i
+  Prywatne da blad zapisu (pytanie do wlasciciela; schematu nie zmieniac bez jego decyzji).
 - `indeks.py` - `skanuj`: `os.scandir` na glebokosc 2 (folder zlecenia / pliki .stl bez wielkosci
   liter), klucz zmiany (mtime_ns, rozmiar); cechy tylko dla nowych i zmienionych (STL wczytany
   `process=False` + scalenie wierzcholkow); brak pliku -> `usuniety = 1`. Brak calego katalogu zrodla
