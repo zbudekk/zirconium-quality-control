@@ -18,16 +18,23 @@ z wspolczynnikiem skali k).
   roznica wymiarow, `pasuje(skan, projekt, k, ustawienia)` - tolerancje `dopasowanie.tolerancja_objetosci`
   (wzgledna) i `tolerancja_wymiarow_mm`; objetosc pomijana, gdy skan jest otwarty (None).
 - `baza.py` - `Baza(sciezka)`: schemat (tabele `projekty`, `wspolczynniki`, PRAGMA user_version = 1),
-  rekordy jako dict kolumn, d2 jako BLOB float32. Polaczenie na kazde wywolanie.
-  Uwaga: schemat ma `sciezka UNIQUE` bez zrodla - kolizja tej samej sciezki wzglednej w Cyrkon i
-  Prywatne da blad zapisu (pytanie do wlasciciela; schematu nie zmieniac bez jego decyzji).
+  rekordy jako dict kolumn, d2 jako BLOB float32, sciezka unikalna w obrebie zrodla
+  (`UNIQUE(zrodlo, sciezka)`). Polaczenie na kazde wywolanie.
 - `indeks.py` - `skanuj`: `os.scandir` na glebokosc 2 (folder zlecenia / pliki .stl bez wielkosci
   liter), klucz zmiany (mtime_ns, rozmiar); cechy tylko dla nowych i zmienionych (STL wczytany
   `process=False` + scalenie wierzcholkow); brak pliku -> `usuniety = 1`. Brak calego katalogu zrodla
-  (OneDrive niezsynchronizowany) = zrodlo pominiete bez oznaczania usuniec. `pula_rano`: `pula.dni_rano`
-  dni roboczych wstecz (sb/nd sie nie licza, pliki z weekendu naleza do piatku), dzis zawsze w puli,
-  k = 1,0. `pula_wieczor`: STL z CSV wspolczynnikow z dzis i wczoraj, szukane po nazwie pliku.
-- `wspolczynniki.py` - CSV wspolczynnikow skali.
+  (OneDrive niezsynchronizowany) = zrodlo pominiete bez oznaczania usuniec. Pliki starsze niz
+  `pula.usuwaj_po_dniach` sa pomijane (nie wracaja codziennie jako nowe po `usun_starsze_niz`). STL,
+  ktorego nie da sie wczytac (uszkodzony, zablokowany), dostaje rekord bez cech i trafia do
+  `RaportIndeksu.bledy` / `bledne`; skan idzie dalej, ponowna proba po zmianie mtime/rozmiaru.
+  `pula_rano`: `pula.dni_rano` dni roboczych wstecz (sb/nd sie nie licza, pliki z weekendu naleza do
+  piatku), dzis zawsze w puli, k = 1,0. `pula_wieczor`: STL z CSV wspolczynnikow z dzis i wczoraj; pole
+  `plik` z folderem ("Folder/36.stl" albo z "\\") = dopasowanie konca sciezki wzglednej, sama nazwa pliku
+  = kandydaci z mtime w oknie (+1 dzien), przy kilku najblizszy dacie z CSV (licznik `niejednoznaczne`).
+  Obie pule przyjmuja opcjonalnie `ustawienia` (domyslne dni z sekcji `[pula]`).
+- `wspolczynniki.py` - CSV wspolczynnikow skali; zle kodowanie (np. cp1250) albo brak naglowka w 1. linii
+  = ValueError z numerem linii i podpowiedzia "zapisz jako CSV UTF-8".
+- Nazwy sa sprowadzane do postaci Unicode NFC (litery z ogonkami jako znak + znak laczacy).
 
 Parser raportow MillBox (BeautifulSoup4/pypdf) czeka na zanonimizowany raport przykladowy. Do tego czasu
 plan B: plik CSV `sciezki.wspolczynniki` (UTF-8, srednik, naglowek `plik;krazek;wspolczynnik;data`,

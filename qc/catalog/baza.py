@@ -17,7 +17,7 @@ SCHEMAT = """
 CREATE TABLE IF NOT EXISTS projekty (
     id INTEGER PRIMARY KEY,
     zrodlo TEXT NOT NULL CHECK (zrodlo IN ('cyrkon', 'prywatne')),
-    sciezka TEXT NOT NULL UNIQUE,
+    sciezka TEXT NOT NULL,
     folder TEXT NOT NULL,
     kuweta TEXT,
     nazwisko TEXT,
@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS projekty (
     wym3_mm REAL,
     d2 BLOB,
     zaindeksowano TEXT NOT NULL,
-    usuniety INTEGER NOT NULL DEFAULT 0
+    usuniety INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (zrodlo, sciezka)
 );
 CREATE TABLE IF NOT EXISTS wspolczynniki (
     id INTEGER PRIMARY KEY,
