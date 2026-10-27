@@ -332,3 +332,98 @@ def test_metryki_200(pula_wieczor, ustawienia_match):
     assert top1 >= 190
     assert top2 >= 196
     assert brak <= 2
+
+
+# --- poprawki po recenzji -------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def pula_rano60():
+    from qc.syntetyka import prace
+
+    return [_wpis(p.id, p.siatka, 1.0) for p in prace.pula_projektow(60, 2)]
+
+
+@pytest.mark.wolne
+def test_rano_pula_200(ustawienia_match):
+    from qc.syntetyka import prace
+
+    pula = [_wpis(p.id, p.siatka, 1.0) for p in prace.pula_projektow(200, 3)]
+    indeksy = np.random.default_rng(3).choice(len(pula), 20, replace=False)
+    fragmenty = [_fragment(pula[i].projekt_id, pula[i].siatka, 600 + z, 1.0, pokrycie=0.7)
+                 for z, i in enumerate(indeksy)]
+    wyniki = _dopasuj_wszystkie(fragmenty, pula, ustawienia_match, tryb="rano")
+    top1 = _top(wyniki, 1)
+    zle_pewne = sum(w.pewnosc == "pewny" and _ids(w, 1) != [f.projekt_id] for f, w in wyniki)
+    print(f"\nrano pula 200: top-1 {top1}/20, pewny na zlym projekcie {zle_pewne}")
+    assert top1 >= 19
+    assert zle_pewne == 0
+
+
+def test_rano_spoza_puli(pula_rano60, ustawienia_match):
+    from qc.syntetyka import prace
+
+    obce = prace.pula_projektow(15, 77)
+    fragmenty = [_fragment("obcy-" + p.id, p.siatka, 700 + i, 1.0, pokrycie=0.7) for i, p in enumerate(obce)]
+    wyniki = _dopasuj_wszystkie(fragmenty, pula_rano60, ustawienia_match, tryb="rano")
+    pewnosci = [w.pewnosc for _, w in wyniki]
+    print(f"\nrano spoza puli: pewny {pewnosci.count('pewny')}, dwuznaczny {pewnosci.count('dwuznaczny')}, "
+          f"brak {pewnosci.count('brak')}, max pokrycie "
+          f"{max((w.kandydaci[0].pokrycie for _, w in wyniki if w.kandydaci), default=0):.3f}")
+    assert pewnosci.count("pewny") == 0
+
+
+def test_ransac_awaryjny(pula_wieczor, tmp_path, monkeypatch):
+    """prog_wyraznosci_osi = 1,0: os PCA zawsze niepewna -> zgrubne FPFH + RANSAC, poprawny top-1."""
+    import re
+
+    from qc.match import dopasowanie
+
+    monkeypatch.delenv("QC_USTAWIENIA", raising=False)
+    tekst = (katalog_repo() / "ustawienia.toml").read_text(encoding="utf-8")
+    tekst, n = re.subn(r"(?m)^prog_wyraznosci_osi\s*=.*$", "prog_wyraznosci_osi = 1.0", tekst)
+    assert n == 1, "brak klucza dopasowanie.prog_wyraznosci_osi w ustawienia.toml"
+    (tmp_path / "ustawienia.toml").write_text(tekst, encoding="utf-8")
+    ust = wczytaj(tmp_path / "ustawienia.toml")
+
+    wywolania = []
+    oryginal = dopasowanie.zgrubne_z_cech
+
+    def liczona(*a, **kw):
+        wywolania.append(1)
+        return oryginal(*a, **kw)
+
+    monkeypatch.setattr(dopasowanie, "zgrubne_z_cech", liczona)
+    f = _fragmenty_z_puli(pula_wieczor, [3], szum=0.02)[0]
+    w = _match().dopasuj(f.siatka, pula_wieczor, ust)
+    print(f"\nRANSAC awaryjny: {len(wywolania)} wywolan, top-1 {_ids(w, 1)}, pewnosc {w.pewnosc}")
+    assert wywolania
+    assert _ids(w, 1) == [f.projekt_id]
+
+
+def test_pamiec_klucz(pula_wieczor, ustawienia_match):
+    """Te same projekt_id i k, nowe obiekty Trimesh + wspolna pamiec: cache trafia, wyniki identyczne."""
+    m = _match()
+
+    def nowa_pula():
+        return [m.WpisPuli(w.projekt_id, trimesh.Trimesh(np.array(w.siatka.vertices), np.array(w.siatka.faces),
+                                                          process=False), w.cechy, w.wspolczynnik)
+                for w in pula_wieczor]
+
+    fragmenty = _fragmenty_z_puli(pula_wieczor, range(801, 806))
+    pamiec = {}
+    t0 = time.perf_counter()
+    pierwsze = [m.dopasuj(f.siatka, nowa_pula(), ustawienia_match, pamiec=pamiec) for f in fragmenty]
+    t1 = time.perf_counter()
+    klucze = set(pamiec)
+    drugie = [m.dopasuj(f.siatka, nowa_pula(), ustawienia_match, pamiec=pamiec) for f in fragmenty]
+    t2 = time.perf_counter()
+    print(f"\npamiec: 1. przebieg {t1 - t0:.2f} s, 2. przebieg {t2 - t1:.2f} s, kluczy {len(klucze)}")
+    assert klucze and set(pamiec) == klucze
+    assert t2 - t1 < t1 - t0
+    for a, b in zip(pierwsze, drugie):
+        assert a.pewnosc == b.pewnosc
+        assert [k.projekt_id for k in a.kandydaci] == [k.projekt_id for k in b.kandydaci]
+        for ka, kb in zip(a.kandydaci, b.kandydaci):
+            assert ka.pokrycie == kb.pokrycie
+            assert np.array_equal(np.asarray(ka.T_projekt_do_fragmentu), np.asarray(kb.T_projekt_do_fragmentu))
