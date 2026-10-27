@@ -13,6 +13,8 @@ import numpy as np
 import open3d as o3d
 import trimesh
 
+from qc.open3d_wspolne import ziarno as ziarno_open3d
+
 reg = o3d.pipelines.registration
 
 PUNKTY_PROJEKTU = 20_000
@@ -47,35 +49,42 @@ def cechy_fpfh(pc: o3d.geometry.PointCloud, voxel: float) -> ChmuraCech:
 
 
 def probka_projektu(siatka: trimesh.Trimesh, k: float, liczba: int = PUNKTY_PROJEKTU) -> o3d.geometry.PointCloud:
-    """Probka powierzchni projektu przeskalowanego o k, z normalnymi scian (stale ziarno)."""
-    punkty, sciany = trimesh.sample.sample_surface(siatka, liczba, seed=np.random.default_rng(ZIARNO_PROBKI))
+    """Probka powierzchni projektu przeskalowanego o k (losowanie wazone polem, stale ziarno), normalne scian.
+
+    Wlasne losowanie w numpy: trimesh.sample.sample_surface trwa 20-30 ms na siatce 150 tys. scian.
+    """
     v = np.asarray(siatka.vertices, dtype=np.float64)
-    f = np.asarray(siatka.faces, dtype=np.int64)[sciany]
-    n = np.cross(v[f[:, 1]] - v[f[:, 0]], v[f[:, 2]] - v[f[:, 0]])
-    n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-12)
-    return chmura(np.asarray(punkty) * k, n)
+    f = np.asarray(siatka.faces, dtype=np.int64)
+    v0 = v[f[:, 0]]
+    a = v[f[:, 1]] - v0
+    b = v[f[:, 2]] - v0
+    iloczyn = np.cross(a, b)
+    pole = np.linalg.norm(iloczyn, axis=1)
+    rng = np.random.default_rng(ZIARNO_PROBKI)
+    skumulowane = np.cumsum(pole)
+    sciany = np.minimum(np.searchsorted(skumulowane, rng.random(liczba) * skumulowane[-1]), len(f) - 1)
+    u, w = rng.random(liczba), rng.random(liczba)
+    poza = u + w > 1.0
+    u[poza], w[poza] = 1.0 - u[poza], 1.0 - w[poza]
+    punkty = v0[sciany] + a[sciany] * u[:, None] + b[sciany] * w[:, None]
+    n = iloczyn[sciany] / np.maximum(pole[sciany], 1e-12)[:, None]
+    return chmura(punkty * k, n)
 
 
 def _odwroc(T: np.ndarray) -> np.ndarray:
     return np.linalg.inv(np.asarray(T, dtype=np.float64))
 
 
-def _ustaw_ziarno(ziarno: int) -> None:
-    los = getattr(o3d.utility, "random", None)
-    if los is not None and hasattr(los, "seed"):
-        los.seed(ziarno)
-
-
 def zgrubne_z_cech(fragment: ChmuraCech, projekt: ChmuraCech, voxel: float,
                    ziarno: int = ZIARNO_RANSAC) -> np.ndarray:
     """RANSAC na korespondencjach FPFH; zwraca T fragment -> projekt (sztywne)."""
-    _ustaw_ziarno(ziarno)
     odl = 1.5 * voxel
-    wynik = reg.registration_ransac_based_on_feature_matching(
-        fragment.chmura, projekt.chmura, fragment.fpfh, projekt.fpfh, True, odl,
-        reg.TransformationEstimationPointToPoint(False), 3,
-        [reg.CorrespondenceCheckerBasedOnEdgeLength(0.9), reg.CorrespondenceCheckerBasedOnDistance(odl)],
-        reg.RANSACConvergenceCriteria(100_000, 0.999))
+    with ziarno_open3d(ziarno):  # seed open3d jest globalny - blokada wspolna z qc.plate
+        wynik = reg.registration_ransac_based_on_feature_matching(
+            fragment.chmura, projekt.chmura, fragment.fpfh, projekt.fpfh, True, odl,
+            reg.TransformationEstimationPointToPoint(False), 3,
+            [reg.CorrespondenceCheckerBasedOnEdgeLength(0.9), reg.CorrespondenceCheckerBasedOnDistance(odl)],
+            reg.RANSACConvergenceCriteria(100_000, 0.999))
     return np.asarray(wynik.transformation, dtype=np.float64)
 
 
@@ -192,24 +201,55 @@ def _obrot_z(kat: float) -> np.ndarray:
     return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
 
 
-def _odleglosci_poz(punkty: np.ndarray, pozy: list[np.ndarray], scena_projektu, skala: float) -> np.ndarray:
+class OdlegloscOdChmury:
+    """Odleglosc punktow od powierzchni przyblizonej chmura z normalnymi (punkt-plaszczyzna do najblizszego).
+
+    Szybka (NNS open3d, bez BVH siatki) - do etapu zgrubnego; punkt dalej niz promien od najblizszego
+    punktu chmury dostaje odleglosc euklidesowa.
+    """
+
+    def __init__(self, chmura_pc: o3d.geometry.PointCloud, promien: float):
+        self.punkty = np.asarray(chmura_pc.points, dtype=np.float64)
+        self.normalne = np.asarray(chmura_pc.normals, dtype=np.float64)
+        self.promien = promien
+        self.nns = o3d.core.nns.NearestNeighborSearch(o3d.core.Tensor(self.punkty.astype(np.float32)))
+        self.nns.knn_index()
+
+    def __call__(self, punkty: np.ndarray) -> np.ndarray:
+        idx, _ = self.nns.knn_search(o3d.core.Tensor(np.asarray(punkty, dtype=np.float32)), 1)
+        idx = idx.numpy()[:, 0]
+        roznica = np.asarray(punkty, dtype=np.float64) - self.punkty[idx]
+        e = np.linalg.norm(roznica, axis=1)
+        plaszczyzna = np.abs(np.einsum("ij,ij->i", roznica, self.normalne[idx]))
+        return np.where(e <= self.promien, plaszczyzna, e)
+
+
+def odleglosc_od_sceny(scena_projektu, skala: float):
+    """Odleglosc od siatki CAD (scena RaycastingScene) punktow w ukladzie projektu przeskalowanego o skala."""
+    def odleglosc(punkty: np.ndarray) -> np.ndarray:
+        p = (np.asarray(punkty, dtype=np.float64) / skala).astype(np.float32)
+        return scena_projektu.compute_distance(o3d.core.Tensor(p)).numpy().astype(np.float64) * skala
+    return odleglosc
+
+
+def _odleglosci_poz(punkty: np.ndarray, pozy: list[np.ndarray], odleglosc) -> np.ndarray:
     """Srednia odleglosc (obcieta do 1 mm) punktow fragmentu od projektu dla kazdej pozy; jedno zapytanie."""
-    p = np.concatenate([punkty @ T[:3, :3].T + T[:3, 3] for T in pozy]) / skala
-    d = scena_projektu.compute_distance(o3d.core.Tensor(p.astype(np.float32))).numpy() * skala
+    d = odleglosc(np.concatenate([punkty @ T[:3, :3].T + T[:3, 3] for T in pozy]))
     return np.minimum(d, 1.0).reshape(len(pozy), len(punkty)).mean(axis=1)
 
 
 def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt_pc: o3d.geometry.PointCloud,
                  uklad_projektu, katy: int = 8, max_odleglosc: float = 1.5, prog_oceny: float = 0.25,
-                 scena_projektu=None, skala: float = 1.0, liczba_icp: int = 2) -> list[tuple[float, np.ndarray]]:
+                 odleglosc=None, liczba_icp: int = 2) -> list[tuple[float, np.ndarray]]:
     """Odrebne pozy fragment -> projekt po zgrubnym ICP z ustawien osi (2 zwroty x katy obrotu wokol osi).
 
     uklady_fragmentu: lista ramek (srodek, R) - os z kazdej ramki ustawiana na os wyrozniona projektu.
-    scena_projektu (siatka CAD, nieskalowana; skala = k): pozy poczatkowe sa najpierw szeregowane po
-    sredniej odleglosci od projektu i zgrubny ICP dostaje tylko liczba_icp katow z kazdej ramki i zwrotu
-    (najlepsze, wzajemnie odlegle >= 90 st.), a fitness liczony
-    jest od siatki; bez sceny ICP startuje z kazdej pozy, fitness od chmury projektu.
-    Zwraca [(fitness przy prog_oceny, T)] malejaco; pozy rozniace sie < 0,5 mm sa scalane.
+    odleglosc(punkty w ukladzie projektu przeskalowanego) -> odleglosci od powierzchni projektu
+    (OdlegloscOdChmury albo odleglosc_od_sceny): pozy poczatkowe sa szeregowane po sredniej odleglosci
+    i zgrubny ICP dostaje tylko liczba_icp katow z kazdej ramki i zwrotu (najlepsze, wzajemnie odlegle
+    >= 90 st.), a fitness = udzial punktow <= prog_oceny; bez niej ICP startuje z kazdej pozy, fitness
+    od chmury projektu (evaluate_registration).
+    Zwraca [(fitness, T)] malejaco; pozy rozniace sie < 0,5 mm sa scalane.
     """
     cp, Rp = uklad_projektu
     punkty = np.asarray(fragment_pc.points)
@@ -223,10 +263,10 @@ def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt
             T[:3, :3] = R
             T[:3, 3] = cp - R @ cf
             pozy.append(T)
-    if scena_projektu is not None and katy > liczba_icp:
+    if odleglosc is not None and katy > liczba_icp:
         # w kazdej ramce i zwrocie liczba_icp katow: kolejno najlepszy, odlegly >= 90 st. od wybranych
         # (korona bywa prawie symetryczna o 180 st. - sasiednie katy zbiegaja do tej samej pozy)
-        oceny = _odleglosci_poz(probne, pozy, scena_projektu, skala).reshape(-1, katy)
+        oceny = _odleglosci_poz(probne, pozy, odleglosc).reshape(-1, katy)
         odstep = max(1, katy // 4)
         wybrane = []
         for g, rzad in enumerate(oceny):
@@ -244,10 +284,9 @@ def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt
                                  reg.TransformationEstimationPointToPlane(),
                                  reg.ICPConvergenceCriteria(max_iteration=15))
         po_icp.append(np.asarray(r.transformation, dtype=np.float64))
-    if scena_projektu is not None:
-        # fitness = udzial punktow fragmentu <= prog_oceny od siatki projektu (dokladniej niz od chmury)
-        p = np.concatenate([punkty @ T[:3, :3].T + T[:3, 3] for T in po_icp]) / skala
-        d = scena_projektu.compute_distance(o3d.core.Tensor(p.astype(np.float32))).numpy() * skala
+    if odleglosc is not None:
+        # fitness = udzial punktow fragmentu <= prog_oceny od powierzchni projektu
+        d = odleglosc(np.concatenate([punkty @ T[:3, :3].T + T[:3, 3] for T in po_icp]))
         fitness = (d.reshape(len(po_icp), len(punkty)) <= prog_oceny).mean(axis=1)
     else:
         fitness = [reg.evaluate_registration(fragment_pc, projekt_pc, prog_oceny, T).fitness for T in po_icp]
@@ -258,3 +297,9 @@ def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt
         if all(np.max(np.linalg.norm(p - q, axis=1)) > 0.5 for _, _, q in odrebne):
             odrebne.append((fit, T, p))
     return [(fit, T) for fit, T, _ in odrebne]
+
+
+def przenies(punkty: np.ndarray, T: np.ndarray) -> np.ndarray:
+    """Punkty (N, 3) po transformacji 4x4."""
+    T = np.asarray(T, dtype=np.float64)
+    return np.asarray(punkty, dtype=np.float64) @ T[:3, :3].T + T[:3, 3]

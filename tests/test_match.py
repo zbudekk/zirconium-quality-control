@@ -360,6 +360,7 @@ def test_rano_pula_200(ustawienia_match):
     assert zle_pewne == 0
 
 
+@pytest.mark.wolne
 def test_rano_spoza_puli(pula_rano60, ustawienia_match):
     from qc.syntetyka import prace
 
@@ -426,4 +427,5 @@ def test_pamiec_klucz(pula_wieczor, ustawienia_match):
         assert [k.projekt_id for k in a.kandydaci] == [k.projekt_id for k in b.kandydaci]
         for ka, kb in zip(a.kandydaci, b.kandydaci):
             assert ka.pokrycie == kb.pokrycie
-            assert np.array_equal(np.asarray(ka.T_projekt_do_fragmentu), np.asarray(kb.T_projekt_do_fragmentu))
+            # ICP open3d liczy rownolegle - roznice rzedu 1e-15
+            assert np.allclose(ka.T_projekt_do_fragmentu, kb.T_projekt_do_fragmentu, rtol=0, atol=1e-9)
