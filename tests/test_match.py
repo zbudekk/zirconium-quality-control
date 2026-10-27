@@ -429,3 +429,71 @@ def test_pamiec_klucz(pula_wieczor, ustawienia_match):
             assert ka.pokrycie == kb.pokrycie
             # ICP open3d liczy rownolegle - roznice rzedu 1e-15
             assert np.allclose(ka.T_projekt_do_fragmentu, kb.T_projekt_do_fragmentu, rtol=0, atol=1e-9)
+
+
+# --- poprawki 2 po recenzji ------------------------------------------------------
+
+
+def test_pewnosc_wieczor_pelne(wyniki_wieczor):
+    """Kontrola obrotu 180 st. nie obniza pewnosci: pelne skany wieczorem 'pewny' >= 38/40."""
+    pewne = sum(w.pewnosc == "pewny" and _ids(w, 1) == [f.projekt_id] for f, w, _ in wyniki_wieczor)
+    print(f"\nwieczor pelne: pewny (trafiony) {pewne}/40")
+    assert pewne >= 38
+
+
+@pytest.mark.wolne
+def test_pewnosc_rano(pula_rano60, ustawienia_match):
+    """Rano bez kontroli obrotu: 40 fragmentow pokrycie 0,7 -> 'pewny' >= 38/40."""
+    indeksy = np.random.default_rng(9).choice(len(pula_rano60), 40, replace=False)
+    fragmenty = [_fragment(pula_rano60[i].projekt_id, pula_rano60[i].siatka, 900 + z, 1.0, pokrycie=0.7)
+                 for z, i in enumerate(indeksy)]
+    wyniki = _dopasuj_wszystkie(fragmenty, pula_rano60, ustawienia_match, tryb="rano")
+    pewne = sum(w.pewnosc == "pewny" and _ids(w, 1) == [f.projekt_id] for f, w in wyniki)
+    print(f"\nrano: top-1 {_top(wyniki, 1)}/40, pewny (trafiony) {pewne}/40")
+    assert pewne >= 38
+
+
+@pytest.mark.wolne
+def test_mosty_rano_niepelne(pula30, ustawienia_match):
+    """Sito nie odrzuca wlasciwego mostu: 10 mostow rano pokrycie 0,7 w puli 30 + 10 mostow -> top-1 >= 9/10."""
+    from qc.syntetyka import prace
+
+    mosty = [_wpis(f"most-{j + 1:02d}", prace.most(60 + j, punkty=3 + j % 2), 1.0) for j in range(10)]
+    pula = [_wpis(p.id, p.siatka, 1.0) for p in pula30] + mosty
+    fragmenty = [_fragment(w.projekt_id, w.siatka, 950 + j, 1.0, pokrycie=0.7) for j, w in enumerate(mosty)]
+    wyniki = _dopasuj_wszystkie(fragmenty, pula, ustawienia_match, tryb="rano")
+    top1 = _top(wyniki, 1)
+    print(f"\nmosty rano 0,7: top-1 {top1}/10, pokrycia "
+          f"{[round(w.kandydaci[0].pokrycie, 3) if w.kandydaci else None for _, w in wyniki]}")
+    assert top1 >= 9
+
+
+def test_ransac_limit_rano(pula_rano60, tmp_path, monkeypatch):
+    """Wymuszona sciezka RANSAC rano dla pracy spoza puli: najwyzej 2 x max_kandydatow wywolan RANSAC."""
+    import re
+
+    from qc.match import dopasowanie
+    from qc.syntetyka import prace
+
+    monkeypatch.delenv("QC_USTAWIENIA", raising=False)
+    tekst = (katalog_repo() / "ustawienia.toml").read_text(encoding="utf-8")
+    tekst = re.sub(r"(?m)^prog_wyraznosci_osi\s*=.*$", "prog_wyraznosci_osi = 1.0", tekst)
+    (tmp_path / "ustawienia.toml").write_text(tekst, encoding="utf-8")
+    ust = wczytaj(tmp_path / "ustawienia.toml")
+
+    wywolania = []
+    oryginal = dopasowanie.zgrubne_z_cech
+
+    def liczona(*a, **kw):
+        wywolania.append(1)
+        return oryginal(*a, **kw)
+
+    monkeypatch.setattr(dopasowanie, "zgrubne_z_cech", liczona)
+    obcy = prace.pula_projektow(1, 78)[0]
+    f = _fragment("obcy", obcy.siatka, 990, 1.0, pokrycie=0.7)
+    t0 = time.perf_counter()
+    w = _match().dopasuj(f.siatka, pula_rano60, ust, tryb="rano")
+    czas = time.perf_counter() - t0
+    print(f"\nRANSAC rano spoza puli: {len(wywolania)} wywolan, {czas:.1f} s, pewnosc {w.pewnosc}")
+    assert len(wywolania) <= 2 * ust.dopasowanie.max_kandydatow
+    assert w.pewnosc != "pewny"
