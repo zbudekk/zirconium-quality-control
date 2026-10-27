@@ -47,6 +47,7 @@ SCHEMAT: dict[str, dict[str, type]] = {
         "max_srednica_mm": float,
         "pas_brzegu_mm": float,
         "poprawka_min_srednica_mm": float,
+        "ostrosc_min": float,  # min. stromosc obwodu ukruszenia, mm/mm
         "drgniecie_udzial": float,
         "drgniecie_odleglosc_mm": float,
     },

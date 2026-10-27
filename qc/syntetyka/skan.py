@@ -212,8 +212,11 @@ def _sprawdz_argumenty(wspolczynnik, szum_mm, ubytki, poprawki, pokrycie, widocz
 
 def skan_pracy(projekt, ziarno: int, wspolczynnik: float = 1.0, szum_mm: float = 0.02,
                ubytki=0, poprawki=0, drgniecie: bool = False, pokrycie: float = 1.0,
-               widocznosc: str = "pelna") -> tuple[trimesh.Trimesh, PrawdaPracy]:
-    """Syntetyczny skan pracy i prawda o nim (srodki ubytkow w ukladzie projektu)."""
+               widocznosc: str = "pelna", zageszczaj: bool = True) -> tuple[trimesh.Trimesh, PrawdaPracy]:
+    """Syntetyczny skan pracy i prawda o nim (srodki ubytkow w ukladzie projektu).
+
+    zageszczaj=False: bez lokalnego podzialu trojkatow przy ukruszeniach (siatka o stalej gestosci).
+    """
     _sprawdz_argumenty(wspolczynnik, szum_mm, ubytki, poprawki, pokrycie, widocznosc)
     m = _siatka(projekt)
     rng = np.random.default_rng(ziarno)
@@ -228,7 +231,7 @@ def skan_pracy(projekt, ziarno: int, wspolczynnik: float = 1.0, szum_mm: float =
     for u in spec:
         c = np.asarray(u["srodek"], dtype=np.float64)
         r = u["srednica_mm"] / 2
-        if u["rodzaj"] == "ukruszenie":
+        if zageszczaj and u["rodzaj"] == "ukruszenie":
             v, f, n = _zagesc(v, f, n, c, r, krok)
     for u in spec:
         c = np.asarray(u["srodek"], dtype=np.float64)
