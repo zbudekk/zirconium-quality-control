@@ -4,3 +4,4 @@
 *.stl binary
 *.ply binary
 *.png binary
+modele/uklad_gniazd_*.json -text
