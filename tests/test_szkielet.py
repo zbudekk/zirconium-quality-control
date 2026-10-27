@@ -133,7 +133,7 @@ def test_ustawienia_sciezki(bez_env, tmp_path):
     wieczorna = u.plytki.wieczorna
     assert isinstance(wieczorna, Path)
     assert wieczorna.is_absolute()
-    assert wieczorna.as_posix().endswith("modele/plytka-wieczorna.json")
+    assert wieczorna.as_posix().endswith("modele/uklad_gniazd_wieczorna.json")
 
 
 def test_ustawienia_env(bez_env, tmp_path):

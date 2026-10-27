@@ -1,0 +1,364 @@
+{
+ "plate": "wieczorna",
+ "version": "v2",
+ "units": "mm",
+ "coords": {
+  "origin": "środek górnej powierzchni płytki",
+  "x": "w prawo (od użytkownika)",
+  "y": "do tyłu",
+  "notch_corner": "D = (+48, -48), przód-prawy"
+ },
+ "size": 96,
+ "thickness": 8,
+ "markers": [
+  {
+   "corner": "A",
+   "x": -42.0,
+   "y": -42.0,
+   "d": 5,
+   "depth": 3
+  },
+  {
+   "corner": "B",
+   "x": -42.0,
+   "y": 42.0,
+   "d": 5,
+   "depth": 3
+  },
+  {
+   "corner": "C",
+   "x": 42.0,
+   "y": 42.0,
+   "d": 5,
+   "depth": 3
+  }
+ ],
+ "notch": {
+  "corner": "D",
+  "x_min": 43.0,
+  "x_max": 48.0,
+  "y_min": -48.0,
+  "y_max": -43.0
+ },
+ "code_dimples": [
+  {
+   "bit": "A",
+   "x": -45.0,
+   "y": -36,
+   "d": 2,
+   "depth": 1
+  },
+  {
+   "bit": "B",
+   "x": -45.0,
+   "y": -33,
+   "d": 2,
+   "depth": 1
+  },
+  {
+   "bit": "C",
+   "x": -45.0,
+   "y": -30,
+   "d": 2,
+   "depth": 1
+  }
+ ],
+ "magnet_pockets": [
+  {
+   "corner": "A",
+   "x": -42.0,
+   "y": -42.0,
+   "d": 5.2,
+   "depth": 2.2
+  },
+  {
+   "corner": "B",
+   "x": -42.0,
+   "y": 42.0,
+   "d": 5.2,
+   "depth": 2.2
+  },
+  {
+   "corner": "C",
+   "x": 42.0,
+   "y": 42.0,
+   "d": 5.2,
+   "depth": 2.2
+  }
+ ],
+ "number_relief": {
+  "x": 39.5,
+  "y": -44.5,
+  "text_h": 5,
+  "relief_h": 0.6
+ },
+ "sockets": [
+  {
+   "id": 1,
+   "type": "round",
+   "x": 30,
+   "y": -40.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 2,
+   "type": "round",
+   "x": 18,
+   "y": -40.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 3,
+   "type": "round",
+   "x": 6,
+   "y": -40.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 4,
+   "type": "round",
+   "x": -6,
+   "y": -40.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 5,
+   "type": "round",
+   "x": -18,
+   "y": -40.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 6,
+   "type": "round",
+   "x": -30,
+   "y": -40.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 7,
+   "type": "round",
+   "x": 36,
+   "y": -28.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 8,
+   "type": "round",
+   "x": 24,
+   "y": -28.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 9,
+   "type": "round",
+   "x": 12,
+   "y": -28.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 10,
+   "type": "round",
+   "x": 0,
+   "y": -28.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 11,
+   "type": "round",
+   "x": -12,
+   "y": -28.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 12,
+   "type": "round",
+   "x": -24,
+   "y": -28.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 13,
+   "type": "round",
+   "x": -36,
+   "y": -28.5,
+   "d_top": 9,
+   "d_bottom": 6.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 14,
+   "type": "round",
+   "x": 37.5,
+   "y": -15,
+   "d_top": 12,
+   "d_bottom": 9.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 15,
+   "type": "round",
+   "x": 22.5,
+   "y": -15,
+   "d_top": 12,
+   "d_bottom": 9.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 16,
+   "type": "round",
+   "x": 7.5,
+   "y": -15,
+   "d_top": 12,
+   "d_bottom": 9.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 17,
+   "type": "round",
+   "x": -7.5,
+   "y": -15,
+   "d_top": 12,
+   "d_bottom": 9.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 18,
+   "type": "round",
+   "x": -22.5,
+   "y": -15,
+   "d_top": 12,
+   "d_bottom": 9.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 19,
+   "type": "round",
+   "x": -37.5,
+   "y": -15,
+   "d_top": 12,
+   "d_bottom": 9.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 20,
+   "type": "round",
+   "x": 36,
+   "y": 1.5,
+   "d_top": 15,
+   "d_bottom": 12.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 21,
+   "type": "round",
+   "x": 18,
+   "y": 1.5,
+   "d_top": 15,
+   "d_bottom": 12.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 22,
+   "type": "round",
+   "x": 0,
+   "y": 1.5,
+   "d_top": 15,
+   "d_bottom": 12.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 23,
+   "type": "round",
+   "x": -18,
+   "y": 1.5,
+   "d_top": 15,
+   "d_bottom": 12.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 24,
+   "type": "round",
+   "x": -36,
+   "y": 1.5,
+   "d_top": 15,
+   "d_bottom": 12.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 25,
+   "type": "trough",
+   "x": 0,
+   "y": 19.5,
+   "l": 60,
+   "w": 15,
+   "angle": 0,
+   "depth": 4,
+   "hole_d": 3,
+   "hole_pitch": 12,
+   "hole_count": 4
+  },
+  {
+   "id": 26,
+   "type": "trough",
+   "x": 0,
+   "y": 37.5,
+   "l": 60,
+   "w": 15,
+   "angle": 0,
+   "depth": 4,
+   "hole_d": 3,
+   "hole_pitch": 12,
+   "hole_count": 4
+  }
+ ],
+ "leds": {}
+}

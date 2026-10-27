@@ -20,8 +20,8 @@ log_excela = "logi/excel-log.csv"
 wspolczynniki = "dane/wspolczynniki.csv"
 
 [plytki]
-wieczorna = "modele/plytka-wieczorna.json"
-poranna = "modele/plytka-poranna.json"
+wieczorna = "modele/uklad_gniazd_wieczorna.json"
+poranna = "modele/uklad_gniazd_poranna.json"
 
 [skaner]
 gestosc_mm = 0.08
