@@ -23,7 +23,7 @@ ZIARNO_PROBKI = 0
 ZIARNO_RANSAC = 1
 VOXEL_ICP_MM = 0.4
 ETAPY_ICP_MM = (0.5, 0.1)
-PRZESUNIECIA_OSI = (0.0, -0.1, 0.1, -0.2, 0.2)  # x dlugosc projektu wzdluz osi wyroznionej
+PRZESUNIECIA_OSI = (0.0, -0.05, 0.05, -0.1, 0.1, -0.15, 0.15, -0.2, 0.2, -0.25, 0.25)  # x dlugosc projektu wzdluz osi
 
 
 @dataclass(eq=False)
@@ -246,8 +246,9 @@ def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt
     """Odrebne pozy fragment -> projekt po zgrubnym ICP z ustawien osi (2 zwroty x katy obrotu wokol osi).
 
     przesuniecia: ulamki dlugosci projektu wzdluz osi wyroznionej dodawane do dopasowania srodkow
-    (tylko przy szeregowaniu z odleglosc): niepelny skan mostu przesuwa srodek o kilka mm; kazdy kat
-    bierze najlepsze przesuniecie, liczba ICP sie nie zmienia.
+    (tylko przy szeregowaniu z odleglosc, pierwsze = 0): niepelny skan mostu przesuwa srodek o kilka mm;
+    kazdy wybrany kat startuje ICP z najlepszego przesuniecia i, gdy lezy ono dalej niz polowa
+    max_odleglosc, takze z przesuniecia 0.
 
     uklady_fragmentu: lista ramek (srodek, R) - os z kazdej ramki ustawiana na os wyrozniona projektu.
     odleglosc(punkty w ukladzie projektu przeskalowanego) -> odleglosci od powierzchni projektu
@@ -289,7 +290,13 @@ def hipotezy_pca(fragment_pc: o3d.geometry.PointCloud, uklady_fragmentu, projekt
                     ramka.append(int(k))
                 if len(ramka) == liczba_icp:
                     break
-            wybrane += [pozy[(g * katy + k) * len(przes) + int(najlepsze_przes[g, k])] for k in ramka]
+            for k in ramka:
+                # najlepsze przesuniecie i takze start bez przesuniecia (indeks 0), gdy najlepsze lezy
+                # dalej niz polowa zasiegu ICP: przy moscie najlepsze przesuniecie bywa poza obrocona
+                # o 180 st., a wlasciwa startuje z 0; przy koronie (kilka mm) to ten sam start
+                u = int(najlepsze_przes[g, k])
+                indeksy = [u] if abs(przes[u]) * dlugosc <= max_odleglosc / 2 else sorted({u, 0})
+                wybrane += [pozy[(g * katy + k) * len(przes) + i] for i in indeksy]
         pozy = wybrane
     po_icp = []
     for T in pozy:

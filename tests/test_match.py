@@ -468,6 +468,7 @@ def test_mosty_rano_niepelne(pula30, ustawienia_match):
     assert top1 >= 9
 
 
+@pytest.mark.wolne
 def test_ransac_limit_rano(pula_rano60, tmp_path, monkeypatch):
     """Wymuszona sciezka RANSAC rano dla pracy spoza puli: najwyzej 2 x max_kandydatow wywolan RANSAC."""
     import re

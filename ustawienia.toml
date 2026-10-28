@@ -44,7 +44,7 @@ prog_sita = 0.55
 wczesne_pokrycie = 0.97
 # wyraznosc osi PCA fragmentu ponizej progu = zgrubne FPFH + RANSAC (zmierzone min 0,068)
 prog_wyraznosci_osi = 0.05
-# top-1 i jego poza obrocona o 180 st. wokol osi z pokryciem blizej niz o tyle = "dwuznaczny"
+# poza obrocona o 180 st. zastepuje top-1, gdy jej pokrycie jest wieksze o wiecej niz ta wartosc (tylko wieczor)
 margines_obrotu_180 = 0.005
 # poza obrocona blizej niz tyle mm (max przesuniecie punktu) od top-1 = ta sama poza
 obrot_inna_poza_mm = 0.5

@@ -31,10 +31,14 @@ albo innym szumie trzeba je zmierzyc ponownie.
 2. Projekt: probka 6000 pkt (losowanie wazone polem, normalne scian) -> voxel `voxel_fpfh_mm`; probka
    20 000 pkt i scena RaycastingScene siatki CAD dopiero, gdy kandydat przejdzie sito.
 3. Zgrubne (PCA + przeglad katow): os kazdej ramki fragmentu (2 zwroty) ustawiana na os wyrozniona
-   projektu (os wprowadzenia korony, os dluga mostu) x 12 katow obrotu wokol niej x 5 przesuniec srodka
-   wzdluz tej osi (0, +-10 %, +-20 % dlugosci projektu - niepelny skan mostu przesuwa srodek o 3-6 mm)
-   = 360 poz, szeregowanych jednym zapytaniem o odleglosc punkt-plaszczyzna od chmury rzadkiej (NNS,
-   bez BVH siatki); kazdy kat bierze najlepsze przesuniecie.
+   projektu (os wprowadzenia korony, os dluga mostu) x 12 katow obrotu wokol niej x 11 przesuniec
+   srodka wzdluz tej osi (0, co 5 % do +-25 % dlugosci projektu - niepelny skan mostu przesuwa srodek
+   o 3-6 mm) = 792 pozy, szeregowane jednym zapytaniem o odleglosc punkt-plaszczyzna od chmury rzadkiej
+   (NNS, bez BVH siatki). Kazdy wybrany kat startuje ICP z najlepszego przesuniecia i - gdy lezy ono
+   dalej niz 0,75 mm (polowa zasiegu ICP) - takze z przesuniecia 0: przy moscie najlepsze przesuniecie
+   bywa poza obrocona o 180 st. (recenzja: sito >= 0,55 na wlasciwym moscie z przesunieciami 28/30, bez
+   26/30, razem 30/30). Przy siatce co 10 % wlasciwej pozy mostu czasem brakowalo (krok 4 mm > zasieg
+   ICP 1,5 mm).
    - Z kazdej z 6 ramek 4 katy (wzajemnie >= 90 st.; korona bywa prawie symetryczna o 180 st.) ->
      24 zgrubne ICP point-to-plane (1,5 mm).
    - Sito: fitness (udzial punktow <= 0,25 mm) od chmury rzadkiej < `prog_sita` = odrzucony bez
