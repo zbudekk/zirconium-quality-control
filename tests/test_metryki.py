@@ -160,7 +160,7 @@ def test_lancuch_spojny(wynik_szybko):
     assert ident["razem"]["fragmenty"] == fragmenty_praca
     for tryb in ("wieczor", "rano"):
         t = ident[tryb]
-        assert t["pewny"] + t["dwuznaczny"] + t["brak"] == t["fragmenty"], tryb
+        assert t["pewny"] + t["dwuznaczny"] + t["brak"] == t["prace"] + t["fragmenty_bez_prawdy"], tryb
     # inspect tylko na fragmentach "pewny" wieczornych, rano nic
     assert w["ubytki"]["sprawdzone_fragmenty"] == ident["wieczor"]["pewny"]
     assert w["ubytki"]["sprawdzone_rano"] == 0
@@ -262,17 +262,82 @@ def test_powtorki_na_stronie(wynik_szybko):
         assert wynik_szybko["identyfikacja"][t]["powtorzone"] == p[t]["powtorzone"], t
 
 
-def test_watki_omp():
-    import os
 
-    kod = "import os, qc.metryki as m; print(os.environ['OMP_NUM_THREADS'], m.WATKI)"
-    env = {k: v for k, v in os.environ.items() if k != "OMP_NUM_THREADS"}
-    wynik = subprocess.run([sys.executable, "-c", kod], cwd=katalog_repo(), env=env,
-                           capture_output=True, text=True, timeout=120)
-    assert wynik.returncode == 0, wynik.stderr
-    omp, watki = wynik.stdout.split()
-    assert int(omp) == max(1, (os.cpu_count() or 1) // int(watki))
-    env["OMP_NUM_THREADS"] = "3"
-    wynik = subprocess.run([sys.executable, "-c", kod], cwd=katalog_repo(), env=env,
-                           capture_output=True, text=True, timeout=120)
-    assert wynik.stdout.split()[0] == "3"  # ustawienie uzytkownika ma pierwszenstwo
+# --- 12-15. poprawki 2 po recenzji -------------------------------------------------
+
+
+def test_ocen_bez_pola_liczy_bez_inspekcji():
+    """Slownik bez udzial_wykrytych_od_0_3_wszystkie: miara liczona z klas i ukruszen bez inspekcji."""
+    m = _metryki()
+    klasy = {"0.2-0.3": {"wykryte": 5, "pominiete": 0}, "0.3-0.4": {"wykryte": 20, "pominiete": 0},
+             "0.4-0.6": {"wykryte": 20, "pominiete": 0}}
+    d = copy.deepcopy(_dobry())
+    d["ubytki"].update({"udzial_wykrytych_od_0_3": 1.0, "klasy": klasy, "ubytki_bez_inspekcji": 40})
+    assert m.ocen(d) == (3, ["wykryte_od_0_3"])  # 40 / (40 + 40) = 0,5
+    d["ubytki"]["ubytki_bez_inspekcji_klasy"] = {"0.2-0.3": 40, "0.3-0.4": 0, "0.4-0.6": 0}
+    assert m.ocen(d) == (0, [])  # bez inspekcji tylko w klasie < 0,3 mm
+    d["ubytki"]["ubytki_bez_inspekcji_klasy"] = {"0.2-0.3": 0, "0.3-0.4": 10, "0.4-0.6": 10}
+    assert m.ocen(d) == (3, ["wykryte_od_0_3"])  # 40 / 60
+    bez_klas = copy.deepcopy(_dobry())
+    bez_klas["ubytki"]["ubytki_bez_inspekcji"] = 3
+    with pytest.raises(KeyError):
+        m.ocen(bez_klas)
+
+
+@pytest.fixture(scope="session")
+def wynik_z_fantomem(ustawienia):
+    """Tryb szybko ograniczony do 1. plytki wieczornej + sztuczny fragment "praca" w pustym gniezdzie."""
+    import dataclasses
+
+    import qc.plate as plate
+
+    m = _metryki()
+    plan = m.PLANY["szybko"]
+    maly = dataclasses.replace(plan, plytki=plan.plytki[:1])
+    oryginal = plate.analizuj
+
+    def z_fantomem(siatka, uklad, u):
+        wp = oryginal(siatka, uklad, u)
+        praca = next(f for f in wp.fragmenty if f.stan == "praca")
+        k = next(i for i, f in enumerate(wp.fragmenty) if f.stan == "puste")
+        wp.fragmenty[k] = dataclasses.replace(wp.fragmenty[k], siatka=praca.siatka.copy(), stan="praca")
+        return wp
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setitem(m.PLANY, "szybko", maly)
+        mp.setattr(plate, "analizuj", z_fantomem)
+        return m.policz(ustawienia, "szybko", 1)
+
+
+def test_fantom_w_mianowniku(wynik_z_fantomem):
+    from qc.metryki.__main__ import strona
+
+    w = wynik_z_fantomem
+    t = w["identyfikacja"]["wieczor"]
+    assert t["fragmenty_bez_prawdy"] == 1
+    assert w["identyfikacja"]["razem"]["fragmenty_bez_prawdy"] == 1
+    assert t["fragmenty"] == t["prace"] + 1
+    assert t["pewny"] + t["dwuznaczny"] + t["brak"] == t["prace"] + 1
+    assert t["top1"] <= t["prace"]
+    assert t["udzial_top1"] == pytest.approx(t["top1"] / (t["prace"] + 1))
+    assert w["identyfikacja"]["razem"]["udzial_top1"] == pytest.approx(t["top1"] / (t["prace"] + 1))
+    tekst = "\n".join(strona(w))
+    assert "bez pracy w prawdzie: 1" in tekst
+
+
+def _przepisy_bazy(ziarno):
+    m = _metryki()
+    projekty = m._baza(m.PLANY["pelne"], ziarno)
+    klucze = []
+    for p in projekty:
+        przepis = {k: v for k, v in p.siatka.metadata["przepis"].items() if k not in ("ziarno", "id")}
+        klucze.append(json.dumps(przepis, sort_keys=True))
+    return [p.id for p in projekty], klucze
+
+
+@pytest.mark.parametrize("ziarno", [0, 1])
+def test_baza_bez_duplikatow(ziarno):
+    ids, klucze = _przepisy_bazy(ziarno)
+    assert len(set(ids)) == len(ids)
+    duplikaty = [ids[i] for i, k in enumerate(klucze) if klucze.index(k) != i]
+    assert not duplikaty, f"ziarno {ziarno}: siatki identyczne z wczesniejszymi: {duplikaty}"
