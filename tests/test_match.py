@@ -170,6 +170,7 @@ def test_top1_wieczor(wyniki_wieczor):
         assert p95 <= 0.1, f"{f.projekt_id}: p95 odleglosci projektu od fragmentu {p95:.3f} mm"
 
 
+@pytest.mark.wolne
 def test_top1_rano(ustawienia_match):
     from qc.syntetyka import prace
 
