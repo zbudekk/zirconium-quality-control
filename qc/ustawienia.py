@@ -40,6 +40,12 @@ SCHEMAT: dict[str, dict[str, type]] = {
         "margines_pewnosci": float,
         "voxel_fpfh_mm": float,
         "max_kandydatow": int,
+        "prog_zgrubny": float,
+        "wczesne_pokrycie": float,
+        "prog_wyraznosci_osi": float,
+        "margines_obrotu_180": float,
+        "prog_sita": float,
+        "obrot_inna_poza_mm": float,
     },
     "ubytki": {
         "min_glebokosc_mm": float,
@@ -70,6 +76,18 @@ SCHEMAT: dict[str, dict[str, type]] = {
 ZAKRESY: dict[tuple[str, str], tuple[float | None, float | None]] = {
     ("plytka", "prog_od_plytki_mm"): (0.0, None),
     ("plytka", "min_udzial_drugiej_pracy"): (0.0, 1.0),
+    ("dopasowanie", "odleglosc_mm"): (0.0, None),
+    ("dopasowanie", "min_pokrycie_wieczor"): (0.0, 1.0),
+    ("dopasowanie", "min_pokrycie_rano"): (0.0, 1.0),
+    ("dopasowanie", "margines_pewnosci"): (0.0, 1.0),
+    ("dopasowanie", "voxel_fpfh_mm"): (0.0, None),
+    ("dopasowanie", "max_kandydatow"): (0, None),
+    ("dopasowanie", "prog_zgrubny"): (0.0, 1.0),
+    ("dopasowanie", "wczesne_pokrycie"): (0.0, 1.0),
+    ("dopasowanie", "prog_wyraznosci_osi"): (0.0, 1.0),
+    ("dopasowanie", "margines_obrotu_180"): (0.0, 1.0),
+    ("dopasowanie", "prog_sita"): (0.0, 1.0),
+    ("dopasowanie", "obrot_inna_poza_mm"): (0.0, None),
 }
 
 

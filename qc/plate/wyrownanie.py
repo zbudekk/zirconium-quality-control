@@ -17,6 +17,7 @@ import numpy as np
 import open3d as o3d
 import trimesh
 
+from qc.open3d_wspolne import ziarno as ziarno_open3d
 from qc.syntetyka.plytka import siatka_plytki
 from qc.syntetyka.skan import normalne_wierzcholkow
 from qc.uklad import Uklad
@@ -74,7 +75,6 @@ class Wyrownanie:
 # --- siatka referencyjna (cache, bezpieczny dla watkow) ---------------------------
 
 _BLOKADA = threading.Lock()
-_BLOKADA_RANSAC = threading.Lock()  # open3d.utility.random.seed jest globalny
 _REFERENCJE: dict = {}
 
 
@@ -207,8 +207,7 @@ def _plaszczyzna_ransac(probka: np.ndarray, min_inlierow: int) -> tuple[np.ndarr
     chmura = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(probka))
     najlepszy, inliery = None, -1
     for ziarno in ZIARNA_PLASZCZYZNY:
-        with _BLOKADA_RANSAC:
-            o3d.utility.random.seed(ziarno)
+        with ziarno_open3d(ziarno):
             model, idx = chmura.segment_plane(PROG_PLASZCZYZNY_MM, 3, ITERACJE_PLASZCZYZNY)
         if len(idx) > inliery:
             najlepszy, inliery = model, len(idx)
