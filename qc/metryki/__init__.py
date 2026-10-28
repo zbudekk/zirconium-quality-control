@@ -7,23 +7,13 @@ syntetyczne wg ukladow z ustawien, uruchamia lancuch i porownuje z prawda; `ocen
 from __future__ import annotations
 
 import gc
-import os
-import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 
-WATKI = 4  # dopasuj + sprawdz rownolegle na fragmentach jednej plytki (moduly bez stanu globalnego)
-
-# OpenMP open3d (ICP, KD-tree) w kazdym z WATKI watkow: bez limitu na 24-watkowym CPU nadsubskrypcja (fixture
-# szybko > 9 min, z maska 4 rdzeni 97 s). Zmienna dziala tylko przed pierwszym importem open3d; ustawienie
-# uzytkownika ma pierwszenstwo.
-if "open3d" not in sys.modules:
-    os.environ.setdefault("OMP_NUM_THREADS", str(max(1, (os.cpu_count() or 1) // WATKI)))
-
-import numpy as np  # noqa: E402
-import trimesh  # noqa: E402
+import numpy as np
+import trimesh
 
 # Kryteria odbioru z sekcji 14 planu (nie strojenie, nie ustawienia stanowiska). Wartosc rowna progowi
 # zalicza odbior. top1 i wykryte_od_0_3: minimum; prace_z_falszywym_alarmem: maksimum.
@@ -43,6 +33,8 @@ STANY = ("praca", "puste", "podwojne", "poza_gniazdem")
 TOLERANCJA_SRODKA_MM = 0.5  # przypisanie wykrytego ubytku do prawdy (qc.inspect.metryki.porownaj)
 K_WIECZOR = (1.20, 1.25)
 PROG_Z_GORY = 0.3  # rano: skan z gory bez scian o normalnej z < -0,3
+WATKI = 4  # dopasuj + sprawdz rownolegle na fragmentach jednej plytki (moduly bez stanu globalnego)
+ZIARNO_MALYCH = 10**6  # ziarna malych koron: 10**6 + ziarno * 10 000 + i - poza ziarnami pula_projektow
 MAX_MALA_MM = 6.3  # mala korona (siekacz) miesci sie w gniezdzie 7,5 rano i 9,0 wieczorem (k 1,25 + luz 1)
 
 
@@ -87,10 +79,32 @@ PLANY = {
 # --- ocena ---------------------------------------------------------------------------
 
 
+def _wykryte_wszystkie(ub: dict) -> float:
+    """udzial_wykrytych_od_0_3_wszystkie ze slownika bez tego pola (JSON sprzed poprawki).
+
+    Ukruszenia bez inspekcji: per klasa (klasy >= 0,3 mm), a gdy jest tylko suma - cala suma (ostroznie,
+    jako >= 0,3 mm). Bez ukruszen bez inspekcji = miara na pracach zidentyfikowanych.
+    """
+    if "ubytki_bez_inspekcji_klasy" in ub:
+        bez = sum(int(ub["ubytki_bez_inspekcji_klasy"].get(k, 0)) for k in KLASY_ODBIORU)
+    else:
+        bez = int(ub.get("ubytki_bez_inspekcji", 0))
+    if "klasy" in ub:
+        wyk = sum(int(ub["klasy"][k]["wykryte"]) for k in KLASY_ODBIORU)
+        pom = sum(int(ub["klasy"][k]["pominiete"]) for k in KLASY_ODBIORU)
+        return _udzial(wyk, wyk + pom + bez)
+    if bez == 0 and "udzial_wykrytych_od_0_3" in ub:
+        return float(ub["udzial_wykrytych_od_0_3"])
+    raise KeyError("ubytki: brak udzial_wykrytych_od_0_3_wszystkie i brak 'klasy' do jego policzenia "
+                   f"(ukruszen bez inspekcji: {bez})")
+
+
 def _pole(d: dict, sciezka):
-    for i, k in enumerate(sciezka):
-        if k not in d and k == "udzial_wykrytych_od_0_3_wszystkie" and i == len(sciezka) - 1:
-            k = "udzial_wykrytych_od_0_3"  # slownik sprzed poprawki (bez prac bez inspekcji)
+    for k in sciezka:
+        if k == "udzial_wykrytych_od_0_3_wszystkie" and k not in d:
+            return _wykryte_wszystkie(d)
+        if k not in d:
+            raise KeyError(f"brak pola '{k}' w slowniku metryk (sciezka {'.'.join(sciezka)})")
         d = d[k]
     return float(d)
 
@@ -133,7 +147,7 @@ def _baza(plan: PlanDanych, ziarno: int):
     from qc.syntetyka import prace
 
     projekty = list(prace.pula_projektow(plan.korony, ziarno))
-    z, male = ziarno * 10_000, 0
+    z, male = ZIARNO_MALYCH + ziarno * 10_000, 0
     while male < plan.male:
         z += 1
         siatka = prace.korona(z, "siekacz")
@@ -433,8 +447,9 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
                 continue
             t = ident[pp.tryb]
             t["fragmenty"] += 1
-            if p is None:  # fragment "praca" bez pracy w prawdzie: tylko falszywy "pewny" sie liczy
+            if p is None:  # fragment "praca" bez pracy w prawdzie (fantom): w mianowniku, nietrafiony
                 t["fragmenty_bez_prawdy"] += 1
+                t[w["pewnosc"]] += 1
                 t["falszywe_pewny"] += int(w["pewnosc"] == "pewny")
                 continue
             wyniki_praca[f.gniazdo] = w
@@ -459,8 +474,9 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
     razem = {k: ident["wieczor"][k] + ident["rano"][k] for k in _licznik_ident()}
     identyfikacja = {}
     for nazwa, t in (("wieczor", ident["wieczor"]), ("rano", ident["rano"]), ("razem", razem)):
-        identyfikacja[nazwa] = {**t, "udzial_top1": _udzial(t["top1"], t["prace"]),
-                                "udzial_top2": _udzial(t["top2"], t["prace"])}
+        mianownik = t["prace"] + t["fragmenty_bez_prawdy"]
+        identyfikacja[nazwa] = {**t, "udzial_top1": _udzial(t["top1"], mianownik),
+                                "udzial_top2": _udzial(t["top2"], mianownik)}
     identyfikacja["podwojne"] = podwojne
 
     wyk = sum(klasy[k]["wykryte"] for k in KLASY_ODBIORU)

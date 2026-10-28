@@ -50,8 +50,10 @@ def strona(w: dict) -> list[str]:
                         x["dwuznaczny"], x["brak"], x["falszywe_pewny"], x["powtorzone"]])
     linie += _tabela(["tryb", "prace", "frag.", "top-1", "top-2", "pewny", "dwuzn.", "brak", "fals.pewny", "powt."],
                      wiersze)
-    linie.append("prace = mianownik top-1 (prace 'praca' z prawdy; brak fragmentu = 'brak'); powt. = kopie "
-                 "projektu na plytce")
+    linie.append("mianownik top-1 = prace 'praca' z prawdy (brak fragmentu = 'brak') + fragmenty bez pracy; "
+                 "powt. = kopie projektu")
+    linie.append(f"fragmenty 'praca' bez pracy w prawdzie: {w['identyfikacja']['razem']['fragmenty_bez_prawdy']} "
+                 "(nietrafione w top-1)")
     podw = w["identyfikacja"]["podwojne"]
     if podw["fragmenty"]:
         linie.append(f"podwojne: {podw['fragmenty']}, top-1 jedna z prac gniazda: {podw['top1_ktorakolwiek']}")

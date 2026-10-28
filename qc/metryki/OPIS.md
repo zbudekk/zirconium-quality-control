@@ -6,7 +6,8 @@ Sekcja 14 planu: jedno polecenie daje jedna strone wynikow. `python -m qc.metryk
 syntetyczne (`qc.syntetyka`), uruchamia caly lancuch stanowiska i porownuje go z prawda:
 
 1. baza projektow: `prace.pula_projektow(n, ziarno)` + male korony `prace.korona(z, "siekacz")` o srednicy
-   <= `MAX_MALA_MM` 6,3 (kolejne ziarna z, te wieksze odrzucane) + mosty 3/4-punktowe (`prace.most`). Bez
+   <= `MAX_MALA_MM` 6,3 (z = 10**6 + ziarno x 10 000 + i, wieksze odrzucane; ziarna z poza ziarnami
+   `pula_projektow` - wczesniej przy `--ziarno 0` mala korona z = 2 byla korona-03 pod innym id) + mosty 3/4-punktowe (`prace.most`). Bez
    malych koron `rozmiesc` powtarzal siekacze w najmniejszych gniazdach (7,5 mm rano, 9,0 mm wieczorem):
    w pelnym rano 51 z 93 prac to kopie 7 projektow, a 9 wynikow "dwuznaczny" wieczorem = kopie. Z malymi
    koronami (szybko 10, pelne 26): 0 powtorek w obu trybach (`powtorzenia(tryb, ziarno)`);
@@ -23,25 +24,22 @@ syntetyczne (`qc.syntetyka`), uruchamia caly lancuch stanowiska i porownuje go z
    `inspect.sprawdz(fragment.siatka, projekt top-1, T_projekt_do_fragmentu, u)` ->
    `inspect.metryki.porownaj` z prawda przeniesiona do ukladu fragmentu ZMIERZONYM wyrownaniem
    (`wp.wyrownanie.T_skan_do_plytki @ T_projekt_do_skanu`, tolerancja srodka 0,5 mm) - jak na stanowisku;
-5. rozliczenie po pracach z PRAWDY w gniazdach: praca "praca" bez fragmentu "praca" z plate = "brak"
-   (mianownik top-1 = prace z prawdy, nie fragmenty). Gniazda z praca "podwojne" i prace "poza_gniazdem" sa
+5. rozliczenie po pracach z PRAWDY w gniazdach: praca "praca" bez fragmentu "praca" z plate = "brak";
+   fragment "praca" bez pracy w prawdzie (fantom w pustym gniezdzie, gniazdo "podwojne" uznane za "praca")
+   = nietrafiony. Mianownik top-1 = prace z prawdy + `fragmenty_bez_prawdy`. Gniazda z praca "podwojne" i prace "poza_gniazdem" sa
    poza mianownikiem (plate je zglasza, operator poprawia ulozenie i skanuje ponownie). Fragmenty jednej
    plytki licza sie w `WATKI` = 4 watkach (`match` i `inspect` bez stanu globalnego; `pamiec` dopasuj
    osobna na watek i plytke).
 
 Wszystko deterministyczne dla danego ziarna (ziarna plytek = ziarno x 1000 + numer).
 
-### Watki (zalecenie takze dla programu stanowiska)
+### Watki
 
-Kazdy z `WATKI` watkow wola open3d, ktore samo zrownolegla sie przez OpenMP na wszystkie rdzenie. Na
-24-watkowym CPU (recenzja) bez ograniczenia fixture szybko nie skonczyla sie w 9 min (nadsubskrypcja), z
-maska afinicznosci 4 rdzeni - 97 s. Dlatego `qc.metryki` przy imporcie (gdy open3d nie jest jeszcze
-zaimportowane) ustawia `OMP_NUM_THREADS = max(1, cpu_count // WATKI)` przez `os.environ.setdefault` -
-ustawienie uzytkownika ma pierwszenstwo. `__main__` importuje pakiet przed czymkolwiek innym, wiec dotyczy
-to tez CLI. Zmienna nie dziala, jesli open3d zaladowano wczesniej (np. w jednym procesie pytest z innymi
-modulami) - wtedy zostaje ustawienie procesu. W gosciu (6 rdzeni) `--szybko` bez maski: OMP 6 = 33-34 s,
-domyslnie (1) = 33-34 s - bez zmiany. Program stanowiska, ktory liczy prace w watkach, powinien robic to samo
-(OMP = rdzenie / watki), zanim zaimportuje open3d.
+Zmierzone w recenzji: na 24-watkowym CPU bez ograniczenia afinicznosci fixture szybko nie konczyla sie w
+9 min, z maska 4 rdzeni ok. 100 s. Przyczyna nieustalona (prawdopodobnie nadsubskrypcja watkow open3d przy
+`WATKI` = 4 watkach wolajacych; `OMP_NUM_THREADS` nie zmienial liczby watkow - open3d na Windows uzywa tez
+TBB, a `os.cpu_count()` nie widzi maski). Do zbadania na laptopie stanowiska; `qc.metryki` niczego tu nie
+ustawia. W gosciu (6 rdzeni) `--szybko` trwa ok. 33 s bez maski.
 
 ### Pamiec
 
@@ -74,8 +72,9 @@ Strona tekstowa (<= 60 linii) i JSON z tymi samymi polami:
   `numery {ok, zle, brak}`, `fragmenty {praca, puste, podwojne, poza_gniazdem} x {wynik, prawda}`,
   `gniazda`, `gniazda_zgodne`, `bledy` (BladPlytki);
 - `identyfikacja`: `wieczor`, `rano`, `razem` - `prace` (mianownik: prace "praca" z prawdy), `fragmenty`
-  (fragmenty "praca" z plate), `bez_fragmentu`, `fragmenty_bez_prawdy`, `top1`, `top2` (projekt_id prawdy
-  na 1. / w 2 pierwszych), `pewny` + `dwuznaczny` + `brak` = `prace`, `falszywe_pewny` (pewny na zlym
+  (fragmenty "praca" z plate), `bez_fragmentu`, `fragmenty_bez_prawdy` (fantomy, nietrafione), `top1`,
+  `top2` (projekt_id prawdy na 1. / w 2 pierwszych), `pewny` + `dwuznaczny` + `brak` = `prace` +
+  `fragmenty_bez_prawdy`, udzialy top-1/top-2 wzgledem tej samej sumy, `falszywe_pewny` (pewny na zlym
   projekcie albo na fragmencie bez pracy), `powtorzone` (kopie projektu na plytce), `udzial_top1`,
   `udzial_top2`; `podwojne` - fragmenty "podwojne" i top-1 rowny jednej z prac gniazda (poza top-1);
 - `ubytki`: `klasy` (srednica prawdy; falszywe wg srednicy zmierzonej) i `sigma`, kazde `wykryte`,
@@ -102,15 +101,17 @@ Wartosc rowna progowi zalicza. Nie stroi sie ich pod wynik - zmiana tylko po zmi
 liczony jest od `udzial_wykrytych_od_0_3_wszystkie`: ukruszenie na pracy, ktorej program nie zidentyfikowal
 pewnie, operator musi znalezc sam - dla odbioru to ukruszenie niewykryte (recenzja: stara miara pokazywala
 100 % przy 13 z 69 ukruszen poza mianownikiem; uczciwie 81,2 %). Slownik bez nowego pola (JSON sprzed
-poprawki) `ocen` ocenia po starym. Progi wykrywania (`[dopasowanie]`, `[ubytki]`, `[plytka]` w
+poprawki): `ocen` liczy je z `ubytki.klasy` i `ubytki_bez_inspekcji_klasy` (albo calej sumy
+`ubytki_bez_inspekcji`); bez `klasy` tylko gdy nie ma ukruszen bez inspekcji (wtedy stara miara), inaczej
+`KeyError`. Progi wykrywania (`[dopasowanie]`, `[ubytki]`, `[plytka]` w
 `ustawienia.toml`) to strojenie stanowiska; `qc.metryki` mierzy ich skutek.
 
 ## Kryterium "dziala"
 
-- `python -m pytest -q tests/test_metryki.py -m "not wolne"` zielone (12 testow, zmierzone 60-85 s, limit
+- `python -m pytest -q tests/test_metryki.py -m "not wolne"` zielone (15 testow, zmierzone ok. 86 s, limit
   120 s): klucze i udzialy, CLI (strona <= 60 linii, JSON, kod 0/3), progi odbiorcze (takze od miary
-  "wszystkie"), spojnosc lancucha, mianownik top-1 z prawdy, ukruszenia bez inspekcji, powtorki <= 10 % w obu
-  trybach, OMP_NUM_THREADS; szybko: top-1 >= 0,9, wykryte (>= 0,3 mm) >= 0,85, numery 3/3, kod 0.
+  "wszystkie" i ze slownika bez tego pola), spojnosc lancucha, mianownik top-1 z prawdy i z fantomem,
+  ukruszenia bez inspekcji, powtorki <= 10 % w obu trybach, baza bez identycznych siatek (ziarno 0 i 1); szybko: top-1 >= 0,9, wykryte (>= 0,3 mm) >= 0,85, numery 3/3, kod 0.
 - `-m wolne -k metryki`: `test_pelne` - tryb pelny bez wyjatku, kod 0, <= 20 min (zmierzone ok. 150 s).
 - CI: `.github/workflows/metryki.yml` (reczny i niedzielny przebieg pelny, artefakt `metryki.json`).
 
@@ -119,4 +120,3 @@ poprawki) `ocen` ocenia po starym. Progi wykrywania (`[dopasowanie]`, `[ubytki]`
 - Dane syntetyczne: plytka bez szumu (blad wyrownania ~0), skaner idealnie gesty; na prawdziwych skanach
   liczby beda gorsze. Odbior wg sekcji 14 wymaga powtorzenia na skanach stanowiska.
 - Fragmenty "poza_gniazdem" nie sa identyfikowane, a "podwojne" nie wchodza do top-1 ani do ubytkow.
-- `cpu_count // WATKI` zaklada wylaczny procesor; przy innych obciazeniach ustaw `OMP_NUM_THREADS` recznie.
