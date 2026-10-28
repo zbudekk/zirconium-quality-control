@@ -7,20 +7,31 @@ syntetyczne wg ukladow z ustawien, uruchamia lancuch i porownuje z prawda; `ocen
 from __future__ import annotations
 
 import gc
+import os
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 
-import numpy as np
-import trimesh
+WATKI = 4  # dopasuj + sprawdz rownolegle na fragmentach jednej plytki (moduly bez stanu globalnego)
+
+# OpenMP open3d (ICP, KD-tree) w kazdym z WATKI watkow: bez limitu na 24-watkowym CPU nadsubskrypcja (fixture
+# szybko > 9 min, z maska 4 rdzeni 97 s). Zmienna dziala tylko przed pierwszym importem open3d; ustawienie
+# uzytkownika ma pierwszenstwo.
+if "open3d" not in sys.modules:
+    os.environ.setdefault("OMP_NUM_THREADS", str(max(1, (os.cpu_count() or 1) // WATKI)))
+
+import numpy as np  # noqa: E402
+import trimesh  # noqa: E402
 
 # Kryteria odbioru z sekcji 14 planu (nie strojenie, nie ustawienia stanowiska). Wartosc rowna progowi
 # zalicza odbior. top1 i wykryte_od_0_3: minimum; prace_z_falszywym_alarmem: maksimum.
 PROGI_ODBIORCZE = {"top1": 0.85, "wykryte_od_0_3": 0.80, "prace_z_falszywym_alarmem": 0.15}
 _POLA_PROGOW = {
     "top1": (("identyfikacja", "razem", "udzial_top1"), "min"),
-    "wykryte_od_0_3": (("ubytki", "udzial_wykrytych_od_0_3"), "min"),
+    # uczciwa wersja: ukruszenia prac bez "pewny" (bez inspekcji) licza sie jako niewykryte
+    "wykryte_od_0_3": (("ubytki", "udzial_wykrytych_od_0_3_wszystkie"), "min"),
     "prace_z_falszywym_alarmem": (("ubytki", "udzial_prac_z_falszywym_alarmem"), "max"),
 }
 KOD_OK = 0
@@ -32,7 +43,7 @@ STANY = ("praca", "puste", "podwojne", "poza_gniazdem")
 TOLERANCJA_SRODKA_MM = 0.5  # przypisanie wykrytego ubytku do prawdy (qc.inspect.metryki.porownaj)
 K_WIECZOR = (1.20, 1.25)
 PROG_Z_GORY = 0.3  # rano: skan z gory bez scian o normalnej z < -0,3
-WATKI = 4  # dopasuj + sprawdz rownolegle na fragmentach jednej plytki (moduly bez stanu globalnego)
+MAX_MALA_MM = 6.3  # mala korona (siekacz) miesci sie w gniezdzie 7,5 rano i 9,0 wieczorem (k 1,25 + luz 1)
 
 
 @dataclass
@@ -48,6 +59,7 @@ class PlanPlytki:
 @dataclass
 class PlanDanych:
     korony: int  # projekty koron w bazie (pula_projektow)
+    male: int  # dodatkowe male korony (siekacze <= MAX_MALA_MM): najmniejsze gniazda bez powtorek
     mosty: int
     wabiki_wieczor: int  # projekty spoza plytki w puli wieczornej
     max_pula: int
@@ -56,12 +68,12 @@ class PlanDanych:
 
 
 PLANY = {
-    "szybko": PlanDanych(korony=20, mosty=2, wabiki_wieczor=8, max_pula=30, poprawka_co=0, plytki=[
+    "szybko": PlanDanych(korony=20, male=10, mosty=2, wabiki_wieczor=8, max_pula=30, poprawka_co=0, plytki=[
         PlanPlytki("wieczor", 1, 6, 1, 0.02),
         PlanPlytki("wieczor", 2, 6, 1, 0.03),
         PlanPlytki("rano", 4, 8, 1, 0.03),
     ]),
-    "pelne": PlanDanych(korony=50, mosty=4, wabiki_wieczor=10, max_pula=60, poprawka_co=6, plytki=[
+    "pelne": PlanDanych(korony=50, male=26, mosty=4, wabiki_wieczor=10, max_pula=60, poprawka_co=6, plytki=[
         PlanPlytki("wieczor", 1, 24, 2, 0.02),
         PlanPlytki("wieczor", 2, 18, 2, 0.03, zmien={3: {"stan": "podwojne"}}),
         PlanPlytki("wieczor", 3, 14, 2, 0.04),
@@ -76,7 +88,9 @@ PLANY = {
 
 
 def _pole(d: dict, sciezka):
-    for k in sciezka:
+    for i, k in enumerate(sciezka):
+        if k not in d and k == "udzial_wykrytych_od_0_3_wszystkie" and i == len(sciezka) - 1:
+            k = "udzial_wykrytych_od_0_3"  # slownik sprzed poprawki (bez prac bez inspekcji)
         d = d[k]
     return float(d)
 
@@ -119,6 +133,14 @@ def _baza(plan: PlanDanych, ziarno: int):
     from qc.syntetyka import prace
 
     projekty = list(prace.pula_projektow(plan.korony, ziarno))
+    z, male = ziarno * 10_000, 0
+    while male < plan.male:
+        z += 1
+        siatka = prace.korona(z, "siekacz")
+        if float(np.max(np.asarray(siatka.extents)[:2])) <= MAX_MALA_MM:
+            siatka.metadata["id"] = f"mala-{z}"
+            projekty.append(prace.Projekt(id=f"mala-{z}", rodzaj="siekacz", siatka=siatka))
+            male += 1
     for i in range(plan.mosty):
         projekty.append(prace.Projekt(id=f"most-{ziarno}-{i + 1:02d}", rodzaj="most",
                                       siatka=prace.most(ziarno * 100 + i, 4 if i % 2 == 0 else 3)))
@@ -156,10 +178,38 @@ def _pula(rozm, projekty, plan: PlanDanych, tryb: str, rng, cechy: dict):
             if r.projekt.id not in widziane:
                 widziane.add(r.projekt.id)
                 pula.append(wpis(r.projekt, 1.0))
-        for p in projekty:
-            if p.id not in widziane:
-                pula.append(wpis(p, 1.0))
-    return pula[:max(plan.max_pula, len({r.projekt.id for r in rozm}))]
+        reszta = [p for p in projekty if p.id not in widziane]
+        for i in rng.permutation(len(reszta))[:max(0, plan.max_pula - len(pula))]:
+            pula.append(wpis(reszta[int(i)], 1.0))
+    return pula
+
+
+def _rozmiesc(uklad, projekty, pp: PlanPlytki, ziarno: int):
+    from qc.syntetyka import plytka
+
+    return plytka.rozmiesc(uklad, projekty, pp.korony, pp.mosty, ziarno=ziarno * 1000 + pp.numer)
+
+
+def _powtorzone(rozm) -> int:
+    """Prace, ktorych projekt juz lezy na tej plytce (kopie ponad pierwsza)."""
+    return len(rozm) - len({r.projekt.id for r in rozm})
+
+
+def powtorzenia(tryb: str = "szybko", ziarno: int = 1, ustawienia=None) -> dict:
+    """{"wieczor"/"rano": {"powtorzone", "prace"}} dla planu trybu - samo rozmieszczenie, bez skanow."""
+    from qc import uklad as modul_ukladu
+    from qc.ustawienia import wczytaj
+
+    u = ustawienia or wczytaj()
+    plan = PLANY[tryb]
+    uklady = {"wieczor": modul_ukladu.wczytaj(u.plytki.wieczorna), "rano": modul_ukladu.wczytaj(u.plytki.poranna)}
+    projekty = _baza(plan, ziarno)
+    wynik = {t: {"powtorzone": 0, "prace": 0} for t in ("wieczor", "rano")}
+    for pp in plan.plytki:
+        rozm = _rozmiesc(uklady[pp.tryb], projekty, pp, ziarno)
+        wynik[pp.tryb]["powtorzone"] += _powtorzone(rozm)
+        wynik[pp.tryb]["prace"] += len(rozm)
+    return wynik
 
 
 def _plytka(uklad, projekty, plan: PlanDanych, pp: PlanPlytki, ziarno: int, przesuniecie: int, cechy: dict):
@@ -168,7 +218,7 @@ def _plytka(uklad, projekty, plan: PlanDanych, pp: PlanPlytki, ziarno: int, prze
 
     z = ziarno * 1000 + pp.numer
     rng = np.random.default_rng(z)
-    rozm = plytka.rozmiesc(uklad, projekty, pp.korony, pp.mosty, ziarno=z)
+    rozm = _rozmiesc(uklad, projekty, pp, ziarno)
     for i, opcje in pp.zmien.items():
         rozm[i] = replace(rozm[i], opcje={**rozm[i].opcje, **opcje})
     for i, r in enumerate(rozm):
@@ -215,16 +265,54 @@ def _stany_prawdy(uklad, prawda) -> tuple[dict, int]:
 
 
 def _licznik_ident() -> dict:
-    return {"fragmenty": 0, "top1": 0, "top2": 0, "pewny": 0, "dwuznaczny": 0, "brak": 0,
-            "falszywe_pewny": 0}
+    return {"prace": 0, "fragmenty": 0, "bez_fragmentu": 0, "fragmenty_bez_prawdy": 0, "top1": 0, "top2": 0,
+            "pewny": 0, "dwuznaczny": 0, "brak": 0, "falszywe_pewny": 0, "powtorzone": 0}
 
 
 def _licznik_ubytkow() -> dict:
     return {"wykryte": 0, "pominiete": 0, "falszywe": 0}
 
 
-def _fragment(frag, prawda_pracy, pula, T_prawdy, u, tryb, pamiec):
-    """dopasuj (+ sprawdz wieczorem przy "pewny") jednego fragmentu: slownik wyniku."""
+def _prace_w_gniazdach(prawda) -> dict:
+    """Gniazdo -> PrawdaPracy prac w stanie "praca" (mianownik identyfikacji i ubytkow).
+
+    Prace "podwojne" / "poza_gniazdem" sa poza mianownikiem: plate je zglasza, operator poprawia ulozenie
+    i skanuje ponownie.
+    """
+    podwojne = {p.gniazdo for p in prawda.prace if p.stan == "podwojne"}
+    return {p.gniazdo: p for p in prawda.prace
+            if p.stan == "praca" and p.gniazdo is not None and p.gniazdo not in podwojne}
+
+
+def _rozlicz(pp, rozm, prawda, zwykle, wyniki_praca, ident, bez_inspekcji, lista_prac) -> None:
+    """Identyfikacja i ukruszenia bez inspekcji po pracach z prawdy (brak fragmentu = "brak")."""
+    t = ident[pp.tryb]
+    t["powtorzone"] += _powtorzone(rozm)
+    for g, p in sorted(zwykle.items()):
+        w = wyniki_praca.get(g)
+        pewnosc = w["pewnosc"] if w else "brak"
+        top1, top2 = (bool(w["top1"]), bool(w["top2"])) if w else (False, False)
+        sprawdzona = bool(w) and w["porownanie"] is not None
+        t["prace"] += 1
+        t["bez_fragmentu"] += int(w is None)
+        t[pewnosc] += 1
+        t["top1"] += int(top1)
+        t["top2"] += int(top2)
+        t["falszywe_pewny"] += int(pewnosc == "pewny" and not top1)
+        ukruszenia = [x for x in p.ubytki if x.rodzaj == "ukruszenie"]
+        if pp.tryb == "wieczor" and not sprawdzona:
+            for x in ukruszenia:
+                bez_inspekcji[_klasa(x.srednica_mm)] += 1
+        lista_prac.append({"plytka": pp.numer, "tryb": pp.tryb, "gniazdo": int(g), "projekt_id": p.id,
+                           "pewnosc": pewnosc, "top1": top1, "ukruszenia": len(ukruszenia),
+                           "sprawdzona": sprawdzona})
+
+
+def _fragment(frag, prawda_pracy, pula, T_skan_do_plytki, u, tryb, pamiec):
+    """dopasuj (+ sprawdz wieczorem przy "pewny" pracy z prawda) jednego fragmentu: slownik wyniku.
+
+    Prawda przenoszona do ukladu fragmentu zmierzona T_skan_do_plytki (wyrownanie plate), jak na stanowisku.
+    """
     import qc.inspect as inspect
     import qc.match as match
     from qc.inspect import metryki
@@ -235,24 +323,20 @@ def _fragment(frag, prawda_pracy, pula, T_prawdy, u, tryb, pamiec):
     prawdziwy = prawda_pracy.id if prawda_pracy is not None else None
     wynik = {"pewnosc": wd.pewnosc, "top1_id": ids[0] if ids else None, "top1": bool(ids) and ids[0] == prawdziwy,
              "top2": prawdziwy in ids[:2], "porownanie": None}
-    if tryb == "wieczor" and wd.pewnosc == "pewny":
+    if tryb == "wieczor" and wd.pewnosc == "pewny" and prawda_pracy is not None:
         top = wd.kandydaci[0]
         projekt = next(w.siatka for w in pula if w.projekt_id == top.projekt_id)
         wi = inspect.sprawdz(frag.siatka, projekt, top.T_projekt_do_fragmentu, u)
-        if prawda_pracy is not None:
-            T = T_prawdy @ prawda_pracy.T_projekt_do_skanu
-            c = metryki.porownaj(wi, prawda_pracy, T, tolerancja_mm=TOLERANCJA_SRODKA_MM)
-            sparowane = {id(w) for w, _ in c.pary}
-            prawdy = [x for x in prawda_pracy.ubytki if x.rodzaj == metryki.RODZAJ_LICZONY]
-            sparowane_p = {id(p) for _, p in c.pary}
-            wynik["porownanie"] = {
-                "wykryte": [_klasa(p.srednica_mm) for _, p in c.pary],
-                "pominiete": [_klasa(p.srednica_mm) for p in prawdy if id(p) not in sparowane_p],
-                "falszywe": [_klasa(w.srednica_mm) for w in wi.ubytki if id(w) not in sparowane],
-            }
-        else:
-            wynik["porownanie"] = {"wykryte": [], "pominiete": [],
-                                   "falszywe": [_klasa(w.srednica_mm) for w in wi.ubytki]}
+        T = T_skan_do_plytki @ prawda_pracy.T_projekt_do_skanu
+        c = metryki.porownaj(wi, prawda_pracy, T, tolerancja_mm=TOLERANCJA_SRODKA_MM)
+        sparowane = {id(w) for w, _ in c.pary}
+        prawdy = [x for x in prawda_pracy.ubytki if x.rodzaj == metryki.RODZAJ_LICZONY]
+        sparowane_p = {id(p) for _, p in c.pary}
+        wynik["porownanie"] = {
+            "wykryte": [_klasa(p.srednica_mm) for _, p in c.pary],
+            "pominiete": [_klasa(p.srednica_mm) for p in prawdy if id(p) not in sparowane_p],
+            "falszywe": [_klasa(w.srednica_mm) for w in wi.ubytki if id(w) not in sparowane],
+        }
     wynik["czas_s"] = time.perf_counter() - t0
     return wynik
 
@@ -286,7 +370,8 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
     sigmy: dict[str, dict] = {}
     sprawdzone = {"wieczor": 0, "rano": 0}
     prace_z_alarmem = 0
-    ubytki_bez_inspekcji = 0
+    bez_inspekcji = {n: 0 for n, _, _ in KLASY}
+    lista_prac = []
     czasy_plytek, czasy_fragmentow = [], []
 
     for i_plytki, pp in enumerate(plan.plytki):
@@ -305,6 +390,7 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
             bledy_plytek.append(f"plytka {pp.numer}: {e}")
             numery["brak"] += 1
             czasy_plytek.append(time.perf_counter() - t0)
+            _rozlicz(pp, rozm, prawda, _prace_w_gniazdach(prawda), {}, ident, bez_inspekcji, lista_prac)
             continue
         czasy_plytek.append(time.perf_counter() - t0)
         bledy_wyr.append(_blad_wyrownania(wp.wyrownanie.T_skan_do_plytki, T_prawdy, uklad))
@@ -317,9 +403,10 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
             gniazda_wszystkie += 1
             gniazda_zgodne += int(st_wyniku.get(nr) == s)
 
-        zwykle = {p.gniazdo: p for p in prawda.prace if p.stan == "praca" and p.gniazdo is not None}
+        zwykle = _prace_w_gniazdach(prawda)
         do_dopasowania = [f for f in wp.fragmenty if f.stan in ("praca", "podwojne")]
-        zadania = [(f, zwykle.get(f.gniazdo)) for f in do_dopasowania]
+        zadania = [(f, zwykle.get(f.gniazdo) if f.stan == "praca" else None) for f in do_dopasowania]
+        T_zmierzone = np.asarray(wp.wyrownanie.T_skan_do_plytki, dtype=np.float64)
         # skan plytki (oryginal i wyrownany) niepotrzebny po cieciu - fragmenty maja wlasne siatki
         del siatka, wp
         gc.collect()
@@ -328,16 +415,15 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
         def wykonaj(zadanie):
             f, p = zadanie
             pam = pamieci.setdefault(threading.get_ident(), {})
-            return _fragment(f, p, pula, T_prawdy, ustawienia, pp.tryb, pam)
+            return _fragment(f, p, pula, T_zmierzone, ustawienia, pp.tryb, pam)
 
         with ThreadPoolExecutor(max_workers=WATKI) as wykonawca:
             wyniki = list(wykonawca.map(wykonaj, zadania))
         del pamieci
         gc.collect()  # cykle referencji w danych dopasowania: ok. 1 GB na plytke bez tego
 
-        sigma = f"{pp.sigma:.2f}"
-        sg = sigmy.setdefault(sigma, _licznik_ubytkow())
-        sprawdzone_gniazda = set()
+        sg = sigmy.setdefault(f"{pp.sigma:.2f}", _licznik_ubytkow())
+        wyniki_praca = {}
         for (f, p), w in zip(zadania, wyniki):
             czasy_fragmentow.append(w["czas_s"])
             if f.stan == "podwojne":
@@ -347,24 +433,21 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
                 continue
             t = ident[pp.tryb]
             t["fragmenty"] += 1
-            t["top1"] += int(w["top1"])
-            t["top2"] += int(w["top2"])
-            t[w["pewnosc"]] += 1
-            t["falszywe_pewny"] += int(w["pewnosc"] == "pewny" and not w["top1"])
+            if p is None:  # fragment "praca" bez pracy w prawdzie: tylko falszywy "pewny" sie liczy
+                t["fragmenty_bez_prawdy"] += 1
+                t["falszywe_pewny"] += int(w["pewnosc"] == "pewny")
+                continue
+            wyniki_praca[f.gniazdo] = w
             c = w["porownanie"]
             if c is None:
                 continue
             sprawdzone[pp.tryb] += 1
-            sprawdzone_gniazda.add(f.gniazdo)
             prace_z_alarmem += int(bool(c["falszywe"]))
             for pole in ("wykryte", "pominiete", "falszywe"):
                 for k in c[pole]:
                     klasy[k][pole] += 1
                     sg[pole] += 1
-        if pp.tryb == "wieczor":
-            for p in prawda.prace:
-                if p.gniazdo not in sprawdzone_gniazda or p.stan != "praca":
-                    ubytki_bez_inspekcji += sum(1 for x in p.ubytki if x.rodzaj == "ukruszenie")
+        _rozlicz(pp, rozm, prawda, zwykle, wyniki_praca, ident, bez_inspekcji, lista_prac)
         del pula, wyniki, zadania, do_dopasowania
         for p in projekty:
             _zwolnij(p.siatka)
@@ -376,12 +459,13 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
     razem = {k: ident["wieczor"][k] + ident["rano"][k] for k in _licznik_ident()}
     identyfikacja = {}
     for nazwa, t in (("wieczor", ident["wieczor"]), ("rano", ident["rano"]), ("razem", razem)):
-        identyfikacja[nazwa] = {**t, "udzial_top1": _udzial(t["top1"], t["fragmenty"]),
-                                "udzial_top2": _udzial(t["top2"], t["fragmenty"])}
+        identyfikacja[nazwa] = {**t, "udzial_top1": _udzial(t["top1"], t["prace"]),
+                                "udzial_top2": _udzial(t["top2"], t["prace"])}
     identyfikacja["podwojne"] = podwojne
 
     wyk = sum(klasy[k]["wykryte"] for k in KLASY_ODBIORU)
     pom = sum(klasy[k]["pominiete"] for k in KLASY_ODBIORU)
+    bez = sum(bez_inspekcji[k] for k in KLASY_ODBIORU)
     n_frag = len(czasy_fragmentow)
     wynik = {
         "wersja": qc.__version__,
@@ -402,12 +486,14 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
         "ubytki": {
             "klasy": {k: z_udzialem(v) for k, v in klasy.items()},
             "sigma": {k: z_udzialem(v) for k, v in sorted(sigmy.items())},
-            "udzial_wykrytych_od_0_3": _udzial(wyk, wyk + pom),
+            "udzial_wykrytych_od_0_3": _udzial(wyk, wyk + pom),  # informacyjnie: prace zidentyfikowane
+            "udzial_wykrytych_od_0_3_wszystkie": _udzial(wyk, wyk + pom + bez),  # prog odbiorczy
             "udzial_prac_z_falszywym_alarmem": _udzial(prace_z_alarmem, sprawdzone["wieczor"]),
             "prace_z_falszywym_alarmem": prace_z_alarmem,
             "sprawdzone_fragmenty": sprawdzone["wieczor"],
             "sprawdzone_rano": sprawdzone["rano"],
-            "ubytki_bez_inspekcji": ubytki_bez_inspekcji,
+            "ubytki_bez_inspekcji": sum(bez_inspekcji.values()),
+            "ubytki_bez_inspekcji_klasy": bez_inspekcji,
         },
         "czasy": {
             "na_plytke_s": float(np.mean(czasy_plytek)) if czasy_plytek else 0.0,
@@ -415,6 +501,7 @@ def policz(ustawienia, tryb: str = "szybko", ziarno: int = 1) -> dict:
             "calosc_s": time.perf_counter() - start,
         },
     }
+    wynik["prace"] = lista_prac
     wynik["progi_odbiorcze"] = dict(PROGI_ODBIORCZE)
     kod, zle = ocen(wynik)
     wynik["kod"] = kod

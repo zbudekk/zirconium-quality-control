@@ -46,9 +46,12 @@ def strona(w: dict) -> list[str]:
     wiersze = []
     for t in ("wieczor", "rano", "razem"):
         x = w["identyfikacja"][t]
-        wiersze.append([t, x["fragmenty"], _p(x["udzial_top1"]), _p(x["udzial_top2"]), x["pewny"],
-                        x["dwuznaczny"], x["brak"], x["falszywe_pewny"]])
-    linie += _tabela(["tryb", "frag.", "top-1", "top-2", "pewny", "dwuzn.", "brak", "fals.pewny"], wiersze)
+        wiersze.append([t, x["prace"], x["fragmenty"], _p(x["udzial_top1"]), _p(x["udzial_top2"]), x["pewny"],
+                        x["dwuznaczny"], x["brak"], x["falszywe_pewny"], x["powtorzone"]])
+    linie += _tabela(["tryb", "prace", "frag.", "top-1", "top-2", "pewny", "dwuzn.", "brak", "fals.pewny", "powt."],
+                     wiersze)
+    linie.append("prace = mianownik top-1 (prace 'praca' z prawdy; brak fragmentu = 'brak'); powt. = kopie "
+                 "projektu na plytce")
     podw = w["identyfikacja"]["podwojne"]
     if podw["fragmenty"]:
         linie.append(f"podwojne: {podw['fragmenty']}, top-1 jedna z prac gniazda: {podw['top1_ktorakolwiek']}")
@@ -56,13 +59,16 @@ def strona(w: dict) -> list[str]:
 
     linie.append(f"UBYTKI (inspekcja: {ub['sprawdzone_fragmenty']} prac wieczornych 'pewny', rano "
                  f"{ub['sprawdzone_rano']}; ukruszen bez inspekcji {ub['ubytki_bez_inspekcji']})")
+    bez = ub["ubytki_bez_inspekcji_klasy"]
     wiersze = [[f"srednica {n}", ub["klasy"][n]["wykryte"], ub["klasy"][n]["pominiete"], ub["klasy"][n]["falszywe"],
-                _p(ub["klasy"][n]["udzial_wykrytych"])] for n, _, _ in KLASY]
-    wiersze += [[f"sigma {s}", v["wykryte"], v["pominiete"], v["falszywe"], _p(v["udzial_wykrytych"])]
+                bez[n], _p(ub["klasy"][n]["udzial_wykrytych"])] for n, _, _ in KLASY]
+    wiersze += [[f"sigma {s}", v["wykryte"], v["pominiete"], v["falszywe"], "-", _p(v["udzial_wykrytych"])]
                 for s, v in ub["sigma"].items()]
-    linie += _tabela(["klasa", "wykryte", "pominiete", "falszywe", "% wykr."], wiersze)
-    linie.append(f"wykryte (>= 0,3 mm): {_p(ub['udzial_wykrytych_od_0_3'])};  prace z falszywym alarmem: "
-                 f"{ub['prace_z_falszywym_alarmem']} ({_p(ub['udzial_prac_z_falszywym_alarmem'])})")
+    linie += _tabela(["klasa", "wykryte", "pominiete", "falszywe", "bez insp.", "% wykr."], wiersze)
+    linie.append(f"wykryte (>= 0,3 mm), bez inspekcji = niewykryte: {_p(ub['udzial_wykrytych_od_0_3_wszystkie'])} "
+                 f"(prog);  na pracach zidentyfikowanych: {_p(ub['udzial_wykrytych_od_0_3'])}")
+    linie.append(f"prace z falszywym alarmem: {ub['prace_z_falszywym_alarmem']} "
+                 f"({_p(ub['udzial_prac_z_falszywym_alarmem'])})")
     linie.append("")
 
     linie.append(f"CZASY: na plytke {cz['na_plytke_s']:.1f} s, na fragment {cz['na_fragment_s']:.2f} s, "
