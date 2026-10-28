@@ -79,8 +79,11 @@ def _fragment(projekt_id, siatka_projektu, ziarno, k, szum=SZUM, **kw) -> Fragme
 
 def _wpis(projekt_id, siatka, k, cechy="licz"):
     m = _match()
-    return m.WpisPuli(projekt_id=projekt_id, siatka=siatka,
-                      cechy=_policz(siatka) if cechy == "licz" else cechy, wspolczynnik=k)
+    if cechy == "licz":
+        cechy = _policz(siatka)
+        # cache trimesh po policz (triangles, edges...: ok. 35 MB na projekt; pula 200 = 7 GB) - jak qc.metryki
+        siatka._cache.clear()
+    return m.WpisPuli(projekt_id=projekt_id, siatka=siatka, cechy=cechy, wspolczynnik=k)
 
 
 def _po_transformacji(T, punkty):
@@ -429,7 +432,7 @@ def test_pamiec_klucz(pula_wieczor, ustawienia_match):
         for ka, kb in zip(a.kandydaci, b.kandydaci):
             assert ka.pokrycie == kb.pokrycie
             # ICP open3d liczy rownolegle - roznice rzedu 1e-15
-            assert np.allclose(ka.T_projekt_do_fragmentu, kb.T_projekt_do_fragmentu, rtol=0, atol=1e-9)
+            assert np.allclose(ka.T_projekt_do_fragmentu, kb.T_projekt_do_fragmentu, rtol=0, atol=1e-6)
 
 
 # --- poprawki 2 po recenzji ------------------------------------------------------

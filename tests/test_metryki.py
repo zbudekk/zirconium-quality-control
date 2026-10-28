@@ -199,3 +199,80 @@ def test_pelne(ustawienia):
     assert set(w["ubytki"]["sigma"]) == {"0.02", "0.03", "0.04"}
     assert m.ocen(w) == (0, [])
     assert czas <= 20 * 60
+
+
+# --- 7-11. poprawki po recenzji ---------------------------------------------------
+#
+# Dodatkowe pola: ubytki.ubytki_bez_inspekcji_klasy {klasa: n}, ubytki.udzial_wykrytych_od_0_3_wszystkie
+# (prog odbiorczy; ukruszenia prac bez "pewny" = niewykryte); identyfikacja.<tryb>.prace (mianownik top-1 =
+# prace "praca" z prawdy) i .powtorzone; prace = lista {plytka, tryb, gniazdo, projekt_id, pewnosc, top1,
+# ukruszenia, sprawdzona}. API: powtorzenia(tryb, ziarno) -> {"wieczor"/"rano": {powtorzone, prace}}.
+
+
+def test_bez_inspekcji(wynik_szybko):
+    ub = wynik_szybko["ubytki"]
+    bez = ub["ubytki_bez_inspekcji_klasy"]
+    assert tuple(bez) == KLASY
+    assert sum(bez.values()) == ub["ubytki_bez_inspekcji"]
+    oczekiwane = sum(p["ukruszenia"] for p in wynik_szybko["prace"]
+                     if p["tryb"] == "wieczor" and p["pewnosc"] != "pewny")
+    assert ub["ubytki_bez_inspekcji"] == oczekiwane
+    assert all(not p["sprawdzona"] for p in wynik_szybko["prace"] if p["pewnosc"] != "pewny")
+    assert all(not p["sprawdzona"] for p in wynik_szybko["prace"] if p["tryb"] == "rano")
+    wyk = sum(ub["klasy"][k]["wykryte"] for k in KLASY[1:])
+    pom = sum(ub["klasy"][k]["pominiete"] for k in KLASY[1:])
+    bez_od_0_3 = sum(bez[k] for k in KLASY[1:])
+    assert ub["udzial_wykrytych_od_0_3_wszystkie"] == pytest.approx(wyk / (wyk + pom + bez_od_0_3))
+    assert ub["udzial_wykrytych_od_0_3_wszystkie"] <= ub["udzial_wykrytych_od_0_3"]
+
+
+def test_prog_od_wszystkich():
+    m = _metryki()
+    d = copy.deepcopy(_dobry())
+    d["ubytki"]["udzial_wykrytych_od_0_3_wszystkie"] = 0.79
+    assert m.ocen(d) == (3, ["wykryte_od_0_3"])
+    d["ubytki"]["udzial_wykrytych_od_0_3_wszystkie"] = 0.80
+    d["ubytki"]["udzial_wykrytych_od_0_3"] = 0.70  # informacyjna (prace zidentyfikowane), nie prog
+    assert m.ocen(d) == (0, [])
+
+
+def test_mianownik_top1(wynik_szybko):
+    ident = wynik_szybko["identyfikacja"]
+    prawda_praca = wynik_szybko["plytka"]["fragmenty"]["praca"]["prawda"]
+    assert ident["razem"]["prace"] == prawda_praca
+    assert ident["wieczor"]["prace"] + ident["rano"]["prace"] == prawda_praca
+    assert len(wynik_szybko["prace"]) == prawda_praca
+    for tryb in ("wieczor", "rano", "razem"):
+        t = ident[tryb]
+        assert t["pewny"] + t["dwuznaczny"] + t["brak"] == t["prace"], tryb
+        assert t["udzial_top1"] == pytest.approx(t["top1"] / t["prace"]), tryb
+
+
+@pytest.mark.parametrize("tryb", ["szybko", "pelne"])
+def test_powtorki(tryb):
+    p = _metryki().powtorzenia(tryb, 1)
+    for t in ("wieczor", "rano"):
+        assert p[t]["prace"] > 0, t
+        assert p[t]["powtorzone"] <= 0.10 * p[t]["prace"], (t, p[t])
+
+
+def test_powtorki_na_stronie(wynik_szybko):
+    p = _metryki().powtorzenia("szybko", 1)
+    for t in ("wieczor", "rano"):
+        assert wynik_szybko["identyfikacja"][t]["powtorzone"] == p[t]["powtorzone"], t
+
+
+def test_watki_omp():
+    import os
+
+    kod = "import os, qc.metryki as m; print(os.environ['OMP_NUM_THREADS'], m.WATKI)"
+    env = {k: v for k, v in os.environ.items() if k != "OMP_NUM_THREADS"}
+    wynik = subprocess.run([sys.executable, "-c", kod], cwd=katalog_repo(), env=env,
+                           capture_output=True, text=True, timeout=120)
+    assert wynik.returncode == 0, wynik.stderr
+    omp, watki = wynik.stdout.split()
+    assert int(omp) == max(1, (os.cpu_count() or 1) // int(watki))
+    env["OMP_NUM_THREADS"] = "3"
+    wynik = subprocess.run([sys.executable, "-c", kod], cwd=katalog_repo(), env=env,
+                           capture_output=True, text=True, timeout=120)
+    assert wynik.stdout.split()[0] == "3"  # ustawienie uzytkownika ma pierwszenstwo
