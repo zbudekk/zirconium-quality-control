@@ -68,7 +68,14 @@ jobs:
       - name: Wersje stosu
         run: python -c "import open3d, trimesh, numpy; print(open3d.__version__, trimesh.__version__, numpy.__version__)"
       - name: Testy pelne
-        run: python -m pytest -q --durations=15
+        # osobny proces na plik testow: fixture sesji (pule projektow) nie sumuja sie w pamieci runnera
+        run: |
+          kod=0
+          for f in tests/test_*.py; do
+            echo "== $f"
+            python -m pytest -q --durations=5 "$f" || kod=1
+          done
+          exit $kod
 
   windows:
     if: github.event_name == 'workflow_dispatch' && inputs.system == 'windows'
