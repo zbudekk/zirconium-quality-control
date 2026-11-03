@@ -1,0 +1,15 @@
+# Wersje przypięte do stanu `py -3.12 -m pip freeze` z 2.11.2026 (Python 3.12).
+# używane teraz (uklad, synth, narzedzia, testy)
+numpy==2.5.4
+scipy==1.18.1
+trimesh==5.2.0
+rtree==1.4.1            # trimesh.proximity w testach
+pillow==13.0.0          # narzedzia/rzut_z_gory.py
+pytest==9.1.1
+# przyszłe moduły (match, ui, scanner, catalog, excel)
+open3d==0.20.0          # match: FPFH + RANSAC + ICP
+PySide6==6.12.0         # ui
+watchdog==6.0.0         # scanner
+pywin32==312; sys_platform == "win32"   # scanner (okno DentalScan), excel
+beautifulsoup4==4.15.0  # catalog: raporty MillBox
+pypdf==6.21.2           # catalog: raporty MillBox (PDF)

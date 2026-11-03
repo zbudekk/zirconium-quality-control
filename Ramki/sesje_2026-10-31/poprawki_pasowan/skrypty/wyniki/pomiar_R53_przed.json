@@ -1,0 +1,994 @@
+{
+ "info": {
+  "blat_bbox": [
+   [
+    -100.0,
+    -100.0,
+    49.6
+   ],
+   [
+    100.0,
+    100.0,
+    63.6
+   ]
+  ],
+  "wkladka_bbox": [
+   [
+    -65.0,
+    -52.3,
+    60.1
+   ],
+   [
+    65.0,
+    95.99999923706055,
+    71.1
+   ]
+  ],
+  "plytka_bbox": [
+   [
+    -48.0,
+    -48.0,
+    66.1
+   ],
+   [
+    48.0,
+    48.0,
+    74.70000038146972
+   ]
+  ],
+  "watertight": {
+   "korpus_W": true,
+   "korpus_P": true,
+   "blat": true,
+   "wkladka": true,
+   "plytka_n1": true,
+   "tulejka": true
+  }
+ },
+ "rows": [
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu W, prawa",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu W, lewa",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu W, przednia",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu W, tylna (x 30)",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu W, tylna (x −30)",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu P, prawa",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu P, lewa",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu P, przednia",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu P, tylna (x 30)",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T1 kołnierz blatu – ściana korpusu P, tylna (x −30)",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (lico kołnierza → ściana wewn.)"
+  },
+  {
+   "pasowanie": "T2 haczyk prawy: zahaczenie (czubek − ściana wewn.) korpus W",
+   "nominal_przed": 0.8,
+   "nominal_po": 0.8,
+   "zmierzone": 0.8,
+   "kierunek": "X",
+   "uwaga": "czubek 98.300, ściana 97.500"
+  },
+  {
+   "pasowanie": "T2 haczyk prawy: luz czubek – dno kieszeni, korpus W",
+   "nominal_przed": 0.2,
+   "nominal_po": 0.19999999999999996,
+   "zmierzone": 0.2,
+   "kierunek": "X",
+   "uwaga": "punkt w szczelinie za czubkiem"
+  },
+  {
+   "pasowanie": "T3 haczyk prawy: luz nad występem (sufit kieszeni − górna krawędź), korpus W",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.25,
+   "kierunek": "Z",
+   "uwaga": "punkt (54.98) w kieszeni nad haczykiem"
+  },
+  {
+   "pasowanie": "T3 haczyk prawy: luz pod występem (start rampy − dno kieszeni), korpus W",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.27,
+   "kierunek": "Z",
+   "uwaga": "start rampy Z 52.87, górna krawędź 54.6, dno kieszeni 52.6, sufit 55.1"
+  },
+  {
+   "pasowanie": "T3c haczyk prawy: luz boczny (kieszeń − haczyk)/2, korpus W",
+   "nominal_przed": 1.0,
+   "nominal_po": 1.0,
+   "zmierzone": 1.0,
+   "kierunek": "Y",
+   "uwaga": "kieszeń 10.0, haczyk 8.0"
+  },
+  {
+   "pasowanie": "T2 haczyk lewy: zahaczenie (czubek − ściana wewn.) korpus W",
+   "nominal_przed": 0.8,
+   "nominal_po": 0.8,
+   "zmierzone": 0.8,
+   "kierunek": "X",
+   "uwaga": "czubek 98.300, ściana 97.500"
+  },
+  {
+   "pasowanie": "T2 haczyk lewy: luz czubek – dno kieszeni, korpus W",
+   "nominal_przed": 0.2,
+   "nominal_po": 0.19999999999999996,
+   "zmierzone": 0.2,
+   "kierunek": "X",
+   "uwaga": "punkt w szczelinie za czubkiem"
+  },
+  {
+   "pasowanie": "T3 haczyk lewy: luz nad występem (sufit kieszeni − górna krawędź), korpus W",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.25,
+   "kierunek": "Z",
+   "uwaga": "punkt (54.98) w kieszeni nad haczykiem"
+  },
+  {
+   "pasowanie": "T3 haczyk lewy: luz pod występem (start rampy − dno kieszeni), korpus W",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.27,
+   "kierunek": "Z",
+   "uwaga": "start rampy Z 52.87, górna krawędź 54.6, dno kieszeni 52.6, sufit 55.1"
+  },
+  {
+   "pasowanie": "T3c haczyk lewy: luz boczny (kieszeń − haczyk)/2, korpus W",
+   "nominal_przed": 1.0,
+   "nominal_po": 1.0,
+   "zmierzone": 1.0,
+   "kierunek": "Y",
+   "uwaga": "kieszeń 10.0, haczyk 8.0"
+  },
+  {
+   "pasowanie": "T2 haczyk przedni: zahaczenie (czubek − ściana wewn.) korpus W",
+   "nominal_przed": 0.8,
+   "nominal_po": 0.8,
+   "zmierzone": 0.8,
+   "kierunek": "Y",
+   "uwaga": "czubek 98.300, ściana 97.500"
+  },
+  {
+   "pasowanie": "T2 haczyk przedni: luz czubek – dno kieszeni, korpus W",
+   "nominal_przed": 0.2,
+   "nominal_po": 0.19999999999999996,
+   "zmierzone": 0.2,
+   "kierunek": "Y",
+   "uwaga": "punkt w szczelinie za czubkiem"
+  },
+  {
+   "pasowanie": "T3 haczyk przedni: luz nad występem (sufit kieszeni − górna krawędź), korpus W",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.25,
+   "kierunek": "Z",
+   "uwaga": "punkt (54.98) w kieszeni nad haczykiem"
+  },
+  {
+   "pasowanie": "T3 haczyk przedni: luz pod występem (start rampy − dno kieszeni), korpus W",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.27,
+   "kierunek": "Z",
+   "uwaga": "start rampy Z 52.87, górna krawędź 54.6, dno kieszeni 52.6, sufit 55.1"
+  },
+  {
+   "pasowanie": "T3c haczyk przedni: luz boczny (kieszeń − haczyk)/2, korpus W",
+   "nominal_przed": 1.0,
+   "nominal_po": 1.0,
+   "zmierzone": 1.0,
+   "kierunek": "X",
+   "uwaga": "kieszeń 10.0, haczyk 8.0"
+  },
+  {
+   "pasowanie": "T2 haczyk tylny: zahaczenie (czubek − ściana wewn.) korpus W",
+   "nominal_przed": 0.8,
+   "nominal_po": 0.8,
+   "zmierzone": 0.8,
+   "kierunek": "Y",
+   "uwaga": "czubek 98.300, ściana 97.500"
+  },
+  {
+   "pasowanie": "T2 haczyk tylny: luz czubek – dno kieszeni, korpus W",
+   "nominal_przed": 0.2,
+   "nominal_po": 0.19999999999999996,
+   "zmierzone": 0.2,
+   "kierunek": "Y",
+   "uwaga": "punkt w szczelinie za czubkiem"
+  },
+  {
+   "pasowanie": "T3 haczyk tylny: luz nad występem (sufit kieszeni − górna krawędź), korpus W",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.25,
+   "kierunek": "Z",
+   "uwaga": "punkt (54.98) w kieszeni nad haczykiem"
+  },
+  {
+   "pasowanie": "T3 haczyk tylny: luz pod występem (start rampy − dno kieszeni), korpus W",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.27,
+   "kierunek": "Z",
+   "uwaga": "start rampy Z 52.87, górna krawędź 54.6, dno kieszeni 52.6, sufit 55.1"
+  },
+  {
+   "pasowanie": "T3c haczyk tylny: luz boczny (kieszeń − haczyk)/2, korpus W",
+   "nominal_przed": 1.0,
+   "nominal_po": 1.0,
+   "zmierzone": 1.0,
+   "kierunek": "X",
+   "uwaga": "kieszeń 10.0, haczyk 8.0"
+  },
+  {
+   "pasowanie": "T2b ściana korpusu W za kieszenią zatrzasku (prawa)",
+   "nominal_przed": 1.5,
+   "nominal_po": 1.5,
+   "zmierzone": 1.5,
+   "kierunek": "X",
+   "uwaga": "cięciwa w materiale"
+  },
+  {
+   "pasowanie": "T2b ściana korpusu W za kieszenią zatrzasku (przednia, x 50)",
+   "nominal_przed": 1.5,
+   "nominal_po": 1.5,
+   "zmierzone": 1.5,
+   "kierunek": "Y",
+   "uwaga": "cięciwa w materiale (bez reliefu: relief na zewnątrz)"
+  },
+  {
+   "pasowanie": "T2 haczyk prawy: zahaczenie (czubek − ściana wewn.) korpus P",
+   "nominal_przed": 0.8,
+   "nominal_po": 0.8,
+   "zmierzone": 0.8,
+   "kierunek": "X",
+   "uwaga": "czubek 98.300, ściana 97.500"
+  },
+  {
+   "pasowanie": "T2 haczyk prawy: luz czubek – dno kieszeni, korpus P",
+   "nominal_przed": 0.2,
+   "nominal_po": 0.19999999999999996,
+   "zmierzone": 0.2,
+   "kierunek": "X",
+   "uwaga": "punkt w szczelinie za czubkiem"
+  },
+  {
+   "pasowanie": "T3 haczyk prawy: luz nad występem (sufit kieszeni − górna krawędź), korpus P",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.25,
+   "kierunek": "Z",
+   "uwaga": "punkt (54.98) w kieszeni nad haczykiem"
+  },
+  {
+   "pasowanie": "T3 haczyk prawy: luz pod występem (start rampy − dno kieszeni), korpus P",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.27,
+   "kierunek": "Z",
+   "uwaga": "start rampy Z 52.87, górna krawędź 54.6, dno kieszeni 52.6, sufit 55.1"
+  },
+  {
+   "pasowanie": "T3c haczyk prawy: luz boczny (kieszeń − haczyk)/2, korpus P",
+   "nominal_przed": 1.0,
+   "nominal_po": 1.0,
+   "zmierzone": 1.0,
+   "kierunek": "Y",
+   "uwaga": "kieszeń 10.0, haczyk 8.0"
+  },
+  {
+   "pasowanie": "T2 haczyk lewy: zahaczenie (czubek − ściana wewn.) korpus P",
+   "nominal_przed": 0.8,
+   "nominal_po": 0.8,
+   "zmierzone": 0.8,
+   "kierunek": "X",
+   "uwaga": "czubek 98.300, ściana 97.500"
+  },
+  {
+   "pasowanie": "T2 haczyk lewy: luz czubek – dno kieszeni, korpus P",
+   "nominal_przed": 0.2,
+   "nominal_po": 0.19999999999999996,
+   "zmierzone": 0.2,
+   "kierunek": "X",
+   "uwaga": "punkt w szczelinie za czubkiem"
+  },
+  {
+   "pasowanie": "T3 haczyk lewy: luz nad występem (sufit kieszeni − górna krawędź), korpus P",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.25,
+   "kierunek": "Z",
+   "uwaga": "punkt (54.98) w kieszeni nad haczykiem"
+  },
+  {
+   "pasowanie": "T3 haczyk lewy: luz pod występem (start rampy − dno kieszeni), korpus P",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.27,
+   "kierunek": "Z",
+   "uwaga": "start rampy Z 52.87, górna krawędź 54.6, dno kieszeni 52.6, sufit 55.1"
+  },
+  {
+   "pasowanie": "T3c haczyk lewy: luz boczny (kieszeń − haczyk)/2, korpus P",
+   "nominal_przed": 1.0,
+   "nominal_po": 1.0,
+   "zmierzone": 1.0,
+   "kierunek": "Y",
+   "uwaga": "kieszeń 10.0, haczyk 8.0"
+  },
+  {
+   "pasowanie": "T2 haczyk przedni: zahaczenie (czubek − ściana wewn.) korpus P",
+   "nominal_przed": 0.8,
+   "nominal_po": 0.8,
+   "zmierzone": 0.8,
+   "kierunek": "Y",
+   "uwaga": "czubek 98.300, ściana 97.500"
+  },
+  {
+   "pasowanie": "T2 haczyk przedni: luz czubek – dno kieszeni, korpus P",
+   "nominal_przed": 0.2,
+   "nominal_po": 0.19999999999999996,
+   "zmierzone": 0.2,
+   "kierunek": "Y",
+   "uwaga": "punkt w szczelinie za czubkiem"
+  },
+  {
+   "pasowanie": "T3 haczyk przedni: luz nad występem (sufit kieszeni − górna krawędź), korpus P",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.25,
+   "kierunek": "Z",
+   "uwaga": "punkt (54.98) w kieszeni nad haczykiem"
+  },
+  {
+   "pasowanie": "T3 haczyk przedni: luz pod występem (start rampy − dno kieszeni), korpus P",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.27,
+   "kierunek": "Z",
+   "uwaga": "start rampy Z 52.87, górna krawędź 54.6, dno kieszeni 52.6, sufit 55.1"
+  },
+  {
+   "pasowanie": "T3c haczyk przedni: luz boczny (kieszeń − haczyk)/2, korpus P",
+   "nominal_przed": 1.0,
+   "nominal_po": 1.0,
+   "zmierzone": 1.0,
+   "kierunek": "X",
+   "uwaga": "kieszeń 10.0, haczyk 8.0"
+  },
+  {
+   "pasowanie": "T2 haczyk tylny: zahaczenie (czubek − ściana wewn.) korpus P",
+   "nominal_przed": 0.8,
+   "nominal_po": 0.8,
+   "zmierzone": 0.8,
+   "kierunek": "Y",
+   "uwaga": "czubek 98.300, ściana 97.500"
+  },
+  {
+   "pasowanie": "T2 haczyk tylny: luz czubek – dno kieszeni, korpus P",
+   "nominal_przed": 0.2,
+   "nominal_po": 0.19999999999999996,
+   "zmierzone": 0.2,
+   "kierunek": "Y",
+   "uwaga": "punkt w szczelinie za czubkiem"
+  },
+  {
+   "pasowanie": "T3 haczyk tylny: luz nad występem (sufit kieszeni − górna krawędź), korpus P",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.25,
+   "kierunek": "Z",
+   "uwaga": "punkt (54.98) w kieszeni nad haczykiem"
+  },
+  {
+   "pasowanie": "T3 haczyk tylny: luz pod występem (start rampy − dno kieszeni), korpus P",
+   "nominal_przed": 0.25,
+   "nominal_po": 0.25,
+   "zmierzone": 0.27,
+   "kierunek": "Z",
+   "uwaga": "start rampy Z 52.87, górna krawędź 54.6, dno kieszeni 52.6, sufit 55.1"
+  },
+  {
+   "pasowanie": "T3c haczyk tylny: luz boczny (kieszeń − haczyk)/2, korpus P",
+   "nominal_przed": 1.0,
+   "nominal_po": 1.0,
+   "zmierzone": 1.0,
+   "kierunek": "X",
+   "uwaga": "kieszeń 10.0, haczyk 8.0"
+  },
+  {
+   "pasowanie": "T2b ściana korpusu P za kieszenią zatrzasku (prawa)",
+   "nominal_przed": 1.5,
+   "nominal_po": 1.5,
+   "zmierzone": 1.5,
+   "kierunek": "X",
+   "uwaga": "cięciwa w materiale"
+  },
+  {
+   "pasowanie": "T2b ściana korpusu P za kieszenią zatrzasku (przednia, x 50)",
+   "nominal_przed": 1.5,
+   "nominal_po": 1.5,
+   "zmierzone": 1.5,
+   "kierunek": "Y",
+   "uwaga": "cięciwa w materiale (bez reliefu: relief na zewnątrz)"
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=-75: ø w ścianie (X), korpus W",
+   "nominal_przed": 3.2,
+   "nominal_po": 3.2,
+   "zmierzone": 3.195,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=-75: ø w ścianie (Z), korpus W",
+   "nominal_przed": 3.2,
+   "nominal_po": 3.2,
+   "zmierzone": 3.193,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=-75: ø przy licu (pogłębienie), korpus W",
+   "nominal_przed": 6.1,
+   "nominal_po": 6.1,
+   "zmierzone": 6.1,
+   "kierunek": "X",
+   "uwaga": "stożek 90° ø6,3 → 6,1 na y 99,9 (bez zmian)"
+  },
+  {
+   "pasowanie": "T4 współosiowość otwór ściany – otwór słupka x=-75, korpus W",
+   "nominal_przed": 0.0,
+   "nominal_po": 0.0,
+   "zmierzone": 0.002,
+   "kierunek": "XZ",
+   "uwaga": "środki: ściana (-74.998, 55.000), słupek (-75.000, 55.000)"
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=75: ø w ścianie (X), korpus W",
+   "nominal_przed": 3.2,
+   "nominal_po": 3.2,
+   "zmierzone": 3.195,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=75: ø w ścianie (Z), korpus W",
+   "nominal_przed": 3.2,
+   "nominal_po": 3.2,
+   "zmierzone": 3.193,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=75: ø przy licu (pogłębienie), korpus W",
+   "nominal_przed": 6.1,
+   "nominal_po": 6.1,
+   "zmierzone": 6.1,
+   "kierunek": "X",
+   "uwaga": "stożek 90° ø6,3 → 6,1 na y 99,9 (bez zmian)"
+  },
+  {
+   "pasowanie": "T4 współosiowość otwór ściany – otwór słupka x=75, korpus W",
+   "nominal_przed": 0.0,
+   "nominal_po": 0.0,
+   "zmierzone": 0.002,
+   "kierunek": "XZ",
+   "uwaga": "środki: ściana (75.002, 55.000), słupek (75.000, 55.000)"
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=-75: ø w ścianie (X), korpus P",
+   "nominal_przed": 3.2,
+   "nominal_po": 3.2,
+   "zmierzone": 3.195,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=-75: ø w ścianie (Z), korpus P",
+   "nominal_przed": 3.2,
+   "nominal_po": 3.2,
+   "zmierzone": 3.193,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=-75: ø przy licu (pogłębienie), korpus P",
+   "nominal_przed": 6.1,
+   "nominal_po": 6.1,
+   "zmierzone": 6.1,
+   "kierunek": "X",
+   "uwaga": "stożek 90° ø6,3 → 6,1 na y 99,9 (bez zmian)"
+  },
+  {
+   "pasowanie": "T4 współosiowość otwór ściany – otwór słupka x=-75, korpus P",
+   "nominal_przed": 0.0,
+   "nominal_po": 0.0,
+   "zmierzone": 0.002,
+   "kierunek": "XZ",
+   "uwaga": "środki: ściana (-74.998, 55.000), słupek (-75.000, 55.000)"
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=75: ø w ścianie (X), korpus P",
+   "nominal_przed": 3.2,
+   "nominal_po": 3.2,
+   "zmierzone": 3.195,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=75: ø w ścianie (Z), korpus P",
+   "nominal_przed": 3.2,
+   "nominal_po": 3.2,
+   "zmierzone": 3.193,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór wkrętu blatu x=75: ø przy licu (pogłębienie), korpus P",
+   "nominal_przed": 6.1,
+   "nominal_po": 6.1,
+   "zmierzone": 6.1,
+   "kierunek": "X",
+   "uwaga": "stożek 90° ø6,3 → 6,1 na y 99,9 (bez zmian)"
+  },
+  {
+   "pasowanie": "T4 współosiowość otwór ściany – otwór słupka x=75, korpus P",
+   "nominal_przed": 0.0,
+   "nominal_po": 0.0,
+   "zmierzone": 0.002,
+   "kierunek": "XZ",
+   "uwaga": "środki: ściana (75.002, 55.000), słupek (75.000, 55.000)"
+  },
+  {
+   "pasowanie": "T4 otwór słupka x=-75: ø (blat)",
+   "nominal_przed": 2.5,
+   "nominal_po": 2.5,
+   "zmierzone": 2.5,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór słupka x=-75: dno (y)",
+   "nominal_przed": 91.0,
+   "nominal_po": 91.0,
+   "zmierzone": 91.0,
+   "kierunek": "Y",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 dno słupka x=-75 pod otworem (materiał)",
+   "nominal_przed": 1.8,
+   "nominal_po": 1.7999999999999972,
+   "zmierzone": 1.8,
+   "kierunek": "Y",
+   "uwaga": "cięciwa w materiale 89,2…dno"
+  },
+  {
+   "pasowanie": "T4 wkręt M3×8 x=-75: gwint w słupku (lico − (100 − 8))",
+   "nominal_przed": 5.0,
+   "nominal_po": 5.0,
+   "zmierzone": 5.0,
+   "kierunek": "Y",
+   "uwaga": "lico kołnierza (promień obok otworu, x+2) − koniec wkrętu 100 − 8"
+  },
+  {
+   "pasowanie": "T4 otwór słupka x=75: ø (blat)",
+   "nominal_przed": 2.5,
+   "nominal_po": 2.5,
+   "zmierzone": 2.5,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 otwór słupka x=75: dno (y)",
+   "nominal_przed": 91.0,
+   "nominal_po": 91.0,
+   "zmierzone": 91.0,
+   "kierunek": "Y",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T4 dno słupka x=75 pod otworem (materiał)",
+   "nominal_przed": 1.8,
+   "nominal_po": 1.7999999999999972,
+   "zmierzone": 1.8,
+   "kierunek": "Y",
+   "uwaga": "cięciwa w materiale 89,2…dno"
+  },
+  {
+   "pasowanie": "T4 wkręt M3×8 x=75: gwint w słupku (lico − (100 − 8))",
+   "nominal_przed": 5.0,
+   "nominal_po": 5.0,
+   "zmierzone": 5.0,
+   "kierunek": "Y",
+   "uwaga": "lico kołnierza (promień obok otworu, x+2) − koniec wkrętu 100 − 8"
+  },
+  {
+   "pasowanie": "T5 kołek wkładki x=-58 w otworze blatu: luz promieniowy +X",
+   "nominal_przed": 0.15,
+   "nominal_po": 0.1499999999999999,
+   "zmierzone": 0.15,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (kołek → ściana otworu)"
+  },
+  {
+   "pasowanie": "T5 kołek wkładki x=-58 w otworze blatu: luz promieniowy −X",
+   "nominal_przed": 0.15,
+   "nominal_po": 0.1499999999999999,
+   "zmierzone": 0.15,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (kołek → ściana otworu)"
+  },
+  {
+   "pasowanie": "T5 kołek wkładki x=-58 w otworze blatu: luz promieniowy +Y",
+   "nominal_przed": 0.15,
+   "nominal_po": 0.1499999999999999,
+   "zmierzone": 0.151,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (kołek → ściana otworu)"
+  },
+  {
+   "pasowanie": "T5 kołek wkładki x=-58 w otworze blatu: luz promieniowy −Y",
+   "nominal_przed": 0.15,
+   "nominal_po": 0.1499999999999999,
+   "zmierzone": 0.151,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (kołek → ściana otworu)"
+  },
+  {
+   "pasowanie": "T5 otwór kołka x=-58: ø (blat)",
+   "nominal_przed": 3.3,
+   "nominal_po": 3.3,
+   "zmierzone": 3.3,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T5 kołek x=-58: ø (wkładka)",
+   "nominal_przed": 3.0,
+   "nominal_po": 3,
+   "zmierzone": 3.0,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T5 kołek x=-58: luz osiowy (koniec kołka − dno otworu)",
+   "nominal_przed": 0.3,
+   "nominal_po": 0.2999999999999998,
+   "zmierzone": 0.3,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T5 kołek wkładki x=58 w otworze blatu: luz promieniowy +X",
+   "nominal_przed": 0.15,
+   "nominal_po": 0.1499999999999999,
+   "zmierzone": 0.15,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (kołek → ściana otworu)"
+  },
+  {
+   "pasowanie": "T5 kołek wkładki x=58 w otworze blatu: luz promieniowy −X",
+   "nominal_przed": 0.15,
+   "nominal_po": 0.1499999999999999,
+   "zmierzone": 0.15,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (kołek → ściana otworu)"
+  },
+  {
+   "pasowanie": "T5 kołek wkładki x=58 w otworze blatu: luz promieniowy +Y",
+   "nominal_przed": 0.15,
+   "nominal_po": 0.1499999999999999,
+   "zmierzone": 0.151,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (kołek → ściana otworu)"
+  },
+  {
+   "pasowanie": "T5 kołek wkładki x=58 w otworze blatu: luz promieniowy −Y",
+   "nominal_przed": 0.15,
+   "nominal_po": 0.1499999999999999,
+   "zmierzone": 0.151,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (kołek → ściana otworu)"
+  },
+  {
+   "pasowanie": "T5 otwór kołka x=58: ø (blat)",
+   "nominal_przed": 3.3,
+   "nominal_po": 3.3,
+   "zmierzone": 3.3,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T5 kołek x=58: ø (wkładka)",
+   "nominal_przed": 3.0,
+   "nominal_po": 3,
+   "zmierzone": 3.0,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T5 kołek x=58: luz osiowy (koniec kołka − dno otworu)",
+   "nominal_przed": 0.3,
+   "nominal_po": 0.2999999999999998,
+   "zmierzone": 0.3,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T6 płytka n1 – wkładka: prawa y=20",
+   "nominal_przed": 0.3,
+   "nominal_po": 0.29999999999999716,
+   "zmierzone": 0.3,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (bok płytki → ściana otworu)"
+  },
+  {
+   "pasowanie": "T6 płytka n1 – wkładka: prawa y=−30",
+   "nominal_przed": 0.3,
+   "nominal_po": 0.29999999999999716,
+   "zmierzone": 0.3,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (bok płytki → ściana otworu)"
+  },
+  {
+   "pasowanie": "T6 płytka n1 – wkładka: lewa y=20",
+   "nominal_przed": 0.3,
+   "nominal_po": 0.29999999999999716,
+   "zmierzone": 0.3,
+   "kierunek": "X",
+   "uwaga": "z punktu w szczelinie (bok płytki → ściana otworu)"
+  },
+  {
+   "pasowanie": "T6 płytka n1 – wkładka: tylna x=20",
+   "nominal_przed": 0.3,
+   "nominal_po": 0.29999999999999716,
+   "zmierzone": 0.3,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (bok płytki → ściana otworu)"
+  },
+  {
+   "pasowanie": "T6 płytka n1 – wkładka: przednia x=30",
+   "nominal_przed": 0.3,
+   "nominal_po": 0.29999999999999716,
+   "zmierzone": 0.3,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (bok płytki → ściana otworu)"
+  },
+  {
+   "pasowanie": "T6 płytka n1 – wkładka: przednia x=−30",
+   "nominal_przed": 0.3,
+   "nominal_po": 0.29999999999999716,
+   "zmierzone": 0.3,
+   "kierunek": "Y",
+   "uwaga": "z punktu w szczelinie (bok płytki → ściana otworu)"
+  },
+  {
+   "pasowanie": "T6 otwór wkładki X (cięciwa)",
+   "nominal_przed": 96.6,
+   "nominal_po": 96.6,
+   "zmierzone": 96.6,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T6 otwór wkładki Y (cięciwa, x 20)",
+   "nominal_przed": 96.6,
+   "nominal_po": 96.6,
+   "zmierzone": 96.6,
+   "kierunek": "Y",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T6 rama wkładki zewn. X",
+   "nominal_przed": 104.6,
+   "nominal_po": 104.6,
+   "zmierzone": 104.6,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T6 gabaryt wkładki Y (bbox)",
+   "nominal_przed": 148.3,
+   "nominal_po": 148.3,
+   "zmierzone": 148.3,
+   "kierunek": "Y",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T6 płytka n1 bok X (promienie z zewnątrz)",
+   "nominal_przed": 96.0,
+   "nominal_po": 96,
+   "zmierzone": 96.0,
+   "kierunek": "X",
+   "uwaga": "interfejs płytki bez zmian"
+  },
+  {
+   "pasowanie": "T6 kołek orientacyjny – wycięcie płytki (x, strona otwarta)",
+   "nominal_przed": 0.4,
+   "nominal_po": 0.3999999999999915,
+   "zmierzone": 0.4,
+   "kierunek": "X",
+   "uwaga": "lico kołka 43.400001525878906 − lico wycięcia 43.0"
+  },
+  {
+   "pasowanie": "T6 kołek orientacyjny – ściana otworu (x)",
+   "nominal_przed": 0.5,
+   "nominal_po": 0.5,
+   "zmierzone": 0.5,
+   "kierunek": "X",
+   "uwaga": "szczelina kołek–rama"
+  },
+  {
+   "pasowanie": "T6 margines matrycy: krawędź ramy → krawędź panelu (80)",
+   "nominal_przed": 27.7,
+   "nominal_po": 27.700000000000003,
+   "zmierzone": 27.7,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T12 rowek panelu (60,60): szerokość prostopadle do przekątnej, korpus W",
+   "nominal_przed": 3.4,
+   "nominal_po": 3.4,
+   "zmierzone": 3.4,
+   "kierunek": "N",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T12 rowek panelu: cięciwa wzdłuż X (= szer·√2), korpus W",
+   "nominal_przed": 4.808,
+   "nominal_po": 4.8083261120685235,
+   "zmierzone": 4.808,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T12 rowek panelu (60,60): szerokość prostopadle do przekątnej, korpus P",
+   "nominal_przed": 3.4,
+   "nominal_po": 3.4,
+   "zmierzone": 3.4,
+   "kierunek": "N",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T12 rowek panelu: cięciwa wzdłuż X (= szer·√2), korpus P",
+   "nominal_przed": 4.808,
+   "nominal_po": 4.8083261120685235,
+   "zmierzone": 4.808,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T7 tulejka DC: ø walca (STL)",
+   "nominal_przed": 11.85,
+   "nominal_po": 11.85,
+   "zmierzone": 11.849,
+   "kierunek": "X",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T7 otwór DC ø w korpusie W (Y)",
+   "nominal_przed": 12.0,
+   "nominal_po": 12,
+   "zmierzone": 11.999,
+   "kierunek": "Y",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "T7 tulejka w otworze: luz/stronę (ujemny = wcisk)",
+   "nominal_przed": 0.075,
+   "nominal_po": 0.07500000000000018,
+   "zmierzone": 0.075,
+   "kierunek": "Y",
+   "uwaga": "CELOWO WCISKOWE (R52/R53): wartość dodatnia = luz nominalny 0,075 wg definicji 4.8 „wciskane” (średnica tulejki mniejsza o 0,15; realny wcisk powstaje przez skurcz żywicy i mniejszy otwór MJF) — druk własny po pomiarze otworu"
+  },
+  {
+   "pasowanie": "łańcuch: wierzch ściany korpusu W",
+   "nominal_przed": 59.6,
+   "nominal_po": 59.6,
+   "zmierzone": 59.6,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "łańcuch: wierzch blatu (90, 0)",
+   "nominal_przed": 63.6,
+   "nominal_po": 63.6,
+   "zmierzone": 63.6,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "łańcuch: spód blatu na wierzchu ściany (styk)",
+   "nominal_przed": 0.0,
+   "nominal_po": 0.0,
+   "zmierzone": 0.0,
+   "kierunek": "Z",
+   "uwaga": "promienie +Z z wnętrza: spód blatu − wierzch ściany"
+  },
+  {
+   "pasowanie": "łańcuch: wierzch ramy wkładki (0, 50,3)",
+   "nominal_przed": 69.6,
+   "nominal_po": 69.6,
+   "zmierzone": 69.6,
+   "kierunek": "Z",
+   "uwaga": ""
+  },
+  {
+   "pasowanie": "łańcuch: wierzch płytki n1 (0, −46,5)",
+   "nominal_przed": 74.1,
+   "nominal_po": 74.1,
+   "zmierzone": 74.1,
+   "kierunek": "Z",
+   "uwaga": ""
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+00:00.344  blend            | Read blend: "<PC>\Desktop\Ramki\wyniki_v2\ramka_v2.blend"
+tulejka: ['tulejka_dc']
+tulejka bbox [-43.0, -40.0, 81.5, 96.5, 22.5, 37.499]
+oś tulejki: X długość 3.0
+gniazdo: ['proxy_gniazdo_dc']
+promienie wierzchołków: [4.099, 4.1, 4.101] ... [7.499, 7.5, 7.501]
+walec x: [-42.0, -40.0] kołnierz x: [-43.0, -42.0]
+walec→korpus: min 0.0737 max 0.0750 (n=299)
+otwór korpusu: r min 5.9982 max 6.0003 -> ø 11.998
+kołnierz→korpus: min 0.0000
+tulejka→gniazdo: min 0.0000
+lico zewn. ściany (nad otworem) x = -40.0
+lico wewn. ściany x = -42.0

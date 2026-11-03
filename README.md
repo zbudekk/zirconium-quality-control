@@ -1,56 +1,12 @@
-# qc - stanowisko kontroli cyrkonii
+# qc - stanowisko kontroli cyrkonii (ramki, skaner)
 
-Program stanowiska ze skanerem laboratoryjnym 3D we frezowni cyrkonii laboratorium protetycznego.
-Wieczorem skanuje plytke z pracami w stanie zielonym, naklada kazda prace na jej projekt STL i oznacza
-ukruszenia brzegow, zanim prace trafia do pieca. Rano z tego samego rodzaju skanu rozpoznaje, do
-ktorego zlecenia (kuwety) nalezy kazda spieczona praca, a ramka swietlna z matryca LED podswietla
-gniazda biezacej kuwety. Zlecenia, ktorych wszystkie punkty wyszly z pieca, program sam odhacza w
-firmowym Excelu (zielone pole w kolumnie B) z logiem kazdej zmiany.
+Zawartosc przeniesiona 03.11.2026 w calosci z PC (`<PC>\Desktop`): katalogi `Ramki`
+(plan, generator ramek, stanowisko, recenzje, pakiety do druku), `Ramki_do_wgrania` (pakiety R56/R57
+z sumami SHA256) i `Prace_test` (prace testowe - tylko na MSI, poza gitem).
 
-Repo zawiera program na laptopie (Python), program ramki na Raspberry Pi, modele plytek z ukladem
-gniazd, testy na danych syntetycznych i narzedzia. Plan wdrozenia: "Stanowisko kontroli cyrkonii - plan
-wdrozenia v2" (26.10.2026), poza repo.
+Poza gitem (`.gitignore`): skany i wyniki STL (`Ramki/stanowisko/dane`, `wyniki_*`, `archiwum`, ok. 2,5 GB),
+`Prace_test`. Pelna kopia lezy na MSI w `<MSI>\kod\qc`.
 
-## Uklad repo
-
-- `qc/` - pakiet programu na laptopie stanowiska; kazdy modul ma `OPIS.md` (co robi, wejscie, wyjscie,
-  kryterium "dziala"); `qc/ustawienia.py` wczytuje ustawienia.
-- `modele/` - modele plytek z ukladem gniazd.
-- `tests/` - testy pytest.
-- `tests/dane/` - wylacznie syntetyczne dane testowe (zadnych prawdziwych STL, skanow ani raportow).
-
-## Instalacja
-
-Python 3.12:
-
-```
-python -m pip install -r requirements-ci.txt
-```
-
-Na Windows bez zainstalowanego Visual C++ Redistributable dodatkowo `python -m pip install msvc-runtime`
-(wymagane przez open3d).
-
-## Testy
-
-```
-python -m pytest -m "not wolne"
-python -m pytest
-```
-
-Pierwsze polecenie uruchamia testy szybkie (jak CI dla PR), drugie wszystkie, razem z wolnymi metrykami.
-
-## Watki i biblioteki numeryczne
-
-Wielowatkowy OpenBLAS (mnozenia `@` w numpy) wolany z watku Pythona rownolegle z open3d (OpenMP) w
-innym watku konczyl sie access violation. Dlatego `import qc` ustawia jeden watek BLAS
-(`OPENBLAS_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, przez `setdefault`), a gdy numpy jest juz zaladowane -
-`qc.ogranicz_blas()` ustawia to samo w bibliotece OpenBLAS numpy przez ctypes. Program rownolegli
-prace w watkach Pythona, wiec BLAS nie musi. open3d zostaje wielowatkowy (`OMP_NUM_THREADS` bez zmian).
-Program stanowiska importuje `qc` przed numpy; testy ustawiaja zmienna na poczatku `tests/conftest.py`.
-
-## Ustawienia
-
-Sciezki i progi wykrywania sa w `ustawienia.toml` (nie w kodzie). Sciezki wzgledne liczone sa wzgledem
-katalogu tego pliku. Na stanowisku nadpisuje sie je w `ustawienia.lokalne.toml` obok (plik
-gitignorowany; moze tylko zmieniac istniejace klucze). Inny plik ustawien wskazuje zmienna
-`QC_USTAWIENIA`. W kodzie: `from qc.ustawienia import wczytaj; u = wczytaj()`.
+Punkt wejscia: `Ramki/00_NADZOR_STAN.md`, `Ramki/00_PRZEPLYW_I_BRAMKI.md`, `Ramki/plan_ramki_v2.md`.
+Repo `Ramki/stanowisko` ma wlasna historie git (17 commitow) - zachowana na MSI w `Ramki/stanowisko/.git`,
+w tym repozytorium pliki sa sledzone zwykle.

@@ -1,0 +1,89 @@
+00:00.937  blend            | Read blend: "<PC>\Desktop\Ramki\wyniki_v2\ramka_v2.blend"
+[ZAL] K-01 ramka_rama_dyfuzora_v2: plik usunięty (R50-U1/U8): brak ✓ 
+[ZAL] K-01 ramka_uchwyt_kabli_v2: plik usunięty (R50-U1/U8): brak ✓ 
+=== ramka_pokrywka_v2: bbox surowy X[-49.800,49.800] Y[-49.800,49.800] Z[0.000,20.000]
+[ZAL] K-01 ramka_pokrywka_v2: trójkątów 820, NaN False 
+[ZAL] K-02 ramka_pokrywka_v2: gabaryt 99.600 × 99.600 × 20.000 (oczek. 99.6 × 99.6 × 20.0); bbox montażowy X[-49.800,49.800] Y[-49.800,49.800] Z[-20.000,0.000] 
+[ZAL] K-03 ramka_pokrywka_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_pokrywka_v2: składowych 1 
+[ZAL] K-04b ramka_pokrywka_v2: objętość 30.064 cm³ (oczek. 30 ± 30 %) 
+[ZAL] K-17 ramka_pokrywka_v2: 12/12 sond zgodnych w tym kontrola odwrotna K-19 (brak otworów)
+[ZAL] K-18 ramka_pokrywka_v2: 8/8 sond zgodnych 
+[ZAL] K-20 ramka_pokrywka_v2: 4/4 sond zgodnych 
+[ZAL] K-21 ramka_pokrywka_v2: kontrola odwrotna (uchylone R50-U14): wierzch |x|,|y| ≤ 40: Z min -0.000 max 0.000 (0,00 ± 0,02) 
+[ZAL] K-22 ramka_pokrywka_v2: wnęka z promieni X 96.600, Y 96.600 (96,6 ± 0,2); złożenie: K-53 para pokrywka–wkladka 
+=== ramka_wkladka_v2: bbox surowy X[-65.000,65.000] Y[-52.300,96.000] Z[0.000,11.000]
+[ZAL] K-01 ramka_wkladka_v2: trójkątów 1806, NaN False 
+[ZAL] K-02 ramka_wkladka_v2: gabaryt 130.000 × 148.300 × 11.000 (oczek. 130 × 148.3 × 11.0); bbox montażowy X[-65.000,65.000] Y[-52.300,96.000] Z[-3.500,7.500] 
+[ZAL] K-03 ramka_wkladka_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_wkladka_v2: składowych 1 
+[ZAL] K-04b ramka_wkladka_v2: objętość 12.406 cm³ (oczek. 16 ± 30 %) 
+[ZAL] K-23 ramka_wkladka_v2: 10/10 sond zgodnych 
+[ZAL] K-24 ramka_wkladka_v2: 7/7 sond zgodnych 
+[ZAL] K-25 ramka_wkladka_v2: 19/19 sond zgodnych 
+[ZAL] K-27 ramka_wkladka_v2: 4/4 sond zgodnych 
+[ZAL] K-28 ramka_wkladka_v2: 4/4 sond zgodnych 
+[ZAL] K-29 ramka_wkladka_v2: 38/38 sond zgodnych 
+[ZAL] K-30 ramka_wkladka_v2: 11/11 sond zgodnych 
+[ZAL] K-31 ramka_wkladka_v2: max Z lewa strzałka 6.600, prawa 6.600 (6,6 ± 0,05); pas y −50,0…−48,3 max 6.000 (6,0); PNG relief_ramka_wkladka_v2_strzalki.png 
+[ZAL] K-32 ramka_wkladka_v2: otwór z promieni X 96.600, Y 96.600 (96,6 ± 0,2); złożenie → K-53 
+=== ramka_blat_v2: bbox surowy X[-100.000,100.000] Y[-100.000,100.000] Z[0.000,14.000]
+[ZAL] K-01 ramka_blat_v2: trójkątów 5716, NaN False 
+[ZAL] K-02 ramka_blat_v2: gabaryt 200.000 × 200.000 × 14.000 (oczek. 200 × 200 × 14); bbox montażowy X[-100.000,100.000] Y[-100.000,100.000] Z[-14.000,0.000] 
+[ZAL] K-03 ramka_blat_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_blat_v2: składowych 1 
+[ZAL] K-04b ramka_blat_v2: objętość 72.569 cm³ (oczek. 83 ± 30 %) 
+[ZAL] K-45 ramka_blat_v2: 13/13 sond zgodnych 
+[ZAL] K-46 ramka_blat_v2: 14/14 sond zgodnych 
+[ZAL] K-47 ramka_blat_v2: 43/43 sond zgodnych; dno otworów kołków (z góry, z dołu): [(-3.8, -4.0), (-3.8, -4.0)] (−3,8 / −4,0) 
+=== ramka_korpus_W_v2: bbox surowy X[-100.000,100.000] Y[-100.600,100.000] Z[0.000,59.600]
+[ZAL] K-01 ramka_korpus_W_v2: trójkątów 18220, NaN False 
+[ZAL] K-02 ramka_korpus_W_v2: gabaryt 200.000 × 200.600 × 59.600 (oczek. 200 × 200.6 × 59.6); bbox montażowy X[-100.000,100.000] Y[-100.600,100.000] Z[0.000,59.600] 
+[ZAL] K-03 ramka_korpus_W_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_korpus_W_v2: składowych 1 
+[ZAL] K-04b ramka_korpus_W_v2: objętość 233.661 cm³ (oczek. 225 ± 30 %) 
+[ZAL] K-34 ramka_korpus_W_v2: 10/10 sond zgodnych 
+[ZAL] K-35 ramka_korpus_W_v2: 33/33 sond zgodnych 
+[ZAL] K-36 ramka_korpus_W_v2: 29/29 sond zgodnych 
+[ZAL] K-37 ramka_korpus_W_v2: 18/18 sond zgodnych 
+[ZAL] K-38 ramka_korpus_W_v2: 28/28 sond zgodnych 
+[ZAL] K-39 ramka_korpus_W_v2: 20/20 sond zgodnych 
+[ZAL] K-40 ramka_korpus_W_v2: 7/7 sond; siatka 429 promieni (Z 5…57): y ∈ [-100.600, -100.000], poza zakresem: [] 
+[ZAL] K-42 ramka_korpus_W_v2: 12/12 sond zgodnych 
+[ZAL] K-43 ramka_korpus_W_v2: min Y w x[−45,45] Z[46,56]: -100.600 (−100,6); w Z[35,41]: -100.000 (−100,0); PNG relief_ramka_korpus_W_v2_napis.png 
+[ZAL] K-44 ramka_korpus_W_v2: 8/8 sond zgodnych 
+=== ramka_korpus_P_v2: bbox surowy X[-100.000,100.000] Y[-100.600,100.000] Z[0.000,59.600]
+[ZAL] K-01 ramka_korpus_P_v2: trójkątów 17324, NaN False 
+[ZAL] K-02 ramka_korpus_P_v2: gabaryt 200.000 × 200.600 × 59.600 (oczek. 200 × 200.6 × 59.6); bbox montażowy X[-100.000,100.000] Y[-100.600,100.000] Z[0.000,59.600] 
+[ZAL] K-03 ramka_korpus_P_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_korpus_P_v2: składowych 1 
+[ZAL] K-04b ramka_korpus_P_v2: objętość 233.633 cm³ (oczek. 225 ± 30 %) 
+[ZAL] K-34 ramka_korpus_P_v2: 10/10 sond zgodnych 
+[ZAL] K-35 ramka_korpus_P_v2: 33/33 sond zgodnych 
+[ZAL] K-36 ramka_korpus_P_v2: 29/29 sond zgodnych 
+[ZAL] K-37 ramka_korpus_P_v2: 18/18 sond zgodnych 
+[ZAL] K-38 ramka_korpus_P_v2: 28/28 sond zgodnych 
+[ZAL] K-39 ramka_korpus_P_v2: 20/20 sond zgodnych 
+[ZAL] K-40 ramka_korpus_P_v2: 7/7 sond; siatka 429 promieni (Z 5…57): y ∈ [-100.600, -100.000], poza zakresem: [] 
+[ZAL] K-42 ramka_korpus_P_v2: 12/12 sond zgodnych 
+[ZAL] K-43 ramka_korpus_P_v2: min Y w x[−45,45] Z[46,56]: -100.600 (−100,6); w Z[35,41]: -100.000 (−100,0); PNG relief_ramka_korpus_P_v2_napis.png 
+[ZAL] K-44 ramka_korpus_P_v2: 8/8 sond zgodnych 
+[ZAL] K-43 korpus W vs P: SHA różne: True; objętość W − P = 0.0287 cm³ (≠ 0, < 0,5) 
+[ZAL] INFO-blend ramka_v2.blend: kolekcje {'akcesoria': ['pokrywka', 'tulejka_dc', 'podkladka_panelu_05', 'podkladka_panelu_1', 'podkladka_panelu_2'], 'elementy_kupowane': ['proxy_panel', 'proxy_pi_bonnet', 'proxy_wtyk_bonnet', 'proxy_dystans_1', 'proxy_dystans_2', 'proxy_dystans_3', 'proxy_dystans_4', 'proxy_dyfuzor', 'proxy_gniazdo_dc', 'proxy_gniazdo_usb', 'proxy_hall_A', 'proxy_hall_B', 'proxy_hall_C', 'proxy_magnes_A', 'proxy_stopka_1', 'proxy_stopka_2', 'proxy_stopka_3', 'proxy_stopka_4', 'proxy_odbiornik_usb', 'proxy_magnes_B', 'proxy_magnes_C'], 'obudowa': ['korpus_W', 'blat', 'wkladka', 'korpus_P'], 'plytki': ['plytka_wieczorna_n1', 'plytka_wieczorna', 'plytka_wieczorna_n2', 'plytka_wieczorna_n3', 'plytka_poranna', 'plytka_poranna_n4', 'plytka_poranna_n5', 'plytka_poranna_n6']}; zestaw złożony (24): ['blat', 'korpus_W', 'plytka_wieczorna_n1', 'pokrywka', 'proxy_dyfuzor', 'proxy_dystans_1', 'proxy_dystans_2', 'proxy_dystans_3', 'proxy_dystans_4', 'proxy_gniazdo_dc', 'proxy_gniazdo_usb', 'proxy_hall_A', 'proxy_hall_B', 'proxy_hall_C', 'proxy_magnes_A', 'proxy_panel', 'proxy_pi_bonnet', 'proxy_stopka_1', 'proxy_stopka_2', 'proxy_stopka_3', 'proxy_stopka_4', 'proxy_wtyk_bonnet', 'tulejka_dc', 'wkladka']; odsunięte (14): ['korpus_P', 'plytka_poranna', 'plytka_poranna_n4', 'plytka_poranna_n5', 'plytka_poranna_n6', 'plytka_wieczorna', 'plytka_wieczorna_n2', 'plytka_wieczorna_n3', 'podkladka_panelu_05', 'podkladka_panelu_1', 'podkladka_panelu_2', 'proxy_magnes_B', 'proxy_magnes_C', 'proxy_odbiornik_usb']; najmniejsza |współrzędna| odsuniętych 4.5 
+[ZAL] K-53 ramka_v2.blend: par z nakładającym się bbox: 43; par z przecięciem: 0: []; kontrola czułości bez skurczu (pary stykowe): {'blat–korpus_W': 469, 'wkladka–proxy_dyfuzor': 180, 'plytka_wieczorna_n1–wkladka': 314, 'proxy_dystans_1–korpus_W': 104, 'proxy_panel–proxy_dystans_1': 162} 
+[ZAL] K-54 ramka_v2.blend: blat (90,0) 63.6/63.6; dyfuzor (0,70) 63.6/63.6; wkladka (0,50.3) 69.6/69.6; wkladka max Z 71.1/71.1; plytka n1 (0,-46.5) 74.1/74.1; plytka n1 relief (39.5,-44.5) 74.7/74.7; pokrywka (40,40) 90.1/90.1; pokrywka max Z 90.1/90.1; pokrywka min Z 70.1/70.1; proxy_pi_bonnet max Z 34.0/34.0; proxy_panel min Z 42.0/42.0; proxy_panel max Z (PCB) 55.6/55.6; proxy_panel PCB spód (wierzchołek z=54) 54.0/54.0; dystanse max Z 54.0/54.0; dystanse min Z 4.0/4.0; stadiony korpusu Z max 4.0/4.0; stadiony korpusu Z min 3.0/3.0; stopki min Z -4.0/-4.0; stopki max Z 0.0/0.0; korpus_W max Z 59.6/59.6; korpus_W min Z 0.0/0.0; blat max Z 63.6/63.6; blat min Z 49.6/49.6; wkladka min Z (kołki) 60.1/60.1; plytka n1 min Z 66.1/66.1 
+[ZAL] K-33 ramka_v2.blend: min Z wkładki poza kołkami 63.600 (63,6 ± 0,02); wierzch dyfuzora 63.600; kołki w otworach blatu: 4/4; przecięcia: K-53 
+[ZAL] K-44b ramka_v2.blend: przecięcia: {'Pi–korpus_W': 0, 'wtyk–korpus_W': 0, 'Pi–proxy_panel': 0, 'wtyk–proxy_panel': 0, 'Pi–proxy_dystans_1': 0, 'wtyk–proxy_dystans_1': 0, 'Pi–proxy_dystans_2': 0, 'wtyk–proxy_dystans_2': 0, 'Pi–proxy_dystans_3': 0, 'wtyk–proxy_dystans_3': 0, 'Pi–proxy_dystans_4': 0, 'wtyk–proxy_dystans_4': 0}; luz Z 42.0 − 34.0 = 8.000 (≥ 8); Pi X[-50.0,35.0] Y[-28.0,28.0] Z[8.0,34.0]; wtyk X[-90.0,-50.0] Y[17.0,27.0] Z[23.0,34.0]; test 3 kierunków wtyku 40 od (-50, 22): {'-X': {'korpus_W': 0, 'proxy_panel': 0, 'proxy_dystans_1': 0, 'proxy_dystans_2': 0, 'proxy_dystans_3': 0, 'proxy_dystans_4': 0, 'proxy_gniazdo_dc': 0}, '-Y': {'korpus_W': 0, 'proxy_panel': 0, 'proxy_dystans_1': 0, 'proxy_dystans_2': 0, 'proxy_dystans_3': 0, 'proxy_dystans_4': 0, 'proxy_gniazdo_dc': 0}, '+Y': {'korpus_W': 0, 'proxy_panel': 0, 'proxy_dystans_1': 0, 'proxy_dystans_2': 0, 'proxy_dystans_3': 0, 'proxy_dystans_4': 0, 'proxy_gniazdo_dc': 0}} 
+[ZAL] K-55 ramka_v2.blend: spód magnesu A 66.300 − wierzch Halla A 65.100 = 1.200 (1,2 ± 0,05); +0,5 = 1.70 ≤ 4 
+[ZAL] K-56 ramka_v2.blend: krawędź wkładki przód y=-52.300, prawa x=52.300; pas przedni 27.700, prawy 27.700 (27,7); pikseli 11 (11); obiekty nad pasami (Z > 63,65): [] 
+[ZAL] K-49 blat/korpus/panel: wnętrze korpusu X 195.000 Y 195.000; kołnierz blatu zewn. X 194.000 Y 194.000 → luz/stronę [0.5, 0.5] (0,5); kieszeń 162.000 vs dyfuzor 160.000 → 1.000 (1,0); PCB wierzch 55.60 vs spód płyty blatu 59.60 → 4.00 (4,0); PCB 160.0 pod oknem 158.0 → nakładka 1.00/stronę (1,0); dystanse w [(-60.0, -60.0), (-60.0, 60.0), (60.0, -60.0), (60.0, 60.0)]; przecięcia blat–korpus 0, panel–blat 0, dystanse–korpus {'proxy_dystans_1': 0, 'proxy_dystans_2': 0, 'proxy_dystans_3': 0, 'proxy_dystans_4': 0} 
+
+=== PODSUMOWANIE: 73 sprawdzeń, NIE: 0
+Blender 5.2.3 LTS (hash e13b728c6880 built 2026-10-22 01:37:16)
+Timer 'STL Import' took 0.44 ms
+Timer 'STL Import' took 0.56 ms
+Timer 'STL Import' took 1.18 ms
+Timer 'STL Import' took 2.55 ms
+Timer 'STL Import' took 2.34 ms
+
+Blender quit

@@ -1,0 +1,12 @@
+numpy
+scipy
+trimesh
+open3d
+PySide6
+watchdog
+pywin32; sys_platform == "win32"
+beautifulsoup4
+pypdf
+pillow
+pytest
+rtree

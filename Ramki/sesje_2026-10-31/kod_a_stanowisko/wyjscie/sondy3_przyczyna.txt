@@ -1,0 +1,6 @@
+gniazdo ø7.5 luz_xy=0.6: osadzeń 40, przenikanie max 0.461, śr 0.137; uniesienie min 0.35 max 0.84
+gniazdo ø7.5 luz_xy=0.0: osadzeń 40, przenikanie max 0.000, śr 0.000; uniesienie min 0.35 max 0.84
+gniazdo ø10 luz_xy=0.6: osadzeń 40, przenikanie max 0.000, śr 0.000; uniesienie min 0.00 max 0.00
+gniazdo ø10 luz_xy=0.0: osadzeń 40, przenikanie max 0.000, śr 0.000; uniesienie min 0.00 max 0.00
+gniazdo ø12.5 luz_xy=0.6: osadzeń 40, przenikanie max 0.000, śr 0.000; uniesienie min 0.00 max 0.00
+gniazdo ø12.5 luz_xy=0.0: osadzeń 40, przenikanie max 0.000, śr 0.000; uniesienie min 0.00 max 0.00

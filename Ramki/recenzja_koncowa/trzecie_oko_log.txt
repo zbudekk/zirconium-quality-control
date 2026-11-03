@@ -1,0 +1,926 @@
+00:00.344  blend            | Read blend: "<PC>\Desktop\Ramki\wyniki_v2\ramka_v2.blend"
+[3oko    0.0s] parametry.json: 273 kluczy
+[3oko    0.0s] D4 niezależnie: panel_pcb_z=54 blat_top_z=63.6 korpus_h=59.6 (json: 54 63.6 59.6)
+[3oko    0.4s] wczytano 17 STL
+[3oko    0.4s] transformacja ramka_blat_v2.stl                    obrot_180_X   t=(0.000,0.000,63.600) maxd=1.14e-05 verts/faces zgodne=True
+[3oko    0.6s] transformacja ramka_korpus_P_v2.stl                przesuniecie  t=(260.000,0.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    0.7s] transformacja ramka_korpus_W_v2.stl                przesuniecie  t=(0.000,0.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    0.9s] transformacja ramka_plytka_poranna_n4_v2.stl       przesuniecie  t=(55.000,-260.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    1.2s] transformacja ramka_plytka_poranna_n5_v2.stl       przesuniecie  t=(165.000,-260.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    1.4s] transformacja ramka_plytka_poranna_n6_v2.stl       przesuniecie  t=(275.000,-260.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    1.6s] transformacja ramka_plytka_poranna_v2.stl          przesuniecie  t=(-55.000,-260.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    1.8s] transformacja ramka_plytka_wieczorna_n1_v2.stl     przesuniecie  t=(0.000,0.000,66.100) maxd=7.63e-06 verts/faces zgodne=True
+[3oko    2.0s] transformacja ramka_plytka_wieczorna_n2_v2.stl     przesuniecie  t=(-275.000,-260.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    2.2s] transformacja ramka_plytka_wieczorna_n3_v2.stl     przesuniecie  t=(-165.000,-260.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    2.4s] transformacja ramka_plytka_wieczorna_v2.stl        przesuniecie  t=(-385.000,-260.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    2.4s] transformacja ramka_podkladka_panelu_05_v2.stl     przesuniecie  t=(-18.000,-480.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    2.4s] transformacja ramka_podkladka_panelu_1_v2.stl      przesuniecie  t=(0.000,-480.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    2.4s] transformacja ramka_podkladka_panelu_2_v2.stl      przesuniecie  t=(18.000,-480.000,0.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    2.4s] transformacja ramka_pokrywka_v2.stl                obrot_180_X   t=(0.000,0.000,90.100) maxd=7.63e-06 verts/faces zgodne=True
+[3oko    2.4s] transformacja ramka_tulejka_dc_v2.stl              obrot_+90_Y   t=(-43.000,89.000,30.000) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    2.4s] transformacja ramka_wkladka_v2.stl                 przesuniecie  t=(0.000,0.000,60.100) maxd=0.00e+00 verts/faces zgodne=True
+[3oko    2.4s] złożenie ramka_blat_v2.stl                    bbox (-100.00,-100.00,49.60)-(100.00,100.00,63.60)
+[3oko    2.4s] złożenie ramka_korpus_P_v2.stl                bbox (-100.00,-100.60,0.00)-(100.00,100.00,59.60)
+[3oko    2.4s] złożenie ramka_korpus_W_v2.stl                bbox (-100.00,-100.60,0.00)-(100.00,100.00,59.60)
+[3oko    2.4s] złożenie ramka_plytka_poranna_n4_v2.stl       bbox (-48.00,-48.00,66.10)-(48.00,48.00,74.70)
+[3oko    2.4s] złożenie ramka_plytka_poranna_n5_v2.stl       bbox (-48.00,-48.00,66.10)-(48.00,48.00,74.70)
+[3oko    2.5s] złożenie ramka_plytka_poranna_n6_v2.stl       bbox (-48.00,-48.00,66.10)-(48.00,48.00,74.70)
+[3oko    2.5s] złożenie ramka_plytka_poranna_v2.stl          bbox (-48.00,-48.00,66.10)-(48.00,48.00,74.10)
+[3oko    2.5s] złożenie ramka_plytka_wieczorna_n1_v2.stl     bbox (-48.00,-48.00,66.10)-(48.00,48.00,74.70)
+[3oko    2.5s] złożenie ramka_plytka_wieczorna_n2_v2.stl     bbox (-48.00,-48.00,66.10)-(48.00,48.00,74.70)
+[3oko    2.5s] złożenie ramka_plytka_wieczorna_n3_v2.stl     bbox (-48.00,-48.00,66.10)-(48.00,48.00,74.70)
+[3oko    2.5s] złożenie ramka_plytka_wieczorna_v2.stl        bbox (-48.00,-48.00,66.10)-(48.00,48.00,74.10)
+[3oko    2.5s] złożenie ramka_podkladka_panelu_05_v2.stl     bbox (-4.50,-4.50,0.00)-(4.50,4.50,0.50)
+[3oko    2.5s] złożenie ramka_podkladka_panelu_1_v2.stl      bbox (-4.50,-4.50,0.00)-(4.50,4.50,1.00)
+[3oko    2.5s] złożenie ramka_podkladka_panelu_2_v2.stl      bbox (-4.50,-4.50,0.00)-(4.50,4.50,2.00)
+[3oko    2.5s] złożenie ramka_pokrywka_v2.stl                bbox (-49.80,-49.80,70.10)-(49.80,49.80,90.10)
+[3oko    2.5s] złożenie ramka_tulejka_dc_v2.stl              bbox (-43.00,81.50,22.50)-(-40.00,96.50,37.50)
+[3oko    2.5s] złożenie ramka_wkladka_v2.stl                 bbox (-65.00,-52.30,60.10)-(65.00,96.00,71.10)
+[3oko    2.5s] D3/D4 korpus_W                       korpus 200x200, dno Z0, wierzch korpus_h, napis 0,6 na przodzie -> OK
+[3oko    2.5s] D3/D4 korpus_P                       korpus P jak W -> OK
+[3oko    2.5s] D3/D4 blat                           blat wierzch blat_top_z, kołnierz 10 w dół -> OK
+[3oko    2.5s] D3/D4 wkladka                        wkładka: spód ramy na blat_top_z, kołki 3,5 w dół, kołek orient. do 71,1 -> OK
+[3oko    2.5s] D3/D4 plytka_n1                      płytka: spód na półce 66,1, wierzch 74,1 + relief 0,6 -> OK
+[3oko    2.5s] D3/D4 pokrywka                       pokrywka: wierzch 90,1, dół kołnierza 70,1 -> OK
+[3oko    2.5s] D3/D4 tulejka                        tulejka: kołnierz na licu x=-42 od strony kieszeni, walec w ścianie -42..-40 -> OK
+[3oko    2.5s] === 1. KARTA PASOWAŃ
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) lewy y=-30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) prawy y=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) lewy y=0                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) prawy y=0                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) lewy y=30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) prawy y=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) przód x=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) przód x=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) przód x=-40                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) przód x=40                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) tył x=-30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) tył x=0                                    plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – wkładka (otwór 96,6/96,0) tył x=30                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n4 – półka wkładki (styk Z) narożnik (-38,-38)                         plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n4 – półka wkładki (styk Z) narożnik (-38,38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n4 – półka wkładki (styk Z) narożnik (38,38)                           plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n4 – półka wkładki (styk Z) narożnik (38,-38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n4 – kołek orient. 4,4 w wycięciu 5 X, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n4 – kołek orient. 4,4 w wycięciu 5 Y, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n4 – kołek orient. 4,4 w wycięciu 5 X, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n4 – kołek orient. 4,4 w wycięciu 5 Y, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n4 – czujnik Halla A (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,-39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna_n4 – czujnik Halla B (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna_n4 – czujnik Halla C (proxy) szczelina Z: spód płytki − wierzch czujnika w (40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) lewy y=-30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) prawy y=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) lewy y=0                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) prawy y=0                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) lewy y=30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) prawy y=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) przód x=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) przód x=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) przód x=-40                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) przód x=40                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) tył x=-30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) tył x=0                                    plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – wkładka (otwór 96,6/96,0) tył x=30                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n5 – półka wkładki (styk Z) narożnik (-38,-38)                         plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n5 – półka wkładki (styk Z) narożnik (-38,38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n5 – półka wkładki (styk Z) narożnik (38,38)                           plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n5 – półka wkładki (styk Z) narożnik (38,-38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n5 – kołek orient. 4,4 w wycięciu 5 X, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n5 – kołek orient. 4,4 w wycięciu 5 Y, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n5 – kołek orient. 4,4 w wycięciu 5 X, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n5 – kołek orient. 4,4 w wycięciu 5 Y, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n5 – czujnik Halla A (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,-39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna_n5 – czujnik Halla B (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna_n5 – czujnik Halla C (proxy) szczelina Z: spód płytki − wierzch czujnika w (40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) lewy y=-30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) prawy y=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) lewy y=0                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) prawy y=0                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) lewy y=30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) prawy y=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) przód x=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) przód x=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) przód x=-40                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) przód x=40                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) tył x=-30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) tył x=0                                    plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – wkładka (otwór 96,6/96,0) tył x=30                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna_n6 – półka wkładki (styk Z) narożnik (-38,-38)                         plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n6 – półka wkładki (styk Z) narożnik (-38,38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n6 – półka wkładki (styk Z) narożnik (38,38)                           plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n6 – półka wkładki (styk Z) narożnik (38,-38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna_n6 – kołek orient. 4,4 w wycięciu 5 X, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n6 – kołek orient. 4,4 w wycięciu 5 Y, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n6 – kołek orient. 4,4 w wycięciu 5 X, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n6 – kołek orient. 4,4 w wycięciu 5 Y, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna_n6 – czujnik Halla A (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,-39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna_n6 – czujnik Halla B (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna_n6 – czujnik Halla C (proxy) szczelina Z: spód płytki − wierzch czujnika w (40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) lewy y=-30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) prawy y=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) lewy y=0                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) prawy y=0                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) lewy y=30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) prawy y=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) przód x=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) przód x=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) przód x=-40                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) przód x=40                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) tył x=-30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) tył x=0                                    plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – wkładka (otwór 96,6/96,0) tył x=30                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka poranna – półka wkładki (styk Z) narożnik (-38,-38)                         plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna – półka wkładki (styk Z) narożnik (-38,38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna – półka wkładki (styk Z) narożnik (38,38)                           plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna – półka wkładki (styk Z) narożnik (38,-38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka poranna – kołek orient. 4,4 w wycięciu 5 X, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna – kołek orient. 4,4 w wycięciu 5 Y, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna – kołek orient. 4,4 w wycięciu 5 X, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna – kołek orient. 4,4 w wycięciu 5 Y, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka poranna – czujnik Halla A (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,-39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna – czujnik Halla B (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka poranna – czujnik Halla C (proxy) szczelina Z: spód płytki − wierzch czujnika w (40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) lewy y=-30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) prawy y=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) lewy y=0                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) prawy y=0                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) lewy y=30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) prawy y=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) przód x=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) przód x=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) przód x=-40                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) przód x=40                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) tył x=-30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) tył x=0                                    plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – wkładka (otwór 96,6/96,0) tył x=30                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – półka wkładki (styk Z) narożnik (-38,-38)                         plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – półka wkładki (styk Z) narożnik (-38,38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – półka wkładki (styk Z) narożnik (38,38)                           plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – półka wkładki (styk Z) narożnik (38,-38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – kołek orient. 4,4 w wycięciu 5 X, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – kołek orient. 4,4 w wycięciu 5 Y, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – kołek orient. 4,4 w wycięciu 5 X, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – kołek orient. 4,4 w wycięciu 5 Y, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – czujnik Halla A (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,-39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka n1 – magnes A – czujnik Halla A (proxy) spód magnesu − wierzch czujnika            plan=1.2     zm=1.200    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – czujnik Halla B (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna_n1 – czujnik Halla C (proxy) szczelina Z: spód płytki − wierzch czujnika w (40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka n1 – magnes A ø5 w kieszeni ø5,2 luz promieniowy X                          plan=0.1     zm=0.100    OK
+[3oko    2.5s] PAS płytka n1 – magnes A ø5 w kieszeni ø5,2 luz promieniowy Y                          plan=0.1     zm=0.099    OK
+[3oko    2.5s] PAS płytka n1 – magnes A: sufit kieszeni Z                                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka n1 – magnes A: cofnięcie w kieszeni Z (spód magnesu − spód płytki)             plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) lewy y=-30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) prawy y=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) lewy y=0                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) prawy y=0                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) lewy y=30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) prawy y=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) przód x=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) przód x=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) przód x=-40                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) przód x=40                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) tył x=-30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) tył x=0                                    plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – wkładka (otwór 96,6/96,0) tył x=30                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – półka wkładki (styk Z) narożnik (-38,-38)                         plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – półka wkładki (styk Z) narożnik (-38,38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – półka wkładki (styk Z) narożnik (38,38)                           plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – półka wkładki (styk Z) narożnik (38,-38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – kołek orient. 4,4 w wycięciu 5 X, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – kołek orient. 4,4 w wycięciu 5 Y, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – kołek orient. 4,4 w wycięciu 5 X, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – kołek orient. 4,4 w wycięciu 5 Y, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – czujnik Halla A (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,-39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – czujnik Halla B (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna_n2 – czujnik Halla C (proxy) szczelina Z: spód płytki − wierzch czujnika w (40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) lewy y=-30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) prawy y=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) lewy y=0                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) prawy y=0                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) lewy y=30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) prawy y=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) przód x=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) przód x=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) przód x=-40                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) przód x=40                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) tył x=-30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) tył x=0                                    plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – wkładka (otwór 96,6/96,0) tył x=30                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – półka wkładki (styk Z) narożnik (-38,-38)                         plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – półka wkładki (styk Z) narożnik (-38,38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – półka wkładki (styk Z) narożnik (38,38)                           plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – półka wkładki (styk Z) narożnik (38,-38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – kołek orient. 4,4 w wycięciu 5 X, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – kołek orient. 4,4 w wycięciu 5 Y, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – kołek orient. 4,4 w wycięciu 5 X, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – kołek orient. 4,4 w wycięciu 5 Y, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – czujnik Halla A (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,-39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – czujnik Halla B (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna_n3 – czujnik Halla C (proxy) szczelina Z: spód płytki − wierzch czujnika w (40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) lewy y=-30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) prawy y=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) lewy y=0                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) prawy y=0                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) lewy y=30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) prawy y=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) przód x=-30                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) przód x=30                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) przód x=-40                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) przód x=40                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) tył x=-30                                  plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) tył x=0                                    plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – wkładka (otwór 96,6/96,0) tył x=30                                   plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS płytka wieczorna – półka wkładki (styk Z) narożnik (-38,-38)                         plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna – półka wkładki (styk Z) narożnik (-38,38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna – półka wkładki (styk Z) narożnik (38,38)                           plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna – półka wkładki (styk Z) narożnik (38,-38)                          plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS płytka wieczorna – kołek orient. 4,4 w wycięciu 5 X, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna – kołek orient. 4,4 w wycięciu 5 Y, Z=67.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna – kołek orient. 4,4 w wycięciu 5 X, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna – kołek orient. 4,4 w wycięciu 5 Y, Z=69.1                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS płytka wieczorna – czujnik Halla A (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,-39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna – czujnik Halla B (proxy) szczelina Z: spód płytki − wierzch czujnika w (-40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS płytka wieczorna – czujnik Halla C (proxy) szczelina Z: spód płytki − wierzch czujnika w (40.3,39.7) plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=-58, X, Z=62.6                     plan=0.15    zm=0.150    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=-58, -X, Z=62.6                    plan=0.15    zm=0.150    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=-58, Y, Z=62.6                     plan=0.15    zm=0.151    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=-58, -Y, Z=62.6                    plan=0.15    zm=0.151    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=-58, X, Z=61.1                     plan=0.15    zm=0.150    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=-58, -X, Z=61.1                    plan=0.15    zm=0.150    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=-58, Y, Z=61.1                     plan=0.15    zm=0.151    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=-58, -Y, Z=61.1                    plan=0.15    zm=0.151    OK
+[3oko    2.5s] PAS wkładka – blat: kołek: koniec vs dno otworu ślepego kołek x=-58                                plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS wkładka – magnes ø5 w otworze ucha ø5,4 x=-58, promieniowo                         plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – magnes ø5 w kieszeni ø5,4   x=-58, promieniowo                         plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS wkładka – blat: współosiowość otworu magnesu i kieszeni x=-58 (odległość środków XY)               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – blat/dyfuzor: ucho leży płasko x=-56: ucho na dyfuzorze (y=70)            plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – blat/dyfuzor: ucho leży płasko x=-56: ucho na blacie (y=82,5)             plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – blat/dyfuzor: ucho leży płasko x=-61: ucho na blacie (y=92)               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=58, X, Z=62.6                      plan=0.15    zm=0.150    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=58, -X, Z=62.6                     plan=0.15    zm=0.150    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=58, Y, Z=62.6                      plan=0.15    zm=0.151    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=58, -Y, Z=62.6                     plan=0.15    zm=0.151    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=58, X, Z=61.1                      plan=0.15    zm=0.150    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=58, -X, Z=61.1                     plan=0.15    zm=0.150    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=58, Y, Z=61.1                      plan=0.15    zm=0.151    OK
+[3oko    2.5s] PAS wkładka – blat: kołek ø3 w otworze ø3,3 kołek x=58, -Y, Z=61.1                     plan=0.15    zm=0.151    OK
+[3oko    2.5s] PAS wkładka – blat: kołek: koniec vs dno otworu ślepego kołek x=58                                 plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS wkładka – magnes ø5 w otworze ucha ø5,4 x=58, promieniowo                          plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – magnes ø5 w kieszeni ø5,4   x=58, promieniowo                          plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS wkładka – blat: współosiowość otworu magnesu i kieszeni x=58 (odległość środków XY)                plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – blat/dyfuzor: ucho leży płasko x=56: ucho na dyfuzorze (y=70)             plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – blat/dyfuzor: ucho leży płasko x=56: ucho na blacie (y=82,5)              plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – blat/dyfuzor: ucho leży płasko x=61: ucho na blacie (y=92)                plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – dyfuzor: spód ramy na dyfuzorze (30,-50.3)                                 plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – dyfuzor: spód ramy na dyfuzorze (-30,-50.3)                                plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – dyfuzor: spód ramy na dyfuzorze (0,49)                                     plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – dyfuzor: spód ramy na dyfuzorze (-49,0)                                    plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – dyfuzor: spód ramy na dyfuzorze (49,0)                                     plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS wkładka – dyfuzor: spód ramy na dyfuzorze (-49,30)                                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS pokrywka – wkładka: kołnierz nad ramą (30,-49.5)                                 plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS pokrywka – wkładka: kołnierz nad ramą (-30,49.5)                                 plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS pokrywka – wkładka: kołnierz nad ramą (49.5,20)                                  plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS pokrywka – wkładka: strzałki ▼ pod kołnierzem (XY rozłączne) szczyt strzałki Z vs dół kołnierza         plan=70.2    zm=70.200   OK
+[3oko    2.5s] PAS dyfuzor 160 – kieszeń blatu 162    X w (80.5, 0)                              plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS dyfuzor 160 – kieszeń blatu 162    -X w (-80.5, 0)                            plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS dyfuzor 160 – kieszeń blatu 162    Y w (0, 80.5)                              plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS dyfuzor 160 – kieszeń blatu 162    -Y w (0, -80.5)                            plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS dyfuzor 160 – kieszeń blatu 162    X w (80.5, 50)                             plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS dyfuzor 160 – kieszeń blatu 162    -Y w (-50, -80.5)                          plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS dyfuzor – półka kieszeni blatu (styk Z) (79.5,0)                                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dyfuzor – półka kieszeni blatu (styk Z) (0,79.5)                                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dyfuzor – półka kieszeni blatu (styk Z) (-79.5,40)                                 plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dyfuzor – blat: licowanie wierzchu Z                                          plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 X w (97.25,30,54.6)                        plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 X w (97.25,-60,54.6)                       plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 X w (97.25,60,54.6)                        plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 -X w (-97.25,30,54.6)                      plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 -X w (-97.25,-60,54.6)                     plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 -Y w (30,-97.25,54.6)                      plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 -Y w (-30,-97.25,54.6)                     plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 -Y w (80,-97.25,54.6)                      plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 Y w (30,97.25,54.6)                        plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 Y w (-70,97.25,54.6)                       plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: kołnierz 194,0 w 195 Y w (85,97.25,54.6)                        plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk prawy — zahaczenie czubek 98.300 − ściana wewn. 97.500        plan=0.8     zm=0.800    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk prawy — luz do dna kieszeni dno 98.500 − czubek 98.300                 plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk prawy — luz pod występem (Z) start rampy 52.87 − dno kieszeni 52.60     plan=0.25    zm=0.270    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk prawy — luz nad występem (Z) sufit kieszeni 55.10 − górna krawędź występu 54.84 plan=0.25    zm=0.260    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk prawy — szerokość 8 w kieszeni 10 luz wzdłuż Y na stronę                     plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk lewy — zahaczenie czubek 98.300 − ściana wewn. 97.500        plan=0.8     zm=0.800    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk lewy — luz do dna kieszeni dno 98.500 − czubek 98.300                 plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk lewy — luz pod występem (Z) start rampy 52.87 − dno kieszeni 52.60     plan=0.25    zm=0.270    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk lewy — luz nad występem (Z) sufit kieszeni 55.10 − górna krawędź występu 54.84 plan=0.25    zm=0.260    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk lewy — szerokość 8 w kieszeni 10 luz wzdłuż Y na stronę                     plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk przedni — zahaczenie czubek 98.300 − ściana wewn. 97.500        plan=0.8     zm=0.800    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk przedni — luz do dna kieszeni dno 98.500 − czubek 98.300                 plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk przedni — luz pod występem (Z) start rampy 52.87 − dno kieszeni 52.60     plan=0.25    zm=0.270    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk przedni — luz nad występem (Z) sufit kieszeni 55.10 − górna krawędź występu 54.85 plan=0.25    zm=0.250    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk przedni — szerokość 8 w kieszeni 10 luz wzdłuż X na stronę                     plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk tylny — zahaczenie czubek 98.300 − ściana wewn. 97.500        plan=0.8     zm=0.800    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk tylny — luz do dna kieszeni dno 98.500 − czubek 98.300                 plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk tylny — luz pod występem (Z) start rampy 52.87 − dno kieszeni 52.60     plan=0.25    zm=0.270    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk tylny — luz nad występem (Z) sufit kieszeni 55.10 − górna krawędź występu 54.84 plan=0.25    zm=0.260    OK
+[3oko    2.5s] PAS blat – korpus W: haczyk tylny — szerokość 8 w kieszeni 10 luz wzdłuż X na stronę                     plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS blat – korpus W: spód blatu na wierzchu ściany (98.75,30)                                 plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS blat – korpus W: spód blatu na wierzchu ściany (-98.75,-30)                               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS blat – korpus W: spód blatu na wierzchu ściany (30,98.75)                                 plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS blat – korpus W: spód blatu na wierzchu ściany (30,-98.75)                                plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS blat – korpus W: wkręt x=-75 — współosiowość otworów ściana ø3,2 vs słupek ø2,5 (XZ)            plan=0.0     zm=0.002    OK
+[3oko    2.5s] PAS blat – korpus W: wkręt x=-75 — ø w ścianie cięciwa X                                  plan=3.2     zm=3.195    OK
+[3oko    2.5s] PAS blat – korpus W: wkręt x=-75 — ø w słupku cięciwa X                                  plan=2.5     zm=2.500    OK
+[3oko    2.5s] PAS blat – korpus W: lico słupka/kołnierza vs ściana x=-75, Y                                   plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus W: wkręt x=75 — współosiowość otworów ściana ø3,2 vs słupek ø2,5 (XZ)            plan=0.0     zm=0.002    OK
+[3oko    2.5s] PAS blat – korpus W: wkręt x=75 — ø w ścianie cięciwa X                                  plan=3.2     zm=3.195    OK
+[3oko    2.5s] PAS blat – korpus W: wkręt x=75 — ø w słupku cięciwa X                                  plan=2.5     zm=2.500    OK
+[3oko    2.5s] PAS blat – korpus W: lico słupka/kołnierza vs ściana x=75, Y                                    plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS panel (proxy) – spód blatu przy oknie (79,5, 0)                                  plan=4.0     zm=4.000    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 X w (97.25,30,54.6)                        plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 X w (97.25,-60,54.6)                       plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 X w (97.25,60,54.6)                        plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 -X w (-97.25,30,54.6)                      plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 -X w (-97.25,-60,54.6)                     plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 -Y w (30,-97.25,54.6)                      plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 -Y w (-30,-97.25,54.6)                     plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 -Y w (80,-97.25,54.6)                      plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 Y w (30,97.25,54.6)                        plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 Y w (-70,97.25,54.6)                       plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: kołnierz 194,0 w 195 Y w (85,97.25,54.6)                        plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk prawy — zahaczenie czubek 98.300 − ściana wewn. 97.500        plan=0.8     zm=0.800    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk prawy — luz do dna kieszeni dno 98.500 − czubek 98.300                 plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk prawy — luz pod występem (Z) start rampy 52.87 − dno kieszeni 52.60     plan=0.25    zm=0.270    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk prawy — luz nad występem (Z) sufit kieszeni 55.10 − górna krawędź występu 54.84 plan=0.25    zm=0.260    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk prawy — szerokość 8 w kieszeni 10 luz wzdłuż Y na stronę                     plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk lewy — zahaczenie czubek 98.300 − ściana wewn. 97.500        plan=0.8     zm=0.800    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk lewy — luz do dna kieszeni dno 98.500 − czubek 98.300                 plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk lewy — luz pod występem (Z) start rampy 52.87 − dno kieszeni 52.60     plan=0.25    zm=0.270    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk lewy — luz nad występem (Z) sufit kieszeni 55.10 − górna krawędź występu 54.84 plan=0.25    zm=0.260    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk lewy — szerokość 8 w kieszeni 10 luz wzdłuż Y na stronę                     plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk przedni — zahaczenie czubek 98.300 − ściana wewn. 97.500        plan=0.8     zm=0.800    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk przedni — luz do dna kieszeni dno 98.500 − czubek 98.300                 plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk przedni — luz pod występem (Z) start rampy 52.87 − dno kieszeni 52.60     plan=0.25    zm=0.270    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk przedni — luz nad występem (Z) sufit kieszeni 55.10 − górna krawędź występu 54.85 plan=0.25    zm=0.250    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk przedni — szerokość 8 w kieszeni 10 luz wzdłuż X na stronę                     plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk tylny — zahaczenie czubek 98.300 − ściana wewn. 97.500        plan=0.8     zm=0.800    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk tylny — luz do dna kieszeni dno 98.500 − czubek 98.300                 plan=0.2     zm=0.200    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk tylny — luz pod występem (Z) start rampy 52.87 − dno kieszeni 52.60     plan=0.25    zm=0.270    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk tylny — luz nad występem (Z) sufit kieszeni 55.10 − górna krawędź występu 54.84 plan=0.25    zm=0.260    OK
+[3oko    2.5s] PAS blat – korpus P: haczyk tylny — szerokość 8 w kieszeni 10 luz wzdłuż X na stronę                     plan=1.0     zm=1.000    OK
+[3oko    2.5s] PAS blat – korpus P: spód blatu na wierzchu ściany (98.75,30)                                 plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS blat – korpus P: spód blatu na wierzchu ściany (-98.75,-30)                               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS blat – korpus P: spód blatu na wierzchu ściany (30,98.75)                                 plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS blat – korpus P: spód blatu na wierzchu ściany (30,-98.75)                                plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS blat – korpus P: wkręt x=-75 — współosiowość otworów ściana ø3,2 vs słupek ø2,5 (XZ)            plan=0.0     zm=0.002    OK
+[3oko    2.5s] PAS blat – korpus P: wkręt x=-75 — ø w ścianie cięciwa X                                  plan=3.2     zm=3.195    OK
+[3oko    2.5s] PAS blat – korpus P: wkręt x=-75 — ø w słupku cięciwa X                                  plan=2.5     zm=2.500    OK
+[3oko    2.5s] PAS blat – korpus P: lico słupka/kołnierza vs ściana x=-75, Y                                   plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS blat – korpus P: wkręt x=75 — współosiowość otworów ściana ø3,2 vs słupek ø2,5 (XZ)            plan=0.0     zm=0.002    OK
+[3oko    2.5s] PAS blat – korpus P: wkręt x=75 — ø w ścianie cięciwa X                                  plan=3.2     zm=3.195    OK
+[3oko    2.5s] PAS blat – korpus P: wkręt x=75 — ø w słupku cięciwa X                                  plan=2.5     zm=2.500    OK
+[3oko    2.5s] PAS blat – korpus P: lico słupka/kołnierza vs ściana x=75, Y                                    plan=0.5     zm=0.500    OK
+[3oko    2.5s] PAS panel (proxy) – spód blatu przy oknie (79,5, 0)                                  plan=4.0     zm=4.000    OK
+[3oko    2.5s] PAS dystans 1 – stadion korpusu W (styk Z) (-61.5,-58.5)                              plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 1 – stadion korpusu W: wierzch stadionu Z                                          plan=4       zm=4.000    OK
+[3oko    2.5s] PAS dystans 1 – rowek w dnie korpusu W (szer. prostopadle do przekątnej) (-60,-60, Z 1,5)                           plan=3.4     zm=3.400    OK
+[3oko    2.5s] PAS dystans 1 – rowek w dnie korpusu W (długość wzdłuż przekątnej) (-60,-60, Z 1,5)                           plan=17.542  zm=17.542   OK
+[3oko    2.5s] PAS dystans 1 – rowek przelotowy przez dno korpusu W promień −Z w osi z Z 2,9                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 1 – stadion korpusu P (styk Z) (-61.5,-58.5)                              plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 1 – stadion korpusu P: wierzch stadionu Z                                          plan=4       zm=4.000    OK
+[3oko    2.5s] PAS dystans 1 – rowek w dnie korpusu P (szer. prostopadle do przekątnej) (-60,-60, Z 1,5)                           plan=3.4     zm=3.400    OK
+[3oko    2.5s] PAS dystans 1 – rowek w dnie korpusu P (długość wzdłuż przekątnej) (-60,-60, Z 1,5)                           plan=17.542  zm=17.542   OK
+[3oko    2.5s] PAS dystans 1 – rowek przelotowy przez dno korpusu P promień −Z w osi z Z 2,9                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS panel (proxy) – dystans 1 (styk Z) (-61.5,-58.5)                              plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS panel (proxy) – dystans 1: wierzch dystansu Z                                          plan=54      zm=54.000   OK
+[3oko    2.5s] PAS dystans 1: ø bryły zastępczej      cięciwa X w Z 30                           plan=6.4     zm=6.398    OK
+[3oko    2.5s] PAS dystans 2 – stadion korpusu W (styk Z) (-61.5,58.5)                               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 2 – stadion korpusu W: wierzch stadionu Z                                          plan=4       zm=4.000    OK
+[3oko    2.5s] PAS dystans 2 – rowek w dnie korpusu W (szer. prostopadle do przekątnej) (-60,60, Z 1,5)                            plan=3.4     zm=3.400    OK
+[3oko    2.5s] PAS dystans 2 – rowek w dnie korpusu W (długość wzdłuż przekątnej) (-60,60, Z 1,5)                            plan=17.542  zm=17.542   OK
+[3oko    2.5s] PAS dystans 2 – rowek przelotowy przez dno korpusu W promień −Z w osi z Z 2,9                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 2 – stadion korpusu P (styk Z) (-61.5,58.5)                               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 2 – stadion korpusu P: wierzch stadionu Z                                          plan=4       zm=4.000    OK
+[3oko    2.5s] PAS dystans 2 – rowek w dnie korpusu P (szer. prostopadle do przekątnej) (-60,60, Z 1,5)                            plan=3.4     zm=3.400    OK
+[3oko    2.5s] PAS dystans 2 – rowek w dnie korpusu P (długość wzdłuż przekątnej) (-60,60, Z 1,5)                            plan=17.542  zm=17.542   OK
+[3oko    2.5s] PAS dystans 2 – rowek przelotowy przez dno korpusu P promień −Z w osi z Z 2,9                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS panel (proxy) – dystans 2 (styk Z) (-61.5,58.5)                               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS panel (proxy) – dystans 2: wierzch dystansu Z                                          plan=54      zm=54.000   OK
+[3oko    2.5s] PAS dystans 2: ø bryły zastępczej      cięciwa X w Z 30                           plan=6.4     zm=6.398    OK
+[3oko    2.5s] PAS dystans 3 – stadion korpusu W (styk Z) (61.5,-58.5)                               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 3 – stadion korpusu W: wierzch stadionu Z                                          plan=4       zm=4.000    OK
+[3oko    2.5s] PAS dystans 3 – rowek w dnie korpusu W (szer. prostopadle do przekątnej) (60,-60, Z 1,5)                            plan=3.4     zm=3.400    OK
+[3oko    2.5s] PAS dystans 3 – rowek w dnie korpusu W (długość wzdłuż przekątnej) (60,-60, Z 1,5)                            plan=17.542  zm=17.542   OK
+[3oko    2.5s] PAS dystans 3 – rowek przelotowy przez dno korpusu W promień −Z w osi z Z 2,9                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 3 – stadion korpusu P (styk Z) (61.5,-58.5)                               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 3 – stadion korpusu P: wierzch stadionu Z                                          plan=4       zm=4.000    OK
+[3oko    2.5s] PAS dystans 3 – rowek w dnie korpusu P (szer. prostopadle do przekątnej) (60,-60, Z 1,5)                            plan=3.4     zm=3.400    OK
+[3oko    2.5s] PAS dystans 3 – rowek w dnie korpusu P (długość wzdłuż przekątnej) (60,-60, Z 1,5)                            plan=17.542  zm=17.542   OK
+[3oko    2.5s] PAS dystans 3 – rowek przelotowy przez dno korpusu P promień −Z w osi z Z 2,9                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS panel (proxy) – dystans 3 (styk Z) (61.5,-58.5)                               plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS panel (proxy) – dystans 3: wierzch dystansu Z                                          plan=54      zm=54.000   OK
+[3oko    2.5s] PAS dystans 3: ø bryły zastępczej      cięciwa X w Z 30                           plan=6.4     zm=6.398    OK
+[3oko    2.5s] PAS dystans 4 – stadion korpusu W (styk Z) (61.5,58.5)                                plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS dystans 4 – stadion korpusu W: wierzch stadionu Z                                          plan=4       zm=4.000    OK
+[3oko    2.5s] PAS dystans 4 – rowek w dnie korpusu W (szer. prostopadle do przekątnej) (60,60, Z 1,5)                             plan=3.4     zm=3.400    OK
+[3oko    2.5s] PAS dystans 4 – rowek w dnie korpusu W (długość wzdłuż przekątnej) (60,60, Z 1,5)                             plan=17.542  zm=17.542   OK
+[3oko    2.5s] PAS dystans 4 – rowek przelotowy przez dno korpusu W promień −Z w osi z Z 2,9                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS dystans 4 – stadion korpusu P (styk Z) (61.5,58.5)                                plan=0.0     zm=-0.000   OK
+[3oko    2.5s] PAS dystans 4 – stadion korpusu P: wierzch stadionu Z                                          plan=4       zm=4.000    OK
+[3oko    2.5s] PAS dystans 4 – rowek w dnie korpusu P (szer. prostopadle do przekątnej) (60,60, Z 1,5)                             plan=3.4     zm=3.400    OK
+[3oko    2.5s] PAS dystans 4 – rowek w dnie korpusu P (długość wzdłuż przekątnej) (60,60, Z 1,5)                             plan=17.542  zm=17.542   OK
+[3oko    2.5s] PAS dystans 4 – rowek przelotowy przez dno korpusu P promień −Z w osi z Z 2,9                   plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS panel (proxy) – dystans 4 (styk Z) (61.5,58.5)                                plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS panel (proxy) – dystans 4: wierzch dystansu Z                                          plan=54      zm=54.000   OK
+[3oko    2.5s] PAS dystans 4: ø bryły zastępczej      cięciwa X w Z 30                           plan=6.4     zm=6.398    OK
+[3oko    2.5s] PAS Pi (proxy) – boss korpusu W (-46.5,-24.5): styk Z wierzch bossa vs spód PCB                  plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (-46.5,-24.5): wierzch bossa Z                                          plan=8       zm=8.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (-46.5,-24.5): otwór ø cięciwa X w Z 6                            plan=2.1     zm=2.100    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (-46.5,-24.5): głębokość otworu od wierzchu bossa                          plan=5       zm=5.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (-46.5,-24.5): ø bossa promienie z zewnątrz X w Z 6               plan=8       zm=7.998    OK
+[3oko    2.5s] PAS Pi (proxy) – boss korpusu W (11.5,-24.5): styk Z wierzch bossa vs spód PCB                  plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (11.5,-24.5): wierzch bossa Z                                          plan=8       zm=8.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (11.5,-24.5): otwór ø cięciwa X w Z 6                            plan=2.1     zm=2.100    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (11.5,-24.5): głębokość otworu od wierzchu bossa                          plan=5       zm=5.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (11.5,-24.5): ø bossa promienie z zewnątrz X w Z 6               plan=8       zm=7.998    OK
+[3oko    2.5s] PAS Pi (proxy) – boss korpusu W (-46.5,24.5): styk Z wierzch bossa vs spód PCB                  plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (-46.5,24.5): wierzch bossa Z                                          plan=8       zm=8.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (-46.5,24.5): otwór ø cięciwa X w Z 6                            plan=2.1     zm=2.100    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (-46.5,24.5): głębokość otworu od wierzchu bossa                          plan=5       zm=5.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (-46.5,24.5): ø bossa promienie z zewnątrz X w Z 6               plan=8       zm=7.998    OK
+[3oko    2.5s] PAS Pi (proxy) – boss korpusu W (11.5,24.5): styk Z wierzch bossa vs spód PCB                  plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (11.5,24.5): wierzch bossa Z                                          plan=8       zm=8.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (11.5,24.5): otwór ø cięciwa X w Z 6                            plan=2.1     zm=2.100    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (11.5,24.5): głębokość otworu od wierzchu bossa                          plan=5       zm=5.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W (11.5,24.5): ø bossa promienie z zewnątrz X w Z 6               plan=8       zm=7.998    OK
+[3oko    2.5s] PAS Pi – boss korpusu W: oś otworu vs otwór Pi (-46.5,-24.5) odległość środków XY                       plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W: oś otworu vs otwór Pi (-46.5,24.5) odległość środków XY                       plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W: oś otworu vs otwór Pi (11.5,-24.5) odległość środków XY                       plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu W: oś otworu vs otwór Pi (11.5,24.5) odległość środków XY                       plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi (proxy) – boss korpusu P (-46.5,-24.5): styk Z wierzch bossa vs spód PCB                  plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (-46.5,-24.5): wierzch bossa Z                                          plan=8       zm=8.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (-46.5,-24.5): otwór ø cięciwa X w Z 6                            plan=2.1     zm=2.100    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (-46.5,-24.5): głębokość otworu od wierzchu bossa                          plan=5       zm=5.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (-46.5,-24.5): ø bossa promienie z zewnątrz X w Z 6               plan=8       zm=7.998    OK
+[3oko    2.5s] PAS Pi (proxy) – boss korpusu P (11.5,-24.5): styk Z wierzch bossa vs spód PCB                  plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (11.5,-24.5): wierzch bossa Z                                          plan=8       zm=8.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (11.5,-24.5): otwór ø cięciwa X w Z 6                            plan=2.1     zm=2.100    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (11.5,-24.5): głębokość otworu od wierzchu bossa                          plan=5       zm=5.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (11.5,-24.5): ø bossa promienie z zewnątrz X w Z 6               plan=8       zm=7.998    OK
+[3oko    2.5s] PAS Pi (proxy) – boss korpusu P (-46.5,24.5): styk Z wierzch bossa vs spód PCB                  plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (-46.5,24.5): wierzch bossa Z                                          plan=8       zm=8.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (-46.5,24.5): otwór ø cięciwa X w Z 6                            plan=2.1     zm=2.100    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (-46.5,24.5): głębokość otworu od wierzchu bossa                          plan=5       zm=5.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (-46.5,24.5): ø bossa promienie z zewnątrz X w Z 6               plan=8       zm=7.998    OK
+[3oko    2.5s] PAS Pi (proxy) – boss korpusu P (11.5,24.5): styk Z wierzch bossa vs spód PCB                  plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (11.5,24.5): wierzch bossa Z                                          plan=8       zm=8.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (11.5,24.5): otwór ø cięciwa X w Z 6                            plan=2.1     zm=2.100    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (11.5,24.5): głębokość otworu od wierzchu bossa                          plan=5       zm=5.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P (11.5,24.5): ø bossa promienie z zewnątrz X w Z 6               plan=8       zm=7.998    OK
+[3oko    2.5s] PAS Pi – boss korpusu P: oś otworu vs otwór Pi (-46.5,-24.5) odległość środków XY                       plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P: oś otworu vs otwór Pi (-46.5,24.5) odległość środków XY                       plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P: oś otworu vs otwór Pi (11.5,-24.5) odległość środków XY                       plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS Pi – boss korpusu P: oś otworu vs otwór Pi (11.5,24.5) odległość środków XY                       plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS gniazdo DC – otwór ø12 w ścianie skrzynki (korpus W) cięciwa Y                                  plan=12      zm=11.999   OK
+[3oko    2.5s] PAS gniazdo DC – otwór ø12 w ścianie skrzynki (korpus W) cięciwa Z                                  plan=12      zm=11.998   OK
+[3oko    2.5s] PAS gniazdo DC – oś otworu (korpus W)  środek vs (y 89, Z 30)                     plan=0.0     zm=0.001    OK
+[3oko    2.5s] WALL ramka_korpus_W_v2.stl        ścianka skrzynki DC z otworem ø12 (x −42…−40)      oczek=2     zm=2.000   OK
+[3oko    2.5s] PAS tulejka DC – otwór ø12 (korpus W)  (ø otworu − ø walca)/2                     plan=0.0     zm=0.000    OK / POZA REGULA 4.8
+[3oko    2.5s] PAS tulejka DC – kołnierz na licu ściany skrzynki (korpus W) x kołnierza vs lico −42                    plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS tulejka DC – otwór ø8,2 dla gwintu gniazda ø8 cięciwa Y                                  plan=0.1     zm=0.100    OK
+[3oko    2.5s] PAS gniazdo DC (proxy) – nakrętka na ścianie od wnętrza (korpus W) x nakrętki vs lico −40                     plan=0.0     zm=0.000    OK
+[3oko    2.5s] WALL ramka_korpus_W_v2.stl        prawa ściana skrzynki nad otworem ø12: materiał od oczek=4.0   zm=4.001   OK
+[3oko    2.5s] PAS wtyk DC kątowy 26 – lewa ściana skrzynki (korpus W) zapas X: lico gniazda −45 − 26 vs ściana   plan=24.5    zm=24.500   OK
+[3oko    2.5s] PAS wtyk DC prosty 40 + zagięcie 12 – lewa ściana skrzynki (korpus W) zapas X liczony jak w 4.11 (od lica −42)   plan=1.5     zm=1.500    OK
+[3oko    2.5s] PAS wtyk DC prosty 40 + zagięcie 12 – lewa ściana skrzynki (korpus W) zapas X od realnego lica gniazda −45 (kołnierz tulejki 1 + flansza gniazda 2) — INFORMACYJNIE plan=-1.5    zm=-1.500   OK
+[3oko    2.5s] PAS wtyk ø11 w świetle okna (korpus W): Z Z 24,5…35,5 w oknie 14…38                  plan=10.5    zm=10.500   OK
+[3oko    2.5s] PAS gniazdo DC – otwór ø12 w ścianie skrzynki (korpus P) cięciwa Y                                  plan=12      zm=11.999   OK
+[3oko    2.5s] PAS gniazdo DC – otwór ø12 w ścianie skrzynki (korpus P) cięciwa Z                                  plan=12      zm=11.998   OK
+[3oko    2.5s] PAS gniazdo DC – oś otworu (korpus P)  środek vs (y 89, Z 30)                     plan=0.0     zm=0.001    OK
+[3oko    2.5s] WALL ramka_korpus_P_v2.stl        ścianka skrzynki DC z otworem ø12 (x −42…−40)      oczek=2     zm=2.000   OK
+[3oko    2.5s] PAS tulejka DC – otwór ø12 (korpus P)  (ø otworu − ø walca)/2                     plan=0.0     zm=0.000    OK / POZA REGULA 4.8
+[3oko    2.5s] PAS tulejka DC – kołnierz na licu ściany skrzynki (korpus P) x kołnierza vs lico −42                    plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS tulejka DC – otwór ø8,2 dla gwintu gniazda ø8 cięciwa Y                                  plan=0.1     zm=0.100    OK
+[3oko    2.5s] PAS gniazdo DC (proxy) – nakrętka na ścianie od wnętrza (korpus P) x nakrętki vs lico −40                     plan=0.0     zm=0.000    OK
+[3oko    2.5s] WALL ramka_korpus_P_v2.stl        prawa ściana skrzynki nad otworem ø12: materiał od oczek=4.0   zm=4.001   OK
+[3oko    2.5s] PAS wtyk DC kątowy 26 – lewa ściana skrzynki (korpus P) zapas X: lico gniazda −45 − 26 vs ściana   plan=24.5    zm=24.500   OK
+[3oko    2.5s] PAS wtyk DC prosty 40 + zagięcie 12 – lewa ściana skrzynki (korpus P) zapas X liczony jak w 4.11 (od lica −42)   plan=1.5     zm=1.500    OK
+[3oko    2.5s] PAS wtyk DC prosty 40 + zagięcie 12 – lewa ściana skrzynki (korpus P) zapas X od realnego lica gniazda −45 (kołnierz tulejki 1 + flansza gniazda 2) — INFORMACYJNIE plan=-1.5    zm=-1.500   OK
+[3oko    2.5s] PAS wtyk ø11 w świetle okna (korpus P): Z Z 24,5…35,5 w oknie 14…38                  plan=10.5    zm=10.500   OK
+[3oko    2.5s] WALL ramka_korpus_W_v2.stl        ścianka okno USB – rowek lewy                      oczek=1.8999999999999986 zm=1.904   OK
+[3oko    2.5s] WALL ramka_korpus_W_v2.stl        ścianka okno USB – rowek prawy                     oczek=1.9000000000000057 zm=1.904   OK
+[3oko    2.5s] PAS gniazdo USB (proxy 16×20×14) – ściana korpusu W tył bryły vs lico wewn. ściany (Y)         plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS gniazdo USB (proxy) – dystans (60,60) odstęp Y (sześciokąt, tol 0,3)             plan=14.3    zm=14.462   OK
+[3oko    2.5s] WALL ramka_korpus_P_v2.stl        ścianka okno USB – rowek lewy                      oczek=1.8999999999999986 zm=1.904   OK
+[3oko    2.5s] WALL ramka_korpus_P_v2.stl        ścianka okno USB – rowek prawy                     oczek=1.9000000000000057 zm=1.904   OK
+[3oko    2.5s] PAS gniazdo USB (proxy 16×20×14) – ściana korpusu P tył bryły vs lico wewn. ściany (Y)         plan=0.0     zm=0.000    OK
+[3oko    2.5s] PAS gniazdo USB (proxy) – dystans (60,60) odstęp Y (sześciokąt, tol 0,3)             plan=14.3    zm=14.462   OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: wnęka 96,6/96,0 X w (48.15,20,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: wnęka 96,6/96,0 X w (48.15,-30,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: wnęka 96,6/96,0 -X w (-48.15,20,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: wnęka 96,6/96,0 -X w (-48.15,-30,70.5)                     plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: wnęka 96,6/96,0 Y w (20,48.15,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: wnęka 96,6/96,0 Y w (-20,48.15,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: wnęka 96,6/96,0 -Y w (20,-48.15,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: wnęka 96,6/96,0 -Y w (40,-48.15,70.5)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb prawy (y=0) — luz do dna rowka wzdłuż X                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb prawy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb prawy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb prawy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb lewy (y=0) — luz do dna rowka wzdłuż -X                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb lewy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb lewy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb lewy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb przedni (x=+25) — luz do dna rowka wzdłuż -Y                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb przedni (x=+25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb przedni (x=+25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb przedni (x=+25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb tylny (x=−25) — luz do dna rowka wzdłuż Y                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb tylny (x=−25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb tylny (x=−25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: garb tylny (x=−25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n4: prześwit nad płytką spód wierzchu pokrywki − wierzch płytki (−46,5, 0) plan=14      zm=14.000   OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: wnęka 96,6/96,0 X w (48.15,20,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: wnęka 96,6/96,0 X w (48.15,-30,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: wnęka 96,6/96,0 -X w (-48.15,20,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: wnęka 96,6/96,0 -X w (-48.15,-30,70.5)                     plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: wnęka 96,6/96,0 Y w (20,48.15,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: wnęka 96,6/96,0 Y w (-20,48.15,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: wnęka 96,6/96,0 -Y w (20,-48.15,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: wnęka 96,6/96,0 -Y w (40,-48.15,70.5)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb prawy (y=0) — luz do dna rowka wzdłuż X                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb prawy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb prawy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb prawy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb lewy (y=0) — luz do dna rowka wzdłuż -X                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb lewy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb lewy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb lewy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb przedni (x=+25) — luz do dna rowka wzdłuż -Y                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb przedni (x=+25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb przedni (x=+25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb przedni (x=+25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb tylny (x=−25) — luz do dna rowka wzdłuż Y                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb tylny (x=−25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb tylny (x=−25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: garb tylny (x=−25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n5: prześwit nad płytką spód wierzchu pokrywki − wierzch płytki (−46,5, 0) plan=14      zm=14.000   OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: wnęka 96,6/96,0 X w (48.15,20,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: wnęka 96,6/96,0 X w (48.15,-30,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: wnęka 96,6/96,0 -X w (-48.15,20,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: wnęka 96,6/96,0 -X w (-48.15,-30,70.5)                     plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: wnęka 96,6/96,0 Y w (20,48.15,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: wnęka 96,6/96,0 Y w (-20,48.15,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: wnęka 96,6/96,0 -Y w (20,-48.15,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: wnęka 96,6/96,0 -Y w (40,-48.15,70.5)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb prawy (y=0) — luz do dna rowka wzdłuż X                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb prawy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb prawy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb prawy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb lewy (y=0) — luz do dna rowka wzdłuż -X                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb lewy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb lewy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb lewy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb przedni (x=+25) — luz do dna rowka wzdłuż -Y                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb przedni (x=+25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb przedni (x=+25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb przedni (x=+25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb tylny (x=−25) — luz do dna rowka wzdłuż Y                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb tylny (x=−25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb tylny (x=−25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: garb tylny (x=−25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna_n6: prześwit nad płytką spód wierzchu pokrywki − wierzch płytki (−46,5, 0) plan=14      zm=14.000   OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: wnęka 96,6/96,0 X w (48.15,20,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: wnęka 96,6/96,0 X w (48.15,-30,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: wnęka 96,6/96,0 -X w (-48.15,20,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: wnęka 96,6/96,0 -X w (-48.15,-30,70.5)                     plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: wnęka 96,6/96,0 Y w (20,48.15,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: wnęka 96,6/96,0 Y w (-20,48.15,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: wnęka 96,6/96,0 -Y w (20,-48.15,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: wnęka 96,6/96,0 -Y w (40,-48.15,70.5)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb prawy (y=0) — luz do dna rowka wzdłuż X                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb prawy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb prawy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb prawy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb lewy (y=0) — luz do dna rowka wzdłuż -X                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb lewy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb lewy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb lewy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb przedni (x=+25) — luz do dna rowka wzdłuż -Y                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb przedni (x=+25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb przedni (x=+25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb przedni (x=+25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb tylny (x=−25) — luz do dna rowka wzdłuż Y                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb tylny (x=−25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb tylny (x=−25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: garb tylny (x=−25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka poranna: prześwit nad płytką spód wierzchu pokrywki − wierzch płytki (−46,5, 0) plan=14      zm=14.000   OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: wnęka 96,6/96,0 X w (48.15,20,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: wnęka 96,6/96,0 X w (48.15,-30,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: wnęka 96,6/96,0 -X w (-48.15,20,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: wnęka 96,6/96,0 -X w (-48.15,-30,70.5)                     plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: wnęka 96,6/96,0 Y w (20,48.15,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: wnęka 96,6/96,0 Y w (-20,48.15,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: wnęka 96,6/96,0 -Y w (20,-48.15,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: wnęka 96,6/96,0 -Y w (40,-48.15,70.5)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb prawy (y=0) — luz do dna rowka wzdłuż X                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb prawy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb prawy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb prawy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb lewy (y=0) — luz do dna rowka wzdłuż -X                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb lewy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb lewy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb lewy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb przedni (x=+25) — luz do dna rowka wzdłuż -Y                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb przedni (x=+25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb przedni (x=+25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb przedni (x=+25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb tylny (x=−25) — luz do dna rowka wzdłuż Y                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb tylny (x=−25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb tylny (x=−25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: garb tylny (x=−25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n1: prześwit nad płytką spód wierzchu pokrywki − wierzch płytki (−46,5, 0) plan=14      zm=14.000   OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: wnęka 96,6/96,0 X w (48.15,20,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: wnęka 96,6/96,0 X w (48.15,-30,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: wnęka 96,6/96,0 -X w (-48.15,20,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: wnęka 96,6/96,0 -X w (-48.15,-30,70.5)                     plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: wnęka 96,6/96,0 Y w (20,48.15,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: wnęka 96,6/96,0 Y w (-20,48.15,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: wnęka 96,6/96,0 -Y w (20,-48.15,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: wnęka 96,6/96,0 -Y w (40,-48.15,70.5)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb prawy (y=0) — luz do dna rowka wzdłuż X                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb prawy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb prawy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb prawy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb lewy (y=0) — luz do dna rowka wzdłuż -X                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb lewy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb lewy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb lewy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb przedni (x=+25) — luz do dna rowka wzdłuż -Y                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb przedni (x=+25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb przedni (x=+25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb przedni (x=+25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb tylny (x=−25) — luz do dna rowka wzdłuż Y                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb tylny (x=−25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb tylny (x=−25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: garb tylny (x=−25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n2: prześwit nad płytką spód wierzchu pokrywki − wierzch płytki (−46,5, 0) plan=14      zm=14.000   OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: wnęka 96,6/96,0 X w (48.15,20,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: wnęka 96,6/96,0 X w (48.15,-30,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: wnęka 96,6/96,0 -X w (-48.15,20,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: wnęka 96,6/96,0 -X w (-48.15,-30,70.5)                     plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: wnęka 96,6/96,0 Y w (20,48.15,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: wnęka 96,6/96,0 Y w (-20,48.15,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: wnęka 96,6/96,0 -Y w (20,-48.15,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: wnęka 96,6/96,0 -Y w (40,-48.15,70.5)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb prawy (y=0) — luz do dna rowka wzdłuż X                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb prawy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb prawy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb prawy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb lewy (y=0) — luz do dna rowka wzdłuż -X                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb lewy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb lewy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb lewy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb przedni (x=+25) — luz do dna rowka wzdłuż -Y                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb przedni (x=+25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb przedni (x=+25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb przedni (x=+25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb tylny (x=−25) — luz do dna rowka wzdłuż Y                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb tylny (x=−25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb tylny (x=−25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: garb tylny (x=−25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna_n3: prześwit nad płytką spód wierzchu pokrywki − wierzch płytki (−46,5, 0) plan=14      zm=14.000   OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: wnęka 96,6/96,0 X w (48.15,20,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: wnęka 96,6/96,0 X w (48.15,-30,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: wnęka 96,6/96,0 -X w (-48.15,20,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: wnęka 96,6/96,0 -X w (-48.15,-30,70.5)                     plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: wnęka 96,6/96,0 Y w (20,48.15,73.2)                        plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: wnęka 96,6/96,0 Y w (-20,48.15,70.5)                       plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: wnęka 96,6/96,0 -Y w (20,-48.15,73.2)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: wnęka 96,6/96,0 -Y w (40,-48.15,70.5)                      plan=0.3     zm=0.300    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb prawy (y=0) — luz do dna rowka wzdłuż X                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb prawy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb prawy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb prawy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb lewy (y=0) — luz do dna rowka wzdłuż -X                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb lewy (y=0) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb lewy (y=0) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb lewy (y=0) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb przedni (x=+25) — luz do dna rowka wzdłuż -Y                                  plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb przedni (x=+25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb przedni (x=+25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb przedni (x=+25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb tylny (x=−25) — luz do dna rowka wzdłuż Y                                   plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb tylny (x=−25) — zahaczenie czubek garbu vs bok płytki                 plan=0.4     zm=0.400    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb tylny (x=−25) — luz Z nad garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: garb tylny (x=−25) — luz Z pod garbem rowek 1,0 / garb 0,8                       plan=0.1     zm=0.105    OK
+[3oko    2.5s] PAS pokrywka – płytka wieczorna: prześwit nad płytką spód wierzchu pokrywki − wierzch płytki (−46,5, 0) plan=14      zm=14.000   OK
+[3oko    2.5s] PAS stos Pi+Bonnet (proxy) – spód elementów panelu (0,0) Z                                    plan=8       zm=8.000    OK
+[3oko    2.5s] PAS stos Pi+Bonnet: szczyt             Z                                          plan=34      zm=34.000   OK
+[3oko    2.5s] PAS wtyk DC Bonnetu (−X, proxy) – lewa ściana korpusu W X                                          plan=7.5     zm=7.500    OK
+[3oko    2.5s] PAS odbiornik USB (proxy, korpus P) – prawa ściana X                                          plan=43.5    zm=43.500   OK
+[3oko    2.5s] PAS podkładka 05 – wkręt M3 w otworze ø3,4 luz promieniowy                            plan=0.2     zm=0.198    OK
+[3oko    2.5s] PAS podkładka 05 – dystans ø6,4 / stadion 9 ø zewn.                                    plan=9       zm=9.000    OK
+[3oko    2.5s] PAS podkładka 1 – wkręt M3 w otworze ø3,4 luz promieniowy                            plan=0.2     zm=0.198    OK
+[3oko    2.5s] PAS podkładka 1 – dystans ø6,4 / stadion 9 ø zewn.                                    plan=9       zm=9.000    OK
+[3oko    2.5s] PAS podkładka 2 – wkręt M3 w otworze ø3,4 luz promieniowy                            plan=0.2     zm=0.198    OK
+[3oko    2.5s] PAS podkładka 2 – dystans ø6,4 / stadion 9 ø zewn.                                    plan=9       zm=9.000    OK
+[3oko    2.5s] === 2. ZRZUT WYMIARÓW
+[3oko    2.5s] WALL ramka_plytka_poranna_n4_v2.s materiał stożek A – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.5s] WALL ramka_plytka_poranna_n4_v2.s materiał stożek B – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.5s] WALL ramka_plytka_poranna_n4_v2.s materiał stożek C – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n5_v2.s materiał stożek A – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n5_v2.s materiał stożek B – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n5_v2.s materiał stożek C – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n5_v2.s dołek kodu A – krawędź płytki (2,0; R3)            oczek=2.0   zm=2.000   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n5_v2.s dołek kodu A – rowek pokrywki po przekątnej (R47:  oczek=1.3   zm=1.300   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n6_v2.s materiał stożek A – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n6_v2.s materiał stożek B – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n6_v2.s materiał stożek C – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_n6_v2.s ścianka między dołkami kodu y -33/-30 (do_v3 #2: 1 oczek=1     zm=1.000   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_v2.stl  materiał stożek A – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_v2.stl  materiał stożek B – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_v2.stl  materiał stożek C – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_v2.stl  dołek kodu A – krawędź płytki (2,0; R3)            oczek=2.0   zm=2.000   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_v2.stl  dołek kodu A – rowek pokrywki po przekątnej (R47:  oczek=1.3   zm=1.300   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_v2.stl  ścianka między dołkami kodu y -36/-33 (do_v3 #2: 1 oczek=1     zm=1.000   OK
+[3oko    2.6s] WALL ramka_plytka_poranna_v2.stl  ścianka między dołkami kodu y -33/-30 (do_v3 #2: 1 oczek=1     zm=1.000   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n1_v2 materiał stożek A – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n1_v2 materiał stożek B – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n1_v2 materiał stożek C – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n1_v2 dołek kodu A – krawędź płytki (2,0; R3)            oczek=2.0   zm=2.000   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n1_v2 dołek kodu A – rowek pokrywki po przekątnej (R47:  oczek=1.3   zm=1.300   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n2_v2 materiał stożek A – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n2_v2 materiał stożek B – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n2_v2 materiał stożek C – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n3_v2 materiał stożek A – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n3_v2 materiał stożek B – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n3_v2 materiał stożek C – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n3_v2 dołek kodu A – krawędź płytki (2,0; R3)            oczek=2.0   zm=2.000   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n3_v2 dołek kodu A – rowek pokrywki po przekątnej (R47:  oczek=1.3   zm=1.300   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_n3_v2 ścianka między dołkami kodu y -36/-33 (do_v3 #2: 1 oczek=1     zm=1.000   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_v2.st materiał stożek A – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_v2.st materiał stożek B – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_v2.st materiał stożek C – kieszeń magnesu (Z4: 2,8)      oczek=2.8   zm=2.800   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_v2.st dołek kodu A – krawędź płytki (2,0; R3)            oczek=2.0   zm=2.000   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_v2.st dołek kodu A – rowek pokrywki po przekątnej (R47:  oczek=1.3   zm=1.300   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_v2.st ścianka między dołkami kodu y -36/-33 (do_v3 #2: 1 oczek=1     zm=1.000   OK
+[3oko    2.6s] WALL ramka_plytka_wieczorna_v2.st ścianka między dołkami kodu y -33/-30 (do_v3 #2: 1 oczek=1     zm=1.000   OK
+[3oko    2.6s] WALL ramka_pokrywka_v2.stl        kołnierz pokrywki (grubość)                        oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_pokrywka_v2.stl        kołnierz pokrywki przy garbie (grubość za garbem)  oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_wkladka_v2.stl         półka A nad kanałem (2,5 − 1,0)                    oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_wkladka_v2.stl         półka B nad kanałem (2,5 − 1,0)                    oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_wkladka_v2.stl         półka C nad kanałem (2,5 − 1,0)                    oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_wkladka_v2.stl         ścianka rowek kablowy – otwór (52,3 − 2,5 − 48,3)  oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_wkladka_v2.stl         ścianka rowek kablowy – otwór (tył)                oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_wkladka_v2.stl         rama nad rowkiem kablowym (6 − 1,5)                oczek=4.5   zm=4.500   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            kołnierz blatu (grubość)                           oczek=2     zm=2.000   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            kołnierz blatu (grubość, tył)                      oczek=2     zm=2.000   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            ramię haczyka prawy (grubość poniżej występu, Z 50 oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            ramię haczyka lewy (grubość poniżej występu, Z 50, oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            ramię haczyka przedni (grubość poniżej występu, Z  oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            ramię haczyka tylny (grubość poniżej występu, Z 50 oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            dno pod otworem słupka x=-75 (91,0 − 89,2)         oczek=1.8   zm=1.800   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            dno blatu pod otworem kołka x=-58 (4 − 3,8 = 0,2;  oczek=0.20000000000000018 zm=0.200   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            dno pod otworem słupka x=75 (91,0 − 89,2)          oczek=1.8   zm=1.800   OK
+[3oko    2.6s] WALL ramka_blat_v2.stl            dno blatu pod otworem kołka x=58 (4 − 3,8 = 0,2; R oczek=0.20000000000000018 zm=0.200   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu prawa                               oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu lewa                                oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu przednia (poza napisem)             oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu tylna                               oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu prawa za kieszenią zatrzasku        oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu przednia za kieszenią zatrzasku     oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu tylna za kieszenią zatrzasku        oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu lewa za kieszenią zatrzasku         oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu tylna między szczelinami (x=0)      oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu prawa nad szczeliną y=0 (Z 10)      oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu tylna pod skrzynką DC (Z 11)        oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu tylna między oknem DC a narożnikiem oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ściana korpusu tylna między oknem USB a rowkiem    oczek=1.9   zm=1.904   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        dno obok rowka panelu i poza stadionem ((64,54))   oczek=3     zm=3.000   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        dno między wlotami (y=0, x=−8)                     oczek=3     zm=3.000   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        dno skrzynki DC (Z 12…14)                          oczek=2     zm=2.000   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        sufit skrzynki DC (Z 38…40)                        oczek=2     zm=2.000   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        przednia ściana skrzynki DC (y 78…80)              oczek=2     zm=2.000   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        lewa ściana skrzynki DC (x −97,5…−95,5; w ścianie  oczek=4.5   zm=4.500   OK
+[3oko    2.6s] WALL ramka_korpus_W_v2.stl        ścianka bossa Pi (ø8 − ø2,1)/2                     oczek=2.95  zm=2.950   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu prawa                               oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu lewa                                oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu przednia (poza napisem)             oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu tylna                               oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu prawa za kieszenią zatrzasku        oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu przednia za kieszenią zatrzasku     oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu tylna za kieszenią zatrzasku        oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu lewa za kieszenią zatrzasku         oczek=1.5   zm=1.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu tylna między szczelinami (x=0)      oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu prawa nad szczeliną y=0 (Z 10)      oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu tylna pod skrzynką DC (Z 11)        oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu tylna między oknem DC a narożnikiem oczek=2.5   zm=2.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ściana korpusu tylna między oknem USB a rowkiem    oczek=1.9   zm=1.904   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        dno obok rowka panelu i poza stadionem ((64,54))   oczek=3     zm=3.000   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        dno między wlotami (y=0, x=−8)                     oczek=3     zm=3.000   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        dno skrzynki DC (Z 12…14)                          oczek=2     zm=2.000   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        sufit skrzynki DC (Z 38…40)                        oczek=2     zm=2.000   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        przednia ściana skrzynki DC (y 78…80)              oczek=2     zm=2.000   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        lewa ściana skrzynki DC (x −97,5…−95,5; w ścianie  oczek=4.5   zm=4.500   OK
+[3oko    2.6s] WALL ramka_korpus_P_v2.stl        ścianka bossa Pi (ø8 − ø2,1)/2                     oczek=2.95  zm=2.950   OK
+[3oko    2.6s] WALL ramka_tulejka_dc_v2.stl      ścianka tulejki (12 − 8,2)/2                       oczek=1.9000000000000004 zm=1.899   OK
+[3oko    2.6s] === 3. SYMULACJA MONTAŻU
+[3oko    2.6s] MONT korpus W: Pi+Bonnet (proxy) na bossy (z góry 20)             OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 875, 0.0, None)]
+[3oko    2.7s] MONT korpus W: dystans 1 na stadion (z góry 20)                   OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 58, 0.0, None)]
+[3oko    2.7s] MONT korpus W: dystans 2 na stadion (z góry 20)                   OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 58, 0.0, None)]
+[3oko    2.7s] MONT korpus W: dystans 3 na stadion (z góry 20)                   OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 58, 0.0, None)]
+[3oko    2.7s] MONT korpus W: dystans 4 na stadion (z góry 20)                   OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 58, 0.0, None)]
+[3oko    2.7s] MONT korpus W: panel (proxy) na dystanse (z góry 20)              OK | pierwsze=None maxpen=0.000 | końcowo=[('proxy_dystans_1', 81, 0.0, None), ('proxy_dystans_2', 81, 0.0, None), ('proxy_dystans_3', 81, 0.0, None), ('proxy_dystans_4', 81, 0.0, None)]
+[3oko    2.7s] MONT dyfuzor (proxy) w kieszeń blatu (z góry 20)                  OK | pierwsze=None maxpen=0.000 | końcowo=[('blat', 12, 0.0, None)]
+[3oko    3.5s] MONT korpus W: blat na korpus (haczyki; z góry 20)                OK (ugięcie haczyka 0.80 ≤ 1.30) | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 526, 0.0, None)]
+[3oko    3.5s] MONT korpus W: dyfuzor (w blacie) opuszczany razem z blatem       OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko    3.5s] MONT czujnik Halla A (proxy) w kieszeń półki wkładki (z góry 20)  OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko    3.5s] MONT czujnik Halla B (proxy) w kieszeń półki wkładki (z góry 20)  OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko    3.5s] MONT czujnik Halla C (proxy) w kieszeń półki wkładki (z góry 20)  OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko    3.7s] MONT wkładka na kołki blatu (z góry 20)                           OK | pierwsze=None maxpen=0.000 | końcowo=[('proxy_dyfuzor', 176, 0.0, None)]
+[3oko    3.7s] MONT czujnik Halla A (w wkładce) opuszczany z wkładką             OK | pierwsze=None maxpen=0.000 | końcowo=[('proxy_dyfuzor', 4, 0.0, None)]
+[3oko    3.7s] MONT czujnik Halla B (w wkładce) opuszczany z wkładką             OK | pierwsze=None maxpen=0.000 | końcowo=[('proxy_dyfuzor', 4, 0.0, None)]
+[3oko    3.7s] MONT czujnik Halla C (w wkładce) opuszczany z wkładką             OK | pierwsze=None maxpen=0.000 | końcowo=[('proxy_dyfuzor', 4, 0.0, None)]
+[3oko    3.7s] MONT magnes ø5×2 w kieszeń blatu x=-58 (z góry 20)                OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko    3.7s] MONT magnes ø5×2 w otwór ucha wkładki x=-58 (z góry 20; wkładka n OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko    3.7s] MONT magnes ø5×2 w kieszeń blatu x=58 (z góry 20)                 OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko    3.8s] MONT magnes ø5×2 w otwór ucha wkładki x=58 (z góry 20; wkładka na OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko    6.8s] MONT płytka poranna_n4 na wkładkę/kołek orientacyjny (z góry 20)  OK | pierwsze=None maxpen=0.000 | końcowo=[('wkladka', 758, 0.001, None)]
+[3oko    9.7s] MONT płytka poranna_n5 na wkładkę/kołek orientacyjny (z góry 20)  OK | pierwsze=None maxpen=0.000 | końcowo=[('wkladka', 758, 0.001, None)]
+[3oko   12.7s] MONT płytka poranna_n6 na wkładkę/kołek orientacyjny (z góry 20)  OK | pierwsze=None maxpen=0.000 | końcowo=[('wkladka', 758, 0.001, None)]
+[3oko   15.7s] MONT płytka poranna na wkładkę/kołek orientacyjny (z góry 20)     OK | pierwsze=None maxpen=0.000 | końcowo=[('wkladka', 762, 0.001, None)]
+[3oko   18.3s] MONT płytka wieczorna_n1 na wkładkę/kołek orientacyjny (z góry 20 OK | pierwsze=None maxpen=0.000 | końcowo=[('wkladka', 756, 0.001, None)]
+[3oko   20.8s] MONT płytka wieczorna_n2 na wkładkę/kołek orientacyjny (z góry 20 OK | pierwsze=None maxpen=0.000 | końcowo=[('wkladka', 756, 0.001, None)]
+[3oko   23.5s] MONT płytka wieczorna_n3 na wkładkę/kołek orientacyjny (z góry 20 OK | pierwsze=None maxpen=0.000 | końcowo=[('wkladka', 756, 0.001, None)]
+[3oko   26.1s] MONT płytka wieczorna na wkładkę/kołek orientacyjny (z góry 20)   OK | pierwsze=None maxpen=0.000 | końcowo=[('wkladka', 756, 0.001, None)]
+[3oko   26.1s] MONT magnes A (proxy) w kieszeni płytki n1 — z płytką             OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   26.1s] MONT pokrywka na płytkę poranna_n4 (z góry 20)                    OK (ugięcie garbu 0.40 ≤ 0.45) | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   26.2s] MONT pokrywka na płytkę poranna_n5 (z góry 20)                    OK (ugięcie garbu 0.40 ≤ 0.45) | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   26.3s] MONT pokrywka na płytkę poranna_n6 (z góry 20)                    OK (ugięcie garbu 0.40 ≤ 0.45) | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   26.3s] MONT pokrywka na płytkę poranna (z góry 20)                       OK (ugięcie garbu 0.40 ≤ 0.45) | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   26.4s] MONT pokrywka na płytkę wieczorna_n1 (z góry 20)                  OK (ugięcie garbu 0.40 ≤ 0.45) | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   26.5s] MONT pokrywka na płytkę wieczorna_n2 (z góry 20)                  OK (ugięcie garbu 0.40 ≤ 0.45) | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   26.5s] MONT pokrywka na płytkę wieczorna_n3 (z góry 20)                  OK (ugięcie garbu 0.40 ≤ 0.45) | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   26.6s] MONT pokrywka na płytkę wieczorna (z góry 20)                     OK (ugięcie garbu 0.40 ≤ 0.45) | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   27.2s] MONT korpus W: tulejka DC w otwór ściany skrzynki (od kieszeni, + OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 2422, 0.001, None)]
+[3oko   27.3s] MONT korpus W: gniazdo DC (flansza ø14 + gwint ø8) przez tulejkę  OK | pierwsze=None maxpen=0.000 | końcowo=[('tulejka_dc', 302, 0.0, None)]
+[3oko   28.3s] MONT korpus W: nakrętka+korpus gniazda DC (proxy) od wnętrza (−X  OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 603, 0.0, None), ('tulejka_dc', 719, 0.0, None)]
+[3oko   28.3s] MONT korpus W: gniazdo DC przez okno kieszeni (z tyłu, −Y 30; x − OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   28.4s] MONT korpus W: wtyk kątowy (26 + kabel ku +Y przez okno): wsuwani OK | pierwsze=None maxpen=0.000 | końcowo=[('gniazdo_DC_wlasne', 48, 0.0, None)]
+[3oko   28.4s] MONT korpus W: wtyk kątowy: wejście przez okno (z tyłu, −Y 30; x  OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   28.8s] MONT korpus W: wtyk prosty 40 + kabel 12 w osi: pozycja końcowa i INFORMACYJNIE: PRZECIECIE | pierwsze=(12.0, ['korpus_W(wierzch. 1.500, transw. 194 par, zanurz. 32.195)']) maxpen=32.195 | końcowo=[('korpus_W', 50, 14.613, ('wtyk_prosty', (-97.0, 92.0, 30.0))), ('gniazdo_DC_wlasne', 48, 0.0, None)]
+[3oko   28.9s] MONT korpus W: gniazdo USB (proxy, korpus 16×20×14) od wnętrza (+ INFORMACYJNIE: PRZECIECIE | pierwsze=(20.0, ['proxy_dystans_4(wierzch. 0.000, transw. 261 par, zanurz. 23.000)']) maxpen=23.000 | końcowo=[('korpus_W', 7, 0.0, None)]
+[3oko   28.9s] MONT korpus W: gniazdo USB (proxy) od wnętrza (+Y 8)              OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_W', 7, 0.0, None)]
+[3oko   28.9s] MONT korpus W: wtyk DC Bonnetu −X (proxy): wsuwanie na gniazdo (+ OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   28.9s] MONT korpus W: wtyk DC Bonnetu −X (proxy): wsuwanie (+X 20) — INF INFORMACYJNIE: PRZECIECIE | pierwsze=(20.0, ['korpus_W(wierzch. 0.000, transw. 20 par, zanurz. 78.000)']) maxpen=78.000 | końcowo=[]
+[3oko   28.9s] MONT korpus W: wtyk DC Bonnetu −Y (x −45…−35, y −68…−28): wsuwani OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   28.9s] MONT korpus W: wtyk DC Bonnetu +Y (x −45…−35, y 28…68): wsuwanie  OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   29.0s] MONT korpus W: wtyk DC Bonnetu +Y: wsuwanie (−Y 20) — INFORMACYJN INFORMACYJNIE: PRZECIECIE | pierwsze=(20.0, ['korpus_W(wierzch. 0.000, transw. 134 par, zanurz. 11.000)']) maxpen=11.000 | końcowo=[]
+[3oko   29.4s] ZLOZENIE W: pary stykowe/przecięcia: [('korpus', 'blat', 526, 0.0, None), ('korpus', 'tulejka', 2422, 0.001, None), ('korpus', 'pi', 875, 0.0, None), ('korpus', 'gniazdo_dc', 603, 0.0, None), ('korpus', 'gniazdo_usb', 7, 0.0, None), ('korpus', 'dystans_1', 58, 0.0, None), ('korpus', 'dystans_2', 58, 0.0, None), ('korpus', 'dystans_3', 58, 0.0, None), ('korpus', 'dystans_4', 58, 0.0, None), ('blat', 'dyfuzor', 12, 0.0, None), ('wkladka', 'plytka_n1', 756, 0.001, None), ('wkladka', 'dyfuzor', 176, 0.0, None), ('plytka_n1', 'magnes_A', 97, 0.0, None), ('tulejka', 'gniazdo_dc', 719, 0.0, None), ('dyfuzor', 'hall_A', 4, 0.0, None), ('dyfuzor', 'hall_B', 4, 0.0, None), ('dyfuzor', 'hall_C', 4, 0.0, None), ('panel', 'dystans_1', 81, 0.0, None), ('panel', 'dystans_2', 81, 0.0, None), ('panel', 'dystans_3', 81, 0.0, None), ('panel', 'dystans_4', 81, 0.0, None), ('pi', 'wtyk_bonnet', 3, 0.0, None)]
+[3oko   29.5s] MONT korpus P: Pi+Bonnet (proxy) na bossy (z góry 20)             OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 875, 0.0, None)]
+[3oko   29.5s] MONT korpus P: dystans 1 na stadion (z góry 20)                   OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 58, 0.0, None)]
+[3oko   29.5s] MONT korpus P: dystans 2 na stadion (z góry 20)                   OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 58, 0.0, None)]
+[3oko   29.5s] MONT korpus P: dystans 3 na stadion (z góry 20)                   OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 58, 0.0, None)]
+[3oko   29.5s] MONT korpus P: dystans 4 na stadion (z góry 20)                   OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 58, 0.0, None)]
+[3oko   29.5s] MONT korpus P: panel (proxy) na dystanse (z góry 20)              OK | pierwsze=None maxpen=0.000 | końcowo=[('proxy_dystans_1', 81, 0.0, None), ('proxy_dystans_2', 81, 0.0, None), ('proxy_dystans_3', 81, 0.0, None), ('proxy_dystans_4', 81, 0.0, None)]
+[3oko   30.3s] MONT korpus P: blat na korpus (haczyki; z góry 20)                OK (ugięcie haczyka 0.80 ≤ 1.30) | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 526, 0.0, None)]
+[3oko   30.3s] MONT korpus P: dyfuzor (w blacie) opuszczany razem z blatem       OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   30.9s] MONT korpus P: tulejka DC w otwór ściany skrzynki (od kieszeni, + OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 2422, 0.001, None)]
+[3oko   31.0s] MONT korpus P: gniazdo DC (flansza ø14 + gwint ø8) przez tulejkę  OK | pierwsze=None maxpen=0.000 | końcowo=[('tulejka_dc', 302, 0.0, None)]
+[3oko   32.0s] MONT korpus P: nakrętka+korpus gniazda DC (proxy) od wnętrza (−X  OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 603, 0.0, None), ('tulejka_dc', 719, 0.0, None)]
+[3oko   32.0s] MONT korpus P: gniazdo DC przez okno kieszeni (z tyłu, −Y 30; x − OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   32.1s] MONT korpus P: wtyk kątowy (26 + kabel ku +Y przez okno): wsuwani OK | pierwsze=None maxpen=0.000 | końcowo=[('gniazdo_DC_wlasne', 48, 0.0, None)]
+[3oko   32.1s] MONT korpus P: wtyk kątowy: wejście przez okno (z tyłu, −Y 30; x  OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   32.7s] MONT korpus P: wtyk prosty 40 + kabel 12 w osi: pozycja końcowa i INFORMACYJNIE: PRZECIECIE | pierwsze=(12.0, ['korpus_P(wierzch. 1.500, transw. 194 par, zanurz. 32.195)']) maxpen=32.195 | końcowo=[('korpus_P', 50, 14.613, ('wtyk_prosty', (-97.0, 92.0, 30.0))), ('gniazdo_DC_wlasne', 48, 0.0, None)]
+[3oko   32.9s] MONT korpus P: gniazdo USB (proxy, korpus 16×20×14) od wnętrza (+ INFORMACYJNIE: PRZECIECIE | pierwsze=(20.0, ['proxy_dystans_4(wierzch. 0.000, transw. 261 par, zanurz. 23.000)']) maxpen=23.000 | końcowo=[('korpus_P', 7, 0.0, None)]
+[3oko   32.9s] MONT korpus P: gniazdo USB (proxy) od wnętrza (+Y 8)              OK | pierwsze=None maxpen=0.000 | końcowo=[('korpus_P', 7, 0.0, None)]
+[3oko   32.9s] MONT korpus P: wtyk DC Bonnetu −X (proxy): wsuwanie na gniazdo (+ OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   32.9s] MONT korpus P: wtyk DC Bonnetu −X (proxy): wsuwanie (+X 20) — INF INFORMACYJNIE: PRZECIECIE | pierwsze=(20.0, ['korpus_P(wierzch. 0.000, transw. 20 par, zanurz. 78.000)']) maxpen=78.000 | końcowo=[]
+[3oko   32.9s] MONT korpus P: wtyk DC Bonnetu −Y (x −45…−35, y −68…−28): wsuwani OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   32.9s] MONT korpus P: wtyk DC Bonnetu +Y (x −45…−35, y 28…68): wsuwanie  OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   33.0s] MONT korpus P: wtyk DC Bonnetu +Y: wsuwanie (−Y 20) — INFORMACYJN INFORMACYJNIE: PRZECIECIE | pierwsze=(20.0, ['korpus_P(wierzch. 0.000, transw. 134 par, zanurz. 11.000)']) maxpen=11.000 | końcowo=[]
+[3oko   33.0s] MONT korpus P: odbiornik USB (proxy) w port Pi (−X 20)            OK | pierwsze=None maxpen=0.000 | końcowo=[]
+[3oko   33.4s] ZLOZENIE P: pary stykowe/przecięcia: [('korpus', 'blat', 526, 0.0, None), ('korpus', 'tulejka', 2422, 0.001, None), ('korpus', 'pi', 875, 0.0, None), ('korpus', 'gniazdo_dc', 603, 0.0, None), ('korpus', 'gniazdo_usb', 7, 0.0, None), ('korpus', 'dystans_1', 58, 0.0, None), ('korpus', 'dystans_2', 58, 0.0, None), ('korpus', 'dystans_3', 58, 0.0, None), ('korpus', 'dystans_4', 58, 0.0, None), ('blat', 'dyfuzor', 12, 0.0, None), ('wkladka', 'plytka_n1', 756, 0.001, None), ('wkladka', 'dyfuzor', 176, 0.0, None), ('plytka_n1', 'magnes_A', 97, 0.0, None), ('tulejka', 'gniazdo_dc', 719, 0.0, None), ('dyfuzor', 'hall_A', 4, 0.0, None), ('dyfuzor', 'hall_B', 4, 0.0, None), ('dyfuzor', 'hall_C', 4, 0.0, None), ('panel', 'dystans_1', 81, 0.0, None), ('panel', 'dystans_2', 81, 0.0, None), ('panel', 'dystans_3', 81, 0.0, None), ('panel', 'dystans_4', 81, 0.0, None), ('pi', 'wtyk_bonnet', 3, 0.0, None), ('pi', 'odbiornik', 3, 0.0, None)]
+[3oko   33.5s] === BLOKUJĄCE (surowe, przed oceną): 2
+[3oko   33.5s]   - {'gdzie': 'tulejka DC – otwór ø12 (korpus W) / (ø otworu − ø walca)/2', 'opis': 'luz plan 0.0, zmierzony 0.0 (wciskane 0,1–0,15 (opis dc_bush_outer_d: „pasowanie wciskane 0,1”)) dc_bush_outer_d = dc_hole_d = 12 → luz 0,0 z definicji parametrów', 'typ': 'pasowanie', 'werdykt': 'OK / POZA REGULA 4.8'}
+[3oko   33.5s]   - {'gdzie': 'tulejka DC – otwór ø12 (korpus P) / (ø otworu − ø walca)/2', 'opis': 'luz plan 0.0, zmierzony 0.0 (wciskane 0,1–0,15 (opis dc_bush_outer_d: „pasowanie wciskane 0,1”)) dc_bush_outer_d = dc_hole_d = 12 → luz 0,0 z definicji parametrów', 'typ': 'pasowanie', 'werdykt': 'OK / POZA REGULA 4.8'}
+[3oko   33.5s] KONIEC; pasowania=671 wymiary=781 scianki=107 montaz=76
+Blender 5.2.3 LTS (hash e13b728c6880 built 2026-10-22 01:37:16)
+Timer 'STL Import' took 1.82 ms
+Timer 'STL Import' took 2.74 ms
+Timer 'STL Import' took 2.65 ms
+Timer 'STL Import' took 4.12 ms
+Timer 'STL Import' took 3.82 ms
+Timer 'STL Import' took 3.84 ms
+Timer 'STL Import' took 3.44 ms
+Timer 'STL Import' took 3.06 ms
+Timer 'STL Import' took 3.14 ms
+Timer 'STL Import' took 3.27 ms
+Timer 'STL Import' took 3.00 ms
+Timer 'STL Import' took 0.45 ms
+Timer 'STL Import' took 0.36 ms
+Timer 'STL Import' took 0.32 ms
+Timer 'STL Import' took 0.35 ms
+Timer 'STL Import' took 0.49 ms
+Timer 'STL Import' took 0.55 ms
+
+Blender quit

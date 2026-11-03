@@ -1,0 +1,119 @@
+OK 118 pomiarow -> wyniki/pomiar_R53_po.json
+T1 kołnierz blatu – ściana korpusu W, prawa                                      przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu W, lewa                                       przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu W, przednia                                   przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu W, tylna (x 30)                               przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu W, tylna (x −30)                              przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu P, prawa                                      przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu P, lewa                                       przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu P, przednia                                   przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu P, tylna (x 30)                               przed 0.5     po 0.7     zm 0.7
+T1 kołnierz blatu – ściana korpusu P, tylna (x −30)                              przed 0.5     po 0.7     zm 0.7
+T2 haczyk prawy: zahaczenie (czubek − ściana wewn.) korpus W                     przed 0.8     po 0.8     zm 0.8
+T2 haczyk prawy: luz czubek – dno kieszeni, korpus W                             przed 0.2     po 0.5     zm 0.5
+T3 haczyk prawy: luz nad występem (sufit kieszeni − górna krawędź), korpus W     przed 0.25    po 0.75    zm 0.75
+T3 haczyk prawy: luz pod występem (start rampy − dno kieszeni), korpus W         przed 0.25    po 0.75    zm 0.77
+T3c haczyk prawy: luz boczny (kieszeń − haczyk)/2, korpus W                      przed 1.0     po 1.5     zm 1.5
+T2 haczyk lewy: zahaczenie (czubek − ściana wewn.) korpus W                      przed 0.8     po 0.8     zm 0.8
+T2 haczyk lewy: luz czubek – dno kieszeni, korpus W                              przed 0.2     po 0.5     zm 0.5
+T3 haczyk lewy: luz nad występem (sufit kieszeni − górna krawędź), korpus W      przed 0.25    po 0.75    zm 0.75
+T3 haczyk lewy: luz pod występem (start rampy − dno kieszeni), korpus W          przed 0.25    po 0.75    zm 0.77
+T3c haczyk lewy: luz boczny (kieszeń − haczyk)/2, korpus W                       przed 1.0     po 1.5     zm 1.5
+T2 haczyk przedni: zahaczenie (czubek − ściana wewn.) korpus W                   przed 0.8     po 0.8     zm 0.8
+T2 haczyk przedni: luz czubek – dno kieszeni, korpus W                           przed 0.2     po 0.5     zm 0.5
+T3 haczyk przedni: luz nad występem (sufit kieszeni − górna krawędź), korpus W   przed 0.25    po 0.75    zm 0.75
+T3 haczyk przedni: luz pod występem (start rampy − dno kieszeni), korpus W       przed 0.25    po 0.75    zm 0.77
+T3c haczyk przedni: luz boczny (kieszeń − haczyk)/2, korpus W                    przed 1.0     po 1.5     zm 1.5
+T2 haczyk tylny: zahaczenie (czubek − ściana wewn.) korpus W                     przed 0.8     po 0.8     zm 0.8
+T2 haczyk tylny: luz czubek – dno kieszeni, korpus W                             przed 0.2     po 0.5     zm 0.5
+T3 haczyk tylny: luz nad występem (sufit kieszeni − górna krawędź), korpus W     przed 0.25    po 0.75    zm 0.75
+T3 haczyk tylny: luz pod występem (start rampy − dno kieszeni), korpus W         przed 0.25    po 0.75    zm 0.77
+T3c haczyk tylny: luz boczny (kieszeń − haczyk)/2, korpus W                      przed 1.0     po 1.5     zm 1.5
+T2b ściana korpusu W za kieszenią zatrzasku (prawa)                              przed 1.5     po 1.2     zm 1.2
+T2b ściana korpusu W za kieszenią zatrzasku (przednia, x 50)                     przed 1.5     po 1.2     zm 1.2
+T2 haczyk prawy: zahaczenie (czubek − ściana wewn.) korpus P                     przed 0.8     po 0.8     zm 0.8
+T2 haczyk prawy: luz czubek – dno kieszeni, korpus P                             przed 0.2     po 0.5     zm 0.5
+T3 haczyk prawy: luz nad występem (sufit kieszeni − górna krawędź), korpus P     przed 0.25    po 0.75    zm 0.75
+T3 haczyk prawy: luz pod występem (start rampy − dno kieszeni), korpus P         przed 0.25    po 0.75    zm 0.77
+T3c haczyk prawy: luz boczny (kieszeń − haczyk)/2, korpus P                      przed 1.0     po 1.5     zm 1.5
+T2 haczyk lewy: zahaczenie (czubek − ściana wewn.) korpus P                      przed 0.8     po 0.8     zm 0.8
+T2 haczyk lewy: luz czubek – dno kieszeni, korpus P                              przed 0.2     po 0.5     zm 0.5
+T3 haczyk lewy: luz nad występem (sufit kieszeni − górna krawędź), korpus P      przed 0.25    po 0.75    zm 0.75
+T3 haczyk lewy: luz pod występem (start rampy − dno kieszeni), korpus P          przed 0.25    po 0.75    zm 0.77
+T3c haczyk lewy: luz boczny (kieszeń − haczyk)/2, korpus P                       przed 1.0     po 1.5     zm 1.5
+T2 haczyk przedni: zahaczenie (czubek − ściana wewn.) korpus P                   przed 0.8     po 0.8     zm 0.8
+T2 haczyk przedni: luz czubek – dno kieszeni, korpus P                           przed 0.2     po 0.5     zm 0.5
+T3 haczyk przedni: luz nad występem (sufit kieszeni − górna krawędź), korpus P   przed 0.25    po 0.75    zm 0.75
+T3 haczyk przedni: luz pod występem (start rampy − dno kieszeni), korpus P       przed 0.25    po 0.75    zm 0.77
+T3c haczyk przedni: luz boczny (kieszeń − haczyk)/2, korpus P                    przed 1.0     po 1.5     zm 1.5
+T2 haczyk tylny: zahaczenie (czubek − ściana wewn.) korpus P                     przed 0.8     po 0.8     zm 0.8
+T2 haczyk tylny: luz czubek – dno kieszeni, korpus P                             przed 0.2     po 0.5     zm 0.5
+T3 haczyk tylny: luz nad występem (sufit kieszeni − górna krawędź), korpus P     przed 0.25    po 0.75    zm 0.75
+T3 haczyk tylny: luz pod występem (start rampy − dno kieszeni), korpus P         przed 0.25    po 0.75    zm 0.77
+T3c haczyk tylny: luz boczny (kieszeń − haczyk)/2, korpus P                      przed 1.0     po 1.5     zm 1.5
+T2b ściana korpusu P za kieszenią zatrzasku (prawa)                              przed 1.5     po 1.2     zm 1.2
+T2b ściana korpusu P za kieszenią zatrzasku (przednia, x 50)                     przed 1.5     po 1.2     zm 1.2
+T4 otwór wkrętu blatu x=-75: ø w ścianie (X), korpus W                           przed 3.2     po 3.6     zm 3.6
+T4 otwór wkrętu blatu x=-75: ø w ścianie (Z), korpus W                           przed 3.2     po 3.6     zm 3.592
+T4 otwór wkrętu blatu x=-75: ø przy licu (pogłębienie), korpus W                 przed 6.1     po 6.1     zm 6.1
+T4 współosiowość otwór ściany – otwór słupka x=-75, korpus W                     przed 0.0     po 0.0     zm 0.0
+T4 otwór wkrętu blatu x=75: ø w ścianie (X), korpus W                            przed 3.2     po 3.6     zm 3.6
+T4 otwór wkrętu blatu x=75: ø w ścianie (Z), korpus W                            przed 3.2     po 3.6     zm 3.592
+T4 otwór wkrętu blatu x=75: ø przy licu (pogłębienie), korpus W                  przed 6.1     po 6.1     zm 6.1
+T4 współosiowość otwór ściany – otwór słupka x=75, korpus W                      przed 0.0     po 0.0     zm 0.0
+T4 otwór wkrętu blatu x=-75: ø w ścianie (X), korpus P                           przed 3.2     po 3.6     zm 3.6
+T4 otwór wkrętu blatu x=-75: ø w ścianie (Z), korpus P                           przed 3.2     po 3.6     zm 3.592
+T4 otwór wkrętu blatu x=-75: ø przy licu (pogłębienie), korpus P                 przed 6.1     po 6.1     zm 6.1
+T4 współosiowość otwór ściany – otwór słupka x=-75, korpus P                     przed 0.0     po 0.0     zm 0.0
+T4 otwór wkrętu blatu x=75: ø w ścianie (X), korpus P                            przed 3.2     po 3.6     zm 3.6
+T4 otwór wkrętu blatu x=75: ø w ścianie (Z), korpus P                            przed 3.2     po 3.6     zm 3.592
+T4 otwór wkrętu blatu x=75: ø przy licu (pogłębienie), korpus P                  przed 6.1     po 6.1     zm 6.1
+T4 współosiowość otwór ściany – otwór słupka x=75, korpus P                      przed 0.0     po 0.0     zm 0.0
+T4 otwór słupka x=-75: ø (blat)                                                  przed 2.5     po 2.5     zm 2.5
+T4 otwór słupka x=-75: dno (y)                                                   przed 91.0    po 90.8    zm 90.8
+T4 dno słupka x=-75 pod otworem (materiał)                                       przed 1.8     po 1.6     zm 1.6
+T4 wkręt M3×8 x=-75: gwint w słupku (lico − (100 − 8))                           przed 5.0     po 4.8     zm 4.8
+T4 otwór słupka x=75: ø (blat)                                                   przed 2.5     po 2.5     zm 2.5
+T4 otwór słupka x=75: dno (y)                                                    przed 91.0    po 90.8    zm 90.8
+T4 dno słupka x=75 pod otworem (materiał)                                        przed 1.8     po 1.6     zm 1.6
+T4 wkręt M3×8 x=75: gwint w słupku (lico − (100 − 8))                            przed 5.0     po 4.8     zm 4.8
+T5 kołek wkładki x=-58 w otworze blatu: luz promieniowy +X                       przed 0.15    po 0.2     zm 0.2
+T5 kołek wkładki x=-58 w otworze blatu: luz promieniowy −X                       przed 0.15    po 0.2     zm 0.195
+T5 kołek wkładki x=-58 w otworze blatu: luz promieniowy +Y                       przed 0.15    po 0.2     zm 0.202
+T5 kołek wkładki x=-58 w otworze blatu: luz promieniowy −Y                       przed 0.15    po 0.2     zm 0.202
+T5 otwór kołka x=-58: ø (blat)                                                   przed 3.3     po 3.4     zm 3.395
+T5 kołek x=-58: ø (wkładka)                                                      przed 3.0     po 3       zm 3.0
+T5 kołek x=-58: luz osiowy (koniec kołka − dno otworu)                           przed 0.3     po 0.3     zm 0.3
+T5 kołek wkładki x=58 w otworze blatu: luz promieniowy +X                        przed 0.15    po 0.2     zm 0.2
+T5 kołek wkładki x=58 w otworze blatu: luz promieniowy −X                        przed 0.15    po 0.2     zm 0.195
+T5 kołek wkładki x=58 w otworze blatu: luz promieniowy +Y                        przed 0.15    po 0.2     zm 0.202
+T5 kołek wkładki x=58 w otworze blatu: luz promieniowy −Y                        przed 0.15    po 0.2     zm 0.202
+T5 otwór kołka x=58: ø (blat)                                                    przed 3.3     po 3.4     zm 3.395
+T5 kołek x=58: ø (wkładka)                                                       przed 3.0     po 3       zm 3.0
+T5 kołek x=58: luz osiowy (koniec kołka − dno otworu)                            przed 0.3     po 0.3     zm 0.3
+T6 płytka n1 – wkładka: prawa y=20                                               przed 0.3     po 0.4     zm 0.4
+T6 płytka n1 – wkładka: prawa y=−30                                              przed 0.3     po 0.4     zm 0.4
+T6 płytka n1 – wkładka: lewa y=20                                                przed 0.3     po 0.4     zm 0.4
+T6 płytka n1 – wkładka: tylna x=20                                               przed 0.3     po 0.4     zm 0.4
+T6 płytka n1 – wkładka: przednia x=30                                            przed 0.3     po 0.4     zm 0.4
+T6 płytka n1 – wkładka: przednia x=−30                                           przed 0.3     po 0.4     zm 0.4
+T6 otwór wkładki X (cięciwa)                                                     przed 96.6    po 96.8    zm 96.8
+T6 otwór wkładki Y (cięciwa, x 20)                                               przed 96.6    po 96.8    zm 96.8
+T6 rama wkładki zewn. X                                                          przed 104.6   po 104.8   zm 104.8
+T6 gabaryt wkładki Y (bbox)                                                      przed 148.3   po 148.4   zm 148.4
+T6 płytka n1 bok X (promienie z zewnątrz)                                        przed 96.0    po 96      zm 96.0
+T6 kołek orientacyjny – wycięcie płytki (x, strona otwarta)                      przed 0.4     po 0.4     zm 0.4
+T6 kołek orientacyjny – ściana otworu (x)                                        przed 0.5     po 0.6     zm 0.6
+T6 margines matrycy: krawędź ramy → krawędź panelu (80)                          przed 27.7    po 27.6    zm 27.6
+T12 rowek panelu (60,60): szerokość prostopadle do przekątnej, korpus W          przed 3.4     po 3.6     zm 3.6
+T12 rowek panelu: cięciwa wzdłuż X (= szer·√2), korpus W                         przed 4.808   po 5.091   zm 5.091
+T12 rowek panelu (60,60): szerokość prostopadle do przekątnej, korpus P          przed 3.4     po 3.6     zm 3.6
+T12 rowek panelu: cięciwa wzdłuż X (= szer·√2), korpus P                         przed 4.808   po 5.091   zm 5.091
+T7 tulejka DC: ø walca (STL)                                                     przed 11.85   po 11.85   zm 11.849
+T7 otwór DC ø w korpusie W (Y)                                                   przed 12.0    po 12      zm 11.999
+T7 tulejka w otworze: luz/stronę (ujemny = wcisk)                                przed 0.075   po 0.075   zm 0.075
+łańcuch: wierzch ściany korpusu W                                                przed 59.6    po 59.6    zm 59.6
+łańcuch: wierzch blatu (90, 0)                                                   przed 63.6    po 63.6    zm 63.6
+łańcuch: spód blatu na wierzchu ściany (styk)                                    przed 0.0     po 0.0     zm 0.0
+łańcuch: wierzch ramy wkładki (0, 50,3)                                          przed 69.6    po 69.6    zm 69.6
+łańcuch: wierzch płytki n1 (0, −46,5)                                            przed 74.1    po 74.1    zm 74.1

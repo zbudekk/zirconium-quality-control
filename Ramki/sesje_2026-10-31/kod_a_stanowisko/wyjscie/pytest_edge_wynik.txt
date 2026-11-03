@@ -1,0 +1,45 @@
+sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_narzedzia.py::test_render_px_zero_lub_nan_wybucha_przypadkowo[nan]
+sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_narzedzia.py::test_mapa_wysokosci_nan_wybucha_przypadkowo
+  <PC>\Desktop\Ramki\stanowisko\narzedzia\rzut_z_gory.py:22: RuntimeWarning: invalid value encountered in cast
+    ij = np.floor((pts[:, :2] - xy0) / px).astype(int)
+
+sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_synth.py::test_pusty_stl_w_projektach_jest_pomijany
+  <PC>\Desktop\Ramki\stanowisko\stanowisko\synth.py:76: RuntimeWarning: invalid value encountered in divide
+    srodek_pow = (m.triangles_center * m.area_faces[:, None]).sum(0) / m.area
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 5 durations =============================
+20.53s call     sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_synth.py::test_ubytek_o_zerowej_srednicy_konczy_sie_szybko
+2.63s call     sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_synth.py::test_determinizm_tego_samego_seeda
+2.31s call     sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_synth.py::test_most_trafia_do_rynienki_i_mosty_false_go_pomija
+1.75s call     sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_synth.py::test_ubytek_o_ujemnej_srednicy_wybucha_przypadkowo
+1.43s call     sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_synth.py::test_uklad_wspolrzednych_skanu
+=========================== short test summary info ===========================
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_narzedzia.py::test_etykieta_gniazda_w_rzucie_lezy_w_gniezdzie - ZNALEZISKO B4: etykieta numeru gniazda rysowana w T[0,3],T[1,3] — to translacja łączna z centrowaniem projektu; projekt nieskoncentrowany w (0,0) (jak STL z exocad) daje etykietę poza gniazdem
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_narzedzia.py::test_render_px_ujemny_odrzucony - ZNALEZISKO N1: px<0 nie jest walidowane — ujemne indeksy pikseli → IndexError w np.maximum.at
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_osadzenie_nie_przenika_stozka_wiele_seedow - ZNALEZISKO B1: losowe dx,dy (luz_xy) dodawane PO obliczeniu uniesienia — praca przenika stożek (poranna ø7,5, przedtrzonowy ×1,22: do 0,73 mm)
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_most_w_rynience_nie_przenika_scianek - ZNALEZISKO B1b: rynienka — brak sprawdzenia ścianek 15°; prostopadłościan 58,5 mm przechodzi warunek l-1=59, a dno ma 57,86 mm
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_ubytek_o_zerowej_srednicy_konczy_sie_szybko - ZNALEZISKO S3: średnica 0 → max_edge=min(0.05, r/3)=0 → subdivide_to_size mieli 10 iteracji (~230 s, miliony trójkątów) zamiast natychmiast odrzucić
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_szum_nan_odrzucony - ZNALEZISKO S4: sigma=NaN przechodzi warunek 'sigma <= 0' i daje siatkę pełną NaN
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_prawda_drgniecia_ma_wektor - ZNALEZISKO S5: prawda zapisuje tylko flagę drgniecie=True; wektor/wielkość przesunięcia (0,08–0,15 mm) nie trafia do JSON
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_pusty_stl_w_projektach_jest_pomijany - ZNALEZISKO S2: jeden zepsuty STL (0 trójkątów) w folderze projektów przerywa generowanie całej płytki (AttributeError na m.bounds=None)
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_stl_z_nan_jest_pomijany - ZNALEZISKO S2: STL z NaN w wierzchołkach przechodzi bez walidacji — skan/prawda mogą zawierać NaN albo praca nie jest w gnieździe
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_siatka_plytki_bez_kieszeni_magnesow - ZNALEZISKO S8: komentarz 'kieszenie magnesów usuwamy', ale filtr z>0,5 zostawia ścianki kieszeni (z 0,5…2,2) w narożnikach
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_zapis_nie_nadpisuje_istniejacego - ZNALEZISKO S9: zapisz() nadpisuje istniejący skan_*.stl/.json bez ostrzeżenia (ten sam seed i numer → cicha utrata poprzedniej prawdy)
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_wczytaj_prawde_toleruje_nowe_pola - ZNALEZISKO S10: wczytaj_prawde nie toleruje nowych pól w JSON (TypeError) — każde rozszerzenie formatu psuje odczyt starych/nowych plików
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_cli_zakres_ubytkow_zle_sformatowany[2] - ZNALEZISKO S7: '--ubytki 2' / '0--2' / 'a-b' kończy się surowym ValueError z split('-') zamiast komunikatem argparse
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_cli_zakres_ubytkow_zle_sformatowany[0--2] - ZNALEZISKO S7: '--ubytki 2' / '0--2' / 'a-b' kończy się surowym ValueError z split('-') zamiast komunikatem argparse
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_synth.py::test_cli_zakres_ubytkow_zle_sformatowany[a-b] - ZNALEZISKO S7: '--ubytki 2' / '0--2' / 'a-b' kończy się surowym ValueError z split('-') zamiast komunikatem argparse
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_toml_i_bezpieczenstwo.py::test_kod_czyta_ustawienia_toml - ZNALEZISKO B3: żaden moduł nie czyta ustawienia.toml (brak 'tomllib'/'toml' w kodzie); README nazywa go „jedynym plikiem ustawień”
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_toml_i_bezpieczenstwo.py::test_prawda_nie_zawiera_nazwy_pliku_projektu - ZNALEZISKO P1: PracaNaPlytce.projekt = nazwa pliku STL projektu; z prawdziwymi projektami z „Cyrkon” nazwisko/numer zlecenia pacjenta trafia do JSON prawdy
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_toml_i_bezpieczenstwo.py::test_toml_w_repo_bez_wewnetrznych_sciezek - ZNALEZISKO P2: ustawienia.toml w repozytorium zawiera wewnętrzne ścieżki (OneDrive/SharePoint, nazwa konta 'stanowisko', folder eksportu skanera) — wbrew zasadzie 'no internal paths' z dental-lab-security
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_pusty_uklad_json_zglasza_blad_z_nazwa_pliku - ZNALEZISKO U1: brak walidacji uklad.json — pusty JSON kończy się gołym KeyError('sockets') bez nazwy pliku
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_gniazdo_bez_d_top_odrzucone_przy_wczytaniu - ZNALEZISKO U1: gniazdo okrągłe bez d_top przechodzi przez wczytaj(); błąd (TypeError) dopiero przy promien_gorny/zawiera
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_nieznany_typ_gniazda_odrzucony - ZNALEZISKO U1: nieznany typ gniazda ('square') nie jest odrzucany — traktowany jak rynienka z l=w=None
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_gniazdo_poza_plytka_odrzucone - ZNALEZISKO U1: gniazdo poza płytką (x=60 przy size=96, d_top=9) nie jest wykrywane przy wczytaniu
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_obcy_plik_plytka_n_kopia_nie_psuje_wczytania - ZNALEZISKO U2: plik plytka_n1_kopia.stl w katalogu modeli wysadza wczytaj() (ValueError z int())
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_numer_poza_zakresem_3_bitow_odrzucony - ZNALEZISKO U3: bity_z_numeru(8) zwraca (F,F,F) jak dla 0, bity_z_numeru(-1) → (T,T,T); brak kontroli zakresu 0…7
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_najblizsze_gniazdo_punkt_w_rynience - ZNALEZISKO B2: najblizsze_gniazdo liczy odległość do ŚRODKA — punkt wewnątrz rynienki 25 (28, 19.5) dostaje gniazdo okrągłe 20
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_najblizsze_gniazdo_poza_plytka - ZNALEZISKO B2: punkt daleko poza płytką (100, 100) dostaje gniazdo 20 zamiast informacji 'poza gniazdem'
+XFAIL ..\sesje_2026-10-31\kod_a_stanowisko\testy_edge\test_edge_uklad.py::test_z_dno_podaza_za_thickness_z_jsona - ZNALEZISKO U4: Z_TOP=8 zaszyte w kodzie; zmiana 'thickness' w uklad.json nie przesuwa dna gniazda (z_dno nadal 4)
+86 passed, 27 xfailed, 6 warnings in 60.42s (0:01:00)
