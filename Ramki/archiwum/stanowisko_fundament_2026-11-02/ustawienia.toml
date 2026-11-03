@@ -1,0 +1,45 @@
+# Jedyny plik ustawień programu stanowiska (ścieżki, progi, parametry skanera).
+# Wartości progów z planu wdrożenia v2; stroi się je na próbie testowej, nie w kodzie.
+
+[sciezki]
+folder_eksportu_skanera = "C:/Aidite/Scandata"       # obserwowany przez moduł scanner (do potwierdzenia: Order Save Path)
+folder_cyrkon = "C:/Users/stanowisko/OneDrive/Cyrkon"  # projekty STL (SharePoint zsynchronizowany lokalnie)
+folder_prywatne = "C:/Users/stanowisko/OneDrive/Prywatne"
+folder_millbox = "C:/MillBox/raporty"
+baza = "dane/stanowisko.sqlite"
+log_excel = "dane/log_excel.csv"
+
+[plytki]
+wieczorna = "modele_plytek/wieczorna"
+poranna = "modele_plytek/poranna"
+
+[match]
+prog_akceptacji_pokrycie = 0.85     # udział powierzchni skanu w odległości ≤ odleglosc_max od projektu
+odleglosc_max_mm = 0.05
+pula_wieczor_dni = 2
+pula_rano_dni_roboczych = 4
+usun_z_puli_po_dniach = 10
+
+[inspect]
+prog_glebokosci_mm = 0.08           # skan co najmniej tyle pod powierzchnią projektu
+srednica_min_mm = 0.2
+srednica_max_mm = 1.5
+pas_brzegu_mm = 1.5
+poprawka_min_mm = 2.0               # gładka różnica większa niż to = poprawka ręczna, nie ubytek
+
+[synth]
+szum_sigma_mm = 0.03
+wspolczynnik_min = 1.20
+wspolczynnik_max = 1.25
+
+[excel]
+kolumna_kuwety = "C"
+kolumna_nazwy = "H"
+kolumna_odhaczenia = "B"
+kolor_rgb = [198, 239, 206]
+tryb_pytaj_przed_zapisem = true
+
+[ramki]
+port = 8765
+wieczorna_host = "ramka-w.local"
+poranna_host = "ramka-p.local"

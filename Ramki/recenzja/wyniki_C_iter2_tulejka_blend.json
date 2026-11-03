@@ -1,0 +1,31 @@
+{
+ "tulejka": "tulejka_dc",
+ "bbox": [
+  -43.0,
+  -40.0,
+  81.5,
+  96.5,
+  22.5,
+  37.499
+ ],
+ "os": "X",
+ "walec_x": [
+  -42.0,
+  -40.0
+ ],
+ "kolnierz_x": [
+  -43.0,
+  -42.0
+ ],
+ "walec_do_korpusu": [
+  0.0737,
+  0.075
+ ],
+ "otwor_korpusu_d": 11.9983,
+ "kolnierz_do_korpusu_min": 0.0,
+ "tulejka_do_gniazda_min": 0.0,
+ "sciana_x": [
+  -42.0,
+  -40.0
+ ]
+}

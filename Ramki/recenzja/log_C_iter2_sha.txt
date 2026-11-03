@@ -1,0 +1,31 @@
+wierszy C1 29 C2 29
+RAPORT C2 vs DYSK: wszystkie zgodne
+SHA=C1 TRI= stl/ramka_blat_v2.stl: n 5716/5716, roznych 0, obj 72.5687/72.5687
+SHA=C1 TRI= stl/ramka_korpus_P_v2.stl: n 17324/17324, roznych 0, obj 233.6323/233.6323
+SHA=C1 TRI= stl/ramka_korpus_W_v2.stl: n 18220/18220, roznych 0, obj 233.6614/233.6614
+SHA=C1 TRI= stl/ramka_plytka_poranna_n4_v2.stl: n 25896/25896, roznych 0, obj 60.2337/60.2337
+SHA=C1 TRI= stl/ramka_plytka_poranna_n5_v2.stl: n 26272/26272, roznych 0, obj 60.2315/60.2315
+SHA=C1 TRI= stl/ramka_plytka_poranna_n6_v2.stl: n 26128/26128, roznych 0, obj 60.2307/60.2307
+SHA=C1 TRI= stl/ramka_plytka_poranna_v2.stl: n 25866/25866, roznych 0, obj 60.2219/60.2219
+SHA=C1 TRI= stl/ramka_plytka_wieczorna_n1_v2.stl: n 21956/21956, roznych 0, obj 57.9523/57.9523
+SHA=C1 TRI= stl/ramka_plytka_wieczorna_n2_v2.stl: n 22136/22136, roznych 0, obj 57.9533/57.9533
+SHA=C1 TRI= stl/ramka_plytka_wieczorna_n3_v2.stl: n 22338/22338, roznych 0, obj 57.9505/57.9505
+SHA=C1 TRI= stl/ramka_plytka_wieczorna_v2.stl: n 21992/21992, roznych 0, obj 57.9411/57.9411
+SHA=C1 TRI= stl/ramka_podkladka_panelu_05_v2.stl: n 630/630, roznych 0, obj 0.0273/0.0273
+SHA=C1 TRI= stl/ramka_podkladka_panelu_1_v2.stl: n 630/630, roznych 0, obj 0.0545/0.0545
+SHA=C1 TRI= stl/ramka_podkladka_panelu_2_v2.stl: n 630/630, roznych 0, obj 0.1091/0.1091
+SHA=C1 TRI= stl/ramka_pokrywka_v2.stl: n 820/820, roznych 0, obj 30.0641/30.0641
+SHA!=C1 TRI!= stl/ramka_tulejka_dc_v2.stl: n 1770/1776, roznych 1788, obj 0.2389/0.2445
+SHA!=C1 TRI= stl/ramka_wkladka_v2.stl: n 1806/1806, roznych 0, obj 12.4057/12.4057
+SHA!=C1 README.md
+SHA!=C1 arkusze/arkusz_wymiarow.md
+SHA=C1 arkusze/arkusz_zamowienia.csv
+SHA=C1 arkusze/arkusz_zamowienia.md
+SHA=C1 arkusze/kody_plytek.md
+SHA=C1 do_v3.md
+SHA=C1 json/uklad_gniazd_poranna.json
+SHA=C1 json/uklad_gniazd_wieczorna.json
+SHA!=C1 ramka_v2.blend
+SHA!=C1 render/render_plytki.png
+SHA!=C1 render/render_rozstrzelony.png
+SHA!=C1 render/render_zlozony.png

@@ -1,0 +1,955 @@
+{
+ "etap": "C",
+ "iteracja": "R53",
+ "blender": "5.2.3 LTS",
+ "pliki": {
+  "ramka_tulejka_dc_v2": {
+   "bbox_surowy": [
+    -7.499,
+    7.5,
+    -7.5,
+    7.5,
+    0.0,
+    3.0
+   ],
+   "objetosc_cm3": 0.2389,
+   "gabaryt": [
+    14.999,
+    14.999,
+    3.0
+   ],
+   "sha256": "b393256cd8cafdac6d125d6f9f25647c5f94840d1bc5eb87941b436f510bcc00"
+  },
+  "ramka_podkladka_panelu_05_v2": {
+   "bbox_surowy": [
+    -4.5,
+    4.5,
+    -4.498,
+    4.498,
+    0.0,
+    0.5
+   ],
+   "objetosc_cm3": 0.0273,
+   "gabaryt": [
+    9.0,
+    8.997,
+    0.5
+   ],
+   "sha256": "4260d1f1957f32d101cae5da2cf4634e24239caf738592edd7007fc0728ec6b4"
+  },
+  "ramka_podkladka_panelu_1_v2": {
+   "bbox_surowy": [
+    -4.5,
+    4.5,
+    -4.498,
+    4.498,
+    0.0,
+    1.0
+   ],
+   "objetosc_cm3": 0.0545,
+   "gabaryt": [
+    9.0,
+    8.997,
+    1.0
+   ],
+   "sha256": "e79a805121499f8d65b7d23ef6d2ae255549b4f55579ded7061b8996b91c9b78"
+  },
+  "ramka_podkladka_panelu_2_v2": {
+   "bbox_surowy": [
+    -4.5,
+    4.5,
+    -4.498,
+    4.498,
+    0.0,
+    2.0
+   ],
+   "objetosc_cm3": 0.1091,
+   "gabaryt": [
+    9.0,
+    8.997,
+    2.0
+   ],
+   "sha256": "9c47aea4fbc946c16dab3813561d936745b88afde6092542de1d67a21656d5b5"
+  },
+  "ramka_plytka_wieczorna_v2": {
+   "sha256_z_przebiegu": "f02aed867a600d93e98ea319c82b09f219c52dca6f38ded3d01066567e7e4d3b"
+  },
+  "ramka_plytka_wieczorna_n1_v2": {
+   "sha256_z_przebiegu": "b2803c829885795b7a06e9d2597a1de6080bdec459e426238d8cd9c05a6e8b52"
+  },
+  "ramka_plytka_wieczorna_n2_v2": {
+   "sha256_z_przebiegu": "8bab264ca661b8d95f8d5f99a76a63956b6722f8d330d60b52bc1f0d4585b82e"
+  },
+  "ramka_plytka_wieczorna_n3_v2": {
+   "sha256_z_przebiegu": "d3a44e8d7122d167e068d885db53ad485c441dc85b747764bd185bd2d53183cf"
+  },
+  "ramka_plytka_poranna_v2": {
+   "sha256_z_przebiegu": "5767cf1d387ab1abda6a660db437048c9bc68865aad982bfd1bbf7bfdb79afc0"
+  },
+  "ramka_plytka_poranna_n4_v2": {
+   "sha256_z_przebiegu": "3186d1ab86f2442302edf057d8bbbc227bbf7f691d4620304f79b377e6773089"
+  },
+  "ramka_plytka_poranna_n5_v2": {
+   "sha256_z_przebiegu": "70bd4dd499506e38c9973bd50fb66e133d9a2ff34b71cf2494df8d7727866cbb"
+  },
+  "ramka_plytka_poranna_n6_v2": {
+   "sha256_z_przebiegu": "562d23f69b9bb3f4b015df6e2afdee2ee6aaddc39dfe08370aa418e3d5edcefb"
+  },
+  "ramka_pokrywka_v2": {
+   "sha256_z_przebiegu": "ad23444483ac95733e92169af00e5271d8fc3b19a91854e8c8acddf06c8cd454"
+  },
+  "ramka_wkladka_v2": {
+   "sha256_z_przebiegu": "f4196fbc640450998634f50caa86051f89df2cbb2c218e317f5c2b193e3ef92b"
+  },
+  "ramka_blat_v2": {
+   "sha256_z_przebiegu": "8c48856eb9addee2b37cfa5a03e5686ab7670bd92b724e488ccc8d8dd3a4b418"
+  },
+  "ramka_korpus_W_v2": {
+   "sha256_z_przebiegu": "bd55871c88cf2604c1c8efa5035148ba39c3803a0788015cc35548e8e9afff9a"
+  },
+  "ramka_korpus_P_v2": {
+   "sha256_z_przebiegu": "aadb91c9364cf39f1f4062d328616aa518e474b957315ed4a941de4f935ab2b7"
+  }
+ },
+ "wyniki": [
+  {
+   "id": "K-01",
+   "plik": "ramka_tulejka_dc_v2",
+   "wynik": "ZAL",
+   "wartosc": "trójkątów 1770, NaN False",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-02",
+   "plik": "ramka_tulejka_dc_v2",
+   "wynik": "ZAL",
+   "wartosc": "gabaryt 14.999 × 14.999 × 3.000 (oczek. 15 × 15 × 3); bbox montażowy X[-7.499,7.499] Y[-7.500,7.500] Z[0.000,3.000]",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-03",
+   "plik": "ramka_tulejka_dc_v2",
+   "wynik": "ZAL",
+   "wartosc": "krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-04",
+   "plik": "ramka_tulejka_dc_v2",
+   "wynik": "ZAL",
+   "wartosc": "składowych 1",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-04b",
+   "plik": "ramka_tulejka_dc_v2",
+   "wynik": "ZAL",
+   "wartosc": "objętość 0.239 cm³ (oczek. 0.24 ± 30 %)",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-52b",
+   "plik": "ramka_tulejka_dc_v2",
+   "wynik": "ZAL",
+   "wartosc": "16/16 sond; gabaryt 14.999 × 14.999 × 3.000 (15 × 15 × 3 ± 0,1); z promieni: otwór ø8.200 (8,2), walec ø11.849 X / ø11.848 Y (11,85 ± 0,05; R52), kołnierz ø14.999 (15)",
+   "waga": "P",
+   "sondy": [
+    {
+     "p": [
+      0.0,
+      0.0,
+      1.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 4.098,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      3.5,
+      0.0,
+      1.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.599,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      4.8,
+      0.0,
+      1.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.701,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      5.5,
+      0.0,
+      2.0
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.424,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      5.85,
+      0.0,
+      2.0
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.074,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      6.0,
+      0.0,
+      2.0
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.076,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      -5.85,
+      2.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.074,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      6.0,
+      2.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.076,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      6.8,
+      0.0,
+      2.0
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.876,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      6.8,
+      0.0,
+      0.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.5,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      8.0,
+      0.0,
+      0.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.501,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      -4.8,
+      0.0,
+      1.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.699,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      4.8,
+      1.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.7,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      -6.8,
+      0.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.5,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      6.8,
+      2.0
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.876,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      0.0,
+      0.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 4.098,
+     "wynik": "POZA",
+     "ok": true
+    }
+   ],
+   "uwaga": ""
+  },
+  {
+   "id": "K-01",
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "wynik": "ZAL",
+   "wartosc": "trójkątów 630, NaN False",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-02",
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "wynik": "ZAL",
+   "wartosc": "gabaryt 9.000 × 8.997 × 0.500 (oczek. 9 × 9 × 0.5); bbox montażowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,0.500]",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-03",
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "wynik": "ZAL",
+   "wartosc": "krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-04",
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "wynik": "ZAL",
+   "wartosc": "składowych 1",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-04b",
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "wynik": "ZAL",
+   "wartosc": "objętość 0.027 cm³ (oczek. 0.03 ± 30 %)",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-52c",
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "wynik": "ZAL",
+   "wartosc": "7/7 sond; gabaryt 9.000 × 8.997 × 0.500 (9 × 9 × 0.5 ± 0,05); otwór z promieni ø3.395 (3,4)",
+   "waga": "P",
+   "sondy": [
+    {
+     "p": [
+      0.0,
+      0.0,
+      0.25
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 1.695,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      1.5,
+      0.0,
+      0.25
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.199,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      3.0,
+      0.0,
+      0.25
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.25,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      4.7,
+      0.0,
+      0.25
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.2,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      -3.0,
+      0.0,
+      0.25
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.25,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      3.0,
+      0.25
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.25,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      -1.5,
+      0.25
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.196,
+     "wynik": "POZA",
+     "ok": true
+    }
+   ],
+   "uwaga": ""
+  },
+  {
+   "id": "K-01",
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "wynik": "ZAL",
+   "wartosc": "trójkątów 630, NaN False",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-02",
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "wynik": "ZAL",
+   "wartosc": "gabaryt 9.000 × 8.997 × 1.000 (oczek. 9 × 9 × 1.0); bbox montażowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,1.000]",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-03",
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "wynik": "ZAL",
+   "wartosc": "krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-04",
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "wynik": "ZAL",
+   "wartosc": "składowych 1",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-04b",
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "wynik": "ZAL",
+   "wartosc": "objętość 0.055 cm³ (oczek. 0.05 ± 30 %)",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-52c",
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "wynik": "ZAL",
+   "wartosc": "7/7 sond; gabaryt 9.000 × 8.997 × 1.000 (9 × 9 × 1.0 ± 0,05); otwór z promieni ø3.395 (3,4)",
+   "waga": "P",
+   "sondy": [
+    {
+     "p": [
+      0.0,
+      0.0,
+      0.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 1.695,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.199,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      3.0,
+      0.0,
+      0.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.5,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      4.7,
+      0.0,
+      0.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.2,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      -3.0,
+      0.0,
+      0.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.5,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      3.0,
+      0.5
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.5,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      -1.5,
+      0.5
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.196,
+     "wynik": "POZA",
+     "ok": true
+    }
+   ],
+   "uwaga": ""
+  },
+  {
+   "id": "K-01",
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "wynik": "ZAL",
+   "wartosc": "trójkątów 630, NaN False",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-02",
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "wynik": "ZAL",
+   "wartosc": "gabaryt 9.000 × 8.997 × 2.000 (oczek. 9 × 9 × 2.0); bbox montażowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,2.000]",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-03",
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "wynik": "ZAL",
+   "wartosc": "krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-04",
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "wynik": "ZAL",
+   "wartosc": "składowych 1",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-04b",
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "wynik": "ZAL",
+   "wartosc": "objętość 0.109 cm³ (oczek. 0.11 ± 30 %)",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-52c",
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "wynik": "ZAL",
+   "wartosc": "7/7 sond; gabaryt 9.000 × 8.997 × 2.000 (9 × 9 × 2.0 ± 0,05); otwór z promieni ø3.395 (3,4)",
+   "waga": "P",
+   "sondy": [
+    {
+     "p": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 1.695,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      1.5,
+      0.0,
+      1.0
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.199,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      3.0,
+      0.0,
+      1.0
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 1.0,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      4.7,
+      0.0,
+      1.0
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.2,
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      -3.0,
+      0.0,
+      1.0
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 1.0,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      3.0,
+      1.0
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 1.0,
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      -1.5,
+      1.0
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.196,
+     "wynik": "POZA",
+     "ok": true
+    }
+   ],
+   "uwaga": ""
+  },
+  {
+   "id": "INFO-sha",
+   "plik": "stl",
+   "wynik": "ZAL",
+   "wartosc": "pliki zmierzone w przebiegach A/B (C1) zgodne z obecnymi STL: tak; inne bajty, ale identyczne trójkąty (K-59 kanonicznie): []",
+   "waga": "-",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-57",
+   "plik": "arkusz_zamowienia.csv/.md",
+   "wynik": "ZAL",
+   "wartosc": "15 wierszy (10 drukarnia); max |Δobjętość| 0.0046 cm³, |Δgabaryt| 0.003 mm, |Δkoszt| 0.005 zł; ilości i materiały = parametry.json; sumy drukarni: obj 1003.77 cm³, najtańszy 903–1606 zł, pokazowy 1212–2154 zł (zgodne z .md: True); STEP/FreeCAD: tak",
+   "waga": "P",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-60",
+   "plik": "render/raport/arkusze",
+   "wynik": "ZAL",
+   "wartosc": "render_rozstrzelony.png 1600×1200; render_zlozony.png 1600×1200; render_plytki.png 1600×1200; raport: wszystkie 56 K‑xx etapów A+B+C obecne; zrzut parametry.json w arkusz_wymiarow.md zgodny (273 kluczy); LICZONE 9/9 zgodne ze wzorami; panel_pcb_z 54, blat_top_z 63.6, korpus_h 59.6, panel_standoff_l 50, cover_inner_h 14, snap_pocket_z 52.1, snap_hook_z 52.85, blat_screw_z 55, label_pos_z 51; treść renderu rozstrzelonego (lista §11) — ocena wizualna recenzenta w raporcie",
+   "waga": "P",
+   "sondy": [],
+   "uwaga": ""
+  }
+ ]
+}

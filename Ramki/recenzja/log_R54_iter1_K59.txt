@@ -1,0 +1,31 @@
+PLIKI 17 POWTORKA 17 brakuje: [] nadmiar: []
+SHA= TRI= ramka_blat_v2.stl: n 5692/5692, różnych trójkątów 0, obj 72.5172/72.5172, gab [200.0, 200.0, 14.0]/[200.0, 200.0, 14.0]
+SHA= TRI= ramka_korpus_P_v2.stl: n 17902/17902, różnych trójkątów 0, obj 233.4648/233.4648, gab [200.0, 200.6, 59.6]/[200.0, 200.6, 59.6]
+SHA= TRI= ramka_korpus_W_v2.stl: n 18798/18798, różnych trójkątów 0, obj 233.4938/233.4938, gab [200.0, 200.6, 59.6]/[200.0, 200.6, 59.6]
+SHA= TRI= ramka_plytka_poranna_n4_v2.stl: n 23780/23780, różnych trójkątów 0, obj 60.8702/60.8702, gab [96.0, 96.0, 8.6]/[96.0, 96.0, 8.6]
+SHA= TRI= ramka_plytka_poranna_n5_v2.stl: n 24096/24096, różnych trójkątów 0, obj 60.8681/60.8681, gab [96.0, 96.0, 8.6]/[96.0, 96.0, 8.6]
+SHA= TRI= ramka_plytka_poranna_n6_v2.stl: n 24018/24018, różnych trójkątów 0, obj 60.8673/60.8673, gab [96.0, 96.0, 8.6]/[96.0, 96.0, 8.6]
+SHA= TRI= ramka_plytka_poranna_v2.stl: n 23698/23698, różnych trójkątów 0, obj 60.8585/60.8585, gab [96.0, 96.0, 8.0]/[96.0, 96.0, 8.0]
+SHA= TRI= ramka_plytka_wieczorna_n1_v2.stl: n 18232/18232, różnych trójkątów 0, obj 59.3132/59.3132, gab [96.0, 96.0, 8.6]/[96.0, 96.0, 8.6]
+SHA= TRI= ramka_plytka_wieczorna_n2_v2.stl: n 18434/18434, różnych trójkątów 0, obj 59.3141/59.3141, gab [96.0, 96.0, 8.6]/[96.0, 96.0, 8.6]
+SHA= TRI= ramka_plytka_wieczorna_n3_v2.stl: n 18644/18644, różnych trójkątów 0, obj 59.3113/59.3113, gab [96.0, 96.0, 8.6]/[96.0, 96.0, 8.6]
+SHA= TRI= ramka_plytka_wieczorna_v2.stl: n 18256/18256, różnych trójkątów 0, obj 59.3019/59.3019, gab [96.0, 96.0, 8.0]/[96.0, 96.0, 8.0]
+SHA= TRI= ramka_podkladka_panelu_05_v2.stl: n 630/630, różnych trójkątów 0, obj 0.0273/0.0273, gab [9.0, 8.997, 0.5]/[9.0, 8.997, 0.5]
+SHA= TRI= ramka_podkladka_panelu_1_v2.stl: n 630/630, różnych trójkątów 0, obj 0.0545/0.0545, gab [9.0, 8.997, 1.0]/[9.0, 8.997, 1.0]
+SHA= TRI= ramka_podkladka_panelu_2_v2.stl: n 630/630, różnych trójkątów 0, obj 0.1091/0.1091, gab [9.0, 8.997, 2.0]/[9.0, 8.997, 2.0]
+SHA= TRI= ramka_pokrywka_v2.stl: n 820/820, różnych trójkątów 0, obj 30.0641/30.0641, gab [99.6, 99.6, 20.0]/[99.6, 99.6, 20.0]
+SHA= TRI= ramka_tulejka_dc_v2.stl: n 1770/1770, różnych trójkątów 0, obj 0.2389/0.2389, gab [14.999, 14.999, 3.0]/[14.999, 14.999, 3.0]
+SHA= TRI= ramka_wkladka_v2.stl: n 1806/1806, różnych trójkątów 0, obj 12.4091/12.4091, gab [130.0, 148.4, 11.0]/[130.0, 148.4, 11.0]
+STL: SHA identyczne 17/17, kanonicznie identyczne 17/17
+INNE SHA= json/uklad_gniazd_wieczorna.json (4358 / 4358 B)
+INNE SHA= json/uklad_gniazd_poranna.json (6342 / 6342 B)
+INNE SHA= arkusze/arkusz_zamowienia.csv (3658 / 3658 B)
+INNE SHA= arkusze/kody_plytek.md (1706 / 1706 B)
+INNE SHA= arkusze/arkusz_wymiarow.md (51612 / 51612 B)
+INNE SHA= arkusze/arkusz_zamowienia.md (5810 / 5810 B)
+INNE SHA≠ ramka_v2.blend (10945026 / 10945026 B)
+INNE SHA≠ render/render_rozstrzelony.png (1746639 / 1746661 B)
+INNE SHA≠ render/render_zlozony.png (1759258 / 1759280 B)
+INNE SHA≠ render/render_plytki.png (1909348 / 1909370 B)
+INNE SHA≠ README.md (8352 / 8343 B)
+INNE SHA= do_v3.md (2261 / 2261 B)

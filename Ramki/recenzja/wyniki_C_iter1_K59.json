@@ -1,0 +1,463 @@
+{
+ "ramka_blat_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   5716,
+   5716
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   72.5687,
+   72.5687
+  ],
+  "gabaryt": [
+   [
+    200.0,
+    200.0,
+    14.0
+   ],
+   [
+    200.0,
+    200.0,
+    14.0
+   ]
+  ]
+ },
+ "ramka_korpus_P_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   17324,
+   17324
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   233.6323,
+   233.6323
+  ],
+  "gabaryt": [
+   [
+    200.0,
+    200.6,
+    59.6
+   ],
+   [
+    200.0,
+    200.6,
+    59.6
+   ]
+  ]
+ },
+ "ramka_korpus_W_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   18220,
+   18220
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   233.6614,
+   233.6614
+  ],
+  "gabaryt": [
+   [
+    200.0,
+    200.6,
+    59.6
+   ],
+   [
+    200.0,
+    200.6,
+    59.6
+   ]
+  ]
+ },
+ "ramka_plytka_poranna_n4_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   25896,
+   25896
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   60.2337,
+   60.2337
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_poranna_n5_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   26272,
+   26272
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   60.2315,
+   60.2315
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_poranna_n6_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   26128,
+   26128
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   60.2307,
+   60.2307
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_poranna_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   25866,
+   25866
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   60.2219,
+   60.2219
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.0
+   ],
+   [
+    96.0,
+    96.0,
+    8.0
+   ]
+  ]
+ },
+ "ramka_plytka_wieczorna_n1_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   21956,
+   21956
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   57.9523,
+   57.9523
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_wieczorna_n2_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   22136,
+   22136
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   57.9533,
+   57.9533
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_wieczorna_n3_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   22338,
+   22338
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   57.9505,
+   57.9505
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_wieczorna_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   21992,
+   21992
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   57.9411,
+   57.9411
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.0
+   ],
+   [
+    96.0,
+    96.0,
+    8.0
+   ]
+  ]
+ },
+ "ramka_podkladka_panelu_05_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   630,
+   630
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   0.0273,
+   0.0273
+  ],
+  "gabaryt": [
+   [
+    9.0,
+    8.997,
+    0.5
+   ],
+   [
+    9.0,
+    8.997,
+    0.5
+   ]
+  ]
+ },
+ "ramka_podkladka_panelu_1_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   630,
+   630
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   0.0545,
+   0.0545
+  ],
+  "gabaryt": [
+   [
+    9.0,
+    8.997,
+    1.0
+   ],
+   [
+    9.0,
+    8.997,
+    1.0
+   ]
+  ]
+ },
+ "ramka_podkladka_panelu_2_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   630,
+   630
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   0.1091,
+   0.1091
+  ],
+  "gabaryt": [
+   [
+    9.0,
+    8.997,
+    2.0
+   ],
+   [
+    9.0,
+    8.997,
+    2.0
+   ]
+  ]
+ },
+ "ramka_pokrywka_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   820,
+   820
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   30.0641,
+   30.0641
+  ],
+  "gabaryt": [
+   [
+    99.6,
+    99.6,
+    20.0
+   ],
+   [
+    99.6,
+    99.6,
+    20.0
+   ]
+  ]
+ },
+ "ramka_tulejka_dc_v2.stl": {
+  "sha_rowne": true,
+  "trojkaty_rowne": true,
+  "n": [
+   1776,
+   1776
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   0.2445,
+   0.2445
+  ],
+  "gabaryt": [
+   [
+    14.999,
+    14.999,
+    3.0
+   ],
+   [
+    14.999,
+    14.999,
+    3.0
+   ]
+  ]
+ },
+ "ramka_wkladka_v2.stl": {
+  "sha_rowne": false,
+  "trojkaty_rowne": true,
+  "n": [
+   1806,
+   1806
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   12.4057,
+   12.4057
+  ],
+  "gabaryt": [
+   [
+    130.0,
+    148.3,
+    11.0
+   ],
+   [
+    130.0,
+    148.3,
+    11.0
+   ]
+  ]
+ },
+ "json/uklad_gniazd_wieczorna.json": {
+  "sha_rowne": true
+ },
+ "json/uklad_gniazd_poranna.json": {
+  "sha_rowne": true
+ },
+ "arkusze/arkusz_zamowienia.csv": {
+  "sha_rowne": true
+ },
+ "arkusze/kody_plytek.md": {
+  "sha_rowne": true
+ },
+ "arkusze/arkusz_wymiarow.md": {
+  "sha_rowne": true
+ },
+ "arkusze/arkusz_zamowienia.md": {
+  "sha_rowne": true
+ },
+ "ramka_v2.blend": {
+  "sha_rowne": false
+ },
+ "render/render_rozstrzelony.png": {
+  "sha_rowne": false
+ },
+ "render/render_zlozony.png": {
+  "sha_rowne": false
+ },
+ "render/render_plytki.png": {
+  "sha_rowne": false
+ },
+ "README.md": {
+  "sha_rowne": false
+ },
+ "do_v3.md": {
+  "sha_rowne": true
+ }
+}

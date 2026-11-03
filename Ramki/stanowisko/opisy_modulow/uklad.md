@@ -1,0 +1,21 @@
+# uklad — układ płytki
+
+**Co robi.** Wczytuje `modele_plytek/<nazwa>/uklad.json` (z projektu ramek v2, `wyniki_v2/json/`) do obiektów: gniazda (okrągłe stożkowe i rynienki), trzy znaczniki (stożkowe wgłębienia ø5 × 3 mm), wycięcie orientacyjne, dołki kodu, numery dostępnych płytek i ich STL. Jedno źródło geometrii płytki dla synth, plate, indicate i ui — zmiana układu gniazd nie wymaga zmiany kodu. Plik jest sprawdzany przy wczytaniu.
+
+**Wejście.** Nazwa płytki (`wieczorna` | `poranna` | `okragla_wieczorna` | `okragla_poranna`) i opcjonalnie katalog; programy biorą katalog z `ustawienia.toml [plytki]` (`ustawienia.katalog_plytki`), domyślnie `KATALOG_MODELI/<nazwa>` (to samo miejsce — test `test_sciezki_plytek_jedno_zrodlo`).
+
+**Wyjście.** `UkladPlytki` z metodami: `gniazdo(id)`, `gniazda_okragle()`, `rynienki()`, `najblizsze_gniazdo(x, y, margines=0)`, `plik_stl(numer)`, kod płytki ↔ bity (n = A + 2B + 4C + 8D). `Gniazdo`: `zawiera(x, y, margines)`, `odleglosc_do_obrysu(x, y)`, `z_top`, `z_dno`, promień górny/dolny.
+
+**Kryterium „działa”.** `testy/test_uklad.py`, `testy/test_edge_uklad.py`: 18 + 2 i 31 + 2 gniazd [R54, 1.11.2026: gniazda i znaczniki w kole r 47], `uklad.json` zgodny z `../parametry.json`, ścianki ≥ 3 mm także okrągłe↔rynienki na obu płytkach, dno gniazda na z = 4, promień dolny z kąta 15°, pliki STL nr 1–3 i 4–6 istnieją, złe pliki układu odrzucone z nazwą pliku i gniazda.
+
+**Uwaga o układzie.** JSON: początek w środku górnej powierzchni. STL: góra płytki na z = `thickness` (dziś 8; `Gniazdo.z_top`, stała `Z_TOP` to tylko wartość domyślna dla gniazd tworzonych ręcznie). Znaczniki są wgłębieniami (z 5…8), nie wypustkami — plate dopasowuje stożek do wgłębienia.
+
+**Założenia i granice.**
+- Walidacja przy wczytaniu (`BladUkladu`, podklasa `ValueError`, komunikat „plik X: gniazdo N: brak d_top”): wymagane klucze `plate`, `thickness`, `markers`, `code_dimples`, `sockets` (≥ 1 gniazdo); `type ∈ {round, trough}`; pola zależne od typu (`d_top`, `d_bottom` / `l`, `w`); unikalne `id`; `0 < depth ≤ thickness`; `d_bottom` zgodne z kątem 15° (±0,01 mm); każde gniazdo w obrysie płytki. Dodatkowe klucze w znacznikach i dołkach są ignorowane.
+- `shape` opcjonalne: `"square"` (domyślnie, wymaga `size`) albo `"round"` (wymaga `d`, obrys = koło). Kształt wpływa tylko na sprawdzenie „gniazdo w obrysie”, nie na logikę gniazd. `notch` opcjonalny; `flat` (ścięcie orientacyjne płytki okrągłej: `angle_deg`, `chord_w`, `dist`) tylko przy `round`, trafia do `UkladPlytki.flat` (P2, 2.11.2026).
+- Płytki okrągłe R57 (`modele_plytek/okragla_wieczorna`, `okragla_poranna`): kopie `../wyniki_v2/json/uklad_gniazd_okragla_*.json` i STL (`plytka_n8.stl` / `plytka_n9.stl` + `plytka_bazowa.stl` = model z dołkami wszystkich bitów, bez numeru; pomijany bez ostrzeżenia, nie jest płytką do skanu). Gniazda, znaczniki identyczne jak na kwadracie (test_plytki_okragle); dołki kodu 4 bity w kole r 47.
+- Kod płytki: dołki A, B, C, opcjonalnie D (dla przyszłych płytek okrągłych n8/n9). `bity_z_numeru(n, liczba_bitow=3)` rzuca `ValueError` poza 0…2^k−1 (najwyżej 0…15); `numer_z_bitow` przyjmuje tylko bool/0/1.
+- Numery płytek tylko z plików `plytka_n<numer>.stl` (`re.fullmatch`); inne pliki `.stl` w katalogu są pomijane z ostrzeżeniem; numer większy niż pozwalają dołki kodu → błąd.
+- `najblizsze_gniazdo` zwraca gniazdo, nad którego otworem leży punkt (z marginesem), a gdy kilka — to, w które punkt wchodzi najgłębiej (najmniejsza `odleglosc_do_obrysu`); poza wszystkimi gniazdami `None`. Odległość do obrysu: okrągłe `hypot − r`, rynienka — odległość do **stadionu** (prostokąt (l − w) × w z półokręgami w/2 na końcach; tak jest w STL płytki — D4 z recenzji R57, P2 2.11.2026). `_waliduj` sprawdza 72 punkty obrysu stadionu w obrysie płytki (max promień obrysu rynienki: wieczorna 46,18, poranna 46,93 — narożnik prostokąta dawał 49,2); `Gniazdo.obrys(n)` zwraca punkty obrysu do rysowania.
+- Kąt ścianki 15° jest stałą `KAT_SCIANKI_DEG` (ta sama liczba w `parametry.json socket_wall_angle`, sprawdzana testem; U5 — nie zapisany w `uklad.json`).
+- Otwory ø3 w dnach gniazd (`hole_d`), kieszenie magnesów, relief numeru i wycięcie D nie są modelowane w obiektach — są tylko w STL.

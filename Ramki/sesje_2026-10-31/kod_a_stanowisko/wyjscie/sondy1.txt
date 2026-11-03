@@ -1,0 +1,7 @@
+int('1_0') = 10
+najblizsze_gniazdo(28,19.5) -> 20 zawiera 25? True zawiera 20 False
+najblizsze_gniazdo(100,100) -> 20
+wieczorna: min ścianka okr-okr 3.000, okr-rynienka 3.000, ryn-ryn 3.000, strefa 90: max|x|+r = 43.50, max|y| 45.00, ryn y+w/2 45.00
+poranna: min ścianka okr-okr 3.000, okr-rynienka 3.000, ryn-ryn 3.000, strefa 90: max|x|+r = 45.00, max|y| 45.00, ryn y+w/2 44.00
+orientacja: O==eye? False bounds z po obrocie: [-8.36609472e+00  6.57718882e-16] max z > 0: True np.float64(6.577188822464746e-16)
+subdivide_to_size: len(V) 11425 len(Vs) 12227 Fs.max 12226 Vs zawiera wszystkie V? True

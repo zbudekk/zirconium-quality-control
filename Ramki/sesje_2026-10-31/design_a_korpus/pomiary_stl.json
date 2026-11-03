@@ -1,0 +1,3317 @@
+{
+ "rows": [
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "gabaryt X / Y / Z (bbox)",
+   "metoda": "bbox",
+   "zmierzone": 200.0,
+   "nominal": 200,
+   "zrodlo": "box_outer"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "gabaryt Y z napisem",
+   "metoda": "bbox",
+   "zmierzone": 200.6,
+   "nominal": 200.6,
+   "zrodlo": "+label_relief_h 0,6"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "wysokość korpusu",
+   "metoda": "bbox Z",
+   "zmierzone": 59.6,
+   "nominal": 59.6,
+   "zrodlo": "korpus_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "objętość [cm³]",
+   "metoda": "mesh",
+   "zmierzone": 233.661,
+   "nominal": null,
+   "zrodlo": "arkusz 233,66/233,63"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "wnętrze X (y 20, Z 30)",
+   "metoda": "cięciwa",
+   "zmierzone": 195.0,
+   "nominal": 195,
+   "zrodlo": "box_outer-2·wall_t"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "wnętrze Y (x 20, Z 30)",
+   "metoda": "cięciwa",
+   "zmierzone": 195.0,
+   "nominal": 195,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "ściana prawa grubość (98,75, 20, 30)",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "wall_t"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "ściana przednia grubość (20, −98,75, 30)",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "wall_t"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "ściana tylna grubość (20, 98,75, 45)",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "wall_t"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "dno grubość (20, −20, 1,5)",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 3.0,
+   "nominal": 3.0,
+   "zrodlo": "floor_t"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "wierzch ściany Z (98,75, 20)",
+   "metoda": "trafienie −Z",
+   "zmierzone": 59.6,
+   "nominal": 59.6,
+   "zrodlo": "korpus_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "naroże pionowe R5: x lica przy y=−99",
+   "metoda": "trafienie −X",
+   "zmierzone": 97.999,
+   "nominal": 98.0,
+   "zrodlo": "box_corner_r 5 → 98,0"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "dolna krawędź R3: z lica przy x=99,5",
+   "metoda": "trafienie +Z",
+   "zmierzone": 1.343,
+   "nominal": 1.3416876048223,
+   "zrodlo": "box_edge_r 3 → 1,34"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "stadion panelu (60,60): wierzch Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 4.0,
+   "nominal": 4.0,
+   "zrodlo": "floor_t+panel_pad_h (sonda 4,24 od osi rowka)"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "stadion szerokość prostopadle do przekątnej: lico z zewnątrz (z (66,54,3,5) w −N)",
+   "metoda": "trafienie −N",
+   "zmierzone": 3.985,
+   "nominal": 3.9852813742385713,
+   "zrodlo": "odl. 8,49 od osi − 4,5 = 3,99"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "rowek panelu szer. (60,60, Z 1,5) prostopadle do przekątnej",
+   "metoda": "cięciwa N",
+   "zmierzone": 3.4,
+   "nominal": 3.4,
+   "zrodlo": "panel_slot_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "rowek panelu długość wzdłuż przekątnej (60,60, Z 1,5)",
+   "metoda": "cięciwa D",
+   "zmierzone": 17.542,
+   "nominal": 17.54213562373095,
+   "zrodlo": "(55→65)·√2 + 3,4 = 17,54"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "rowek panelu przelotowy przez dno i stadion: trafienie +Z z (60,60,−5)",
+   "metoda": "trafienie +Z",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "brak = przelot (wkręt M3 przechodzi przez dno i stadion do dystansu)"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "rowek: półdługość od (60,60,3,5) w +D (koniec rowka R1,7)",
+   "metoda": "trafienie +D",
+   "zmierzone": 8.771,
+   "nominal": 8.771067811865475,
+   "zrodlo": "5·√2 + 1,7 = 8,77"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "stadion: koniec od zewnątrz (z (80,80,3,5) w −D)",
+   "metoda": "trafienie −D",
+   "zmierzone": 16.715,
+   "nominal": 16.713203435596427,
+   "zrodlo": "koniec stadionu 65 + R4,5 → 16,71"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "boss Pi (−46,5,−24,5): wierzch Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": "floor_t+pi_standoff_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "boss Pi: otwór ø (Z 7)",
+   "metoda": "cięciwa X",
+   "zmierzone": 2.1,
+   "nominal": 2.1,
+   "zrodlo": "insert_hole_m25"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "boss Pi: dno otworu Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 3.0,
+   "nominal": 3.0,
+   "zrodlo": "8 − insert_depth_m25 5"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "boss Pi: lico zewn. x (z (−30,−24,5,6) w −X)",
+   "metoda": "trafienie −X",
+   "zmierzone": -42.5,
+   "nominal": -42.5,
+   "zrodlo": "ø8 → −46,5+4"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "boss Pi (11,5, 24,5): wierzch Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "wlot w dnie (−8,−10): X",
+   "metoda": "cięciwa",
+   "zmierzone": 30.0,
+   "nominal": 30,
+   "zrodlo": "floor_vent_l"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "wlot w dnie (−8,−10): Y",
+   "metoda": "cięciwa",
+   "zmierzone": 4.0,
+   "nominal": 4,
+   "zrodlo": "floor_vent_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "szczelina tylna (−54, Z 8): X",
+   "metoda": "cięciwa",
+   "zmierzone": 12.0,
+   "nominal": 12,
+   "zrodlo": "vent_slot_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "szczelina tylna (−54, Z 8): Z",
+   "metoda": "cięciwa",
+   "zmierzone": 3.0,
+   "nominal": 3,
+   "zrodlo": "vent_slot_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "szczelina boczna prawa (y 36, Z 8): Y",
+   "metoda": "cięciwa",
+   "zmierzone": 12.0,
+   "nominal": 12,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "szczelina boczna lewa (y −36, Z 8): Z",
+   "metoda": "cięciwa",
+   "zmierzone": 3.0,
+   "nominal": 3,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "okno DC (−67,5, Z 26): X",
+   "metoda": "cięciwa",
+   "zmierzone": 51.0,
+   "nominal": 51,
+   "zrodlo": "dc_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "okno DC: Z",
+   "metoda": "cięciwa",
+   "zmierzone": 24.0,
+   "nominal": 24,
+   "zrodlo": "dc_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "okno DC: dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 14.0,
+   "nominal": 14,
+   "zrodlo": "dc_pocket_z0"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "skrzynka DC wnętrze X (y 87,75, Z 16)",
+   "metoda": "cięciwa",
+   "zmierzone": 53.5,
+   "nominal": 53.5,
+   "zrodlo": "−95,5…−42"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "skrzynka DC: ściana przednia w świetle y",
+   "metoda": "trafienie −Y z zewnątrz",
+   "zmierzone": 80.0,
+   "nominal": 80,
+   "zrodlo": "100 − dc_pocket_depth 22 + wall 2"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "skrzynka DC: sufit Z (z wnętrza)",
+   "metoda": "trafienie +Z",
+   "zmierzone": 38.0,
+   "nominal": 38,
+   "zrodlo": "40 − 2"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "skrzynka DC: dno Z (z wnętrza)",
+   "metoda": "trafienie −Z",
+   "zmierzone": 14.0,
+   "nominal": 14,
+   "zrodlo": "12 + 2"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "otwór DC ø (Y) w prawej ścianie skrzynki (x −41)",
+   "metoda": "cięciwa",
+   "zmierzone": 11.999,
+   "nominal": 12,
+   "zrodlo": "dc_hole_d"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "otwór DC ø (Z)",
+   "metoda": "cięciwa",
+   "zmierzone": 11.998,
+   "nominal": 12,
+   "zrodlo": "dc_hole_d"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "prawa ściana skrzynki grubość (−41, 81, 30)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 2.0,
+   "nominal": 2.0,
+   "zrodlo": "dc_pocket_wall"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "ścianka otwór DC – wierzch prawej ściany skrzynki (−41, 89, 37)",
+   "metoda": "cięciwa w materiale Z",
+   "zmierzone": 4.001,
+   "nominal": 4.0,
+   "zrodlo": "otwór do Z 36, wierzch skrzynki Z 40 → 4,0"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "skrzynka: lewa ściana (= ściana korpusu) grubość (−96,5, 88, 26)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 4.5,
+   "nominal": 4.5,
+   "zrodlo": "2,5 + 2"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "okno USB (60, Z 24): X",
+   "metoda": "cięciwa",
+   "zmierzone": 16.0,
+   "nominal": 16,
+   "zrodlo": "usb_cut_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "okno USB: Z",
+   "metoda": "cięciwa",
+   "zmierzone": 9.0,
+   "nominal": 9,
+   "zrodlo": "usb_cut_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "rowek flanszy USB prawy (72,75): X",
+   "metoda": "cięciwa",
+   "zmierzone": 5.691,
+   "nominal": 5.7,
+   "zrodlo": "(14−11,5)+3,2"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "rowek flanszy USB prawy: Z",
+   "metoda": "cięciwa",
+   "zmierzone": 3.2,
+   "nominal": 3.2,
+   "zrodlo": "usb_slot_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "ścianka okno USB – rowek (68,95)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 1.904,
+   "nominal": 1.9,
+   "zrodlo": "52−50,1"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku prawa (98, 0): szerokość",
+   "metoda": "cięciwa",
+   "zmierzone": 10.0,
+   "nominal": 10,
+   "zrodlo": "snap_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku prawa (98, 0): wysokość Z",
+   "metoda": "cięciwa",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "snap_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku prawa (98, 0): dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 52.6,
+   "nominal": 52.6,
+   "zrodlo": "snap_pocket_z"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku prawa (98, 0): górna krawędź Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 55.1,
+   "nominal": 55.1,
+   "zrodlo": "52,6+2,5"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku lewa (−98, 0): szerokość",
+   "metoda": "cięciwa",
+   "zmierzone": 10.0,
+   "nominal": 10,
+   "zrodlo": "snap_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku lewa (−98, 0): wysokość Z",
+   "metoda": "cięciwa",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "snap_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku lewa (−98, 0): dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 52.6,
+   "nominal": 52.6,
+   "zrodlo": "snap_pocket_z"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku lewa (−98, 0): górna krawędź Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 55.1,
+   "nominal": 55.1,
+   "zrodlo": "52,6+2,5"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku przednia (50, −98): szerokość",
+   "metoda": "cięciwa",
+   "zmierzone": 10.0,
+   "nominal": 10,
+   "zrodlo": "snap_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku przednia (50, −98): wysokość Z",
+   "metoda": "cięciwa",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "snap_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku przednia (50, −98): dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 52.6,
+   "nominal": 52.6,
+   "zrodlo": "snap_pocket_z"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku przednia (50, −98): górna krawędź Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 55.1,
+   "nominal": 55.1,
+   "zrodlo": "52,6+2,5"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku tylna (−50, 98): szerokość",
+   "metoda": "cięciwa",
+   "zmierzone": 10.0,
+   "nominal": 10,
+   "zrodlo": "snap_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku tylna (−50, 98): wysokość Z",
+   "metoda": "cięciwa",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "snap_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku tylna (−50, 98): dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 52.6,
+   "nominal": 52.6,
+   "zrodlo": "snap_pocket_z"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń zatrzasku tylna (−50, 98): górna krawędź Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 55.1,
+   "nominal": 55.1,
+   "zrodlo": "52,6+2,5"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń prawa: dno x (z (80,0,53,8) +X)",
+   "metoda": "trafienie +X",
+   "zmierzone": 98.5,
+   "nominal": 98.5,
+   "zrodlo": "97,5 + snap_pocket_depth 1,0"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "kieszeń przednia: dno y",
+   "metoda": "trafienie −Y",
+   "zmierzone": -98.5,
+   "nominal": -98.5,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "ściana za kieszenią prawą (99,25, 0, 53,85)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 1.5,
+   "nominal": 1.5,
+   "zrodlo": "2,5 − 1,0"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "otwór wkrętu blatu (75, Z 55): ø w ścianie (y 98,2)",
+   "metoda": "cięciwa X",
+   "zmierzone": 3.195,
+   "nominal": 3.2,
+   "zrodlo": "blat_screw_hole_d"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "otwór wkrętu blatu: ø przy licu zewn. (y 99,9)",
+   "metoda": "cięciwa X",
+   "zmierzone": 6.1,
+   "nominal": 6.1,
+   "zrodlo": "pogłębienie ø6,3/90° → 6,1 na y 99,9"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "otwór wkrętu blatu (−75, Z 55): ø w ścianie",
+   "metoda": "cięciwa X",
+   "zmierzone": 3.195,
+   "nominal": 3.2,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "otwór wkrętu blatu: ø pionowo (Z) przy y 98,2",
+   "metoda": "cięciwa Z",
+   "zmierzone": 3.193,
+   "nominal": 3.2,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "napis: lico reliefu min y (bbox)",
+   "metoda": "bbox",
+   "zmierzone": -100.6,
+   "nominal": -100.6,
+   "zrodlo": "label_relief_h 0,6"
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "napis: najdalszy punkt reliefu y (skan x −55…55 co 0,5, Z 51)",
+   "metoda": "trafienie +Y",
+   "zmierzone": -100.6,
+   "nominal": -100.6,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_W_v2",
+   "cecha": "napis: zakres Z reliefu (skan)",
+   "metoda": "skan",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": "label_text_h 8 (Z 47.0…55.0)"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "gabaryt X / Y / Z (bbox)",
+   "metoda": "bbox",
+   "zmierzone": 200.0,
+   "nominal": 200,
+   "zrodlo": "box_outer"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "gabaryt Y z napisem",
+   "metoda": "bbox",
+   "zmierzone": 200.6,
+   "nominal": 200.6,
+   "zrodlo": "+label_relief_h 0,6"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "wysokość korpusu",
+   "metoda": "bbox Z",
+   "zmierzone": 59.6,
+   "nominal": 59.6,
+   "zrodlo": "korpus_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "objętość [cm³]",
+   "metoda": "mesh",
+   "zmierzone": 233.632,
+   "nominal": null,
+   "zrodlo": "arkusz 233,66/233,63"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "wnętrze X (y 20, Z 30)",
+   "metoda": "cięciwa",
+   "zmierzone": 195.0,
+   "nominal": 195,
+   "zrodlo": "box_outer-2·wall_t"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "wnętrze Y (x 20, Z 30)",
+   "metoda": "cięciwa",
+   "zmierzone": 195.0,
+   "nominal": 195,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "ściana prawa grubość (98,75, 20, 30)",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "wall_t"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "ściana przednia grubość (20, −98,75, 30)",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "wall_t"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "ściana tylna grubość (20, 98,75, 45)",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "wall_t"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "dno grubość (20, −20, 1,5)",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 3.0,
+   "nominal": 3.0,
+   "zrodlo": "floor_t"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "wierzch ściany Z (98,75, 20)",
+   "metoda": "trafienie −Z",
+   "zmierzone": 59.6,
+   "nominal": 59.6,
+   "zrodlo": "korpus_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "naroże pionowe R5: x lica przy y=−99",
+   "metoda": "trafienie −X",
+   "zmierzone": 97.999,
+   "nominal": 98.0,
+   "zrodlo": "box_corner_r 5 → 98,0"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "dolna krawędź R3: z lica przy x=99,5",
+   "metoda": "trafienie +Z",
+   "zmierzone": 1.343,
+   "nominal": 1.3416876048223,
+   "zrodlo": "box_edge_r 3 → 1,34"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "stadion panelu (60,60): wierzch Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 4.0,
+   "nominal": 4.0,
+   "zrodlo": "floor_t+panel_pad_h (sonda 4,24 od osi rowka)"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "stadion szerokość prostopadle do przekątnej: lico z zewnątrz (z (66,54,3,5) w −N)",
+   "metoda": "trafienie −N",
+   "zmierzone": 3.985,
+   "nominal": 3.9852813742385713,
+   "zrodlo": "odl. 8,49 od osi − 4,5 = 3,99"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "rowek panelu szer. (60,60, Z 1,5) prostopadle do przekątnej",
+   "metoda": "cięciwa N",
+   "zmierzone": 3.4,
+   "nominal": 3.4,
+   "zrodlo": "panel_slot_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "rowek panelu długość wzdłuż przekątnej (60,60, Z 1,5)",
+   "metoda": "cięciwa D",
+   "zmierzone": 17.542,
+   "nominal": 17.54213562373095,
+   "zrodlo": "(55→65)·√2 + 3,4 = 17,54"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "rowek panelu przelotowy przez dno i stadion: trafienie +Z z (60,60,−5)",
+   "metoda": "trafienie +Z",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "brak = przelot (wkręt M3 przechodzi przez dno i stadion do dystansu)"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "rowek: półdługość od (60,60,3,5) w +D (koniec rowka R1,7)",
+   "metoda": "trafienie +D",
+   "zmierzone": 8.771,
+   "nominal": 8.771067811865475,
+   "zrodlo": "5·√2 + 1,7 = 8,77"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "stadion: koniec od zewnątrz (z (80,80,3,5) w −D)",
+   "metoda": "trafienie −D",
+   "zmierzone": 16.715,
+   "nominal": 16.713203435596427,
+   "zrodlo": "koniec stadionu 65 + R4,5 → 16,71"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "boss Pi (−46,5,−24,5): wierzch Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": "floor_t+pi_standoff_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "boss Pi: otwór ø (Z 7)",
+   "metoda": "cięciwa X",
+   "zmierzone": 2.1,
+   "nominal": 2.1,
+   "zrodlo": "insert_hole_m25"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "boss Pi: dno otworu Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 3.0,
+   "nominal": 3.0,
+   "zrodlo": "8 − insert_depth_m25 5"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "boss Pi: lico zewn. x (z (−30,−24,5,6) w −X)",
+   "metoda": "trafienie −X",
+   "zmierzone": -42.5,
+   "nominal": -42.5,
+   "zrodlo": "ø8 → −46,5+4"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "boss Pi (11,5, 24,5): wierzch Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "wlot w dnie (−8,−10): X",
+   "metoda": "cięciwa",
+   "zmierzone": 30.0,
+   "nominal": 30,
+   "zrodlo": "floor_vent_l"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "wlot w dnie (−8,−10): Y",
+   "metoda": "cięciwa",
+   "zmierzone": 4.0,
+   "nominal": 4,
+   "zrodlo": "floor_vent_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "szczelina tylna (−54, Z 8): X",
+   "metoda": "cięciwa",
+   "zmierzone": 12.0,
+   "nominal": 12,
+   "zrodlo": "vent_slot_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "szczelina tylna (−54, Z 8): Z",
+   "metoda": "cięciwa",
+   "zmierzone": 3.0,
+   "nominal": 3,
+   "zrodlo": "vent_slot_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "szczelina boczna prawa (y 36, Z 8): Y",
+   "metoda": "cięciwa",
+   "zmierzone": 12.0,
+   "nominal": 12,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "szczelina boczna lewa (y −36, Z 8): Z",
+   "metoda": "cięciwa",
+   "zmierzone": 3.0,
+   "nominal": 3,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "okno DC (−67,5, Z 26): X",
+   "metoda": "cięciwa",
+   "zmierzone": 51.0,
+   "nominal": 51,
+   "zrodlo": "dc_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "okno DC: Z",
+   "metoda": "cięciwa",
+   "zmierzone": 24.0,
+   "nominal": 24,
+   "zrodlo": "dc_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "okno DC: dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 14.0,
+   "nominal": 14,
+   "zrodlo": "dc_pocket_z0"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "skrzynka DC wnętrze X (y 87,75, Z 16)",
+   "metoda": "cięciwa",
+   "zmierzone": 53.5,
+   "nominal": 53.5,
+   "zrodlo": "−95,5…−42"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "skrzynka DC: ściana przednia w świetle y",
+   "metoda": "trafienie −Y z zewnątrz",
+   "zmierzone": 80.0,
+   "nominal": 80,
+   "zrodlo": "100 − dc_pocket_depth 22 + wall 2"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "skrzynka DC: sufit Z (z wnętrza)",
+   "metoda": "trafienie +Z",
+   "zmierzone": 38.0,
+   "nominal": 38,
+   "zrodlo": "40 − 2"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "skrzynka DC: dno Z (z wnętrza)",
+   "metoda": "trafienie −Z",
+   "zmierzone": 14.0,
+   "nominal": 14,
+   "zrodlo": "12 + 2"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "otwór DC ø (Y) w prawej ścianie skrzynki (x −41)",
+   "metoda": "cięciwa",
+   "zmierzone": 11.999,
+   "nominal": 12,
+   "zrodlo": "dc_hole_d"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "otwór DC ø (Z)",
+   "metoda": "cięciwa",
+   "zmierzone": 11.998,
+   "nominal": 12,
+   "zrodlo": "dc_hole_d"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "prawa ściana skrzynki grubość (−41, 81, 30)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 2.0,
+   "nominal": 2.0,
+   "zrodlo": "dc_pocket_wall"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "ścianka otwór DC – wierzch prawej ściany skrzynki (−41, 89, 37)",
+   "metoda": "cięciwa w materiale Z",
+   "zmierzone": 4.001,
+   "nominal": 4.0,
+   "zrodlo": "otwór do Z 36, wierzch skrzynki Z 40 → 4,0"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "skrzynka: lewa ściana (= ściana korpusu) grubość (−96,5, 88, 26)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 4.5,
+   "nominal": 4.5,
+   "zrodlo": "2,5 + 2"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "okno USB (60, Z 24): X",
+   "metoda": "cięciwa",
+   "zmierzone": 16.0,
+   "nominal": 16,
+   "zrodlo": "usb_cut_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "okno USB: Z",
+   "metoda": "cięciwa",
+   "zmierzone": 9.0,
+   "nominal": 9,
+   "zrodlo": "usb_cut_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "rowek flanszy USB prawy (72,75): X",
+   "metoda": "cięciwa",
+   "zmierzone": 5.691,
+   "nominal": 5.7,
+   "zrodlo": "(14−11,5)+3,2"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "rowek flanszy USB prawy: Z",
+   "metoda": "cięciwa",
+   "zmierzone": 3.2,
+   "nominal": 3.2,
+   "zrodlo": "usb_slot_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "ścianka okno USB – rowek (68,95)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 1.904,
+   "nominal": 1.9,
+   "zrodlo": "52−50,1"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku prawa (98, 0): szerokość",
+   "metoda": "cięciwa",
+   "zmierzone": 10.0,
+   "nominal": 10,
+   "zrodlo": "snap_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku prawa (98, 0): wysokość Z",
+   "metoda": "cięciwa",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "snap_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku prawa (98, 0): dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 52.6,
+   "nominal": 52.6,
+   "zrodlo": "snap_pocket_z"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku prawa (98, 0): górna krawędź Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 55.1,
+   "nominal": 55.1,
+   "zrodlo": "52,6+2,5"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku lewa (−98, 0): szerokość",
+   "metoda": "cięciwa",
+   "zmierzone": 10.0,
+   "nominal": 10,
+   "zrodlo": "snap_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku lewa (−98, 0): wysokość Z",
+   "metoda": "cięciwa",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "snap_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku lewa (−98, 0): dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 52.6,
+   "nominal": 52.6,
+   "zrodlo": "snap_pocket_z"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku lewa (−98, 0): górna krawędź Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 55.1,
+   "nominal": 55.1,
+   "zrodlo": "52,6+2,5"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku przednia (50, −98): szerokość",
+   "metoda": "cięciwa",
+   "zmierzone": 10.0,
+   "nominal": 10,
+   "zrodlo": "snap_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku przednia (50, −98): wysokość Z",
+   "metoda": "cięciwa",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "snap_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku przednia (50, −98): dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 52.6,
+   "nominal": 52.6,
+   "zrodlo": "snap_pocket_z"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku przednia (50, −98): górna krawędź Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 55.1,
+   "nominal": 55.1,
+   "zrodlo": "52,6+2,5"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku tylna (−50, 98): szerokość",
+   "metoda": "cięciwa",
+   "zmierzone": 10.0,
+   "nominal": 10,
+   "zrodlo": "snap_pocket_w"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku tylna (−50, 98): wysokość Z",
+   "metoda": "cięciwa",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "snap_pocket_h"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku tylna (−50, 98): dolna krawędź Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 52.6,
+   "nominal": 52.6,
+   "zrodlo": "snap_pocket_z"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń zatrzasku tylna (−50, 98): górna krawędź Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 55.1,
+   "nominal": 55.1,
+   "zrodlo": "52,6+2,5"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń prawa: dno x (z (80,0,53,8) +X)",
+   "metoda": "trafienie +X",
+   "zmierzone": 98.5,
+   "nominal": 98.5,
+   "zrodlo": "97,5 + snap_pocket_depth 1,0"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "kieszeń przednia: dno y",
+   "metoda": "trafienie −Y",
+   "zmierzone": -98.5,
+   "nominal": -98.5,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "ściana za kieszenią prawą (99,25, 0, 53,85)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 1.5,
+   "nominal": 1.5,
+   "zrodlo": "2,5 − 1,0"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "otwór wkrętu blatu (75, Z 55): ø w ścianie (y 98,2)",
+   "metoda": "cięciwa X",
+   "zmierzone": 3.195,
+   "nominal": 3.2,
+   "zrodlo": "blat_screw_hole_d"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "otwór wkrętu blatu: ø przy licu zewn. (y 99,9)",
+   "metoda": "cięciwa X",
+   "zmierzone": 6.1,
+   "nominal": 6.1,
+   "zrodlo": "pogłębienie ø6,3/90° → 6,1 na y 99,9"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "otwór wkrętu blatu (−75, Z 55): ø w ścianie",
+   "metoda": "cięciwa X",
+   "zmierzone": 3.195,
+   "nominal": 3.2,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "otwór wkrętu blatu: ø pionowo (Z) przy y 98,2",
+   "metoda": "cięciwa Z",
+   "zmierzone": 3.193,
+   "nominal": 3.2,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "napis: lico reliefu min y (bbox)",
+   "metoda": "bbox",
+   "zmierzone": -100.6,
+   "nominal": -100.6,
+   "zrodlo": "label_relief_h 0,6"
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "napis: najdalszy punkt reliefu y (skan x −55…55 co 0,5, Z 51)",
+   "metoda": "trafienie +Y",
+   "zmierzone": -100.6,
+   "nominal": -100.6,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_korpus_P_v2",
+   "cecha": "napis: zakres Z reliefu (skan)",
+   "metoda": "skan",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": "label_text_h 8 (Z 47.0…55.0)"
+  },
+  {
+   "plik": "korpus W vs P",
+   "cecha": "wierzchołki poza przednią ścianą (y > −99,9): różnica zbiorów",
+   "metoda": "zbiory",
+   "zmierzone": 0.0,
+   "nominal": 0,
+   "zrodlo": "R33: różnica tylko napisem"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "gabaryt X / Y",
+   "metoda": "bbox",
+   "zmierzone": 200.0,
+   "nominal": 200,
+   "zrodlo": "box_outer"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "gabaryt Z",
+   "metoda": "bbox",
+   "zmierzone": 14.0,
+   "nominal": 14,
+   "zrodlo": "blat_t+blat_skirt_h"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "objętość [cm³]",
+   "metoda": "mesh",
+   "zmierzone": 72.569,
+   "nominal": null,
+   "zrodlo": "arkusz 72,57"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "wierzch blatu: Z lica (99, 0)",
+   "metoda": "trafienie +Z z −10",
+   "zmierzone": 0.0,
+   "nominal": 0.0,
+   "zrodlo": "STL wierzchem w dół (sonda 3 od krawędzi R1,5)"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "płyta grubość (99, 0, 2)",
+   "metoda": "cięciwa w materiale Z",
+   "zmierzone": 4.0,
+   "nominal": 4.0,
+   "zrodlo": "blat_t"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "płyta grubość (90, 90, 2) — bez bossa ramy",
+   "metoda": "cięciwa w materiale Z",
+   "zmierzone": 4.0,
+   "nominal": 4.0,
+   "zrodlo": "R50‑U1"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kieszeń dyfuzora X (y 20, Z 1)",
+   "metoda": "cięciwa",
+   "zmierzone": 162.0,
+   "nominal": 162,
+   "zrodlo": "diffuser_pocket"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kieszeń dyfuzora głębokość: półka Z (z (80, 0, −10) +Z)",
+   "metoda": "trafienie +Z",
+   "zmierzone": 2.0,
+   "nominal": 2.0,
+   "zrodlo": "diffuser_t"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kieszeń dyfuzora: naroże ostre — x lica przy y 80,8",
+   "metoda": "trafienie +X",
+   "zmierzone": 81.0,
+   "nominal": 81.0,
+   "zrodlo": "diffuser_pocket_r 0"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "okno przelotowe X (y 20, Z 3)",
+   "metoda": "cięciwa",
+   "zmierzone": 158.0,
+   "nominal": 158,
+   "zrodlo": "window_through"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kołnierz zewn. x (z (150,20,9) −X)",
+   "metoda": "trafienie −X",
+   "zmierzone": 97.0,
+   "nominal": 97.0,
+   "zrodlo": "194/2"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kołnierz zewn. y (z (20,150,9) −Y)",
+   "metoda": "trafienie −Y",
+   "zmierzone": 97.0,
+   "nominal": 97.0,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kołnierz wewn. X (cięciwa 0,20,9)",
+   "metoda": "cięciwa",
+   "zmierzone": 190.0,
+   "nominal": 190,
+   "zrodlo": "2·95"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kołnierz grubość (96, 20, 9)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 2.0,
+   "nominal": 2.0,
+   "zrodlo": "blat_skirt_t"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kołnierz: dolna krawędź Z (96,20)",
+   "metoda": "trafienie −Z z 30",
+   "zmierzone": 14.0,
+   "nominal": 14.0,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kołnierz naroże R4,5: x lica przy y 96",
+   "metoda": "trafienie −X",
+   "zmierzone": 95.326,
+   "nominal": 95.32842712474618,
+   "zrodlo": "→ 95,33"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "górna krawędź R1,5: z lica przy x 99,5",
+   "metoda": "trafienie +Z",
+   "zmierzone": 0.388,
+   "nominal": 0.3819660112501051,
+   "zrodlo": "blat_top_edge_r → 0,38"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "haczyk prawy (y 0): czubek",
+   "metoda": "trafienie X",
+   "zmierzone": 98.3,
+   "nominal": 98.3,
+   "zrodlo": "97,0 + snap_hook_h 1,3"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "haczyk lewy: czubek",
+   "metoda": "trafienie X",
+   "zmierzone": 98.3,
+   "nominal": 98.3,
+   "zrodlo": "97,0 + snap_hook_h 1,3"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "haczyk przedni (x 50; STL +Y): czubek",
+   "metoda": "trafienie Y",
+   "zmierzone": 98.3,
+   "nominal": 98.3,
+   "zrodlo": "97,0 + snap_hook_h 1,3"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "haczyk tylny (x −50; STL −Y): czubek",
+   "metoda": "trafienie Y",
+   "zmierzone": 98.3,
+   "nominal": 98.3,
+   "zrodlo": "97,0 + snap_hook_h 1,3"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "haczyk prawy: szerokość (y) na czubku",
+   "metoda": "cięciwa w materiale Y (98, 0, 9.75)",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": "snap_hook_w"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "nacięcie obok haczyka (96, 4,5, 10): szer. Y",
+   "metoda": "cięciwa",
+   "zmierzone": 1.0,
+   "nominal": 1.0,
+   "zrodlo": "snap_notch_w"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "nacięcie: górny koniec Z (z (96,4,5,13) −Z... = pierwsze trafienie w górę)",
+   "metoda": "trafienie −Z (w kierunku wierzchu)",
+   "zmierzone": 5.0,
+   "nominal": 5.0,
+   "zrodlo": "snap_hook_arm_l 9 → lokalnie −5"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "ramię haczyka grubość (96,8, 0, 13)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 1.5,
+   "nominal": 1.5,
+   "zrodlo": "snap_hook_t"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "słupek (75, y 89,2…95,2): otwór ø (Z 8,6)",
+   "metoda": "cięciwa X (75, 94, 8.6)",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "insert_hole_m3 (STL y −94)"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "słupek: otwór ø pionowo",
+   "metoda": "cięciwa Z",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "słupek: dno otworu y",
+   "metoda": "trafienie −Y",
+   "zmierzone": -91.0,
+   "nominal": -91.0,
+   "zrodlo": "97 − blat_post_hole_depth 6 (STL −91)"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "słupek: wylot otworu y (+Y)",
+   "metoda": "trafienie +Y",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "otwarty na zewnątrz (brak trafienia = przelot)"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "słupek: szerokość X (y 92, Z 10)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": "blat_post_w"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "słupek: przednie lico y (z (75,80,10) +Y)",
+   "metoda": "trafienie +Y",
+   "zmierzone": -89.2,
+   "nominal": -89.2,
+   "zrodlo": "blat_post_y0 (STL −89,2)"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "słupek: dno pod otworem (75, 90,1, 8,6)",
+   "metoda": "cięciwa w materiale Y",
+   "zmierzone": 1.8,
+   "nominal": 1.8,
+   "zrodlo": "91,0 − 89,2"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "słupek −75: otwór ø",
+   "metoda": "cięciwa X",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "otwór kołka (58, 93,5): ø",
+   "metoda": "cięciwa X (Z 2)",
+   "zmierzone": 3.3,
+   "nominal": 3.3,
+   "zrodlo": "blat_pin_hole_d (STL y −93,5)"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "otwór kołka: dno Z",
+   "metoda": "trafienie +Z z (58,93,5,1)",
+   "zmierzone": 3.8,
+   "nominal": 3.8,
+   "zrodlo": "blat_pin_hole_depth"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "otwór kołka −58: ø",
+   "metoda": "cięciwa X",
+   "zmierzone": 3.3,
+   "nominal": 3.3,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kieszeń magnesu (58, 86): ø",
+   "metoda": "cięciwa X (Z 1)",
+   "zmierzone": 5.4,
+   "nominal": 5.4,
+   "zrodlo": "blat_magnet_pocket_d"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "kieszeń magnesu: dno Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 2.3,
+   "nominal": 2.3,
+   "zrodlo": "blat_magnet_pocket_depth"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "szczelina kabla (66, 90): X",
+   "metoda": "cięciwa",
+   "zmierzone": 4.0,
+   "nominal": 4,
+   "zrodlo": "wire_slot_w"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "szczelina kabla: Y",
+   "metoda": "cięciwa",
+   "zmierzone": 8.0,
+   "nominal": 8,
+   "zrodlo": "wire_slot_l"
+  },
+  {
+   "plik": "ramka_blat_v2",
+   "cecha": "szczelina kabla: przelot (trafienie z (66,90,−5) +Z)",
+   "metoda": "trafienie +Z",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "brak trafienia = przelot przez płytę"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "gabaryt X / Y / Z",
+   "metoda": "bbox",
+   "zmierzone": 130.0,
+   "nominal": 130,
+   "zrodlo": "2·65"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "gabaryt Y",
+   "metoda": "bbox",
+   "zmierzone": 148.3,
+   "nominal": 148.3,
+   "zrodlo": "−52,3…96"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "gabaryt Z",
+   "metoda": "bbox",
+   "zmierzone": 11.0,
+   "nominal": 11.0,
+   "zrodlo": "3,5 + 6 + 1,5 kołek"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "objętość [cm³]",
+   "metoda": "mesh",
+   "zmierzone": 12.406,
+   "nominal": null,
+   "zrodlo": "arkusz 12,41"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "rama zewn. X (y 0, Z 6,5)",
+   "metoda": "zewn. (trafienia z ±150)",
+   "zmierzone": 104.6,
+   "nominal": 104.6,
+   "zrodlo": "96,6 + 2·4"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "otwór X (0,0,6,5)",
+   "metoda": "cięciwa",
+   "zmierzone": 96.6,
+   "nominal": 96.6,
+   "zrodlo": "insert_opening"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "otwór Y (20,0,6,5)",
+   "metoda": "cięciwa",
+   "zmierzone": 96.6,
+   "nominal": 96.6,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "otwór: naroże ostre, x lica przy y 48,1",
+   "metoda": "trafienie +X",
+   "zmierzone": 48.3,
+   "nominal": 48.3,
+   "zrodlo": "insert_opening_r 0"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "spód ramy Z (−40, −50,3)",
+   "metoda": "trafienie +Z z −10",
+   "zmierzone": 3.5,
+   "nominal": 3.5,
+   "zrodlo": "kołki 3,5 w dół"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "wierzch ramy Z",
+   "metoda": "trafienie −Z z 20",
+   "zmierzone": 9.5,
+   "nominal": 9.5,
+   "zrodlo": "3,5 + insert_h 6"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "rama szerokość (y −50,3): Y",
+   "metoda": "cięciwa w materiale",
+   "zmierzone": 4.0,
+   "nominal": 4.0,
+   "zrodlo": "insert_wall_w"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "faza otworu 1×45°: z lica przy x 48,8",
+   "metoda": "trafienie −Z z 20",
+   "zmierzone": 9.0,
+   "nominal": 9.0,
+   "zrodlo": "insert_chamfer 1 → 9,5 − 0,5"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "półka A (−38,−38): wierzch Z",
+   "metoda": "trafienie −Z",
+   "zmierzone": 6.0,
+   "nominal": 6.0,
+   "zrodlo": "3,5 + insert_shelf_h 2,5"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "półka A grubość",
+   "metoda": "cięciwa w materiale Z (−38,−38,4,5)",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "insert_shelf_h"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "półka A: bok (x lica od środka)",
+   "metoda": "trafienie −X z (0,−38,5)",
+   "zmierzone": -36.3,
+   "nominal": -36.3,
+   "zrodlo": "48,3 − 12"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kieszeń Halla A (−42,−42): X",
+   "metoda": "cięciwa",
+   "zmierzone": 5.0,
+   "nominal": 5.0,
+   "zrodlo": "hall_pocket_w"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kieszeń Halla A: Y",
+   "metoda": "cięciwa",
+   "zmierzone": 5.5,
+   "nominal": 5.5,
+   "zrodlo": "hall_pocket_l"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kieszeń Halla A: przelot (z (−42,−42,−5) +Z)",
+   "metoda": "trafienie +Z",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "brak = przelot"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kanał pod półką A (−45,−45, Z 3,5…4,5)? szer. prostopadle do przekątnej",
+   "metoda": "cięciwa N (−45,−45,4)",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "hall_lead_channel_w"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kanał pod półką A: sufit Z (z (−45,−45,0) +Z)",
+   "metoda": "trafienie +Z",
+   "zmierzone": 4.5,
+   "nominal": 4.5,
+   "zrodlo": "3,5 + 1,0"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "przelot w ściance A (−50,−50): sufit Z",
+   "metoda": "trafienie +Z",
+   "zmierzone": 5.0,
+   "nominal": 5.0,
+   "zrodlo": "3,5 + hall_wall_pass_h 1,5"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "półka nad kanałem A (−45,−45, Z 5,25)",
+   "metoda": "cięciwa w materiale Z",
+   "zmierzone": 1.5,
+   "nominal": 1.5,
+   "zrodlo": "2,5 − 1,0"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek orientacyjny (45,6,−45,6): X",
+   "metoda": "cięciwa w materiale X (Z 8)",
+   "zmierzone": 4.4,
+   "nominal": 4.4,
+   "zrodlo": "orient_post"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek orientacyjny: Y",
+   "metoda": "cięciwa w materiale Y",
+   "zmierzone": 4.4,
+   "nominal": 4.4,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek orientacyjny: szczyt Z",
+   "metoda": "trafienie −Z z 20",
+   "zmierzone": 11.0,
+   "nominal": 11.0,
+   "zrodlo": "6 + orient_post_h 5"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek orientacyjny: lico zewn. x (z (0,−45,6,8) +X)",
+   "metoda": "trafienie +X",
+   "zmierzone": 43.4,
+   "nominal": 43.4,
+   "zrodlo": "ściana 48,3 − gap 0,5 − 4,4 = 43,4"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek orientacyjny: faza — szczyt przy x 43,6",
+   "metoda": "trafienie −Z",
+   "zmierzone": 10.2,
+   "nominal": 10.2,
+   "zrodlo": "orient_post_chamfer 1 → 10,2"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "wycięcie palcowe (0,−50,3, 6,5): X",
+   "metoda": "cięciwa",
+   "zmierzone": 30.0,
+   "nominal": 30,
+   "zrodlo": "finger_cut_w"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "rowek kablowy prawy: dno x (z (57,3,0,4,25) −X)",
+   "metoda": "trafienie −X",
+   "zmierzone": 49.8,
+   "nominal": 49.8,
+   "zrodlo": "52,3 − wire_rabbet_w 2,5"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "rowek kablowy prawy: sufit Z (z (51,05,0,0) +Z)",
+   "metoda": "trafienie +Z",
+   "zmierzone": 5.0,
+   "nominal": 5.0,
+   "zrodlo": "3,5 + wire_rabbet 1,5"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "rowek kablowy tylny: dno y (z (0,57,3,4,25) −Y)",
+   "metoda": "trafienie −Y",
+   "zmierzone": 49.8,
+   "nominal": 49.8,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "rowek kablowy lewy: dno x",
+   "metoda": "trafienie +X z (−57,3,0,4,25)",
+   "zmierzone": -49.8,
+   "nominal": -49.8,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "rowek kablowy przedni (nie ma): sufit Z (0? z (−30,−51,05,0) +Z)",
+   "metoda": "trafienie +Z",
+   "zmierzone": 3.5,
+   "nominal": 3.5,
+   "zrodlo": "przód bez rowka → spód ramy 3,5"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "ścianka rowek–otwór (49,05, 0, 4,25)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 1.5,
+   "nominal": 1.5,
+   "zrodlo": "49,8 − 48,3"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "ucho prawe (58, 80): wierzch Z",
+   "metoda": "trafienie −Z z 20",
+   "zmierzone": 6.5,
+   "nominal": 6.5,
+   "zrodlo": "3,5 + tab_t 3"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "ucho prawe: szerokość X (y 80, Z 5)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 14.0,
+   "nominal": 14,
+   "zrodlo": "tab_w"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "ucho prawe: koniec y (z (58,150,5) −Y)",
+   "metoda": "trafienie −Y",
+   "zmierzone": 96.0,
+   "nominal": 96,
+   "zrodlo": "tab_end_y"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek ustalający (58, 93,5): ø (Z 1,5)",
+   "metoda": "cięciwa X",
+   "zmierzone": 3.0,
+   "nominal": 3.0,
+   "zrodlo": "tab_pin_d"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek ustalający: ø przy końcu (Z 0,25)",
+   "metoda": "cięciwa X",
+   "zmierzone": 2.5,
+   "nominal": 2.5,
+   "zrodlo": "stożek ø3→ø2 na 0,5: na Z 0,25 ≈ 2,5"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek ustalający: koniec Z",
+   "metoda": "trafienie +Z z −5",
+   "zmierzone": 0.0,
+   "nominal": 0.0,
+   "zrodlo": "tab_pin_h 3,5 pod spodem"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kołek ustalający −58: ø",
+   "metoda": "cięciwa X",
+   "zmierzone": 3.0,
+   "nominal": 3.0,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "otwór magnesu ucha (58, 86): ø",
+   "metoda": "cięciwa X (Z 5)",
+   "zmierzone": 5.4,
+   "nominal": 5.4,
+   "zrodlo": "tab_magnet_hole_d"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "otwór magnesu: przelot",
+   "metoda": "trafienie +Z z (58,86,−5)",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "brak = przelot"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kanał pod uchem (64, 70): ścianka wewn. x (z (64,70,4) −X)",
+   "metoda": "trafienie −X",
+   "zmierzone": 63.0,
+   "nominal": 63.0,
+   "zrodlo": "kanał 63…65 = otwarty na zewnętrznej krawędzi ucha"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kanał pod uchem: otwarty w +X (z (64,70,4) +X)",
+   "metoda": "trafienie +X",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "brak = kanał otwarty bokiem (rabbet)"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "kanał pod uchem: sufit Z (z (64,70,0) +Z)",
+   "metoda": "trafienie +Z",
+   "zmierzone": 4.7,
+   "nominal": 4.7,
+   "zrodlo": "tab_cable_channel_h 1,2 → 4,7"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "nasada L: koniec y części wewn. (x 48, z (48,70,5) −Y)",
+   "metoda": "trafienie −Y",
+   "zmierzone": 58.0,
+   "nominal": 58.0,
+   "zrodlo": "tab_root_y1"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "nasada L: brak materiału poza ramą dla x 60, y 50 (z (60,50,5) +Z)",
+   "metoda": "trafienie +Z z (60,50,−5)",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "brak = prawy pas odsłonięty (K‑56)"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "nasada L: lico y części zewn. (x 60, z (60,0,5) +Y)",
+   "metoda": "trafienie +Y",
+   "zmierzone": 52.3,
+   "nominal": 52.3,
+   "zrodlo": "x 52,3…65 od y 52,3"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "strzałka ▼ (32, −51,15): szczyt Z",
+   "metoda": "trafienie −Z z 20",
+   "zmierzone": 10.1,
+   "nominal": 10.1,
+   "zrodlo": "relief 0,6 na wierzchu ramy → 10,1"
+  },
+  {
+   "plik": "ramka_wkladka_v2",
+   "cecha": "strzałka ▼ (−32, −51,15): szczyt Z",
+   "metoda": "trafienie −Z z 20",
+   "zmierzone": 10.1,
+   "nominal": 10.1,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "gabaryt X",
+   "metoda": "bbox",
+   "zmierzone": 99.6,
+   "nominal": 99.6,
+   "zrodlo": "96,6 + 2·1,5"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "gabaryt Z",
+   "metoda": "bbox",
+   "zmierzone": 20.0,
+   "nominal": 20.0,
+   "zrodlo": "14 + 2 + 4"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "objętość [cm³]",
+   "metoda": "mesh",
+   "zmierzone": 30.064,
+   "nominal": null,
+   "zrodlo": "arkusz 30,06"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "wierzch: Z lica z zewnątrz (15,0)",
+   "metoda": "trafienie +Z z −10",
+   "zmierzone": 0.0,
+   "nominal": 0.0,
+   "zrodlo": "wierzchem w dół"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "wierzch grubość (15,0,1)",
+   "metoda": "cięciwa w materiale Z",
+   "zmierzone": 2.0,
+   "nominal": 2.0,
+   "zrodlo": "cover_top_t"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "wnęka X (0,20,10)",
+   "metoda": "cięciwa",
+   "zmierzone": 96.6,
+   "nominal": 96.6,
+   "zrodlo": "plate_size + 2·cover_clearance"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "wnęka Y (20,0,10)",
+   "metoda": "cięciwa",
+   "zmierzone": 96.6,
+   "nominal": 96.6,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "wnęka: naroże — x lica przy y 48,1",
+   "metoda": "trafienie +X",
+   "zmierzone": 47.546,
+   "nominal": 47.548331477354786,
+   "zrodlo": "naroże wnęki R1,5 (= R3 − 1,5) → 47,55"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "kołnierz grubość (49,05, 20, 10)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 1.5,
+   "nominal": 1.5,
+   "zrodlo": "cover_skirt_t"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "kołnierz grubość za garbem (49,05, 0, 18)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 2.2,
+   "nominal": 2.2,
+   "zrodlo": "1,5 + garb 0,7"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "garb prawy (y 0): czubek x (z (0,0,18) +X)",
+   "metoda": "trafienie +X",
+   "zmierzone": 47.6,
+   "nominal": 47.6,
+   "zrodlo": "48,3 − cover_snap_bump 0,7"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "garb przedni (x 25): czubek y",
+   "metoda": "trafienie −Y z (25,0,18)",
+   "zmierzone": 47.6,
+   "nominal": 47.6,
+   "zrodlo": "cover_snap_front_x 25 (przód = STL +Y po obrocie)"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "garb tylny (x −25): czubek y",
+   "metoda": "trafienie +Y z (−25,0,18)",
+   "zmierzone": -47.6,
+   "nominal": -47.6,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "garb lewy (y 0): czubek x",
+   "metoda": "trafienie −X z (0,0,18)",
+   "zmierzone": -47.6,
+   "nominal": -47.6,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "garb prawy: szerokość Y (cięciwa w materiale przy x 47,8, Z 18)",
+   "metoda": "cięciwa w materiale Y",
+   "zmierzone": 10.0,
+   "nominal": 10.0,
+   "zrodlo": "cover_snap_w"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "wycięcie palcowe przód (y −49,05, Z 19): X",
+   "metoda": "cięciwa",
+   "zmierzone": 30.0,
+   "nominal": 30,
+   "zrodlo": "cover_finger_w"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "wycięcie palcowe przód: górna krawędź Z (z (0,−49,05,10) +Z)",
+   "metoda": "trafienie +Z",
+   "zmierzone": 17.0,
+   "nominal": 17.0,
+   "zrodlo": "20 − cover_finger_h 3"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "wycięcie palcowe tył (y 49,05, Z 19): X",
+   "metoda": "cięciwa",
+   "zmierzone": 30.0,
+   "nominal": 30,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "naroże R3: x lica przy y −49,0",
+   "metoda": "trafienie −X z (150,−49,10)",
+   "zmierzone": 48.839,
+   "nominal": 48.83960780543711,
+   "zrodlo": "cover_corner_r 3 → 48,84"
+  },
+  {
+   "plik": "ramka_pokrywka_v2",
+   "cecha": "dolna krawędź kołnierza Z (49,05, 20)",
+   "metoda": "trafienie −Z z 30",
+   "zmierzone": 20.0,
+   "nominal": 20.0,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "kołnierz ø (bbox X)",
+   "metoda": "bbox",
+   "zmierzone": 14.999,
+   "nominal": 15,
+   "zrodlo": "dc_bush_flange_d (tesselacja)"
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "walec: promień zewn. (z (10,0,2) −X)",
+   "metoda": "trafienie −X",
+   "zmierzone": 5.925,
+   "nominal": 5.925,
+   "zrodlo": "dc_bush_outer_d 11,85 / 2"
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "walec: promień zewn. w −X",
+   "metoda": "trafienie +X z (−10,0,2)",
+   "zmierzone": -5.924,
+   "nominal": -5.925,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "walec: promień zewn. (Y)",
+   "metoda": "trafienie −Y z (0,10,2)",
+   "zmierzone": 5.924,
+   "nominal": 5.925,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "otwór ø (0,0,1)",
+   "metoda": "cięciwa X",
+   "zmierzone": 8.2,
+   "nominal": 8.2,
+   "zrodlo": "dc_bush_inner_d"
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "otwór ø (0,0,2,5)",
+   "metoda": "cięciwa Y",
+   "zmierzone": 8.2,
+   "nominal": 8.2,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "wysokość całkowita",
+   "metoda": "bbox Z",
+   "zmierzone": 3.0,
+   "nominal": 3.0,
+   "zrodlo": "dc_bush_t 2 + flange_t 1"
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "kołnierz grubość (6,7, 0, 0,5)",
+   "metoda": "cięciwa w materiale Z",
+   "zmierzone": 1.0,
+   "nominal": 1.0,
+   "zrodlo": "dc_bush_flange_t"
+  },
+  {
+   "plik": "ramka_tulejka_dc_v2",
+   "cecha": "ścianka walca (5, 0, 2)",
+   "metoda": "cięciwa w materiale X",
+   "zmierzone": 1.825,
+   "nominal": 1.8250000000000002,
+   "zrodlo": "1,825"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "cecha": "ø zewn. (bbox X)",
+   "metoda": "bbox",
+   "zmierzone": 9.0,
+   "nominal": 9,
+   "zrodlo": "panel_shim_d"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "cecha": "otwór ø",
+   "metoda": "cięciwa X (0,0,t/2)",
+   "zmierzone": 3.395,
+   "nominal": 3.4,
+   "zrodlo": "panel_shim_hole_d"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_05_v2",
+   "cecha": "grubość",
+   "metoda": "bbox Z",
+   "zmierzone": 0.5,
+   "nominal": 0.5,
+   "zrodlo": "panel_shim_t"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "cecha": "ø zewn. (bbox X)",
+   "metoda": "bbox",
+   "zmierzone": 9.0,
+   "nominal": 9,
+   "zrodlo": "panel_shim_d"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "cecha": "otwór ø",
+   "metoda": "cięciwa X (0,0,t/2)",
+   "zmierzone": 3.395,
+   "nominal": 3.4,
+   "zrodlo": "panel_shim_hole_d"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_1_v2",
+   "cecha": "grubość",
+   "metoda": "bbox Z",
+   "zmierzone": 1.0,
+   "nominal": 1.0,
+   "zrodlo": "panel_shim_t"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "cecha": "ø zewn. (bbox X)",
+   "metoda": "bbox",
+   "zmierzone": 9.0,
+   "nominal": 9,
+   "zrodlo": "panel_shim_d"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "cecha": "otwór ø",
+   "metoda": "cięciwa X (0,0,t/2)",
+   "zmierzone": 3.395,
+   "nominal": 3.4,
+   "zrodlo": "panel_shim_hole_d"
+  },
+  {
+   "plik": "ramka_podkladka_panelu_2_v2",
+   "cecha": "grubość",
+   "metoda": "bbox Z",
+   "zmierzone": 2.0,
+   "nominal": 2.0,
+   "zrodlo": "panel_shim_t"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "bok X / Y",
+   "metoda": "bbox",
+   "zmierzone": 96.0,
+   "nominal": 96,
+   "zrodlo": "plate_size"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "grubość z reliefem cyfry",
+   "metoda": "bbox Z",
+   "zmierzone": 8.6,
+   "nominal": 8.6,
+   "zrodlo": "8 + number_relief_h 0,6"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "grubość płytki (0, −46,5, 4)",
+   "metoda": "cięciwa w materiale Z",
+   "zmierzone": 8.0,
+   "nominal": 8.0,
+   "zrodlo": "plate_thickness"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "wycięcie D: otwarte na zewnątrz (z (45,5,−45,5,4) +X)",
+   "metoda": "trafienie +X",
+   "zmierzone": null,
+   "nominal": null,
+   "zrodlo": "brak = wycięcie narożne otwarte"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "wycięcie D: lico y od środka (z (45,5,0,4) −Y)",
+   "metoda": "trafienie −Y",
+   "zmierzone": -43.0,
+   "nominal": -43.0,
+   "zrodlo": "notch y −48…−43"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "wycięcie D: lico x od środka (z (0,−45,5,4) +X)",
+   "metoda": "trafienie +X",
+   "zmierzone": 43.0,
+   "nominal": 43.0,
+   "zrodlo": ""
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "rowek pokrywki: dno x (z (60,20,6) −X)",
+   "metoda": "trafienie −X",
+   "zmierzone": 47.2,
+   "nominal": 47.2,
+   "zrodlo": "48 − cover_groove_depth 0,8"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "kieszeń magnesu A (−42,−42): ø",
+   "metoda": "cięciwa X (Z 1)",
+   "zmierzone": 5.2,
+   "nominal": 5.2,
+   "zrodlo": "magnet_pocket_d"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "kieszeń magnesu A: sufit Z",
+   "metoda": "trafienie +Z z (−42,−42,−5)",
+   "zmierzone": 2.2,
+   "nominal": 2.2,
+   "zrodlo": "magnet_pocket_depth"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "faza górna 0,5: z lica przy x 47,8",
+   "metoda": "trafienie −Z z 20",
+   "zmierzone": 7.7,
+   "nominal": 7.7,
+   "zrodlo": "plate_top_chamfer → 7,7"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "krawędź pionowa R1: x lica przy y −47,5",
+   "metoda": "trafienie −X z (150,−47,5,4)",
+   "zmierzone": 47.859,
+   "nominal": 47.86602540378444,
+   "zrodlo": "plate_edge_r → 47,87 (róg C, bez wycięcia)"
+  },
+  {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "cecha": "stożek znacznika A: dno Z",
+   "metoda": "trafienie −Z z (−42,−42,20)",
+   "zmierzone": 5.0,
+   "nominal": 5.0,
+   "zrodlo": "8 − marker_cone_depth 3"
+  }
+ ],
+ "fits": [
+  {
+   "para": "blat kołnierz ↔ korpus wnętrze (na stronę)",
+   "rachunek": "(195 − 2·97,0)/2",
+   "zmierzone": 0.5,
+   "nominal": 0.5,
+   "regula": "R48: 0,3 + SLS ±0,3/200 → 0,5"
+  },
+  {
+   "para": "haczyk blatu: zahaczenie w kieszeni",
+   "rachunek": "czubek 98,3 − ściana wewn. 97,5",
+   "zmierzone": 0.8,
+   "nominal": 0.8,
+   "regula": "zatrzask (R48)"
+  },
+  {
+   "para": "haczyk blatu: luz do dna kieszeni",
+   "rachunek": "dno 98,5 − czubek 98,3",
+   "zmierzone": 0.2,
+   "nominal": 0.2,
+   "regula": "zatrzask"
+  },
+  {
+   "para": "haczyk blatu: dół rampy występu Z globalnie (profil, x > 97,05)",
+   "rachunek": "63,6 − Z_STL",
+   "zmierzone": 52.9,
+   "nominal": 52.85,
+   "regula": "snap_hook_z; góra występu 54.85; lico pionowe (x > 98,25) Z 53.85…54.85 = zahaczenie pionowe 1,0 + rampa 1,0 (U6 trzeciego oka)"
+  },
+  {
+   "para": "haczyk blatu: luz pod występem",
+   "rachunek": "52,85 − kieszeń dolna 52,6",
+   "zmierzone": 0.3,
+   "nominal": 0.25,
+   "regula": "R47"
+  },
+  {
+   "para": "haczyk blatu: luz nad występem",
+   "rachunek": "kieszeń górna 55,1 − 54,85",
+   "zmierzone": 0.25,
+   "nominal": 0.25,
+   "regula": "R47"
+  },
+  {
+   "para": "haczyk 8 w kieszeni 10 (na stronę)",
+   "rachunek": "(10 − 8)/2",
+   "zmierzone": 1.0,
+   "nominal": 1.0,
+   "regula": "ruchome"
+  },
+  {
+   "para": "kołek wkładki ø3 w otworze blatu ø3,3 (na stronę)",
+   "rachunek": "(3,3 − 3,0)/2",
+   "zmierzone": 0.15,
+   "nominal": 0.15,
+   "regula": "wciskane 0,1–0,15 (4.8)"
+  },
+  {
+   "para": "kołek wkładki: luz osiowy",
+   "rachunek": "głębokość 3,8 − długość 3,5",
+   "zmierzone": 0.3,
+   "nominal": 0.3,
+   "regula": "R8"
+  },
+  {
+   "para": "magnes ø5 w kieszeni blatu ø5,4 (na stronę)",
+   "rachunek": "(5,4 − 5)/2",
+   "zmierzone": 0.2,
+   "nominal": 0.2,
+   "regula": "magnesy 0,1–0,2 (klejone)"
+  },
+  {
+   "para": "magnes ø5 w otworze ucha ø5,4 (na stronę)",
+   "rachunek": "(5,4 − 5)/2",
+   "zmierzone": 0.2,
+   "nominal": 0.2,
+   "regula": ""
+  },
+  {
+   "para": "magnes ø5 × 2 w kieszeni płytki ø5,2 × 2,2",
+   "rachunek": "(5,2 − 5)/2; cofnięcie 2,2 − 2",
+   "zmierzone": 0.1,
+   "nominal": 0.1,
+   "regula": "cofnięcie 0.2"
+  },
+  {
+   "para": "płytka 96 w otworze wkładki 96,6 (na stronę)",
+   "rachunek": "(96,6 − 96)/2",
+   "zmierzone": 0.3,
+   "nominal": 0.3,
+   "regula": "ruchome 0,2–0,3"
+  },
+  {
+   "para": "płytka 96 we wnęce pokrywki 96,6 (na stronę)",
+   "rachunek": "(96,6 − 96)/2",
+   "zmierzone": 0.3,
+   "nominal": 0.3,
+   "regula": "ruchome 0,2–0,3"
+  },
+  {
+   "para": "kołek orientacyjny 4,4 w wycięciu 5 (luz po stronie otwartej, płytka wycentrowana)",
+   "rachunek": "lico kołka 43,4 − lico wycięcia 43,0",
+   "zmierzone": 0.4,
+   "nominal": 0.4,
+   "regula": "4.11/R52 U2: 0,4"
+  },
+  {
+   "para": "garb pokrywki: zahaczenie w rowku płytki",
+   "rachunek": "bok płytki 48,0 − czubek 47,6",
+   "zmierzone": 0.4,
+   "nominal": 0.4,
+   "regula": "zatrzask"
+  },
+  {
+   "para": "garb pokrywki: luz do dna rowka",
+   "rachunek": "czubek 47,6 − dno 47,2",
+   "zmierzone": 0.4,
+   "nominal": 0.4,
+   "regula": "zatrzask"
+  },
+  {
+   "para": "garb pokrywki: wysokość Z (profil, x < 48,25)",
+   "rachunek": "zakres Z STL",
+   "zmierzone": 0.75,
+   "nominal": 0.8,
+   "regula": "cover_snap_hgt; Z 17.65…18.35"
+  },
+  {
+   "para": "rowek płytki: wysokość Z (profil, x < 47,95)",
+   "rachunek": "zakres Z STL",
+   "zmierzone": 0.95,
+   "nominal": 1.0,
+   "regula": "cover_groove_w; Z 5.55…6.45 (wierzch 8 → 2 pod wierzchem = 6,0)"
+  },
+  {
+   "para": "tulejka ø11,85 w otworze korpusu ø12 (na stronę)",
+   "rachunek": "(12 − 2·5,925)/2",
+   "zmierzone": 0.075,
+   "nominal": 0.075,
+   "regula": "wciskane 0,1–0,15 (R52: 0,075 w żywicy bez skurczu)"
+  },
+  {
+   "para": "gwint gniazda ø8 w tulejce ø8,2 (na stronę)",
+   "rachunek": "(8,2 − 8)/2",
+   "zmierzone": 0.1,
+   "nominal": 0.1,
+   "regula": "R50‑3"
+  },
+  {
+   "para": "tulejka: długość walca 2 vs ściana skrzynki 2",
+   "rachunek": "3 − 1 vs 2,0",
+   "zmierzone": 0.0,
+   "nominal": 0.0,
+   "regula": "walec kończy się w licu ściany (nakrętka dociska ścianę)"
+  },
+  {
+   "para": "podkładka: otwór 3,4 vs M3 (na stronę)",
+   "rachunek": "(3,4 − 3)/2",
+   "zmierzone": 0.198,
+   "nominal": 0.2,
+   "regula": "ø zewn. 9 = stadion 9"
+  },
+  {
+   "para": "dyfuzor 160 × 2 w kieszeni 162 × 2 (na stronę)",
+   "rachunek": "(162 − 160)/2",
+   "zmierzone": 1.0,
+   "nominal": 1.0,
+   "regula": "licowanie: głębokość 2.0 − 2 = 0.0"
+  },
+  {
+   "para": "czujnik Halla TO‑92 (4 × 5 × 1,5 proxy) w kieszeni 5,0 × 5,5: luz łączny X",
+   "rachunek": "5,0 − 4",
+   "zmierzone": 1.0,
+   "nominal": 1.0,
+   "regula": "Y: 0.5"
+  },
+  {
+   "para": "łańcuch: wierzch blatu = korpus_h + blat_t",
+   "rachunek": "59,6 + 4",
+   "zmierzone": 63.6,
+   "nominal": 63.6,
+   "regula": "blat_top_z"
+  },
+  {
+   "para": "łańcuch: półki wkładki",
+   "rachunek": "63,6 + 2,5",
+   "zmierzone": 66.1,
+   "nominal": 66.1,
+   "regula": "D4"
+  },
+  {
+   "para": "łańcuch: wierzch ramy wkładki",
+   "rachunek": "63,6 + 6",
+   "zmierzone": 69.6,
+   "nominal": 69.6,
+   "regula": "D4"
+  },
+  {
+   "para": "łańcuch: wierzch płytki",
+   "rachunek": "66,1 + 8",
+   "zmierzone": 74.1,
+   "nominal": 74.1,
+   "regula": "D4"
+  },
+  {
+   "para": "pokrywka: dół kołnierza nad ramą wkładki",
+   "rachunek": "74,1 − (20 − 2 − 14) = 70,1 vs rama 69,6",
+   "zmierzone": 0.5,
+   "nominal": 0.5,
+   "regula": "4.11 bez styku"
+  },
+  {
+   "para": "pokrywka: prześwit nad płytką",
+   "rachunek": "wnęka 18 − kołnierz pod wierzch 4",
+   "zmierzone": 14.0,
+   "nominal": 14.0,
+   "regula": "cover_inner_h"
+  },
+  {
+   "para": "panel: stadion 4,0 + dystans 50 = spód PCB",
+   "rachunek": "4 + 50",
+   "zmierzone": 54.0,
+   "nominal": 54.0,
+   "regula": "panel_pcb_z"
+  },
+  {
+   "para": "Pi: boss 8 + stos 26 = szczyt stosu",
+   "rachunek": "8 + 26",
+   "zmierzone": 34.0,
+   "nominal": 34.0,
+   "regula": "zapas do strefy złączy 42 − 34 = 8"
+  },
+  {
+   "para": "wkręt blatu M3×8: zapas do dna otworu słupka",
+   "rachunek": "koniec wkrętu 100 − 8 = 92; dno 91",
+   "zmierzone": 1.0,
+   "nominal": 1.0,
+   "regula": "gwint w PA12 97 → 92 = 5,0"
+  },
+  {
+   "para": "wkręt Pi M2,5×6: zapas do dna otworu bossa",
+   "rachunek": "otwór 5 − (6 − 1,6)",
+   "zmierzone": 0.6,
+   "nominal": 0.6,
+   "regula": ""
+  }
+ ],
+ "profil_haczyka": [
+  [
+   8.0,
+   97.0
+  ],
+  [
+   8.05,
+   97.0
+  ],
+  [
+   8.1,
+   97.0
+  ],
+  [
+   8.15,
+   97.0
+  ],
+  [
+   8.2,
+   97.0
+  ],
+  [
+   8.25,
+   97.0
+  ],
+  [
+   8.3,
+   97.0
+  ],
+  [
+   8.35,
+   97.0
+  ],
+  [
+   8.4,
+   97.0
+  ],
+  [
+   8.45,
+   97.0
+  ],
+  [
+   8.5,
+   97.0
+  ],
+  [
+   8.55,
+   97.0
+  ],
+  [
+   8.6,
+   97.0
+  ],
+  [
+   8.65,
+   97.0
+  ],
+  [
+   8.7,
+   97.0
+  ],
+  [
+   8.75,
+   98.3
+  ],
+  [
+   8.8,
+   98.3
+  ],
+  [
+   8.85,
+   98.3
+  ],
+  [
+   8.9,
+   98.3
+  ],
+  [
+   8.95,
+   98.3
+  ],
+  [
+   9.0,
+   98.3
+  ],
+  [
+   9.05,
+   98.3
+  ],
+  [
+   9.1,
+   98.3
+  ],
+  [
+   9.15,
+   98.3
+  ],
+  [
+   9.2,
+   98.3
+  ],
+  [
+   9.25,
+   98.3
+  ],
+  [
+   9.3,
+   98.3
+  ],
+  [
+   9.35,
+   98.3
+  ],
+  [
+   9.4,
+   98.3
+  ],
+  [
+   9.45,
+   98.3
+  ],
+  [
+   9.5,
+   98.3
+  ],
+  [
+   9.55,
+   98.3
+  ],
+  [
+   9.6,
+   98.3
+  ],
+  [
+   9.65,
+   98.3
+  ],
+  [
+   9.7,
+   98.3
+  ],
+  [
+   9.75,
+   98.3
+  ],
+  [
+   9.8,
+   98.235
+  ],
+  [
+   9.85,
+   98.17
+  ],
+  [
+   9.9,
+   98.105
+  ],
+  [
+   9.95,
+   98.04
+  ],
+  [
+   10.0,
+   97.975
+  ],
+  [
+   10.05,
+   97.91
+  ],
+  [
+   10.1,
+   97.845
+  ],
+  [
+   10.15,
+   97.78
+  ],
+  [
+   10.2,
+   97.715
+  ],
+  [
+   10.25,
+   97.65
+  ],
+  [
+   10.3,
+   97.585
+  ],
+  [
+   10.35,
+   97.52
+  ],
+  [
+   10.4,
+   97.455
+  ],
+  [
+   10.45,
+   97.39
+  ],
+  [
+   10.5,
+   97.325
+  ],
+  [
+   10.55,
+   97.26
+  ],
+  [
+   10.6,
+   97.195
+  ],
+  [
+   10.65,
+   97.13
+  ],
+  [
+   10.7,
+   97.065
+  ],
+  [
+   10.75,
+   97.0
+  ],
+  [
+   10.8,
+   97.0
+  ],
+  [
+   10.85,
+   97.0
+  ],
+  [
+   10.9,
+   97.0
+  ],
+  [
+   10.95,
+   97.0
+  ],
+  [
+   11.0,
+   97.0
+  ],
+  [
+   11.05,
+   97.0
+  ],
+  [
+   11.1,
+   97.0
+  ],
+  [
+   11.15,
+   97.0
+  ],
+  [
+   11.2,
+   97.0
+  ],
+  [
+   11.25,
+   97.0
+  ],
+  [
+   11.3,
+   97.0
+  ],
+  [
+   11.35,
+   97.0
+  ],
+  [
+   11.4,
+   97.0
+  ],
+  [
+   11.45,
+   97.0
+  ],
+  [
+   11.5,
+   97.0
+  ],
+  [
+   11.55,
+   97.0
+  ],
+  [
+   11.6,
+   97.0
+  ],
+  [
+   11.65,
+   97.0
+  ],
+  [
+   11.7,
+   97.0
+  ],
+  [
+   11.75,
+   97.0
+  ],
+  [
+   11.8,
+   97.0
+  ],
+  [
+   11.85,
+   97.0
+  ],
+  [
+   11.9,
+   97.0
+  ],
+  [
+   11.95,
+   97.0
+  ],
+  [
+   12.0,
+   97.0
+  ]
+ ],
+ "profil_garbu": [
+  [
+   16.5,
+   48.3
+  ],
+  [
+   16.55,
+   48.3
+  ],
+  [
+   16.6,
+   48.3
+  ],
+  [
+   16.65,
+   48.3
+  ],
+  [
+   16.7,
+   48.3
+  ],
+  [
+   16.75,
+   48.3
+  ],
+  [
+   16.8,
+   48.3
+  ],
+  [
+   16.85,
+   48.3
+  ],
+  [
+   16.9,
+   48.3
+  ],
+  [
+   16.95,
+   48.3
+  ],
+  [
+   17.0,
+   48.3
+  ],
+  [
+   17.05,
+   48.3
+  ],
+  [
+   17.1,
+   48.3
+  ],
+  [
+   17.15,
+   48.3
+  ],
+  [
+   17.2,
+   48.3
+  ],
+  [
+   17.25,
+   48.3
+  ],
+  [
+   17.3,
+   48.3
+  ],
+  [
+   17.35,
+   48.3
+  ],
+  [
+   17.4,
+   48.3
+  ],
+  [
+   17.45,
+   48.3
+  ],
+  [
+   17.5,
+   48.3
+  ],
+  [
+   17.55,
+   48.3
+  ],
+  [
+   17.6,
+   48.3
+  ],
+  [
+   17.65,
+   47.813
+  ],
+  [
+   17.7,
+   47.754
+  ],
+  [
+   17.75,
+   47.704
+  ],
+  [
+   17.8,
+   47.654
+  ],
+  [
+   17.85,
+   47.64
+  ],
+  [
+   17.9,
+   47.627
+  ],
+  [
+   17.95,
+   47.613
+  ],
+  [
+   18.0,
+   47.6
+  ],
+  [
+   18.05,
+   47.613
+  ],
+  [
+   18.1,
+   47.627
+  ],
+  [
+   18.15,
+   47.64
+  ],
+  [
+   18.2,
+   47.654
+  ],
+  [
+   18.25,
+   47.704
+  ],
+  [
+   18.3,
+   47.754
+  ],
+  [
+   18.35,
+   47.813
+  ],
+  [
+   18.4,
+   48.3
+  ],
+  [
+   18.45,
+   48.3
+  ],
+  [
+   18.5,
+   48.3
+  ],
+  [
+   18.55,
+   48.3
+  ],
+  [
+   18.6,
+   48.3
+  ],
+  [
+   18.65,
+   48.3
+  ],
+  [
+   18.7,
+   48.3
+  ],
+  [
+   18.75,
+   48.3
+  ],
+  [
+   18.8,
+   48.3
+  ],
+  [
+   18.85,
+   48.3
+  ],
+  [
+   18.9,
+   48.3
+  ],
+  [
+   18.95,
+   48.3
+  ],
+  [
+   19.0,
+   48.3
+  ],
+  [
+   19.05,
+   48.3
+  ],
+  [
+   19.1,
+   48.3
+  ],
+  [
+   19.15,
+   48.3
+  ],
+  [
+   19.2,
+   48.3
+  ],
+  [
+   19.25,
+   48.3
+  ],
+  [
+   19.3,
+   48.3
+  ],
+  [
+   19.35,
+   48.3
+  ],
+  [
+   19.4,
+   48.3
+  ],
+  [
+   19.45,
+   48.3
+  ],
+  [
+   19.5,
+   48.3
+  ]
+ ],
+ "profil_rowka_plytki": [
+  [
+   5.0,
+   48.0
+  ],
+  [
+   5.05,
+   48.0
+  ],
+  [
+   5.1,
+   48.0
+  ],
+  [
+   5.15,
+   48.0
+  ],
+  [
+   5.2,
+   48.0
+  ],
+  [
+   5.25,
+   48.0
+  ],
+  [
+   5.3,
+   48.0
+  ],
+  [
+   5.35,
+   48.0
+  ],
+  [
+   5.4,
+   48.0
+  ],
+  [
+   5.45,
+   48.0
+  ],
+  [
+   5.5,
+   48.0
+  ],
+  [
+   5.55,
+   47.2
+  ],
+  [
+   5.6,
+   47.2
+  ],
+  [
+   5.65,
+   47.2
+  ],
+  [
+   5.7,
+   47.2
+  ],
+  [
+   5.75,
+   47.2
+  ],
+  [
+   5.8,
+   47.2
+  ],
+  [
+   5.85,
+   47.2
+  ],
+  [
+   5.9,
+   47.2
+  ],
+  [
+   5.95,
+   47.2
+  ],
+  [
+   6.0,
+   47.2
+  ],
+  [
+   6.05,
+   47.2
+  ],
+  [
+   6.1,
+   47.2
+  ],
+  [
+   6.15,
+   47.2
+  ],
+  [
+   6.2,
+   47.2
+  ],
+  [
+   6.25,
+   47.2
+  ],
+  [
+   6.3,
+   47.2
+  ],
+  [
+   6.35,
+   47.2
+  ],
+  [
+   6.4,
+   47.2
+  ],
+  [
+   6.45,
+   47.2
+  ],
+  [
+   6.5,
+   48.0
+  ],
+  [
+   6.55,
+   48.0
+  ],
+  [
+   6.6,
+   48.0
+  ],
+  [
+   6.65,
+   48.0
+  ],
+  [
+   6.7,
+   48.0
+  ],
+  [
+   6.75,
+   48.0
+  ],
+  [
+   6.8,
+   48.0
+  ],
+  [
+   6.85,
+   48.0
+  ],
+  [
+   6.9,
+   48.0
+  ],
+  [
+   6.95,
+   48.0
+  ],
+  [
+   7.0,
+   48.0
+  ]
+ ]
+}

@@ -1,0 +1,11 @@
+dane/
+!dane/.gitkeep
+__pycache__/
+*.pyc
+.pytest_cache/
+*.sqlite
+*.png
+*.csv
+# ustawienia konkretnej maszyny (wzór: ustawienia.przyklad.toml)
+ustawienia.toml
+dane/mapa_sciezek.json   # id projektu -> ścieżka z nazwiskiem pacjenta: nigdy do repozytorium

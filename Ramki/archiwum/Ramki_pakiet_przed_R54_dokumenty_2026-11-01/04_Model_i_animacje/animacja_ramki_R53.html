@@ -1,0 +1,313 @@
+<title>Ramka na stole R53</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one scene at a time, tabs on top, legend under the drawing; drawings are SVG built from plan dimensions. */
+:root{
+  --bg:#f3f1ec; --fg:#1f2125; --muted:#6a6f78; --panel:#ffffff; --line:#d6d2c9;
+  --graphite:#3a3d42; --graphite-2:#2b2e33; --graphite-3:#4b4f56;
+  --white:#f6f5f1; --white-2:#dcdad3;
+  --accent:#c8641e; --ok:#2e9e4a; --warn:#d6433b; --wifi:#1d7fd1; --table:#d9c6a3; --table-2:#bba57e;
+  --font:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#15171a; --fg:#e8e6e0; --muted:#9aa0a8; --panel:#1e2125; --line:#33373d;
+  --graphite:#4a4e55; --graphite-2:#35383e; --graphite-3:#5c6068; --white:#e9e8e3; --white-2:#c9c7c0;
+  --table:#6b5a3e; --table-2:#54462f; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#15171a; --fg:#e8e6e0; --muted:#9aa0a8; --panel:#1e2125; --line:#33373d;
+  --graphite:#4a4e55; --graphite-2:#35383e; --graphite-3:#5c6068; --white:#e9e8e3; --white-2:#c9c7c0;
+  --table:#6b5a3e; --table-2:#54462f; color-scheme:dark }
+body{background:var(--bg);color:var(--fg);font-family:var(--font);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1000px;margin:0 auto;display:grid;gap:14px}
+h1{font-size:1.35rem;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:inherit;font-weight:600;padding:8px 14px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:6px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--graphite);color:#fff;border-color:var(--graphite)}
+.tabs button:focus-visible,.ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scene{display:grid;gap:10px}
+.scene[hidden]{display:none!important}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;overflow-x:auto}
+svg{display:block;width:100%;height:auto;max-width:100%}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ctrl button{font:inherit;padding:6px 12px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:6px;cursor:pointer}
+.ctrl .step{font-family:var(--mono);color:var(--muted);font-size:.85rem}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 16px;margin:0;padding:0;list-style:none;font-size:.9rem}
+.legend li{display:flex;gap:8px;align-items:baseline;min-width:0;padding:3px 6px;border-radius:4px}
+.legend li.on{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.legend b{font-family:var(--mono);font-weight:500;color:var(--accent);flex:0 0 2.2em}
+.part{transition:transform .9s cubic-bezier(.2,.7,.2,1),opacity .6s}
+.part.out{transform:translateY(-150px);opacity:0}
+.flow{stroke-dasharray:7 6;animation:flow 1.1s linear infinite}
+.flow.slow{animation-duration:2.2s}
+@keyframes flow{to{stroke-dashoffset:-13}}
+.pulse{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+.glow{animation:glow 2.4s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:.55}50%{opacity:1}}
+text{font-family:var(--font);fill:var(--fg)}
+.mono{font-family:var(--mono)}
+.m{fill:var(--muted)}
+@media (prefers-reduced-motion: reduce){.flow,.pulse,.glow{animation:none}.part{transition:none}}
+</style>
+
+<div class="wrap">
+  <h1>Ramka świetlna wg planu v2 (po R53): na stole, podłączenie, montaż</h1>
+  <p class="sub">Trzy sceny z wymiarów parametry.json po R53, 31.10.2026 (obudowa 200 × 200 × 63,6 mm, płytka 96 × 96). Schemat, nie render 3D; dokładna geometria w modelu 3D.</p>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-scene="s1">1 · Na stole</button>
+    <button role="tab" aria-selected="false" data-scene="s2">2 · Podłączenie</button>
+    <button role="tab" aria-selected="false" data-scene="s3">3 · Montaż (przekrój)</button>
+  </div>
+
+  <!-- ===== SCENA 1 ===== -->
+  <section class="scene" id="s1">
+    <div class="ctrl">
+      <button id="s1-room">Pokaż: ramka poranna</button>
+      <span class="step" id="s1-cap">Ramka wieczorna na parapecie obok skanera</span>
+    </div>
+    <div class="stage"><svg id="iso" viewBox="0 0 1000 560" aria-label="Ramka na stole, widok izometryczny"></svg></div>
+    <ul class="legend">
+      <li><b>A</b>Ramka: korpus + blat grafit, płytka biała na białej wkładce</li>
+      <li><b>B</b>Zasilacz 5 V 4 A w gniazdku, wtyk DC w tylnej ściance</li>
+      <li><b>C</b>Laptop = serwer; Wi‑Fi 2,4 GHz do ramki</li>
+      <li><b>D</b>Wieczorna: skaner obok, głowica gestu z przodu po lewej, przycisk po prawej</li>
+      <li><b>E</b>Poranna: klawiatura numeryczna luzem na stole, kuwety z pracami</li>
+    </ul>
+  </section>
+
+  <!-- ===== SCENA 2 ===== -->
+  <section class="scene" id="s2" hidden>
+    <div class="ctrl"><span class="step">Przepływ: pomarańcz = zasilanie 5 V, szary = dane/GPIO, niebieski = radio</span></div>
+    <div class="stage"><svg id="wire" viewBox="0 0 1000 600" aria-label="Schemat podłączenia"></svg></div>
+    <ul class="legend">
+      <li><b>1</b>Zasilacz → gniazdo DC (tył) → Bonnet; Bonnet zasila Pi (pin 5 V) i panel (VH4)</li>
+      <li><b>2</b>Bonnet → panel HUB75 taśmą 16‑pin; piny Bonnetu zajęte wg 8.1</li>
+      <li><b>3</b>3 × A3144 we wkładce → płytka proto (10 kΩ do 3,3 V) → GPIO 19 / 25 / 8</li>
+      <li><b>4</b>VL53L1X → I2C (GPIO 2, 3); przycisk → GPIO 7, LED przez tranzystor z GPIO 10</li>
+      <li><b>5</b>Odbiornik klawiatury w USB Pi; laptop przez Wi‑Fi; skaner tylko do laptopa</li>
+    </ul>
+  </section>
+
+  <!-- ===== SCENA 3 ===== -->
+  <section class="scene" id="s3" hidden>
+    <div class="ctrl">
+      <button id="s3-play">▶ Odtwórz montaż</button>
+      <button id="s3-prev">◀</button><button id="s3-next">▶</button>
+      <span class="step" id="s3-cap">Krok 0 / 8</span>
+    </div>
+    <div class="stage"><svg id="cut" viewBox="0 0 1000 420" aria-label="Przekrój przez ramkę, kolejność montażu"></svg></div>
+    <ul class="legend" id="s3-legend">
+      <li data-k="1"><b>1</b>Korpus 200 × 200 × 59,6, ściany 2,5, dno 3; stopki ø10 × 4; stadiony panelu Z 4, bossy Pi ø8; 4 kieszenie zatrzasków 11 × 3,5 × 1,3 (Z 52,1–55,6)</li>
+      <li data-k="2"><b>2</b>Pi 4 + Bonnet na bossach 5 mm (stos 26 mm, Z 8–34)</li>
+      <li data-k="3"><b>3</b>Dystanse mosiężne M3 F‑F 50 na stadionach Z 4 → spód panelu na Z 54</li>
+      <li data-k="4"><b>4</b>Panel HUB75 160 × 160 złączami w dół (do Z 42); 4 wkręty M3 od spodu przez rowki 3,6</li>
+      <li data-k="5"><b>5</b>Blat z dyfuzorem w kieszeni 162; kołnierz 193,6 (luz 0,7), 4 haczyki 1,5 w kieszeniach zatrzasków + 2 wkręty M3 z tyłu</li>
+      <li data-k="6"><b>6</b>Wkładka (otwór 96,8) na kołkach i magnesach; półki 2,5 mm z czujnikami Halla</li>
+      <li data-k="7"><b>7</b>Płytka 96 × 96 na półkach (luz 0,4 na stronę); magnesy nad czujnikami</li>
+      <li data-k="8"><b>8</b>Pokrywka na czas przenoszenia; 14 mm nad płytką</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+const el=(n,a,txt)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;return e;};
+const css=v=>`var(--${v})`;
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  ['s1','s2','s3'].forEach(id=>$('#'+id).hidden=(id!==b.dataset.scene));
+  if(b.dataset.scene==='s3'&&step===0)play();
+}));
+
+/* ---------- SCENA 1: izometria ---------- */
+const S=0.85, C=Math.cos(Math.PI/6)*S, H=Math.sin(Math.PI/6)*S;
+let OX=520, OY=70;
+const P=(x,y,z)=>[OX+(x-y)*C, OY+(x+y)*H-z*S];
+const poly=(pts,fill,extra={})=>el('polygon',Object.assign({points:pts.map(p=>p.join(',')).join(' '),fill},extra));
+function box(g,x0,y0,z0,dx,dy,dz,col){ // col: [top,right(x+),left(y+)]
+  const p=(a,b,c)=>P(a,b,c);
+  g.appendChild(poly([p(x0,y0,z0+dz),p(x0+dx,y0,z0+dz),p(x0+dx,y0+dy,z0+dz),p(x0,y0+dy,z0+dz)],col[0]));
+  g.appendChild(poly([p(x0+dx,y0,z0),p(x0+dx,y0+dy,z0),p(x0+dx,y0+dy,z0+dz),p(x0+dx,y0,z0+dz)],col[1]));
+  g.appendChild(poly([p(x0,y0+dy,z0),p(x0+dx,y0+dy,z0),p(x0+dx,y0+dy,z0+dz),p(x0,y0+dy,z0+dz)],col[2]));
+}
+const GR=[css('graphite'),css('graphite-2'),css('graphite-3')], WH=[css('white'),css('white-2'),'#cfcdc6'];
+let room='evening';
+function drawIso(){
+  const svg=$('#iso'); svg.innerHTML='';
+  const g=el('g',{}); svg.appendChild(g);
+  // stół / parapet: 700 x 420 x 30, przód = +y
+  box(g,0,0,-30,600,340,30,[css('table'),css('table-2'),css('table-2')]);
+  const label=(x,y,z,t,cls)=>{const [a,b]=P(x,y,z);g.appendChild(el('text',{x:a,y:b,'font-size':13,'text-anchor':'middle',class:cls||''},t));};
+  if(room==='evening'){
+    // skaner (tył, lewa część): 300 x 300 x 350
+    box(g,30,30,0,200,200,190,['#9ea4ad','#6f7580','#858b95']);
+    g.appendChild(poly([P(80,230,30),P(180,230,30),P(180,230,130),P(80,230,130)],'#2a2d33'));
+    label(130,130,205,'Skaner Aidite A‑IS Pro 3');
+  } else {
+    // kuwety 3 szt. z tyłu
+    [[30,20],[160,20],[290,20]].forEach(([x,y],i)=>{box(g,x,y,0,110,80,35,['#b7bcc4','#858b95','#9ea4ad']);});
+    label(190,60,55,'Kuwety z pracami');
+  }
+  // laptop po prawej z tyłu: 330 x 230 x 15 + ekran
+  box(g,330,20,0,260,190,14,['#b9bec6','#858b95','#9ea4ad']);
+  box(g,330,20,14,260,8,170,['#7d838d','#1c1e22','#5b6169']);
+  g.appendChild(poly([P(342,28,28),P(578,28,28),P(578,28,172),P(342,28,172)],'#2f6fb3'));
+  label(460,110,20,'Laptop (serwer)');
+  // ramka A: 200 x 200 x 63,6 z przodu po lewej/środku
+  const fx=room==='evening'?300:160, fy=room==='evening'?120:120;
+  const fr=el('g',{id:'frame'}); g.appendChild(fr);
+  box(fr,fx,fy,0,200,200,63.6,GR);
+  // okno + dyfuzor + wkładka + płytka na wierzchu
+  const top=63.6;
+  fr.appendChild(poly([P(fx+19,fy+19,top),P(fx+181,fy+19,top),P(fx+181,fy+181,top),P(fx+19,fy+181,top)],'#d7dbdf'));
+  // cyfry na marginesie
+  const [mx,my]=P(fx+100,fy+172,top+.1); fr.appendChild(el('text',{x:mx,y:my+4,'font-size':11,class:'mono',fill:css('wifi'),'text-anchor':'middle'},room==='evening'?'OK 4':'K 12 · 7'));
+  box(fr,fx+47.6,fy+47.6,top,104.8,104.8,6,WH);
+  const plate=el('g',{id:'plate'}); fr.appendChild(plate);
+  box(plate,fx+52,fy+52,top+2.5,96,96,8,WH);
+  // gniazda: siatka 5x5 kolorowych kółek
+  for(let i=0;i<5;i++)for(let j=0;j<5;j++){
+    const [a,b]=P(fx+62+i*19,fy+62+j*19,top+10.6);
+    const red=room==='evening'&&((i*7+j*3)%9===0);
+    const on=room==='evening'||j>=3;
+    plate.appendChild(el('ellipse',{cx:a,cy:b,rx:7,ry:4,fill:on?(red?css('warn'):css('ok')):'#e2e1da',class:on?'glow':'',stroke:'#9b9a93','stroke-width':.5}));
+  }
+  // przód ramki: napis, przycisk / zaślepka, głowica
+  const [lx,ly]=P(fx+80,fy+200,44); fr.appendChild(el('text',{x:lx,y:ly,'font-size':8,fill:'#b8bcc2','text-anchor':'middle',transform:`rotate(30 ${lx} ${ly})`,'letter-spacing':1},room==='evening'?'RAMKA WIECZORNA':'RAMKA PORANNA'));
+  const [bx,by]=P(fx+130,fy+200,22); fr.appendChild(el('ellipse',{cx:bx,cy:by,rx:9,ry:11,fill:room==='evening'?'#e2b93b':css('graphite-2'),stroke:'#1d1f22'}));
+  if(room==='evening'){ box(fr,fx+13,fy+200,30,34,26,16,GR); const [hx,hy]=P(fx+30,fy+213,47); fr.appendChild(el('rect',{x:hx-4,y:hy-3,width:8,height:5,fill:'#2a2d33'})); label(fx+30,fy+250,60,'gest ↑'); }
+  label(fx+100,fy+100,95,room==='evening'?'A · ramka wieczorna':'A · ramka poranna');
+  // zasilacz B: gniazdko na ścianie z tyłu po prawej + kabel do tylnej ścianki
+  box(g,560,0,0,30,40,60,['#e9e9e6','#bdbdb8','#d5d5d0']);
+  const [pa,pb]=P(575,20,30), [pc,pd]=P(fx+140,fy,20);
+  g.appendChild(el('path',{d:`M${pa} ${pb} C ${pa-60} ${pb+60}, ${pc+40} ${pd-60}, ${pc} ${pd}`,fill:'none',stroke:css('accent'),'stroke-width':3,class:'flow slow'}));
+  label(575,20,75,'B · zasilacz 5 V');
+  // Wi‑Fi C: łuki między laptopem a ramką
+  const [wa,wb]=P(fx+100,fy+100,70), [wc,wd]=P(460,120,110);
+  g.appendChild(el('path',{d:`M${wa} ${wb} L${wc} ${wd}`,stroke:css('wifi'),'stroke-width':2,class:'flow','stroke-opacity':.8}));
+  const [cx1,cy1]=P(460,120,135); [12,22,32].forEach((r,i)=>g.appendChild(el('path',{d:`M${cx1-r} ${cy1} A ${r} ${r} 0 0 1 ${cx1+r} ${cy1}`,fill:'none',stroke:css('wifi'),'stroke-width':2,class:'pulse',style:`animation-delay:${i*.3}s`})));
+  label(460,120,170,'C · Wi‑Fi 2,4 GHz');
+  if(room==='morning'){
+    // klawiatura E luzem na stole po prawej z przodu
+    box(g,420,220,0,130,90,20,['#d8dadd','#9a9ea5','#b9bcc2']);
+    for(let i=0;i<4;i++)for(let j=0;j<4;j++){box(g,428+i*31,228+j*20,20,24,14,3,['#f5f6f7','#c9ccd1','#dfe1e4']);}
+    label(485,265,45,'E · klawiatura numeryczna');
+    const [ka,kb]=P(485,265,35), [kc,kd]=P(fx+150,fy+120,40);
+    g.appendChild(el('path',{d:`M${ka} ${kb} Q ${(ka+kc)/2} ${Math.min(kb,kd)-70} ${kc} ${kd}`,fill:'none',stroke:css('wifi'),'stroke-width':2,class:'flow','stroke-dasharray':'3 6'}));
+    label(fx+150,fy+120,105,'odbiornik USB w środku','m');
+  }
+  $('#s1-cap').textContent=room==='evening'?'Ramka wieczorna na parapecie obok skanera':'Ramka poranna w pomieszczeniu kuwet, klawiatura obok';
+  $('#s1-room').textContent=room==='evening'?'Pokaż: ramka poranna':'Pokaż: ramka wieczorna';
+  // animacja płytki: opada na wkładkę
+  const pl=$('#plate'); pl.style.transition='transform 1.4s cubic-bezier(.2,.7,.2,1)'; pl.style.transform='translateY(-90px)';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>pl.style.transform='none'));
+}
+$('#s1-room').addEventListener('click',()=>{room=room==='evening'?'morning':'evening';drawIso();});
+drawIso();
+
+/* ---------- SCENA 2: schemat ---------- */
+(function(){
+  const svg=$('#wire');
+  const node=(x,y,w,h,t1,t2,fill)=>{const g=el('g',{});g.appendChild(el('rect',{x,y,width:w,height:h,rx:6,fill:fill||css('panel'),stroke:css('line'),'stroke-width':1.2}));g.appendChild(el('text',{x:x+w/2,y:y+h/2-(t2?4:-4),'font-size':13,'font-weight':600,'text-anchor':'middle'},t1));if(t2)g.appendChild(el('text',{x:x+w/2,y:y+h/2+12,'font-size':11,'text-anchor':'middle',class:'m mono'},t2));svg.appendChild(g);};
+  const wire=(d,kind)=>svg.appendChild(el('path',{d,fill:'none',stroke:kind==='pwr'?css('accent'):kind==='rf'?css('wifi'):css('muted'),'stroke-width':kind==='pwr'?3.5:2,class:'flow'+(kind==='rf'?' slow':'')}));
+  const tag=(x,y,t,cls)=>svg.appendChild(el('text',{x,y,'font-size':11,class:'mono '+(cls||'m')},t));
+  // obudowa (strefa przerywana)
+  svg.appendChild(el('rect',{x:250,y:40,width:560,height:520,rx:10,fill:'none',stroke:css('graphite'),'stroke-dasharray':'8 6','stroke-width':1.5}));
+  tag(262,62,'WNĘTRZE OBUDOWY 200 × 200 × 63,6','m');
+  // elementy
+  node(40,250,150,50,'Zasilacz','230 V → 5 V 4 A',null);
+  node(255,250,70,50,'DC','5,5/2,1');
+  node(400,220,180,80,'RGB Matrix Bonnet','HUB75 · 5 V · GPIO 2×20');
+  node(400,360,180,70,'Raspberry Pi 4 B','USB ×2 · Wi‑Fi · microSD');
+  node(640,80,150,80,'Panel HUB75','64 × 64 P2.5 · 160 mm');
+  node(640,220,150,56,'Płytka proto','3 × 10 kΩ → 3,3 V');
+  node(640,320,150,56,'Wkładka: 3 × A3144','pod rogami A, B, C');
+  node(640,420,150,56,'VL53L1X (W)','I2C 0x29');
+  node(640,500,150,50,'Przycisk + LED (W)','GPIO 7 / GPIO 10');
+  node(265,460,120,50,'Odbiornik USB','klawiatury (P)');
+  node(255,90,120,50,'USB serwisowe','gniazdo w tyle');
+  node(850,250,130,56,'Laptop','serwer · Wi‑Fi');
+  node(850,360,130,56,'Skaner','USB do laptopa');
+  node(40,460,150,50,'Klawiatura 2,4 GHz','luzem na stole (P)');
+  // zasilanie
+  wire('M190 275 H255','pwr'); tag(195,268,'wtyk DC','m');
+  wire('M325 275 H400','pwr');
+  wire('M580 240 C 610 240, 610 120, 640 120','pwr'); tag(596,170,'VH4 5 V','m');
+  wire('M490 300 V360','pwr'); tag(496,335,'5 V pin 2','m');
+  // dane
+  wire('M580 260 C 605 260, 605 140, 640 140','sig'); tag(560,200,'taśma 16‑pin','m');
+  wire('M580 280 H640 V248','sig'); tag(584,296,'GPIO 19/25/8','m');
+  wire('M715 276 V320','sig'); tag(722,302,'5 V · GND · OUT','m');
+  wire('M580 290 C 620 290, 600 448, 640 448','sig'); tag(560,412,'GPIO 2/3 I2C','m');
+  wire('M560 300 C 600 300, 590 525, 640 525','sig');
+  wire('M385 485 H440 V430','sig'); tag(392,478,'USB','m');
+  wire('M315 140 C 330 200, 420 330, 440 360','sig');
+  // radio
+  wire('M190 485 C 220 485, 230 485, 265 485','rf'); tag(196,478,'2,4 GHz','m');
+  wire('M580 395 C 700 395, 760 278, 850 278','rf'); tag(700,400,'Wi‑Fi 2,4 GHz','m');
+  wire('M915 360 V306','sig'); tag(922,336,'USB','m');
+  tag(40,590,'(W) = tylko ramka wieczorna, (P) = tylko poranna. Wolne GPIO: 9, 11, 14, 15.','m');
+})();
+
+/* ---------- SCENA 3: przekrój ---------- */
+const parts=[]; let step=0, timer=null;
+(function(){
+  const svg=$('#cut'); const K=3, X0=500, ZB=375; // 3 px/mm, środek x=500, Z=0 przy y=375
+  const X=x=>X0+x*K, Y=z=>ZB-z*K;
+  const R=(g,x1,x2,z1,z2,fill,extra)=>g.appendChild(el('rect',Object.assign({x:X(Math.min(x1,x2)),y:Y(Math.max(z1,z2)),width:Math.abs(x2-x1)*K,height:Math.abs(z2-z1)*K,fill},extra||{})));
+  const part=(k)=>{const g=el('g',{class:'part out','data-k':k});svg.appendChild(g);parts.push(g);return g;};
+  const T=(x,z,t,anchor)=>svg.appendChild(el('text',{x:X(x),y:Y(z),'font-size':11,class:'mono m','text-anchor':anchor||'start'},t));
+  // 1 korpus + stopki + stadiony + bossy Pi; kieszenie zatrzasków w ścianach bocznych (y = 0)
+  let g=part(1);
+  R(g,-100,100,0,3,css('graphite')); R(g,-100,-97.5,0,59.6,css('graphite')); R(g,97.5,100,0,59.6,css('graphite'));
+  [-1,1].forEach(s=>R(g,s*97.5,s*98.8,52.1,55.6,css('bg'))); // kieszeń 1,3 × 3,5 (R53)
+  R(g,-93,-83,-4,0,'#222'); R(g,83,93,-4,0,'#222');
+  [-60,60].forEach(x=>R(g,x-4,x+4,3,4,css('graphite-3')));
+  [-46.5,11.5].forEach(x=>R(g,x-4,x+4,3,8,css('graphite-3')));
+  // 2 Pi + Bonnet
+  g=part(2);
+  R(g,-50,35,8,9.6,'#2e7d4f'); R(g,-18,2,9.6,20.6,'#222'); R(g,-38,22,20.6,22.2,'#1d4ea3'); R(g,-43,-28,22.2,34,'#333'); R(g,-3,17,22.2,30,'#444');
+  // 3 dystanse
+  g=part(3); [-60,60].forEach(x=>R(g,x-3.2,x+3.2,4,54,'#b8862b'));
+  // 4 panel
+  g=part(4); R(g,-80,80,54,55.6,'#1f5f3a'); R(g,-80,80,55.6,57.6,'#333'); R(g,-70,-50,42,54,'#555'); R(g,20,45,46,54,'#555'); R(g,-20,0,48,54,'#555');
+  for(let x=-78;x<80;x+=4) g.appendChild(el('circle',{cx:X(x),cy:Y(57.6),r:1.6,fill:css('ok'),class:'glow'}));
+  // 5 blat + dyfuzor; kołnierz 193,6 (luz 0,7), haczyk 96,8 → 98,3 (R53)
+  g=part(5);
+  R(g,-100,-81,59.6,63.6,css('graphite')); R(g,81,100,59.6,63.6,css('graphite')); R(g,-81,-79,59.6,61.6,css('graphite')); R(g,79,81,59.6,61.6,css('graphite'));
+  R(g,-96.8,-94.8,49.6,59.6,css('graphite-3')); R(g,94.8,96.8,49.6,59.6,css('graphite-3'));
+  [-1,1].forEach(s=>R(g,s*96.8,s*98.3,52.85,54.85,css('graphite-3')));
+  R(g,-80,80,61.6,63.6,'#e8ecef'); // dyfuzor
+  // 6 wkładka
+  g=part(6);
+  [-1,1].forEach(s=>{R(g,s*48.4,s*52.4,63.6,69.6,css('white')); R(g,s*36.4,s*48.4,63.6,66.1,css('white'));});
+  R(g,-44.5,-39.5,63.6,65.1,'#333'); R(g,39.5,44.5,63.6,65.1,'#333'); // czujniki Halla
+  // 7 płytka
+  g=part(7); R(g,-48,48,66.1,74.1,css('white'));
+  R(g,-44.6,-39.4,66.1,68.1,'#777'); R(g,39.4,44.6,66.1,68.1,'#777'); // magnesy
+  [-30,-12,6,24].forEach(x=>{g.appendChild(el('polygon',{points:`${X(x-6)},${Y(74.1)} ${X(x+6)},${Y(74.1)} ${X(x+3.9)},${Y(70.1)} ${X(x-3.9)},${Y(70.1)}`,fill:'#cfcdc6'}));R(g,x-1.5,x+1.5,66.1,70.1,css('bg'));});
+  g.appendChild(el('ellipse',{cx:X(6),cy:Y(75),rx:4*K,ry:5*K,fill:'#f0ede4',stroke:'#aaa'})); // korona w gnieździe
+  // 8 pokrywka
+  g=part(8); R(g,-49.8,49.8,88.1,90.1,css('white-2')); R(g,-49.8,-48.3,70.1,90.1,css('white-2')); R(g,48.3,49.8,70.1,90.1,css('white-2'));
+  // wymiary
+  const dim=(z,t)=>{svg.appendChild(el('line',{x1:X(104),x2:X(118),y1:Y(z),y2:Y(z),stroke:css('line')}));T(120,z+1,`Z ${String(z).replace('.',',')}  ${t}`);};
+  dim(0,'dno'); dim(8,'spód Pi'); dim(34,'szczyt Bonnetu'); dim(54,'spód panelu'); dim(63.6,'wierzch blatu'); dim(74.1,'wierzch płytki'); dim(90.1,'pokrywka');
+  T(-100,52,'zatrzask','end');
+  T(-100,-8,'0 mm'); T(100,-8,'200 mm','end'); T(0,-8,'PRZEKRÓJ PRZEZ ŚRODEK, WIDOK OD PRZODU','middle');
+})();
+function show(n){step=Math.max(0,Math.min(8,n));parts.forEach(g=>g.classList.toggle('out',+g.dataset.k>step));
+  document.querySelectorAll('#s3-legend li').forEach(li=>li.classList.toggle('on',+li.dataset.k===step));
+  $('#s3-cap').textContent=`Krok ${step} / 8`;}
+function play(){clearInterval(timer);show(0);let i=0;timer=setInterval(()=>{i++;show(i);if(i>=8)clearInterval(timer);},1300);}
+$('#s3-play').addEventListener('click',play);
+$('#s3-next').addEventListener('click',()=>{clearInterval(timer);show(step+1);});
+$('#s3-prev').addEventListener('click',()=>{clearInterval(timer);show(step-1);});
+show(0);
+})();
+</script>

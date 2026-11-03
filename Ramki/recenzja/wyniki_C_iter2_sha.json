@@ -1,0 +1,270 @@
+{
+ "raport_vs_dysk": {
+  "json/uklad_gniazd_wieczorna.json": true,
+  "json/uklad_gniazd_poranna.json": true,
+  "stl/ramka_plytka_wieczorna_v2.stl": true,
+  "stl/ramka_plytka_wieczorna_n1_v2.stl": true,
+  "stl/ramka_plytka_wieczorna_n2_v2.stl": true,
+  "stl/ramka_plytka_wieczorna_n3_v2.stl": true,
+  "stl/ramka_plytka_poranna_v2.stl": true,
+  "stl/ramka_plytka_poranna_n4_v2.stl": true,
+  "stl/ramka_plytka_poranna_n5_v2.stl": true,
+  "stl/ramka_plytka_poranna_n6_v2.stl": true,
+  "stl/ramka_pokrywka_v2.stl": true,
+  "arkusze/kody_plytek.md": true,
+  "stl/ramka_wkladka_v2.stl": true,
+  "stl/ramka_blat_v2.stl": true,
+  "stl/ramka_korpus_W_v2.stl": true,
+  "stl/ramka_korpus_P_v2.stl": true,
+  "stl/ramka_tulejka_dc_v2.stl": true,
+  "stl/ramka_podkladka_panelu_05_v2.stl": true,
+  "stl/ramka_podkladka_panelu_1_v2.stl": true,
+  "stl/ramka_podkladka_panelu_2_v2.stl": true,
+  "ramka_v2.blend": true,
+  "render/render_rozstrzelony.png": true,
+  "render/render_zlozony.png": true,
+  "render/render_plytki.png": true,
+  "arkusze/arkusz_zamowienia.csv": true,
+  "arkusze/arkusz_zamowienia.md": true,
+  "arkusze/arkusz_wymiarow.md": true,
+  "do_v3.md": true,
+  "README.md": true
+ },
+ "stl_vs_C1": {
+  "stl/ramka_blat_v2.stl": true,
+  "stl/ramka_korpus_P_v2.stl": true,
+  "stl/ramka_korpus_W_v2.stl": true,
+  "stl/ramka_plytka_poranna_n4_v2.stl": true,
+  "stl/ramka_plytka_poranna_n5_v2.stl": true,
+  "stl/ramka_plytka_poranna_n6_v2.stl": true,
+  "stl/ramka_plytka_poranna_v2.stl": true,
+  "stl/ramka_plytka_wieczorna_n1_v2.stl": true,
+  "stl/ramka_plytka_wieczorna_n2_v2.stl": true,
+  "stl/ramka_plytka_wieczorna_n3_v2.stl": true,
+  "stl/ramka_plytka_wieczorna_v2.stl": true,
+  "stl/ramka_podkladka_panelu_05_v2.stl": true,
+  "stl/ramka_podkladka_panelu_1_v2.stl": true,
+  "stl/ramka_podkladka_panelu_2_v2.stl": true,
+  "stl/ramka_pokrywka_v2.stl": true,
+  "stl/ramka_tulejka_dc_v2.stl": false,
+  "stl/ramka_wkladka_v2.stl": false,
+  "README.md": false,
+  "arkusze/arkusz_wymiarow.md": false,
+  "arkusze/arkusz_zamowienia.csv": true,
+  "arkusze/arkusz_zamowienia.md": true,
+  "arkusze/kody_plytek.md": true,
+  "do_v3.md": true,
+  "json/uklad_gniazd_poranna.json": true,
+  "json/uklad_gniazd_wieczorna.json": true,
+  "ramka_v2.blend": false,
+  "render/render_plytki.png": false,
+  "render/render_rozstrzelony.png": false,
+  "render/render_zlozony.png": false
+ },
+ "kanonicznie_vs_powtorka": {
+  "stl/ramka_blat_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    5716,
+    5716
+   ],
+   "roznych": 0,
+   "objetosc": [
+    72.5687,
+    72.5687
+   ]
+  },
+  "stl/ramka_korpus_P_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    17324,
+    17324
+   ],
+   "roznych": 0,
+   "objetosc": [
+    233.6323,
+    233.6323
+   ]
+  },
+  "stl/ramka_korpus_W_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    18220,
+    18220
+   ],
+   "roznych": 0,
+   "objetosc": [
+    233.6614,
+    233.6614
+   ]
+  },
+  "stl/ramka_plytka_poranna_n4_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    25896,
+    25896
+   ],
+   "roznych": 0,
+   "objetosc": [
+    60.2337,
+    60.2337
+   ]
+  },
+  "stl/ramka_plytka_poranna_n5_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    26272,
+    26272
+   ],
+   "roznych": 0,
+   "objetosc": [
+    60.2315,
+    60.2315
+   ]
+  },
+  "stl/ramka_plytka_poranna_n6_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    26128,
+    26128
+   ],
+   "roznych": 0,
+   "objetosc": [
+    60.2307,
+    60.2307
+   ]
+  },
+  "stl/ramka_plytka_poranna_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    25866,
+    25866
+   ],
+   "roznych": 0,
+   "objetosc": [
+    60.2219,
+    60.2219
+   ]
+  },
+  "stl/ramka_plytka_wieczorna_n1_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    21956,
+    21956
+   ],
+   "roznych": 0,
+   "objetosc": [
+    57.9523,
+    57.9523
+   ]
+  },
+  "stl/ramka_plytka_wieczorna_n2_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    22136,
+    22136
+   ],
+   "roznych": 0,
+   "objetosc": [
+    57.9533,
+    57.9533
+   ]
+  },
+  "stl/ramka_plytka_wieczorna_n3_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    22338,
+    22338
+   ],
+   "roznych": 0,
+   "objetosc": [
+    57.9505,
+    57.9505
+   ]
+  },
+  "stl/ramka_plytka_wieczorna_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    21992,
+    21992
+   ],
+   "roznych": 0,
+   "objetosc": [
+    57.9411,
+    57.9411
+   ]
+  },
+  "stl/ramka_podkladka_panelu_05_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    630,
+    630
+   ],
+   "roznych": 0,
+   "objetosc": [
+    0.0273,
+    0.0273
+   ]
+  },
+  "stl/ramka_podkladka_panelu_1_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    630,
+    630
+   ],
+   "roznych": 0,
+   "objetosc": [
+    0.0545,
+    0.0545
+   ]
+  },
+  "stl/ramka_podkladka_panelu_2_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    630,
+    630
+   ],
+   "roznych": 0,
+   "objetosc": [
+    0.1091,
+    0.1091
+   ]
+  },
+  "stl/ramka_pokrywka_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    820,
+    820
+   ],
+   "roznych": 0,
+   "objetosc": [
+    30.0641,
+    30.0641
+   ]
+  },
+  "stl/ramka_tulejka_dc_v2.stl": {
+   "trojkaty_rowne": false,
+   "n": [
+    1770,
+    1776
+   ],
+   "roznych": 1788,
+   "objetosc": [
+    0.2389,
+    0.2445
+   ]
+  },
+  "stl/ramka_wkladka_v2.stl": {
+   "trojkaty_rowne": true,
+   "n": [
+    1806,
+    1806
+   ],
+   "roznych": 0,
+   "objetosc": [
+    12.4057,
+    12.4057
+   ]
+  }
+ }
+}

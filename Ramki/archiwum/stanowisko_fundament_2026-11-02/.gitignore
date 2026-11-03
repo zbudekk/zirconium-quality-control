@@ -1,0 +1,7 @@
+dane/
+!dane/.gitkeep
+__pycache__/
+*.pyc
+.pytest_cache/
+*.sqlite
+*.png

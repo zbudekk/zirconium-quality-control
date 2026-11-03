@@ -1,0 +1,16 @@
+﻿plik STL;część;ilość;technologia;materiał;kolor;wykończenie;objętość [cm³];gabaryt X × Y × Z [mm];koszt najtańszy min [zł];koszt najtańszy max [zł];koszt pokazowy min [zł];koszt pokazowy max [zł];uwagi
+ramka_plytka_wieczorna_n1_v2.stl;płytka wieczorna n1;1;MJF/SLS (D2);PA12 drukarnia;biały (naturalny);mat, bez wygładzania wierzchu;59,31;96,0 × 96,0 × 8,6;53,38;94,90;53,38;94,90;alternatywa CNC PMMA opal: STEP przez FreeCAD (D2)
+ramka_plytka_wieczorna_n2_v2.stl;płytka wieczorna n2;1;MJF/SLS (D2);PA12 drukarnia;biały (naturalny);mat, bez wygładzania wierzchu;59,31;96,0 × 96,0 × 8,6;53,38;94,90;53,38;94,90;alternatywa CNC PMMA opal: STEP przez FreeCAD (D2)
+ramka_plytka_wieczorna_n3_v2.stl;płytka wieczorna n3;1;MJF/SLS (D2);PA12 drukarnia;biały (naturalny);mat, bez wygładzania wierzchu;59,31;96,0 × 96,0 × 8,6;53,38;94,90;53,38;94,90;alternatywa CNC PMMA opal: STEP przez FreeCAD (D2)
+ramka_plytka_poranna_n4_v2.stl;płytka poranna n4;1;MJF/SLS (D2);PA12 drukarnia;biały (naturalny);mat, bez wygładzania wierzchu;60,87;96,0 × 96,0 × 8,6;54,78;97,39;54,78;97,39;alternatywa CNC PMMA opal: STEP przez FreeCAD (D2)
+ramka_plytka_poranna_n5_v2.stl;płytka poranna n5;1;MJF/SLS (D2);PA12 drukarnia;biały (naturalny);mat, bez wygładzania wierzchu;60,87;96,0 × 96,0 × 8,6;54,78;97,39;54,78;97,39;alternatywa CNC PMMA opal: STEP przez FreeCAD (D2)
+ramka_plytka_poranna_n6_v2.stl;płytka poranna n6;1;MJF/SLS (D2);PA12 drukarnia;biały (naturalny);mat, bez wygładzania wierzchu;60,87;96,0 × 96,0 × 8,6;54,78;97,39;54,78;97,39;alternatywa CNC PMMA opal: STEP przez FreeCAD (D2)
+ramka_pokrywka_v2.stl;pokrywka płytki;4;FDM (druk własny);PETG FDM (własny);biały (naturalny);mat, bez wygładzania wierzchu;30,06;99,6 × 99,6 × 20,0;;;;;
+ramka_korpus_W_v2.stl;korpus W (napis „RAMKA WIECZORNA”);1;MJF/SLS (D2);PA12 drukarnia;grafit;barwienie na grafit, pokazowy: + wygładzanie parowe;233,49;200,0 × 200,6 × 59,6;210,14;373,58;327,82;582,79;geometria W i P identyczna poza napisem (Z18)
+ramka_korpus_P_v2.stl;korpus P (napis „RAMKA PORANNA”);1;MJF/SLS (D2);PA12 drukarnia;grafit;barwienie na grafit, pokazowy: + wygładzanie parowe;233,47;200,0 × 200,6 × 59,6;210,12;373,55;327,79;582,74;geometria W i P identyczna poza napisem (Z18)
+ramka_blat_v2.stl;blat;2;MJF/SLS (D2);PA12 drukarnia;grafit;barwienie na grafit, pokazowy: + wygładzanie parowe;72,52;200,0 × 200,0 × 14,0;130,54;232,06;203,64;362,02;
+ramka_wkladka_v2.stl;wkładka gniazda płytki;3;MJF/SLS (D2);PA12 drukarnia;biały (naturalny);surowe (naturalne);12,41;130,0 × 148,4 × 11,0;33,51;59,57;33,51;59,57;
+ramka_tulejka_dc_v2.stl;tulejka redukcyjna gniazda DC;2;FDM (druk własny);PETG FDM (własny);biały (naturalny);surowe (naturalne);0,24;15,0 × 15,0 × 3,0;;;;;tylko gdy pomiar #16 da gniazdo ø8 (R50-3)
+ramka_podkladka_panelu_05_v2.stl;podkładka panelu 0,5 mm;8;FDM (druk własny);PETG FDM (własny);biały (naturalny);surowe (naturalne);0,03;9,0 × 9,0 × 0,5;;;;;do wyrównania dystansu po pomiarach #4/#9 (R50-8)
+ramka_podkladka_panelu_1_v2.stl;podkładka panelu 1 mm;8;FDM (druk własny);PETG FDM (własny);biały (naturalny);surowe (naturalne);0,05;9,0 × 9,0 × 1,0;;;;;do wyrównania dystansu po pomiarach #4/#9 (R50-8)
+ramka_podkladka_panelu_2_v2.stl;podkładka panelu 2 mm;8;FDM (druk własny);PETG FDM (własny);biały (naturalny);surowe (naturalne);0,11;9,0 × 9,0 × 2,0;;;;;do wyrównania dystansu po pomiarach #4/#9 (R50-8)

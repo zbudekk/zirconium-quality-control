@@ -1,0 +1,129 @@
+[ramka] plytka_wieczorna: 0 dodatnich, 57 tnacych, 0 po roznicy, 0.8 s, 4739 scian
+Info: File exported successfully
+[ramka] eksport ramka_plytka_wieczorna_v2.stl
+[ramka] plytka_wieczorna_n1: 1 dodatnich, 55 tnacych, 0 po roznicy, 0.8 s, 4786 scian
+Info: File exported successfully
+[ramka] eksport ramka_plytka_wieczorna_n1_v2.stl
+[ramka] plytka_wieczorna_n2: 1 dodatnich, 55 tnacych, 0 po roznicy, 0.8 s, 4885 scian
+Info: File exported successfully
+[ramka] eksport ramka_plytka_wieczorna_n2_v2.stl
+[ramka] plytka_wieczorna_n3: 1 dodatnich, 56 tnacych, 0 po roznicy, 1.0 s, 4956 scian
+Info: File exported successfully
+[ramka] eksport ramka_plytka_wieczorna_n3_v2.stl
+[ramka] plytka_poranna: 0 dodatnich, 83 tnacych, 0 po roznicy, 1.2 s, 6107 scian
+Info: File exported successfully
+[ramka] eksport ramka_plytka_poranna_v2.stl
+[ramka] plytka_poranna_n4: 1 dodatnich, 81 tnacych, 0 po roznicy, 1.3 s, 6205 scian
+Info: File exported successfully
+[ramka] eksport ramka_plytka_poranna_n4_v2.stl
+[ramka] plytka_poranna_n5: 1 dodatnich, 82 tnacych, 0 po roznicy, 1.2 s, 6342 scian
+Info: File exported successfully
+[ramka] eksport ramka_plytka_poranna_n5_v2.stl
+[ramka] plytka_poranna_n6: 1 dodatnich, 82 tnacych, 0 po roznicy, 1.2 s, 6289 scian
+Info: File exported successfully
+[ramka] eksport ramka_plytka_poranna_n6_v2.stl
+[ramka] pokrywka: 4 dodatnich, 2 tnacych, 0 po roznicy, 0.1 s, 296 scian
+Info: File exported successfully
+[ramka] eksport ramka_pokrywka_v2.stl
+[ramka] wkladka: 7 dodatnich, 19 tnacych, 0 po roznicy, 0.3 s, 570 scian
+Info: File exported successfully
+[ramka] eksport ramka_wkladka_v2.stl
+[ramka] blat: 7 dodatnich, 22 tnacych, 0 po roznicy, 0.5 s, 2223 scian
+Info: File exported successfully
+[ramka] eksport ramka_blat_v2.stl
+[ramka] korpus_W: 23 dodatnich, 33 tnacych, 0 po roznicy, 1.5 s, 7373 scian
+Info: File exported successfully
+[ramka] eksport ramka_korpus_W_v2.stl
+[ramka] korpus_P: 21 dodatnich, 33 tnacych, 0 po roznicy, 1.4 s, 6935 scian
+Info: File exported successfully
+[ramka] eksport ramka_korpus_P_v2.stl
+[ramka] tulejka_dc: 1 dodatnich, 1 tnacych, 0 po roznicy, 0.1 s, 448 scian
+Info: File exported successfully
+[ramka] eksport ramka_tulejka_dc_v2.stl
+[ramka] podkladka_panelu_05: 0 dodatnich, 1 tnacych, 0 po roznicy, 0.0 s, 161 scian
+Info: File exported successfully
+[ramka] eksport ramka_podkladka_panelu_05_v2.stl
+[ramka] podkladka_panelu_1: 0 dodatnich, 1 tnacych, 0 po roznicy, 0.0 s, 161 scian
+Info: File exported successfully
+[ramka] eksport ramka_podkladka_panelu_1_v2.stl
+[ramka] podkladka_panelu_2: 0 dodatnich, 1 tnacych, 0 po roznicy, 0.0 s, 161 scian
+Info: File exported successfully
+[ramka] eksport ramka_podkladka_panelu_2_v2.stl
+<PC>\Desktop\Ramki\recenzja\powtorka_R54\ramka_generator.py:2552: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m.use_nodes = True
+<PC>\Desktop\Ramki\recenzja\powtorka_R54\ramka_generator.py:2599: DeprecationWarning: 'World.use_nodes' is expected to be removed in Blender 6.0
+  swiat.use_nodes = True
+Info: Saved as "ramka_v2.blend"
+[ramka] zapisano <PC>\Desktop\Ramki\recenzja\powtorka_R54\wyniki_v2\ramka_v2.blend
+00:26.390  render           | Saved: '<PC>\Desktop\Ramki\recenzja\powtorka_R54\wyniki_v2\render\render_zlozony.png'
+[ramka] render render_zlozony.png
+00:29.797  render           | Saved: '<PC>\Desktop\Ramki\recenzja\powtorka_R54\wyniki_v2\render\render_rozstrzelony.png'
+[ramka] render render_rozstrzelony.png
+00:34.812  render           | Saved: '<PC>\Desktop\Ramki\recenzja\powtorka_R54\wyniki_v2\render\render_plytki.png'
+[ramka] render render_plytki.png
+[ramka] RAPORT <PC>\Desktop\Ramki\recenzja\powtorka_R54\wyniki_v2\raport\raport_wykonawcy_ALL_iter1.md B=0 P=0 D=0 czas 35 s
+Blender 5.2.3 LTS (hash e13b728c6880 built 2026-10-22 01:37:16)
+Timer 'STL Export' took 2.64 ms
+Timer 'STL Export' took 2.55 ms
+Timer 'STL Export' took 3.53 ms
+Timer 'STL Export' took 2.96 ms
+Timer 'STL Export' took 3.32 ms
+Timer 'STL Export' took 3.12 ms
+Timer 'STL Export' took 3.40 ms
+Timer 'STL Export' took 3.36 ms
+Timer 'STL Export' took 0.86 ms
+Timer 'STL Import' took 2.84 ms
+Timer 'STL Import' took 3.36 ms
+Timer 'STL Import' took 3.39 ms
+Timer 'STL Import' took 2.78 ms
+Timer 'STL Import' took 4.48 ms
+Timer 'STL Import' took 3.82 ms
+Timer 'STL Import' took 3.98 ms
+Timer 'STL Import' took 4.23 ms
+Timer 'STL Import' took 0.41 ms
+Timer 'STL Export' took 0.86 ms
+Timer 'STL Export' took 2.22 ms
+Timer 'STL Export' took 2.81 ms
+Timer 'STL Export' took 2.62 ms
+Timer 'STL Import' took 0.59 ms
+Timer 'STL Import' took 1.12 ms
+Timer 'STL Import' took 3.43 ms
+Timer 'STL Import' took 2.59 ms
+Timer 'STL Export' took 1.13 ms
+Timer 'STL Import' took 3.93 ms
+Timer 'STL Export' took 0.72 ms
+Timer 'STL Import' took 3.70 ms
+Timer 'STL Export' took 0.69 ms
+Timer 'STL Import' took 4.20 ms
+Timer 'STL Export' took 1.01 ms
+Timer 'STL Import' took 3.97 ms
+Timer 'STL Import' took 3.37 ms
+Timer 'STL Import' took 1.35 ms
+Timer 'STL Import' took 0.54 ms
+Timer 'STL Import' took 2.54 ms
+Timer 'STL Import' took 0.39 ms
+Timer 'STL Import' took 0.49 ms
+Timer 'STL Import' took 2.78 ms
+Timer 'STL Import' took 0.29 ms
+Timer 'STL Import' took 0.30 ms
+Timer 'STL Import' took 0.27 ms
+Timer 'STL Import' took 2.52 ms
+Timer 'STL Import' took 2.30 ms
+Timer 'STL Import' took 2.37 ms
+Timer 'STL Import' took 3.22 ms
+Timer 'STL Import' took 3.17 ms
+Timer 'STL Import' took 3.50 ms
+Timer 'STL Import' took 3.27 ms
+Timer 'STL Import' took 3.12 ms
+Timer 'STL Import' took 3.79 ms
+Timer 'STL Import' took 0.45 ms
+Timer 'STL Import' took 0.53 ms
+Timer 'STL Import' took 1.05 ms
+Timer 'STL Import' took 2.51 ms
+Timer 'STL Import' took 0.57 ms
+Timer 'STL Import' took 0.35 ms
+Timer 'STL Import' took 0.32 ms
+Timer 'STL Import' took 0.30 ms
+
+Blender quit
+EXIT=0

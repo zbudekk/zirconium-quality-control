@@ -1,0 +1,2001 @@
+{
+ "etap": "R54-C",
+ "iteracja": "1",
+ "blender": "5.2.3 LTS",
+ "blend_sha256": "75320f6dfc9adb32da3ede38eb1697000688dfef8b2ae9031567049492697d3c",
+ "wyniki": [
+  {
+   "id": "INFO-blend",
+   "plik": "ramka_v2.blend",
+   "wynik": "ZAL",
+   "wartosc": "SHA 75320f6dfc9adb32…; obiektów MESH 38; zestaw złożony (24): ['blat', 'korpus_W', 'plytka_wieczorna_n1', 'pokrywka', 'proxy_dyfuzor', 'proxy_dystans_1', 'proxy_dystans_2', 'proxy_dystans_3', 'proxy_dystans_4', 'proxy_gniazdo_dc', 'proxy_gniazdo_usb', 'proxy_hall_A', 'proxy_hall_B', 'proxy_hall_C', 'proxy_magnes_A', 'proxy_panel', 'proxy_pi_bonnet', 'proxy_stopka_1', 'proxy_stopka_2', 'proxy_stopka_3', 'proxy_stopka_4', 'proxy_wtyk_bonnet', 'tulejka_dc', 'wkladka']; odsunięte (14): ['korpus_P', 'plytka_poranna', 'plytka_poranna_n4', 'plytka_poranna_n5', 'plytka_poranna_n6', 'plytka_wieczorna', 'plytka_wieczorna_n2', 'plytka_wieczorna_n3', 'podkladka_panelu_05', 'podkladka_panelu_1', 'podkladka_panelu_2', 'proxy_magnes_B', 'proxy_magnes_C', 'proxy_odbiornik_usb']; najmniejsza |współrzędna XY| odsuniętych 4.5",
+   "waga": "-",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "INFO-plytka",
+   "plik": "ramka_v2.blend",
+   "wynik": "ZAL",
+   "wartosc": "plytka_wieczorna_n1: wierzch w (0, −46,5) Z 74.1; objętość 59.313 cm³ (STL n1 z sprawdz_R54: 59,313); bbox X[-48.00,48.00] Y[-48.00,48.00] Z[66.10,74.70]; sondy układu R54 (znaczniki w kole, dawne rogi pełne, gniazda nowe, stare miejsce gniazda pełne): 16/16",
+   "waga": "B",
+   "sondy": [
+    {
+     "p": [
+      -35.5,
+      -26.5,
+      73.1
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 1.279,
+     "tag": "znacznik A",
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      -35.5,
+      -26.5,
+      70.8
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.3,
+     "tag": "znacznik A",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      -32.8,
+      -26.5,
+      73.1
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.794,
+     "tag": "znacznik A",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      -35.5,
+      26.5,
+      73.1
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 1.279,
+     "tag": "znacznik B",
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      -35.5,
+      26.5,
+      70.8
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.3,
+     "tag": "znacznik B",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      -32.8,
+      26.5,
+      73.1
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.794,
+     "tag": "znacznik B",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      35.5,
+      26.5,
+      73.1
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 1.279,
+     "tag": "znacznik C",
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      35.5,
+      26.5,
+      70.8
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.3,
+     "tag": "znacznik C",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      38.2,
+      26.5,
+      73.1
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 0.794,
+     "tag": "znacznik C",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      -42.0,
+      -42.0,
+      73.1
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 1.0,
+     "tag": "dawny róg",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      -42.0,
+      42.0,
+      73.1
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 1.0,
+     "tag": "dawny róg",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      42.0,
+      42.0,
+      73.1
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 1.0,
+     "tag": "dawny róg",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      37.5,
+      -15.0,
+      72.1
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 2.497,
+     "tag": "gniazdo id2",
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      0.0,
+      -31.5,
+      72.1
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 2.0,
+     "tag": "rynienka id1",
+     "wynik": "POZA",
+     "ok": true
+    },
+    {
+     "p": [
+      -30.0,
+      -40.5,
+      72.1
+     ],
+     "oczek": "W",
+     "r3": [
+      "W",
+      "W",
+      "W"
+     ],
+     "d_sciana": 2.0,
+     "tag": "dawne gniazdo R1 (−30, −40,5)",
+     "wynik": "W",
+     "ok": true
+    },
+    {
+     "p": [
+      36.0,
+      1.5,
+      72.1
+     ],
+     "oczek": "POZA",
+     "r3": [
+      "P",
+      "P",
+      "P"
+     ],
+     "d_sciana": 0.931,
+     "tag": "gniazdo id8 (36, −1,5)? → to (36, 1,5): krawędź ø9 na −1,5 sięga do 3,0 → POZA",
+     "wynik": "POZA",
+     "ok": true
+    }
+   ],
+   "uwaga": ""
+  },
+  {
+   "id": "K-53",
+   "plik": "ramka_v2.blend",
+   "wynik": "ZAL",
+   "wartosc": "obiektów 24, par 276 (bbox wspólne 43); par z przecięciem po skurczu 0,05: 0 []; pary z płytką n1 / pokrywką / magnesami / czujnikami: {'blat–plytka_wieczorna_n1': 0, 'blat–pokrywka': 0, 'blat–proxy_hall_A': 0, 'blat–proxy_hall_B': 0, 'blat–proxy_hall_C': 0, 'blat–proxy_magnes_A': 0, 'korpus_W–plytka_wieczorna_n1': 0, 'korpus_W–pokrywka': 0, 'korpus_W–proxy_hall_A': 0, 'korpus_W–proxy_hall_B': 0, 'korpus_W–proxy_hall_C': 0, 'korpus_W–proxy_magnes_A': 0, 'plytka_wieczorna_n1–pokrywka': 0, 'plytka_wieczorna_n1–proxy_dyfuzor': 0, 'plytka_wieczorna_n1–proxy_dystans_1': 0, 'plytka_wieczorna_n1–proxy_dystans_2': 0, 'plytka_wieczorna_n1–proxy_dystans_3': 0, 'plytka_wieczorna_n1–proxy_dystans_4': 0, 'plytka_wieczorna_n1–proxy_gniazdo_dc': 0, 'plytka_wieczorna_n1–proxy_gniazdo_usb': 0, 'plytka_wieczorna_n1–proxy_hall_A': 0, 'plytka_wieczorna_n1–proxy_hall_B': 0, 'plytka_wieczorna_n1–proxy_hall_C': 0, 'plytka_wieczorna_n1–proxy_magnes_A': 0, 'plytka_wieczorna_n1–proxy_panel': 0, 'plytka_wieczorna_n1–proxy_pi_bonnet': 0, 'plytka_wieczorna_n1–proxy_stopka_1': 0, 'plytka_wieczorna_n1–proxy_stopka_2': 0, 'plytka_wieczorna_n1–proxy_stopka_3': 0, 'plytka_wieczorna_n1–proxy_stopka_4': 0, 'plytka_wieczorna_n1–proxy_wtyk_bonnet': 0, 'plytka_wieczorna_n1–tulejka_dc': 0, 'plytka_wieczorna_n1–wkladka': 0, 'pokrywka–proxy_dyfuzor': 0, 'pokrywka–proxy_dystans_1': 0, 'pokrywka–proxy_dystans_2': 0, 'pokrywka–proxy_dystans_3': 0, 'pokrywka–proxy_dystans_4': 0, 'pokrywka–proxy_gniazdo_dc': 0, 'pokrywka–proxy_gniazdo_usb': 0, 'pokrywka–proxy_hall_A': 0, 'pokrywka–proxy_hall_B': 0, 'pokrywka–proxy_hall_C': 0, 'pokrywka–proxy_magnes_A': 0, 'pokrywka–proxy_panel': 0, 'pokrywka–proxy_pi_bonnet': 0, 'pokrywka–proxy_stopka_1': 0, 'pokrywka–proxy_stopka_2': 0, 'pokrywka–proxy_stopka_3': 0, 'pokrywka–proxy_stopka_4': 0, 'pokrywka–proxy_wtyk_bonnet': 0, 'pokrywka–tulejka_dc': 0, 'pokrywka–wkladka': 0, 'proxy_dyfuzor–proxy_hall_A': 0, 'proxy_dyfuzor–proxy_hall_B': 0, 'proxy_dyfuzor–proxy_hall_C': 0, 'proxy_dyfuzor–proxy_magnes_A': 0, 'proxy_dystans_1–proxy_hall_A': 0, 'proxy_dystans_1–proxy_hall_B': 0, 'proxy_dystans_1–proxy_hall_C': 0, 'proxy_dystans_1–proxy_magnes_A': 0, 'proxy_dystans_2–proxy_hall_A': 0, 'proxy_dystans_2–proxy_hall_B': 0, 'proxy_dystans_2–proxy_hall_C': 0, 'proxy_dystans_2–proxy_magnes_A': 0, 'proxy_dystans_3–proxy_hall_A': 0, 'proxy_dystans_3–proxy_hall_B': 0, 'proxy_dystans_3–proxy_hall_C': 0, 'proxy_dystans_3–proxy_magnes_A': 0, 'proxy_dystans_4–proxy_hall_A': 0, 'proxy_dystans_4–proxy_hall_B': 0, 'proxy_dystans_4–proxy_hall_C': 0, 'proxy_dystans_4–proxy_magnes_A': 0, 'proxy_gniazdo_dc–proxy_hall_A': 0, 'proxy_gniazdo_dc–proxy_hall_B': 0, 'proxy_gniazdo_dc–proxy_hall_C': 0, 'proxy_gniazdo_dc–proxy_magnes_A': 0, 'proxy_gniazdo_usb–proxy_hall_A': 0, 'proxy_gniazdo_usb–proxy_hall_B': 0, 'proxy_gniazdo_usb–proxy_hall_C': 0, 'proxy_gniazdo_usb–proxy_magnes_A': 0, 'proxy_hall_A–proxy_hall_B': 0, 'proxy_hall_A–proxy_hall_C': 0, 'proxy_hall_A–proxy_magnes_A': 0, 'proxy_hall_A–proxy_panel': 0, 'proxy_hall_A–proxy_pi_bonnet': 0, 'proxy_hall_A–proxy_stopka_1': 0, 'proxy_hall_A–proxy_stopka_2': 0, 'proxy_hall_A–proxy_stopka_3': 0, 'proxy_hall_A–proxy_stopka_4': 0, 'proxy_hall_A–proxy_wtyk_bonnet': 0, 'proxy_hall_A–tulejka_dc': 0, 'proxy_hall_A–wkladka': 0, 'proxy_hall_B–proxy_hall_C': 0, 'proxy_hall_B–proxy_magnes_A': 0, 'proxy_hall_B–proxy_panel': 0, 'proxy_hall_B–proxy_pi_bonnet': 0, 'proxy_hall_B–proxy_stopka_1': 0, 'proxy_hall_B–proxy_stopka_2': 0, 'proxy_hall_B–proxy_stopka_3': 0, 'proxy_hall_B–proxy_stopka_4': 0, 'proxy_hall_B–proxy_wtyk_bonnet': 0, 'proxy_hall_B–tulejka_dc': 0, 'proxy_hall_B–wkladka': 0, 'proxy_hall_C–proxy_magnes_A': 0, 'proxy_hall_C–proxy_panel': 0, 'proxy_hall_C–proxy_pi_bonnet': 0, 'proxy_hall_C–proxy_stopka_1': 0, 'proxy_hall_C–proxy_stopka_2': 0, 'proxy_hall_C–proxy_stopka_3': 0, 'proxy_hall_C–proxy_stopka_4': 0, 'proxy_hall_C–proxy_wtyk_bonnet': 0, 'proxy_hall_C–tulejka_dc': 0, 'proxy_hall_C–wkladka': 0, 'proxy_magnes_A–proxy_panel': 0, 'proxy_magnes_A–proxy_pi_bonnet': 0, 'proxy_magnes_A–proxy_stopka_1': 0, 'proxy_magnes_A–proxy_stopka_2': 0, 'proxy_magnes_A–proxy_stopka_3': 0, 'proxy_magnes_A–proxy_stopka_4': 0, 'proxy_magnes_A–proxy_wtyk_bonnet': 0, 'proxy_magnes_A–tulejka_dc': 0, 'proxy_magnes_A–wkladka': 0}; kontrola czułości bez skurczu (pary stykowe → >0 = test widzi styk): {'blat–korpus_W': 468, 'wkladka–proxy_dyfuzor': 185, 'plytka_wieczorna_n1–wkladka': 315, 'proxy_dystans_1–korpus_W': 100, 'proxy_panel–proxy_dystans_1': 162, 'tulejka_dc–korpus_W': 928, 'proxy_gniazdo_dc–tulejka_dc': 1015, 'proxy_magnes_A–plytka_wieczorna_n1': 160}",
+   "waga": "B",
+   "sondy": [
+    {
+     "para": "blat–korpus_W",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–plytka_wieczorna_n1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–pokrywka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_dyfuzor",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_dystans_1",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_dystans_2",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_dystans_3",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_dystans_4",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "blat–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–plytka_wieczorna_n1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–pokrywka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_dyfuzor",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_dystans_1",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_dystans_2",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_dystans_3",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_dystans_4",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "korpus_W–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–pokrywka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_dyfuzor",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_dystans_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_dystans_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_dystans_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_dystans_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "plytka_wieczorna_n1–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_dyfuzor",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_dystans_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_dystans_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_dystans_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_dystans_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "pokrywka–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_dystans_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_dystans_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_dystans_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_dystans_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dyfuzor–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_dystans_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_dystans_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_dystans_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_1–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_dystans_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_dystans_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_2–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_dystans_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_3–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_gniazdo_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_dystans_4–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_gniazdo_usb",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_dc–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_hall_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_gniazdo_usb–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_hall_B",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_A–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_hall_C",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_B–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–proxy_magnes_A",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_hall_C–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–proxy_panel",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_magnes_A–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_panel–proxy_pi_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_panel–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_panel–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_panel–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_panel–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_panel–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_panel–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_panel–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_pi_bonnet–proxy_stopka_1",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_pi_bonnet–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_pi_bonnet–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_pi_bonnet–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_pi_bonnet–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox wspólne",
+     "ok": true
+    },
+    {
+     "para": "proxy_pi_bonnet–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_pi_bonnet–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_1–proxy_stopka_2",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_1–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_1–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_1–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_1–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_1–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_2–proxy_stopka_3",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_2–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_2–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_2–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_2–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_3–proxy_stopka_4",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_3–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_3–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_3–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_4–proxy_wtyk_bonnet",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_4–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_stopka_4–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_wtyk_bonnet–tulejka_dc",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "proxy_wtyk_bonnet–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    },
+    {
+     "para": "tulejka_dc–wkladka",
+     "przeciec": 0,
+     "bbox": "bbox rozłączne",
+     "ok": true
+    }
+   ],
+   "uwaga": ""
+  },
+  {
+   "id": "K-55",
+   "plik": "ramka_v2.blend",
+   "wynik": "ZAL",
+   "wartosc": "spód magnesu A 66.300 − wierzch Halla A 65.100 = 1.200 (1,2 ± 0,05); +0,5 = 1.70 ≤ 4; szczeliny A/B/C {'A': 1.2, 'B': -64.9, 'C': -64.9}; środki magnesów XY {'A': (-42.0, -42.0), 'B': (233.0, -218.0), 'C': (317.0, -218.0)}; środki czujników XY {'A': (-42.0, -42.0), 'B': (-42.0, 42.0), 'C': (42.0, 42.0)} (rogi ±42 — bez zmian po R54)",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-32",
+   "plik": "ramka_v2.blend",
+   "wynik": "ZAL",
+   "wartosc": "szczelina płytka–wkładka na Z 67.1 (łącznie, do wkładki, do płytki od punktu ±48,2): {'+X': (0.4, 0.2, 0.2), '-X': (0.4, 0.2, 0.2), '+Y': (0.4, 0.2, 0.2), '-Y': (0.4, 0.2, 0.2)}; oczek. 0.3999999999999986/stronę ± 0,1; para płytka–wkładka przecięć 0",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-22",
+   "plik": "ramka_v2.blend",
+   "wynik": "ZAL",
+   "wartosc": "szczelina płytka–pokrywka na Z 71.1: {'+X': (0.3, 0.15, 0.15), '-X': (0.3, 0.15, 0.15), '+Y': (0.3, 0.15, 0.15), '-Y': (0.3, 0.15, 0.15)} (oczek. 0,3/stronę ± 0,1); min Z pokrywki 70.100 vs wierzch ramy wkładki (0, 50,3) 69.6 (70,1 vs 69,6 → 0,5); para płytka–pokrywka przecięć 0",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  },
+  {
+   "id": "K-54",
+   "plik": "ramka_v2.blend",
+   "wynik": "ZAL",
+   "wartosc": "blat (90,0) 63.6/63.6; wkladka (0,50.3) 69.6/69.6; plytka n1 (0,-46.5) 74.1/74.1; plytka n1 relief (39.5,-44.5) 74.7/74.7; pokrywka (40,40) 90.1/90.1; pokrywka min Z 70.1/70.1; plytka n1 min Z 66.1/66.1; korpus_W max Z 59.6/59.6",
+   "waga": "B",
+   "sondy": [],
+   "uwaga": ""
+  }
+ ]
+}
