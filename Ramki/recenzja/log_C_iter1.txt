@@ -1,0 +1,32 @@
+=== ramka_tulejka_dc_v2: bbox surowy X[-7.499,7.500] Y[-7.500,7.500] Z[0.000,3.000]
+[ZAL] K-01 ramka_tulejka_dc_v2: trójkątów 1776, NaN False 
+[ZAL] K-02 ramka_tulejka_dc_v2: gabaryt 14.999 × 14.999 × 3.000 (oczek. 15 × 15 × 3); bbox montażowy X[-7.499,7.499] Y[-7.500,7.500] Z[0.000,3.000] 
+[ZAL] K-03 ramka_tulejka_dc_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_tulejka_dc_v2: składowych 1 
+[ZAL] K-04b ramka_tulejka_dc_v2: objętość 0.244 cm³ (oczek. 0.3 ± 30 %) 
+[ZAL] K-52b ramka_tulejka_dc_v2: 12/12 sond; gabaryt 14.999 × 14.999 × 3.000 (15 × 15 × 3 ± 0,1); z promieni: otwór ø8.200 (8,2), walec ø11.999 (12), kołnierz ø14.999 (15) 
+=== ramka_podkladka_panelu_05_v2: bbox surowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,0.500]
+[ZAL] K-01 ramka_podkladka_panelu_05_v2: trójkątów 630, NaN False 
+[ZAL] K-02 ramka_podkladka_panelu_05_v2: gabaryt 9.000 × 8.997 × 0.500 (oczek. 9 × 9 × 0.5); bbox montażowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,0.500] 
+[ZAL] K-03 ramka_podkladka_panelu_05_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_podkladka_panelu_05_v2: składowych 1 
+[ZAL] K-04b ramka_podkladka_panelu_05_v2: objętość 0.027 cm³ (oczek. 0.03 ± 30 %) 
+[ZAL] K-52c ramka_podkladka_panelu_05_v2: 7/7 sond; gabaryt 9.000 × 8.997 × 0.500 (9 × 9 × 0.5 ± 0,05); otwór z promieni ø3.395 (3,4) 
+=== ramka_podkladka_panelu_1_v2: bbox surowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,1.000]
+[ZAL] K-01 ramka_podkladka_panelu_1_v2: trójkątów 630, NaN False 
+[ZAL] K-02 ramka_podkladka_panelu_1_v2: gabaryt 9.000 × 8.997 × 1.000 (oczek. 9 × 9 × 1.0); bbox montażowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,1.000] 
+[ZAL] K-03 ramka_podkladka_panelu_1_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_podkladka_panelu_1_v2: składowych 1 
+[ZAL] K-04b ramka_podkladka_panelu_1_v2: objętość 0.055 cm³ (oczek. 0.05 ± 30 %) 
+[ZAL] K-52c ramka_podkladka_panelu_1_v2: 7/7 sond; gabaryt 9.000 × 8.997 × 1.000 (9 × 9 × 1.0 ± 0,05); otwór z promieni ø3.395 (3,4) 
+=== ramka_podkladka_panelu_2_v2: bbox surowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,2.000]
+[ZAL] K-01 ramka_podkladka_panelu_2_v2: trójkątów 630, NaN False 
+[ZAL] K-02 ramka_podkladka_panelu_2_v2: gabaryt 9.000 × 8.997 × 2.000 (oczek. 9 × 9 × 2.0); bbox montażowy X[-4.500,4.500] Y[-4.498,4.498] Z[0.000,2.000] 
+[ZAL] K-03 ramka_podkladka_panelu_2_v2: krawędzie niemanifold 0, luźne wierzchołki 0, samoprzecięcia 0 
+[ZAL] K-04 ramka_podkladka_panelu_2_v2: składowych 1 
+[ZAL] K-04b ramka_podkladka_panelu_2_v2: objętość 0.109 cm³ (oczek. 0.11 ± 30 %) 
+[ZAL] K-52c ramka_podkladka_panelu_2_v2: 7/7 sond; gabaryt 9.000 × 8.997 × 2.000 (9 × 9 × 2.0 ± 0,05); otwór z promieni ø3.395 (3,4) 
+[ZAL] INFO-sha stl: pliki zmierzone w przebiegach A/B (C1) zgodne z obecnymi STL: tak 
+[ZAL] K-57 arkusz_zamowienia.csv/.md: 15 wierszy (10 drukarnia); max |Δobjętość| 0.0045 cm³, |Δgabaryt| 0.003 mm, |Δkoszt| 0.005 zł; ilości i materiały = parametry.json; sumy drukarni: obj 1004.20 cm³, najtańszy 904–1607 zł, pokazowy 1212–2155 zł (zgodne z .md: True); STEP/FreeCAD: tak 
+[ZAL] K-60 render/raport/arkusze: render_rozstrzelony.png 1600×1200; render_zlozony.png 1600×1200; render_plytki.png 1600×1200; raport: wszystkie 56 K‑xx etapów A+B+C obecne; zrzut parametry.json w arkusz_wymiarow.md zgodny (273 kluczy); LICZONE 9/9 zgodne ze wzorami; panel_pcb_z 54, blat_top_z 63.6, korpus_h 59.6, panel_standoff_l 50, cover_inner_h 14, snap_pocket_z 52.6, snap_hook_z 52.85, blat_screw_z 55, label_pos_z 51; treść renderu rozstrzelonego (lista §11) — ocena wizualna recenzenta w raporcie 
+=== PODSUMOWANIE: 27 sprawdzeń, NIE: 0

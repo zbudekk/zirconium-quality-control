@@ -1,0 +1,17 @@
+{
+ "C": {
+  "ciagly": true,
+  "komorek_kanalu_odwiedzonych": 4950,
+  "komorek_startowych": 98
+ },
+ "B": {
+  "ciagly": true,
+  "komorek_kanalu_odwiedzonych": 4922,
+  "komorek_startowych": 90
+ },
+ "A": {
+  "ciagly": true,
+  "komorek_kanalu_odwiedzonych": 6508,
+  "komorek_startowych": 83
+ }
+}

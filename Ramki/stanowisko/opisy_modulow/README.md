@@ -1,0 +1,18 @@
+# Opisy modułów
+
+Jeden plik na moduł. Przed zmianą kodu modułu przeczytaj jego opis; po zmianie zaktualizuj sekcję „Założenia i granice”. Opisy modułów jeszcze nienapisanych streszczają zamówienie z planu wdrożenia v2 (sekcja „Oprogramowanie: moduły i jak powstanie”).
+
+| Moduł | Stan | Co robi (jedno zdanie) | Wejście → wyjście | Kryterium „działa” |
+|---|---|---|---|---|
+| uklad | gotowy (po P1/P2 2.11) | układ płytki z JSON, z walidacją | nazwa → `UkladPlytki` | test_uklad, test_edge_uklad |
+| synth | gotowy (v1, po P3a 2.11: bokiem, pokrycie, poprawka) | sztuczne skany z prawdą | STL projektów → skan STL + JSON | test_synth, test_edge_synth |
+| ustawienia | gotowy (P1 2.11) | wczytanie i walidacja `ustawienia.toml` | plik → dict | test_ustawienia |
+| katalog | część (P2 2.11): cechy STL z folderu, bez nazw | indeks projektów: cechy STL (id = SHA‑256, zęby i typ z nazwy exocad, objętość, obrys, szczelność, brzeg, gniazdo); później foldery „Cyrkon”/„Prywatne”, raporty MillBox, SQLite | folder → `dane/katalog.json` + `dane/mapa_sciezek.json` | test_katalog; 17 STL z pulpitu w 2,6 s |
+| plate | gotowy (P2 2.11) | wyrównanie skanu po 3 stożkach (ICP), odczyt numeru z dołków, cięcie na gniazda, puste/podwójne/poza gniazdem | STL skanu → fragmenty z numerem gniazda | na skanach syntetycznych: błąd wyrównania < 0,05 mm, numer płytki 100%, każdy fragment w swoim gnieździe |
+| match | gotowy v1 (P2 2.11) | identyfikacja fragmentu: filtr objętość/wymiary → FPFH+RANSAC → ICP → ranking z pewnością | fragment + pula → kandydaci + transformacja | top‑1 ≥ 95% i top‑2 ≥ 99% na 200 fragmentach syntetycznych; później ≥ 85% / ≥ 95% na prawdziwych |
+| inspect | gotowy v1 (P3a 2.11) | metoda A: mapa odchyłek (plamy ≥ 0,08 mm pod powierzchnią, ø ≤ 1,5, ostra krawędź, pas brzegu 1,5 mm / krawędzie), metoda B: ciągłość linii brzegu (pas 0–1,5 mm projektu vs skan, wcięcie ≥ 0,2), decyzja A+B / B ≥ 0,4 = czerwone, jedna metoda = żółte; drgnięcie → skan ponownie; gładka poprawka > 2 mm → pomarańczowe; brak danych nigdy ubytkiem | fragment + projekt + transformacja → ubytki, plamy, wcięcia, status | test_inspect (14); liczby na P2 + P3a: `raporty/P3a_2026-11-02.md` |
+| session | do napisania | stan wieczoru/poranka, decyzje technika, sesja pieca, zliczanie punktów zleceń (trwałe), lista braków, „do dofrezowania”, poprawki | zdarzenia → stan (SQLite) | scenariusz 3 pieców + 1 dofrezowany ząb daje właściwe listy |
+| ui | pierwszy krok (P3a 2.11): `ui_test.py` | okno testu skanera: skan, projekty, płytka, współczynnik, numer, „Porównaj” w wątku z paskiem postępu, mapa gniazd w kolorach, tabela, obraz odchyłek, podgląd 3D (Open3D, osobny proces), zapis JSON/PNG, decyzje technika → `dane/decyzje.csv`; docelowo ekran wieczorny/poranny, spacja, klawiatura ramki | stan → ekran | test_ui (QTest offscreen): kolory mapy, klik w gniazdo, decyzja, zapis |
+| indicate | do napisania | gniazdo → piksele matrycy, protokół Wi‑Fi do ramek (plan płytki, stan, potwierdzenia); symulator ramki na laptopie | polecenia → światło | symulator pokazuje plan; prawdziwa ramka po dostawie elektroniki |
+| excel | do napisania | wiersz zlecenia wg reguł 1–6 z planu, kolor B (198, 239, 206), log CSV, tryb „[cytat usuniety]” | zlecenie → zmiana + log | 50 kuwet z historii na kopii pliku: 50/50 zgodnych z człowiekiem |
+| scanner | do napisania | watchdog na folderze eksportu, walidacja pliku, opcjonalny automat (okno DentalScan + Spacja) | plik → zdarzenie „nowy skan” | plik skopiowany do folderu wywołuje zdarzenie w < 1 s, plik niepełny ignorowany |

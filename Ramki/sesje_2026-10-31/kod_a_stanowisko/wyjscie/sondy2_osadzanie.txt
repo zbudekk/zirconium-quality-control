@@ -1,0 +1,16 @@
+wieczorna siekacz       szer= 8.19: osadzeń 720, przenikanie ścianki max 0.000 mm, >0.05 mm w 0 przyp., >0.2 w 0; gniazda: [9, 12, 15]
+wieczorna kiel          szer= 9.17: osadzeń 720, przenikanie ścianki max 0.000 mm, >0.05 mm w 0 przyp., >0.2 w 0; gniazda: [9, 12, 15]
+wieczorna przedtrzonowy szer= 9.73: osadzeń 720, przenikanie ścianki max 0.000 mm, >0.05 mm w 0 przyp., >0.2 w 0; gniazda: [9, 12, 15]
+wieczorna trzonowy      szer=13.58: osadzeń 330, przenikanie ścianki max 0.379 mm, >0.05 mm w 96 przyp., >0.2 w 24; gniazda: [12, 15]
+  most: extents [45.43104571 14.04295504 10.71516781], watertight=True
+  rynienka 25 (l=60): osadzeń 30/30, przenikanie ścianki max 0.0
+  rynienka 26 (l=60): osadzeń 30/30, przenikanie ścianki max 0.0
+  most 3pkt x1.0 extents [25.86376425 11.25846928] w rynience 25: osadzeń 30, przenikanie max 0.0
+poranna siekacz       szer= 8.19: osadzeń 1050, przenikanie ścianki max 0.194 mm, >0.05 mm w 88 przyp., >0.2 w 0; gniazda: [7.5, 10, 12.5]
+poranna kiel          szer= 9.17: osadzeń 1050, przenikanie ścianki max 0.083 mm, >0.05 mm w 44 przyp., >0.2 w 0; gniazda: [7.5, 10, 12.5]
+poranna przedtrzonowy szer= 9.73: osadzeń 1050, przenikanie ścianki max 0.725 mm, >0.05 mm w 594 przyp., >0.2 w 418; gniazda: [7.5, 10, 12.5]
+poranna trzonowy      szer=13.58: osadzeń 180, przenikanie ścianki max 0.129 mm, >0.05 mm w 6 przyp., >0.2 w 0; gniazda: [12.5]
+  most: extents [45.43104571 14.04295504 10.71516781], watertight=True
+  rynienka 36 (l=50): osadzeń 0/30, przenikanie ścianki max None
+  rynienka 37 (l=50): osadzeń 0/30, przenikanie ścianki max None
+  most 3pkt x1.0 extents [25.86376425 11.25846928] w rynience 36: osadzeń 30, przenikanie max 0.0

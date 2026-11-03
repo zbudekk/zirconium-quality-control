@@ -1,0 +1,545 @@
+{
+ "ramka_blat_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "8c48856eb9addee2b37cfa5a03e5686ab7670bd92b724e488ccc8d8dd3a4b418",
+  "sha_powtorka": "8c48856eb9addee2b37cfa5a03e5686ab7670bd92b724e488ccc8d8dd3a4b418",
+  "trojkaty_rowne": true,
+  "n": [
+   5692,
+   5692
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   72.5172,
+   72.5172
+  ],
+  "gabaryt": [
+   [
+    200.0,
+    200.0,
+    14.0
+   ],
+   [
+    200.0,
+    200.0,
+    14.0
+   ]
+  ]
+ },
+ "ramka_korpus_P_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "aadb91c9364cf39f1f4062d328616aa518e474b957315ed4a941de4f935ab2b7",
+  "sha_powtorka": "aadb91c9364cf39f1f4062d328616aa518e474b957315ed4a941de4f935ab2b7",
+  "trojkaty_rowne": true,
+  "n": [
+   17902,
+   17902
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   233.4648,
+   233.4648
+  ],
+  "gabaryt": [
+   [
+    200.0,
+    200.6,
+    59.6
+   ],
+   [
+    200.0,
+    200.6,
+    59.6
+   ]
+  ]
+ },
+ "ramka_korpus_W_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "bd55871c88cf2604c1c8efa5035148ba39c3803a0788015cc35548e8e9afff9a",
+  "sha_powtorka": "bd55871c88cf2604c1c8efa5035148ba39c3803a0788015cc35548e8e9afff9a",
+  "trojkaty_rowne": true,
+  "n": [
+   18798,
+   18798
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   233.4938,
+   233.4938
+  ],
+  "gabaryt": [
+   [
+    200.0,
+    200.6,
+    59.6
+   ],
+   [
+    200.0,
+    200.6,
+    59.6
+   ]
+  ]
+ },
+ "ramka_plytka_poranna_n4_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "a8d07cbeb0dafc0e55d3fe2fe516c7d3e854a6259bce587785b796d34b54c65e",
+  "sha_powtorka": "a8d07cbeb0dafc0e55d3fe2fe516c7d3e854a6259bce587785b796d34b54c65e",
+  "trojkaty_rowne": true,
+  "n": [
+   23780,
+   23780
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   60.8702,
+   60.8702
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_poranna_n5_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "159503ca4cd66b90a1e2441cae64016901ed83390b48a27345f9484ac1a05830",
+  "sha_powtorka": "159503ca4cd66b90a1e2441cae64016901ed83390b48a27345f9484ac1a05830",
+  "trojkaty_rowne": true,
+  "n": [
+   24096,
+   24096
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   60.8681,
+   60.8681
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_poranna_n6_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "0d5d712d42084a19846f24d385484d01b2254c5c1ec3945d71cfd3493816f15e",
+  "sha_powtorka": "0d5d712d42084a19846f24d385484d01b2254c5c1ec3945d71cfd3493816f15e",
+  "trojkaty_rowne": true,
+  "n": [
+   24018,
+   24018
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   60.8673,
+   60.8673
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_poranna_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "c3536c64b3ac143160f6db4a80ab1530f8442ba4d538369a536d2228579783d8",
+  "sha_powtorka": "c3536c64b3ac143160f6db4a80ab1530f8442ba4d538369a536d2228579783d8",
+  "trojkaty_rowne": true,
+  "n": [
+   23698,
+   23698
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   60.8585,
+   60.8585
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.0
+   ],
+   [
+    96.0,
+    96.0,
+    8.0
+   ]
+  ]
+ },
+ "ramka_plytka_wieczorna_n1_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "515d32d3dd8a69ae0a94d293a639b201f2d9ce9af19df664ad1b44b59408f775",
+  "sha_powtorka": "515d32d3dd8a69ae0a94d293a639b201f2d9ce9af19df664ad1b44b59408f775",
+  "trojkaty_rowne": true,
+  "n": [
+   18232,
+   18232
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   59.3132,
+   59.3132
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_wieczorna_n2_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "360cff9ddd6bbcf8a84b463fed930532612a38118006f1550c2df01b02fa852d",
+  "sha_powtorka": "360cff9ddd6bbcf8a84b463fed930532612a38118006f1550c2df01b02fa852d",
+  "trojkaty_rowne": true,
+  "n": [
+   18434,
+   18434
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   59.3141,
+   59.3141
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_wieczorna_n3_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "2fc7040e212ace4a8efda17f61909ca09563009513adcd82ecf5bcaac3e98aaf",
+  "sha_powtorka": "2fc7040e212ace4a8efda17f61909ca09563009513adcd82ecf5bcaac3e98aaf",
+  "trojkaty_rowne": true,
+  "n": [
+   18644,
+   18644
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   59.3113,
+   59.3113
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.6
+   ],
+   [
+    96.0,
+    96.0,
+    8.6
+   ]
+  ]
+ },
+ "ramka_plytka_wieczorna_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "a7ab083e658da206c40e93f18c556988167dae343a5a2a40e2362d06c5929f47",
+  "sha_powtorka": "a7ab083e658da206c40e93f18c556988167dae343a5a2a40e2362d06c5929f47",
+  "trojkaty_rowne": true,
+  "n": [
+   18256,
+   18256
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   59.3019,
+   59.3019
+  ],
+  "gabaryt": [
+   [
+    96.0,
+    96.0,
+    8.0
+   ],
+   [
+    96.0,
+    96.0,
+    8.0
+   ]
+  ]
+ },
+ "ramka_podkladka_panelu_05_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "4260d1f1957f32d101cae5da2cf4634e24239caf738592edd7007fc0728ec6b4",
+  "sha_powtorka": "4260d1f1957f32d101cae5da2cf4634e24239caf738592edd7007fc0728ec6b4",
+  "trojkaty_rowne": true,
+  "n": [
+   630,
+   630
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   0.0273,
+   0.0273
+  ],
+  "gabaryt": [
+   [
+    9.0,
+    8.997,
+    0.5
+   ],
+   [
+    9.0,
+    8.997,
+    0.5
+   ]
+  ]
+ },
+ "ramka_podkladka_panelu_1_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "e79a805121499f8d65b7d23ef6d2ae255549b4f55579ded7061b8996b91c9b78",
+  "sha_powtorka": "e79a805121499f8d65b7d23ef6d2ae255549b4f55579ded7061b8996b91c9b78",
+  "trojkaty_rowne": true,
+  "n": [
+   630,
+   630
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   0.0545,
+   0.0545
+  ],
+  "gabaryt": [
+   [
+    9.0,
+    8.997,
+    1.0
+   ],
+   [
+    9.0,
+    8.997,
+    1.0
+   ]
+  ]
+ },
+ "ramka_podkladka_panelu_2_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "9c47aea4fbc946c16dab3813561d936745b88afde6092542de1d67a21656d5b5",
+  "sha_powtorka": "9c47aea4fbc946c16dab3813561d936745b88afde6092542de1d67a21656d5b5",
+  "trojkaty_rowne": true,
+  "n": [
+   630,
+   630
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   0.1091,
+   0.1091
+  ],
+  "gabaryt": [
+   [
+    9.0,
+    8.997,
+    2.0
+   ],
+   [
+    9.0,
+    8.997,
+    2.0
+   ]
+  ]
+ },
+ "ramka_pokrywka_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "ad23444483ac95733e92169af00e5271d8fc3b19a91854e8c8acddf06c8cd454",
+  "sha_powtorka": "ad23444483ac95733e92169af00e5271d8fc3b19a91854e8c8acddf06c8cd454",
+  "trojkaty_rowne": true,
+  "n": [
+   820,
+   820
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   30.0641,
+   30.0641
+  ],
+  "gabaryt": [
+   [
+    99.6,
+    99.6,
+    20.0
+   ],
+   [
+    99.6,
+    99.6,
+    20.0
+   ]
+  ]
+ },
+ "ramka_tulejka_dc_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "b393256cd8cafdac6d125d6f9f25647c5f94840d1bc5eb87941b436f510bcc00",
+  "sha_powtorka": "b393256cd8cafdac6d125d6f9f25647c5f94840d1bc5eb87941b436f510bcc00",
+  "trojkaty_rowne": true,
+  "n": [
+   1770,
+   1770
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   0.2389,
+   0.2389
+  ],
+  "gabaryt": [
+   [
+    14.999,
+    14.999,
+    3.0
+   ],
+   [
+    14.999,
+    14.999,
+    3.0
+   ]
+  ]
+ },
+ "ramka_wkladka_v2.stl": {
+  "sha_rowne": true,
+  "sha_wyniki": "f4196fbc640450998634f50caa86051f89df2cbb2c218e317f5c2b193e3ef92b",
+  "sha_powtorka": "f4196fbc640450998634f50caa86051f89df2cbb2c218e317f5c2b193e3ef92b",
+  "trojkaty_rowne": true,
+  "n": [
+   1806,
+   1806
+  ],
+  "roznych_trojkatow": 0,
+  "objetosc": [
+   12.4091,
+   12.4091
+  ],
+  "gabaryt": [
+   [
+    130.0,
+    148.4,
+    11.0
+   ],
+   [
+    130.0,
+    148.4,
+    11.0
+   ]
+  ]
+ },
+ "json/uklad_gniazd_wieczorna.json": {
+  "sha_rowne": true,
+  "rozmiar": [
+   4358,
+   4358
+  ]
+ },
+ "json/uklad_gniazd_poranna.json": {
+  "sha_rowne": true,
+  "rozmiar": [
+   6342,
+   6342
+  ]
+ },
+ "arkusze/arkusz_zamowienia.csv": {
+  "sha_rowne": true,
+  "rozmiar": [
+   3658,
+   3658
+  ]
+ },
+ "arkusze/kody_plytek.md": {
+  "sha_rowne": true,
+  "rozmiar": [
+   1706,
+   1706
+  ]
+ },
+ "arkusze/arkusz_wymiarow.md": {
+  "sha_rowne": true,
+  "rozmiar": [
+   51612,
+   51612
+  ]
+ },
+ "arkusze/arkusz_zamowienia.md": {
+  "sha_rowne": true,
+  "rozmiar": [
+   5810,
+   5810
+  ]
+ },
+ "ramka_v2.blend": {
+  "sha_rowne": false,
+  "rozmiar": [
+   10945026,
+   10945026
+  ]
+ },
+ "render/render_rozstrzelony.png": {
+  "sha_rowne": false,
+  "rozmiar": [
+   1746639,
+   1746661
+  ]
+ },
+ "render/render_zlozony.png": {
+  "sha_rowne": false,
+  "rozmiar": [
+   1759258,
+   1759280
+  ]
+ },
+ "render/render_plytki.png": {
+  "sha_rowne": false,
+  "rozmiar": [
+   1909348,
+   1909370
+  ]
+ },
+ "README.md": {
+  "sha_rowne": false,
+  "rozmiar": [
+   8352,
+   8343
+  ]
+ },
+ "do_v3.md": {
+  "sha_rowne": true,
+  "rozmiar": [
+   2261,
+   2261
+  ]
+ }
+}

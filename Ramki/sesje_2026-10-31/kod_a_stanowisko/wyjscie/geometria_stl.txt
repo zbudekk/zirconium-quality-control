@@ -1,0 +1,72 @@
+=== wieczorna ===
+gniazda parametry.json vs uklad.json: ZGODNE
+dołki kodu zgodne z parametry.json; markers: [(-42.0, -42.0), (-42.0, 42.0), (42.0, 42.0)] offset 6
+-- n1: trójkątów 21956, watertight=True, identyczny z wyniki_v2=True
+   bounds x -48.0 48.0  y -48.0 48.0  z 0.0 8.600000381469727
+   rynienka 25: dno z=4 OK, obrys dna u±28.93 v±6.43 (oczek. 28.93 / 6.43)
+   rynienka 26: dno z=4 OK, obrys dna u±28.93 v±6.43 (oczek. 28.93 / 6.43)
+   gniazda okrągłe niezgodne: 0
+   znacznik A: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik B: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik C: zmin=5.000 (oczek 5.0), r_top=2.500
+   dołki kodu w STL: A=True B=False C=False -> n=1 OK
+   wycięcie D: wierzchołków w obszarze 17 (obszar powinien być pusty poza krawędziami)
+   relief numeru: zmax=8.60 (oczek 8.6)
+-- n2: trójkątów 22136, watertight=True, identyczny z wyniki_v2=True
+   bounds x -48.0 48.0  y -48.0 48.0  z 0.0 8.600000381469727
+   rynienka 25: dno z=4 OK, obrys dna u±28.93 v±6.43 (oczek. 28.93 / 6.43)
+   rynienka 26: dno z=4 OK, obrys dna u±28.93 v±6.43 (oczek. 28.93 / 6.43)
+   gniazda okrągłe niezgodne: 0
+   znacznik A: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik B: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik C: zmin=5.000 (oczek 5.0), r_top=2.500
+   dołki kodu w STL: A=False B=True C=False -> n=2 OK
+   wycięcie D: wierzchołków w obszarze 17 (obszar powinien być pusty poza krawędziami)
+   relief numeru: zmax=8.60 (oczek 8.6)
+-- n3: trójkątów 22338, watertight=True, identyczny z wyniki_v2=True
+   bounds x -48.0 48.0  y -48.0 48.0  z 0.0 8.600000381469727
+   rynienka 25: dno z=4 OK, obrys dna u±28.93 v±6.43 (oczek. 28.93 / 6.43)
+   rynienka 26: dno z=4 OK, obrys dna u±28.93 v±6.43 (oczek. 28.93 / 6.43)
+   gniazda okrągłe niezgodne: 0
+   znacznik A: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik B: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik C: zmin=5.000 (oczek 5.0), r_top=2.500
+   dołki kodu w STL: A=True B=True C=False -> n=3 OK
+   wycięcie D: wierzchołków w obszarze 18 (obszar powinien być pusty poza krawędziami)
+   relief numeru: zmax=8.60 (oczek 8.6)
+=== poranna ===
+gniazda parametry.json vs uklad.json: ZGODNE
+dołki kodu zgodne z parametry.json; markers: [(-42.0, -42.0), (-42.0, 42.0), (42.0, 42.0)] offset 6
+-- n4: trójkątów 25896, watertight=True, identyczny z wyniki_v2=True
+   bounds x -48.0 48.0  y -48.0 48.0  z 0.0 8.600000381469727
+   rynienka 36: dno z=4 OK, obrys dna u±23.93 v±5.43 (oczek. 23.93 / 5.43)
+   rynienka 37: dno z=4 OK, obrys dna u±23.93 v±5.43 (oczek. 23.93 / 5.43)
+   gniazda okrągłe niezgodne: 0
+   znacznik A: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik B: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik C: zmin=5.000 (oczek 5.0), r_top=2.500
+   dołki kodu w STL: A=False B=False C=True -> n=4 OK
+   wycięcie D: wierzchołków w obszarze 18 (obszar powinien być pusty poza krawędziami)
+   relief numeru: zmax=8.60 (oczek 8.6)
+-- n5: trójkątów 26272, watertight=True, identyczny z wyniki_v2=True
+   bounds x -48.0 48.0  y -48.0 48.0  z 0.0 8.600000381469727
+   rynienka 36: dno z=4 OK, obrys dna u±23.93 v±5.43 (oczek. 23.93 / 5.43)
+   rynienka 37: dno z=4 OK, obrys dna u±23.93 v±5.43 (oczek. 23.93 / 5.43)
+   gniazda okrągłe niezgodne: 0
+   znacznik A: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik B: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik C: zmin=5.000 (oczek 5.0), r_top=2.500
+   dołki kodu w STL: A=True B=False C=True -> n=5 OK
+   wycięcie D: wierzchołków w obszarze 19 (obszar powinien być pusty poza krawędziami)
+   relief numeru: zmax=8.60 (oczek 8.6)
+-- n6: trójkątów 26128, watertight=True, identyczny z wyniki_v2=True
+   bounds x -48.0 48.0  y -48.0 48.0  z 0.0 8.600000381469727
+   rynienka 36: dno z=4 OK, obrys dna u±23.93 v±5.43 (oczek. 23.93 / 5.43)
+   rynienka 37: dno z=4 OK, obrys dna u±23.93 v±5.43 (oczek. 23.93 / 5.43)
+   gniazda okrągłe niezgodne: 0
+   znacznik A: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik B: zmin=5.000 (oczek 5.0), r_top=2.500
+   znacznik C: zmin=5.000 (oczek 5.0), r_top=2.500
+   dołki kodu w STL: A=False B=True C=True -> n=6 OK
+   wycięcie D: wierzchołków w obszarze 19 (obszar powinien być pusty poza krawędziami)
+   relief numeru: zmax=8.60 (oczek 8.6)

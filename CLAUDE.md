@@ -1,53 +1,28 @@
-# qc - stanowisko kontroli cyrkonii
+# qc - zasady pracy
 
-Program stanowiska kontroli koron i mostow z cyrkonii: kontrola ukruszen wieczorem (skan plytki vs projekt
-STL), identyfikacja prac rano (praca -> kuweta/zlecenie), podswietlanie gniazd w ramkach LED i
-automatyczne odhaczanie zlecen w Excelu. Zrodlo wymagan: "Stanowisko kontroli cyrkonii - plan wdrozenia
-v2" (26.10.2026), sekcje 9 (moduly), 10 (dane i integracje), 14 (testy odbiorcze). Dokumentu nie ma w repo.
-
-## Stos
-
-| Obszar | Wybor |
+| Stos | |
 |---|---|
-| Runtime | Python 3.12 na laptopie Windows 11 (i7/i9, 32 GB, RTX); Python 3 na Raspberry Pi 4 (ramki) |
-| Geometria i dopasowanie 3D | trimesh, numpy, Open3D (FPFH + RANSAC, ICP) |
-| Interfejs | PySide6 (Qt) |
-| Dane lokalne | SQLite (wbudowane), foldery OneDrive/SharePoint "Cyrkon" i "Prywatne", raporty MillBox (BeautifulSoup4, pypdf) |
-| Integracje | Excel przez COM (pywin32), watchdog (folder eksportu skanera), pyautogui (opcjonalnie) |
-| Ramka | rpi-rgb-led-matrix (Adafruit RGB Matrix Bonnet), evdev (klawiatura), czujniki Halla, HTTP/WebSocket po Wi-Fi |
-| Testy | pytest na danych syntetycznych (sztuczne skany z prawdziwych STL: skala, szum 0,02-0,04 mm, ubytki 0,2-0,6 mm) |
-| CI | GitHub Actions: pytest (do skonfigurowania przy pierwszym kodzie) |
-| Dystrybucja | prywatne repo mbuasm/qc; na laptopie stanowiska wersja zamrozona (tag), aktualizacja jednym poleceniem |
+| runtime | Python 3.12 (skrypty w `Ramki/narzedzia`, `Ramki/stanowisko`, `Ramki/ramka_generator.py`) |
+| framework | brak (skrypty + HTML/JS do podgladu 3D) |
+| testy | `python -m pytest -q` w katalogu z testami, jesli zadanie je wskazuje |
+| CI | brak |
+| dystrybucja | pakiety `Ramki_do_wgrania/*.zip` + SHA256SUMS (na Drive) |
 
-Tylko darmowe biblioteki bez subskrypcji.
+Zasady: pliki po polsku bez znakow diakrytycznych (tresc przeniesiona z PC zostaje jak jest);
+duze dane (STL skanow, `Prace_test`) nigdy do gita - patrz `.gitignore`; zmiana stosu, modelu danych
+albo dystrybucji = najpierw opis dla czlowieka. Stan projektu: `Ramki/00_NADZOR_STAN.md`.
 
-## Moduly (plan v2, sekcja 9)
+## Testy i Blender na PC (decyzja czlowieka 03.11.2026 - tylko ten projekt)
 
-`catalog`, `plate`, `match`, `inspect`, `session`, `ui`, `indicate`, `excel`, `scanner` + osobny program ramki.
-Kazdy modul ma plik opisu dla Claude Code: co robi, wejscie, wyjscie, kryterium "dziala".
-Kolejnosc budowy: generator danych testowych -> catalog/plate/match/inspect z metrykami
-(wykryte / pominiete / falszywe) -> session/ui/indicate/excel -> scanner i integracja.
+MSI nie ma RAM-u na Blender i WDAC blokuje czesc pakietow Python; sesje qc zlecaja takie zadania na PC
+[usunieto w kopii: opis dostepu ssh]
+musi byc wlaczony - WoL z MSI). Zasady: tylko zadania projektu qc, nic nie instaluj i nie kasuj na PC,
+pliki robocze PC w `<PC>\Desktop\Ramki` (zrodlo tej kopii), wyniki wracaja na MSI.
 
-## Testy
-
-```
-python -m pytest
-```
-
-## Konwencje
-
-- Jezyk plikow, komentarzy i komunikatow: polski bez znakow diakrytycznych.
-- Skrypty PowerShell 5.1: ASCII, CRLF, bez `&&`.
-- Prace na galeziach, PR do `main`; `main` = wersja do zamrozenia na stanowisku.
-- RODO: zadnych prawdziwych STL, skanow, nazw folderow zlecen, wierszy Excela ani raportow MillBox w repo.
-  W testach tylko dane syntetyczne/zanonimizowane. Program nic nie wysyla do internetu; ramki dostaja tylko
-  numery gniazd i kuwet.
-- Excel: zapis wylacznie koloru pola B (RGB 198, 239, 206), kazdy zapis do logu CSV; zmiany w module `excel`
-  testuj na kopii pliku, nigdy na produkcyjnym.
-- Progi wykrywania i sciezki w jednym pliku ustawien, nie w kodzie.
-
-## Prog zmian
-
-Zmiana stosu (nowa biblioteka zamiast wymienionej, platna zaleznosc, inny jezyk), modelu danych (schemat
-SQLite, format pliku ukladu gniazd, format logu Excela), sposobu zapisu do Excela albo dystrybucji =
-najpierw opis dla czlowieka (co, dlaczego, skutki), nie samowolna zmiana.
+- [usunieto w kopii: opis dostepu ssh]
+  dluzszy skrypt: `powershell -NoProfile -EncodedCommand <base64 UTF-16LE>` (linia max 8 KB).
+- [usunieto w kopii: opis dostepu ssh]
+  pelna sciezka z `C:\Program Files\Blender Foundation\Blender 5.2`).
+- Python: venv zalozony przez `uv` nie startuje w sesji ssh (blad 448); uzywaj
+  `<PC>\AppData\Local\Programs\Python\Python312\python.exe` z `PYTHONPATH` na `.venv\Lib\site-packages`.
+- [usunieto w kopii: opis dostepu ssh]

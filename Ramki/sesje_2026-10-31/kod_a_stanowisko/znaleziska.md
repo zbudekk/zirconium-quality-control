@@ -1,0 +1,92 @@
+# Znaleziska — KOD A: edge-case'y programu stanowiska (`stanowisko/`)
+
+Data: 31.10.2026. Zakres: `stanowisko/uklad.py`, `stanowisko/synth.py`, `narzedzia/atrapy_koron.py`, `narzedzia/rzut_z_gory.py`, `testy/`, `ustawienia.toml`, `modele_plytek/*/uklad.json` (+ `../parametry.json`, `../wyniki_v2`), bezpieczeństwo danych wg lokalnych źródeł (`Stanowisko kontroli cyrkonii — plan wdrozenia v2.md` w. 63, 149, 365, 369; `stanowisko/README.md`; `opisy_modulow/`).
+Testy: `testy_edge/` — **86 passed, 27 xfailed, 0 failed** (`py -3.12 -m pytest ../sesje_2026-10-31/kod_a_stanowisko/testy_edge -q`, cwd `stanowisko/`, 60 s). Każdy `xfail` ma w `reason` ID z tej tabeli. Istniejące `testy/`: 11 passed.
+
+Wagi: **BŁĄD** = kod daje zły wynik lub przerywa pracę na poprawnym/realnym wejściu; **RYZYKO** = błąd ujawni się przy następnych modułach albo na prawdziwych danych; **UWAGA** = jakość, komunikaty, dokumentacja.
+
+## 5 najważniejszych
+
+| # | ID | Co | Dlaczego ważne |
+|---|---|---|---|
+| 1 | **B1** | `osadz_w_gniezdzie`: losowe przesunięcie xy (`luz_xy`) dodawane **po** obliczeniu uniesienia → praca przenika ściankę stożka do **0,73 mm** (poranna ø7,5, przedtrzonowy ×1,22: 594/1050 osadzeń > 0,05 mm). Z `luz_xy=0` przenikań 0. | Dane syntetyczne, na których plate/match/inspect mają liczyć metryki (0,05 mm!), są fizycznie niemożliwe: skan „wnika” w płytkę. Istniejący test sprawdza 1 seed i 1 gniazdo ø12. |
+| 2 | **B3** | `ustawienia.toml` **nie jest czytany przez żaden plik**; progi `[synth]` (0,03; 1,20–1,25) są wpisane trzy razy w `synth.py`. README: „jedyny plik ustawień… stroi się je na próbie testowej, nie w kodzie”. | Strojenie w toml nic nie zmieni; następne moduły powtórzą wzorzec. |
+| 3 | **B2** | `UkladPlytki.najblizsze_gniazdo` liczy odległość do **środka** gniazda: punkt (28, 19,5) leżący w rynience 25 dostaje gniazdo okrągłe 20; punkt (100, 100) poza płytką też dostaje gniazdo 20. | Plate ma „ciąć skan na gniazda” i wykrywać „poza gniazdem” — z tą metodą fragmenty mostów przy końcach rynienek trafią do złych gniazd. |
+| 4 | **S1** | Synth wycina ubytki w pasie **2,0 mm** od brzegu (`pas_brzegu=2.0`), toml `[inspect] pas_brzegu_mm = 1.5`; najmniejszy ubytek ø0,2 ma głębokość 0,7·r = **0,07 mm < prog_glebokosci_mm 0,08**. | Część prawdy jest z definicji niewykrywalna → metryka „wykryte ≥ 90 %” będzie zaniżona nie przez inspect, a przez generator. |
+| 5 | **P1/P3** | `PracaNaPlytce.projekt = plik.name` kopiuje nazwę pliku projektu do JSON prawdy obok skanu; plan wdrożenia v2 w. 365 zapowiada log CSV z „nazwą folderu” (= nazwisko wg w. 339/362). | `Stanowisko kontroli cyrkonii — plan wdrozenia v2.md` w. 369 obiecuje: „program nie kopiuje nazwisk nigdzie poza laptop… skanów prac nie da się powiązać z osobą bez Excela”. Kod i plan logu są z tym w sprzeczności — do rozstrzygnięcia przed modułami catalog/excel/session. |
+
+## Tabela znalezisk
+
+### uklad.py
+
+| ID | Waga | Plik:linia | Wejście | Obserwowane | Oczekiwane | Proponowana poprawka |
+|---|---|---|---|---|---|---|
+| B2 | **BŁĄD** | `uklad.py:108-109` | `najblizsze_gniazdo(28, 19.5)` (punkt w rynience 25); `(100, 100)` | zwraca gniazdo 20 (ø15) w obu przypadkach | 25; dla punktu poza wszystkimi gniazdami `None`/wyjątek | odległość do **obrysu** (dla rynienki: odległość do prostokąta, dla okrągłego: `hypot − r`); najpierw `[g for g in sockets if g.zawiera(x, y, margines)]`, potem najbliższy obrys; zwracać `None` gdy odległość > margines |
+| U1 | RYZYKO | `uklad.py:133-160` | `uklad.json` = `{}`; gniazdo bez `d_top`; `type: "square"`; gniazdo `x=60`; znacznik z dodatkowym kluczem; `sockets: []` | `KeyError('sockets')` bez nazwy pliku; gniazdo bez `d_top` wczytuje się, `TypeError` dopiero przy `zawiera()`; „square” traktowane jak rynienka z `l=w=None`; gniazdo poza płytką przechodzi; dodatkowy klucz → `TypeError` z `Znacznik(**m)`; pusta lista → `min()` ValueError | odrzucenie przy wczytaniu z komunikatem „plik X: gniazdo 1: brak d_top” | funkcja `_waliduj(d, plik)`: wymagane klucze, `type ∈ {round, trough}`, pola zależne od typu, `|x|+r ≤ size/2`, `depth ≤ thickness`, ≥ 1 gniazdo; `Znacznik`/`Dolek` budować z jawnych kluczy, nie `**m` |
+| U2 | UWAGA | `uklad.py:150-152` | w katalogu modeli plik `plytka_n1_kopia.stl`; `plytka_n1_0.stl` | `ValueError: invalid literal for int()` wysadza `wczytaj()`; `int("1_0") == 10` → numer płytki 10 | obce pliki pominięte; numery tylko 1…7 | `re.fullmatch(r"plytka_n(\d)\.stl", p.name)`; odrzucić numer ∉ 1…7 |
+| U3 | UWAGA | `uklad.py:117-124` | `bity_z_numeru(8)`, `(-1)`; `numer_z_bitow(2, 0, 0)` | `(F,F,F)` jak dla 0; `(T,T,T)`; `2` | `ValueError` poza 0…7; tylko bool | `if not 0 <= n <= 7: raise ValueError`; `bool()` na wejściu lub typowanie |
+| U4 | RYZYKO | `uklad.py:17`, `uklad.py:41` | `uklad.json` z `thickness: 10` | `uk.thickness == 10`, ale `z_dno == 4` (Z_TOP=8 zaszyte) | `z_dno = thickness − depth` | `z_dno` liczyć z `UkladPlytki.thickness`; `Z_TOP` zostawić tylko jako domyślną/asercję `== thickness` przy wczytaniu |
+| U5 | UWAGA | `uklad.py:18`, `uklad.json d_bottom`, `parametry.json socket_wall_angle` | — | kąt 15° w 3 miejscach; `promien_dolny()` dla okrągłych bierze `d_bottom` z JSON, dla rynienek liczy z stałej | jedno źródło | zapisać `wall_angle` w `uklad.json` (generator ramek ma go w `parametry.json`) i czytać; `d_bottom` sprawdzać asercją |
+
+### synth.py
+
+| ID | Waga | Plik:linia | Wejście | Obserwowane | Oczekiwane | Proponowana poprawka |
+|---|---|---|---|---|---|---|
+| B1 | **BŁĄD** | `synth.py:194`, `synth.py:204` | przedtrzonowy ×1,22 w gnieździe ø7,5 (poranna), 20 seedów; ogólnie każde gniazdo, w którym praca opiera się o ściankę (uniesienie > 0) | wierzchołki pracy poniżej z=8 wychodzą poza stożek do 0,73 mm (śr. 0,14); z `luz_xy=0` → 0,000 | przenikanie 0 (test z `luz_xy=0` dowodzi, że pętla uniesienia jest poprawna) | losować `dx, dy` **przed** pętlą i liczyć `rho` od przesuniętego środka (`rho = hypot(V.x+dx, V.y+dy)`), albo po pętli sprawdzić `nar` jeszcze raz i w razie kolizji `dx=dy=0`; dodać końcową asercję „0 wierzchołków poza stożkiem” |
+| B1b | **BŁĄD** | `synth.py:195-203` | prostopadłościan 58,5 × 10 × 5 w rynience 60 × 15 (wieczorna 25) | przechodzi warunek `> g.l − 1.0` (59), a dno rynienki ma 57,86 mm → przenika ścianki końcowe do 0,32 mm (+ `dx` do 0,25) | odrzucenie lub uniesienie jak w gniazdach okrągłych | w rynience zastosować tę samą pętlę uniesienia z ograniczeniem `|u| ≤ l/2 − depth·tan + (z − z_dno)·tan`, `|v| ≤ …`; `dx,dy` wliczone |
+| S1 | RYZYKO | `synth.py:84` (`pas_brzegu=2.0`), `synth.py:103,128` (0,7·r), `ustawienia.toml [inspect]` | domyślne `Opcje` | ubytki do 2,0 mm od brzegu, inspect ma szukać w 1,5 mm; ø0,2 → głębokość 0,07 < 0,08 | zakresy generatora ⊆ zakresy detektora lub jawnie oznaczone w prawdzie jako „poza specyfikacją” | `pas_brzegu` i `srednica_ubytku` brać z toml (`[inspect]`), albo zapisać w JSON prawdy pole `wykrywalny: bool` liczone z progów toml |
+| S2 | RYZYKO | `synth.py:76-78`, `synth.py:270-277` | w folderze projektów jeden STL z 0 trójkątów; STL z NaN | pusty: `RuntimeWarning` + `AttributeError: 'NoneType'.mean` → cała płytka (i cały `--ile`) przerwana; NaN: bez błędu, praca „w gnieździe” liczona z NaN | zły plik pominięty z ostrzeżeniem, reszta płytki wygenerowana | po `trimesh.load`: `if m.is_empty or not np.isfinite(m.vertices).all() or m.area == 0: warn; continue` |
+| S3 | RYZYKO | `synth.py:110` (`max_edge=min(0.05, r/3)`) | `wytnij_ubytek(m, 0.0)`; `(m, -0.3)`; CLI `--srednica 0-0.6` może wylosować ~0 | r=0 → `max_edge=0` → `subdivide_to_size` 10 iteracji, **~230 s** i miliony trójkątów, potem ValueError; r<0 → po 2 s `ValueError: max_iter exceeded!` z trimesh | `ValueError("srednica musi być > 0")` natychmiast | walidacja `srednica > 0` w `wytnij_ubytek` i zakresów w `Opcje.__post_init__`/CLI (`s0 > 0`, `s0 ≤ s1`) |
+| S4 | UWAGA | `synth.py:133-134`, CLI `--szum` | `--szum -1`; `sigma=nan` | ujemny: cicho bez szumu, w JSON `szum_sigma: -1.0`; NaN: przechodzi `sigma <= 0` i daje siatkę pełną NaN | błąd dla σ<0 lub NaN | `if not sigma >= 0: raise ValueError`; `if sigma == 0: return m` |
+| S5 | UWAGA | `synth.py:141-153`, `synth.py:50` | `p_drgniecia=1.0` | prawda ma tylko `drgniecie: true`; wektor `kier` (0,08–0,15 mm) i płaszczyzna podziału nie są zapisane | inspect może zweryfikować wielkość podwójnej powierzchni | `drgniecie()` zwraca `(mesh, kier)`; w `PracaNaPlytce` pole `drgniecie_mm: list[float] | None` |
+| S6 | UWAGA | `synth.py:263-264` | `prace_na_plytce=30` przy 3 projektach | 3 prace bez ostrzeżenia (każdy projekt najwyżej raz) | komunikat lub losowanie z powtórzeniami | `rng.choice(len(projekty), limit, replace=limit > len(projekty))` albo `warnings.warn` |
+| S7 | UWAGA | `synth.py:298`, `synth.py:367-368` | `Opcje(ubytki_na_prace=(2, 0))`; CLI `--ubytki 2`, `0--2`, `a-b` | `ValueError` z numpy (`high <= low`) / z `split("-")` bez komunikatu argparse | `argparse.ArgumentTypeError` z podpowiedzią formatu | własny `type=zakres` w argparse z walidacją `a ≤ b`, `a ≥ 0` |
+| S8 | UWAGA | `synth.py:232-233` | `siatka_plytki(uk, 1, 0, rng)` | komentarz „kieszenie magnesów usuwamy”, filtr `z_center > 0.5` zostawia ścianki kieszeni (z 0,5…2,2) oraz całe ściany boczne płytki do z=0 | zgodność komentarza z kodem; opcjonalnie tylko to, co skaner widzi z góry | usuwać trójkąty o normalnej `n_z ≤ 0` (odwrócone od skanera) albo `z_center < Z_TOP − 3.5` poza gniazdami; poprawić komentarz |
+| S9 | RYZYKO | `synth.py:330-336`, `atrapy_koron.py:114-121` | dwa uruchomienia z tym samym `--seed` i `--numer` do tego samego `--wyjscie` | poprzedni `skan_*.stl/.json` nadpisany bez słowa | odmowa lub `--nadpisz` | `if p_stl.exists() and not nadpisz: raise FileExistsError`; opcja CLI `--nadpisz` |
+| S10 | UWAGA | `synth.py:340-345` | JSON prawdy z dodatkowym polem `wersja_formatu`; bez `ubytki`; `transformacja` 3×3 lub zerowa | `TypeError: unexpected keyword`; `KeyError('ubytki')`; macierz zdegenerowana wczytana bez sprawdzenia | tolerancja nowych pól, domyślne `[]`, walidacja 4×4 z `det(R)≈1` | `PracaNaPlytce(**{k: v for k in fields})`, `p.get("ubytki", [])`, `np.asarray(T).shape == (4,4)`; pole `wersja` w `PrawdaPlytki` |
+| S11 | UWAGA | `synth.py:364` | folder z `A.STL` | Windows: znajduje (glob bez rozróżniania wielkości); POSIX: pomija | jednakowo na obu systemach | `[p for p in a.projekty.iterdir() if p.suffix.lower() == ".stl"]` |
+| S12 | UWAGA | `synth.py:181` | dowolna praca brzegiem do góry | warunek `rho[z<0.5].min() > promien_gorny` praktycznie nigdy nie odrzuca (ostrze korony ma rho≈0); odrzuca dopiero pętla + `MAKS_UNIESIENIE` | — | usunąć lub zamienić na sprawdzenie szerokości dolnego pasa `rho[z<0.5].max()` |
+| S13 | UWAGA | `synth.py:174-210` | — | otwór ø3 w dnie gniazda (`hole_d`) nie jest modelowany: ostrze korony nie może „wpaść” do otworu | zgodność z geometrią płytki | dla punktów `rho < hole_d/2` nie liczyć kontaktu z dnem (pozwolić z < z_dno), albo udokumentować w `synth.md` |
+
+### narzedzia/
+
+| ID | Waga | Plik:linia | Wejście | Obserwowane | Oczekiwane | Proponowana poprawka |
+|---|---|---|---|---|---|---|
+| B4 | **BŁĄD** | `rzut_z_gory.py:191-193` | projekt STL przesunięty o (30, −25) względem (0,0) (jak STL z exocad w układzie szczęki) | etykieta numeru gniazda rysowana w `T[0,3], T[1,3]`; to translacja łączna z centrowaniem (`Tc`) → etykieta poza gniazdem (sama `transformacja` w prawdzie jest poprawna) | etykieta w środku pracy | środek = `T @ [c_proj·w, 1]` gdzie `c_proj` = środek projektu, albo zapisać w prawdzie `srodek_xy` i rysować z niego; prostsze: użyć `uk.gniazdo(id).x, .y` |
+| N1 | UWAGA | `rzut_z_gory.py:158-162` | `--px 0`, `--px -0.1`, `px=nan`; siatka z NaN; pusta siatka | `ValueError: negative dimensions are not allowed` (przypadkowo); `IndexError` dla px<0; `ValueError` z `min()` dla pustej | komunikat „px musi być > 0”, „siatka pusta/NaN” | walidacja na wejściu `render()`; `argparse type` z `px > 0` |
+| N2 | UWAGA | `atrapy_koron.py:114`, `:119` | `--ile 100` | `atrapa_100_…` psuje sortowanie (`:02d`) | — | `:03d` lub bez zera wiodącego |
+
+### testy/, dokumentacja, zależności
+
+| ID | Waga | Plik:linia | Obserwowane | Proponowana poprawka |
+|---|---|---|---|---|
+| T1 | UWAGA | `testy/test_synth.py:126` | `assert … is None or True` — asercja zawsze prawdziwa | sprawdzić konkretny przypadek odrzucenia (np. walec ø10 w ø9 → `None`, jak w `testy_edge`) |
+| T2 | UWAGA | `testy/test_synth.py:80` | `m.bounds[1, 2] > 0` przechodzi tylko dzięki szumowi 6,6e-16 z `rotation_matrix(π)` (po obrocie max z = −0,0) | `assert m.bounds[1,2] == approx(0) and m.bounds[0,2] < 0`, albo sprawdzić położenie pierścienia brzegu |
+| T3 | UWAGA | `testy/test_uklad.py:20-26` | ścianki ≥ 3 mm tylko okr↔okr, tylko wieczorna; brak testu dla porannej i okr↔rynienka (w `testy_edge` przechodzą: 3,000 mm) | parametryzować po płytce, dodać rynienki |
+| T4 | UWAGA | `testy/test_synth.py:110-124` | osadzenie testowane na 1 seedzie, 1 gnieździe ø12 — B1 nieuchwycone | pętla po seedach i po wszystkich rozmiarach gniazd obu płytek (wzór: `testy_edge/test_edge_synth.py::test_osadzenie_*`) |
+| D1 | UWAGA | `opisy_modulow/synth.md` | „ok. 1–1,5 mln trójkątów, 60–75 MB”; przebieg 13 prac + `--drgniecie 0.5`: **1 791 744 trójkątów, 89,6 MB**, 3,3 s | zaktualizować opis lub podać wzór zależny od liczby prac i drgnięć |
+| D2 | UWAGA | `requirements.txt` | brak wersji; `open3d` wymieniony, nieużywany; `rtree` używany przez `proximity` w testach; README „Python 3.12”, a `py` domyślnie 3.14 (zależności też tam są) | przypiąć wersje (numpy 2.5.4, trimesh 5.2.0, scipy 1.18.1, Pillow 13, pytest 9.1.1 — stan z 31.10.2026); dopisać `py -3.12` do README |
+| D3 | UWAGA | `ustawienia.toml [plytki]` vs `uklad.py:16` | toml podaje ścieżki względne do cwd, kod używa `KATALOG_MODELI` względem pliku — dwa źródła tej samej lokalizacji (patrz B3) | jedno źródło po wprowadzeniu czytania toml |
+| B3 | **BŁĄD** | `synth.py:242-243`, `:355`, `:371`; brak `tomllib` w całym kodzie | `ustawienia.toml` nieczytany; `szum_sigma=0.03` i `(1.20, 1.25)` wpisane w `Opcje`, w argparse i w `main()`; `(1.0, 1.0)` dla porannej tylko w `main()` | `ustawienia.py`: `wczytaj_ustawienia(Path) -> dict` (tomllib, walidacja kluczy); `Opcje.z_toml(sekcja)`; argparse `default=None` → „z toml”; test „każdy klucz toml użyty w kodzie lub oznaczony `# przyszły moduł`” |
+
+### Bezpieczeństwo danych pacjentów (źródła lokalne: `Stanowisko kontroli cyrkonii — plan wdrozenia v2.md` w. 63, 149, 339, 362, 365, 369; `stanowisko/README.md`; `.gitignore`)
+
+Zasady z planu: w. 369 „nazwiska pacjentów są tylko w nazwach folderów i w Excelu… program nie kopiuje ich nigdzie poza laptop stanowiska, nie wysyła niczego do internetu, a zdjęć i skanów prac nie da się powiązać z osobą bez Excela”; w. 63/149 „wszystko lokalnie, bez chmur zewnętrznych”; w. 339 „nazwa pliku STL daje numer zęba”, w. 362 „nazwisko z nazwy folderu”.
+
+| ID | Waga | Gdzie | Obserwowane | Sprzeczność ze źródłem lokalnym | Proponowana poprawka |
+|---|---|---|---|---|---|
+| P1 | RYZYKO | `synth.py:309` (`projekt=plik.name`), `synth.py:335` | nazwa pliku STL projektu trafia do `skan_*.json` leżącego obok skanu. Wg planu w. 339 nazwisko jest w nazwie **folderu**, a plik daje numer zęba — więc przy tej konwencji JSON nie zawiera nazwiska; zależy to jednak wyłącznie od nazw w „Cyrkon” (test z plikiem `Kowalski_Jan_12345_korona_16.stl` → nazwisko w JSON). `dane/` w `.gitignore`, stdout wypisuje tylko `skan_*.stl` (sprawdzone). | w. 369: „skanów prac nie da się powiązać z osobą bez Excela” — JSON obok skanu może to powiązanie dać, gdy nazwa pliku niesie nazwisko/numer zlecenia | w prawdzie zapisywać identyfikator (skrócony SHA-256 pliku + numer zęba) zamiast nazwy; mapowanie nazwa ↔ hash w SQLite katalogu, nie obok skanów |
+| P2 | UWAGA | `ustawienia.toml` (śledzony w git lokalnego repo) | ścieżki konkretnej maszyny (`C:/Users/stanowisko/OneDrive/Cyrkon`, `folder_prywatne`, `folder_eksportu_skanera`, hosty ramek) są w pliku wersjonowanym | brak lokalnej zasady, która tego zabrania (repo jest lokalne, w. 149 dotyczy wysyłania danych) — uwaga o przenośności: na innym laptopie plik trzeba edytować w repo | `ustawienia.przyklad.toml` w repo, właściwy `ustawienia.toml` w `.gitignore` |
+| P3 | RYZYKO (przyszłe moduły) | plan w. 365 (`log_excel.csv`: „data, godzina, numer kuwety, **nazwa folderu**…”), toml `log_excel = dane/log_excel.csv`, `baza = dane/stanowisko.sqlite` | plan zapowiada log CSV z nazwą folderu (= nazwisko wg w. 362) i bazę SQLite na laptopie | w. 369: „program nie kopiuje ich [nazwisk] nigdzie” — log CSV z nazwą folderu jest kopią nazwiska poza Excel i nazwami folderów; spójne tylko przy założeniu z w. 369 (szyfrowanie dysku, brak synchronizacji `dane/`) | log z numerem kuwety i hashem projektu; retencja w toml; `dane/` poza folderami OneDrive (dziś tak jest — w repo) |
+| P4 | UWAGA | `rzut_z_gory.py` PNG, `synth.main()` stdout | PNG zawiera tylko numery gniazd i krzyżyki; stdout tylko `skan_*.stl` — **bez uwag** | zgodne z w. 369 | — |
+| P5 | UWAGA | `.gitignore` | `dane/`, `*.png`, `*.sqlite` wykluczone; brak `*.csv` i `ustawienia.toml`; `git ls-files` bez danych (sprawdzone) | zgodne z README („`dane/` nie trafia do repozytorium”) poza P2 | dodać `*.csv`, `ustawienia.toml` |
+
+## Co przechodzi (potwierdzone testami, bez uwag)
+
+- Geometria: 6 STL płytek bajtowo = `wyniki_v2`; gniazda (z=8/z=4, d_top/d_bottom), rynienki (dno 57,86 × 12,86 / 47,86 × 10,86), znaczniki (z 5…8, r 2,5), dołki kodu (n1…n6 → właściwe bity), wycięcie D, relief 8,6 — zgodne z `uklad.json`; `uklad.json` = `parametry.json`; ścianki ≥ 3,000 mm wszędzie; strefa gniazd ≤ 45 mm.
+- Układ współrzędnych: początek w środku górnej powierzchni, góra na z=8, dno gniazd z=4, prace nad dnem; transformacje z prawdy sztywne (det=1), nakładają każdą pracę na gniazdo; ubytki w pasie brzegu i na powierzchni pracy.
+- Determinizm: ten sam seed → identyczne wierzchołki i prawda; inny seed → inna prawda.
+- Ścieżki ze spacjami i polskimi znakami (projekty, wyjście, nazwy plików) — działają w `synth`, `atrapy_koron`, `rzut_z_gory`; brak katalogu wyjściowego tworzony.
+- Most trafia do rynienki, `mosty=False` go pomija; most za szeroki na poranną rynienkę odrzucony; praca za szeroka / wisząca odrzucona.
+- `gniazda_puste` dopełnia zajęte, brak podwójnego obsadzenia; pusta pula projektów i `prace_na_plytce=0` dają samą płytkę.
+- Atrapy szczelne, brzeg na z=0, deterministyczne.
