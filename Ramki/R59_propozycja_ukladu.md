@@ -186,3 +186,65 @@ P-b: fi 15 jest 2 zamiast 3 (w probie fi 15 potrzebuja rano 2 z 17 prac). Gdy ma
 ma byc wiecej - P-d2. Skutki jak w P-b: wszystkie trzy stozki, dolki i cyfra plytki okraglej zmieniaja miejsce. W P-d
 rzad fi 12,5 x 6 siega granicy strefy +-45 (jak dzis i w P-b); w P-d1 i P-d2 nie (44,00).
 Szkice: `szkic_P-d.png`, `szkic_P-d1.png`, `szkic_P-d2.png`, zbiorczy `szkic_przeglad_poranna_G0.png`.
+
+## 9. Rodzina P-e (szkic wlasciciela: fi 12,5 i fi 15)
+
+Szkic wlasciciela, rzedy od przodu: rynienka 50 x 13 | fi 12,5, fi 12,5, fi 15, fi 12,5, fi 12,5 | fi 12,5 x 6 |
+fi 12,5 x 6 | fi 12,5 x 5 | fi 15 x 2 = 21 x fi 12,5 + 3 x fi 15 = 24 gniazda.
+**Werdykt: doslownie NIE - brakuje 2,7 mm wysokosci** (`uloz spec_P-e-szkic.json --diagnoza`: 2,68). Z przodu rynienka
+nie moze lezec nizej niz y -36,03 (kolo skanowania), a zeby para fi 15 z tylu zmiescila sie w strefie +-45, musialaby
+lezec w y -38,71. Cala strata to fi 15 nad rynienka: rzad za nia lezy 31,85 zamiast 29,17 od rynienki; bez niej uklad
+bylby dokladnie na styk (brak 0,006 mm). **Blisko - TAK.**
+
+Rodzina P-e = tylko fi 12,5 i fi 15, jedna rynienka jako pierwszy rzad. Narzedzie dostalo rzedy mieszane (fi 15 w rzedzie
+fi 12,5; w pliku to osobne wpisy rzedu o innym y, weryfikator bez zmian). Najwiecej gniazd dla danej liczby fi 15:
+
+| fi 15 | rynienka dosunieta do przodu (y do -36): fi 12,5 / razem / max promien | rynienka y >= -33 (dolki okraglej przed nia): fi 12,5 / razem / max promien |
+|---|---|---|
+| 0 | 25 / **25** / 46,98 (P-e0) | 24 / **24** / 46,76 (P-e0-33) |
+| 1 | 23 / 24 / 46,35 | 21 / 22 / 46,30 |
+| 2 | 21 / 23 / 46,35 | 20 / 22 / 45,62 |
+| 3 | 20 / **23** / 46,41 (P-e) | 18 / **21** / 46,81 (P-e-33) |
+| 4 | 19 / 23 / 46,98 | 18 / 22 / 45,62 |
+| 5 | 17 / 22 / 46,57 | 16 / 21 / 46,81 |
+
+Pliki i szkice (wszystkie: weryfikator kod 0, scianka min 3,000):
+
+| wariant | fi 12,5 | fi 15 | razem | rynienka y | max promien (47) | stozek - gniazdo | boki trojkata | okragla: krawedz / sciecie / dolek - gniazdo |
+|---|---|---|---|---|---|---|---|---|
+| P-d (dla porownania: + 13 x fi 10) | 11 | 2 | 26 + 1 | -32,5 | 45,73 | 3,01 | 65,0 / 59,0 / 88,5 | 4,27 / 6,79 / 3,50 |
+| **P-e** najblizej szkicu, 3 x fi 15 | 20 | 3 | 23 + 1 | -35,3 | 46,41 | 3,02 | 55,9 / 79,4 / 86,5 | 3,59 / 4,81 / 3,55 |
+| P-e1 para fi 15 z tylu (wyglad szkicu) | 19 | 3 | 22 + 1 | -35,7 | 46,71 | 3,03 | 65,0 / 59,0 / 88,1 | 3,29 / 4,53 / 4,05 |
+| P-e-33 3 x fi 15 z tylu | 18 | 3 | 21 + 1 | -32,9 | 46,81 | 3,03 | 53,7 / 79,0 / 87,3 | 3,19 / 5,52 / 3,10 |
+| **P-e0** same fi 12,5 | 25 | 0 | 25 + 1 | -36 | 46,98 | 3,02 | 66,5 / 57,0 / 88,6 | 3,02 / 4,32 / 3,67 |
+| P-e0-33 same fi 12,5 | 24 | 0 | 24 + 1 | -32,9 | 46,76 | 3,03 | 68,1 / 52,0 / 88,4 | 3,24 / 6,51 / 3,10 |
+
+Rzedy (y; x) i plytka okragla:
+- **P-e:** rynienka y -35,3 | fi 12,5 x 5 (-19,55; 0, +-15,5, +-31) | fi 12,5 x 6 (-6,1; +-7,75, +-23,25, +-38,75) | rzad
+  mieszany: fi 12,5 x 4 (8; +-16,75, +-32,25) i fi 15 (8,75; 0) | rzad mieszany: fi 15 x 2 (22,85; +-24,5) i fi 12,5 x 2
+  (23,6; +-7,75) | fi 12,5 x 3 (37,05; 0, +-15,5). Stozki A (-30,5; -32), B (-37,5; 23,5), C (41,5; 16). Okragla: dolki
+  w dwoch parach z prawej (36,5; 18,5), (36,5; 21,5), (43; 6), (43; 9), cyfra (-44; 5,5).
+- **P-e1:** rynienka y -35,7 | fi 12,5 x 4 (-19,95; +-7,75, +-23,25) | x 5 (-6,5) | x 6 (6,95) | rzad mieszany: fi 12,5 x 4
+  (21,05; +-16,75, +-32,25) i fi 15 (21,8; 0) | fi 15 x 2 (37,4; +-9). Stozki A (-30,5; -32), B (-29,5; 33), C (29,5; 32,5).
+  Okragla: dolki kolumna x 34,5, y -27 / -24 / -21 / -18 (prawie jak dzis), cyfra (41; -15).
+- **P-e-33:** rynienka y -32,9 | fi 12,5 x 5 (-17,15; 0, +-18, +-36) | x 4 (-4,5; +-9, +-27) | x 5 (8,15) | x 4 (20,8) |
+  fi 15 x 3 (34,95; 0, +-18). Stozki A (-30,5; -32), B (-39; 21), C (40; 19,5). Okragla: dolki rzad y -43,5, cyfra (31,5; -29,5).
+- **P-e0:** rynienka y -36 | fi 12,5 x 5 (-20,25) | x 6 (-6,8) | x 6 (8,7) | x 5 (22,15) | x 3 (37,65; 0, +-15,5). Stozki
+  A (-30; -32,5), B (-28,5; 34), C (28,5; 34). Okragla: dolki w przerwach miedzy rzedami x 6: y 1, x -15,5 / 0 / 15,5 / 31
+  (rzad co 15,5 - innego miejsca nie ma), cyfra (30; -32).
+- **P-e0-33:** rynienka y -32,9 | fi 12,5 x 5 (-17,15) | x 6 (-3,7) | x 6 (11,8) | x 5 (25,25) | x 2 (38,7; +-7,75). Stozki
+  A (-30,5; -32), B (-26; 36), C (26; 36). Okragla: dolki rzad y -43,5, cyfra (31,5; -29,5).
+
+Ile gniazd przyjmie prace (P-d / P-e / P-e1 / P-e-33 / P-e0 / P-e0-33): fi 10 i wieksze 26 / 23 / 22 / 21 / 25 / 24;
+fi 12,5 i wieksze 13 / 23 / 22 / 21 / 25 / 24; fi 15: 2 / 3 / 3 / 3 / 0 / 0.
+
+**Zalecenie:** jesli ma byc "jak na szkicu" - **P-e** (23 gniazda, 3 x fi 15; jedno fi 12,5 mniej niz na szkicu), a gdy
+wazniejszy jest wyglad szkicu (para fi 15 na samym tyle) - P-e1 (22). Cena obu: rynienka dosunieta do przodu, wiec na
+plytce OKRAGLEJ dolki kodu nie mieszcza sie przed rynienka (miejsca wyzej); na kwadratowej nic sie nie zmienia. Gdy dolki
+okraglej maja zostac przed rynienka jak w P-b / P-d - P-e-33 (21). P-e0 (25) ma najwiecej gniazd, ale ani jednego fi 15
+(2 z 17 prac proby wracaja wtedy do rynienki) i zapas do kola skanowania tylko 0,02 mm z przodu i z tylu - nie zalecam.
+Wobec P-d rodzina P-e ma o 1-5 gniazd mniej, za to wszystkie od fi 12,5 w gore.
+Ograniczenia: przeglad z rynienka jako pierwszym rzedem jest pelny (10-15 s); uklady z rzedem gniazd przed rynienka
+przejrzane tylko czesciowo (limit 180 s, 1441 z 4173 startow) - nie daly nic lepszego. Rzedy mieszane: wszystkie
+symetryczne wzory 3-5 gniazd z fi 12,5 i fi 15 w najciasniejszym rozstawie (10 wzorow).
+Szkice: `szkic_P-e*.png`, zbiorczy `szkic_przeglad_poranna_G0b.png` (P-d | P-e | P-e1 | P-e-33 | P-e0 | P-e0-33).

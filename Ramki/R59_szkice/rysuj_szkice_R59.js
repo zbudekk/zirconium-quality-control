@@ -148,12 +148,12 @@ function szkicWariantu(dzis, wariant, meta, plikWy) {
 
 // tytul = null: przeglad domyslny (dzis + a / b / c, uklad jak w pierwszych szkicach R59); tytul podany (przeglad na zadanie,
 // --przeglad): napisy sa dopasowane do szerokosci pola, a dluga lista srednic idzie w dwoch liniach
-function szkicPrzegladu(dzis, warianty, typ, plikWy, tytul) {
+function szkicPrzegladu(dzis, warianty, typ, plikWy, tytul, bezDzis) {
   const pre = typ === 'wieczorna' ? 'ev' : 'mo', W = 1080, s = 4.85, box = 104 * s, kol = [20 + box / 2, W - 20 - box / 2], o = [];
   const dop = tytul !== undefined && tytul !== null, skok = dop ? 196 : 162;
   const tekst = (t, xx, yy, fs0, waga, kolr, maxW) => { const fs_ = dop && maxW ? wSzerokosci(t, fs0, maxW, waga) : fs0; o.push(`<text x="${xx}" y="${yy}" font-size="${fs_}" font-weight="${waga || 400}" fill="${kolr || '#111'}" text-anchor="start">${esc(t)}</text>`); };
   let y = 58; tekst(dop ? tytul : 'Plytka ' + typ + ': dzis i 3 warianty (R59)', 30, y, 42, 700, '#111', W - 60);
-  const pola = [{ P: dzis, tytul: 'DZIS (R54)', kolr: '#7a1f1f' }].concat(warianty.map(w => ({ P: w.P, tytul: w.meta.id + ' ' + w.meta.nazwa, kolr: '#0b4f8a' })));
+  const pola = (bezDzis ? [] : [{ P: dzis, tytul: 'DZIS (R54)', kolr: '#7a1f1f' }]).concat(warianty.map(w => ({ P: w.P, tytul: w.meta.id + ' ' + w.meta.nazwa, kolr: '#0b4f8a' })));
   let yRz = y + 30;
   pola.forEach((p, i) => {
     const c = i % 2, cx = kol[c], xl = cx - box / 2 + 6;
@@ -174,6 +174,7 @@ function szkicPrzegladu(dzis, warianty, typ, plikWy, tytul) {
 // Przelaczniki (dopisane po G0, zeby nie przerysowywac szkicow juz zatwierdzonych):
 //   --tylko=P-d,P-d1              rysuje tylko szkice podanych wariantow (i zadnego przegladu domyslnego)
 //   --przeglad=nazwa:P-b,P-d,...  dodatkowo szkic_przeglad_<nazwa>.svg: DZIS i podane warianty w podanej kolejnosci
+//   --bez-dzis                    przeglad na zadanie bez pola DZIS (same warianty)
 const opcje = {}, pozycyjne = [];
 for (const a of process.argv.slice(2)) { const m = /^--([a-z0-9-]+)(?:=(.*))?$/i.exec(a); if (m) opcje[m[1]] = m[2] === undefined ? true : m[2]; else pozycyjne.push(a); }
 const [plikDzis, katWar, katWy0] = pozycyjne;
@@ -201,7 +202,8 @@ if (opcje.przeglad && opcje.przeglad !== true) {
   const w = ids.map(id => wszystkie.find(v => v.meta.id === id));
   if (!nazwa || !ids.length || w.some(v => !v)) { console.error('--przeglad=nazwa:id,id - nieznany wariant w ' + opcje.przeglad); process.exit(2); }
   const typ = w[0].meta.plytka;
-  const r = szkicPrzegladu(dzis, w, typ, path.join(katWy, 'szkic_przeglad_' + nazwa + '.svg'), 'Plytka ' + typ + ': dzis i warianty ' + ids.join(', ') + ' (R59)');
+  const bezDzis = !!opcje['bez-dzis'];
+  const r = szkicPrzegladu(dzis, w, typ, path.join(katWy, 'szkic_przeglad_' + nazwa + '.svg'), 'Plytka ' + typ + ': ' + (bezDzis ? '' : 'dzis i ') + 'warianty ' + ids.join(', ') + ' (R59)', bezDzis);
   rozmiary.push('szkic_przeglad_' + nazwa + ' ' + r.W + ' ' + r.H);
   console.log('szkic_przeglad_' + nazwa + '.svg  ' + r.W + ' x ' + r.H);
 }

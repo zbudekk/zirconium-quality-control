@@ -11,6 +11,9 @@
 //        [--min=15:8,12:4] [--minod=12:14] [--max=7.5:8] [--minrazem=18] [--strona=przod|tyl]
 //        [--dokladnie=10:2,12.5:2,15:1]  zestaw rzedow zadany z gory (ile rzedow ktorej srednicy + rynienka): narzedzie
 //        dobiera kolejnosc rzedow i liczby gniazd, wypisuje wszystkie kolejnosci od najwiekszej liczby gniazd
+//        [--mieszane]  dopuszcza rzedy MIESZANE (rozne srednice w jednym rzedzie, wzor symetryczny, np. fi 15 w srodku rzedu
+//        fi 12,5); sensowne przy 2 srednicach - przy wiekszej liczbie wzorow jest bardzo duzo
+//        [--najlepsze-wg=15]  zamiast zestawow niezdominowanych: dla kazdej liczby gniazd fi 15 jeden najlepszy uklad
 //        [--watki=N] [--limit-s=240] [--postep=plik] [--memo=nie] [--top=60] [--wynik=front.json]
 //     Przeglad kolejnosci rzedow (rzedy ciasno od przodu, scianka socket_wall_min takze po przekatnej; w rzedzie gniazda
 //     w najmniejszym rozstawie d + scianka, liczba parzysta albo nieparzysta - obie galezie), start bloku co --krok mm.
@@ -24,10 +27,14 @@
 //   node narzedzia/uklad_kolo_R59.js uloz spec.json [--parametry=parametry.json] [--wyjscie=parametry_wariant_<id>.json]
 //     Z opisu wariantu (spec) liczy dokladne rzedy, stozki znacznikow, dolki i cyfre okraglej, sprawdza je i zapisuje
 //     plik wariantu = kopia parametry.json ze zmienionymi tylko kluczami ukladu. Wynik sprawdzic weryfikuj_uklad_R59.js.
+//   node narzedzia/uklad_kolo_R59.js uloz spec.json --diagnoza [--kwant=0.001]
+//     Nie zapisuje pliku: sprawdza, czy uklad DOKLADNIE ze spec miesci sie przy jakimkolwiek przesunieciu w y,
+//     a gdy nie - ile mm wysokosci brakuje i ktore obrysy to ograniczaja (np. dla szkicu przyslanego przez wlasciciela).
 //
 // Spec (JSON): { "id": "W-b", "plytka": "wieczorna", "nazwa": "...", "y0": -32.4 | "auto",
 //   "rzedy": [ {"typ": "T", "l": 60, "w": 15} | {"typ": "T", "l": 28.5, "w": 15, "podzial": true, "hole_count": 2}
 //              | {"d": 15} | {"d": 15, "k": 4} | {"d": 12, "k": 6, "p": 15} | {"d": 9, "y": -1.5, "x": [-36, ..., 36]} ],
+//              (rzad mieszany: {"mieszany": [12.5, 12.5, 15, 12.5, 12.5]} - w pliku wariantu to osobne wpisy rzedu o roznym y)
 //   albo "rows": [ rzedy w formacie parametry.json - brane doslownie ],
 //   "znaczniki": "auto" | "zostaw" | {"A": [x, y], "B": [...], "C": [...]},      (domyslnie: zostaw, gdy wazne; inaczej auto)
 //   "dolki_okragle": "auto" | "zostaw" | {"A": [..], ...},   "cyfra_okragla": "auto" | "zostaw" | [x, y] | null }
@@ -90,9 +97,36 @@ function rzad(typ, xs, y, p) {
   return r;
 }
 function xsRynienki(typ, C) { return typ.podzial ? [zaokr(-(typ.l / 2 + C.WALL / 2)), zaokr(typ.l / 2 + C.WALL / 2)] : [0]; }
+// Rzad MIESZANY (R59, szkic wlasciciela): gniazda roznych srednic w jednym rzedzie; wzor symetryczny od lewej do prawej,
+// np. [12.5, 12.5, 15, 12.5, 12.5]. W rzedzie odstep obrysow = scianka. Gniazda tej samej srednicy maja wspolne y, a kazda
+// srednica opada osobno najnizej, jak pozwalaja scianki do poprzednich rzedow. W parametry.json sa to osobne wpisy rzedu
+// o roznym y (K-05 g wymaga roznych y), wiec weryfikator i generator czytaja je bez zmian.
+function xsMieszane(wz, C) {
+  const xs = [0]; for (let i = 1; i < wz.length; i++) xs.push(xs[i - 1] + wz[i - 1] / 2 + wz[i] / 2 + C.WALL);
+  const sr = (xs[0] + xs[xs.length - 1]) / 2; return xs.map(x => zaokr(x - sr));
+}
+function rzadMieszany(rows, wz, C, q, y0, bezKontroli) {
+  const xs = xsMieszane(wz, C), ost = rows.length ? rows[rows.length - 1] : null;
+  const sred = [...new Set(wz)].sort((a, b) => a - b), grupy = [];
+  for (const d of sred) {
+    const gx = xs.filter((_, i) => wz[i] === d), SX = gx.map(x => ({ ax: x, bx: x, rad: d / 2 }));
+    const y = ost ? doKwantu(Math.max(minY(rows, SX, C), ost.y + q), q) : zaokr(y0 + (d - sred[0]) / 2);     // pierwszy rzad: spody rowno
+    grupy.push({ d, x: gx, y, SX });
+  }
+  for (let i = 1; i < grupy.length; i++) while (grupy.slice(0, i).some(g => Math.abs(g.y - grupy[i].y) < q - 1e-9)) grupy[i].y = zaokr(grupy[i].y + q);
+  if (!bezKontroli) for (const g of grupy) if (!miesciSie(g.SX, g.y, C)) return null;
+  const S = []; for (const g of grupy) for (const s of g.SX) S.push({ ax: s.ax, bx: s.bx, rad: s.rad, y: g.y });
+  return { t: 'M', wz, x: xs, y: Math.max(...grupy.map(g => g.y)), S, grupy: grupy.map(g => ({ d: g.d, x: g.x, y: g.y })) };
+}
+function splaszcz(rows) {          // rzad mieszany -> osobne rzedy jednej srednicy (kolejnosc po y)
+  if (!rows.some(r => r.t === 'M')) return rows;
+  const out = []; for (const r of rows) { if (r.t === 'M') for (const g of r.grupy) out.push(rzad({ t: 'r', d: g.d }, g.x, g.y)); else out.push(r); }
+  return out.sort((a, b) => a.y - b.y);
+}
 // mozliwe nastepne rzedy danego typu: rynienka - 1 opcja; gniazda okragle - dla kazdego rozstawu i parzystosci najwieksza liczba, ktora sie miesci
 function opcje(rows, typ, C, cfg, y0) {
   const out = [], q = cfg.kwant, ost = rows.length ? rows[rows.length - 1] : null;
+  if (typ.t === 'M') { const r = rzadMieszany(rows, typ.wz, C, q, y0); if (r) out.push(r); return out; }
   const yDla = SX => (ost ? doKwantu(Math.max(minY(rows, SX, C), ost.y + q), q) : y0);
   if (typ.t === 'T') {
     const xs = xsRynienki(typ, C), SX = ksztaltyX(typ, xs), y = yDla(SX);
@@ -270,6 +304,14 @@ function szukajDolkow(rows, mk, C, stare) {
     if (!bp || wynik > bp.wynik) bp = { wynik, a, b };
   }
   if (bp) { const [pa, pb] = bp.a.pts[0][0] + bp.a.pts[0][1] * 1e-3 <= bp.b.pts[0][0] + bp.b.pts[0][1] * 1e-3 ? [bp.a, bp.b] : [bp.b, bp.a]; return wynikZ(pa.pts.concat(pb.pts), Math.min(pa.v, pb.v), 'dwie pary'); }
+  // rzad albo kolumna 4 dolkow w rownych, ale wiekszych odstepach (np. w przerwach miedzy gniazdami); im ciasniej, tym lepiej
+  let rozs = null;
+  for (let pp = p + 0.5; pp <= 20 + EPS; pp += 0.5) for (const pion of [false, true]) {
+    const b = szukajWzorca([0, 1, 2, 3].map(i => (pion ? [0, i * pp] : [i * pp, 0]))); if (!b) continue;
+    const wynik = Math.min(b.zapas, 0.5) - 0.02 * pp;
+    if (!rozs || wynik > rozs.wynik) rozs = { wynik, b, opis: (pion ? 'kolumna' : 'rzad') + ' co ' + pp };
+  }
+  if (rozs) return wynikZ(rozs.b.pts, rozs.b.zapas, rozs.opis);
   // cztery osobne dolki: kolejno miejsca o najwiekszym zapasie, co najmniej DPITCH od juz wybranych
   const poj = [];
   for (let x = -44; x <= 44 + EPS; x += 0.5) for (let y = -44; y <= 44 + EPS; y += 0.5) { const v = dolekWazny(zaokr(x), zaokr(y), S, M, C); if (v >= 0) poj.push({ pt: [zaokr(x), zaokr(y)], v }); }
@@ -308,21 +350,40 @@ function szukajCyfry(rows, mk, dolki, C, stara) {
 }
 
 // ---------------------------------------------------------------- tryb "front": przeglad kolejnosci rzedow
-function typyZKonfiguracji(cfg) {
+function typyZKonfiguracji(cfg, C) {
   const typy = cfg.srednice.map((d, i) => ({ t: 'r', d, i }));
   typy.push(Object.assign({ t: 'T' }, cfg.rynienka));
+  if (cfg.mieszane) {              // --mieszane: wszystkie symetryczne wzory 3-7 gniazd z co najmniej dwiema srednicami, ktore mieszcza sie w strefie
+    const D = cfg.srednice;
+    for (let k = 3; k <= 7; k++) {
+      const pol = Math.ceil(k / 2), n = Math.pow(D.length, pol);
+      for (let c = 0; c < n; c++) {
+        const lewa = []; let v = c; for (let i = 0; i < pol; i++) { lewa.push(D[v % D.length]); v = Math.floor(v / D.length); }
+        const wz = lewa.concat(lewa.slice(0, k - pol).reverse());
+        if (new Set(wz).size < 2) continue;
+        if (wz.reduce((a, b) => a + b, 0) + (k - 1) * C.WALL > 2 * C.SQ + EPS) continue;
+        typy.push({ t: 'M', wz });
+      }
+    }
+  }
   return typy;
 }
 function przegladZadania(C, cfg, zadania, postep) {
-  const typy = typyZKonfiguracji(cfg), wyniki = new Map(), rows = [], cnt = new Array(cfg.srednice.length).fill(0);
-  const rzedowSr = new Array(cfg.srednice.length).fill(0);
+  const typy = typyZKonfiguracji(cfg, C), wyniki = new Map(), rows = [], cnt = new Array(cfg.srednice.length).fill(0);
+  const rzedowSr = new Array(cfg.srednice.length).fill(0), idx = new Map(cfg.srednice.map((d, i) => [d, i]));
   let wezly = 0, yT = 0, stop = false, pominiete = 0;
   let memo = new Map();
+  const dolicz = (o, zn) => {        // liczby gniazd i rzedow po dodaniu (zn = 1) albo zdjeciu (zn = -1) rzedu
+    if (o.t === 'r') { const i = idx.get(o.d); cnt[i] += zn * o.x.length; rzedowSr[i] += zn; }
+    else if (o.t === 'M') for (const g of o.grupy) { const i = idx.get(g.d); cnt[i] += zn * g.x.length; rzedowSr[i] += zn; }
+    else if (zn > 0) yT = o.y;
+  };
+  const nazwaRzedu = r => (r.t === 'T' ? 'T' : r.t === 'M' ? 'M[' + r.wz.join('/') + ']' : 'fi' + r.d);
   // Ten sam stan (3 ostatnie rzedy, glebokosc, strona rynienki) osiagniety wczesniej z liczbami gniazd nie gorszymi dla
   // kazdego progu srednicy i z nie mniejszym zapasem: dalszy ciag dalby tylko uklady rowne albo zdominowane - pomijany.
   const znany = (jestT) => {
     let k = (jestT ? (yT < 0 ? 'P' : 'T') : 'N') + rows.length;
-    for (let i = Math.max(0, rows.length - 3); i < rows.length; i++) { const r = rows[i]; k += '|' + (r.t === 'T' ? 'T' : r.d + ':' + r.x.length + ':' + r.p) + '@' + r.y; }
+    for (let i = Math.max(0, rows.length - 3); i < rows.length; i++) { const r = rows[i]; k += '|' + (r.t === 'T' ? 'T' : r.t === 'M' ? 'M' + r.wz.join('/') + ':' + r.grupy.map(g => g.y).join('/') : r.d + ':' + r.x.length + ':' + r.p) + '@' + r.y; }
     const kum = cnt.slice(); for (let i = kum.length - 2; i >= 0; i--) kum[i] += kum[i + 1];
     const z = zapasUkladu(rows, C);
     let l = memo.get(k);
@@ -334,14 +395,16 @@ function przegladZadania(C, cfg, zadania, postep) {
   const zapisz = () => {
     // --dokladnie: liczy sie tylko uklad o dokladnie zadanej liczbie rzedow kazdej srednicy; kazda kolejnosc rzedow osobno
     if (cfg.dokladnie) { for (let i = 0; i < cfg.srednice.length; i++) if (rzedowSr[i] !== (cfg.dokladnie[cfg.srednice[i]] || 0)) return; }
-    const klucz = cnt.join(',') + '|' + (yT < 0 ? 'przod' : 'tyl') + (cfg.dokladnie ? '|' + rows.map(r => r.t === 'T' ? 'T' : 'fi' + r.d).join(' ') : '');
+    const klucz = cnt.join(',') + '|' + (yT < 0 ? 'przod' : 'tyl') + (cfg.dokladnie ? '|' + rows.map(nazwaRzedu).join(' ') : '');
     const zap = zapasUkladu(rows, C);
     let lista = wyniki.get(klucz); if (!lista) { lista = []; wyniki.set(klucz, lista); }
     if (lista.length >= cfg.alternatywy && zap <= lista[lista.length - 1].zap + 1e-9) return;
-    const sig = rows.map(r => r.t === 'T' ? 'T' : r.d + 'x' + r.x.length + (r.p !== r.d + C.WALL ? 'p' + r.p : '')).join(' ');
+    const sig = rows.map(r => r.t === 'T' ? 'T' : r.t === 'M' ? nazwaRzedu(r) : r.d + 'x' + r.x.length + (r.p !== r.d + C.WALL ? 'p' + r.p : '')).join(' ');
     const ist = lista.findIndex(e => e.sig === sig);
     if (ist >= 0) { if (lista[ist].zap >= zap) return; lista.splice(ist, 1); }
-    lista.push({ zap, sig, rows: rows.map(r => ({ t: r.t, d: r.d, l: r.l, w: r.w, p: r.p, podzial: r.podzial, x: r.x, y: r.y })) });
+    const plaskie = [];              // rzad mieszany zapisany jako osobne rzedy jednej srednicy
+    for (const r of rows) { if (r.t === 'M') for (const g of r.grupy) plaskie.push({ t: 'r', d: g.d, x: g.x, y: g.y }); else plaskie.push({ t: r.t, d: r.d, l: r.l, w: r.w, p: r.p, podzial: r.podzial, x: r.x, y: r.y }); }
+    lista.push({ zap, sig, rows: plaskie });
     lista.sort((a, b) => b.zap - a.zap); if (lista.length > cfg.alternatywy) lista.length = cfg.alternatywy;
   };
   const rek = (jestT) => {
@@ -353,10 +416,11 @@ function przegladZadania(C, cfg, zadania, postep) {
     for (const typ of typy) {
       if (typ.t === 'T' && jestT) continue;
       if (typ.t === 'r' && cfg.maxrz[typ.d] !== undefined && rzedowSr[typ.i] >= cfg.maxrz[typ.d]) continue;
+      if (typ.t === 'M' && typ.wz.some(d => cfg.maxrz[d] !== undefined && rzedowSr[idx.get(d)] >= cfg.maxrz[d])) continue;
       for (const o of opcje(rows, typ, C, cfg, null)) {
-        rows.push(o); if (typ.t === 'r') { cnt[typ.i] += o.x.length; rzedowSr[typ.i]++; } else yT = o.y;
+        rows.push(o); dolicz(o, 1);
         rek(jestT || typ.t === 'T');
-        if (typ.t === 'r') { cnt[typ.i] -= o.x.length; rzedowSr[typ.i]--; }
+        dolicz(o, -1);
         rows.pop();
       }
     }
@@ -367,9 +431,9 @@ function przegladZadania(C, cfg, zadania, postep) {
     memo = new Map();
     const typ = typy[z.ti];
     for (const o of opcje([], typ, C, cfg, z.y0)) {
-      rows.push(o); if (typ.t === 'r') { cnt[typ.i] += o.x.length; rzedowSr[typ.i]++; } else yT = o.y;
+      rows.push(o); dolicz(o, 1);
       rek(typ.t === 'T');
-      if (typ.t === 'r') { cnt[typ.i] -= o.x.length; rzedowSr[typ.i]--; }
+      dolicz(o, -1);
       rows.pop();
     }
     if (!stop) { zrobione++; if (postep) postep(zrobione); }
@@ -408,7 +472,7 @@ async function trybFront(opt) {
   const t0 = Date.now();
   const cfg = { srednice, rynienka, maxrzedow: +(opt.maxrzedow || (plytka === 'wieczorna' ? 6 : 8)), krok: +(opt.krok || 0.1), kwant: +(opt.kwant || 0.05),
     rozstawy: opt.rozstawy || 'poprzedni', alternatywy: +(opt.alternatywy || 3), maxrz: pary(opt.maxrz), memo: opt.memo !== 'nie',
-    limitS: opt['limit-s'] !== undefined ? +opt['limit-s'] : 240, start: t0, dokladnie: null };
+    limitS: opt['limit-s'] !== undefined ? +opt['limit-s'] : 240, start: t0, dokladnie: null, mieszane: !!opt.mieszane };
   // --dokladnie=10:2,12.5:2,15:1 - zestaw rzedow zadany z gory (ile rzedow ktorej srednicy, plus rynienka); narzedzie
   // dobiera kolejnosc rzedow i liczby gniazd; wynik: wszystkie kolejnosci, od najwiekszej liczby gniazd
   if (opt.dokladnie && opt.dokladnie !== true) {
@@ -416,13 +480,13 @@ async function trybFront(opt) {
     for (const d of srednice) if (cfg.maxrz[d] === undefined) cfg.maxrz[d] = 0;
     if (!opt.maxrzedow) cfg.maxrzedow = 1 + Object.values(cfg.dokladnie).reduce((a, b) => a + b, 0);
   }
-  const typy = typyZKonfiguracji(cfg), zadania = [];
+  const typy = typyZKonfiguracji(cfg, C), zadania = [];
   // --t-pierwsza: rynienka jest pierwszym rzedem od przodu; --t-ymin=Y: jej srodek nie blizej przodu niz Y
   // (np. -33 zostawia przed rynienka miejsce na rzad 4 dolkow kodu plytki okraglej w y = -43,5)
   const tPierwsza = !!opt['t-pierwsza'], tYmin = opt['t-ymin'] !== undefined ? +opt['t-ymin'] : -Infinity;
   for (let ti = 0; ti < typy.length; ti++) {
     if (tPierwsza && typy[ti].t !== 'T') continue;
-    const h = typy[ti].t === 'T' ? typy[ti].w : typy[ti].d, zakres = +(opt.zakres || 16);
+    const h = typy[ti].t === 'T' ? typy[ti].w : typy[ti].t === 'M' ? Math.max(...typy[ti].wz) : typy[ti].d, zakres = +(opt.zakres || 16);
     const yStart = doKwantu(Math.max(-C.SQ + h / 2, typy[ti].t === 'T' ? tYmin : -Infinity), cfg.kwant);
     for (let y0 = yStart; y0 <= -C.SQ + h / 2 + zakres + EPS; y0 += cfg.krok) zadania.push({ ti, y0: zaokr(y0) });
   }
@@ -432,7 +496,7 @@ async function trybFront(opt) {
   const plikPostepu = opt.postep && opt.postep !== true ? opt.postep : 'postep_front_' + plytka + '.txt';
   console.log('front: plytka ' + plytka + ', srednice ' + srednice.join(' / ') + ', rynienka ' + (rynienka.podzial ? '2 x ' : '') + rynienka.l + ' x ' + rynienka.w +
     ', max rzedow ' + cfg.maxrzedow + (Object.keys(cfg.maxrz).length ? ' (max rzedow srednicy: ' + JSON.stringify(cfg.maxrz) + ')' : '') + ', start co ' + cfg.krok + ', kwant y ' + cfg.kwant +
-    ', rozstawy: ' + cfg.rozstawy + ', pomijanie stanow powtorzonych: ' + (cfg.memo ? 'tak' : 'nie') + ', limit czasu ' + cfg.limitS + ' s; zadan ' + zadania.length + ', watkow ' + nW + '; postep: ' + plikPostepu);
+    ', rozstawy: ' + cfg.rozstawy + (cfg.mieszane ? ', rzedy mieszane: ' + typy.filter(t => t.t === 'M').length + ' wzorow' : '') + ', pomijanie stanow powtorzonych: ' + (cfg.memo ? 'tak' : 'nie') + ', limit czasu ' + cfg.limitS + ' s; zadan ' + zadania.length + ', watkow ' + nW + '; postep: ' + plikPostepu);
   const gotowe = new Array(nW).fill(0); let ostatniZapis = 0;
   const czesci = await Promise.all(paczki.map((p, nr) => new Promise((res, rej) => {
     const w = new Worker(__filename, { workerData: { C, cfg, zadania: p } });
@@ -488,6 +552,14 @@ async function trybFront(opt) {
     const duze = (a, b) => { for (let i = a.kum.length - 1; i >= 0; i--) if (a.kum[i] !== b.kum[i]) return b.kum[i] - a.kum[i]; return 0; };
     wpisy.sort((a, b) => b.razem - a.razem || duze(a, b) || b.lista[0].zap - a.lista[0].zap);
     for (const w of wpisy) { if (front.length >= top) break; zeZnacznikami(w); }
+  } else if (opt['najlepsze-wg'] !== undefined && opt['najlepsze-wg'] !== true) {
+    // --najlepsze-wg=15: dla kazdej liczby gniazd podanej srednicy jeden uklad - najwiecej gniazd razem, przy remisie wiekszy zapas
+    const iWg = srednice.indexOf(+opt['najlepsze-wg']); if (iWg < 0) throw new Error('--najlepsze-wg: srednica spoza --srednice');
+    const liczbyWg = [...new Set(wpisy.map(w => w.cnt[iWg]))].sort((a, b) => a - b);
+    for (const n of liczbyWg) {
+      const kand = wpisy.filter(w => w.cnt[iWg] === n).sort((a, b) => b.razem - a.razem || b.lista[0].zap - a.lista[0].zap);
+      const przed = front.length; for (const w of kand) { zeZnacznikami(w); if (front.length > przed) break; }
+    }
   } else {
     wpisy.sort((a, b) => sumaK(b) - sumaK(a));
     for (const w of wpisy) { if (front.some(v => dominuje(v, w))) continue; zeZnacznikami(w); }
@@ -495,14 +567,17 @@ async function trybFront(opt) {
   if (bezZnacznikow) console.log('odrzucone zestawy bez miejsca na 3 stozki znacznikow: ' + bezZnacznikow);
   const wszystkich = wpisy.length;
   wpisy = front;
-  if (!cfg.dokladnie) wpisy.sort((a, b) => b.kum[b.kum.length - 1] - a.kum[a.kum.length - 1] || b.razem - a.razem || b.kum.join().localeCompare(a.kum.join()));
-  if (cfg.dokladnie) console.log('\nuklady o zadanym zestawie rzedow (' + JSON.stringify(cfg.dokladnie) + ' + rynienka): ' + wszystkich + ' par kolejnosc / liczby; pokazuje ' + wpisy.length + ' najlepszych ze znacznikami   [liczby gniazd: ' + srednice.map(d => 'fi' + d).join(' / ') + ']');
+  const wg = opt['najlepsze-wg'] !== undefined && opt['najlepsze-wg'] !== true;
+  if (!cfg.dokladnie && !wg) wpisy.sort((a, b) => b.kum[b.kum.length - 1] - a.kum[a.kum.length - 1] || b.razem - a.razem || b.kum.join().localeCompare(a.kum.join()));
+  if (wg) console.log('\nnajlepszy uklad dla kazdej liczby gniazd fi' + opt['najlepsze-wg'] + ' (najwiecej gniazd razem, przy remisie wiekszy zapas; ze znacznikami): ' + wpisy.length + '   [liczby gniazd: ' + srednice.map(d => 'fi' + d).join(' / ') + ']');
+  else if (cfg.dokladnie) console.log('\nuklady o zadanym zestawie rzedow (' + JSON.stringify(cfg.dokladnie) + ' + rynienka): ' + wszystkich + ' par kolejnosc / liczby; pokazuje ' + wpisy.length + ' najlepszych ze znacznikami   [liczby gniazd: ' + srednice.map(d => 'fi' + d).join(' / ') + ']');
   else console.log('\nzestawy niezdominowane ze znacznikami: ' + wpisy.length + (wpisy.length > top ? ' (pokazuje ' + top + ')' : '') + '   [liczby gniazd: ' + srednice.map(d => 'fi' + d).join(' / ') + ']');
   const wynik = [];
   wpisy.slice(0, top).forEach((w, nr) => {
     const e = w.wybrany, t = w.mk.trojkat;
     console.log('#' + (nr + 1) + '  ' + w.cnt.join(' / ') + '  razem ' + w.razem + ' + ' + (rynienka.podzial ? '2 krotkie rynienki' : '1 rynienka') + ' (' + w.strona + ')  zapas do kola/strefy ' + e.zap.toFixed(2) + '  scianka min ' + sciankaMin(w.rows).toFixed(3) + (w.kolejnosc ? '  kolejnosc: ' + w.kolejnosc : ''));
-    for (const r of e.rows) console.log('      ' + (r.t === 'T' ? 'rynienka ' + r.l + 'x' + r.w : 'fi' + r.d) + '  y=' + r.y + '  x' + r.x.length + ' [' + r.x.join(', ') + ']');
+    for (const r of e.rows.slice().sort((a, b) => a.y - b.y)) console.log('      ' + (r.t === 'T' ? 'rynienka ' + r.l + 'x' + r.w : 'fi' + r.d) + '  y=' + r.y + '  x' + r.x.length + ' [' + r.x.join(', ') + ']');
+    if (/M\[/.test(e.sig)) console.log('      (rzad mieszany: ' + e.sig + ')');
     console.log('      znaczniki A(' + w.mk.A + ') B(' + w.mk.B + ') C(' + w.mk.C + ')  boki ' + t.AB.toFixed(1) + ' / ' + t.BC.toFixed(1) + ' / ' + t.AC.toFixed(1) + '  roznica ' + t.roznica.toFixed(1));
     wynik.push({ nr: nr + 1, liczby: Object.fromEntries(srednice.map((d, i) => [d, w.cnt[i]])), razem: w.razem, strona: w.strona, kolejnosc: w.kolejnosc, zapas: zaokr(e.zap), sig: e.sig,
       rows: doParametrow(w.rows), znaczniki: { A: w.mk.A, B: w.mk.B, C: w.mk.C } });
@@ -511,23 +586,29 @@ async function trybFront(opt) {
 }
 
 // ---------------------------------------------------------------- tryb "uloz": opis wariantu -> plik wariantu
-function ulozRzedy(spec, P, C, q) {
+// bezKontroli = true (diagnoza): rzedy ukladane ciasno, ale bez sprawdzania kola i strefy - do pomiaru, ile brakuje
+function ulozRzedy(spec, P, C, q, bezKontroli) {
+  const ok = (SX, y) => bezKontroli || miesciSie(SX, y, C);
   const buduj = y0 => {
     const rows = [];
     for (const rs of spec.rzedy) {
+      if (rs.mieszany) {             // rzad mieszany: {"mieszany": [12.5, 12.5, 15, 12.5, 12.5]}
+        const r = rzadMieszany(rows, rs.mieszany, C, q, y0, bezKontroli); if (!r) return null;
+        rows.push(r); continue;
+      }
       const jestT = rs.typ === 'T' || rs.type === 'trough';
       const typ = jestT ? { t: 'T', l: rs.l, w: rs.w, podzial: !!rs.podzial } : { t: 'r', d: rs.d };
       const ost = rows.length ? rows[rows.length - 1] : null;
       const yDla = SX => (rs.y !== undefined ? rs.y : ost ? doKwantu(Math.max(minY(rows, SX, C), ost.y + q), q) : y0);
       let wyb = null;
-      if (jestT) { const xs = rs.x || xsRynienki(typ, C), SX = ksztaltyX(typ, xs), y = yDla(SX); if (miesciSie(SX, y, C)) wyb = rzad(typ, xs, y); }
-      else if (rs.x) { const xs = rs.x.slice().sort((a, b) => a - b), SX = ksztaltyX(typ, xs), y = yDla(SX); if (miesciSie(SX, y, C)) wyb = rzad(typ, xs, y, rs.p); }
+      if (jestT) { const xs = rs.x || xsRynienki(typ, C), SX = ksztaltyX(typ, xs), y = yDla(SX); if (ok(SX, y)) wyb = rzad(typ, xs, y); }
+      else if (rs.x) { const xs = rs.x.slice().sort((a, b) => a - b), SX = ksztaltyX(typ, xs), y = yDla(SX); if (ok(SX, y)) wyb = rzad(typ, xs, y, rs.p); }
       else {
         const p = rs.p || typ.d + C.WALL;
         const proby = rs.k ? [rs.k] : Array.from({ length: 12 }, (_, i) => 12 - i);
         for (const k of proby) {
           const xs = wzor(k, p), SX = ksztaltyX(typ, xs), y = yDla(SX);
-          if (!miesciSie(SX, y, C)) continue;
+          if (!ok(SX, y)) continue;
           if (!wyb || k > wyb.x.length || (k === wyb.x.length && y < wyb.y)) wyb = rzad(typ, xs, y, p);
           if (rs.k || (wyb && k < wyb.x.length - 1)) break;
         }
@@ -539,6 +620,7 @@ function ulozRzedy(spec, P, C, q) {
     }
     return rows;
   };
+  if (bezKontroli) return buduj(0);
   if (spec.y0 !== 'auto' && spec.y0 !== undefined) { const r = buduj(spec.y0); if (!r) throw new Error('rzedy nie mieszcza sie przy y0 = ' + spec.y0); return r; }
   let best = null;
   for (let y0 = -C.SQ; y0 <= 0; y0 = zaokr(y0 + q)) {
@@ -548,6 +630,29 @@ function ulozRzedy(spec, P, C, q) {
   }
   if (!best) throw new Error('rzedy nie mieszcza sie przy zadnym y0');
   return best.r;
+}
+
+// Diagnoza (uloz --diagnoza): czy uklad DOKLADNIE ze spec (liczby gniazd w rzedach podane, rzedy ciasno) miesci sie przy
+// jakimkolwiek przesunieciu calego bloku w y; jesli nie - ile mm wysokosci brakuje i ktore obrysy to ograniczaja.
+// Kazdy obrys daje przedzial dozwolonego przesuniecia (strefa +-SQ i kolo R); czesc wspolna pusta = brak miejsca.
+function diagnoza(spec, P, C, q) {
+  const rows = ulozRzedy(spec, P, C, q, true);
+  if (!rows) throw new Error('diagnoza: nie udalo sie ulozyc rzedow (podaj liczbe gniazd k w kazdym rzedzie)');
+  let lo = -Infinity, hi = Infinity, ktoLo = '', ktoHi = '', zaSzeroki = null;
+  const opis = (r, s) => (r.t === 'T' ? 'rynienka ' + r.l + 'x' + r.w : 'fi' + (2 * s.rad)) + ' (x ' + zaokr(Math.max(Math.abs(s.ax), Math.abs(s.bx))) + ')';
+  for (const r of rows) for (const s of r.S) {
+    const xe = Math.max(Math.abs(s.ax), Math.abs(s.bx));
+    if (xe + s.rad > C.SQ + EPS || xe > C.R - s.rad) { zaSzeroki = opis(r, s); continue; }
+    const hK = Math.sqrt((C.R - s.rad) ** 2 - xe * xe), hS = C.SQ - s.rad, h = Math.min(hK, hS), war = hK < hS ? 'kolo' : 'strefa';
+    if (-h - s.y > lo) { lo = -h - s.y; ktoLo = opis(r, s) + ' - ' + war; }
+    if (h - s.y < hi) { hi = h - s.y; ktoHi = opis(r, s) + ' - ' + war; }
+  }
+  console.log('diagnoza ' + spec.id + ': uklad doslownie wg spec, rzedy ciasno (scianka ' + C.WALL + '), y liczone od srodka pierwszego rzedu:');
+  for (const r of splaszcz(rows)) console.log('  ' + (r.t === 'T' ? 'rynienka ' + r.l + 'x' + r.w : 'fi' + r.d) + '  y = +' + zaokr(r.y - rows[0].y) + '  x' + r.x.length + ' [' + r.x.join(', ') + ']');
+  if (zaSzeroki) { console.log('  WERDYKT: NIE - rzad za szeroki: ' + zaSzeroki + ' nie miesci sie w strefie / kole przy zadnym y'); return; }
+  const wys = zaokr(hi - lo);
+  if (lo <= hi + EPS) console.log('  WERDYKT: TAK - miesci sie; pierwszy rzad moze lezec w y od ' + zaokr(lo + rows[0].y) + ' do ' + zaokr(hi + rows[0].y) + ' (zapas wysokosci ' + wys + ' mm)');
+  else console.log('  WERDYKT: NIE - brakuje ' + zaokr(lo - hi) + ' mm wysokosci. Z przodu ogranicza: ' + ktoLo + ' (pierwszy rzad nie nizej niz y ' + zaokr(lo + rows[0].y) + '); z tylu ogranicza: ' + ktoHi + ' (pierwszy rzad nie wyzej niz y ' + zaokr(hi + rows[0].y) + ')');
 }
 
 function dopasujNawias(t, i) {
@@ -588,9 +693,10 @@ async function trybUloz(plikSpec, opt) {
   const plytka = spec.plytka; if (!['wieczorna', 'poranna'].includes(plytka)) throw new Error('spec.plytka = wieczorna | poranna');
   const pre = plytka === 'wieczorna' ? 'ev' : 'mo', q = +(opt.kwant || spec.kwant || 0.05), bokiMin = spec.boki_min !== undefined ? spec.boki_min : 5;
   // rzedy
+  if (opt.diagnoza) { if (!spec.rzedy) throw new Error('--diagnoza wymaga "rzedy" w spec'); diagnoza(spec, P, C, q); return; }
   let rows;
   if (spec.rows) rows = zParametrow(spec.rows);
-  else if (spec.rzedy) rows = ulozRzedy(spec, P, C, q);
+  else if (spec.rzedy) rows = splaszcz(ulozRzedy(spec, P, C, q));
   else throw new Error('spec wymaga "rzedy" albo "rows"');
   if (spec.dy) for (const r of rows) { r.y = zaokr(r.y + spec.dy); for (const s of r.S) s.y = r.y; }
   for (const r of rows) if (!miesciSie(r.S.map(s => ({ ax: s.ax, bx: s.bx, rad: s.rad })), r.y, C)) throw new Error('rzad y = ' + r.y + ' nie miesci sie w kole / strefie / narozniku');
