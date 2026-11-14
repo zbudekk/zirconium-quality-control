@@ -6,12 +6,12 @@ Wygenerowany przez `ramka_generator.py`. Objętości i gabaryty zmierzone na sia
 
 | Plik STL | Część | Szt. | Technologia | Materiał | Kolor | Wykończenie | Obj. [cm³] | Gabaryt X × Y × Z [mm] | Najtańszy [zł] | Pokazowy [zł] | Uwagi |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `ramka_plytka_wieczorna_n1_v2.stl` | płytka wieczorna n1 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,31 | 96,0 × 96,0 × 8,6 | 53–95 | 53–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_wieczorna_n2_v2.stl` | płytka wieczorna n2 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,31 | 96,0 × 96,0 × 8,6 | 53–95 | 53–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_wieczorna_n3_v2.stl` | płytka wieczorna n3 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,31 | 96,0 × 96,0 × 8,6 | 53–95 | 53–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_poranna_n4_v2.stl` | płytka poranna n4 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 60,87 | 96,0 × 96,0 × 8,6 | 55–97 | 55–97 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_poranna_n5_v2.stl` | płytka poranna n5 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 60,87 | 96,0 × 96,0 × 8,6 | 55–97 | 55–97 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_poranna_n6_v2.stl` | płytka poranna n6 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 60,87 | 96,0 × 96,0 × 8,6 | 55–97 | 55–97 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_wieczorna_n1_v2.stl` | płytka wieczorna n1 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,66 | 96,0 × 96,0 × 8,6 | 54–95 | 54–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_wieczorna_n2_v2.stl` | płytka wieczorna n2 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,66 | 96,0 × 96,0 × 8,6 | 54–95 | 54–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_wieczorna_n3_v2.stl` | płytka wieczorna n3 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,66 | 96,0 × 96,0 × 8,6 | 54–95 | 54–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_poranna_n4_v2.stl` | płytka poranna n4 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,95 | 96,0 × 96,0 × 8,6 | 54–96 | 54–96 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_poranna_n5_v2.stl` | płytka poranna n5 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,95 | 96,0 × 96,0 × 8,6 | 54–96 | 54–96 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_poranna_n6_v2.stl` | płytka poranna n6 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,94 | 96,0 × 96,0 × 8,6 | 54–96 | 54–96 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
 | `ramka_korpus_W_v2.stl` | korpus W (napis „RAMKA WIECZORNA”) | 1 | MJF/SLS (D2) | PA12 drukarnia | grafit | barwienie na grafit; pokazowy: + wygładzanie parowe | 233,49 | 200,0 × 200,6 × 59,6 | 210–374 | 328–583 | geometria W i P identyczna poza napisem (Z18) |
 | `ramka_korpus_P_v2.stl` | korpus P (napis „RAMKA PORANNA”) | 1 | MJF/SLS (D2) | PA12 drukarnia | grafit | barwienie na grafit; pokazowy: + wygładzanie parowe | 233,47 | 200,0 × 200,6 × 59,6 | 210–374 | 328–583 | geometria W i P identyczna poza napisem (Z18) |
 | `ramka_blat_v2.stl` | blat | 2 | MJF/SLS (D2) | PA12 drukarnia | grafit | barwienie na grafit; pokazowy: + wygładzanie parowe | 72,52 | 200,0 × 200,0 × 14,0 | 131–232 | 204–362 | — |
@@ -31,7 +31,7 @@ Wygenerowany przez `ramka_generator.py`. Objętości i gabaryty zmierzone na sia
 
 | Zakres | Objętość [cm³] | Najtańszy [zł] | Pokazowy [zł] |
 |---|---|---|---|
-| 10 pozycji × ilości | 1009,77 | 909–1616 | 1217–2164 |
+| 10 pozycji × ilości | 1008,05 | 907–1613 | 1216–2161 |
 
 Druk własny: 122,2 cm³ (pokrywka płytki × 4, tulejka redukcyjna gniazda DC × 2, podkładka panelu 0,5 mm × 8, podkładka panelu 1 mm × 8, podkładka panelu 2 mm × 8).
 

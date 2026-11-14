@@ -47,7 +47,7 @@ Przejrzyj w `plan_ramki_v2.md` sekcję 13 (R1–R47) i zatwierdź lub zmień poz
 | R23/R24/R26/R27 | żebra korpusu, daszki pełne, promienie 3/1, kolory | TAK | parametry `rib_*`, `vent_hood_*`, `fillet_*`, `color_*` |
 | Z28/R45 | brak przycisku i czujnika gestu; przednia ścianka gładka z napisem | TAK (Twoja decyzja) | — |
 | R31 | ścianki kieszeni DC 2 mm | TAK | `dc_pocket_wall` 2,5 (wtedy kieszeń o 1 mm węższa w świetle) |
-| Z20/D6 | 24 + 2 gniazda wieczorna, 35 + 2 poranna, rzędami — **[R54, 1.11.2026]** zastąpione: 18 + 2 wieczorna, 31 + 2 poranna, rzędy przycięte do koła `socket_zone_r` 47 (pole skanowania przy obrocie = koło ø100, Z29); stożki znaczników w kole (`ev_/mo_marker_pos`), kieszenie magnesów w rogach; lista edycji `R54_wdrozenie_zmiany.md` | TAK (R54 zatwierdzone przez właściciela 1.11) | tylko przez sesję 1 (zmiana D6, `ev_/mo_rows` i K‑05) |
+| Z20/D6 | 24 + 2 gniazda wieczorna, 35 + 2 poranna, rzędami — **[R54, 1.11.2026]** zastąpione: 18 + 2 wieczorna, 31 + 2 poranna, rzędy przycięte do koła `socket_zone_r` 47 (pole skanowania przy obrocie = koło ø100, Z29); stożki znaczników w kole (`ev_/mo_marker_pos`), kieszenie magnesów w rogach; lista edycji `R54_wdrozenie_zmiany.md` — **[R59, 14.11.2026]** zastąpione: 18 + 1 wieczorna (6 × ø12, 12 × ø15), 23 + 1 poranna (20 × ø12,5, 3 × ø15), na każdej płytce jedna rynienka (przednia); lista edycji `R59_wdrozenie_zmiany.md` | TAK (R54 zatwierdzone przez właściciela 1.11; R59 — decyzja właściciela 14.11.2026, bramka G0) | tylko przez sesję 1 (zmiana D6, `ev_/mo_rows` i K‑05) |
 
 | Z27 | kieszeń DC 36 × 24 × 22 | TAK | `dc_pocket_*` |
 

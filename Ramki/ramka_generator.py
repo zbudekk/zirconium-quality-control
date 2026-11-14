@@ -58,8 +58,8 @@ ODSTEP_PLYTEK = 110     # odstep plytek wariantowych w rzedzie w .blend
 
 # Objetosci orientacyjne z tabeli 1 protokolu (K-04b, +-30 %), cm3
 OBJ_ORIENT = {
-    'plytka_wieczorna': 62, 'plytka_poranna': 61, 'pokrywka': 30, 'wkladka': 16, 'blat': 83, 'korpus': 225,
-    'plytka_okragla_wieczorna': 49, 'plytka_okragla_poranna': 51,      # R57: walec pi*50^2*8 = 62,8 minus gniazda (49,0 / 50,6 z siatki przy o100)
+    'plytka_wieczorna': 60, 'plytka_poranna': 60, 'pokrywka': 30, 'wkladka': 16, 'blat': 83, 'korpus': 225,      # R59: plytki 59,6 / 59,9 z siatki (uklad W-b / P-e; dawniej 62 / 61)
+    'plytka_okragla_wieczorna': 49, 'plytka_okragla_poranna': 50,      # R57: walec pi*50^2*8 = 62,8 minus gniazda; R59: 49,3 / 49,6 z siatki (R57: 49,0 / 50,6, wtedy 49 / 51)
     'tulejka_dc': 0.30, 'podkladka_panelu_05': 0.03, 'podkladka_panelu_1': 0.05, 'podkladka_panelu_2': 0.11,
 }
 
@@ -926,7 +926,8 @@ def numery_plytek(P, typ):
 
 
 def generuj_gniazda(P, typ):
-    """Gniazda z D6 (ev_rows / mo_rows): id rzedami od przodu, w rzedzie od prawej (R13). R57: okragla z rzedow typu bazowego."""
+    """Gniazda z D6 (ev_rows / mo_rows): id rzedami od przodu, w rzedzie od prawej (R13). R57: okragla z rzedow typu bazowego.
+    R59: rzad mieszany (dwie srednice obok siebie) = dwa wpisy o roznym y; id ida po y wpisu (sortowanie po y), potem od prawej."""
     typ = typ_bazowy(typ)
     wiersze = sorted(P['ev_rows'] if typ == 'wieczorna' else P['mo_rows'], key=lambda r: r['y'])
     pitch = P['ev_trough_hole_pitch'] if typ == 'wieczorna' else P['mo_trough_hole_pitch']
@@ -2069,7 +2070,7 @@ def sprawdz_uklad_json(W, P, uklad, typ, wzorzec=None):
     for s1, s2 in zip(g, g[1:]):
         if s2['y'] < s1['y'] - 1e-9 or (abs(s2['y'] - s1['y']) < 1e-9 and s2['x'] >= s1['x']):
             bledy.append('(g) kolejność id %d→%d' % (s1['id'], s2['id']))
-    W.dodaj('K-05', not bledy, '%s: round/trough %d/%d (oczekiwane %d/%d z %s_rows); rzędów %d; max promień obrysu %.3f (id %s) ≤ %g; min ścianka %.3f (id %d–%d)%s; błędy: %s'
+    W.dodaj('K-05', not bledy, '%s: round/trough %d/%d (oczekiwane %d/%d z %s_rows); wpisów rzędów (różnych y) %d; max promień obrysu %.3f (id %s) ≤ %g; min ścianka %.3f (id %d–%d)%s; błędy: %s'
             % (plik, nr, nt, oczek[0], oczek[1], 'ev' if baz == 'wieczorna' else 'mo', len(rzedy), rmax, id_rmax, rk, dmin, para[0], para[1],
                '; (h) sockets identyczne z uklad_gniazd_%s.json: %s' % (baz, 'tak' if g == wzorzec['sockets'] else 'NIE') if wzorzec is not None else '',
                '; '.join(bledy) if bledy else 'brak'),
@@ -2115,6 +2116,7 @@ def sprawdz_plytke(W, P, siatka, plik, uklad, numer):
         if okragla:
             # R57: narożnik prostokąta (x + l/2 − 0,5, y + w/2 − 0,5) lezy poza kolem o96/98 (promien 48,5); zaokraglony koniec sprawdzany
             # punktem na 45° od srodka polokregu w odleglosci w/2 + 0,6 (w prostokatnym koncu bylby wyciety, w zaokraglonym jest materialem)
+            # R59: rynienka jest tylko z przodu (naroznik prostokata lezy juz w obrysie), sonda na 45 st. zostaje - jedna metoda dla okraglych (protokol K-08)
             u = (w / 2 + 0.6) * math.sqrt(0.5)
             narozny = ((x + (l - w) / 2 + u, y + u, -2), True)
         else:
@@ -4213,29 +4215,50 @@ def odstepstwa_informacyjne_R57(P):
     """R57 (plytki okragle): zalozenia wykonawcy do zatwierdzenia przez wlasciciela / nadzor (rejestr odstepstw)."""
     D = DZIENNIK['odstepstwa']
     R, dist, kat, w = sciecie_okraglej(P)
-    D.append(('R57 / `plate_round_d` (zadanie: 96; decyzja nadzoru 2.11: 100)', 'płytka okrągła ø%g = granica pola skanowania; gniazda jak R54 w kole 47' % (2 * R),
-              'przy ø96 ścianka obrys górny rynienki tylnej porannej (r 46,93) i stożków znaczników (r 44,43 + 2,5) do krawędzi = 1,07 (do początku fazy 0,57) < 1,5 (reguła 4.8, K‑16); '
-              'ø98 dawało 1,57–2,07; przy ø100 ścianka do krawędzi 2,57 (K‑16); kwadrat ma rogi na promieniu 67,9, więc ø100 mieści się w skanerze wszędzie tam, gdzie kwadrat',
+    dk, nc = P['code_dimples_round'], P['number_pos_round']      # R59: pozycje w tekstach z parametry.json (nie stale)
+    D.append(('R57 / `plate_round_d` (zadanie: 96; decyzja nadzoru 2.11: 100)', 'płytka okrągła ø%g = granica pola skanowania; gniazda jak płytka kwadratowa tego typu, w kole 47' % (2 * R),
+              'decyzja 2.11 na układzie R54: przy ø96 ścianka obrys górny rynienki tylnej porannej (r 46,93) i stożków znaczników (r 44,43 + 2,5) do krawędzi = 1,07 (do początku fazy 0,57) < 1,5 (reguła 4.8, K‑16); '
+              'ø98 dawało 1,57–2,07; przy ø100 ścianka do krawędzi 2,57; po R59 (jedna rynienka przednia, układ W‑b / P‑e) ścianki do krawędzi są większe — liczby w K‑16 tego raportu; kwadrat ma rogi na promieniu 67,9, więc ø100 mieści się w skanerze wszędzie tam, gdzie kwadrat',
               'tak — właściciel (ZAŁOŻENIE nadzoru)'))
     D.append(('R57 / `round_flat_w` (zadanie: 8; decyzja nadzoru 2.11: 16)', 'ścięcie o cięciwie %g: płaszczyzna %.3f od środka, głębokość %.3f' % (w, dist, R - dist),
-              'cięciwa 8 dawała głębokość 0,16 (mniej niż faza 0,5 i tolerancja ±0,3 — niewidoczne); 16 daje %.2f ≥ `round_flat_depth_min` %g przy ściance od płaszczyzny ścięcia do obrysów ≥ 3 (K‑61 e, f); 20 odpada (ścianka 1,3)' % (R - dist, P['round_flat_depth_min']),
+              'cięciwa 8 dawała głębokość 0,16 (mniej niż faza 0,5 i tolerancja ±0,3 — niewidoczne); 16 daje %.2f ≥ `round_flat_depth_min` %g przy ściance od płaszczyzny ścięcia do obrysów ≥ 3 (K‑61 e, f; liczba po R59 w K‑61 tego raportu); w decyzji 2.11 (układ R54) 20 odpadało (ścianka 1,3)' % (R - dist, P['round_flat_depth_min']),
               'tak — właściciel (ZAŁOŻENIE nadzoru)'))
-    D.append(('R57 / `code_dimples_round` (zadanie: wzdłuż lewej krawędzi; nadzór 2.11: zaakceptowane per typ)', 'pozycje per typ: wieczorna rząd y −43,5 (x −4,5…4,5) przed rynienką przednią; poranna kolumna x 30,5 (y −31…−22) przód‑prawo',
-              'przegląd siatki 0,5 mm: żadna linia 4 dołków o rozstawie 3 nie mieści się w kole r 44 wspólnie dla obu układów gniazd ani przy lewej krawędzi (gniazda sięgają x −45); '
-              'ścianki: do gniazd 3,50 / 3,62, do stożków 31,9 / 51,0, promień 43,73 / 43,49, do krawędzi 5,27 / 5,35 (ø100); program czyta pozycje z JSON `code_dimples`',
-              'nie — ZAŁOŻENIE zaakceptowane przez nadzór 2.11 (właściciel może cofnąć)'))
-    D.append(('R57 / `number_pos_round` (nadzór 2.11: zaakceptowane)', 'cyfra reliefu na okrągłych w kole 47: wieczorna (35, −26,5), poranna (36,5, −24,5)',
-              'dawne miejsce (39,5, −44,5) leży poza kołem (promień 59,6); obrys cyfry 5 × 3,6 w promieniu ≤ 46,9, odstęp od gniazd ≥ 3,0, od dołków ≥ 3,2, od płaszczyzny ścięcia 2,8 / 3,2',
-              'nie — ZAŁOŻENIE zaakceptowane przez nadzór 2.11 (właściciel może cofnąć; `null` = bez cyfry)'))
+    D.append(('R57 / `code_dimples_round` (zadanie: wzdłuż lewej krawędzi; nadzór 2.11: zaakceptowane per typ)', 'pozycje per typ z `parametry.json`: wieczorna %s; poranna %s' % tuple(', '.join('%s (%g, %g)' % (b, dk[tb][b][0], dk[tb][b][1]) for b in BITY) for tb in ('wieczorna', 'poranna')),
+              'R57 (układ R54): przegląd siatki 0,5 mm — żadna linia 4 dołków o rozstawie 3 nie mieściła się w kole r 44 wspólnie dla obu układów gniazd ani przy lewej krawędzi (gniazda sięgają x −45); '
+              'R59: wieczorna bez zmian (rząd przed rynienką przednią); poranna przeniesiona z kolumny x 30,5 (y −31…−22) — rynienka układu P‑e leży w y −35,3 i rząd przed nią się nie mieści, więc dwie pary z prawej strony '
+              '(policzone `narzedzia/uklad_kolo_R59.js`); promienie i ścianki do gniazd, stożków i krawędzi: K‑62 tego raportu; program czyta pozycje z JSON `code_dimples`',
+              'nie — ZAŁOŻENIE zaakceptowane przez nadzór 2.11; pozycje porannej zmienione decyzją właściciela G0 14.11.2026 (R59, wariant P‑e)'))
+    D.append(('R57 / `number_pos_round` (nadzór 2.11: zaakceptowane)', 'cyfra reliefu na okrągłych w kole 47 (z `parametry.json`): wieczorna %s, poranna %s' % tuple('bez cyfry (null)' if nc[tb] is None else '(%g, %g)' % (nc[tb][0], nc[tb][1]) for tb in ('wieczorna', 'poranna')),
+              'dawne miejsce kwadratu (39,5, −44,5) leży poza kołem (promień 59,6); obrys cyfry 5 × 3,6 w kole 47 i ≥ 3 od gniazd; R59: wieczorna bez zmian, poranna przeniesiona z (36,5, −24,5) na lewą stronę '
+              '(dawne miejsce koliduje z gniazdem ø12,5 układu P‑e w (31; −19,55)); odstępy obrysu cyfry od gniazd, dołków, stożków i koła 47 liczy `narzedzia/weryfikuj_uklad_R59.js` (generator sprawdza tylko wysokość reliefu, K‑13)',
+              'nie — ZAŁOŻENIE zaakceptowane przez nadzór 2.11; pozycja porannej zmieniona decyzją właściciela G0 14.11.2026 (R59, wariant P‑e); `null` = bez cyfry'))
     D.append(('R57 / K‑08 na okrągłych', 'sonda zaokrąglonego końca rynienki na 45° od środka półokręgu (w/2 + 0,6) zamiast narożnika prostokąta',
-              'narożnik (x + l/2 − 0,5, y + w/2 − 0,5) rynienek tylnych leży w promieniu 48,5–48,6, czyli poza obrysem okrągłym (sonda z protokołu niewykonalna); nowa sonda rozróżnia koniec prostokątny od zaokrąglonego tak samo',
+              'R57: sonda wprowadzona przy ø96/98, gdy narożnik (x + l/2 − 0,5, y + w/2 − 0,5) rynienek tylnych układu R54 (promień 48,5–48,6) leżał poza obrysem; przy ø100 narożnik leży w płytce (recenzja R57‑B D1, zapis w protokole K‑08), a po R59 rynienka jest tylko z przodu (narożnik w promieniu 37,5 / 38,2); '
+              'protokół K‑08 wymienia dla płytek okrągłych obie sondy, generator wykonuje na nich nadal tylko sondę na 45° (kod sprawdzeń bez zmian w R59); rozróżnia ona koniec prostokątny od zaokrąglonego tak samo',
               'nie — informacyjnie (zapis w protokole K‑08)'))
     D.append(('R57 / pliki bazowe kwadratowe (`ramka_plytka_wieczorna_v2.stl`, `ramka_plytka_poranna_v2.stl`)', 'plik bazowy = wszystkie 4 dołki (A+B+C+D), więc bazowe kwadratowe dostały dołek D (−45, −27) i zmieniły bajty',
-              'zasada „bazowy = wszystkie dołki” (4.1 p. 5, K‑11) rozszerzona o bit D; pliki bazowe nie są drukowane ani w pakiecie; n1–n6 bez bitu D — bajtowo identyczne z R56',
+              'zasada „bazowy = wszystkie dołki” (4.1 p. 5, K‑11) rozszerzona o bit D; pliki bazowe nie są drukowane ani w pakiecie; n1–n6 bez bitu D (w R57 bajtowo identyczne z R56; po R59 wszystkie pliki płytek mają nowy układ gniazd i nowe SHA)',
               'tak — albo bazowe bez D (wtedy K‑11 bazowy A+B+C)'))
     D.append(('R57 / boolean i triangulacja płytek okrągłych', 'otwory ø3 cięte w drugiej różnicy; ściany poziome triangulowane Delaunayem z ograniczeniami (CDT)',
-              'jedna różnica ze wszystkimi bryłami zostawiała w bazowej okrągłej wieczornej 3 zbędne ściany na dnie otworów (K‑03: 514 przecięć); kwadratowe bez zmian w kolejności brył i triangulacji (SHA R56 bez zmian)',
+              'jedna różnica ze wszystkimi bryłami zostawiała w bazowej okrągłej wieczornej 3 zbędne ściany na dnie otworów (K‑03: 514 przecięć); kwadratowe bez zmian w kolejności brył i triangulacji (w R57 SHA płytek kwadratowych = R56; po R59 nowe SHA wynikają tylko z nowego układu gniazd)',
               'nie — informacyjnie'))
+
+
+def odstepstwa_informacyjne_R59(P):
+    """R59 (nowy uklad gniazd, decyzja wlasciciela G0 14.11.2026): wpis informacyjny rejestru - liczby gniazd z ev_rows / mo_rows
+    i regula numeracji id w rzedach mieszanych (dwa wpisy o roznym y)."""
+    def opis(rows):
+        licz = {}
+        for w in rows:
+            klucz = ('ø%s' % liczba_pl(w['d'], 1).replace(',0', '')) if w['type'] == 'round' else 'rynienka %g × %g' % (w['l'], w['w'])
+            licz[klucz] = licz.get(klucz, 0) + len(w['x'])
+        return ' + '.join('%d × %s' % (n, k) for k, n in licz.items())
+    DZIENNIK['odstepstwa'].append((
+        'R59 / `ev_rows`, `mo_rows` (decyzja właściciela G0 14.11.2026: warianty W‑b i P‑e)',
+        'układ gniazd z `parametry.json`: wieczorna %s; poranna %s; na każdej płytce jedna rynienka (przednia)' % (opis(P['ev_rows']), opis(P['mo_rows'])),
+        'rząd mieszany płytki porannej (ø12,5 i ø15 obok siebie) jest zapisany jako dwa wpisy o różnym y; numery id (R13: rzędami od przodu, w rzędzie od prawej) idą wtedy po y wpisu — '
+        'najpierw gniazda wpisu o mniejszym y, potem drugiego; id całego układu są inne niż w R54 (wyniki programu ze starego układu nie są porównywalne po numerze gniazda)',
+        'nie — informacyjnie (plan D6 i Z20 [R59])'))
 
 
 def odstepstwa_informacyjne_C(P):
@@ -4413,6 +4436,7 @@ def main():
     W = Wyniki()
     pliki, stl = etap_A(P, out, W, znacz, buduj)
     odstepstwa_informacyjne_R57(P)
+    odstepstwa_informacyjne_R59(P)
     wid = None
     if 'B' in etapy:
         pliki += etap_B(P, out, W, znacz, stl, buduj)
