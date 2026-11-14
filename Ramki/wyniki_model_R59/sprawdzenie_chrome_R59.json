@@ -1,0 +1,589 @@
+{
+ "opis": "R59-M: sprawdzenie modelu 3D i animacji w Chrome bez okna (DevTools Protocol), pliki otwarte z dysku (file://). Dane z przebiegu koncowego; pola model / animacja / zrzuty zapisal skrypt testowy bez zmian.",
+ "data": "2026-11-14",
+ [usunieto w kopii: opis dostepu ssh]
+ "pliki_sprawdzane": {
+  "ramka_3d_v3_R59.html": {
+   "bajty": 6525819,
+   "sha256": "e7c538b6ae0684cba36e9107081262a87c5270a74868c1b50d0eee77390bef37"
+  },
+  "animacja_ramki_R59.html": {
+   "bajty": 25831,
+   "sha256": "f31b4721258015a36aeebd2b80b78fede09d58377f87a0e0ae0a3257dfa1ea0b"
+  }
+ },
+ "przebiegi": [
+  {
+   "nr": 1,
+   "profil_chrome": "nowy",
+   "webgl": "OK",
+   "wynik": "komplet sprawdzen OK; chrome nie zakonczyl sie sam po Browser.close - zakonczony przez child.kill()"
+  },
+  {
+   "nr": 2,
+   "profil_chrome": "uzyty ponownie",
+   "webgl": "OK",
+   "wynik": "komplet sprawdzen OK; zakonczony przez child.kill()"
+  },
+  {
+   "nr": 3,
+   "profil_chrome": "uzyty ponownie",
+   "webgl": "kontekst niewazny",
+   "wynik": "zrzuty modelu puste, 8 bledow konsoli (shader), 123 ostrzezenia WebGL; sondy siatki i animacja OK"
+  },
+  {
+   "nr": 4,
+   "profil_chrome": "nowy",
+   "webgl": "OK",
+   "wynik": "komplet sprawdzen OK"
+  },
+  {
+   "nr": 5,
+   "profil_chrome": "uzyty ponownie (z przebiegow 1-3)",
+   "webgl": "Error creating WebGL context",
+   "wynik": "model nie wystartowal (komunikat bledu na stronie)"
+  },
+  {
+   "nr": 6,
+   "profil_chrome": "uzyty ponownie (z przebiegu 4)",
+   "webgl": "Error creating WebGL context",
+   "wynik": "model nie wystartowal"
+  },
+  {
+   "nr": 7,
+   "profil_chrome": "nowy",
+   "webgl": "OK",
+   "wynik": "komplet sprawdzen OK - PRZEBIEG KONCOWY (dane ponizej, zrzuty w tym katalogu)"
+  },
+  {
+   "nr": 8,
+   "profil_chrome": "uzyty ponownie (z przebiegow 1-3, 5) + --enable-unsafe-swiftshader",
+   "webgl": "Error creating WebGL context",
+   "wynik": "model nie wystartowal"
+  }
+ ],
+ "wniosek_o_przebiegach": "Nowy katalog profilu (--user-data-dir): 3 z 3 przebiegow OK. Profil uzyty ponownie: 1 z 5 OK. Blad dotyczy startu WebGL w Chrome bez okna w sesji ssh przy ponownym uzyciu profilu, nie pliku modelu (plik identyczny bajtowo we wszystkich przebiegach). Do sprawdzen uzywac za kazdym razem nowego katalogu profilu.",
+ "chrome": "Chrome/157.0.8103.78",
+ "przelaczniki_dodatkowe": [],
+ "zamkniecie_chrome": "sam po Browser.close, 5490 ms",
+ "model": {
+  "adres": "file:///<PC-katalog>/r59/model/Ramki/wyniki_model_R59/ramka_3d_v3_R59.html",
+  "gotowe": true,
+  "komunikat_ladowania": "(ukryty)",
+  "webgl": {
+   "wersja": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+   "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5080 (0x00002C02) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "naglowek": "Ramka \u015bwietlna \u00b7 model 3D v3 (po R59, 14.11.2026) | Ramka 3D v3 R59",
+  "webgl_ok": true,
+  "kontrola_polozenia": [
+   {
+    "plik": "ramka_korpus_W_v2",
+    "delta": "0.000",
+    "wynik": "ZAL"
+   },
+   {
+    "plik": "ramka_blat_v2",
+    "delta": "0.000",
+    "wynik": "ZAL"
+   },
+   {
+    "plik": "ramka_wkladka_v2",
+    "delta": "0.000",
+    "wynik": "ZAL"
+   },
+   {
+    "plik": "ramka_plytka_wieczorna_n1_v2",
+    "delta": "0.000",
+    "wynik": "ZAL"
+   },
+   {
+    "plik": "ramka_pokrywka_v2",
+    "delta": "0.000",
+    "wynik": "ZAL"
+   },
+   {
+    "plik": "ramka_korpus_P_v2",
+    "delta": "0.000",
+    "wynik": "ZAL"
+   },
+   {
+    "plik": "ramka_plytka_poranna_n4_v2",
+    "delta": "0.000",
+    "wynik": "ZAL"
+   }
+  ],
+  "stl": [
+   {
+    "plik": "ramka_korpus_W_v2",
+    "bajty": 939984,
+    "trojkaty_stl": 18798,
+    "trojkaty_scena": 18798,
+    "sha256": "bd55871c88cf2604c1c8efa5035148ba39c3803a0788015cc35548e8e9afff9a",
+    "sha_w_pliku": "bd55871c88cf2604c1c8efa5035148ba39c3803a0788015cc35548e8e9afff9a"
+   },
+   {
+    "plik": "ramka_korpus_P_v2",
+    "bajty": 895184,
+    "trojkaty_stl": 17902,
+    "trojkaty_scena": 17902,
+    "sha256": "aadb91c9364cf39f1f4062d328616aa518e474b957315ed4a941de4f935ab2b7",
+    "sha_w_pliku": "aadb91c9364cf39f1f4062d328616aa518e474b957315ed4a941de4f935ab2b7"
+   },
+   {
+    "plik": "ramka_blat_v2",
+    "bajty": 284684,
+    "trojkaty_stl": 5692,
+    "trojkaty_scena": 5692,
+    "sha256": "8c48856eb9addee2b37cfa5a03e5686ab7670bd92b724e488ccc8d8dd3a4b418",
+    "sha_w_pliku": "8c48856eb9addee2b37cfa5a03e5686ab7670bd92b724e488ccc8d8dd3a4b418"
+   },
+   {
+    "plik": "ramka_wkladka_v2",
+    "bajty": 90384,
+    "trojkaty_stl": 1806,
+    "trojkaty_scena": 1806,
+    "sha256": "f4196fbc640450998634f50caa86051f89df2cbb2c218e317f5c2b193e3ef92b",
+    "sha_w_pliku": "f4196fbc640450998634f50caa86051f89df2cbb2c218e317f5c2b193e3ef92b"
+   },
+   {
+    "plik": "ramka_plytka_wieczorna_n1_v2",
+    "bajty": 946584,
+    "trojkaty_stl": 18930,
+    "trojkaty_scena": 18930,
+    "sha256": "3b0db5452a0cd9533464772c10b67c05fa7a006fcdb3d140a74af275e79946f7",
+    "sha_w_pliku": "3b0db5452a0cd9533464772c10b67c05fa7a006fcdb3d140a74af275e79946f7"
+   },
+   {
+    "plik": "ramka_plytka_poranna_n4_v2",
+    "bajty": 1095984,
+    "trojkaty_stl": 21918,
+    "trojkaty_scena": 21918,
+    "sha256": "20f15f2214f6c9a9baf2b4701e7f99bfbc5f739b6379398294e9f931b8763237",
+    "sha_w_pliku": "20f15f2214f6c9a9baf2b4701e7f99bfbc5f739b6379398294e9f931b8763237"
+   },
+   {
+    "plik": "ramka_pokrywka_v2",
+    "bajty": 41084,
+    "trojkaty_stl": 820,
+    "trojkaty_scena": 820,
+    "sha256": "ad23444483ac95733e92169af00e5271d8fc3b19a91854e8c8acddf06c8cd454",
+    "sha_w_pliku": "ad23444483ac95733e92169af00e5271d8fc3b19a91854e8c8acddf06c8cd454"
+   }
+  ],
+  "stl_wczytane": 7,
+  "stl_sha_przegladarka_zgodne": 7,
+  "stl_sha_node": {
+   "plikow": 7,
+   "zgodne_z_lista": 7,
+   "niezgodne": []
+  },
+  "parametry": {
+   "ev": {
+    "gniazda": 18,
+    "rynienki": 1,
+    "srednice": {
+     "12": 6,
+     "15": 12
+    }
+   },
+   "mo": {
+    "gniazda": 23,
+    "rynienki": 1,
+    "srednice": {
+     "15": 3,
+     "12.5": 20
+    }
+   },
+   "ev_marker_pos": {
+    "A": [
+     -35.5,
+     -26.5
+    ],
+    "B": [
+     -31,
+     31.5
+    ],
+    "C": [
+     42,
+     14.5
+    ]
+   },
+   "mo_marker_pos": {
+    "A": [
+     -30.5,
+     -32
+    ],
+    "B": [
+     -37.5,
+     23.5
+    ],
+    "C": [
+     41.5,
+     16
+    ]
+   },
+   "kluczy": 287
+  },
+  "opis_plytki": "W: wieczorna nr 1 (magnes w A), P: poranna nr 4 (magnes w C). [R59] Uk\u0142ad gniazd: wieczorna 18 + 1 (6 \u00d7 \u00f812, 12 \u00d7 \u00f815; rynienka 60 \u00d7 15 z przodu); poranna 23 + 1 (20 \u00d7 \u00f812,5, 3 \u00d7 \u00f815; rynienka 50 \u00d7 13 z przodu) (rynienka = gniazdo na most). [R54] Gniazda, rynienka i sto\u017cki znacznik\u00f3w w kole o promieniu 47 wok\u00f3\u0142 \u015brodka (pole skanowania przy obrocie = ko\u0142o \u00f8100); kieszenie magnes\u00f3w nadal w rogach. Le\u017cy na p\u00f3\u0142kach (Z 66,1), wierzch Z 74,1, cyfra +0,6.",
+  "maski": {
+   "gniazda": 18,
+   "z_praca": 9,
+   "czerwone_swiecace": [
+    [
+     -7.5,
+     -13.7,
+     12
+    ],
+    [
+     9,
+     18.35,
+     15
+    ]
+   ],
+   "czerwone_bez_pracy": 0,
+   "otwory_rynienki": 4,
+   "otwory_rynienki_swiecace": 4,
+   "zielone": [
+    [
+     -37.5,
+     -13.7,
+     12
+    ],
+    [
+     37.5,
+     -13.7,
+     12
+    ],
+    [
+     -36,
+     2.75,
+     15
+    ],
+    [
+     0,
+     2.75,
+     15
+    ],
+    [
+     36,
+     2.75,
+     15
+    ],
+    [
+     -9,
+     18.35,
+     15
+    ],
+    [
+     0,
+     33.95,
+     15
+    ]
+   ]
+  },
+  "grupy_wymiarow": "gab:7 zdol:8 zgora:8 tyl:7 panel:8 blat:7 wkl:8 kolo:8",
+  "etykiety_kolo": [
+   "ko\u0142o gniazd r 47 (\u00f8100/2 \u2212 1,5 \u2212 1,5)",
+   "W A (\u221235,5; \u221226,5)",
+   "W B (\u221231; 31,5)",
+   "W C (42; 14,5)",
+   "P A (\u221230,5; \u221232)",
+   "P B (\u221237,5; 23,5)",
+   "P C (41,5; 16)",
+   "magnes A (\u221242; \u221242)"
+  ],
+  "sondy_W": {
+   "plik": "ramka_plytka_wieczorna_n1_v2",
+   "dno": [
+    36,
+    36
+   ],
+   "otwor": [
+    18,
+    18
+   ],
+   "wierzch_obok": [
+    72,
+    72
+   ],
+   "rynienka_dno": [
+    3,
+    3
+   ],
+   "rynienka_otwor": [
+    4,
+    4
+   ],
+   "rynienka_obok": [
+    4,
+    4
+   ],
+   "stozek": [
+    6,
+    6
+   ],
+   "niezgodne": [],
+   "siatka": {
+    "promienie": 6921,
+    "skladowe": 22,
+    "male_do_30": 3,
+    "okragle": [
+     112,
+     112,
+     112,
+     112,
+     112,
+     112,
+     169,
+     169,
+     169,
+     169,
+     173,
+     173,
+     173,
+     173,
+     173,
+     177,
+     177,
+     177
+    ],
+    "podluzne": [
+     {
+      "pole": 847,
+      "szer": 59,
+      "wys": 15,
+      "cx": 0,
+      "cy": -30
+     }
+    ]
+   }
+  },
+  "widok_W": {
+   "wariant": "W",
+   "plik_widoczny": [
+    "ramka_plytka_wieczorna_n1_v2"
+   ],
+   "poswiata_gniazd": 13,
+   "diody_zapalone": 30
+  },
+  "sondy_P": {
+   "plik": "ramka_plytka_poranna_n4_v2",
+   "dno": [
+    46,
+    46
+   ],
+   "otwor": [
+    23,
+    23
+   ],
+   "wierzch_obok": [
+    92,
+    92
+   ],
+   "rynienka_dno": [
+    3,
+    3
+   ],
+   "rynienka_otwor": [
+    4,
+    4
+   ],
+   "rynienka_obok": [
+    4,
+    4
+   ],
+   "stozek": [
+    6,
+    6
+   ],
+   "niezgodne": [],
+   "siatka": {
+    "promienie": 6921,
+    "skladowe": 27,
+    "male_do_30": 3,
+    "okragle": [
+     117,
+     117,
+     117,
+     117,
+     117,
+     117,
+     117,
+     117,
+     118,
+     118,
+     118,
+     118,
+     118,
+     118,
+     118,
+     118,
+     118,
+     119,
+     120,
+     120,
+     170,
+     170,
+     173
+    ],
+    "podluzne": [
+     {
+      "pole": 607,
+      "szer": 49,
+      "wys": 13,
+      "cx": 0,
+      "cy": -35
+     }
+    ]
+   }
+  },
+  "widok_P": {
+   "wariant": "P",
+   "plik_widoczny": [
+    "ramka_plytka_poranna_n4_v2"
+   ],
+   "poswiata_gniazd": 0,
+   "diody_zapalone": 49
+  },
+  "pusty_obraz": {
+   "bufor": [
+    1096,
+    910
+   ],
+   "probki_niepuste": "64 z 64",
+   "jasnosc_min_max": [
+    61,
+    754
+   ]
+  },
+  "zadania_lacznie": 1,
+  "zadania_poza_plikiem": 0,
+  "zadania_poza_plikiem_lista": [],
+  "zadania_nieudane": 0,
+  "konsola_error": 0,
+  "konsola_warning": 0,
+  "konsola_inne": 5,
+  "wyjatki": 0,
+  "wpisy_error": 0,
+  "wpisy_warning": 0,
+  "tresci": {
+   "konsola_err_warn": [],
+   "wyjatki": [],
+   "wpisy": []
+  },
+  "konsola_info": [
+   "log: [ramka3d] \u0142a\u0144cuch wysoko\u015bci z parametry.json: {\"floor\":3,\"pad\":4,\"piZ\":8,\"stack\":34,\"pcb\":54,\"bot\":42,\"pcbTop\":55.6,\"led\":57.6,\"blat\":63.6,\"dif0\":61.6,\"korpus\":",
+   "log: [ramka3d] obrys STL w scenie vs tabela 1 protoko\u0142u (tolerancja 0,1 mm):",
+   "log: [ramka3d] obrys STL w scenie vs tabela 1 protoko\u0142u (tolerancja 0,1 mm):"
+  ]
+ },
+ "animacja": {
+  "adres": "file:///<PC-katalog>/r59/model/Ramki/wyniki_model_R59/animacja_ramki_R59.html",
+  "naglowek": "Ramka \u015bwietlna wg planu v2 (po R59): na stole, pod\u0142\u0105czenie, monta\u017c | Trzy sceny z wymiar\u00f3w parametry.json po R59, 14.11.2026 (obudowa 200 \u00d7 200 \u00d7 63,6 mm, p\u0142ytka 96 \u00d7 96; uk\u0142ad gniazd R59: wieczorna 18 + 1, poranna 23 + 1, jedna rynienka z przodu). Schemat, nie render 3D; dok\u0142adna geometria w modelu 3D.",
+  "scena1_wieczorna": {
+   "elipsy": 25,
+   "zielone": 20,
+   "czerwone": 2,
+   "zgaszone": 0,
+   "otwory_zgaszone": 0,
+   "stozki": 3,
+   "wielokaty": 4,
+   "legenda": "wieczorna 18 + 1: 6 \u00d7 \u00f812 + 12 \u00d7 \u00f815, rynienka 60 \u00d7 15 z przodu",
+   "srednice_rx": "2.08 6.25 7.81 2.60"
+  },
+  "scena1_poranna": {
+   "elipsy": 30,
+   "zielone": 11,
+   "czerwone": 0,
+   "zgaszone": 12,
+   "otwory_zgaszone": 4,
+   "stozki": 3,
+   "wielokaty": 4,
+   "legenda": "poranna 23 + 1: 20 \u00d7 \u00f812,5 + 3 \u00d7 \u00f815, rynienka 50 \u00d7 13 z przodu",
+   "srednice_rx": "2.08 6.51 7.81 2.60"
+  },
+  "scena3": {
+   "krok": "Krok 8 / 8",
+   "gniazda_w_przekroju": 5,
+   "opis_rzedu": "5 \u00d7 \u00f815, y 2,75"
+  },
+  "zadania_lacznie": 1,
+  "zadania_poza_plikiem": 0,
+  "zadania_poza_plikiem_lista": [],
+  "zadania_nieudane": 0,
+  "konsola_error": 0,
+  "konsola_warning": 0,
+  "konsola_inne": 0,
+  "wyjatki": 0,
+  "wpisy_error": 0,
+  "wpisy_warning": 0,
+  "tresci": {
+   "konsola_err_warn": [],
+   "wyjatki": [],
+   "wpisy": []
+  }
+ },
+ "zrzuty": [
+  {
+   "plik": "ramka_3d_v3_R59_W_z_gory.jpg",
+   "bajty": 88241,
+   "sha256": "a53e05b9bce062728eb4cad4ffb73e71ef768780958c648ba430ea9e6dbeb37e"
+  },
+  {
+   "plik": "ramka_3d_v3_R59_W_z_gory_techniczny.jpg",
+   "bajty": 103024,
+   "sha256": "f0225a1124cbf84920db5bab828f46fa2846a6e2cfb718679d39a4f57167369c"
+  },
+  {
+   "plik": "ramka_3d_v3_R59_W_kolo_gniazd.jpg",
+   "bajty": 139185,
+   "sha256": "298ae34d8d85bbfca3a59a80ed4b23add85722f3c9c2815e322785f06bf96873"
+  },
+  {
+   "plik": "ramka_3d_v3_R59_P_z_gory.jpg",
+   "bajty": 91969,
+   "sha256": "7d46a3500166f3c44dfe256fe7a6cf7afaf46fdf1949240789ee56f5a32dc27f"
+  },
+  {
+   "plik": "ramka_3d_v3_R59_P_z_gory_techniczny.jpg",
+   "bajty": 109926,
+   "sha256": "fd4b59f9fdd2f6d4c0a73ddfca12e60343bd361da5bd1079ced7b23e5be6e796"
+  },
+  {
+   "plik": "ramka_3d_v3_R59_P_kolo_gniazd.jpg",
+   "bajty": 144313,
+   "sha256": "68ad7f66cb978beaa24932b419fb885d2f45eb72e6d6a2eb348117dc3546edb1"
+  },
+  {
+   "plik": "ramka_3d_v3_R59_W_izometria.jpg",
+   "bajty": 185759,
+   "sha256": "ac281aa9ff3964199d83b6bc4271261dccce15fe46ea39b4421fc5c32edd0acb"
+  },
+  {
+   "plik": "animacja_ramki_R59_scena1_W.jpg",
+   "bajty": 39133,
+   "sha256": "a992f5157bd01b9a6df398c6b1725112fa1d66e6dc19aaaf3544ed939bbee97e"
+  },
+  {
+   "plik": "animacja_ramki_R59_scena1_W_plytka.jpg",
+   "bajty": 37591,
+   "sha256": "a1e9e2b3f3fe7f060cb9610de7245e7f16ff6a09263e09cffdba2280a1869ef5"
+  },
+  {
+   "plik": "animacja_ramki_R59_scena1_P.jpg",
+   "bajty": 41984,
+   "sha256": "61f351b9e23b70ce0f5f3ef7d68d8683d6f96e04c1f663732be7fc218df37f3c"
+  },
+  {
+   "plik": "animacja_ramki_R59_scena1_P_plytka.jpg",
+   "bajty": 37782,
+   "sha256": "d69a3552f075e3bb430ffa8289181096930a727d003dc84f0ebdbdb472a0616a"
+  },
+  {
+   "plik": "animacja_ramki_R59_scena3.jpg",
+   "bajty": 31161,
+   "sha256": "945660233883bf3a30422e141ac24b8421cb29b4ff6ae556e84569944a43a54d"
+  }
+ ]
+}
