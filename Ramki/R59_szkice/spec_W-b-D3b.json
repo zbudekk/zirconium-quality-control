@@ -1,0 +1,12 @@
+{
+ "id": "W-b-D3b", "plytka": "wieczorna", "nazwa": "zrownowazony, rynienka podzielona na dwie krotkie",
+ "y0": -30.2,
+ "rzedy": [
+  {"typ": "T", "l": 28.5, "w": 15, "podzial": true, "hole_count": 2},
+  {"d": 12, "k": 6},
+  {"d": 15, "k": 5},
+  {"d": 15, "k": 4},
+  {"d": 15, "k": 3}
+ ],
+ "znaczniki": {"A": [-35.5, -26.5], "B": [-31, 31.5], "C": [42, 14.5]}
+}

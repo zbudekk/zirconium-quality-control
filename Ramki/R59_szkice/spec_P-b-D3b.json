@@ -1,0 +1,15 @@
+{
+ "id": "P-b-D3b", "plytka": "poranna", "nazwa": "zrownowazony, rynienka podzielona na dwie krotkie",
+ "y0": -32.5,
+ "rzedy": [
+  {"typ": "T", "l": 23.5, "w": 13, "podzial": true, "hole_count": 2},
+  {"d": 7.5, "k": 8},
+  {"d": 12.5, "k": 6},
+  {"d": 10, "k": 7},
+  {"d": 10, "k": 6},
+  {"d": 15, "k": 3}
+ ],
+ "znaczniki": {"A": [-32.5, -30], "B": [-32.5, 30], "C": [32.5, 30]},
+ "dolki_okragle": {"A": [-4.5, -43.5], "B": [-1.5, -43.5], "C": [1.5, -43.5], "D": [4.5, -43.5]},
+ "cyfra_okragla": [32, -28.5]
+}
