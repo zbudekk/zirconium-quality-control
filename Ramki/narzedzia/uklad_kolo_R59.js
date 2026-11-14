@@ -9,6 +9,8 @@
 //        [--srednice=9,12,15] [--rynienka=60x15 | --rynienka=2x28.5x15] [--maxrzedow=6] [--maxrz=7.5:2] [--krok=0.1]
 //        [--kwant=0.05] [--rozstawy=min|poprzedni|wszystkie] [--t-pierwsza] [--t-ymin=-33]
 //        [--min=15:8,12:4] [--minod=12:14] [--max=7.5:8] [--minrazem=18] [--strona=przod|tyl]
+//        [--dokladnie=10:2,12.5:2,15:1]  zestaw rzedow zadany z gory (ile rzedow ktorej srednicy + rynienka): narzedzie
+//        dobiera kolejnosc rzedow i liczby gniazd, wypisuje wszystkie kolejnosci od najwiekszej liczby gniazd
 //        [--watki=N] [--limit-s=240] [--postep=plik] [--memo=nie] [--top=60] [--wynik=front.json]
 //     Przeglad kolejnosci rzedow (rzedy ciasno od przodu, scianka socket_wall_min takze po przekatnej; w rzedzie gniazda
 //     w najmniejszym rozstawie d + scianka, liczba parzysta albo nieparzysta - obie galezie), start bloku co --krok mm.
@@ -330,7 +332,9 @@ function przegladZadania(C, cfg, zadania, postep) {
     return false;
   };
   const zapisz = () => {
-    const klucz = cnt.join(',') + '|' + (yT < 0 ? 'przod' : 'tyl');
+    // --dokladnie: liczy sie tylko uklad o dokladnie zadanej liczbie rzedow kazdej srednicy; kazda kolejnosc rzedow osobno
+    if (cfg.dokladnie) { for (let i = 0; i < cfg.srednice.length; i++) if (rzedowSr[i] !== (cfg.dokladnie[cfg.srednice[i]] || 0)) return; }
+    const klucz = cnt.join(',') + '|' + (yT < 0 ? 'przod' : 'tyl') + (cfg.dokladnie ? '|' + rows.map(r => r.t === 'T' ? 'T' : 'fi' + r.d).join(' ') : '');
     const zap = zapasUkladu(rows, C);
     let lista = wyniki.get(klucz); if (!lista) { lista = []; wyniki.set(klucz, lista); }
     if (lista.length >= cfg.alternatywy && zap <= lista[lista.length - 1].zap + 1e-9) return;
@@ -404,7 +408,14 @@ async function trybFront(opt) {
   const t0 = Date.now();
   const cfg = { srednice, rynienka, maxrzedow: +(opt.maxrzedow || (plytka === 'wieczorna' ? 6 : 8)), krok: +(opt.krok || 0.1), kwant: +(opt.kwant || 0.05),
     rozstawy: opt.rozstawy || 'poprzedni', alternatywy: +(opt.alternatywy || 3), maxrz: pary(opt.maxrz), memo: opt.memo !== 'nie',
-    limitS: opt['limit-s'] !== undefined ? +opt['limit-s'] : 240, start: t0 };
+    limitS: opt['limit-s'] !== undefined ? +opt['limit-s'] : 240, start: t0, dokladnie: null };
+  // --dokladnie=10:2,12.5:2,15:1 - zestaw rzedow zadany z gory (ile rzedow ktorej srednicy, plus rynienka); narzedzie
+  // dobiera kolejnosc rzedow i liczby gniazd; wynik: wszystkie kolejnosci, od najwiekszej liczby gniazd
+  if (opt.dokladnie && opt.dokladnie !== true) {
+    cfg.dokladnie = pary(opt.dokladnie); cfg.maxrz = Object.assign({}, cfg.dokladnie); cfg.memo = false;
+    for (const d of srednice) if (cfg.maxrz[d] === undefined) cfg.maxrz[d] = 0;
+    if (!opt.maxrzedow) cfg.maxrzedow = 1 + Object.values(cfg.dokladnie).reduce((a, b) => a + b, 0);
+  }
   const typy = typyZKonfiguracji(cfg), zadania = [];
   // --t-pierwsza: rynienka jest pierwszym rzedem od przodu; --t-ymin=Y: jej srodek nie blizej przodu niz Y
   // (np. -33 zostawia przed rynienka miejsce na rzad 4 dolkow kodu plytki okraglej w y = -43,5)
@@ -448,7 +459,7 @@ async function trybFront(opt) {
   const fMin = pary(opt.min), fMax = pary(opt.max), fOd = pary(opt.minod), minRazem = +(opt.minrazem || 0);
   let wpisy = [];
   for (const [k, lista] of wszystko) {
-    const [lic, strona] = k.split('|'), cnt = lic.split(',').map(Number), razem = cnt.reduce((a, b) => a + b, 0);
+    const [lic, strona, kolejnosc] = k.split('|'), cnt = lic.split(',').map(Number), razem = cnt.reduce((a, b) => a + b, 0);
     if (opt.strona && opt.strona !== strona) continue;
     if (razem < minRazem) continue;
     let ok = true;
@@ -456,35 +467,44 @@ async function trybFront(opt) {
     for (const d of Object.keys(fOd).map(Number)) { let s = 0; srednice.forEach((dd, i) => { if (dd >= d - 1e-9) s += cnt[i]; }); if (s < fOd[d]) ok = false; }
     if (!ok) continue;
     const kum = cnt.map((_, i) => cnt.slice(i).reduce((a, b) => a + b, 0));        // ile gniazd o srednicy >= d_i
-    wpisy.push({ klucz: k, cnt, kum, razem, strona, lista, stan: null });
+    wpisy.push({ klucz: k, cnt, kum, razem, strona, kolejnosc, lista, stan: null });
   }
+  const top = +(opt.top || 60);
   const dominuje = (a, b) => a.kum.every((v, i) => v >= b.kum[i]) && a.kum.some((v, i) => v > b.kum[i]);
   const bokiMin = opt['boki-min'] !== undefined ? +opt['boki-min'] : 5;
   // front niezdominowany wsrod ukladow, dla ktorych istnieja znaczniki (uklad bez miejsca na 3 stozki odpada).
   // Kolejnosc malejaco po sumie progow: kazdy mozliwy dominujacy jest przed zdominowanym, wiec wystarcza jedno przejscie.
   const sumaK = w => w.kum.reduce((a, b) => a + b, 0);
-  wpisy.sort((a, b) => sumaK(b) - sumaK(a));
   const front = []; let bezZnacznikow = 0;
-  for (const w of wpisy) {
-    if (front.some(v => dominuje(v, w))) continue;
+  const zeZnacznikami = w => {
     for (const e of w.lista) {
       const rows = odtworz(e), mk = szukajZnacznikow(rows, C, { bokiMin });
       if (mk) { w.wybrany = e; w.rows = rows; w.mk = mk; break; }
     }
     if (w.mk) front.push(w); else bezZnacznikow++;
+  };
+  if (cfg.dokladnie) {
+    // zestaw rzedow zadany: bez odsiewania zdominowanych; kolejnosc: najwiecej gniazd, potem wiecej duzych, potem wiekszy zapas
+    const duze = (a, b) => { for (let i = a.kum.length - 1; i >= 0; i--) if (a.kum[i] !== b.kum[i]) return b.kum[i] - a.kum[i]; return 0; };
+    wpisy.sort((a, b) => b.razem - a.razem || duze(a, b) || b.lista[0].zap - a.lista[0].zap);
+    for (const w of wpisy) { if (front.length >= top) break; zeZnacznikami(w); }
+  } else {
+    wpisy.sort((a, b) => sumaK(b) - sumaK(a));
+    for (const w of wpisy) { if (front.some(v => dominuje(v, w))) continue; zeZnacznikami(w); }
   }
   if (bezZnacznikow) console.log('odrzucone zestawy bez miejsca na 3 stozki znacznikow: ' + bezZnacznikow);
+  const wszystkich = wpisy.length;
   wpisy = front;
-  wpisy.sort((a, b) => b.kum[b.kum.length - 1] - a.kum[a.kum.length - 1] || b.razem - a.razem || b.kum.join().localeCompare(a.kum.join()));
-  const top = +(opt.top || 60);
-  console.log('\nzestawy niezdominowane ze znacznikami: ' + wpisy.length + (wpisy.length > top ? ' (pokazuje ' + top + ')' : '') + '   [liczby gniazd: ' + srednice.map(d => 'fi' + d).join(' / ') + ']');
+  if (!cfg.dokladnie) wpisy.sort((a, b) => b.kum[b.kum.length - 1] - a.kum[a.kum.length - 1] || b.razem - a.razem || b.kum.join().localeCompare(a.kum.join()));
+  if (cfg.dokladnie) console.log('\nuklady o zadanym zestawie rzedow (' + JSON.stringify(cfg.dokladnie) + ' + rynienka): ' + wszystkich + ' par kolejnosc / liczby; pokazuje ' + wpisy.length + ' najlepszych ze znacznikami   [liczby gniazd: ' + srednice.map(d => 'fi' + d).join(' / ') + ']');
+  else console.log('\nzestawy niezdominowane ze znacznikami: ' + wpisy.length + (wpisy.length > top ? ' (pokazuje ' + top + ')' : '') + '   [liczby gniazd: ' + srednice.map(d => 'fi' + d).join(' / ') + ']');
   const wynik = [];
   wpisy.slice(0, top).forEach((w, nr) => {
     const e = w.wybrany, t = w.mk.trojkat;
-    console.log('#' + (nr + 1) + '  ' + w.cnt.join(' / ') + '  razem ' + w.razem + ' + ' + (rynienka.podzial ? '2 krotkie rynienki' : '1 rynienka') + ' (' + w.strona + ')  zapas do kola/strefy ' + e.zap.toFixed(2) + '  scianka min ' + sciankaMin(w.rows).toFixed(3));
+    console.log('#' + (nr + 1) + '  ' + w.cnt.join(' / ') + '  razem ' + w.razem + ' + ' + (rynienka.podzial ? '2 krotkie rynienki' : '1 rynienka') + ' (' + w.strona + ')  zapas do kola/strefy ' + e.zap.toFixed(2) + '  scianka min ' + sciankaMin(w.rows).toFixed(3) + (w.kolejnosc ? '  kolejnosc: ' + w.kolejnosc : ''));
     for (const r of e.rows) console.log('      ' + (r.t === 'T' ? 'rynienka ' + r.l + 'x' + r.w : 'fi' + r.d) + '  y=' + r.y + '  x' + r.x.length + ' [' + r.x.join(', ') + ']');
     console.log('      znaczniki A(' + w.mk.A + ') B(' + w.mk.B + ') C(' + w.mk.C + ')  boki ' + t.AB.toFixed(1) + ' / ' + t.BC.toFixed(1) + ' / ' + t.AC.toFixed(1) + '  roznica ' + t.roznica.toFixed(1));
-    wynik.push({ nr: nr + 1, liczby: Object.fromEntries(srednice.map((d, i) => [d, w.cnt[i]])), razem: w.razem, strona: w.strona, zapas: zaokr(e.zap), sig: e.sig,
+    wynik.push({ nr: nr + 1, liczby: Object.fromEntries(srednice.map((d, i) => [d, w.cnt[i]])), razem: w.razem, strona: w.strona, kolejnosc: w.kolejnosc, zapas: zaokr(e.zap), sig: e.sig,
       rows: doParametrow(w.rows), znaczniki: { A: w.mk.A, B: w.mk.B, C: w.mk.C } });
   });
   if (opt.wynik && opt.wynik !== true) fs.writeFileSync(opt.wynik, JSON.stringify({ plytka, cfg, wezly, pominiete, niepelny, zestawow: wszystko.size, front: wynik }, null, 1));

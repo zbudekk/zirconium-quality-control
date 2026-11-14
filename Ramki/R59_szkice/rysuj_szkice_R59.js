@@ -105,11 +105,24 @@ function legenda(x, y, fs_) {
   return o.join('\n');
 }
 
+// rozmiar pisma zmniejszony tak, zeby napis zmiescil sie w szerokosci maxW (szerokosc znaku szacowana z zapasem)
+function wSzerokosci(t, fs_, maxW, waga) {
+  const szac = String(t).length * fs_ * ((waga || 400) >= 700 ? 0.62 : 0.56);
+  return szac > maxW ? +(fs_ * maxW / szac).toFixed(1) : fs_;
+}
+// dluga linia "a;  b;  c" dzielona na dwie mniej wiecej rowne czesci
+function naDwieLinie(t, sep) {
+  const cz = String(t).split(sep); if (cz.length < 2) return [t];
+  let best = 1, roznica = Infinity;
+  for (let i = 1; i < cz.length; i++) { const r = Math.abs(cz.slice(0, i).join(sep).length - cz.slice(i).join(sep).length); if (r < roznica) { roznica = r; best = i; } }
+  return [cz.slice(0, best).join(sep) + sep.trim(), cz.slice(best).join(sep)];
+}
+
 function szkicWariantu(dzis, wariant, meta, plikWy) {
   const typ = meta.plytka, pre = typ === 'wieczorna' ? 'ev' : 'mo';
   const W = 1080, s = 9.6, box = 104 * s, x0 = (W - box) / 2, o = [];
   let y = 0;
-  const tekst = (t, yy, fs_, waga, kol, anchor, xx) => o.push(`<text x="${xx !== undefined ? xx : 40}" y="${yy}" font-size="${fs_}" font-weight="${waga || 400}" fill="${kol || '#111'}" text-anchor="${anchor || 'start'}">${esc(t)}</text>`);
+  const tekst = (t, yy, fs0, waga, kol, anchor, xx) => { const fs_ = wSzerokosci(t, fs0, W - 70, waga); o.push(`<text x="${xx !== undefined ? xx : 40}" y="${yy}" font-size="${fs_}" font-weight="${waga || 400}" fill="${kol || '#111'}" text-anchor="${anchor || 'start'}">${esc(t)}</text>`); };
   y += 66; tekst('Plytka ' + typ + ' - wariant ' + meta.id, y, 50, 700);
   y += 46; tekst('(' + meta.nazwa + ')', y, 32, 400, '#333');
   y += 36; tekst('R59, propozycja do wyboru na bramce G0. Wymiary w mm, widok z gory.', y, 26, 400, '#555');
@@ -123,7 +136,9 @@ function szkicWariantu(dzis, wariant, meta, plikWy) {
   tekst('WARIANT ' + meta.id + ': ' + wl2.opis, y, 40, 700, '#0b4f8a');
   cy = y + 22 + box / 2; o.push(rysunek(wariant, typ, W / 2, cy, s, 1)); y = cy + box / 2 + 84;
   o.push(`<g transform="translate(0 ${y})">${wl2.svg}</g>`);
-  y += 48; tekst(wl2.zmiana, y, 27, 400, '#222');
+  const linieZmiany = String(wl2.zmiana).length * 27 * 0.56 > W - 70 ? naDwieLinie(wl2.zmiana, ';  ') : [wl2.zmiana];
+  y += 48; tekst(linieZmiany[0], y, 27, 400, '#222');
+  if (linieZmiany[1]) { y += 36; tekst(linieZmiany[1], y, 27, 400, '#222', 'start', 40 + 27 * 4.1); }
   y += 56; o.push(legenda(40, y, 26));
   y += 26 * 1.45 * 4 + 40;
   const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${Math.ceil(y)}" viewBox="0 0 ${W} ${Math.ceil(y)}" font-family="Arial, Helvetica, sans-serif">\n<rect width="100%" height="100%" fill="#ffffff"/>\n${o.join('\n')}\n</svg>\n`;
@@ -131,41 +146,63 @@ function szkicWariantu(dzis, wariant, meta, plikWy) {
   return { W, H: Math.ceil(y) };
 }
 
-function szkicPrzegladu(dzis, warianty, typ, plikWy) {
+// tytul = null: przeglad domyslny (dzis + a / b / c, uklad jak w pierwszych szkicach R59); tytul podany (przeglad na zadanie,
+// --przeglad): napisy sa dopasowane do szerokosci pola, a dluga lista srednic idzie w dwoch liniach
+function szkicPrzegladu(dzis, warianty, typ, plikWy, tytul) {
   const pre = typ === 'wieczorna' ? 'ev' : 'mo', W = 1080, s = 4.85, box = 104 * s, kol = [20 + box / 2, W - 20 - box / 2], o = [];
-  const tekst = (t, xx, yy, fs_, waga, kolr, anchor) => o.push(`<text x="${xx}" y="${yy}" font-size="${fs_}" font-weight="${waga || 400}" fill="${kolr || '#111'}" text-anchor="${anchor || 'start'}">${esc(t)}</text>`);
-  let y = 58; tekst('Plytka ' + typ + ': dzis i 3 warianty (R59)', 30, y, 42, 700);
+  const dop = tytul !== undefined && tytul !== null, skok = dop ? 196 : 162;
+  const tekst = (t, xx, yy, fs0, waga, kolr, maxW) => { const fs_ = dop && maxW ? wSzerokosci(t, fs0, maxW, waga) : fs0; o.push(`<text x="${xx}" y="${yy}" font-size="${fs_}" font-weight="${waga || 400}" fill="${kolr || '#111'}" text-anchor="start">${esc(t)}</text>`); };
+  let y = 58; tekst(dop ? tytul : 'Plytka ' + typ + ': dzis i 3 warianty (R59)', 30, y, 42, 700, '#111', W - 60);
   const pola = [{ P: dzis, tytul: 'DZIS (R54)', kolr: '#7a1f1f' }].concat(warianty.map(w => ({ P: w.P, tytul: w.meta.id + ' ' + w.meta.nazwa, kolr: '#0b4f8a' })));
   let yRz = y + 30;
   pola.forEach((p, i) => {
-    const c = i % 2, cx = kol[c];
-    if (i && c === 0) yRz += box + 162;
-    const l = liczby(p.P, pre);
-    tekst(p.tytul, cx - box / 2 + 6, yRz + 34, 30, 700, p.kolr);
+    const c = i % 2, cx = kol[c], xl = cx - box / 2 + 6;
+    if (i && c === 0) yRz += box + skok;
+    const l = liczby(p.P, pre), lista = l.sred.map(d => l.mix[d] + ' x fi ' + pl(d));
+    tekst(p.tytul, xl, yRz + 34, 30, 700, p.kolr, box - 12);
     o.push(rysunek(p.P, typ, cx, yRz + 46 + box / 2, s, 1.12));
-    tekst(l.sred.map(d => l.mix[d] + ' x fi ' + pl(d)).join(', '), cx - box / 2 + 6, yRz + 46 + box + 54, 25, 700);
-    tekst('= ' + l.razem + ' gniazd + ' + l.ryn + (l.ryn === 1 ? ' rynienka' : ' rynienki'), cx - box / 2 + 6, yRz + 46 + box + 88, 25, 400);
+    let yy = yRz + 46 + box + 54;
+    if (dop && lista.length > 3) { const pol = Math.ceil(lista.length / 2); tekst(lista.slice(0, pol).join(', ') + ',', xl, yy, 25, 700, '#111', box - 12); yy += 32; tekst(lista.slice(pol).join(', '), xl, yy, 25, 700, '#111', box - 12); }
+    else tekst(lista.join(', '), xl, yy, 25, 700, '#111', box - 12);
+    tekst('= ' + l.razem + ' gniazd + ' + l.ryn + (l.ryn === 1 ? ' rynienka' : ' rynienki'), xl, yy + 34, 25, 400, '#111', box - 12);
   });
-  const H = Math.ceil(yRz + box + 162);
+  const H = Math.ceil(yRz + box + skok);
   fs.writeFileSync(plikWy, `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial, Helvetica, sans-serif">\n<rect width="100%" height="100%" fill="#ffffff"/>\n${o.join('\n')}\n</svg>\n`);
   return { W, H };
 }
 
-const [plikDzis, katWar, katWy0] = process.argv.slice(2);
-if (!plikDzis || !katWar) { console.error('Uzycie: node rysuj_szkice_R59.js <parametry.json> <katalog z parametry_wariant_*.json> [katalog wyjsciowy]'); process.exit(2); }
+// Przelaczniki (dopisane po G0, zeby nie przerysowywac szkicow juz zatwierdzonych):
+//   --tylko=P-d,P-d1              rysuje tylko szkice podanych wariantow (i zadnego przegladu domyslnego)
+//   --przeglad=nazwa:P-b,P-d,...  dodatkowo szkic_przeglad_<nazwa>.svg: DZIS i podane warianty w podanej kolejnosci
+const opcje = {}, pozycyjne = [];
+for (const a of process.argv.slice(2)) { const m = /^--([a-z0-9-]+)(?:=(.*))?$/i.exec(a); if (m) opcje[m[1]] = m[2] === undefined ? true : m[2]; else pozycyjne.push(a); }
+const [plikDzis, katWar, katWy0] = pozycyjne;
+if (!plikDzis || !katWar) { console.error('Uzycie: node rysuj_szkice_R59.js <parametry.json> <katalog z parametry_wariant_*.json> [katalog wyjsciowy] [--tylko=id,id] [--przeglad=nazwa:id,id]'); process.exit(2); }
 const katWy = katWy0 || katWar, dzis = wczytaj(plikDzis).P, wszystkie = [], rozmiary = [];
+const tylko = opcje.tylko && opcje.tylko !== true ? String(opcje.tylko).split(',') : null;
 for (const n of fs.readdirSync(katWar).filter(n => /^parametry_wariant_.+\.json$/.test(n)).sort()) {
   const { P, wariant } = wczytaj(path.join(katWar, n));
   if (!wariant) { console.log('pomijam ' + n + ' (brak _meta.r59_wariant)'); continue; }
+  wszystkie.push({ P, meta: wariant });
+  if (tylko && !tylko.includes(wariant.id)) continue;
   const r = szkicWariantu(dzis, P, wariant, path.join(katWy, 'szkic_' + wariant.id + '.svg'));
-  rozmiary.push('szkic_' + wariant.id + ' ' + r.W + ' ' + r.H); wszystkie.push({ P, meta: wariant });
+  rozmiary.push('szkic_' + wariant.id + ' ' + r.W + ' ' + r.H);
   console.log('szkic_' + wariant.id + '.svg  ' + r.W + ' x ' + r.H);
 }
-for (const typ of ['wieczorna', 'poranna']) {
+if (!tylko && !opcje.przeglad) for (const typ of ['wieczorna', 'poranna']) {
   const w = wszystkie.filter(v => v.meta.plytka === typ && /^[WP]-[abc]$/.test(v.meta.id));
   if (!w.length) continue;
   const r = szkicPrzegladu(dzis, w, typ, path.join(katWy, 'szkic_przeglad_' + typ + '.svg'));
   rozmiary.push('szkic_przeglad_' + typ + ' ' + r.W + ' ' + r.H);
   console.log('szkic_przeglad_' + typ + '.svg  ' + r.W + ' x ' + r.H);
+}
+if (opcje.przeglad && opcje.przeglad !== true) {
+  const [nazwa, lista] = String(opcje.przeglad).split(':'), ids = (lista || '').split(',').filter(Boolean);
+  const w = ids.map(id => wszystkie.find(v => v.meta.id === id));
+  if (!nazwa || !ids.length || w.some(v => !v)) { console.error('--przeglad=nazwa:id,id - nieznany wariant w ' + opcje.przeglad); process.exit(2); }
+  const typ = w[0].meta.plytka;
+  const r = szkicPrzegladu(dzis, w, typ, path.join(katWy, 'szkic_przeglad_' + nazwa + '.svg'), 'Plytka ' + typ + ': dzis i warianty ' + ids.join(', ') + ' (R59)');
+  rozmiary.push('szkic_przeglad_' + nazwa + ' ' + r.W + ' ' + r.H);
+  console.log('szkic_przeglad_' + nazwa + '.svg  ' + r.W + ' x ' + r.H);
 }
 fs.writeFileSync(path.join(katWy, 'rozmiary_szkicow.txt'), rozmiary.join('\n') + '\n');

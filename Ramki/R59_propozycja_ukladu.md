@@ -144,3 +144,45 @@ sprawdza sie tym samym poleceniem bez przelacznikow - wtedy obie plytki.
 - Przeliczenie 17 projektow dla nowych gniazd zrobil skrypt pomocniczy na PC, poza repozytorium
   (`<PC-katalog>\r59\uklad\pomiar\pomiar_gniazd_R59.py`); w wynikach sa tylko skroty projektow.
 - Nie sprawdzono na siatkach STL (R59-A / R59-B) ani wplywu na wyniki programu (R59-P).
+
+## 8. Wariant P-d (zmiana wlasciciela na G0)
+
+Wlasciciel wybral W-b i D3-a, a w porannej P-b ze zmiana: rzad fi 7,5 -> rzad fi 10, jeden rzad fi 10 -> drugi rzad
+fi 12,5. Zestaw rzedow: rynienka 50 x 13 + fi 10 + fi 10 + fi 12,5 + fi 12,5 + fi 15, bez fi 7,5; rynienka pierwsza,
+jak w P-b. Narzedzie przejrzalo wszystkie kolejnosci tych rzedow (`front --plytka=poranna --srednice=10,12.5,15
+--dokladnie=10:2,12.5:2,15:1 --t-pierwsza --t-ymin=-33 --rozstawy=wszystkie --krok=0.05`; przeglad pelny, 2 s).
+**Zestaw sie miesci.** Najwiecej wychodzi 26 gniazd, ale wtedy z tylu sa 2 gniazda fi 15 (w P-b byly 3); z trzema
+fi 15 najwiecej jest 25.
+
+| | fi 7,5 | fi 10 | fi 12,5 | fi 15 | razem | max promien (47) | min scianka | stozek - gniazdo | boki trojkata stozkow | okragla: krawedz / sciecie / dolek - gniazdo |
+|---|---|---|---|---|---|---|---|---|---|---|
+| dzis (R54) | 18 | 7 | 6 | 0 | 31 + 2 | 46,93 | 3,00 | 3,01 | 60,7 / 60,0 / 88,4 | 3,07 / 4,87 / 3,62 |
+| P-b | 8 | 13 | 6 | 3 | 30 + 1 | 46,50 | 3,00 | 3,35 | 60,0 / 65,0 / 88,5 | 3,50 / 6,01 / 3,50 |
+| **P-d** najwiecej gniazd | 0 | 13 | 11 | 2 | 26 + 1 | 45,73 | 3,00 | 3,01 | 65,0 / 59,0 / 88,5 | 4,27 / 6,79 / 3,50 |
+| P-d1 jak P-d, ale 3 x fi 15 | 0 | 13 | 9 | 3 | 25 + 1 | 46,28 | 3,00 | 3,01 | 63,5 / 72,0 / 87,3 | 3,72 / 6,79 / 3,50 |
+| P-d2 jak P-d, ale 5 x fi 15 | 0 | 13 | 7 | 5 | 25 + 1 | 46,41 | 3,00 | 3,00 | 67,1 / 55,5 / 88,8 | 3,59 / 6,79 / 3,50 |
+
+| ile gniazd przyjmie prace | dzis | P-b | P-d | P-d1 | P-d2 |
+|---|---|---|---|---|---|
+| fi 10 i wieksze | 13 | 22 | 26 | 25 | 25 |
+| fi 12,5 i wieksze | 6 | 9 | 13 | 12 | 12 |
+| fi 15 | 0 | 3 | 2 | 3 | 5 |
+
+Wspolne dla P-d, P-d1, P-d2: rynienka 50 x 13 (y -32,5) | fi 10 x 6 (y -18; x +-6,5, +-19,5, +-32,5) | fi 10 x 7
+(y -6,7; x 0, +-13, +-26, +-39); plytka okragla: dolki rzad y -43,5, x -4,5 / -1,5 / 1,5 / 4,5, cyfra (32; -29). Dalej:
+- **P-d:** fi 12,5 x 6 (y 7,55; x +-7,75, +-23,25, +-38,75) | fi 12,5 x 5 (y 21; x 0, +-15,5, +-31) | fi 15 x 2
+  (y 36,45; x +-9). Stozki A (-30,5; -32), B (-29,5; 33), C (29,5; 33).
+- **P-d1:** fi 12,5 x 5 (y 7,55; x 0, +-18, +-36) | fi 12,5 x 4 (y 20,2; x +-9, +-27) | fi 15 x 3 (y 34,35; x 0, +-18).
+  Stozki A (-30,5; -32), B (-31; 31,5), C (40; 19,5).
+- **P-d2:** fi 15 x 5 (y 8,8; x 0, +-18, +-36) | fi 12,5 x 4 (y 22,95; x +-9, +-27) | fi 12,5 x 3 (y 37,05; x 0, +-15,5).
+  Stozki A (-30,5; -32,25), B (-27,75; 34,75), C (27,75; 34,75).
+
+`weryfikuj_uklad_R59.js`: 3 z 3 plikow bez bledu (kod wyjscia 0). Inne kolejnosci: 26 gniazd daje tez uklad z rzedami
+fi 12,5 z przodu i fi 10 za nimi (te same liczby) - wybrano kolejnosc od najmniejszych z przodu, z fi 15 z tylu jak
+w P-b; istnieje tez 13 x fi 10, 8 x fi 12,5, 4 x fi 15 = 25 (nie rysowane).
+
+**Zalecenie: P-d** - spelnia zmiane doslownie, ma najwiecej gniazd (26) i najwiecej fi 12,5 (11). Jedyna strata wobec
+P-b: fi 15 jest 2 zamiast 3 (w probie fi 15 potrzebuja rano 2 z 17 prac). Gdy maja zostac 3 x fi 15 - P-d1; gdy fi 15
+ma byc wiecej - P-d2. Skutki jak w P-b: wszystkie trzy stozki, dolki i cyfra plytki okraglej zmieniaja miejsce. W P-d
+rzad fi 12,5 x 6 siega granicy strefy +-45 (jak dzis i w P-b); w P-d1 i P-d2 nie (44,00).
+Szkice: `szkic_P-d.png`, `szkic_P-d1.png`, `szkic_P-d2.png`, zbiorczy `szkic_przeglad_poranna_G0.png`.
