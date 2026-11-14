@@ -126,9 +126,11 @@ Sprawdzone i pozostawione BEZ ZMIAN:
 | 12.1 | bez zmian - lista plikow sie nie zmienila |
 | 13. Rejestr | naglowek R1...R57, R59; wiersz R59 po R57 (z uwaga, ze R58 jest zarezerwowany) |
 | 14. Zmiany | punkt 28 |
+| po recenzji R59-B iter 1, uwaga D3 | wiersz rejestru R59 (linia 890): odeslanie do `raport_wykonawcy_R59_iter2.md` zamiast `..._iter1.md` i dopisany werdykt recenzji (ZALICZONY, B 0 / P 0 / D 5); lista zmian protokolu w wierszu R59 i w sekcji 14 pkt 28 (linia 955) uzupelniona o K-11 i K-13 (wg diff protokolu: tabela 1, K-05, K-08, K-09, K-11, K-13, K-16, K-59, K-61, K-62) |
+| po recenzji R59-B iter 1, uwaga D5 | 4.1 p. 5 (linia 463): 4 dolki kodu zamiast 3 - dopisany bit D (-45; -27) z `code_bit_d_pos`, plik bazowy = 4 dolki, n = A + 2B + 4C + 8D (na n1-n6 dolka D nie ma); przyklad JSON (linia 478): dopisany dolek D. Zgodne z `parametry.json` i z `uklad_gniazd_wieczorna.json` |
 
 Sekcja 11 planu (wstepny koszt, objetosci "ok. 62 / 61") zostala bez zmian: to szacunek sprzed R54, obowiazuja wartosci z `arkusz_zamowienia`.
-SHA-256: 8ce66391a01e... -> d49de129b04b850a83ec7cbc20ac38fcc54b11eb914c2fb4129ffb0acd245d55. Diff: 57 linii dodanych, 54 usuniete.
+SHA-256: 8ce66391a01e... -> a9b0903f2e4da661e4b298b8ccc5f4c2904983c7961e6b0235ed523893c2cf97 (stan po poprawkach po recenzji; wersja oddana do recenzji R59-B iter 1 miala d49de129b04b...). Diff wzgledem stanu sprzed R59: 59 linii dodanych, 56 usunietych (poprawki po recenzji: 4 linie).
 
 ## 5. `protokol_weryfikacji_v2.md` i `00_PRZEPLYW_I_BRAMKI.md` - edycje
 

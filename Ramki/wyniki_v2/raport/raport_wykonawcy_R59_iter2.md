@@ -2714,3 +2714,4 @@ Metoda `w_bryle`: parzystość przecięć promienia w 3 kierunkach (+X, +Y, +Z, 
 - K-59 (powtarzalnosc w czystej kopii) - wykonuje recenzent; wykonawca ma tylko zgodnosc SHA plytek miedzy trzema przebiegami w tym samym katalogu.
 - Pulpit wlasciciela (`<PC>\Desktop\Ramki`) nie zostal zaktualizowany (konto `<konto-PC>` ma tam tylko odczyt) - zadanie na koniec paczki.
 - Program stanowiska, dokumenty stanowiska, model 3D, pakiet - poza zakresem R59-A.
+- Po recenzji R59-B iter 1 (ZALICZONY, B 0 / P 0 / D 5) poprawiono tylko `plan_ramki_v2.md` (uwagi D3 i D5: linie 463, 478, 890, 955); SHA-256 planu d49de129b04b... -> a9b0903f2e4d...; generator, `parametry.json`, protokol, STL i JSON bez zmian, bez nowego przebiegu (generator czyta z planu tylko tabele 3, ktora sie nie zmienila).
