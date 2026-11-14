@@ -26,6 +26,16 @@ TYPY_GNIAZD = ("round", "trough")
 BITY_KODU = ("A", "B", "C", "D")  # n = A + 2·B + 4·C + 8·D; D opcjonalny (płytki n8, n9…)
 WZOR_PLIKU_PLYTKI = re.compile(r"plytka_n(\d+)\.stl")
 PLIK_PLYTKI_BAZOWEJ = "plytka_bazowa.stl"  # model bez numeru (wzorzec z dołkami wszystkich bitów), nie jest płytką do skanu
+WZOR_WERSJI_UKLADU = re.compile(r"_r\d+$")  # przyrostek wersji układu gniazd w nazwie: wieczorna_r54 = płytka wieczorna, układ R54
+
+
+def typ_plytki(nazwa: str) -> str:
+    """Typ płytki bez przyrostka wersji układu: ``okragla_poranna_r54`` → ``okragla_poranna``.
+
+    Nazwa układu to klucz z ``[plytki]`` w ustawieniach; ten sam typ płytki może mieć kilka układów gniazd
+    (R59: ``wieczorna``; poprzedni R54: ``wieczorna_r54``) o tych samych numerach płytek.
+    """
+    return WZOR_WERSJI_UKLADU.sub("", nazwa)
 
 
 class BladUkladu(ValueError):
@@ -127,7 +137,7 @@ class Dolek:
 
 @dataclass
 class UkladPlytki:
-    nazwa: str
+    nazwa: str  # nazwa układu, pod którą go wczytano (klucz z [plytki], np. ``wieczorna_r54``), nie pole ``plate`` z pliku
     size: float
     thickness: float
     markers: list[Znacznik]
@@ -300,7 +310,11 @@ def _numery_plytek(katalog: Path, liczba_bitow: int, plik: Path) -> list[int]:
 
 
 def wczytaj(nazwa: str, katalog: Path | None = None) -> UkladPlytki:
-    """Wczytuje układ ``nazwa`` (np. ``wieczorna``) z ``katalog`` (domyślnie ``KATALOG_MODELI/nazwa``)."""
+    """Wczytuje układ ``nazwa`` (np. ``wieczorna``, ``wieczorna_r54``) z ``katalog`` (domyślnie ``KATALOG_MODELI/nazwa``).
+
+    ``UkladPlytki.nazwa`` = ``nazwa`` (pole ``plate`` w pliku mówi tylko o typie płytki i jest takie samo
+    w układzie R59 i w jego poprzedniku ``*_r54``) — tę nazwę generator zapisuje w prawdzie, a plate w wyniku.
+    """
     katalog = Path(katalog) if katalog is not None else KATALOG_MODELI / nazwa
     plik = katalog / "uklad.json"
     if not plik.exists():
@@ -331,7 +345,7 @@ def wczytaj(nazwa: str, katalog: Path | None = None) -> UkladPlytki:
     ]
     dolki = [Dolek(c["bit"], c["x"], c["y"], c["d"], c["depth"]) for c in d["code_dimples"]]
     return UkladPlytki(
-        nazwa=d["plate"],
+        nazwa=nazwa,
         size=size,
         thickness=thickness,
         markers=[Znacznik(m["corner"], m["x"], m["y"], m["d"], m["depth"]) for m in d["markers"]],

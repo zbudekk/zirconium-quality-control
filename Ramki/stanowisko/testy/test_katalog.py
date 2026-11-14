@@ -102,7 +102,7 @@ def test_zbuduj_katalog_bez_nazw(korony, tmp_path):
 
 
 def test_gniazdo_dla_most_i_za_duza_praca():
-    uk = U.wczytaj("poranna")
+    uk = U.wczytaj("poranna_r54")  # liczby układu R54; układ R59: testy/test_uklad_r59.py
     most = atrapy_koron.most(np.random.default_rng(1))
     g = K.gniazdo_dla(most, uk, 1.0)
     assert g["typ"] == "trough" and g["l"] == 50
@@ -112,7 +112,7 @@ def test_gniazdo_dla_most_i_za_duza_praca():
 
 
 def test_kandydaci_gniazd_korona_potem_rynienki():
-    uk = U.wczytaj("wieczorna")
+    uk = U.wczytaj("wieczorna_r54")  # dwie rynienki (R54); układ R59: testy/test_uklad_r59.py
     m = trimesh.creation.box([18.0, 6.0, 5.0])  # 18 < 20: „korona”, ale za szeroka na ø15 → rynienki na końcu listy
     k = synth.kandydaci_gniazd(m, uk.gniazda_okragle(), uk.rynienki())
     okr = [g for g in k if g.okragle]

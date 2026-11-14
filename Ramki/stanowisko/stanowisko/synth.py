@@ -515,8 +515,8 @@ def siatka_plytki(uk: U.UkladPlytki, numer: int, sigma: float, rng: np.random.Ge
 # cała płytka
 # ----------------------------------------------------------------------------
 def poranna(plytka: str) -> bool:
-    """Czy płytka jest poranna (prace spieczone, skala 1): ``poranna`` i ``okragla_poranna``."""
-    return plytka.endswith("poranna")
+    """Czy płytka jest poranna (prace spieczone, skala 1): ``poranna`` i ``okragla_poranna``, także w układzie ``*_r54``."""
+    return U.typ_plytki(plytka).endswith("poranna")
 
 
 def _z_ustawien(ust: dict, plytka: str) -> dict:
@@ -849,7 +849,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--ustawienia", type=Path, default=None, help="plik ustawień (domyślnie ustawienia.toml programu)")
     ap.add_argument("--projekty", type=Path, default=Path("dane/stl"), help="folder z STL projektów")
-    ap.add_argument("--plytka", default="wieczorna", help="płytka z [plytki] w ustawieniach")
+    ap.add_argument("--plytka", default="wieczorna", help="układ płytki z [plytki] w ustawieniach (wieczorna, poranna, okragla_…; stary układ: …_r54)")
     ap.add_argument("--numer", type=int, default=None, help="numer płytki (domyślnie losowy z dostępnych)")
     ap.add_argument("--ile", type=_liczba(int, minimum=0), default=1, help="ile płytek wygenerować")
     ap.add_argument("--prace", type=_liczba(int, minimum=0), default=None, help="ile prac na płytce (domyślnie: ile wejdzie)")

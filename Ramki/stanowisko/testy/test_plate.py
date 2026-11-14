@@ -1,4 +1,9 @@
-"""plate (P2): wyrównanie po 3 stożkach, numer z dołków, cięcie na gniazda — na sztucznych skanach z atrap."""
+"""plate (P2): wyrównanie po 3 stożkach, numer z dołków, cięcie na gniazda — na sztucznych skanach z atrap.
+
+R59 (14.11.2026): łańcuch plate jest sprawdzany na układzie R59 i na poprzednim ``*_r54`` (stare płytki fizyczne);
+testy z liczbami układu R54 (punkt (0; 22,5), gniazdo 20 = rynienka, 3 dołki kodu na kwadracie) zostają na ``*_r54``
+bez zmiany oczekiwań. Strażnik układu: testy/test_straznik.py.
+"""
 from __future__ import annotations
 
 import math
@@ -20,10 +25,10 @@ def _skan(uk: U.UkladPlytki, numer: int, projekty, seed: int, **opcje):
         return synth.generuj_plytke(uk, numer, list(projekty), rng, op, seed)
 
 
-@pytest.fixture(scope="module")
-def skan_okragla(korony):
-    """Płytka okrągła wieczorna n8 (dołki w polu), 3 atrapy, losowa poza skanu, pole ø100."""
-    uk = U.wczytaj("okragla_wieczorna")
+@pytest.fixture(scope="module", params=["okragla_wieczorna", "okragla_wieczorna_r54"])
+def skan_okragla(korony, request):
+    """Płytka okrągła wieczorna n8 (dołki w polu), 3 atrapy, losowa poza skanu, pole ø100 — układ R59 i R54."""
+    uk = U.wczytaj(request.param)
     skan, prawda = _skan(uk, 8, korony, seed=11, poza_uklad=True, pole=100.0, p_drgniecia=0.0)
     return uk, skan, prawda
 
@@ -54,13 +59,14 @@ def test_numer_podany_wygrywa_z_ostrzezeniem(skan_okragla):
     assert w.numer == 9 and w.numer_zrodlo == "podany" and w.numer_z_dolkow == 8
 
 
-def test_kwadrat_dolki_poza_polem_wymaga_numeru(korony):
-    """Na kwadracie dołki leżą na r 54–58, poza polem ø100: bity None, numer nieznany → --numer."""
-    uk = U.wczytaj("wieczorna")
+@pytest.mark.parametrize("nazwa,bity", [("wieczorna_r54", [None, None, None]), ("wieczorna", [None, None, None, None])])  # R59: kwadrat ma też dołek D (r 52,5)
+def test_kwadrat_dolki_poza_polem_wymaga_numeru(korony, nazwa, bity):
+    """Na kwadracie dołki leżą na r 52–58, poza polem ø100: bity None, numer nieznany → --numer."""
+    uk = U.wczytaj(nazwa)
     skan, prawda = _skan(uk, 2, korony[:2], seed=5, poza_uklad=True, pole=100.0, p_drgniecia=0.0)
     with pytest.warns(UserWarning, match="dołki kodu poza skanem"):
         w = plate.wyrownaj(skan, uk, ciecie=False)
-    assert w.numer is None and w.numer_zrodlo == "nieznany" and w.bity == [None, None, None]
+    assert w.numer is None and w.numer_zrodlo == "nieznany" and w.bity == bity
     assert plate.blad_wyrownania(w.macierz, prawda.poza_skanu)["max_przesuniecie_mm"] < 0.05
     w2 = plate.wyrownaj(skan, uk, numer=2)
     assert w2.numer == 2 and w2.numer_zrodlo == "podany"
@@ -69,7 +75,7 @@ def test_kwadrat_dolki_poza_polem_wymaga_numeru(korony):
 
 def test_praca_poza_gniazdem_i_podwojna(korony):
     """Korona położona na wierzchu płytki między gniazdami → poza gniazdem; dwie w jednym ø15 → podwójne."""
-    uk = U.wczytaj("okragla_wieczorna")
+    uk = U.wczytaj("okragla_wieczorna_r54")
     skan, prawda = _skan(uk, 8, korony[:1], seed=3, poza_uklad=False, p_drgniecia=0.0)
     rng = np.random.default_rng(1)
     k1 = trimesh.load(korony[0], force="mesh")
@@ -109,8 +115,9 @@ def test_kabsch_2d_bez_odbicia():
     assert plate.kabsch_2d(A, B_odb)[2] > 1.0
 
 
-def test_przypisz_znaczniki_z_nadmiarowym_i_permutacja():
-    uk = U.wczytaj("poranna")  # boki 60,0 / 60,7 / 88,4 — prawie równoramienny
+@pytest.mark.parametrize("nazwa", ["poranna_r54", "poranna"])
+def test_przypisz_znaczniki_z_nadmiarowym_i_permutacja(nazwa):
+    uk = U.wczytaj(nazwa)  # R54: boki 60,0 / 60,7 / 88,4 — prawie równoramienny; R59: 55,9 / 79,4 / 86,5
     a = math.radians(-71)
     R = np.array([[math.cos(a), -math.sin(a)], [math.sin(a), math.cos(a)]])
     cel = np.array([[z.x, z.y] for z in uk.markers])
@@ -139,9 +146,10 @@ def test_dopasuj_stozek_na_punktach_syntetycznych():
     assert plate.dopasuj_stozek(P[-5000:], (0.0, 0.0), 8.0, zn) is None  # sama płaszczyzna: brak punktów stożka
 
 
-def test_kandydaci_znacznikow_z_mapy_wysokosci():
-    uk = U.wczytaj("wieczorna")
-    m = trimesh.load(uk.plik_stl(1), force="mesh")
+@pytest.mark.parametrize("nazwa", ["wieczorna", "poranna", "wieczorna_r54", "poranna_r54"])
+def test_kandydaci_znacznikow_z_mapy_wysokosci(nazwa):
+    uk = U.wczytaj(nazwa)
+    m = trimesh.load(uk.plik_stl(uk.numery[0]), force="mesh")
     m.update_faces(m.triangles_center[:, 2] > 0.5)
     P, _ = trimesh.sample.sample_surface(m, 1500000, seed=1)
     kand = plate.kandydaci_znacznikow(np.asarray(P), uk.thickness, uk.markers[0])
@@ -150,8 +158,9 @@ def test_kandydaci_znacznikow_z_mapy_wysokosci():
         assert min(math.hypot(x - z.x, y - z.y) for x, y in kand) < 0.4
 
 
-def test_odczytaj_bity_i_blad_tozsamosci():
-    uk = U.wczytaj("okragla_poranna")
+@pytest.mark.parametrize("nazwa", ["okragla_poranna", "okragla_poranna_r54"])
+def test_odczytaj_bity_i_blad_tozsamosci(nazwa):
+    uk = U.wczytaj(nazwa)
     rng = np.random.default_rng(2)
     P = np.c_[rng.uniform(-45, 45, 200000), rng.uniform(-45, 45, 200000), np.full(200000, 8.0)]
     for d, obecny in zip(uk.code_dimples, (True, False, False, True)):  # n9 = A + D

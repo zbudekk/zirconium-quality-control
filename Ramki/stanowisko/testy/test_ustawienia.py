@@ -44,7 +44,8 @@ def test_progi_synth_nie_sa_zdublowane_w_kodzie():
 
 def test_sciezki_plytek_jedno_zrodlo():
     ust = UST.domyslne()
-    for n in ("wieczorna", "poranna"):
+    for n in ("wieczorna", "poranna", "okragla_wieczorna", "okragla_poranna",
+              "wieczorna_r54", "poranna_r54", "okragla_wieczorna_r54", "okragla_poranna_r54"):  # R59: układ nowy i poprzedni
         assert UST.katalog_plytki(ust, n) == (U.KATALOG_MODELI / n).resolve()
         assert (UST.katalog_plytki(ust, n) / "uklad.json").exists()
     with pytest.raises(UST.BladUstawien, match="brak płytki"):

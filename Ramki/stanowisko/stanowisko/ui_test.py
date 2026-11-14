@@ -2,7 +2,9 @@
 
 Uruchomienie: ``uruchom_okno.bat`` (z katalogu stanowisko/) albo ``py -3.12 -m stanowisko.ui_test [--skan …] [--projekty …]``.
 
-Okno: wybór pliku skanu (STL), folderu projektów, płytki (z ``[plytki]`` w ustawieniach), współczynnika
+Okno: wybór pliku skanu (STL), folderu projektów, płytki (układy z ``[plytki]`` w ustawieniach: R59 i poprzedni
+``*_r54`` dla starych płytek; gdy skan nie pasuje do wybranego układu, okno pokazuje komunikat strażnika układu
+i przekreśloną mapę bez kolorów gniazd), współczynnika
 skurczu, numeru płytki (kwadraty: dołki kodu poza polem ø100), przycisk „Porównaj” z paskiem postępu
 (praca w wątku, okno nie zamarza), mapa płytki z gniazdami w kolorach (zielone = OK, czerwone = ubytek,
 żółte = sprawdź / popraw ułożenie / skan ponownie, szare = bez projektu, pomarańczowe = poprawka ręczna,
@@ -80,6 +82,7 @@ class MapaPlytki(QWidget):
         self.podwojne: list[int] = []
         self.poza: list = []
         self.wybrane: int | None = None
+        self.niezgodny = False  # strażnik układu: skan nie pasuje do wybranego układu
         self.setMinimumSize(360, 360)
 
     def ustaw(self, uk: U.UkladPlytki | None, wynik: dict | None) -> None:
@@ -87,6 +90,7 @@ class MapaPlytki(QWidget):
         self.stan = {g["gniazdo"]: g for g in wynik["gniazda"] if g["gniazdo"] is not None} if wynik else {}
         self.poza = [g["srodek"] for g in wynik["gniazda"] if g["gniazdo"] is None] if wynik else []
         self.podwojne = wynik["gniazda_podwojne"] if wynik else []
+        self.niezgodny = bool(wynik) and wynik.get("uklad_zgodny") is False
         self.update()
 
     def promien_plytki(self) -> float:
@@ -156,6 +160,12 @@ class MapaPlytki(QWidget):
         for x, y, _ in self.poza:  # praca poza gniazdem
             c = self.na_piksel(x, y)
             p.drawEllipse(c, 3 * self.skala(), 3 * self.skala())
+        if self.niezgodny:  # płytka nie pasuje do wybranego układu: mapa przekreślona, gniazda bez kolorów
+            pol = (uk.size if uk.shape == "square" else uk.d) / 2
+            p.setPen(QPen(QColor(*PO.KOLORY["czerwony"]), 5))
+            p.drawLine(self.na_piksel(-pol, -pol), self.na_piksel(pol, pol))
+            p.drawLine(self.na_piksel(-pol, pol), self.na_piksel(pol, -pol))
+            p.drawText(self.rect(), Qt.AlignTop | Qt.AlignHCenter, "PŁYTKA NIE PASUJE DO WYBRANEGO UKŁADU")
         p.end()
 
     def mousePressEvent(self, ev) -> None:  # noqa: N802
@@ -362,6 +372,14 @@ class Okno(QMainWindow):
         self.etykieta_stanu.setText(f"gotowe: {wynik['czas_s']['razem']} s; " + ", ".join(f"{PO.OPISY_STATUSU[s]} {n}" for s, n in st.items() if n) + f"; ubytków {wynik['ubytki']}")
         self.mapa.ustaw(self.uk, wynik)
         self.wypelnij_tabele()
+        if wynik.get("uklad_zgodny") is False:  # strażnik układu (R59): żadnych gniazd, czytelny komunikat zamiast błędu wyrównania
+            self.etykieta_stanu.setText("PŁYTKA NIE PASUJE DO WYBRANEGO UKŁADU")
+            pasuja = wynik.get("uklady_pasujace") or []
+            QMessageBox.warning(self, "Płytka nie pasuje do wybranego układu",
+                                f"Zeskanowana płytka nie pasuje do układu „{wynik['plytka']}” wybranego na liście „Płytka”.\n\n"
+                                + (f"Rozstaw stożków w skanie pasuje do: {', '.join(pasuja)} — wybierz ten układ i porównaj ponownie.\n\n" if pasuja
+                                   else "Rozstaw stożków w skanie nie pasuje do żadnego układu z listy — sprawdź płytkę i skan.\n\n")
+                                + wynik["uklad_komunikat"])
 
     def blad(self, tekst: str) -> None:
         self.przycisk_porownaj.setEnabled(True)

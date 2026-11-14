@@ -3,6 +3,8 @@
 Przeniesione z sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_synth.py (xfail zdjęty
 po naprawie P1 2026-11-02; numery gniazd dopasowane do układu R54) + nowe przypadki.
 Funkcje ``przenikanie_okr`` / ``przenikanie_ryn`` są niezależne od ``synth.przenikanie``.
+R59 (14.11.2026): testy z gniazdami ø9 / ø7,5 (układ R54) działają na ``wieczorna_r54`` / ``poranna_r54`` bez zmiany
+oczekiwań; siatki „wszystkie gniazda” obejmują oba układy.
 """
 import dataclasses
 import json
@@ -49,7 +51,7 @@ def test_osadzenie_nie_przenika_stozka_wiele_seedow():
     W, L, H, gz, amp = atrapy_koron.TYPY["przedtrzonowy"]
     m = atrapy_koron.korona(W, L, H, gz, amp, n_theta=96, n_u=120, rng=np.random.default_rng(11))
     m.apply_transform(synth.orientacja_brzegiem_do_gory(m) @ trimesh.transformations.scale_matrix(1.22))
-    g = okragle_o_srednicy(U.wczytaj("poranna"), 7.5)
+    g = okragle_o_srednicy(U.wczytaj("poranna_r54"), 7.5)
     maks = 0.0
     for seed in range(20):
         T = synth.osadz_w_gniezdzie(m, g, np.random.default_rng(seed))
@@ -63,14 +65,14 @@ def test_osadzenie_bez_luzu_nie_przenika_stozka():
     W, L, H, gz, amp = atrapy_koron.TYPY["przedtrzonowy"]
     m = atrapy_koron.korona(W, L, H, gz, amp, n_theta=96, n_u=120, rng=np.random.default_rng(11))
     m.apply_transform(synth.orientacja_brzegiem_do_gory(m) @ trimesh.transformations.scale_matrix(1.22))
-    g = okragle_o_srednicy(U.wczytaj("poranna"), 7.5)
+    g = okragle_o_srednicy(U.wczytaj("poranna_r54"), 7.5)
     for seed in range(20):
         T = synth.osadz_w_gniezdzie(m, g, np.random.default_rng(seed), luz_xy=0.0)
         assert T is not None
         assert przenikanie_okr(trimesh.transform_points(m.vertices, T), g) <= 1e-6
 
 
-@pytest.mark.parametrize("nazwa", ["wieczorna", "poranna"])
+@pytest.mark.parametrize("nazwa", ["wieczorna", "poranna", "wieczorna_r54", "poranna_r54"])
 def test_osadzenie_30_seedow_wszystkie_gniazda_4_typy(nazwa):
     """Siatka z sondy B1 (31.10): 30 seedów × wszystkie gniazda okrągłe × 4 typy atrap ×1,22 — 0 przenikań."""
     uk = U.wczytaj(nazwa)
@@ -89,7 +91,7 @@ def test_osadzenie_30_seedow_wszystkie_gniazda_4_typy(nazwa):
     assert osadzen >= 30 * len(uk.gniazda_okragle()) * 3  # siekacz, kieł, przedtrzonowy wchodzą wszędzie
 
 
-@pytest.mark.parametrize("nazwa", ["wieczorna", "poranna"])
+@pytest.mark.parametrize("nazwa", ["wieczorna", "poranna", "wieczorna_r54", "poranna_r54"])
 def test_most_w_rynience_nie_przenika_scianek(nazwa):
     """B1b: prostopadłościan 6 mm szeroki, którego narożniki leżą poza dnem stadionu, ale w ściance — uniesiony, bez przenikania.
 
@@ -131,27 +133,27 @@ def test_rynienka_obrocona_przesuniecie_w_ukladzie_rynienki():
 
 
 def test_most_za_szeroki_na_poranna_rynienke_odrzucony():
-    g = U.wczytaj("poranna").rynienki()[0]  # w=13
+    g = U.wczytaj("poranna_r54").rynienki()[0]  # w=13
     box = trimesh.creation.box([40.0, 12.8, 5.0])  # 12.8 > 13 - 0.4
     assert synth.osadz_w_gniezdzie(box, g, np.random.default_rng(0)) is None
 
 
 def test_praca_za_szeroka_na_gniazdo_odrzucona():
-    g = okragle_o_srednicy(U.wczytaj("wieczorna"), 9)  # dno ø6.86
+    g = okragle_o_srednicy(U.wczytaj("wieczorna_r54"), 9)  # dno ø6.86
     walec = trimesh.creation.cylinder(radius=5.0, height=6.0)
     assert synth.osadz_w_gniezdzie(walec, g, np.random.default_rng(0)) is None
 
 
 def test_praca_wisi_na_krawedzi_odrzucona():
     """Stożek odwrócony: spód wchodzi, ale uniesienie > MAKS_UNIESIENIE."""
-    g = okragle_o_srednicy(U.wczytaj("wieczorna"), 9)
+    g = okragle_o_srednicy(U.wczytaj("wieczorna_r54"), 9)
     stozek = trimesh.creation.cone(radius=6.0, height=2.0)
     stozek.apply_transform(trimesh.transformations.rotation_matrix(math.pi, [1, 0, 0]))
     assert synth.osadz_w_gniezdzie(stozek, g, np.random.default_rng(0)) is None
 
 
 def test_przenikanie_wykrywa_wejscie_w_scianke():
-    g = okragle_o_srednicy(U.wczytaj("wieczorna"), 9)
+    g = okragle_o_srednicy(U.wczytaj("wieczorna_r54"), 9)
     V = np.array([[g.x + 3.43 + 0.2, g.y, g.z_dno + 0.01], [g.x, g.y, g.z_dno - 0.05], [g.x + 20, g.y, g.z_top + 1]])
     assert synth.przenikanie(V, g) == pytest.approx(0.2, abs=0.01)
 
