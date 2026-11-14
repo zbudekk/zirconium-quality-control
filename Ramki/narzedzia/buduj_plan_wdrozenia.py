@@ -348,6 +348,19 @@ def fig_ramka_rzut():
     return svg_wrap(x0*2 + 200*S, y0 + 200*S + 10, b)
 
 
+def opis_gniazd(json_path):
+    """„18 gniazd i 1 rynienka” — liczby do podpisu rysunku płytki, z tego samego pliku układu co rysunek."""
+    def odmiana(n, jedna, kilka, wiele):
+        if n == 1:
+            return jedna
+        return kilka if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14) else wiele
+    gniazda = json.loads(Path(json_path).read_text(encoding="utf-8"))["sockets"]
+    okragle = sum(1 for s in gniazda if s["type"] == "round")
+    rynienki = len(gniazda) - okragle
+    return (f"{okragle} {odmiana(okragle, 'gniazdo', 'gniazda', 'gniazd')} i "
+            f"{rynienki} {odmiana(rynienki, 'rynienka', 'rynienki', 'rynienek')}")
+
+
 def fig_plytka(json_path, title):
     d = json.loads(Path(json_path).read_text(encoding="utf-8"))
     S = 3.2
@@ -556,8 +569,8 @@ def build_html(md_text, toc_pages=None, landscape=False):
             jw = JSON_DIR / "uklad_gniazd_wieczorna.json"
             jp = JSON_DIR / "uklad_gniazd_poranna.json"
             if jw.exists() and jp.exists():
-                for jp_, title, cap in ((jw, "Płytka wieczorna", "Rys. 4. Płytka wieczorna: 18 gniazd i 2 rynienki w kole o promieniu 47 mm (linia przerywana); przód u dołu, wycięcie orientacyjne w narożniku przód‑prawym."),
-                                        (jp, "Płytka poranna", "Rys. 5. Płytka poranna: 31 gniazd i 2 rynienki w kole o promieniu 47 mm; układ z pliku współrzędnych gniazd.")):
+                for jp_, title, cap in ((jw, "Płytka wieczorna", f"Rys. 4. Płytka wieczorna: {opis_gniazd(jw)} w kole o promieniu 47 mm (linia przerywana); przód u dołu, wycięcie orientacyjne w narożniku przód‑prawym."),
+                                        (jp, "Płytka poranna", f"Rys. 5. Płytka poranna: {opis_gniazd(jp)} w kole o promieniu 47 mm; układ z pliku współrzędnych gniazd.")):
                     fig = soup.new_tag("figure", attrs={"class": "plate"})
                     fig.append(BeautifulSoup(fig_plytka(jp_, title), "html.parser"))
                     c = soup.new_tag("figcaption"); c.string = cap
