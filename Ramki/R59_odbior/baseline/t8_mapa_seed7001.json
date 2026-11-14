@@ -1,0 +1,344 @@
+{
+ "skan_okragla_poranna_n9_s7001": {
+  "plytka": "okragla_poranna",
+  "numer": 9,
+  "numer_z_dolkow": 9,
+  "wspolczynnik": 1.0,
+  "wyrownanie_max_mm": {
+   "translacja_mm": 0.0003126578130912386,
+   "obrot_deg": 0.0014922156040687727,
+   "max_przesuniecie_mm": 0.0014925085029198998,
+   "przesuniecie_srodka_mm": 0.00025984237345663225
+  },
+  "gniazda": {
+   "4": {
+    "projekt": "d8d245b4c01ae11b",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "5": {
+    "projekt": "91c1dea0b2060be3",
+    "match": "zolty",
+    "status_gniazda": "zolty"
+   },
+   "6": {
+    "projekt": "2e15189ef6d12701",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "7": {
+    "projekt": "96087639f65a8cbb",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   },
+   "8": {
+    "projekt": "6570c1796f152c01",
+    "match": "zielony",
+    "status_gniazda": "zielony"
+   },
+   "9": {
+    "projekt": "3d091aaa646d9c32",
+    "match": "zielony",
+    "status_gniazda": "zielony"
+   },
+   "12": {
+    "projekt": "5a3a03ddfb5d8577",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   },
+   "33": {
+    "projekt": "2754d1d81ad47906",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   }
+  },
+  "gniazda_puste": [
+   1,
+   2,
+   3,
+   10,
+   11,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   32
+  ],
+  "gniazda_podwojne": [],
+  "statusy_gniazd": {
+   "zielony": 2,
+   "czerwony": 3,
+   "zolty": 3,
+   "szary": 0,
+   "pomaranczowy": 0
+  }
+ },
+ "skan_okragla_wieczorna_n8_s7001": {
+  "plytka": "okragla_wieczorna",
+  "numer": 8,
+  "numer_z_dolkow": 8,
+  "wspolczynnik": 1.22,
+  "wyrownanie_max_mm": {
+   "translacja_mm": 0.0004279023148027439,
+   "obrot_deg": 0.0010645403650750241,
+   "max_przesuniecie_mm": 0.0013656005206467091,
+   "przesuniecie_srodka_mm": 0.0004698937482213023
+  },
+  "gniazda": {
+   "1": {
+    "projekt": "cf168832a2757d95",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "2": {
+    "projekt": "91c1dea0b2060be3",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "3": {
+    "projekt": "6570c1796f152c01",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   },
+   "4": {
+    "projekt": "3d091aaa646d9c32",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "5": {
+    "projekt": "2e15189ef6d12701",
+    "match": "zielony",
+    "status_gniazda": "zielony"
+   },
+   "6": {
+    "projekt": "96087639f65a8cbb",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   },
+   "15": {
+    "projekt": "ea47d2adbe45456e",
+    "match": "zielony",
+    "status_gniazda": "zielony"
+   },
+   "16": {
+    "projekt": "5a3a03ddfb5d8577",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "20": {
+    "projekt": "25c7c2dfa3a17c58",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   }
+  },
+  "gniazda_puste": [
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   17,
+   18,
+   19
+  ],
+  "gniazda_podwojne": [],
+  "statusy_gniazd": {
+   "zielony": 2,
+   "czerwony": 2,
+   "zolty": 5,
+   "szary": 0,
+   "pomaranczowy": 0
+  }
+ },
+ "skan_poranna_n6_s7001": {
+  "plytka": "poranna",
+  "numer": 6,
+  "numer_z_dolkow": null,
+  "wspolczynnik": 1.0,
+  "wyrownanie_max_mm": {
+   "translacja_mm": 0.0030669359256295823,
+   "obrot_deg": 0.004632914250355475,
+   "max_przesuniecie_mm": 0.006993238537135629,
+   "przesuniecie_srodka_mm": 0.002955186705489854
+  },
+  "gniazda": {
+   "4": {
+    "projekt": "066fcc6858e01759",
+    "match": "zielony",
+    "status_gniazda": "zielony"
+   },
+   "5": {
+    "projekt": "2e15189ef6d12701",
+    "match": "zielony",
+    "status_gniazda": "zielony"
+   },
+   "6": {
+    "projekt": "6570c1796f152c01",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "7": {
+    "projekt": "91c1dea0b2060be3",
+    "match": "zielony",
+    "status_gniazda": "zielony"
+   },
+   "8": {
+    "projekt": "96087639f65a8cbb",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "9": {
+    "projekt": "3d091aaa646d9c32",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "12": {
+    "projekt": "5a3a03ddfb5d8577",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   },
+   "13": {
+    "projekt": "ea47d2adbe45456e",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "33": {
+    "projekt": "25c7c2dfa3a17c58",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   }
+  },
+  "gniazda_puste": [
+   1,
+   2,
+   3,
+   10,
+   11,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   32
+  ],
+  "gniazda_podwojne": [],
+  "statusy_gniazd": {
+   "zielony": 3,
+   "czerwony": 2,
+   "zolty": 4,
+   "szary": 0,
+   "pomaranczowy": 0
+  }
+ },
+ "skan_wieczorna_n3_s7001": {
+  "plytka": "wieczorna",
+  "numer": 3,
+  "numer_z_dolkow": null,
+  "wspolczynnik": 1.22,
+  "wyrownanie_max_mm": {
+   "translacja_mm": 0.0012209319824334354,
+   "obrot_deg": 0.0038996922306503055,
+   "max_przesuniecie_mm": 0.004293914964581098,
+   "przesuniecie_srodka_mm": 0.0009416867870944341
+  },
+  "gniazda": {
+   "1": {
+    "projekt": "ea47d2adbe45456e",
+    "match": "zolty",
+    "status_gniazda": "zolty"
+   },
+   "2": {
+    "projekt": "2e15189ef6d12701",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "3": {
+    "projekt": "96087639f65a8cbb",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "4": {
+    "projekt": "3d091aaa646d9c32",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   },
+   "5": {
+    "projekt": "6570c1796f152c01",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   },
+   "15": {
+    "projekt": "a823e3b4aff6b60e",
+    "match": "zielony",
+    "status_gniazda": "zielony"
+   },
+   "16": {
+    "projekt": "5a3a03ddfb5d8577",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   },
+   "17": {
+    "projekt": "91c1dea0b2060be3",
+    "match": "zielony",
+    "status_gniazda": "czerwony"
+   },
+   "20": {
+    "projekt": "37aa171c0355693b",
+    "match": "zielony",
+    "status_gniazda": "zolty"
+   }
+  },
+  "gniazda_puste": [
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   18,
+   19
+  ],
+  "gniazda_podwojne": [],
+  "statusy_gniazd": {
+   "zielony": 1,
+   "czerwony": 3,
+   "zolty": 5,
+   "szary": 0,
+   "pomaranczowy": 0
+  }
+ }
+}
