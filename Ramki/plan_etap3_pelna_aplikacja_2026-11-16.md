@@ -526,7 +526,7 @@ G0 (plan, DW1-DW6, DW12) ; warunek techniczny: R59 w main
 Sciezka krytyczna do dnia skanera: G0 -> A1 i A2 -> A3. Sciezka krytyczna do konca etapu: A6 -> A7, A8, A9 -> A12, dalej
 C1-C3 (ramki), D2 (Excel) i A11 -> D4 (laptop); najdluzej czekaja rzeczy zalezne od ludzi i dostaw: raporty
 MillBox (D1), kopia Excela (D2), elektronika ramek (C), skaner (B). Dlatego zadania z sekcji 13 warto zlecic od razu.
-Zaleznosci od paczek w toku: A3 - okno "Dzien skanera" i rozpoznawanie ukladu (bez niego uklad wybiera czlowiek);
+Zaleznosci od paczek w toku: A3 - okno "Dzien skanera" (rozpoznawanie ukladu jest juz gotowe w PR #13);
 A5 - P1 i P3 (ten sam plik `match.py`); A1, A3, A7 - P2 (nowy status "nie sprawdzono"); B4 - P2 i P4.
 
 ## 6. Bramki i decyzje wlasciciela
@@ -559,7 +559,7 @@ Zalozenia przyjete bez pytania (wlasciciel moze je zmienic na G0):
 | Id | Zalozenie |
 |---|---|
 | Z1 | Tryb "Wieczor" / "Poranek" wybiera czlowiek; typ plytki niezgodny z trybem = ostrzezenie, nie samoczynna zmiana trybu |
-| Z2 | Uklad plytki z automatycznego rozpoznania (paczka w toku); do jej scalenia wybor reczny jak w oknie testowym |
+| Z2 | Uklad plytki z automatycznego rozpoznania: GOTOWE 15.11 w PR #13 (`plate.rozpoznaj_uklad`, `porownaj(..., plytka="auto")`, 80/80 na skanach syntetycznych); silnik wola `porownaj` z `plytka="auto"`, wybor reczny tylko jako zapas |
 | Z3 | Numer plytki z dolkow, gdy sa widoczne; inaczej jedno nacisniecie cyfry na ekranie (rano obowiazkowe przed "Zamknij piec"; wieczorem numer moze tez przyjsc z ramki wieczornej, gdy technik polozy na niej plytke) |
 | Z4 | Skan plytki o tym samym numerze w tej samej sesji zastepuje poprzedni po potwierdzeniu jednym przyciskiem; decyzje poprzedniego skanu nie przechodza |
 | Z5 | Pula odswiezana przy starcie, przyciskiem i po pojawieniu sie nowego pliku; "co noc" tylko gdy laptop jest wlaczony |
