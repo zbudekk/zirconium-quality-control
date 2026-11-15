@@ -115,6 +115,10 @@ def test_ustawienia_steruja_korekta(pula, plytka, ust):
     assert r.skala.zastosowana and not r.skala.ostrzezenie
     r = match.dopasuj(f.punkty, f.normalne, pula, {**ust, "match": {**m, "korekta_skali_okno_proc": 0.4}}, f.gniazdo)  # 0,5 % > okno 0,4 + dokladnosc 0,05
     assert not r.skala.zastosowana and r.skala.ostrzezenie and "poza oknem" in r.skala.powod and "0.4 %" in r.skala.powod
+    # praca nierozpoznana takze w skali ze skanu (pokrycie po korekcie < prog_ostrzezenia_pokrycie): korekty nie stosuje sie
+    r = match.dopasuj(f.punkty, f.normalne, pula, {**ust, "match": {**m, "prog_akceptacji_pokrycie": 0.999, "prog_ostrzezenia_pokrycie": 0.99}}, f.gniazdo)
+    assert not r.skala.zastosowana and r.skala.niepewna and not r.skala.ostrzezenie and "nierozpoznana" in r.skala.powod
+    assert _skala_transformacji(r.najlepszy) == pytest.approx(1.0, abs=1e-9) and r.status == "szary"
 
 
 def _w_pasie(P, pr, T, od_brzegu):
@@ -156,6 +160,13 @@ def test_strefa_brzegu_nie_wplywa_na_skale(pula, plytka, ust):
         for P2 in (grubiej, odgiety, ukruszony):
             r2 = match.dopasuj(P2, f.normalne, pula, ust, f.gniazdo)
             assert r2.najlepszy.id == pr.id and abs(r2.skala.poprawka_proc - r0.skala.poprawka_proc) <= 0.02
+
+
+def _wynik(wyr, gniazda) -> dict:
+    """Najmniejszy slownik wyniku ``porownaj`` potrzebny tabeli."""
+    return {"skan": "skan_test.stl", "plytka": wyr.plytka, "numer": 8, "numer_zrodlo": "dolki", "wspolczynnik": W0, "projekty": 3, "uklad_zgodny": True,
+            "czas_s": {"razem": 1.0, "plate": 0.5, "match": 0.5}, "gniazda": gniazda, "gniazda_puste": [], "gniazda_podwojne": [], "poza_gniazdem": 0,
+            "statusy_gniazd": {"zielony": len(gniazda)}, "ubytki": 0}
 
 
 def _inspekcja(wyr, prawda, pula, ust):
@@ -205,10 +216,13 @@ def test_estymata_niepewna_bez_ostrzezenia(pula, plytka, ust):
     czuly = {**ust, "match": {**ust["match"], "korekta_skali_ostrzezenie_proc": 0.0}}
     prog = ust["match"]["prog_akceptacji_pokrycie"]
     wyr, _ = plytka(0.0, drgniecie=1.0)
-    for g in PO.dopasuj_fragmenty(wyr, pula, czuly, inspekcja=False):
+    gniazda = PO.dopasuj_fragmenty(wyr, pula, czuly, inspekcja=False)
+    for g in gniazda:
         sk = g["skala"]
         assert sk["poprawka_proc"] is not None and sk["niepewna"] == (sk["pokrycie_po"] < prog)
         assert sk["niepewna"] and not sk["ostrzezenie"] and g["uwagi"] == [], sk
+    t = PO.tabela(_wynik(wyr, gniazda))
+    assert t.count("?") == 3 and "!" not in t and "SKALI (praca" not in t  # tabela: "?" = estymata niepewna, bez ostrzezenia
     wyr, _ = plytka(0.5)
     for g in PO.dopasuj_fragmenty(wyr, pula, czuly, inspekcja=False):
         assert not g["skala"]["niepewna"] and g["skala"]["ostrzezenie"]
@@ -224,10 +238,7 @@ def test_porownaj_pola_skali_i_tabela(pula, folder_projektow, plytka, ust):
         assert {"poprawka_proc", "zastosowana", "powod", "ostrzezenie", "wspolczynnik_puli", "wspolczynnik_ze_skanu", "pokrycie_przed", "pokrycie_po"} <= set(sk)
         assert sk["zastosowana"] and sk["ostrzezenie"] and abs(sk["poprawka_proc"] - 0.5) <= CEL
         assert g["status"] == "zielony" and g["inspekcja"]["status"] == "ok" and g["kandydaci"][0]["skala"] == sk
-    wynik = {"skan": "skan_test.stl", "plytka": wyr.plytka, "numer": 8, "numer_zrodlo": "dolki", "wspolczynnik": W0, "projekty": 3, "uklad_zgodny": True,
-             "czas_s": {"razem": 1.0, "plate": 0.5, "match": 0.5}, "gniazda": gniazda, "gniazda_puste": [], "gniazda_podwojne": [], "poza_gniazdem": 0,
-             "statusy_gniazd": {"zielony": 3}, "ubytki": 0}
-    t = PO.tabela(wynik)
+    t = PO.tabela(_wynik(wyr, gniazda))
     assert "skala %" in t and "SKALI (praca" in t and t.count("!") == 3 and "+0.5" in t
     # plytka poranna: pula 1,0, praca wieksza o 0,5 % - poprawka zmierzona, w nawiasie, nie zastosowana
     pula_rano = match.Pula([folder_projektow], 1.0)
@@ -237,11 +248,11 @@ def test_porownaj_pola_skali_i_tabela(pula, folder_projektow, plytka, ust):
         sk = g["skala"]
         assert not sk["zastosowana"] and "poranna" in sk["powod"] and sk["ostrzezenie"] and abs(sk["poprawka_proc"] - 0.5) <= CEL
         assert sk["wspolczynnik_puli"] == 1.0
-    t = PO.tabela({**wynik, "plytka": wyr_r.plytka, "gniazda": gniazda})
+    t = PO.tabela(_wynik(wyr_r, gniazda))
     assert "(+0.5" in t and "bez korekty:" in t and "poranna: prace spieczone" in t
     # bez ostrzezen nie ma wiersza ostrzezenia
     wyr0, _ = plytka(0.0)
-    t = PO.tabela({**wynik, "gniazda": PO.dopasuj_fragmenty(wyr0, pula, ust, inspekcja=False)})
+    t = PO.tabela(_wynik(wyr0, PO.dopasuj_fragmenty(wyr0, pula, ust, inspekcja=False)))
     assert "SKALI (praca" not in t and "!" not in t
 
 

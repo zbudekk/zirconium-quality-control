@@ -523,6 +523,9 @@ def koryguj_skale(P: np.ndarray, fr: FragmentDoDopasowania, k: Kandydat, pr: Pro
 
     ``bez_korekty`` (niepusty powód, np. płytka poranna): poprawka jest tylko mierzona (z ostrzeżeniem), nie stosowana.
     Po korekcie poza poprawiana jest tak jak dotąd (ICP na wszystkich punktach fragmentu), przy ustalonej skali.
+    Nie jest stosowana także wtedy, gdy pokrycie po korekcie < ``prog_ostrzezenia_pokrycie`` (praca nierozpoznana w żadnej
+    skali — status i tak szary; pomiar R59: inaczej skorygowany obcy projekt wyprzedzał właściwy, nieskorygowany)
+    albo spada o więcej niż SKALA_SPADEK_POKRYCIA.
     """
     kor = KorektaSkali(wspolczynnik_puli=pr.wspolczynnik, pokrycie_przed=k.pokrycie)
     k.skala = kor
@@ -550,6 +553,8 @@ def koryguj_skale(P: np.ndarray, fr: FragmentDoDopasowania, k: Kandydat, pr: Pro
         kor.powod = f"poprawka {e:+.2f} % poza oknem ±{m['korekta_skali_okno_proc']:g} %"
     elif bez_korekty:
         kor.powod = bez_korekty
+    elif pok < m["prog_ostrzezenia_pokrycie"]:  # praca nierozpoznana także w tej skali: korekta niczego nie poprawia, a mogłaby przestawić ranking obcych projektów
+        kor.powod = f"pokrycie po korekcie {pok:.2f} < prog_ostrzezenia_pokrycie: praca nierozpoznana"
     elif pok < k.pokrycie - SKALA_SPADEK_POKRYCIA:
         kor.powod = f"pokrycie po korekcie niższe ({pok:.2f} < {k.pokrycie:.2f})"
     else:

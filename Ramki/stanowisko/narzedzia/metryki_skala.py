@@ -2,7 +2,7 @@
 
 Uzycie (z katalogu stanowisko/; skany z prawda JSON generatora, np. dane/syntetyczne_R59_P2):
     py -3.12 narzedzia/metryki_skala.py p1 --skany <zestaw> [<zestaw2> ...] --projekty <folder> --wyjscie <folder>
-        [--scenariusze pelny z_gory ...] [--dopasuj] [--sufiks-ukladu _r54] [--limit N] [--procesy N]
+        [--scenariusze pelny z_gory ...] [--dopasuj] [--progi-wysokosci 0.5 0.7 1.0] [--sufiks-ukladu _r54] [--limit N] [--procesy N]
     py -3.12 narzedzia/metryki_skala.py program --skany <zestaw> ... --projekty <folder> --wyjscie <folder>
         [--bledy 0,0.1,-0.1,0.3,-0.3,0.5,-0.5,1,-1] [--korekta tak nie] [--sufiks-ukladu _r54] [--limit N] [--procesy N]
     py -3.12 narzedzia/metryki_skala.py brzeg --skany <zestaw> ... --projekty <folder> --wyjscie <folder>
@@ -137,7 +137,7 @@ def maska_scenariusza(sc: str, P: np.ndarray, N: np.ndarray, pr: M.Projekt, T_pu
 
 
 def zadanie_p1(arg: tuple) -> dict:
-    p, projekty, sufiks, plik_ust, scenariusze, z_dopasowaniem = arg
+    p, projekty, sufiks, plik_ust, scenariusze, z_dopasowaniem, progi = arg
     ust = UST.wczytaj_ustawienia(plik_ust)
     prawda = S.wczytaj_prawde(p.with_suffix(".json"))
     plytka = nazwa_plytki(prawda, sufiks)
@@ -186,6 +186,10 @@ def zadanie_p1(arg: tuple) -> dict:
                     w[f"status_{nazwa}"] = r.status
                     w[f"pokrycie_{nazwa}"] = round(r.najlepszy.pokrycie, 4) if r.najlepszy else None
                     w[f"czas_{nazwa}_s"] = round(time.time() - t0, 2)
+            for prog in progi:  # ten sam filtr przy innym [match] filtr_wysokosc_min_udzial (bez dopasowania)
+                ust_p = {**ust, "match": {**ust["match"], "filtr_wysokosc_min_udzial": prog}}
+                wyn = {k.id: M.filtr(fr, k, ust_p) for k in pl.projekty.values()}
+                w[f"prog_{prog:g}"] = [bool(wyn[x.projekt][0]), int(sum(v[0] for v in wyn.values()))]
             wiersze.append(w)
     return {"wiersze": wiersze, "linia": f"{p.name}: prac {len({w['gniazdo'] for w in wiersze})}, wierszy {len(wiersze)}"}
 
@@ -208,6 +212,14 @@ def podsumuj_p1(wiersze: list[dict], pula_n: int | None = None) -> list[str]:
                            f"   {sum(w['status_stary'] == 'zielony' and w['top1_stary'] for w in ww):4d}/{n} / {sum(w['status_nowy'] == 'zielony' and w['top1_nowy'] for w in ww):4d}/{n}"
                            f"   {np.mean([w['czas_stary_s'] for w in ww]):5.2f} / {np.mean([w['czas_nowy_s'] for w in ww]):5.2f}")
             out.append(wiersz)
+    progi = sorted({k for w in wiersze for k in w if k.startswith("prog_")}, key=lambda k: float(k[5:]))
+    if progi:
+        out += ["", "nowy filtr przy innym [match] filtr_wysokosc_min_udzial: wlasciwy odrzucony / przechodzi filtr srednio (scenariusz pracy 'dobrze')",
+                "scenariusz        " + "".join(f"{k[5:]:>16s}" for k in progi)]
+        for sc in dict.fromkeys(w["scenariusz"] for w in wiersze):
+            ww = [w for w in wiersze if w["scenariusz"] == sc and w["scenariusz_pracy"] == "dobrze" and "pominiety" not in w]
+            if ww:
+                out.append(f"{sc:18s}" + "".join(f"{sum(not w[k][0] for w in ww):5d}/{len(ww):<4d} {np.mean([w[k][1] for w in ww]):5.2f}" for k in progi))
     return out
 
 
@@ -444,20 +456,21 @@ def main(argv: list[str] | None = None) -> dict:
     ap.add_argument("--procesy", type=int, default=1)
     ap.add_argument("--scenariusze", nargs="+", default=list(SCENARIUSZE_P1), choices=SCENARIUSZE_P1, help="p1: scenariusze widocznosci")
     ap.add_argument("--dopasuj", action="store_true", help="p1: takze pelne match.dopasuj starym i nowym filtrem (top-1, status, czas)")
+    ap.add_argument("--progi-wysokosci", type=float, nargs="*", default=[], help="p1: dodatkowe wartosci filtr_wysokosc_min_udzial do porownania (tylko filtr)")
     ap.add_argument("--bledy", default=",".join(str(b) for b in BLEDY), help="program: bledy wspolczynnika puli w procentach, po przecinku")
     ap.add_argument("--korekta", nargs="+", default=["tak", "nie"], choices=("tak", "nie"), help="program: z korekta skali / bez")
     ap.add_argument("--wielkosc", type=float, default=0.02, help="brzeg: wielkosc zmiany strefy brzegu [mm]")
     ap.add_argument("--prog", type=float, default=0.02, help="brzeg: prog 'bez zmiany' [punkty proc.] = szum estymaty")
     a = ap.parse_args(argv)
     UST.wczytaj_ustawienia(a.ustawienia)
-    skany = [p for d in a.skany for p in sorted(d.glob(a.wzorzec))[: a.limit]]
+    skany = [p for d in a.skany for p in sorted(q for q in d.glob(a.wzorzec) if q.suffix.lower() == ".stl")[: a.limit]]
     if not skany:
         raise SystemExit(f"brak skanow w {a.skany}")
     a.wyjscie.mkdir(parents=True, exist_ok=True)
     proj = tuple(a.projekty)
     t0 = time.time()
     if a.tryb == "p1":
-        odp = uruchom(zadanie_p1, [(p, proj, a.sufiks_ukladu, a.ustawienia, tuple(a.scenariusze), a.dopasuj) for p in skany], a.procesy)
+        odp = uruchom(zadanie_p1, [(p, proj, a.sufiks_ukladu, a.ustawienia, tuple(a.scenariusze), a.dopasuj, tuple(a.progi_wysokosci)) for p in skany], a.procesy)
         wiersze = [w for o in odp for w in o["wiersze"]]
         linie = podsumuj_p1(wiersze)
         out = {"tryb": "p1", "wiersze": wiersze, "tabela": linie}
