@@ -375,10 +375,13 @@ class Okno(QMainWindow):
         if wynik.get("uklad_zgodny") is False:  # strażnik układu (R59): żadnych gniazd, czytelny komunikat zamiast błędu wyrównania
             self.etykieta_stanu.setText("PŁYTKA NIE PASUJE DO WYBRANEGO UKŁADU")
             pasuja = wynik.get("uklady_pasujace") or []
+            # stary lokalny ustawienia.toml (bez układów *_r54) i żaden układ nie pasuje: podpowiedź, których wierszy brakuje
+            podpowiedz = ("W lokalnym pliku ustawienia.toml nie ma układów …_r54 dla starych płytek fizycznych (sprzed R59) — dopisz w [plytki] "
+                          "4 wiersze *_r54 z ustawienia.przyklad.toml, uruchom okno ponownie i wybierz układ …_r54.") if wynik.get("uklad_podpowiedz") else ""
             QMessageBox.warning(self, "Płytka nie pasuje do wybranego układu",
                                 f"Zeskanowana płytka nie pasuje do układu „{wynik['plytka']}” wybranego na liście „Płytka”.\n\n"
                                 + (f"Rozstaw stożków w skanie pasuje do: {', '.join(pasuja)} — wybierz ten układ i porównaj ponownie.\n\n" if pasuja
-                                   else "Rozstaw stożków w skanie nie pasuje do żadnego układu z listy — sprawdź płytkę i skan.\n\n")
+                                   else (podpowiedz or "Rozstaw stożków w skanie nie pasuje do żadnego układu z listy — sprawdź płytkę i skan.") + "\n\n")
                                 + wynik["uklad_komunikat"])
 
     def blad(self, tekst: str) -> None:

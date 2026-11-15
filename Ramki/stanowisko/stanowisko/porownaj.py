@@ -87,6 +87,15 @@ def uklady_pasujace(stozki: list, ust: dict, wybrany: str) -> list[str]:
     return pasuja
 
 
+PODPOWIEDZ_BRAK_R54 = ("w [plytki] lokalnego ustawienia.toml nie ma układów …_r54 (stare płytki fizyczne sprzed R59) — "
+                       "dopisz 4 wiersze *_r54 z ustawienia.przyklad.toml i porównaj ponownie z układem …_r54")
+
+
+def brak_ukladow_poprzednich(ust: dict) -> bool:
+    """Czy w ``[plytki]`` nie ma żadnego układu z przyrostkiem wersji (``*_r54``) — lokalny ``ustawienia.toml`` sprzed R59."""
+    return not any(U.typ_plytki(nazwa) != nazwa for nazwa in ust["plytki"])
+
+
 def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filtru: bool = False, inspekcja: bool = True,
                       podglad: dict | None = None) -> list[dict]:
     """match (+ inspect) dla każdego fragmentu (bez drobnych); wpisy JSON z 5 najlepszymi kandydatami.
@@ -124,6 +133,8 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
 
     Skan, który nie pasuje do układu ``plytka`` (``plate.NiezgodnyUklad``), daje wynik z ``uklad_zgodny`` = False,
     ``uklad_komunikat``, ``uklady_pasujace`` i pustą listą gniazd (match i inspect nie są liczone) oraz ostrzeżenie.
+    Gdy żaden inny układ nie pasuje, a w ``[plytki]`` nie ma układów ``*_r54`` (stary ``ustawienia.toml``), komunikat
+    i pole ``uklad_podpowiedz`` mówią, że trzeba dopisać 4 wiersze ``*_r54`` z ``ustawienia.przyklad.toml``.
     """
     t0 = time.time()
 
@@ -147,12 +158,15 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
     except PL.NiezgodnyUklad as e:
         t2 = time.time()
         pasujace = uklady_pasujace(e.stozki, ust, plytka)
+        podpowiedz = PODPOWIEDZ_BRAK_R54 if not pasujace and brak_ukladow_poprzednich(ust) else ""
         komunikat = str(e) + (f"; rozstaw stożków w skanie pasuje do układu: {', '.join(pasujace)}" if pasujace
                               else "; rozstaw stożków w skanie nie pasuje do żadnego innego układu z [plytki]")
+        komunikat += f"; {podpowiedz}" if podpowiedz else ""
         warnings.warn(komunikat, stacklevel=2)
         krok("wynik", 0.95)
         return {
             "skan": Path(skan).name, "plytka": plytka, "uklad_zgodny": False, "uklad_komunikat": komunikat, "uklady_pasujace": pasujace,
+            "uklad_podpowiedz": podpowiedz,
             "wspolczynnik": w, "projekty": len(pula), "foldery_projektow": [str(f) for f in foldery],
             "numer": None, "numer_zrodlo": "nieznany", "bity": [], "numer_z_dolkow": None,
             "macierz_skan_do_plytki": e.macierz.tolist() if e.macierz is not None else None, "jakosc_wyrownania": e.jakosc,
@@ -299,7 +313,8 @@ def metryki_inspekcji(wynik: dict, prawda: S.PrawdaPlytki) -> dict:
 def tabela(wynik: dict) -> str:
     if wynik.get("uklad_zgodny") is False:
         return (f"skan {wynik['skan']}: PŁYTKA NIE PASUJE DO WYBRANEGO UKŁADU „{wynik['plytka']}” — gniazd nie oceniano "
-                f"(układy o pasującym rozstawie stożków: {', '.join(wynik['uklady_pasujace']) or 'brak'})")
+                f"(układy o pasującym rozstawie stożków: {', '.join(wynik['uklady_pasujace']) or 'brak'})"
+                + (f" — {wynik['uklad_podpowiedz']}" if wynik.get("uklad_podpowiedz") else ""))
     w = [f"skan {wynik['skan']}: płytka {wynik['plytka']} nr {wynik['numer']} ({wynik['numer_zrodlo']}), współczynnik {wynik['wspolczynnik']}, "
          f"projektów w puli {wynik['projekty']}, czas {wynik['czas_s']['razem']} s (plate {wynik['czas_s']['plate']}, match {wynik['czas_s']['match']})",
          "gniazdo  projekt           zęby          pokrycie  pewność  match    gniazdo       inspect           ubytki (metoda, ø mm)"]
@@ -360,7 +375,8 @@ def mapa_png(wynik: dict, uk: U.UkladPlytki, plik: Path, px: float = 0.1) -> Pat
         for a, b in (((-pol, -pol), (pol, pol)), ((-pol, pol), (pol, -pol))):
             d.line([P(*a), P(*b)], fill=KOLORY["czerwony"], width=6)
         d.text(P(-r + 2, r - 6), f"PLYTKA NIE PASUJE DO WYBRANEGO UKLADU {wynik['plytka']} - gniazd nie oceniano; rozstaw stozkow pasuje do: "
-               f"{', '.join(wynik.get('uklady_pasujace', [])) or 'zadnego innego ukladu'}", fill=KOLORY["czerwony"])
+               f"{', '.join(wynik.get('uklady_pasujace', [])) or 'zadnego innego ukladu'}"
+               + ("; w ustawienia.toml brak ukladow _r54 - dopisz 4 wiersze z ustawienia.przyklad.toml" if wynik.get("uklad_podpowiedz") else ""), fill=KOLORY["czerwony"])
     im.save(plik)
     return plik
 

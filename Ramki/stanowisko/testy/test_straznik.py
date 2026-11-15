@@ -220,3 +220,69 @@ def test_okno_lista_ukladow_i_komunikat_straznika(wynik_niezgodny, monkeypatch):
         assert okno.mapa.kolor_gniazda(g.id).getRgb()[:3] == PO.KOLORY["pusty"]
     okno.close()
     app.processEvents()
+
+
+# --- stary lokalny ustawienia.toml (bez ukladow *_r54): podpowiedz zamiast "nie pasuje do zadnego ukladu" -------
+def _ustawienia_bez_r54(ust: dict) -> dict:
+    """Ustawienia jak ze starego ``ustawienia.toml`` (sprzed R59): w ``[plytki]`` tylko uklady bez przyrostka ``_r54``."""
+    return {**ust, "plytki": {n: k for n, k in ust["plytki"].items() if U.typ_plytki(n) == n}}
+
+
+@pytest.fixture(scope="module")
+def wynik_stare_ustawienia(wynik_niezgodny, folder_projektow):
+    """Ten sam skan starej plytki okraglej wieczornej, ale ``[plytki]`` bez ukladow ``*_r54`` (pierwsze prawdziwe skany beda takie)."""
+    _, p_stl, _, ust, pula = wynik_niezgodny
+    stare = _ustawienia_bez_r54(ust)
+    with pytest.warns(UserWarning, match="ustawienia.przyklad.toml"):
+        wynik = PO.porownaj(p_stl, [folder_projektow], "okragla_wieczorna", stare, 1.22, None, pula=pula)
+    return wynik, stare
+
+
+def test_stary_plik_ustawien_podpowiada_brakujace_uklady_r54(wynik_niezgodny, wynik_stare_ustawienia, folder_projektow, skany, tmp_path):
+    wynik_pelny, _, _, ust, pula = wynik_niezgodny
+    wynik, stare = wynik_stare_ustawienia
+    # ustawienia z ukladami _r54: jest nazwa pasujacego ukladu, podpowiedzi o brakujacych wierszach nie ma
+    assert wynik_pelny["uklad_podpowiedz"] == "" and "ustawienia.przyklad.toml" not in wynik_pelny["uklad_komunikat"]
+    assert not PO.brak_ukladow_poprzednich(ust)
+    # stare ustawienia: zaden uklad nie pasuje, komunikat mowi, ktorych wierszy brakuje
+    assert set(stare["plytki"]) == set(TYPY) and PO.brak_ukladow_poprzednich(stare)
+    assert wynik["uklad_zgodny"] is False and wynik["uklady_pasujace"] == [] and wynik["gniazda"] == []
+    assert all(n == 0 for n in wynik["statusy_gniazd"].values())
+    assert wynik["uklad_podpowiedz"] == PO.PODPOWIEDZ_BRAK_R54 and wynik["uklad_komunikat"].startswith(KOMUNIKAT)
+    for tekst in (wynik["uklad_komunikat"], PO.tabela(wynik)):
+        assert "ustawienia.przyklad.toml" in tekst and "_r54" in tekst and "4 wiersze" in tekst
+    json.dumps(wynik)
+    assert PO.mapa_png(wynik, U.wczytaj("okragla_wieczorna"), tmp_path / "mapa.png").exists()
+    # uklady _r54 sa w ustawieniach, ale zaden nie pasuje (plytka innego typu): to nie jest brak wierszy - bez podpowiedzi
+    _, skan_p, prawda_p = skany["poranna_r54"]
+    p2, _ = synth.zapisz(skan_p, prawda_p, tmp_path, "skan_poranna_stara")
+    tylko_wieczorne = {**ust, "plytki": {n: k for n, k in ust["plytki"].items() if "wieczorna" in n}}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        inny = PO.porownaj(p2, [folder_projektow], "wieczorna", tylko_wieczorne, 1.22, 4, pula=pula)
+    assert inny["uklad_zgodny"] is False and inny["uklady_pasujace"] == [] and inny["uklad_podpowiedz"] == ""
+    assert "ustawienia.przyklad.toml" not in inny["uklad_komunikat"]
+
+
+def test_okno_podpowiada_brak_ukladow_r54(wynik_niezgodny, wynik_stare_ustawienia, monkeypatch):
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication, QMessageBox
+
+    from stanowisko import ui_test
+
+    app = QApplication.instance() or QApplication([])
+    pula = wynik_niezgodny[4]
+    wynik, stare = wynik_stare_ustawienia
+    komunikaty = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda rodzic, tytul, tekst: komunikaty.append((tytul, tekst)))
+    okno = ui_test.Okno(stare)
+    assert [okno.lista_plytek.itemText(i) for i in range(okno.lista_plytek.count())] == list(stare["plytki"])  # na liscie nie ma ukladow _r54
+    okno.lista_plytek.setCurrentText("okragla_wieczorna")
+    okno._klucz_puli = ("x", 1.22)
+    okno.gotowe(wynik, {}, pula)
+    assert len(komunikaty) == 1
+    for slowo in ("ustawienia.przyklad.toml", "_r54", "4 wiersze", "uruchom okno ponownie"):
+        assert slowo in komunikaty[0][1], slowo
+    assert "NIE PASUJE" in okno.etykieta_stanu.text() and okno.mapa.niezgodny and okno.tabela.rowCount() == 0
+    okno.close()
+    app.processEvents()

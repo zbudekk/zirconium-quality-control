@@ -5,7 +5,9 @@ Użycie (z katalogu stanowisko/):
         [--dodatkowe dane/stl] [--wyjscie dane/wyniki_P2] [--wspolczynniki 1.20 1.25] [--sufiks-ukladu _r54]
 
 ``--sufiks-ukladu _r54``: zestaw wygenerowany przed R59 (prawda mówi ``wieczorna``, a to był układ gniazd R54) jest
-liczony na układach ``*_r54``; skan, który nie pasuje do układu (strażnik układu w plate), jest pomijany z komunikatem.
+liczony na układach ``*_r54``; skan, który nie pasuje do układu (strażnik układu w plate), nie wchodzi do metryk, ale
+zostaje w wyniku: lista ``uklad_niezgodny`` (skan, układ, powód, komunikat) i liczniki ``plate.uklad_niezgodny`` /
+``plate.skanow_w_zestawie`` — skan odrzucony przez strażnika nie znika z mianownika bez śladu.
 
 Dla każdego skanu: plate raz, potem match w wariantach: pula podstawowa (z filtrem i bez),
 pula rozszerzona o ``--dodatkowe`` (z filtrem i bez), a dla płytek wieczornych dodatkowo
@@ -112,6 +114,7 @@ def main() -> None:
         return pule[k]
 
     wyniki = []
+    niezgodne = []  # skany odrzucone przez strażnika układu: poza metrykami, ale w JSON wyniku i w podsumowaniu
     t_start = time.time()
     for p in skany:
         prawda = S.wczytaj_prawde(p.with_suffix(".json"))
@@ -125,8 +128,10 @@ def main() -> None:
             with warnings.catch_warnings(record=True) as ostrz:
                 warnings.simplefilter("always")
                 wyr = PL.wyrownaj(m, uk)  # bez --numer: kwadrat → nieznany (dołki poza polem)
-        except PL.NiezgodnyUklad as e:  # strażnik układu: skan nie pasuje do układu — bez metryk
-            print(f"{p.name:40s} POMINIĘTY: {e}", flush=True)
+        except PL.NiezgodnyUklad as e:  # strażnik układu: skan nie pasuje do układu — bez metryk, ze śladem w wyniku
+            niezgodne.append({"skan": p.name, "plytka": plytka, "powod": e.powod, "komunikat": str(e),
+                              "straznik": {k: v for k, v in e.jakosc.items() if k.startswith("uklad_") or k == "znaczniki_reszta_mm"}})
+            print(f"{p.name:40s} PŁYTKA NIE PASUJE DO UKŁADU {plytka} (poza metrykami): {e}", flush=True)
             continue
         t2 = time.time()
         bl = PL.blad_wyrownania(wyr.macierz, prawda.poza_skanu)
@@ -163,7 +168,10 @@ def main() -> None:
               f"top1 {v['top1']}/{v['prac_prawda']} top2 {v['top2']}/{v['prac_prawda']}  plate {rek['czas_s']['plate']} s  match {v['czas_match_s']} s", flush=True)
 
     if not wyniki:
-        raise SystemExit(f"żaden z {len(skany)} skanów nie pasuje do układu — zestaw sprzed R59? (--sufiks-ukladu _r54)")
+        out = {"skany": [], "plate": {"skanow": 0, "skanow_w_zestawie": len(skany), "uklad_niezgodny": len(niezgodne)}, "match": {}, "pule": {},
+               "uklad_niezgodny": niezgodne}
+        (a.wyjscie / a.nazwa).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+        raise SystemExit(f"żaden z {len(skany)} skanów nie pasuje do układu — zestaw sprzed R59? (--sufiks-ukladu _r54); {a.wyjscie / a.nazwa}")
     klucze = list(wyniki[0]["warianty"]) if wyniki else []
     for k in list(dict.fromkeys(kk for w in wyniki for kk in w["warianty"])):
         if k not in klucze:
@@ -176,6 +184,7 @@ def main() -> None:
     n = len(wyniki)
     plate_zb = {
         "skanow": n,
+        "skanow_w_zestawie": len(skany), "uklad_niezgodny": len(niezgodne),  # skanow = policzone; reszta odrzucona przez strażnika układu
         "wyrownanie_ok": sum(w["wyrownanie_ok"] for w in wyniki),
         "wyrownanie_max_przesuniecie_mm_max": max(w["wyrownanie"]["max_przesuniecie_mm"] for w in wyniki),
         "wyrownanie_max_przesuniecie_mm_mediana": float(np.median([w["wyrownanie"]["max_przesuniecie_mm"] for w in wyniki])),
@@ -196,11 +205,14 @@ def main() -> None:
         "czas_wczytania_s_mediana": float(np.median([w["czas_s"]["wczytanie"] for w in wyniki])),
         "czas_calosci_s": round(time.time() - t_start, 1),
     }
-    out = {"skany": wyniki, "plate": plate_zb, "match": zb, "pule": {f"{k[0]}_{'rozszerzona' if k[1] else 'podstawowa'}": len(v) for k, v in pule.items()}}
+    out = {"skany": wyniki, "plate": plate_zb, "match": zb, "pule": {f"{k[0]}_{'rozszerzona' if k[1] else 'podstawowa'}": len(v) for k, v in pule.items()},
+           "uklad_niezgodny": niezgodne}
     (a.wyjscie / a.nazwa).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     print("\nPLATE:", json.dumps(plate_zb, ensure_ascii=False))
     for k, v in zb.items():
         print(f"MATCH {k}: {json.dumps(v, ensure_ascii=False)}")
+    if niezgodne:
+        print(f"UKŁAD NIEZGODNY: {len(niezgodne)} z {len(skany)} skanów poza metrykami (strażnik układu): " + ", ".join(x["skan"] for x in niezgodne))
     print(a.wyjscie / a.nazwa)
 
 
