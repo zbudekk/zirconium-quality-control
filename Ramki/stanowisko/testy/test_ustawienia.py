@@ -70,6 +70,12 @@ def _zepsuj(tmp_path, stare, nowe):
     ("[ramki]", "[ramka]", r"\[ramka\]: nieznana sekcja"),
     ('wieczorna = "modele_plytek/wieczorna"', 'wieczorna = "modele_plytek\\\\wieczorna"', r"\[plytki\] wieczorna: ścieżka"),
     ("tryb_pytaj_przed_zapisem = true", "tryb_pytaj_przed_zapisem = 1", r"\[excel\] tryb_pytaj_przed_zapisem: oczekiwano bool"),
+    # [match]: filtr wysokości (P1) i korekta skali ze skanu (P3)
+    ("filtr_wysokosc_min_udzial = 0.5", "filtr_wysokosc_min_udzial = 1.5", r"\[match\] filtr_wysokosc_min_udzial: udział z \[0, 1\]"),
+    ("korekta_skali = true", "korekta_skali = 1", r"\[match\] korekta_skali: oczekiwano bool"),
+    ("korekta_skali_okno_proc = 1.0", "korekta_skali_okno_proc = 0", r"\[match\] korekta_skali_okno_proc: okno korekty skali"),
+    ("korekta_skali_ostrzezenie_proc = 0.3", "korekta_skali_ostrzezenie_proc = 1.5", r"\[match\] korekta_skali_ostrzezenie_proc: próg ostrzeżenia"),
+    ("korekta_skali_pas_brzegu_mm = 2.0", "", r"\[match\] korekta_skali_pas_brzegu_mm: brak klucza"),
 ])
 def test_zly_plik_ustawien_czytelny_blad(tmp_path, stare, nowe, komunikat):
     p = _zepsuj(tmp_path, stare, nowe)

@@ -88,6 +88,62 @@ def test_filtr_wymiarow(pula, fragmenty, ust):
     assert all(k.filtr_ok for k in r.kandydaci) and r.kandydaci[0].zeby == ["11"] and r.kandydaci[1].pokrycie < 0.6
 
 
+def _bez_dolu(f, mm):
+    """Punkty fragmentu bez dolnych ``mm`` milimetrów — dół pracy schowany w gnieździe (testy krawędzi T10)."""
+    w = f.punkty[:, 2] >= f.punkty[:, 2].min() + mm
+    return f.punkty[w], f.normalne[w]
+
+
+def test_filtr_nie_odrzuca_pracy_ze_schowanym_dolem(pula, fragmenty, ust):
+    """P1: fragment niższy niż projekt (dolne 3 mm w gnieździe; gniazdo ma 4 mm) — reguła wysokości sprzed poprawki
+    (± tolerancja) odrzucała właściwy projekt i kończyło się obcym projektem (T7, T10: 20/20; T5: 117/350)."""
+    w, prawda = fragmenty
+    mapa = {p.gniazdo: p for p in prawda.prace}
+    m = ust["match"]
+    ust_stary = {**ust, "match": {**m, "filtr_wysokosc_min_udzial": 1.0}}  # 1,0 = wysokość jak przed poprawką: projekt − tolerancja
+    for f in w.fragmenty:
+        pr = pula.projekty[mapa[f.gniazdo].projekt]
+        P, N = _bez_dolu(f, 3.0)
+        fr = match.FragmentDoDopasowania.z_punktow(P, N)
+        assert pr.wysokosc - fr.wysokosc > max(m["filtr_wymiar_mm"], m["filtr_wymiar_udzial"] * pr.wysokosc)  # scenariusz odtwarza błąd
+        ok, powod = match.filtr(fr, pr, ust_stary)
+        assert not ok and powod.startswith("wysokość"), powod
+        assert match.filtr(fr, pr, ust) == (True, "")
+        r = match.dopasuj(P, N, pula, ust, f.gniazdo)
+        assert r.najlepszy.id == pr.id and r.najlepszy.filtr_ok and r.najlepszy.pokrycie >= 0.85 and r.status == "zielony", (r.status, [(k.id, k.pokrycie, k.powod_filtru) for k in r.kandydaci])
+        assert not r.uwagi or all("filtru" not in u for u in r.uwagi)  # właściwy projekt przeszedł filtr, nie „dopasowano wszystkie”
+
+
+def test_filtr_nadal_ogranicza_pule(pula, fragmenty, ust):
+    """P1: po poprawce filtr dalej odrzuca obce projekty — fragment wyższy niż projekt, zły obrys przy tej samej
+    wysokości, za mało wysokości projektu — także dla fragmentu ze schowanym dołem."""
+    w, prawda = fragmenty
+    mapa = {p.gniazdo: p for p in prawda.prace}
+    po_zebie = {pr.cechy.zeby[0]: pr for pr in pula.projekty.values()}
+    frag = {pula.projekty[mapa[f.gniazdo].projekt].cechy.zeby[0]: f for f in w.fragmenty}
+    siekacz = match.FragmentDoDopasowania.z_punktow(frag["11"].punkty, frag["11"].normalne)  # 6,5 × 5 × 10 (× 1,22)
+    ok, powod = match.filtr(siekacz, po_zebie["14"], ust)  # przedtrzonowy ma 8 mm wysokości: siekacz jest o 2,4 mm wyższy
+    assert not ok and "fragment wyższy niż projekt" in powod
+    for mm in (0.0, 3.0):  # trzonowiec cały i bez dolnych 3 mm: do siekacza i przedtrzonowca nie pasuje obrysem
+        fr = match.FragmentDoDopasowania.z_punktow(*_bez_dolu(frag["36"], mm))
+        wyniki = {z: match.filtr(fr, pr, ust) for z, pr in po_zebie.items()}
+        assert wyniki["36"][0] and not wyniki["11"][0] and not wyniki["14"][0], (mm, wyniki)
+    nisko = match.FragmentDoDopasowania.z_punktow(*_bez_dolu(frag["11"], 7.5))  # zostaje 4,7 z 12,2 mm = 39 % wysokości
+    ok, powod = match.filtr(nisko, po_zebie["11"], ust)
+    assert not ok and "widać mniej niż 50%" in powod, powod
+    assert match.filtr(nisko, po_zebie["11"], {**ust, "match": {**ust["match"], "filtr_wysokosc_min_udzial": 0.3}})[0]  # próg z ustawień
+
+
+def test_cechy_projektu_do_glebokosci(pula):
+    """Obrys i otoczka projektu przyciętego do głębokości od brzegu: pełna głębokość = cechy całego projektu, płycej — mniejsze."""
+    for pr in pula.projekty.values():
+        assert pr.cechy_do_glebokosci(pr.wysokosc) == (pr.obrys_xy, pr.hull) == pr.cechy_do_glebokosci(pr.wysokosc + 5)
+        o1, h1 = pr.cechy_do_glebokosci(2.0)
+        o2, h2 = pr.cechy_do_glebokosci(pr.wysokosc - 2.0)
+        assert 0 < h1 < h2 < pr.hull and o1[0] <= o1[1] and o2[1] <= pr.obrys_xy[1] + 0.2
+        assert pr.cechy_do_glebokosci(1.9) == (o1, h1)  # głębokość zaokrąglana w górę do KROK_PROFILU, wynik zapamiętany
+
+
 @pytest.mark.parametrize("fragmenty", ["okragla_wieczorna_r54"], indirect=True)
 def test_zgrubne_obroty_i_ocena(pula, fragmenty, ust):
     """Tylko układ ``_r54``: ostatnia asercja sprawdza sam RANSAC (seed 0) na pierwszym fragmencie, a ta ścieżka jest
