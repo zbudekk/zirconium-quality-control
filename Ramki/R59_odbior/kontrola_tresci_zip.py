@@ -27,7 +27,7 @@ TECH = {"crown", "bridge", "korona", "most", "mosty", "projekt", "projekty", "zl
         "nowa", "dolny", "gorny", "lewy", "prawy", "zeby", "cyrkon", "cyrkonia", "html", "txt", "zip", "stl"}
 frag = set()
 for p in PRACE.rglob("*"):
-    for s in re.split(r"[^A-Za-zÀ-ž]+", p.stem if p.is_file() else p.name):
+    for s in re.split(r"[^A-Za-z\u00c0-\u017e]+", p.stem if p.is_file() else p.name):
         s = s.lower()
         if len(s) >= 4 and s not in TECH:
             frag.add(s)
@@ -41,7 +41,7 @@ for n in nazwy:
         t = b.decode("utf-8", errors="replace")
         low = t.lower()
         for f in frag:
-            if re.search(r"(?<![a-zà-ž])" + re.escape(f) + r"(?![a-zà-ž])", low):
+            if re.search(r"(?<![a-z\u00e0-\u017e])" + re.escape(f) + r"(?![a-z\u00e0-\u017e])", low):
                 wyniki[n]["fragment nazwy zlecenia"] += 1
         wyniki[n]["sciezka Users\\<konto>"] += len(re.findall(r"[A-Za-z]:[\\/]+Users[\\/]+[A-Za-z0-9_.~-]+", t))
         wyniki[n]["e-mail"] += len(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}", t))
@@ -55,7 +55,7 @@ for n in nazwy:
         t = "\n".join((pg.extract_text() or "") for pg in r.pages)
         low = t.lower()
         for f in frag:
-            if re.search(r"(?<![a-zà-ž])" + re.escape(f) + r"(?![a-zà-ž])", low):
+            if re.search(r"(?<![a-z\u00e0-\u017e])" + re.escape(f) + r"(?![a-z\u00e0-\u017e])", low):
                 wyniki[n]["fragment nazwy zlecenia"] += 1
         wyniki[n]["sciezka Users\\<konto>"] += len(re.findall(r"[A-Za-z]:[\\/]+Users[\\/]+[A-Za-z0-9_.~-]+", t))
         wyniki[n]["e-mail"] += len(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}", t))
