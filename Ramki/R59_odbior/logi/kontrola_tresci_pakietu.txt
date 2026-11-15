@@ -1,0 +1,20 @@
+R59 - kontrola tresci ZIP-a calosci przed publikacja (lista z przegladu bezpieczenstwa poprawki serwer-laptop), 16.11.2026, koordynator
+Plik: Ramki_pakiet_2026-11-16_R59.zip, 19 852 286 B, SHA-256 d5c8508aa3262e2e90c1a4029aadaed25d6ad96a00d130b54352a56016dbc25a
+Skrypt: R59_odbior/kontrola_tresci_zip.py (nie wypisuje nazw z Prace_test ani wartosci osobowych).
+
+1. Struktura: 1 katalog glowny; 01_Dokumenty 11, 02_Druk_drukarnia_PA12 14, 03_Druk_wlasny 6, 04_Model_i_animacje 17, 05_Zrodla 32,
+   README.txt, SHA256SUMS_2026-11-16_R59.txt, INSTRUKCJA_PAKIET_2026-11-16_R59.md. Wzorce zakazane w nazwach (Prace_test, katalog git,
+   pliki zmiennych srodowiskowych, dane/, skany, mapy sciezek / projektow): 0.
+2. Fragmenty nazw z Prace_test (42 fragmenty >= 4 litery) w tresci plikow tekstowych i PDF: 26 trafien 5 roznych fragmentow; recznie
+   sprawdzone z zamaskowanym kontekstem: 1 pospolite slowo polskie z nazwy folderu (22 trafienia, znaczenie "nowe"), 1 nazwa uslugi
+   chmurowej z nazwy pliku, 2 nazwy pol w kodzie JavaScript modelu 3D, 1 termin protetyczny. Nazwisk i danych pacjentow: 0.
+   11 cyfr pod rzad (PESEL?): 10 trafien - wszystkie wewnatrz sum SHA-256 albo liczba z odstepami; telefon: 1 trafienie = liczba
+   "199 952 688" (liczba promieni w raporcie recenzenta). Wartosci osobowych: 0.
+3. PDF (3): metadane Producer pypdf, Title, Author = autor dokumentow (wlasciciel), Subject - tresc dokumentu; bez sciezek.
+4. ramka_v2.blend (14,6 MB, BLENDER17-01): sciezki bezwzgledne w pliku - patrz pkt 5 (1 ze sciezka profilu Windows).
+5. Do decyzji wlasciciela (nie sa danymi pacjentow): sciezki C:\Users\<konto> (konta <uzytkownik> i Administrator) - 20 wystapien w 05_Zrodla
+   (raporty wykonawcy R54-R59, R59_wdrozenie_zmiany.md, README_wyniki_v2.md, stanowisko_README.md, raport recenzji PR runda 1,
+   ramka_generator.py) i 1 w ramka_v2.blend; e-mail firmowy dostawcy w dostawcy_druk_i_pleksi.md i w Zakupach (od R56);
+   nazwisko autora w PDF (stopka i metadane).
+6. Obrazy: 12 JPG - tylko JFIF i profil ICC, bez EXIF; 3 PNG z Blendera - metadane renderu (plik blend w <PC-katalog>\r59\..., data,
+   kamera, czas renderu), bez nazwy konta.
