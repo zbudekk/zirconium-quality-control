@@ -55,9 +55,9 @@ zapisz("T3c", "sha256sum -c w Ramki_pakiet", bool(linie) and ok == len(linie) an
 
 # --- T11: dokumenty i PDF --------------------------------------------------------------------------
 dok = sorted(R.glob("Stanowisko kontroli cyrkonii*plan wdrozenia v2.md")) + sorted(R.glob("Zakupy i druk*.md")) + sorted(R.glob("Budowa ramki*.md"))
-STARE = ["18 + 2", "31 + 2", "7 × ø9", "18 × ø7,5", "7 × ø10", "5 × ø15", "6 × ø12,5", "dwie rynienki", "2 rynienki",
+STARE = ["18 + 2", "31 + 2", "7 \u00d7 \u00f89", "18 \u00d7 \u00f87,5", "7 \u00d7 \u00f810", "5 \u00d7 \u00f815", "6 \u00d7 \u00f812,5", "dwie rynienki", "2 rynienki",
          "59,31", "60,87", "49,01", "50,56", "515d32d3", "a8d07cbe", "c4c8a18d", "a87bc6c5"]
-HIST = re.compile(r"było|Było|był |poprzedni|Poprzedni|dawn|stary|stare|starego|starym|zamiast|R54|R55|R56|R57|→|->|historia|wcześniej", re.I)
+HIST = re.compile(r"by\u0142o|By\u0142o|by\u0142 |poprzedni|Poprzedni|dawn|stary|stare|starego|starym|zamiast|R54|R55|R56|R57|\u2192|->|historia|wcze\u015bniej", re.I)
 for p in dok + [R / "plan_ramki_v2.md", R / "protokol_weryfikacji_v2.md"]:
     t = p.read_text(encoding="utf-8").splitlines()
     trafien = 0
@@ -83,7 +83,7 @@ for md in dok:
     tekst = "\n".join((pg.extract_text() or "") for pg in r.pages)
     nowszy = pdf.stat().st_mtime >= md.stat().st_mtime
     w_git = git("log", "-1", "--format=%h", "--", str(pdf.relative_to(TOP)))
-    starych = sum(tekst.count(s) for s in ["31 gniazd:", "18 × ø7,5, 7 × ø10"])
+    starych = sum(tekst.count(s) for s in ["31 gniazd:", "18 \u00d7 \u00f87,5, 7 \u00d7 \u00f810"])
     zapisz("T11", pdf.name[:60], nowszy and "R59" in tekst and "23 gniazda" in tekst,
            "stron %d, nowszy niz .md %s, R59 %d, '23 gniazda' %d, '1 rynienka' %d, commit %s" % (
                len(r.pages), nowszy, tekst.count("R59"), tekst.count("23 gniazda"), tekst.count("1 rynienka"), w_git.strip()))
@@ -93,7 +93,7 @@ fragmenty = set()
 TECH = {"crown", "bridge", "korona", "most", "mosty", "projekt", "projekty", "zlecenie", "exocad", "kopia", "nowy", "nowa",
         "dolny", "gorny", "lewy", "prawy", "zeby", "zab", "cyrkon", "cyrkonia"}
 for p in PRACE.rglob("*"):
-    for s in re.split(r"[^A-Za-zÀ-ž]+", p.stem if p.is_file() else p.name):
+    for s in re.split(r"[^A-Za-z\u00c0-\u017e]+", p.stem if p.is_file() else p.name):
         s = s.lower()
         if len(s) >= 4 and s not in TECH and s not in ("_cad", "cad"):
             fragmenty.add(s)
