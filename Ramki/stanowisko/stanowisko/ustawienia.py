@@ -67,6 +67,9 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "szum_sigma_mm": (float, "synth"),
         "wspolczynnik_min": (float, "synth"),
         "wspolczynnik_max": (float, "synth"),
+        "odstep_ubytku_mm": (float, "synth"),
+        "krawedz_rozmiar_min_mm": (float, "synth"),
+        "krawedz_rozmiar_max_mm": (float, "synth"),
     },
     "excel": {
         "kolumna_kuwety": (str, PRZYSZLY),
@@ -131,6 +134,8 @@ def _waliduj(d: dict, plik: Path) -> dict:
     s, i, m = d["synth"], d["inspect"], d["match"]
     warunek(s["szum_sigma_mm"] >= 0, "synth", "szum_sigma_mm", "musi być >= 0")
     warunek(0 < s["wspolczynnik_min"] <= s["wspolczynnik_max"], "synth", "wspolczynnik_min", "musi być 0 < min <= wspolczynnik_max")
+    warunek(s["odstep_ubytku_mm"] > 0, "synth", "odstep_ubytku_mm", "musi być > 0")
+    warunek(0 < s["krawedz_rozmiar_min_mm"] <= s["krawedz_rozmiar_max_mm"], "synth", "krawedz_rozmiar_min_mm", "musi być 0 < min <= krawedz_rozmiar_max_mm")
     warunek(0 < i["srednica_min_mm"] <= i["srednica_max_mm"], "inspect", "srednica_min_mm", "musi być 0 < min <= srednica_max_mm")
     warunek(i["prog_glebokosci_mm"] > 0, "inspect", "prog_glebokosci_mm", "musi być > 0")
     warunek(i["pas_brzegu_mm"] > 0, "inspect", "pas_brzegu_mm", "musi być > 0")

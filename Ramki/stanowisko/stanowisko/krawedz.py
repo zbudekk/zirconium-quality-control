@@ -176,7 +176,7 @@ class LinieProjektu:
 # ----------------------------------------------------------------------------
 # mapa wysokosci, niecki, dzial wodny
 # ----------------------------------------------------------------------------
-def _scena(m: trimesh.Trimesh) -> o3d.t.geometry.RaycastingScene:
+def scena_siatki(m: trimesh.Trimesh) -> o3d.t.geometry.RaycastingScene:
     mo = o3d.t.geometry.TriangleMesh(o3d.core.Tensor(np.asarray(m.vertices, dtype=np.float32)), o3d.core.Tensor(np.asarray(m.faces, dtype=np.int32)))
     scena = o3d.t.geometry.RaycastingScene()
     scena.add_triangles(mo)
@@ -764,7 +764,7 @@ def wyznacz(m: trimesh.Trimesh) -> LinieProjektu:
     w poczatku ukladu). Bez pamieci podrecznej - zwykle wolana przez ``linie_siatki``."""
     t0 = time.time()
     uwagi: list[str] = []
-    scena = _scena(m)
+    scena = scena_siatki(m)
     xs, ys, Z, F = mapa_wysokosci(m, scena)
     if not np.isfinite(Z).any():
         return LinieProjektu([], [], ["pusta mapa wysokosci"], round(time.time() - t0, 2))
@@ -912,6 +912,16 @@ def wczytaj_npz(plik: Path) -> LinieProjektu | None:
         return None
 
 
+def klucz_projektu(skrot: str, obrot=None) -> str:
+    """Klucz pamieci podrecznej projektu: skrot SHA-256 pliku + znacznik orientacji. ``obrot`` = macierz, ktora ustawila
+    plik brzegiem do gory (``synth.orientacja_brzegiem_do_gory`` albo ``match.Projekt.T0``): zwykly przypadek (plik z
+    brzegiem na dole, obrot o 180 st.) nie zmienia klucza, plik wziety bez obrotu dostaje przyrostek ``_g`` - ten sam
+    plik wczytany z wymuszona inna orientacja ma inna siatke, wiec i inne linie."""
+    if obrot is None or np.asarray(obrot)[2, 2] < 0:
+        return str(skrot)
+    return f"{skrot}_g"
+
+
 def srodek_ukladu(m: trimesh.Trimesh) -> np.ndarray:
     """Punkt odniesienia siatki: srodek obrysu xy i najwyzszy punkt (jak uklad puli w ``match.Projekt``)."""
     b = m.bounds
@@ -930,21 +940,23 @@ def linie_siatki(siatka: trimesh.Trimesh, skala: float = 1.0, klucz: str | None 
     c = srodek_ukladu(siatka)
     k = SKALA_ODNIESIENIA / skala
     wz = _PAMIEC.get(klucz) if klucz else None
+    plik = _plik_pamieci(klucz) if klucz else None
+    zapisac = plik is not None and not plik.exists()  # takze wtedy, gdy linie sa juz w pamieci procesu, a pliku jeszcze nie ma
     if wz is None:
-        plik = _plik_pamieci(klucz) if klucz else None
-        if plik is not None and plik.exists():
+        if plik is not None and not zapisac:
             wz = wczytaj_npz(plik)
         if wz is None:
             wz = wyznacz(trimesh.Trimesh((np.asarray(siatka.vertices) - c) * k, np.asarray(siatka.faces), process=False))
-            if plik is not None:
-                try:
-                    zapisz_npz(wz, plik)
-                except OSError as e:  # pamiec na dysku jest tylko przyspieszeniem
-                    warnings.warn(f"nie zapisano linii brzegu do {plik.name}: {e}", stacklevel=2)
+            zapisac = plik is not None
+        if len(_PAMIEC) >= _PAMIEC_MAX:
+            _PAMIEC.pop(next(iter(_PAMIEC)))
         if klucz:
-            if len(_PAMIEC) >= _PAMIEC_MAX:
-                _PAMIEC.pop(next(iter(_PAMIEC)))
             _PAMIEC[klucz] = wz
+    if zapisac:
+        try:
+            zapisz_npz(wz, plik)
+        except OSError as e:  # pamiec na dysku jest tylko przyspieszeniem
+            warnings.warn(f"nie zapisano linii brzegu do {plik.name}: {e}", stacklevel=2)
     return wz.przeksztalc(1.0 / k, c)
 
 

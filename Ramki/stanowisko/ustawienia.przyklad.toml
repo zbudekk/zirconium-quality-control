@@ -54,6 +54,9 @@ linia_min_udzial = 0.9              # metoda B tylko gdy linia brzegu widoczna p
 szum_sigma_mm = 0.03
 wspolczynnik_min = 1.20
 wspolczynnik_max = 1.25
+odstep_ubytku_mm = 0.05             # odstęp punktów nowej powierzchni ubytku i jej otoczenia (gęstość skanu przyjęta w testach krawędzi; zmierzyć na skanerze w P3b)
+krawedz_rozmiar_min_mm = 0.08       # K6 (--krawedz): ukruszenia celowe na krawędzi brzegu, rozmiar = promień kuli o środku na powierzchni
+krawedz_rozmiar_max_mm = 0.40
 
 [excel]
 kolumna_kuwety = "C"
