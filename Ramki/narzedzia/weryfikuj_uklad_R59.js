@@ -1,7 +1,14 @@
 // narzedzia/weryfikuj_uklad_R59.js - R59 (14.11.2026): sprawdza uklad gniazd plytek z parametry.json albo z pliku wariantu
 // (R59_szkice/parametry_wariant_<id>.json) na poziomie parametrow, bez STL. Rozszerzenie weryfikuj_uklad_R54.js.
 //
-// Uzycie:  node narzedzia/weryfikuj_uklad_R59.js [plik = parametry.json] [przelaczniki]
+// Decyzja wlasciciela na bramce G0 (14.11.2026): D3 = a - JEDNA dluga rynienka na plytke. Dlatego reguly domyslne
+// wymagaja dokladnie 1 rzedu z rynienka i dokladnie 1 rynienki w tym rzedzie; rynienka podzielona (D3-b: 2 krotkie
+// w jednym rzedzie) jest BLEDEM. Pliki wariantow D3-b (parametry_wariant_*-D3b.json) sprawdza sie z przelacznikiem --d3b.
+// (zmiana po recenzji PR R59, runda 1, uwaga 5: wczesniej rynienka podzielona przechodzila bez przelacznika)
+//
+// Uzycie:  node narzedzia/weryfikuj_uklad_R59.js [plik = parametry.json] [przelaczniki]      (--pomoc wypisuje te liste)
+//   --d3b                 plik wariantu z rynienka podzielona: oczekiwane DOKLADNIE 2 krotkie rynienki w jednym rzedzie
+//                         (bez przelacznika 2 rynienki w rzedzie = BLAD; z nim 1 rynienka = BLAD)
 //   --r54                 stare reguly ukladu R54: oczekiwane 2 rzedy z rynienka, regula bokow trojkata tylko informacyjnie
 //   --rzedy-rynienek=N    ile rzedow z rynienka ma miec plytka (domyslnie 1; z --r54: 2; "dowolnie" = bez reguly)
 //   --boki-min=X          boki trojkata znacznikow rozne parami o >= X mm (domyslnie 5; 0 = tylko informacja)
@@ -15,9 +22,9 @@
 // Co sprawdza (dla plytki wieczornej i porannej; kwadrat i okragla biora te same rzedy - K-05 h):
 //  1. K-05: liczby, symetria rzedow wzgledem x = 0, strefa +-socket_zone/2, kolo socket_zone_r, kwadraty narozne
 //     plate_corner_zone, scianka miedzy obrysami >= socket_wall_min, kolejnosc rzedow (dwa wpisy o tym samym y = blad K-05 g).
-//  2. Rynienki: dokladnie 1 rzad z rynienka (1 dluga = D3-a albo 2 krotkie w jednym rzedzie = D3-b), otwory w dnie
-//     (liczba i rozstaw: z rzedu "hole_count" / "hole_pitch", inaczej trough_hole_count / ev|mo_trough_hole_pitch),
-//     dlugosc dna a prog mostu.
+//  2. Rynienki: dokladnie 1 rzad z rynienka i w nim dokladnie 1 rynienka (D3-a, przyjete na G0); z --d3b dokladnie
+//     2 krotkie w jednym rzedzie (D3-b); otwory w dnie (liczba i rozstaw: z rzedu "hole_count" / "hole_pitch", inaczej
+//     trough_hole_count / ev|mo_trough_hole_pitch), dlugosc dna a prog mostu.
 //  3. Stozki znacznikow (K-16): promien srodka <= socket_zone_r - d/2, strefa, scianka do gniazd >= socket_wall_min,
 //     do dolkow kodu >= 1,5, do kieszeni magnesow (XY) >= 1,5, do krawedzi >= 1,5; trojkat: boki rozne o >= 5 mm
 //     (regula planu R59 pkt 6.4) i zapas przypisania A/B/C liczony tak, jak robi to program (Kabsch bez odbicia).
@@ -35,6 +42,26 @@ for (const a of process.argv.slice(2)) {
   const m = /^--([a-z0-9-]+)(?:=(.*))?$/i.exec(a);
   if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else poz.push(a);
 }
+if (opt.pomoc || opt.help) {
+  console.log([
+    'Uzycie: node narzedzia/weryfikuj_uklad_R59.js [plik = parametry.json] [przelaczniki]',
+    'Sprawdza uklad gniazd plytek (parametry.json albo R59_szkice/parametry_wariant_<id>.json) na poziomie parametrow.',
+    'Reguly domyslne (decyzja wlasciciela G0: D3 = a): dokladnie 1 rzad z rynienka i 1 rynienka w tym rzedzie na plytke.',
+    '  --d3b                 plik wariantu z rynienka podzielona (D3-b): oczekiwane dokladnie 2 krotkie rynienki w jednym rzedzie;',
+    '                        bez tego przelacznika 2 rynienki w rzedzie to BLAD',
+    '  --r54                 stare reguly ukladu R54: 2 rzedy z rynienka, regula bokow trojkata tylko informacyjnie',
+    '  --rzedy-rynienek=N    ile rzedow z rynienka (domyslnie 1; z --r54: 2; "dowolnie" = bez reguly)',
+    '  --boki-min=X          boki trojkata znacznikow rozne o >= X mm (domyslnie 5; 0 = tylko informacja)',
+    '  --kabsch-min=X        reszta najlepszego blednego przypisania A/B/C >= X mm (domyslnie 5)',
+    '  --plytka=wieczorna|poranna|obie   (domyslnie: _meta.r59_wariant.plytka z pliku, a gdy go brak - obie)',
+    '  --prog-mostu=20       dno rynienki musi byc dluzsze niz prog mostu',
+    '  --cyfra-szer=3.6      szerokosc obrysu cyfry reliefu',
+    '  --json=plik           zapis podsumowania liczbowego',
+    'Kod wyjscia: 0 = bez bledu, 1 = sa bledy (linie BLAD), 2 = zly plik albo zle przelaczniki.',
+  ].join('\n'));
+  process.exit(0);
+}
+if (opt.d3b && opt.r54) { console.error('BLAD: --d3b i --r54 wykluczaja sie (--r54 = stary uklad z 2 rzedami rynienek)'); process.exit(2); }
 const sciezka = poz[0] || 'parametry.json';
 let P0;
 try { P0 = JSON.parse(fs.readFileSync(sciezka, 'utf8')); } catch (e) { console.error('BLAD: nie mozna wczytac ' + sciezka + ': ' + e.message); process.exit(2); }
@@ -51,6 +78,7 @@ if (brak.length) { console.error('BLAD: w pliku brak kluczy: ' + brak.join(', ')
 
 const wariant = (P0._meta && P0._meta.r59_wariant) || null;
 const R54 = !!opt.r54;
+const D3B = !!opt.d3b;                                                   // rynienka podzielona dopuszczona tylko jawnie (G0: D3 = a)
 const RZEDY_T = opt['rzedy-rynienek'] !== undefined ? String(opt['rzedy-rynienek']) : (R54 ? '2' : '1');
 const BOKI_MIN = opt['boki-min'] !== undefined ? +opt['boki-min'] : (R54 ? 0 : 5);
 const KABSCH_MIN = opt['kabsch-min'] !== undefined ? +opt['kabsch-min'] : 5;
@@ -129,10 +157,11 @@ function ksztaltyZRzedow(rows, pre) {
   return { S, bledy, wiersze };
 }
 
-const podsumowanie = { plik: sciezka, wariant, reguly: { r54: R54, rzedy_rynienek: RZEDY_T, boki_min: BOKI_MIN, kabsch_min: KABSCH_MIN, prog_mostu: PROG_MOSTU }, plytki: {} };
+const podsumowanie = { plik: sciezka, wariant, reguly: { r54: R54, d3b: D3B, rzedy_rynienek: RZEDY_T, boki_min: BOKI_MIN, kabsch_min: KABSCH_MIN, prog_mostu: PROG_MOSTU }, plytki: {} };
 
 console.log('weryfikuj_uklad_R59: ' + sciezka + (wariant ? '  [plik wariantu ' + wariant.id + ': plytka ' + wariant.plytka + ']' : ''));
-console.log('reguly: ' + (R54 ? 'R54 (stary uklad)' : 'R59') + '; rzedy z rynienka = ' + RZEDY_T + '; boki trojkata rozne o >= ' + BOKI_MIN + (BOKI_MIN ? '' : ' (tylko informacja)') +
+console.log('reguly: ' + (R54 ? 'R54 (stary uklad)' : 'R59') + '; rzedy z rynienka = ' + RZEDY_T + (R54 ? '' : '; rynienek w rzedzie = ' + (D3B ? '2 (--d3b: rynienka podzielona)' : '1 (D3-a, decyzja G0)')) +
+  '; boki trojkata rozne o >= ' + BOKI_MIN + (BOKI_MIN ? '' : ' (tylko informacja)') +
   '; kolo R = ' + R + ', strefa +-' + SQ + ', scianka >= ' + WALL + '; sprawdzane plytki: ' + KTORA);
 chk(Math.abs(R - P.socket_zone_r) <= 0.01, 'socket_zone_r ' + P.socket_zone_r + ' = scan_field_d/2 - scan_center_tol - work_overhang = ' + R);
 if (wariant && KTORA !== 'obie') info('plik wariantu zmienia tylko plytke ' + wariant.plytka + '; druga plytka w tym pliku to stan R54 i nie jest tu sprawdzana (--plytka=obie wymusza)');
@@ -197,7 +226,12 @@ function sprawdzPlytke(typ, pre) {
   else {
     chk(yRyn.length === +RZEDY_T, 'rzedow z rynienka: ' + yRyn.length + ' (oczekiwane dokladnie ' + RZEDY_T + (R54 ? ', reguly R54' : ', zlecenie R59 pkt 4') + ')' +
       (yRyn.length ? '; y = ' + yRyn.join(', ') + (yRyn.length === 1 ? (yRyn[0] < 0 ? ' (przednia)' : ' (tylna)') : '') : ''));
-    if (!R54 && yRyn.length === 1) chk(ryn.length <= 2, 'rynienek w tym rzedzie: ' + ryn.length + (ryn.length === 1 ? ' (D3-a: jedna dluga)' : ryn.length === 2 ? ' (D3-b: rynienka podzielona na dwie krotkie)' : ' (najwyzej 2)'));
+    // G0: D3 = a. Domyslnie dokladnie 1 rynienka w rzedzie; rynienka podzielona (2 krotkie) tylko z jawnym --d3b.
+    if (!R54 && yRyn.length === 1) {
+      if (D3B) chk(ryn.length === 2, 'rynienek w tym rzedzie: ' + ryn.length + ' (oczekiwane dokladnie 2: przelacznik --d3b = rynienka podzielona na dwie krotkie, D3-b)');
+      else chk(ryn.length === 1, 'rynienek w tym rzedzie: ' + ryn.length + ' (oczekiwana dokladnie 1: D3-a, jedna dluga - decyzja wlasciciela na G0)' +
+        (ryn.length === 2 ? '; rynienka podzielona (D3-b) nie jest ukladem przyjetym - plik wariantu D3-b sprawdzaj z przelacznikiem --d3b' : ''));
+    }
   }
   for (const s of ryn) {
     const dnoL = s.l - 2 * P.socket_depth * TAN, dnoW = s.w - 2 * P.socket_depth * TAN;

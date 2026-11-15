@@ -130,11 +130,15 @@ node R59_szkice\rysuj_szkice_R59.js parametry.json R59_szkice                   
 `parametry_wariant_<id>.json` = pelna kopia `parametry.json` ze zmienionymi tylko kluczami ukladu jednej plytki; druga
 plytka zostaje w nim w stanie R54 i nie jest sprawdzana (wymusza to `--plytka=obie`). Docelowy `parametry.json` po G0
 sprawdza sie tym samym poleceniem bez przelacznikow - wtedy obie plytki.
+Od wersji po recenzji PR (runda 1, uwaga 5) reguly domyslne wymagaja dokladnie 1 rynienki na plytke (G0: D3 = a), wiec
+pliki wariantow D3-b (`W-b-D3b`, `P-b-D3b`) sprawdza sie z przelacznikiem `--d3b`; bez niego rynienka podzielona to BLAD.
 
 ## 7. Odstepstwa i ograniczenia
 
 - Weryfikator na dzisiejszym `parametry.json` bez przelacznika zglasza 3 bledy: 2 rynienki na kazdej plytce i regule
   bokow trojkata na porannej. Z `--r54` (stare reguly) zglasza 0 bledow i liczby zgodne z dokumentacja R54 / R57.
+- Od wersji po recenzji PR warianty D3-b wymagaja `--d3b` (wczesniej przechodzily bez przelacznika, choc na G0 przyjeto
+  D3-a); sama geometria i pliki wariantow D3-b sie nie zmienily.
 - Narzedzie przeglada uklady RZEDOWE (rzedy symetryczne, ciasno, takze w szachownice); to nie dowod, ze nie istnieje
   gestszy uklad nieregularny. Przeglad wieczornej jest pelny (do 6 rzedow). Przeglad porannej jest zawezony (do 7
   rzedow, najwyzej 2 rzedy fi 7,5, najmniejszy rozstaw); pelny nie skonczyl sie w 17 min. P-c nie pochodzi
