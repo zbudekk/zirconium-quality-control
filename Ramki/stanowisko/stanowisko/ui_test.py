@@ -2,7 +2,8 @@
 
 Uruchomienie: ``uruchom_okno.bat`` (z katalogu stanowisko/) albo ``py -3.12 -m stanowisko.ui_test [--skan …] [--projekty …]``.
 
-Okno: wybór pliku skanu (STL), folderu projektów, płytki (układy z ``[plytki]`` w ustawieniach: R59 i poprzedni
+Okno: wybór pliku skanu (STL), folderu projektów, płytki (domyślnie „rozpoznaj automatycznie”: program sam rozpoznaje
+układ ze skanu i podpisuje go pod listą; albo ręcznie układ z ``[plytki]`` w ustawieniach: R59 i poprzedni
 ``*_r54`` dla starych płytek; gdy skan nie pasuje do wybranego układu, okno pokazuje komunikat strażnika układu
 i przekreśloną mapę bez kolorów gniazd), współczynnika
 skurczu, numeru płytki (kwadraty: dołki kodu poza polem ø100), przycisk „Porównaj” z paskiem postępu
@@ -30,7 +31,7 @@ from PIL import Image, ImageDraw
 from PySide6.QtCore import QObject, Qt, QThread, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtCore import QPointF
-from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QFileDialog, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
                                QMainWindow, QMessageBox, QProgressBar, QPushButton, QSpinBox, QSplitter, QTableWidget, QTableWidgetItem,
                                QVBoxLayout, QWidget)
 
@@ -52,19 +53,29 @@ class Robotnik(QObject):
     gotowe = Signal(dict, dict, object)  # wynik, podgląd (gniazdo → WynikInspekcji), pula (do ponownego użycia)
     blad = Signal(str)
 
-    def __init__(self, skan: Path, projekty: Path, plytka: str, w: float, numer: int | None, ust: dict, pula: M.Pula | None):
+    def __init__(self, skan: Path, projekty: Path, plytka: str, w: float | None, numer: int | None, ust: dict, pula: M.Pula | None,
+                 pula_dla=None):
         super().__init__()
         self.skan, self.projekty, self.plytka, self.w, self.numer, self.ust, self.pula = skan, projekty, plytka, w, numer, ust, pula
+        self.pula_dla = pula_dla  # w → pula z pamięci okna albo None (współczynnik znany dopiero po rozpoznaniu płytki)
+
+    def _pula(self, w: float) -> M.Pula:
+        p = self.pula_dla(w) if self.pula_dla is not None else None
+        if p is None:
+            self.postep.emit("pula projektów (wczytanie STL)", 0.45)
+            p = M.Pula([self.projekty], w)
+        return p
 
     def uruchom(self) -> None:
         try:
             podglad: dict = {}
-            if self.pula is None:
+            kontekst: dict = {}
+            if self.pula is None and self.w is not None:
                 self.postep.emit("pula projektów (wczytanie STL)", 0.05)
                 self.pula = M.Pula([self.projekty], self.w)
             wynik = PO.porownaj(self.skan, [self.projekty], self.plytka, self.ust, self.w, self.numer, "auto", False, self.pula,
-                                podglad=podglad, postep=lambda e, u: self.postep.emit(e, u))
-            self.gotowe.emit(wynik, podglad, self.pula)
+                                podglad=podglad, postep=lambda e, u: self.postep.emit(e, u), pula_dla=self._pula, kontekst=kontekst)
+            self.gotowe.emit(wynik, podglad, kontekst.get("pula") or self.pula)
         except Exception as e:  # noqa: BLE001 — każdy błąd silnika trafia do okna
             self.blad.emit(f"{type(e).__name__}: {e}\n{traceback.format_exc()}")
 
@@ -247,6 +258,9 @@ class Okno(QMainWindow):
         self.lista_plytek = QComboBox()
         self.lista_plytek.addItems(list(self.ust["plytki"]))
         self.lista_plytek.currentTextChanged.connect(self.zmiana_plytki)
+        self.pole_auto = QCheckBox("rozpoznaj automatycznie")
+        self.pole_auto.setToolTip("Program sam rozpoznaje płytkę ze skanu: wieczorna / poranna, nowy układ gniazd (R59) / stary (R54), kwadrat / koło.")
+        self.etykieta_plytki = QLabel("")
         self.pole_wspolczynnik = QDoubleSpinBox()
         self.pole_wspolczynnik.setRange(0.5, 2.0)
         self.pole_wspolczynnik.setDecimals(3)
@@ -267,6 +281,8 @@ class Okno(QMainWindow):
         form.addWidget(self.przycisk_projekty, 1, 2)
         form.addWidget(QLabel("Płytka:"), 2, 0)
         form.addWidget(self.lista_plytek, 2, 1)
+        form.addWidget(self.pole_auto, 2, 2)
+        form.addWidget(self.etykieta_plytki, 4, 2)
         form.addWidget(QLabel("Współczynnik skurczu:"), 3, 0)
         form.addWidget(self.pole_wspolczynnik, 3, 1)
         form.addWidget(QLabel("Numer płytki (kwadraty: dołki poza polem):"), 4, 0)
@@ -307,6 +323,8 @@ class Okno(QMainWindow):
         dzielnik.setSizes([450, 650])
         uklad.addWidget(dzielnik, 1)
         self.zmiana_plytki(self.lista_plytek.currentText())
+        self.pole_auto.toggled.connect(self.zmiana_auto)
+        self.pole_auto.setChecked(True)  # domyślnie program sam rozpoznaje płytkę; wybór z listy wyłącza tryb automatyczny
         self.resize(1200, 820)
 
     # --- pola
@@ -320,7 +338,29 @@ class Okno(QMainWindow):
         if p:
             self.pole_projekty.setText(p)
 
+    def tryb_auto(self) -> bool:
+        return self.pole_auto.isChecked()
+
+    def zmiana_auto(self, wlaczone: bool) -> None:
+        """Tryb automatyczny: lista układów nieaktywna, współczynnik „auto” (domyślny dla rozpoznanej płytki), numer do 15."""
+        self.lista_plytek.setEnabled(not wlaczone)
+        if not wlaczone:
+            self.pole_wspolczynnik.setSpecialValueText("")
+            self.etykieta_plytki.setText("")
+            self.zmiana_plytki(self.lista_plytek.currentText())
+            return
+        wiecz = (self.ust["synth"]["wspolczynnik_min"] + self.ust["synth"]["wspolczynnik_max"]) / 2
+        self.pole_wspolczynnik.setSpecialValueText(f"auto (wieczorna {wiecz:.3f} / poranna {S.WSPOLCZYNNIK_PORANNA[0]:.3f})")
+        self.pole_wspolczynnik.setValue(self.pole_wspolczynnik.minimum())
+        self.pole_numer.setMaximum(15)
+        self.etykieta_plytki.setText("płytka zostanie rozpoznana ze skanu")
+        self.uk = None
+        self.mapa.ustaw(None, None)
+
     def zmiana_plytki(self, nazwa: str) -> None:
+        if getattr(self, "pole_auto", None) is not None and self.pole_auto.isChecked():
+            self.pole_auto.setChecked(False)  # układ wybrany z listy (także programowo) = tryb ręczny; zmiana_auto wywoła nas ponownie
+            return
         try:
             self.uk = U.wczytaj(nazwa, UST.katalog_plytki(self.ust, nazwa))
         except Exception as e:  # noqa: BLE001
@@ -339,16 +379,20 @@ class Okno(QMainWindow):
         if not projekty.is_dir():
             QMessageBox.warning(self, "Brak projektów", f"Nie ma folderu projektów: {projekty}")
             return
-        plytka = self.lista_plytek.currentText()
-        w = round(self.pole_wspolczynnik.value(), 4)
+        auto = self.tryb_auto()
+        plytka = PO.AUTO if auto else self.lista_plytek.currentText()
+        w_auto = auto and self.pole_wspolczynnik.value() <= self.pole_wspolczynnik.minimum() + 1e-9  # pole pokazuje „auto (…)”
+        w = None if w_auto else round(self.pole_wspolczynnik.value(), 4)
         numer = self.pole_numer.value() or None
-        klucz = (str(projekty.resolve()), w)
-        pula = self.pule.get(klucz)
+        folder = str(projekty.resolve())
+        klucz = (folder, w)
+        pula = self.pule.get(klucz) if w is not None else None
         self.przycisk_porownaj.setEnabled(False)
         self.pasek.setValue(0)
         self.etykieta_stanu.setText("start…")
         self.watek = QThread()
-        self.robotnik = Robotnik(skan, projekty, plytka, w, numer, self.ust, pula)
+        self.robotnik = Robotnik(skan, projekty, plytka, w, numer, self.ust, pula,
+                                 pula_dla=lambda w_: self.pule.get((folder, round(w_, 4))))
         self.robotnik.moveToThread(self.watek)
         self.watek.started.connect(self.robotnik.uruchom)
         self.robotnik.postep.connect(self.postep)
@@ -365,14 +409,31 @@ class Okno(QMainWindow):
 
     def gotowe(self, wynik: dict, podglad: dict, pula: M.Pula) -> None:
         self.wynik, self.podglad = wynik, podglad
-        self.pule[self._klucz_puli] = pula
+        if pula is not None:
+            klucz = self._klucz_puli if self._klucz_puli[1] is not None else (self._klucz_puli[0], round(pula.wspolczynnik, 4))
+            self.pule[klucz] = pula
+        if wynik.get("plytka_wybor") == "auto":  # układ rozpoznany przez program: pokaż go i narysuj jego mapę
+            ua = wynik.get("uklad_auto") or {}
+            if wynik.get("uklad_zgodny") is False:
+                self.uk = None
+                self.etykieta_plytki.setText("nie rozpoznano płytki")
+            else:
+                self.uk = U.wczytaj(wynik["plytka"], UST.katalog_plytki(self.ust, wynik["plytka"]))
+                self.etykieta_plytki.setText(f"rozpoznano: {wynik['plytka']} — {PO.opis_ukladu(wynik['plytka'], self.uk)}; nr {wynik['numer'] or '?'}; "
+                                             f"współczynnik {wynik['wspolczynnik']:.3f}" + ("" if ua.get("pewny", True) else " — NIEPEWNE: wpisz numer płytki albo wybierz układ z listy"))
         self.pasek.setValue(100)
         self.przycisk_porownaj.setEnabled(True)
         st = wynik["statusy_gniazd"]
         self.etykieta_stanu.setText(f"gotowe: {wynik['czas_s']['razem']} s; " + ", ".join(f"{PO.OPISY_STATUSU[s]} {n}" for s, n in st.items() if n) + f"; ubytków {wynik['ubytki']}")
         self.mapa.ustaw(self.uk, wynik)
         self.wypelnij_tabele()
-        if wynik.get("uklad_zgodny") is False:  # strażnik układu (R59): żadnych gniazd, czytelny komunikat zamiast błędu wyrównania
+        if wynik.get("uklad_zgodny") is False and wynik.get("plytka_wybor") == "auto":  # żaden układ z ustawień nie pasuje do skanu
+            self.etykieta_stanu.setText("NIE ROZPOZNANO UKŁADU PŁYTKI")
+            QMessageBox.warning(self, "Nie rozpoznano układu płytki",
+                                "Program nie rozpoznał, jaka płytka jest na skanie — żadne gniazdo nie zostało ocenione.\n\n"
+                                "Sprawdź, czy skan obejmuje całą płytkę z trzema stożkami znaczników. Możesz też wyłączyć „rozpoznaj "
+                                "automatycznie” i wybrać układ z listy.\n\n" + wynik["uklad_komunikat"])
+        elif wynik.get("uklad_zgodny") is False:  # strażnik układu (R59): żadnych gniazd, czytelny komunikat zamiast błędu wyrównania
             self.etykieta_stanu.setText("PŁYTKA NIE PASUJE DO WYBRANEGO UKŁADU")
             pasuja = wynik.get("uklady_pasujace") or []
             # stary lokalny ustawienia.toml (bez układów *_r54) i żaden układ nie pasuje: podpowiedź, których wierszy brakuje
@@ -489,7 +550,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--skan", type=Path, default=None)
     ap.add_argument("--projekty", type=Path, default=None)
-    ap.add_argument("--plytka", default=None)
+    ap.add_argument("--plytka", default=None, help="układ z [plytki]; bez tej opcji okno rozpoznaje płytkę automatycznie")
     ap.add_argument("--ustawienia", type=Path, default=None)
     a = ap.parse_args(argv)
     app = QApplication.instance() or QApplication(sys.argv)
@@ -499,6 +560,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.projekty:
         okno.pole_projekty.setText(str(a.projekty))
     if a.plytka:
+        okno.pole_auto.setChecked(False)
         okno.lista_plytek.setCurrentText(a.plytka)
     okno.show()
     return app.exec()

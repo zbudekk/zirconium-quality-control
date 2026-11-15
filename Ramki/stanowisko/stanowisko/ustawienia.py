@@ -83,6 +83,24 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
 }
 
 
+# Układy płytek dostarczane z programem. Układ, którego nie ma w [plytki] lokalnego ustawienia.toml (plik sprzed R59 nie ma
+# wierszy *_r54), jest dopisywany przy wczytaniu, jeśli jego katalog z uklad.json istnieje — stare płytki fizyczne działają
+# bez ręcznej zmiany pliku, a automatyczne rozpoznanie układu (porownaj: --plytka auto) widzi wszystkie układy.
+UKLADY_WBUDOWANE = ("wieczorna", "poranna", "okragla_wieczorna", "okragla_poranna",
+                    "wieczorna_r54", "poranna_r54", "okragla_wieczorna_r54", "okragla_poranna_r54")
+KATALOG_MODELI_WZGLEDNY = "modele_plytek"
+
+
+def uzupelnij_uklady_wbudowane(d: dict) -> list[str]:
+    """Dopisuje do ``d["plytki"]`` brakujące układy wbudowane, których katalog istnieje; zwraca nazwy dopisanych."""
+    dopisane = []
+    for nazwa in UKLADY_WBUDOWANE:
+        if nazwa not in d["plytki"] and (KORZEN / KATALOG_MODELI_WZGLEDNY / nazwa / "uklad.json").exists():
+            d["plytki"][nazwa] = f"{KATALOG_MODELI_WZGLEDNY}/{nazwa}"
+            dopisane.append(nazwa)
+    return dopisane
+
+
 class BladUstawien(ValueError):
     """Zły plik ustawień; komunikat zaczyna się od nazwy pliku i klucza."""
 
@@ -162,7 +180,9 @@ def wczytaj_ustawienia(plik: Path | None = None) -> dict:
             d = tomllib.load(f)
     except tomllib.TOMLDecodeError as e:
         raise BladUstawien(f"{plik.name}: błąd składni TOML: {e}") from e
-    return _waliduj(d, plik)
+    d = _waliduj(d, plik)
+    uzupelnij_uklady_wbudowane(d)
+    return d
 
 
 @functools.lru_cache(maxsize=1)

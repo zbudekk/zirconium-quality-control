@@ -17,7 +17,9 @@ okragla_wieczorna = "modele_plytek/okragla_wieczorna"   # płytki okrągłe ø10
 okragla_poranna = "modele_plytek/okragla_poranna"
 # Powyżej układ gniazd R59 (14.11.2026: wieczorna 18 + 1 rynienka, poranna 23 + 1). Poniżej poprzedni układ R54
 # (18 + 2 i 31 + 2) — dla płytek fizycznych zamówionych przed R59; numery płytek są te same (n1–n6, n8, n9),
-# więc układ wybiera człowiek, a program ostrzega, gdy skan nie pasuje do wybranego układu (plate: strażnik układu).
+# więc układ rozpoznaje program ze skanu po rozstawie stożków (porownaj: --plytka auto, okno: „rozpoznaj automatycznie”);
+# przy układzie wybranym ręcznie program ostrzega, gdy skan do niego nie pasuje (plate: strażnik układu).
+# Wiersze okragla_* i *_r54 są opcjonalne: brakujące układy dostarczane z programem są dopisywane przy wczytaniu ustawień.
 wieczorna_r54 = "modele_plytek/wieczorna_r54"
 poranna_r54 = "modele_plytek/poranna_r54"
 okragla_wieczorna_r54 = "modele_plytek/okragla_wieczorna_r54"
