@@ -128,9 +128,10 @@ Sprawdzone i pozostawione BEZ ZMIAN:
 | 14. Zmiany | punkt 28 |
 | po recenzji R59-B iter 1, uwaga D3 | wiersz rejestru R59 (linia 890): odeslanie do `raport_wykonawcy_R59_iter2.md` zamiast `..._iter1.md` i dopisany werdykt recenzji (ZALICZONY, B 0 / P 0 / D 5); lista zmian protokolu w wierszu R59 i w sekcji 14 pkt 28 (linia 955) uzupelniona o K-11 i K-13 (wg diff protokolu: tabela 1, K-05, K-08, K-09, K-11, K-13, K-16, K-59, K-61, K-62) |
 | po recenzji R59-B iter 1, uwaga D5 | 4.1 p. 5 (linia 463): 4 dolki kodu zamiast 3 - dopisany bit D (-45; -27) z `code_bit_d_pos`, plik bazowy = 4 dolki, n = A + 2B + 4C + 8D (na n1-n6 dolka D nie ma); przyklad JSON (linia 478): dopisany dolek D. Zgodne z `parametry.json` i z `uklad_gniazd_wieczorna.json` |
+| po recenzji PR runda 1, uwaga 12b | sekcja 11 (linia 789, nowy akapit pod tabela kosztow): zdanie "[R59] ... obowiazuje arkusz zamowienia `R59_arkusz_zamowienia.md`" z liczbami z tego arkusza: drukarnia 10 pozycji x ilosci 1008,05 cm3, wariant najtanszy 907-1613 zl, pokazowy 1216-2161 zl; z plytkami okraglymi n8 i n9 (12 pozycji) 1107,05 cm3, 996-1771 zl i 1305-2320 zl; plytki kwadratowe 59,66 i 59,94-59,95 cm3/szt. Sam szacunek (tabela "62 / 61", razem ok. 1 033 cm3, 935-1 655 zl) nie zostal przerobiony. Dopisek przesuwa dalsze linie planu o 2 (wiersz rejestru R59: linia 892, sekcja 14 pkt 28: linia 957) |
 
-Sekcja 11 planu (wstepny koszt, objetosci "ok. 62 / 61") zostala bez zmian: to szacunek sprzed R54, obowiazuja wartosci z `arkusz_zamowienia`.
-SHA-256: 8ce66391a01e... -> a9b0903f2e4da661e4b298b8ccc5f4c2904983c7961e6b0235ed523893c2cf97 (stan po poprawkach po recenzji; wersja oddana do recenzji R59-B iter 1 miala d49de129b04b...). Diff wzgledem stanu sprzed R59: 59 linii dodanych, 56 usunietych (poprawki po recenzji: 4 linie).
+Sekcja 11 planu (wstepny koszt, objetosci "ok. 62 / 61"): sam szacunek zostal bez zmian (pochodzi sprzed R54); po recenzji PR runda 1 dopisano pod tabela zdanie [R59], ze obowiazuje arkusz zamowienia (wiersz wyzej).
+SHA-256: 8ce66391a01e... -> 5e7379a688ee7fd91dbf803f84c065421555926c822b30d7de1a674a5efb7424 (stan po recenzji PR runda 1; wczesniej: d49de129b04b... oddany do recenzji R59-B iter 1, a9b0903f2e4d... po poprawkach D3 i D5). Diff wzgledem stanu sprzed R59: 61 linii dodanych, 56 usunietych (po recenzji R59-B: 4 linie zmienione; po recenzji PR runda 1: 2 linie dodane).
 
 ## 5. `protokol_weryfikacji_v2.md` i `00_PRZEPLYW_I_BRAMKI.md` - edycje
 
@@ -167,6 +168,8 @@ Przebiegi (PC, konto `<konto-PC>`, katalog `<PC-katalog>\r59\Ramki`, Blender 5.2
 SHA-256 12 STL plytek i 4 JSON ukladu sa identyczne w trzech przebiegach budujacych (1, 2, 5) - porownanie list. Przed przebiegiem 1 cztery stare `wyniki_v2/json/uklad_gniazd_*.json` przeniesiono do archiwum (inaczej generator zachowalby stara liste `sockets`).
 
 Wkladka (znana pulapka): w przebiegu 2 `ramka_wkladka_v2.stl` mial SHA de0d26c5796a...; porownanie z plikiem f4196fbc6404... z archiwum: po 1806 trojkatow, 0 trojkatow z roznymi wierzcholkami, 4 normalne rozne bajtowo - we wszystkich 4 tylko znak zera (wartosci rowne). Plik f4196fbc przywrocony z `archiwum/wyniki_v2_przed_R59_2026-11-14/stl/`, wariant odlozony jako `archiwum/ramka_wkladka_v2_po_R59_iter1_znak_zera.stl`. W przebiegach 1 i 5 wkladka wyszla od razu z SHA f4196fbc (bez przywracania).
+
+Lista `wyniki_v2/raport/sha256_stl_po_R59_iter1.txt` (uwaga 6 recenzji PR runda 1): zostala zapisana PO przywroceniu wkladki z archiwum, dlatego jest bajtowo rowna liscie `sha256_stl_po_R59_iter2.txt` i podaje dla wkladki f4196fbc. Nie oddaje stanu plikow tuz po przebiegu 2 z tabeli (`ALL` iter 1): wtedy wkladka miala SHA de0d26c5796ab83c07cd05274a4e88e124a90cc3be73313ab3d8ac0ce3dea762 (tak w sekcji 2 `raport_wykonawcy_R59_iter1.md` i `raport_wykonawcy_SPRAWDZ_iter10.md`; ten wariant lezy w `archiwum/ramka_wkladka_v2_po_R59_iter1_znak_zera.stl`). Pozostale 20 pozycji listy jest takie samo w obu stanach. Tresci pliku listy nie zmieniano (format `sha256sum -c`).
 
 9 plikow nieplytkowych, stan koncowy = `Ramki_pakiet/SHA256SUMS_2026-11-02_R57.txt`: blat 8c48856e, korpus P aadb91c9, korpus W bd55871c, wkladka f4196fbc, pokrywka ad234444, tulejka DC b393256c, podkladki 4260d1f1 / e79a8051 / 9c47aea4.
 

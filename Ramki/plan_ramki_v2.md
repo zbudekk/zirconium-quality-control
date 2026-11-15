@@ -786,6 +786,8 @@ Z gabarytów (objętość materiału, nie bryły); stawka orientacyjna MJF/SLS P
 | Tulejka DC, podkładki panelu | 1 + 3 | 2 + 24 | ~5 | druk własny (PETG FDM, kolega) [R55] | — |
 | **Razem drukarnia** | | | ~1 033 | **935–1 655 zł** | **1 235–2 180 zł** |
 
+**[R59]** Tabela powyżej to szacunek sprzed R54 (płytki „62 / 61”) i nie jest przeliczana; obowiązuje arkusz zamówienia `R59_arkusz_zamowienia.md` (objętości z siatek STL układu R59): drukarnia 10 pozycji × ilości — 1008,05 cm³, wariant najtańszy 907–1613 zł, pokazowy 1216–2161 zł; z płytkami okrągłymi n8 i n9 (12 pozycji) — 1107,05 cm³, 996–1771 zł i 1305–2320 zł; płytki kwadratowe: wieczorna 59,66 cm³/szt. (n1–n3 razem 178,98), poranna 59,94–59,95 cm³/szt. (n4–n6 razem 179,84).
+
 Największy koszt to korpus (ok. 40 %). Jeśli wycena przekroczy budżet: zmniejszyć `wall_t` do 2,0 i `floor_t` do 2,5 (−15 % korpusu) albo zamówić korpus w SLS zamiast MJF (często taniej dla dużych brył). Objętości korpusu i blatu są szacunkiem po R50 (+10 cm³ za 5 mm wysokości, −3 za daszki/żebra/bossy; blat −2 za bossy ramy) — obowiązują wartości z `arkusz_zamowienia`.
 
 ---
