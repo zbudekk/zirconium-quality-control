@@ -44,6 +44,11 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "filtr_wymiar_mm": (float, "match"),
         "filtr_wymiar_udzial": (float, "match"),
         "filtr_objetosc_udzial": (float, "match"),
+        "filtr_wysokosc_min_udzial": (float, "match"),
+        "korekta_skali": (bool, "match"),
+        "korekta_skali_okno_proc": (float, "match"),
+        "korekta_skali_ostrzezenie_proc": (float, "match"),
+        "korekta_skali_pas_brzegu_mm": (float, "match"),
         "pula_wieczor_dni": (int, PRZYSZLY),
         "pula_rano_dni_roboczych": (int, PRZYSZLY),
         "usun_z_puli_po_dniach": (int, PRZYSZLY),
@@ -144,6 +149,10 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(0 < m["prog_ostrzezenia_pokrycie"] <= m["prog_akceptacji_pokrycie"], "match", "prog_ostrzezenia_pokrycie", "udział z (0, prog_akceptacji_pokrycie]")
     warunek(0 <= m["pewnosc_min"] <= 1, "match", "pewnosc_min", "udział z [0, 1]")
     warunek(m["filtr_wymiar_mm"] >= 0 and m["filtr_wymiar_udzial"] >= 0 and m["filtr_objetosc_udzial"] >= 0, "match", "filtr_wymiar_mm", "tolerancje filtru ≥ 0")
+    warunek(0 <= m["filtr_wysokosc_min_udzial"] <= 1, "match", "filtr_wysokosc_min_udzial", "udział z [0, 1]")
+    warunek(0 < m["korekta_skali_okno_proc"] <= 5, "match", "korekta_skali_okno_proc", "okno korekty skali w procentach, z (0, 5]")
+    warunek(0 <= m["korekta_skali_ostrzezenie_proc"] <= m["korekta_skali_okno_proc"], "match", "korekta_skali_ostrzezenie_proc", "próg ostrzeżenia z [0, korekta_skali_okno_proc]")
+    warunek(m["korekta_skali_pas_brzegu_mm"] >= 0, "match", "korekta_skali_pas_brzegu_mm", "musi być >= 0")
     warunek(1 <= d["ramki"]["port"] <= 65535, "ramki", "port", "port 1…65535")
     rgb = d["excel"]["kolor_rgb"]
     warunek(len(rgb) == 3 and all(_typ_zgodny(c, int) and 0 <= c <= 255 for c in rgb), "excel", "kolor_rgb", "trzy liczby 0…255")
