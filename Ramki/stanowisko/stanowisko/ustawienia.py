@@ -62,6 +62,9 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "wciecie_min_mm": (float, "inspect"),
         "wciecie_pewne_mm": (float, "inspect"),
         "linia_min_udzial": (float, "inspect"),
+        "pas_brzegu_od": (str, "inspect"),
+        "brzeg_min_sprawdzony": (float, "inspect"),
+        "brzeg_max_przerwa_mm": (float, "inspect"),
     },
     "synth": {
         "szum_sigma_mm": (float, "synth"),
@@ -144,6 +147,9 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(i["drgniecie_odchylka_mm"] > 0 and 0 < i["drgniecie_udzial_w_komorce"] <= 1 and 0 < i["drgniecie_udzial_obszaru"] <= 1, "inspect", "drgniecie_udzial_obszaru", "odchyłka > 0, udziały z (0, 1]")
     warunek(0 < i["wciecie_min_mm"] <= i["wciecie_pewne_mm"], "inspect", "wciecie_min_mm", "musi być 0 < wciecie_min_mm <= wciecie_pewne_mm")
     warunek(0 <= i["linia_min_udzial"] <= 1, "inspect", "linia_min_udzial", "udział z [0, 1]")
+    warunek(i["pas_brzegu_od"] in ("linia", "plaszczyzna"), "inspect", "pas_brzegu_od", "dopuszczalne: linia, plaszczyzna")
+    warunek(0 <= i["brzeg_min_sprawdzony"] <= 1, "inspect", "brzeg_min_sprawdzony", "udział z [0, 1]")
+    warunek(i["brzeg_max_przerwa_mm"] >= 0, "inspect", "brzeg_max_przerwa_mm", "musi być >= 0")
     warunek(0 < m["prog_akceptacji_pokrycie"] <= 1, "match", "prog_akceptacji_pokrycie", "udział z przedziału (0, 1]")
     warunek(m["odleglosc_max_mm"] > 0, "match", "odleglosc_max_mm", "musi być > 0")
     warunek(0 < m["prog_ostrzezenia_pokrycie"] <= m["prog_akceptacji_pokrycie"], "match", "prog_ostrzezenia_pokrycie", "udział z (0, prog_akceptacji_pokrycie]")

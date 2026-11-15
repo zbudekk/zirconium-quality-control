@@ -3,6 +3,7 @@
 Użycie (z katalogu stanowisko/):
     py -3.12 narzedzia/metryki_P3a.py --skany dane/syntetyczne_P2 dane/syntetyczne_P3a --projekty C:/Users/.../Prace_test
         [--wyjscie dane/wyniki_P3a] [--limit N] [--wzorzec "skan_*.stl"] [--sufiks-ukladu _r54] [--procesy N]
+        [--ustawienia plik.toml] [--pamiec-linii katalog]
 
 ``--sufiks-ukladu _r54``: zestawy wygenerowane przed R59 (``dane/syntetyczne_P2``, ``dane/syntetyczne_P3a``) mają w prawdzie
 płytkę ``wieczorna`` / ``poranna`` / ``okragla_…``, a to był układ gniazd R54 — przyrostek kieruje je na układy ``*_r54``.
@@ -12,6 +13,11 @@ Dla każdego skanu pełny łańcuch ``porownaj.porownaj`` (plate → match → i
 (``porownaj.metryki`` + ``porownaj.metryki_inspekcji``). Zbiorczo: wykryte / fałszywe ubytki per metoda
 (A, B, A+B, czerwone, dowolne) i per scenariusz pracy (dobrze / bokiem / częściowo / drgnięcie), drgnięcie,
 poprawki, statusy gniazd, czasy. Wynik: ``<wyjscie>/metryki_P3a.json`` i tabela na stdout — bez nazw plików projektów.
+
+P2 / P4 (15.11.2026): liczniki osobno dla ubytków na krawędzi brzegu i na ścianie (``klasy``; dla prawdy sprzed P4 klasa
+jest liczona z linii brzegu projektu), prace całe ze statusem „nie sprawdzono” (żółte, to nie alarm) z powodami, czas
+inspect bez jednorazowego wyznaczania linii brzegu (``inspect_bez_linii``). ``--ustawienia`` z ``pas_brzegu_od =
+"plaszczyzna"`` daje pomiar „przed P2” tym samym kodem; ``--pamiec-linii`` trzyma linie brzegu na dysku (wspólne dla procesów).
 
 Sztuczne skany są danymi do budowy i pomiaru kodu; test skanera będzie w P3b na prawdziwych płytkach.
 """
@@ -28,6 +34,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from stanowisko import krawedz as KR  # noqa: E402
 from stanowisko import match as M  # noqa: E402
 from stanowisko import porownaj as PO  # noqa: E402
 from stanowisko import synth as S  # noqa: E402
@@ -70,7 +77,9 @@ def przelicz_skan(arg: tuple) -> dict:
 
     Funkcja na poziomie modułu, bo przy ``--procesy N`` wykonują ją procesy robocze (każdy z własną pulą projektów).
     """
-    p, projekty, sufiks, plik_ustawien = arg
+    p, projekty, sufiks, plik_ustawien = arg[:4]
+    if len(arg) > 4 and arg[4] is not None:
+        KR.ustaw_katalog_pamieci(arg[4])
     ust = UST.wczytaj_ustawienia(plik_ustawien)
     prawda = S.wczytaj_prawde(p.with_suffix(".json"))
     plytka = prawda.plytka if prawda.plytka.endswith(sufiks) else prawda.plytka + sufiks
@@ -87,28 +96,36 @@ def przelicz_skan(arg: tuple) -> dict:
         return {"niezgodny": {"skan": p.name, "zestaw": p.parent.name, "plytka": plytka, "pasujace": wynik["uklady_pasujace"], "komunikat": wynik["uklad_komunikat"]},
                 "linia": f"{p.name:38s} PŁYTKA NIE PASUJE DO UKŁADU {plytka} (pasujące: {', '.join(wynik['uklady_pasujace']) or 'brak'})"}
     mt = PO.metryki(wynik, prawda, pula)
-    mi = PO.metryki_inspekcji(wynik, prawda)
+    mi = PO.metryki_inspekcji(wynik, prawda, pula)
     klasy = {g.id: klasa_gniazda(g) for g in _UKLADY[plytka].sockets}
     per_klasa = {}
     for k in sorted(set(klasy.values())):  # te same liczniki co „razem”, ale tylko dla prac w gniazdach jednej średnicy
-        czesc = PO.metryki_inspekcji({**wynik, "gniazda": [g for g in wynik["gniazda"] if klasy.get(g["gniazdo"]) == k]}, prawda)
+        czesc = PO.metryki_inspekcji({**wynik, "gniazda": [g for g in wynik["gniazda"] if klasy.get(g["gniazdo"]) == k]}, prawda, pula)
         per_klasa[k] = {**czesc["razem"], "prac_prawda": sum(1 for x in prawda.prace if klasy.get(x.gniazdo) == k),
                         "drgniecie": czesc["drgniecie"], "poprawki": czesc["poprawki"]}
+    praw = {x.gniazdo: x for x in prawda.prace}
+    t_linii = sum(g["inspekcja"].get("czas_linii_s", 0.0) for g in wynik["gniazda"] if g["inspekcja"])
+    czasy = {**wynik["czas_s"], "linie_brzegu": round(t_linii, 2), "inspect_bez_linii": round(wynik["czas_s"]["inspect"] - t_linii, 2),
+             "razem_bez_linii": round(wynik["czas_s"]["razem"] - t_linii, 2)}
     rek = {
-        "skan": p.name, "zestaw": p.parent.name, "plytka": plytka, "seed": prawda.seed, "czas_s": wynik["czas_s"],
+        "skan": p.name, "zestaw": p.parent.name, "plytka": plytka, "seed": prawda.seed, "czas_s": czasy,
         "straznik": {k: v for k, v in wynik["jakosc_wyrownania"].items() if k.startswith("uklad_")}, "per_klasa_gniazda": per_klasa,
         "pominiete": len(prawda.pominiete),
         "ostrzezenia": [str(o.message) for o in ostrz], "metryki": mt, "inspekcja": mi, "statusy_gniazd": wynik["statusy_gniazd"],
         "gniazda": [{"gniazdo": g["gniazdo"], "status": g["status"], "status_gniazda": g["status_gniazda"],
-                     "inspekcja": ({k: v for k, v in g["inspekcja"].items() if k in ("status", "ubytki", "drgniecie", "linia_brzegu", "odchylki", "czas_s")} if g["inspekcja"] else None),
+                     "inspekcja": ({k: v for k, v in g["inspekcja"].items() if k in ("status", "ubytki", "drgniecie", "linia_brzegu", "odchylki", "czas_s", "brzeg", "czas_linii_s")}
+                                   if g["inspekcja"] else None),
                      "klasa": klasy.get(g["gniazdo"]),
+                     "projekt": (g["kandydaci"][0]["id"] if g["kandydaci"] else None),
+                     "projekt_prawda": (praw[g["gniazdo"]].projekt if g["gniazdo"] in praw else None),
+                     "ubytkow_prawda": (len(praw[g["gniazdo"]].ubytki) if g["gniazdo"] in praw else None),
                      "scenariusz": (PO.scenariusz(next(x for x in prawda.prace if x.gniazdo == g["gniazdo"])) if any(x.gniazdo == g["gniazdo"] for x in prawda.prace) else None)}
                     for g in wynik["gniazda"]],
     }
     r = mi["razem"]
     linia = (f"{p.name:38s} wyr {mt['wyrownanie']['max_przesuniecie_mm']:.4f}  top1 {mt['top1']}/{mt['prac_prawda']}  "
              f"ubytki {r['ubytkow']}: A {r['wykryte']['A']} B {r['wykryte']['B']} A+B {r['wykryte']['A+B']} cz {r['wykryte']['czerwony']} any {r['wykryte']['dowolny']}  "
-             f"całe {r['prac_calych']} alarm {r['prace_cale_z_alarmem']} cz {r['prace_cale_z_czerwonym']}  drg {mi['drgniecie']['wykryte']}/{mi['drgniecie']['prac']}  "
+             f"całe {r['prac_calych']} alarm {r['prace_cale_z_alarmem']} cz {r['prace_cale_z_czerwonym']} niespr {r['prace_cale_nie_sprawdzono']}  drg {mi['drgniecie']['wykryte']}/{mi['drgniecie']['prac']}  "
              f"gniazda {wynik['statusy_gniazd']}  {wynik['czas_s']['razem']} s")
     return {"rek": rek, "linia": linia}
 
@@ -124,13 +141,14 @@ def main() -> None:
     ap.add_argument("--ustawienia", type=Path, default=None)
     ap.add_argument("--sufiks-ukladu", default="", help="przyrostek układu dopisywany do nazwy płytki z prawdy, np. _r54 dla zestawów sprzed R59")
     ap.add_argument("--procesy", type=int, default=1, help="ile skanów liczyć równolegle (osobne procesy; czasy na płytkę są wtedy zawyżone)")
+    ap.add_argument("--pamiec-linii", type=Path, default=None, help="katalog pamięci podręcznej linii brzegu na dysku (wspólny dla procesów; domyślnie bez)")
     a = ap.parse_args()
     UST.wczytaj_ustawienia(a.ustawienia)  # błąd w pliku ustawień od razu, nie w procesie roboczym
     skany = sorted(p for d in a.skany for p in d.glob(a.wzorzec))[: a.limit]
     if not skany:
         raise SystemExit(f"brak skanów w {a.skany}")
     a.wyjscie.mkdir(parents=True, exist_ok=True)
-    zadania = [(p, tuple(a.projekty), a.sufiks_ukladu, a.ustawienia) for p in skany]
+    zadania = [(p, tuple(a.projekty), a.sufiks_ukladu, a.ustawienia, a.pamiec_linii) for p in skany]
     wyniki = []
     niezgodne = []
     t_start = time.time()
@@ -176,7 +194,8 @@ def main() -> None:
         "top1": sum(r["metryki"]["top1"] for r in wyniki), "top2": sum(r["metryki"]["top2"] for r in wyniki),
         "statusy_match": {s: sum(r["metryki"]["statusy"][s] for r in wyniki) for s in M.STATUSY},
         "statusy_gniazd": {s: sum(r["statusy_gniazd"][s] for r in wyniki) for s in PO.STATUSY_GNIAZDA},
-        "czas_s_mediana": {k: float(np.median([r["czas_s"][k] for r in wyniki])) for k in ("plate", "match", "inspect", "razem")},
+        "czas_s_mediana": {k: float(np.median([r["czas_s"][k] for r in wyniki]))
+                           for k in ("plate", "match", "inspect", "razem", "inspect_bez_linii", "razem_bez_linii", "linie_brzegu")},
         "czas_calosci_s": round(time.time() - t_start, 1),
         "uklad_niezgodny": len(niezgodne), "pominiete_projekty": sum(r["pominiete"] for r in wyniki),
         "straznik_max_gniazdo_nad_pelnym_mm2": max(r["straznik"].get("uklad_gniazdo_nad_pelnym_mm2", 0.0) for r in wyniki),
@@ -188,6 +207,18 @@ def main() -> None:
         bledne = sum(r["inspekcja"]["scenariusze"][s]["top1_bledny"] for r in wyniki)
         st = {k: sum(1 for r in wyniki for g in r["gniazda"] if g["scenariusz"] == s and g["status_gniazda"] == k) for k in PO.STATUSY_GNIAZDA}
         zb["top1_per_scenariusz"][s] = {"prac": prac, "top1_bledny": bledne, "top1_udzial": round((prac - bledne) / prac, 4) if prac else None, "statusy_gniazd": st}
+    # P2: prace całe (bez ubytków w prawdzie, trafny top-1) ze statusem „nie sprawdzono” wg powodu
+    powody: dict[str, int] = {}
+    for rek in wyniki:
+        for g in rek["gniazda"]:
+            ins = g["inspekcja"]
+            if ins and ins["status"] == "nie_sprawdzono" and g["ubytkow_prawda"] == 0 and g["projekt"] == g["projekt_prawda"]:
+                brzeg = ins.get("brzeg") or {}
+                p = sorted({x for f in brzeg.get("filary", []) if not f["sprawdzony"] for x in f["powody"]}) or ["brak linii projektu"]
+                powody["+".join(p)] = powody.get("+".join(p), 0) + 1
+    zb["nie_sprawdzono_prace_cale_powody"] = powody
+    zb["ustawienia_inspect"] = {k: UST.wczytaj_ustawienia(a.ustawienia)["inspect"][k]
+                                for k in ("pas_brzegu_od", "pas_brzegu_mm", "brzeg_min_sprawdzony", "brzeg_max_przerwa_mm")}
     out = {"skany": wyniki, "zbiorczo": zb, "uklad_niezgodny": niezgodne}
     (a.wyjscie / a.nazwa).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     print("\nZBIORCZO:", json.dumps({k: v for k, v in zb.items() if k not in ("scenariusze", "per_klasa_gniazda")}, ensure_ascii=False))
@@ -196,6 +227,12 @@ def main() -> None:
               f"prace całe {v.get('prac_calych', 0)}, z alarmem {v.get('prace_cale_z_alarmem', 0)}, fałszywe czerwone {v.get('falszywe_czerwone', 0)}")
     for s, v in zb["scenariusze"].items():
         print(f"SCENARIUSZ {s}: {json.dumps(v, ensure_ascii=False)}")
+    for kl, v in zb["razem"].get("klasy", {}).items():
+        print(f"POŁOŻENIE {kl}: ubytków {v['wszystkich']}, wykrywalnych {v['ubytkow']}, wykryte {json.dumps(v['wykryte'], ensure_ascii=False)}")
+    r = zb["razem"]
+    print(f"PRACE CAŁE: {r['prac_calych']}, z czerwonym {r['prace_cale_z_czerwonym']}, z alarmem (czerwone / żółte „sprawdź”) {r['prace_cale_z_alarmem']}, "
+          f"nie sprawdzono {r['prace_cale_nie_sprawdzono']} (powody: {json.dumps(powody, ensure_ascii=False)}), "
+          f"gniazda {json.dumps(r['prace_cale_status_gniazda'], ensure_ascii=False)}")
     print(a.wyjscie / a.nazwa)
 
 

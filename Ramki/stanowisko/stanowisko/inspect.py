@@ -28,6 +28,15 @@ Kolejność: drgnięcie → jakość dopasowania (pokrycie < ``[match] prog_akce
 „popraw ułożenie”, ubytki nieliczone) → metoda A i B → decyzja: CZERWONE, gdy obie metody wskazują
 to samo miejsce albo wcięcie brzegu ≥ ``wciecie_pewne_mm``; ŻÓŁTE „sprawdź”, gdy tylko jedna.
 Progi wyłącznie w ``ustawienia.toml [inspect]``.
+
+Pas brzegu od linii brzegu (P2, 15.11.2026; ``pas_brzegu_od`` = ``linia``): pas ``pas_brzegu_mm`` liczy się jako
+odległość od linii krawędzi brzegu KAŻDEGO filaru projektu (moduł ``krawedz``: korona 1 pętla, most — pętla na filar,
+korona implantowa — obwód powierzchni przylegania), a nie od płaszczyzny z = 0: metoda A przyjmuje plamę, której środek
+leży ≤ pas od linii, metoda B próbkuje powierzchnię projektu ≤ pas od linii. Dla każdego filaru liczone jest, jaka część
+jego linii została sprawdzona (linia projektu zweryfikowana ORAZ dane skanu przy linii); filar z udziałem
+< ``brzeg_min_sprawdzony`` albo z odcinkiem bez sprawdzenia dłuższym niż ``brzeg_max_przerwa_mm`` (także: projekt bez
+wyznaczonej linii) daje status ``nie_sprawdzono`` — gniazdo nie jest zielone; brak danych nigdy nie daje czerwonego.
+``pas_brzegu_od`` = ``plaszczyzna`` zostawia sposób sprzed P2 (do porównań przed / po).
 """
 from __future__ import annotations
 
@@ -43,9 +52,15 @@ from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 from scipy.spatial import cKDTree
 
+from . import krawedz as KR
 from . import match as M
 
-STATUSY = ("ok", "ubytek", "sprawdz", "sprawdz_ulozenie", "poprawka", "skan_ponownie", "popraw_ulozenie", "pominieto")
+STATUSY = ("ok", "ubytek", "sprawdz", "sprawdz_ulozenie", "poprawka", "skan_ponownie", "popraw_ulozenie", "nie_sprawdzono", "pominieto")
+PAS_OD = ("linia", "plaszczyzna")  # [inspect] pas_brzegu_od: pas brzegu od linii brzegu każdego filaru (P2) albo, jak przed P2, od płaszczyzny z = 0
+OTOCZENIE_STACJI_MM = 0.3  # stacja linii brzegu „ma dane”, gdy punkty próbki pasa w tym promieniu od niej mają powierzchnię skanu …
+UDZIAL_DANYCH_STACJI = 0.5  # … co najmniej w takiej części
+ODCINEK_MIN_MM = 0.2  # krótsze odcinki linii bez sprawdzenia nie są wypisywane w wyniku (liczą się do udziału)
+ODCINKOW_MAX = 12  # najwyżej tyle najdłuższych odcinków bez sprawdzenia na filar w wyniku JSON
 KAT_KRAWEDZI_DEG = 40.0  # ostra krawędź projektu (jak synth.strona_brzegu)
 ODLEGLOSC_KRAWEDZI_MM = 0.5  # plama w tej odległości od ostrej krawędzi projektu liczy się jak w pasie brzegu
 EPS_PLAMY_MM = 0.25  # łączenie punktów pod powierzchnią w plamę
@@ -66,9 +81,10 @@ class Ubytek:
     metoda: str  # A | B | A+B
     kolor: str  # czerwony | zolty
     punkty: int = 0
-    odleglosc_od_brzegu_mm: float = 0.0  # odległość środka od brzegu (z = 0 w układzie projektu)
+    odleglosc_od_brzegu_mm: float = 0.0  # odległość środka od linii brzegu najbliższego filaru (pas od płaszczyzny: od z = 0 projektu)
     wciecie_mm: float = 0.0  # metoda B: głębokość wcięcia linii brzegu
     na_krawedzi: bool = False
+    filar: int = 0  # numer filaru (pętli linii brzegu), przy którym leży ubytek; 0 = nieznany (pas od płaszczyzny, brak linii)
 
 
 @dataclass
@@ -86,6 +102,7 @@ class Plama:
     odleglosc_od_brzegu_mm: float
     na_krawedzi: bool
     rodzaj: str  # ubytek | poprawka | sprawdz_ulozenie | brak_danych | lagodna | poza_pasem | za_mala
+    filar: int = 0  # numer filaru najbliższej linii brzegu (0 = nieznany)
 
 
 @dataclass
@@ -99,6 +116,8 @@ class Wciecie:
     punkty: int
     otoczenie_z_danymi: float  # udział punktów linii w otoczeniu odcinka, gdzie skan jest ciągły
     rodzaj: str  # wciecie | brak_danych | za_male
+    odleglosc_od_brzegu_mm: float = 0.0  # odległość środka od linii brzegu (pas od płaszczyzny: od z = 0 projektu)
+    filar: int = 0  # numer filaru najbliższej linii brzegu (0 = nieznany)
 
 
 @dataclass
@@ -115,6 +134,9 @@ class WynikInspekcji:
     odchylki: dict = field(default_factory=dict)
     uwagi: list[str] = field(default_factory=list)
     czas_s: float = 0.0
+    # P2: co z brzegu każdego filaru zostało sprawdzone (``ocena_brzegu``); {} = nie liczono (pas od płaszczyzny, drgnięcie, złe ułożenie)
+    brzeg: dict = field(default_factory=dict)
+    czas_linii_s: float = 0.0  # część ``czas_s`` zużyta na jednorazowe wyznaczenie linii brzegu projektu (0, gdy były w pamięci)
     # do podglądu (nie do JSON): punkty w układzie płytki i odchyłka każdego
     _P: np.ndarray | None = field(default=None, repr=False, compare=False)
     _d: np.ndarray | None = field(default=None, repr=False, compare=False)
@@ -149,6 +171,44 @@ def krawedzie_projektu(pr: M.Projekt) -> np.ndarray:
         e = m.face_adjacency_edges[m.face_adjacency_angles > math.radians(KAT_KRAWEDZI_DEG)]
         pr._krawedzie = (m.vertices[e[:, 0]] + m.vertices[e[:, 1]]) / 2 if len(e) else np.zeros((0, 3))
     return pr._krawedzie
+
+
+# ----------------------------------------------------------------------------
+# linie brzegu projektu (P2)
+# ----------------------------------------------------------------------------
+@dataclass
+class BrzegProjektu:
+    """Linie krawędzi brzegu projektu w układzie puli: stacje linii O i I wszystkich filarów (pas brzegu = odległość od
+    nich), stacje samej linii O (rachunek „co sprawdzono”) i próbka powierzchni projektu w pasie (metoda B)."""
+
+    linie: KR.LinieProjektu
+    X: np.ndarray  # (N, 3) stacje linii O i I
+    filar: np.ndarray  # (N,) indeks filaru stacji na liście linie.filary
+    drzewo: cKDTree | None  # None = projekt bez linii
+    XO: np.ndarray  # (K, 3) stacje linii O
+    filar_O: np.ndarray
+    zweryf_O: np.ndarray  # stacja leży na zweryfikowanym przekroju linii projektu
+    drzewo_O: cKDTree | None
+    probki: dict = field(default_factory=dict)  # pas → (punkty, normalne, najbliższa stacja O, odległość do niej, odległość od linii)
+
+
+_BRZEGI: dict[tuple, BrzegProjektu] = {}  # (klucz projektu, współczynnik) → linie w układzie puli; linie liczy raz moduł krawedz
+_BRZEGI_MAX = 256
+
+
+def brzeg_projektu(pr: M.Projekt) -> BrzegProjektu:
+    """Linie brzegu projektu z puli (``krawedz.linie_siatki`` na siatce puli), pamiętane na projekt i współczynnik."""
+    klucz = (KR.klucz_projektu(pr.id, pr.T0), round(float(pr.wspolczynnik), 9))
+    b = _BRZEGI.get(klucz)
+    if b is None:
+        linie = KR.linie_siatki(pr.siatka, skala=pr.wspolczynnik, klucz=klucz[0])
+        st, so = KR.stacje(linie, ("O", "I")), KR.stacje(linie, ("O",))
+        b = BrzegProjektu(linie, st["X"], st["filar"], cKDTree(st["X"]) if len(st["X"]) else None,
+                          so["X"], so["filar"], so["zweryf"], cKDTree(so["X"]) if len(so["X"]) else None)
+        if len(_BRZEGI) >= _BRZEGI_MAX:
+            _BRZEGI.pop(next(iter(_BRZEGI)))
+        _BRZEGI[klucz] = b
+    return b
 
 
 # ----------------------------------------------------------------------------
@@ -224,8 +284,11 @@ def _rozmiar(Q: np.ndarray) -> float:
     return float(hi - lo)
 
 
-def plamy_pod_powierzchnia(P_pula: np.ndarray, d: np.ndarray, pr: M.Projekt, ust_i: dict) -> list[Plama]:
-    """Skupiska punktów ≥ prog pod powierzchnią z klasyfikacją (ubytek / poprawka / sprawdź ułożenie / brak danych / łagodna / poza pasem)."""
+def plamy_pod_powierzchnia(P_pula: np.ndarray, d: np.ndarray, pr: M.Projekt, ust_i: dict, brzeg: BrzegProjektu | None = None) -> list[Plama]:
+    """Skupiska punktów ≥ prog pod powierzchnią z klasyfikacją (ubytek / poprawka / sprawdź ułożenie / brak danych / łagodna / poza pasem).
+
+    ``brzeg`` (linie brzegu projektu): pas brzegu = odległość środka plamy od linii brzegu najbliższego filaru;
+    None = sposób sprzed P2 (odległość od płaszczyzny z = 0 projektu)."""
     prog = ust_i["prog_glebokosci_mm"]
     rdzen = np.flatnonzero(d <= -prog)
     if len(rdzen) == 0:
@@ -251,7 +314,14 @@ def plamy_pod_powierzchnia(P_pula: np.ndarray, d: np.ndarray, pr: M.Projekt, ust
         n_pier = int(len(pierscien))
         med_pier = float(np.median(np.abs(d[pierscien]))) if n_pier else math.inf
         ostra = n_pier >= ust_i["min_punktow_plamy"] and med_pier <= prog / 2
-        odl_brzegu = float(max(0.0, -c[2]))
+        filar = 0
+        if brzeg is None:
+            odl_brzegu = float(max(0.0, -c[2]))
+        elif brzeg.drzewo is None:
+            odl_brzegu = math.inf  # projekt bez linii brzegu: pasa nie ma (zostaje reguła ostrej krawędzi projektu)
+        else:
+            odl_brzegu, j = brzeg.drzewo.query(c)
+            odl_brzegu, filar = float(odl_brzegu), int(brzeg.linie.filary[brzeg.filar[j]].nr)
         na_kraw = bool(drzewo_kr is not None and drzewo_kr.query(c)[0] <= ODLEGLOSC_KRAWEDZI_MM)
         if n_pier < ust_i["min_punktow_plamy"]:
             rodzaj = "brak_danych"
@@ -268,7 +338,7 @@ def plamy_pod_powierzchnia(P_pula: np.ndarray, d: np.ndarray, pr: M.Projekt, ust
         else:
             rodzaj = "ubytek"
         plamy.append(Plama(*map(float, c), round(srednica, 3), round(glebokosc, 4), int(len(idx)), bool(ostra), n_pier,
-                           round(med_pier, 4) if math.isfinite(med_pier) else -1.0, round(odl_brzegu, 3), na_kraw, rodzaj))
+                           round(med_pier, 4) if math.isfinite(med_pier) else -1.0, round(min(odl_brzegu, 999.0), 3), na_kraw, rodzaj, filar))
     return plamy
 
 
@@ -294,14 +364,46 @@ def probka_brzegu(pr: M.Projekt, pas: float) -> tuple[np.ndarray, np.ndarray]:
     return pr._probka_brzegu[1], pr._probka_brzegu[2]
 
 
+def probka_od_linii(pr: M.Projekt, pas: float, brzeg: BrzegProjektu) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Gęsta próbka powierzchni projektu w pasie ``pas`` od linii brzegu wszystkich filarów (P2): punkty, normalne,
+    numer najbliższej stacji linii O i odległość do niej, odległość od linii (O / I). Pamiętana w ``brzeg``."""
+    cache = brzeg.probki.get(pas)
+    if cache is None:
+        puste = (np.zeros((0, 3)), np.zeros((0, 3)), np.zeros(0, dtype=np.int64), np.zeros(0), np.zeros(0))
+        cache = puste
+        if brzeg.drzewo is not None:
+            m = pr.siatka
+            blisko = np.isfinite(brzeg.drzewo.query(m.vertices, distance_upper_bound=pas + 0.3)[0])
+            sel = np.flatnonzero(blisko[m.faces].any(axis=1))
+            if len(sel):
+                sub = trimesh.Trimesh(m.vertices, m.faces[sel], process=False)
+                ile = int(min(300000, max(2000, sub.area / GESTOSC_PROBKI_BRZEGU**2)))
+                pts, fid = trimesh.sample.sample_surface(sub, ile, seed=0)
+                pts, nrm = np.asarray(pts), np.asarray(sub.face_normals[fid])
+                odl = brzeg.drzewo.query(pts)[0]
+                w = odl <= pas
+                odl_O, st_O = brzeg.drzewo_O.query(pts[w])
+                cache = (pts[w], nrm[w], st_O.astype(np.int64), odl_O, odl[w])
+        brzeg.probki[pas] = cache
+    return cache
+
+
 BRAK_DANYCH_MM = 0.8  # metoda B: punkt linii bez wierzchołka skanu o zgodnej normalnej w tym promieniu = brak danych (0,5 odcinało rzadkie siatki: 16 % prac dobrze ułożonych miało linię < 90 %)
 SASIADOW_LINII = 8  # metoda B: tylu najbliższych wierzchołków skanu przeglądanych w poszukiwaniu zgodnej normalnej
 ZGODNOSC_NORMALNEJ = 0.2  # cos kąta normalna skanu · normalna linii brzegu
 UDZIAL_POD = 0.7  # metoda B: wektor do wierzchołka skanu ma leżeć głównie wzdłuż normalnej (pod linią), nie bocznie
 
 
-def linia_brzegu(P_pula: np.ndarray, N_pula: np.ndarray, pr: M.Projekt, ust_i: dict) -> tuple[list[Wciecie], dict]:
+def linia_brzegu(P_pula: np.ndarray, N_pula: np.ndarray, pr: M.Projekt, ust_i: dict, brzeg: BrzegProjektu | None = None) -> tuple[list[Wciecie], dict]:
+    """Metoda B (``_linia_brzegu``): wcięcia linii brzegu i liczniki; ``brzeg`` = pas od linii brzegu każdego filaru."""
+    return _linia_brzegu(P_pula, N_pula, pr, ust_i, brzeg)[:2]
+
+
+def _linia_brzegu(P_pula: np.ndarray, N_pula: np.ndarray, pr: M.Projekt, ust_i: dict, brzeg: BrzegProjektu | None = None):
     """Ciągłość linii brzegu: dla każdego punktu pasa brzegu projektu — czy skan ma tam powierzchnię.
+
+    Pas brzegu: z ``brzeg`` — powierzchnia projektu ≤ ``pas_brzegu_mm`` od linii brzegu każdego filaru (P2), bez —
+    z = 0 … −pas (sposób sprzed P2). Zwraca (wcięcia, liczniki, maska „punkt próbki ma powierzchnię skanu” albo None).
 
     Najbliższy wierzchołek skanu o zgodnej normalnej dalej niż BRAK_DANYCH_MM = brak odcinka linii (brak danych).
     Inaczej cofnięcie skanu = składowa wektora do tego wierzchołka wzdłuż normalnej linii do wnętrza materiału:
@@ -313,9 +415,9 @@ def linia_brzegu(P_pula: np.ndarray, N_pula: np.ndarray, pr: M.Projekt, ust_i: d
     pokrycia, nie próg ubytku).
     """
     pas, wmin = ust_i["pas_brzegu_mm"], ust_i["wciecie_min_mm"]
-    L, NL = probka_brzegu(pr, pas)
+    L, NL = probka_brzegu(pr, pas) if brzeg is None else probka_od_linii(pr, pas, brzeg)[:2]
     if len(L) == 0 or len(P_pula) == 0:
-        return [], {"punktow_linii": 0, "brak_danych": 0, "udzial_brak_danych": 0.0, "wciec": 0, "uwaga": "projekt bez pasa brzegu"}
+        return [], {"punktow_linii": 0, "brak_danych": 0, "udzial_brak_danych": 0.0, "wciec": 0, "uwaga": "projekt bez pasa brzegu"}, None
     # najbliższy wierzchołek skanu o normalnej zgodnej z linią (cienka ścianka: wierzchołek z drugiej strony
     # ścianki jest bliżej, ale to inna powierzchnia); brak takiego w promieniu BRAK_DANYCH_MM = brak danych
     kk = min(SASIADOW_LINII, len(P_pula))
@@ -358,7 +460,12 @@ def linia_brzegu(P_pula: np.ndarray, N_pula: np.ndarray, pr: M.Projekt, ust_i: d
             else:
                 rodzaj = "wciecie"
             c = Q.mean(0)
-            wciecia.append(Wciecie(float(c[0]), float(c[1]), float(c[2]), round(szer, 3), round(float(odl[idx].max()), 4), int(len(idx)), round(udz, 3), rodzaj))
+            odl_brzegu, filar = float(max(0.0, -c[2])), 0
+            if brzeg is not None:
+                odl_brzegu, j = brzeg.drzewo.query(c)
+                filar = int(brzeg.linie.filary[brzeg.filar[j]].nr)
+            wciecia.append(Wciecie(float(c[0]), float(c[1]), float(c[2]), round(szer, 3), round(float(odl[idx].max()), 4), int(len(idx)), round(udz, 3), rodzaj,
+                                   float(odl_brzegu), filar))
     udzial_ciagly = float((~daleko).mean())
     uwaga = None
     if udzial_ciagly < ust_i["linia_min_udzial"]:  # większość linii brzegu bez danych (praca bokiem, do góry nogami, zasłonięta): ciągłości nie da się ocenić
@@ -370,7 +477,83 @@ def linia_brzegu(P_pula: np.ndarray, N_pula: np.ndarray, pr: M.Projekt, ust_i: d
             "udzial_ciagly": round(udzial_ciagly, 4), "wciec": sum(1 for w in wciecia if w.rodzaj == "wciecie")}
     if uwaga:
         info["uwaga"] = uwaga
-    return wciecia, info
+    return wciecia, info, ma
+
+
+def _kryterium_brzegu(ok: np.ndarray, krok: float, ust_i: dict) -> tuple[bool, float, float]:
+    """(czy filar sprawdzony, udział stacji sprawdzonych, najdłuższy odcinek bez sprawdzenia [mm]) dla maski stacji linii O."""
+    udzial = float(ok.mean()) if len(ok) else 0.0
+    przerwa = KR.najdluzsza_przerwa(ok) * krok if len(ok) else 0.0
+    return bool(udzial >= ust_i["brzeg_min_sprawdzony"] and przerwa <= ust_i["brzeg_max_przerwa_mm"]), udzial, float(przerwa)
+
+
+def _odcinki_bez_sprawdzenia(spr: np.ndarray, zw: np.ndarray, X: np.ndarray, krok: float, T_pula_do_plytki: np.ndarray | None) -> list[dict]:
+    """Kołowe ciągi stacji bez sprawdzenia (≥ ODCINEK_MIN_MM), najdłuższe pierwsze: położenie wzdłuż linii O, długość,
+    powód (``linia`` = linia projektu niezweryfikowana, ``dane`` = brak danych skanu przy linii), środek odcinka (układ płytki)."""
+    n = len(spr)
+    if n == 0 or spr.all():
+        return []
+    start = int(np.argmax(spr)) if spr.any() else 0  # obrót, żeby ciąg nie był rozcięty końcem tablicy
+    kolej = (np.arange(n) + start) % n
+    zle = ~spr[kolej]
+    granice = np.flatnonzero(np.diff(np.concatenate([[False], zle, [False]]).astype(int)))
+    odcinki = []
+    for a, b in zip(granice[::2], granice[1::2]):
+        idx = kolej[a:b]
+        dl = len(idx) * krok
+        if dl < ODCINEK_MIN_MM:
+            continue
+        sr = X[idx[len(idx) // 2]]
+        if T_pula_do_plytki is not None:
+            sr = T_pula_do_plytki[:3, :3] @ sr + T_pula_do_plytki[:3, 3]
+        odcinki.append({"od_mm": round(float(idx[0] * krok), 2), "do_mm": round(float((idx[-1] + 1) * krok), 2), "dlugosc_mm": round(float(dl), 2),
+                        "powod": "linia" if (~zw[idx]).mean() >= 0.5 else "dane", "srodek": [round(float(v), 3) for v in sr]})
+    odcinki.sort(key=lambda o: -o["dlugosc_mm"])
+    return odcinki[:ODCINKOW_MAX]
+
+
+def ocena_brzegu(brzeg: BrzegProjektu, st_O: np.ndarray | None, odl_O: np.ndarray | None, ma_dane: np.ndarray | None, ust_i: dict,
+                 T_pula_do_plytki: np.ndarray | None = None) -> dict:
+    """Która część linii brzegu każdego filaru została sprawdzona (P2).
+
+    Stacja linii O jest sprawdzona, gdy leży na zweryfikowanym przekroju linii projektu ORAZ co najmniej
+    UDZIAL_DANYCH_STACJI punktów próbki pasa w promieniu OTOCZENIE_STACJI_MM od niej ma powierzchnię skanu
+    (``ma_dane`` z metody B). Filar jest sprawdzony, gdy udział sprawdzonych stacji ≥ ``brzeg_min_sprawdzony`` i
+    najdłuższy odcinek bez sprawdzenia ≤ ``brzeg_max_przerwa_mm``. Projekt bez linii = nic nie sprawdzono.
+    Wynik (do JSON): ``sprawdzony``, ``nie_sprawdzono`` (numery filarów), ``opis`` i na filar: długość linii, udziały
+    (linia pewna / z danymi / sprawdzona), najdłuższa przerwa, powody (``linia`` / ``dane``), odcinki bez sprawdzenia.
+    """
+    linie = brzeg.linie
+    if not linie.filary:
+        return {"sprawdzony": False, "stan_linii": "brak", "filarow": 0, "nie_sprawdzono": [], "filary": [],
+                "opis": "linii brzegu projektu nie wyznaczono" + (f" ({'; '.join(linie.uwagi)})" if linie.uwagi else "")}
+    n = len(brzeg.XO)
+    dane = np.zeros(n, dtype=bool)
+    if st_O is not None and ma_dane is not None and len(st_O):
+        blisko = odl_O <= OTOCZENIE_STACJI_MM
+        wszystkie = np.bincount(st_O[blisko], minlength=n)
+        z_danymi = np.bincount(st_O[blisko], weights=ma_dane[blisko].astype(float), minlength=n)
+        dane = (wszystkie > 0) & (z_danymi >= UDZIAL_DANYCH_STACJI * wszystkie)
+    filary, zle, opisy = [], [], []
+    for i, f in enumerate(linie.filary):
+        w = brzeg.filar_O == i
+        zw, dn = brzeg.zweryf_O[w], dane[w]
+        krok = f.linie["O"].krok
+        ok, udzial, przerwa = _kryterium_brzegu(zw & dn, krok, ust_i)
+        ok_linia, udzial_linii, przerwa_linii = _kryterium_brzegu(zw, krok, ust_i)
+        ok_dane, udzial_danych, _ = _kryterium_brzegu(dn, krok, ust_i)
+        powody = [] if ok else ([p for p, dobrze in (("linia", ok_linia), ("dane", ok_dane)) if not dobrze] or ["linia", "dane"])
+        filary.append({"nr": f.nr, "sprawdzony": ok, "dlugosc_mm": round(f.dlugosc, 2), "werdykt_linii": f.werdykt,
+                       "udzial_linii_pewnej": round(udzial_linii, 4), "udzial_z_danymi": round(udzial_danych, 4), "udzial_sprawdzony": round(udzial, 4),
+                       "najdl_przerwa_mm": round(przerwa, 2), "najdl_przerwa_linii_mm": round(przerwa_linii, 2), "powody": powody,
+                       "odcinki": _odcinki_bez_sprawdzenia(zw & dn, zw, brzeg.XO[w], krok, T_pula_do_plytki)})
+        if not ok:
+            zle.append(f.nr)
+            co = {"linia": f"linia projektu niepewna (pewne {udzial_linii:.0%} długości, najdłuższy odcinek niepewny {przerwa_linii:.1f} mm)",
+                  "dane": f"brak danych skanu przy linii (dane na {udzial_danych:.0%} długości)"}
+            opisy.append(f"filar {f.nr}: sprawdzono {udzial:.0%} linii brzegu, najdłuższy odcinek bez sprawdzenia {przerwa:.1f} mm — "
+                         + "; ".join(co[p] for p in powody))
+    return {"sprawdzony": not zle, "stan_linii": linie.stan, "filarow": len(filary), "nie_sprawdzono": zle, "filary": filary, "opis": "; ".join(opisy)}
 
 
 # ----------------------------------------------------------------------------
@@ -399,15 +582,15 @@ def polacz(plamy: list[Plama], wciecia: list[Wciecie], T_pula_do_plytki: np.ndar
         if para is not None:
             uzyte.add(para)
             w = B[para]
-            out.append(Ubytek(x, y, z, p.srednica_mm, p.glebokosc_mm, "A+B", "czerwony", p.punkty, p.odleglosc_od_brzegu_mm, w.wciecie_mm, p.na_krawedzi))
+            out.append(Ubytek(x, y, z, p.srednica_mm, p.glebokosc_mm, "A+B", "czerwony", p.punkty, p.odleglosc_od_brzegu_mm, w.wciecie_mm, p.na_krawedzi, p.filar))
         else:
-            out.append(Ubytek(x, y, z, p.srednica_mm, p.glebokosc_mm, "A", "zolty", p.punkty, p.odleglosc_od_brzegu_mm, 0.0, p.na_krawedzi))
+            out.append(Ubytek(x, y, z, p.srednica_mm, p.glebokosc_mm, "A", "zolty", p.punkty, p.odleglosc_od_brzegu_mm, 0.0, p.na_krawedzi, p.filar))
     for j, w in enumerate(B):
         if j in uzyte:
             continue
         x, y, z = _do_plytki(T_pula_do_plytki, (w.x, w.y, w.z))
         kolor = "czerwony" if w.wciecie_mm >= ust_i["wciecie_pewne_mm"] else "zolty"
-        out.append(Ubytek(x, y, z, w.szerokosc_mm, w.wciecie_mm, "B", kolor, w.punkty, float(max(0.0, -w.z)), w.wciecie_mm, False))
+        out.append(Ubytek(x, y, z, w.szerokosc_mm, w.wciecie_mm, "B", kolor, w.punkty, w.odleglosc_od_brzegu_mm, w.wciecie_mm, False, w.filar))
     return out
 
 
@@ -430,10 +613,15 @@ def sprawdz(P: np.ndarray, N: np.ndarray, pr: M.Projekt, transformacja: np.ndarr
         w.uwagi.append(f"podwójna powierzchnia: odchyłki rozmyte na {w.drgniecie['udzial_obszaru']:.0%} pracy — skan ponownie")
         w.czas_s = round(time.time() - t0, 3)
         return w
+    brzeg = None
+    if ui["pas_brzegu_od"] == "linia":  # P2: pas brzegu od linii brzegu każdego filaru (linie liczone raz na projekt)
+        t_linii = time.time()
+        brzeg = brzeg_projektu(pr)
+        w.czas_linii_s = round(time.time() - t_linii, 3)  # > 0 tylko przy pierwszej inspekcji projektu w procesie
     if pokrycie < um["prog_akceptacji_pokrycie"]:
         # gładka poprawka ręczna obniża pokrycie tak samo jak złe ułożenie: jeśli po odjęciu jej punktów pokrycie
         # wraca nad próg, to poprawka (pomarańczowe), nie „popraw ułożenie”
-        plamy = plamy_pod_powierzchnia(P_pula, d, pr, ui)
+        plamy = plamy_pod_powierzchnia(P_pula, d, pr, ui, brzeg)
         w_poprawkach = sum(p.punkty for p in plamy if p.rodzaj == "poprawka")
         if not (w_poprawkach and len(P) and pokrycie + w_poprawkach / len(P) >= um["prog_akceptacji_pokrycie"]):
             w.status = "popraw_ulozenie"
@@ -443,8 +631,11 @@ def sprawdz(P: np.ndarray, N: np.ndarray, pr: M.Projekt, transformacja: np.ndarr
         w.uwagi.append(f"pokrycie {pokrycie:.2f} obniżone przez gładką poprawkę ręczną ({w_poprawkach} punktów)")
         w.plamy = plamy
     else:
-        w.plamy = plamy_pod_powierzchnia(P_pula, d, pr, ui)
-    w.wciecia, w.linia_brzegu = linia_brzegu(P_pula, N_pula, pr, ui)
+        w.plamy = plamy_pod_powierzchnia(P_pula, d, pr, ui, brzeg)
+    w.wciecia, w.linia_brzegu, ma_dane = _linia_brzegu(P_pula, N_pula, pr, ui, brzeg)
+    if brzeg is not None:
+        _, _, st_O, odl_O, _ = probka_od_linii(pr, ui["pas_brzegu_mm"], brzeg)
+        w.brzeg = ocena_brzegu(brzeg, st_O, odl_O, ma_dane, ui, T_inv)
     w.ubytki = polacz(w.plamy, w.wciecia, T_inv, ui)
     for p in w.plamy:  # środki plam do układu płytki (do podglądu)
         p.x, p.y, p.z = _do_plytki(T_inv, (p.x, p.y, p.z))
@@ -458,6 +649,10 @@ def sprawdz(P: np.ndarray, N: np.ndarray, pr: M.Projekt, transformacja: np.ndarr
         w.status = "poprawka"
     elif any(p.rodzaj == "sprawdz_ulozenie" for p in w.plamy):
         w.status = "sprawdz_ulozenie"
+    elif brzeg is not None and not w.brzeg["sprawdzony"]:
+        w.status = "nie_sprawdzono"  # P2: brzegu któregoś filaru nie dało się sprawdzić — nigdy zielone, nigdy czerwone
+    if brzeg is not None and not w.brzeg["sprawdzony"]:
+        w.uwagi.append("brzeg nie sprawdzony: " + w.brzeg["opis"])
     n_bd = sum(1 for p in w.plamy if p.rodzaj == "brak_danych") + sum(1 for v in w.wciecia if v.rodzaj == "brak_danych")
     if n_bd:
         w.uwagi.append(f"{n_bd} miejsc bez danych skanu (nie liczone jako ubytek)")
@@ -487,3 +682,26 @@ def dopasuj_do_prawdy(ubytki_prawdy: list, wykryte: list[dict], tolerancja: floa
     falszywe = [w for w in wykryte if not any(math.dist((u.x, u.y, u.z), (w["x"], w["y"], w["z"])) <= u.srednica / 2 + 1.0 for u in ubytki_prawdy)]
     return {"trafione": traf, "falszywe": len(falszywe), "falszywe_czerwone": sum(1 for w in falszywe if w["kolor"] == "czerwony"),
             "falszywe_metoda": {m: sum(1 for w in falszywe if w["metoda"] == m) for m in ("A", "B", "A+B")}}
+
+
+def klasa_polozenia(polozenie: str) -> str:
+    """Klasa do metryk: ``krawedz`` (krawedz_srodek / krawedz_zewn / krawedz_wewn), ``sciana`` albo ``nieznane``."""
+    if polozenie.startswith("krawedz"):
+        return "krawedz"
+    return "sciana" if polozenie == "sciana" else "nieznane"
+
+
+def polozenie_ubytku_prawdy(u, pr: M.Projekt, transformacja: np.ndarray) -> tuple[str, float | None]:
+    """Położenie ubytku z prawdy względem linii brzegu projektu — dla prawdy sprzed P4, która nie ma pola ``polozenie``.
+
+    ``transformacja``: (projekt × w) → płytka z prawdy. Zwraca (``krawedz`` | ``sciana`` | ``nieznane``, odległość środka
+    od linii O / I [mm]): krawędź, gdy kula ubytku (promień ``srednica`` / 2) sięga linii O / S / I któregoś filaru;
+    projekt bez linii = ``nieznane``."""
+    b = brzeg_projektu(pr)
+    if b.drzewo is None:
+        return "nieznane", None
+    T = transformacja_do_projektu(pr, transformacja)
+    p = T[:3, :3] @ np.array([u.x, u.y, u.z], dtype=np.float64) + T[:3, 3]
+    odl = float(b.drzewo.query(p)[0])
+    odl_s = min((float(np.linalg.norm(f.S - p, axis=1).min()) for f in b.linie.filary), default=math.inf)
+    return ("krawedz" if min(odl, odl_s) <= u.srednica / 2 else "sciana"), round(odl, 4)

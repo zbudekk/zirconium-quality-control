@@ -49,6 +49,9 @@ drgniecie_udzial_obszaru = 0.10     # drgnięcie: tyle rozmytych komórek = podw
 wciecie_min_mm = 0.2                # metoda B: wcięcie linii brzegu = ukruszenie
 wciecie_pewne_mm = 0.4              # metoda B: samo wcięcie tej wielkości = czerwone (bez potwierdzenia metodą A)
 linia_min_udzial = 0.9              # metoda B tylko gdy linia brzegu widoczna prawie cała; mniej (bokiem, zasłonięta) → B pominięta (P3a: przy 0,6 bokiem dawało 18 fałszywych wcięć); zmierzyć na prawdziwym skanie w P3b
+pas_brzegu_od = "linia"             # pas brzegu liczony od linii krawędzi brzegu każdego filaru (P2, 15.11.2026); "plaszczyzna" = sposób sprzed P2 (od najwyższego punktu pracy) — tylko do porównań
+brzeg_min_sprawdzony = 0.9          # filar jest sprawdzony, gdy co najmniej taka część jego linii brzegu ma pewną linię projektu i dane skanu; mniej → „nie sprawdzono” (żółte, nigdy zielone)
+brzeg_max_przerwa_mm = 1.5          # … i gdy najdłuższy odcinek linii bez sprawdzenia nie przekracza tej długości (odcinek krótszy niż pas brzegu jest objęty kontrolą z sąsiednich odcinków)
 
 [synth]    # generator sztucznych skanów; zakres średnic i pas brzegu ubytków bierze z [inspect]
 szum_sigma_mm = 0.03
