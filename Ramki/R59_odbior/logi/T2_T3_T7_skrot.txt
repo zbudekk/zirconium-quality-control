@@ -1,0 +1,26 @@
+R59 testy koncowe koordynatora - skrot wynikow bez wlasnego pliku logu (15.11.2026, czysta kopia <PC-katalog>\r59\odbior\T, HEAD bcbd2ea)
+
+T2 generator: --etap SPRAWDZ --iter 95 --raport ODBIOR: 58 ZAL, 5 N/D, 0 NIE (B 0 / P 0 / D 0), kod wyjscia 0, 4 s.
+   Raport: <PC-katalog>\r59\odbior\T\Ramki\wyniki_v2\raport\raport_wykonawcy_ODBIOR_iter95.md (poza repo).
+
+T3 sumy SHA-256 (czesc bez pakietu; (c) po R59-K):
+   (a) 9 plikow nieplytkowych na PC = Ramki_pakiet/SHA256SUMS_2026-11-02_R57.txt: 9/9.
+   (b) 12 STL plytek + 4 JSON na PC = R59_wdrozenie_zmiany.md pkt 0: 16/16; = raport recenzenta R59-B (12/12 + 4/4 wg jego raportu); MSI = PC 25/25.
+   (d) stanowisko/modele_plytek/<typ> = wyniki_v2 (uklad.json, plytka_n*.stl, plytka_bazowa.stl): 14/14.
+   (e) stanowisko/modele_plytek/*_r54 = origin/main modele_plytek/<typ>: 14/14.
+
+T7 metryki - wlasne przeliczenie koordynatora z plikow JSON na PC (program\Ramki\stanowisko\dane\wyniki_R59):
+   metryki_zestawy_2_11_na_r54 (stary uklad, nowy program): 40 skanow, wyrownanie 40/40 max 0,0137; top-1 411/420; dowolna 259/282 = 91,8 %;
+      "dobrze" 258/279 = 92,5 %; prace cale z czerwonym 0/129; numer z dolkow (okragle) 24/24  == punkt odniesienia koordynatora.
+   metryki_R59 (nowy uklad, te same polecenia i seedy): 40 skanow, wyrownanie 40/40 max 0,0143; top-1 382/397; top-1 bledny "dobrze" 0/276;
+      dowolna 221/248 = 89,1 % (-2,7 pkt); "dobrze" 219/245 = 89,4 % (-3,1 pkt: 0,1 ponad granice 3 pkt); prace cale z czerwonym 0/127;
+      falszywe czerwone miejsca 2 (jedna praca bokiem, ktora ma ubytki w prawdzie); numer z dolkow 24/24.
+   metryki_r54_duzy: 80 skanow, 80/80 max 0,0149; top-1 753/753; dowolna 554/594 = 93,3 %; cale z czerwonym 0/245.
+   metryki_R59_duzy: 80 skanow, 80/80 max 0,0152; top-1 790/790; dowolna 659/704 = 93,6 %; cale z czerwonym 0/247.
+   Kryteria planu pkt 9.6: wyrownanie 100 % i < 0,05 mm - TAK; numer z dolkow 100 % - TAK; top-1 "dobrze" 100 % - TAK;
+      falszywe czerwone na pracach calych 0 - TAK; dowolna metoda nie nizej niz -3 pkt: razem TAK (-2,7), "dobrze" NIE o 0,1 pkt (-3,1),
+      zestaw kontrolny 80 + 80 skanow spadku nie potwierdza (+0,3 pkt). Odstepstwo zgloszone wlascicielowi na G1 i zaakceptowane (15.11).
+
+T12 model 3D: proba 1 (nowy profil Chrome) - blad "Error creating WebGL context" (niestabilnosc testu bez okna, model sie nie zbudowal);
+   proba 2 (nowy profil) - OK: 1 zadanie (sam plik), 0 poza plikiem, 0 bledow i ostrzezen konsoli, 0 wyjatkow, 7/7 STL, SHA 7/7,
+   sondy z gory W 143/143, P 178/178; zrzuty z gory W i P obejrzane przez koordynatora: zgodne ze szkicami W-b i P-e.
