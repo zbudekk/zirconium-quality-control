@@ -284,6 +284,38 @@ def test_obserwacja_nowe_pliki_podfoldery_i_inne_typy(srodowisko):
     assert len(sesja.m["pliki"]) == len(pliki)  # nic nie kopiuje sie drugi raz
 
 
+def test_seria_plikow_zapis_manifestu_zbiorczo_i_na_koncu_przegladu(srodowisko, monkeypatch):
+    """40 plikow naraz (np. zdjecia z kamer): manifest i stan obserwatora nie sa zapisywane po kazdym pliku (na wolnym dysku
+    kazdy zapis z fsync trwa), ale po przegladzie na dysku jest komplet."""
+    eksport, sesja, zb, _ = srodowisko
+    for i in range(40):
+        (eksport / "Images" / f"cam_{i:03d}.bmp").parent.mkdir(exist_ok=True)
+        (eksport / "Images" / f"cam_{i:03d}.bmp").write_bytes(bytes([i]) * 5000)
+    zb.obieg()
+    zapisy = []
+    prawdziwy = R.zapisz_atomowo
+    monkeypatch.setattr(R, "zapisz_atomowo", lambda plik, dane, kopia=False: (zapisy.append(Path(plik).name), prawdziwy(plik, dane, kopia)))
+    zb.obieg()
+    assert len(sesja.m["pliki"]) == 40
+    assert zapisy.count(R.PLIK_MANIFESTU) <= 3 and zapisy.count(R.PLIK_OBSERWATORA) <= 3, zapisy
+    assert na_dysku(sesja)["pliki"] == sesja.m["pliki"]  # komplet na dysku zaraz po przegladzie
+    stan = json.loads((sesja.folder / R.PLIK_OBSERWATORA).read_text(encoding="utf-8"))["znane"]["Scandata"]
+    assert all(f"Images/cam_{i:03d}.bmp" in stan for i in range(40))
+
+
+def test_plik_trafia_do_kroku_w_ktorym_sie_pojawil(srodowisko):
+    """Czlowiek przeszedl do nastepnego kroku, zanim kopia sie skonczyla: plik i tak trafia do kroku, w ktorym sie pojawil."""
+    eksport, sesja, zb, _ = srodowisko
+    (eksport / "zdjecie_kamery.bmp").write_bytes(b"x" * 1000)
+    zb.obieg()  # plik zauwazony w kroku "start", jeszcze nie skopiowany
+    sesja.zakoncz_krok("start")
+    obiegi(zb, 2)
+    assert [(w["krok"], w["cel"]) for w in sesja.m["pliki"]] == [("start", "kroki/k01_start/pliki/Scandata/zdjecie_kamery.bmp")]
+    (eksport / "nowy_w_kroku_2.bmp").write_bytes(b"y" * 1000)
+    obiegi(zb, 2)
+    assert sesja.m["pliki"][-1]["krok"] == "ustawienia"
+
+
 def test_plik_rosnacy_jest_kopiowany_dopiero_po_ustabilizowaniu(srodowisko):
     eksport, sesja, zb, _ = srodowisko
     p = eksport / "duzy_eksport.bin"
@@ -416,6 +448,29 @@ def test_folder_sesji_wewnatrz_obserwowanego_nie_kopiuje_sam_siebie(tmp_path):
     (eksport / "skan.stl").write_bytes(stl_binarny(8))
     obiegi(zb, 6)
     assert [w["wzgledna"] for w in sesja.m["pliki"]] == ["skan.stl"]
+
+
+def test_gleboki_folder_zlecenia_sciezka_w_sesji_ponad_260_znakow(srodowisko):
+    """Sciezka w programie skanera miesci sie w 260 znakach, ale jej kopia w folderze kroku juz nie - kopiowanie, sumy, ZIP i --sprawdz maja dzialac."""
+    eksport, sesja, zb, _ = srodowisko
+    czesci = []
+    while len(str(eksport / "/".join(czesci) / "skan_calej_plytki.stl")) < 225:
+        czesci.append(f"zlecenie_o_bardzo_dlugiej_nazwie_{len(czesci):02d}")
+    p = eksport / "/".join(czesci) / "skan_calej_plytki.stl"
+    assert len(str(p)) < 259
+    p.parent.mkdir(parents=True)
+    p.write_bytes(stl_binarny(60, 4))
+    obiegi(zb)
+    w = sesja.m["pliki"][0]
+    assert len(str(sesja.folder / w["cel"])) > 265 and w["wzgledna"].endswith("skan_calej_plytki.stl")
+    assert R.sha256_pliku(sesja.folder / w["cel"]) == w["sha256"] == hashlib.sha256(stl_binarny(60, 4)).hexdigest()
+    wynik = R.spakuj(sesja)
+    kod, linie = R.sprawdz(sesja.folder)
+    assert kod == 3 and not any(x.startswith("BLAD") for x in linie), linie
+    kod, linie = R.sprawdz(Path(wynik["czesci"][0]["sciezka"]))
+    assert kod == 3 and not any(x.startswith("BLAD") for x in linie), linie
+    przeniesiony = sesja.przenies_plik(w["id"], "pusta")
+    assert R.sha256_pliku(sesja.folder / przeniesiony["cel"]) == w["sha256"]
 
 
 def test_reczne_dodanie_pliku_i_folderu(srodowisko, tmp_path):
@@ -758,6 +813,18 @@ def test_kontrola_pliku_ktory_nie_jest_plytka(tmp_path, skany, wyniki, ust):
     assert w["trojkaty"] > 0 and w["blad_kod"] == "brak_ustawien" and w["werdykt"] == "zolty"
 
 
+def test_werdykt_stozki_inne_niz_model_to_informacja_a_obiekt_poza_gniazdem_uwaga():
+    baza = {"trojkaty": 1_000_000, "obrys_mm": [100, 100, 10], "odstep_mm": 0.1, "format": "STL binarny",
+            "plytka": {"cala": True, "uklad": "wieczorna_r54", "numer": None, "numer_zrodlo": "nieznany", "numer_z_dolkow": None, "numery_ukladu": [1, 2, 3],
+                       "kandydaci": ["wieczorna_r54"], "prace": 0, "gniazda_zajete": [], "plaszczyzna_rms_mm": 0.018, "odstep_prace_mm": None,
+                       "poza_gniazdem": 0, "poza_na_stozkach": 3, "podwojne": []}}
+    w = R.werdykt_pliku(baza)
+    assert w["werdykt"] == "zielony" and any("stożka(ów) znaczników skan różni się od modelu" in x for x in w["informacje"])
+    baza["plytka"]["poza_gniazdem"] = 1
+    w = R.werdykt_pliku(baza)
+    assert w["werdykt"] == "zolty" and "1 obiekt(y) leżą poza gniazdami" in w["uwagi"][0]
+
+
 def test_oczekiwania_kroku_i_porownanie_powtorki(wyniki):
     kroki = {k.id: k for k in R.wczytaj_kroki()[0]}
     prace, powt, pusta, inne = wyniki["okragla_prace"], wyniki["okragla_powtorka"], wyniki["okragla_pusta"], wyniki["okragla_inne_prace"]
@@ -821,8 +888,25 @@ def test_zbieracz_kontroluje_skan_i_porownuje_z_poprzednim(tmp_path, skany, ust)
     assert "## Wyniki kontroli skanow" in raport and "okragla_wieczorna_r54" in raport and "skan_2.stl" in raport
 
 
-def test_kontrola_w_osobnym_procesie(tmp_path, skany, ust):
+def test_proces_kontroli_bez_okna_z_nizszym_priorytetem(tmp_path, monkeypatch):
+    sesja = R.Sesja.nowa(tmp_path / "sesje")
+    zb = R.Zbieracz(sesja, None, Path("C:/inne/ustawienia.toml"), "proces")
+    sesja.ustaw_pole("pusta", "numer_plytki", "nr 4")
+    uruchomione = []
+    monkeypatch.setattr(R.subprocess, "Popen", lambda polecenie, **k: uruchomione.append((polecenie, k)) or "proces")
+    zb._uruchom_proces_kontroli(7, tmp_path / "skan.stl", "pusta")
+    polecenie, k = uruchomione[0]
+    assert polecenie[1:4] == ["-m", "stanowisko.dzien_skanera_rdzen", "--kontrola"] and polecenie[polecenie.index("--numer") + 1] == "4"
+    assert Path(polecenie[polecenie.index("--wynik") + 1]) == sesja.folder / "kontrole" / "k0007.json" and "--ustawienia" in polecenie
+    if WINDOWS:
+        assert k["creationflags"] & R.subprocess.BELOW_NORMAL_PRIORITY_CLASS and k["creationflags"] & R.subprocess.CREATE_NO_WINDOW
+    assert zb.kontrola_w_toku()
+
+
+def test_kontrola_w_osobnym_procesie(tmp_path, skany, ust, monkeypatch):
     """Tryb domyslny okna: kazdy skan sprawdza osobny proces Pythona; zbieracz tylko czeka na wynik."""
+    # komputer testowy bywa w pelni zajety innymi obliczeniami: proces o priorytecie ponizej normalnego nie dostaje wtedy procesora
+    monkeypatch.setattr(R, "NIZSZY_PRIORYTET_KONTROLI", False)
     d, _, _ = skany
     eksport = tmp_path / "Scandata"
     eksport.mkdir()
@@ -830,8 +914,9 @@ def test_kontrola_w_osobnym_procesie(tmp_path, skany, ust):
     zb = R.Zbieracz(sesja, ust, UST.PLIK_USTAWIEN, "proces")
     sesja.ustaw_biezacy("pusta")
     shutil.copy(d / "okragla_pusta.stl", eksport / "pusta.stl")
+    koniec = time.time() + R.LIMIT_KONTROLI_S + 60  # zwykle kilka sekund; limit na PC obciazonym innymi obliczeniami
     try:
-        for _ in range(900):
+        while time.time() < koniec:
             zb.obieg()
             if sesja.m["pliki"] and sesja.m["pliki"][0]["kontrola"]:
                 break
@@ -985,6 +1070,36 @@ def test_okno_brak_miejsca_pokazuje_alarm(okno):
     assert o.etykieta_alarmu.isHidden() and len(o.sesja.m["pliki"]) == 1
 
 
+def test_okno_pomiar_szczegolowy_to_osobny_proces_z_wynikiem_w_sesji(okno, monkeypatch):
+    """Przycisk pomiaru szczegolowego (narzedzie T10) tylko uruchamia osobny proces; zbieranie od niego nie zalezy."""
+    o, eksport = okno
+    s = o.sesja
+    assert DS.NARZEDZIE_POMIARU.exists() and (DS.NARZEDZIE_POMIARU.parent / "c_wspolne.py").exists() and o.przycisk_pomiar.isEnabled()
+    uruchomione = []
+    monkeypatch.setattr(DS.subprocess, "Popen", lambda polecenie, **k: uruchomione.append((polecenie, k)))
+    o.lista_krokow.setCurrentRow(s.numer_kroku("prace_cale") - 1)
+    (eksport / "skan_1.stl").write_bytes(stl_binarny(30, 1))
+    takty(o)
+    o.pola["wspolczynnik"].setText("1,2234 (blok A)")
+    o.lista_krokow.setCurrentRow(s.numer_kroku("powtorka") - 1)
+    (eksport / "skan_2.stl").write_bytes(stl_binarny(30, 2))
+    takty(o)
+    o.tabela.selectRow(0)
+    o.odpowiedz_tekst = "1,2234"
+    o._pytaj_folder = lambda *a, **k: ""  # bez folderu projektow: pomiar samej plytki
+    QTest.mouseClick(o.przycisk_pomiar, Qt.LeftButton)
+    assert len(uruchomione) == 1
+    polecenie, opcje = uruchomione[0]
+    assert Path(polecenie[1]) == DS.NARZEDZIE_POMIARU and Path(polecenie[2]) == s.folder / s.m["pliki"][1]["cel"]
+    assert polecenie[polecenie.index("--wspolczynnik") + 1] == "1.2234" and "--projekty" not in polecenie
+    assert Path(polecenie[polecenie.index("--powtorka") + 1]) == s.folder / s.m["pliki"][0]["cel"]  # skan odniesienia z kroku "prace_cale"
+    assert Path(polecenie[-1]).parent == s.folder / "pomiary" and polecenie[-2] == "--wyj"  # wynik w folderze sesji (trafi do paczki)
+    assert str(UST.KORZEN) in opcje["env"]["PYTHONPATH"] and na_dysku(s)["zdarzenia"][-1]["co"] == "pomiar szczegolowy uruchomiony"
+    o.odpowiedz_tekst = "to nie liczba"
+    QTest.mouseClick(o.przycisk_pomiar, Qt.LeftButton)
+    assert len(uruchomione) == 1 and "nie jest liczba" in o.etykieta_oceny.text()
+
+
 def test_wybor_sesji_wznawia_niedokonczona(tmp_path):
     class A:
         sesja, nowa, dane, folder = None, False, tmp_path / "sesje", [str(tmp_path / "eksport")]
@@ -998,8 +1113,9 @@ def test_wybor_sesji_wznawia_niedokonczona(tmp_path):
     assert DS.wybierz_sesje(A, None).folder not in (s1.folder,)
 
 
-def test_okno_z_kontrola_w_tle_na_sztucznym_skanie(app, tmp_path, skany, ust):
+def test_okno_z_kontrola_w_tle_na_sztucznym_skanie(app, tmp_path, skany, ust, monkeypatch):
     """Okno z watkiem zbieracza i kontrola w osobnym procesie: skan wrzucony do folderu eksportu dostaje ocene, okno zyje."""
+    monkeypatch.setattr(R, "NIZSZY_PRIORYTET_KONTROLI", False)  # jak w test_kontrola_w_osobnym_procesie
     d, _, _ = skany
     eksport = tmp_path / "Scandata"
     eksport.mkdir()
@@ -1011,7 +1127,8 @@ def test_okno_z_kontrola_w_tle_na_sztucznym_skanie(app, tmp_path, skany, ust):
     try:
         shutil.copy(d / "okragla_pusta.stl", eksport / "pusta_n8.stl")
         widziano_sprawdzanie = False
-        for _ in range(1800):
+        koniec = time.time() + R.LIMIT_KONTROLI_S + 60  # zwykle kilkanascie sekund; limit na PC obciazonym innymi obliczeniami
+        while time.time() < koniec:
             QTest.qWait(100)
             widziano_sprawdzanie |= "Sprawdzam" in o.etykieta_oceny.text()
             if sesja.m["pliki"] and sesja.m["pliki"][0]["kontrola"] and o.kolor_oceny != "szary":

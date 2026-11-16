@@ -273,7 +273,9 @@ class Okno(QMainWindow):
         pu.addWidget(self.lista_komunikatow)
         dzielnik.addWidget(prawa)
         dzielnik.setSizes([330, 820])
-        self.resize(1180, 860)
+        ekran = QApplication.primaryScreen()
+        dostepne = ekran.availableGeometry() if ekran is not None else None  # maly ekran laptopa: okno nie moze wystawac poza ekran
+        self.resize(min(1180, dostepne.width() - 20) if dostepne else 1180, min(860, dostepne.height() - 40) if dostepne else 860)
 
         for d in self.sesja.m["definicje_krokow"]:
             el = QListWidgetItem()
@@ -617,6 +619,14 @@ class Okno(QMainWindow):
                 n, rozmiar = n + 1, rozmiar + r
                 if n >= 20000:
                     break
+            if n >= 20000:
+                if not self._pytaj_tak_nie(
+                        "Bardzo duży folder",
+                        f"W folderze {folder} jest ponad 20 000 plików. Obserwowanie całego dysku albo wielkiego folderu jest powolne — lepiej wskazać "
+                        "sam folder programu skanera (ten z „Order Save Path”).\n\nObserwować ten folder mimo to? (Pliki, które już w nim są, nie będą kopiowane.)", False):
+                    return
+                self.zbieracz.dodaj_folder(folder, False)
+                return
             skopiuj = bool(n) and self._pytaj_tak_nie(
                 "W folderze są już pliki",
                 f"W tym folderze jest już {n} plików ({R.tekst_rozmiaru(rozmiar)}).\n\nSkopiować je TERAZ do bieżącego kroku?\n"
@@ -826,7 +836,7 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     if a.sprawdz is not None:
         kod, linie = R.sprawdz(a.sprawdz)
-        print("\n".join(linie))
+        R.wypisz(linie)
         return kod
     app = QApplication.instance() or QApplication(sys.argv)
     tlumacz = QTranslator(app)  # polskie napisy przyciskow w oknach dialogowych Qt (Tak / Nie / Anuluj)

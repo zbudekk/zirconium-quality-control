@@ -71,8 +71,10 @@ CZEKAJ_NA_PELNY_STL_S = 30.0  # binarny STL z rozmiarem niezgodnym z naglowkiem:
 LIMIT_WERSJI = 8  # tyle wersji tego samego pliku zrodlowego w jednym kroku; dalsze zmiany dopiero w nastepnym kroku
 OKRES_AUTO_ZRZUTU_S = 10.0  # zrzut automatyczny przy nowym pliku nie czesciej niz co tyle
 LIMIT_KONTROLI_S = 600.0  # proces kontroli dluzszy niz to jest zabijany (zbieranie trwa dalej)
+NIZSZY_PRIORYTET_KONTROLI = True  # Windows: proces kontroli z priorytetem ponizej normalnego (program skanera ma pierwszenstwo)
+CZEKAJ_NA_KONTROLE_PRZED_PAKOWANIEM_S = 120.0  # "Zakoncz i spakuj" czeka najwyzej tyle na trwajace kontrole; pozniejsze wyniki = "zmieniono po spakowaniu"
 LIMIT_ZIP = 1_900_000_000  # bajtow nieskompresowanych danych na jedna czesc archiwum
-OKRES_ZAPISU_ZBIORCZEGO_S = 2.0  # przy kopiowaniu wielu plikow manifest jest zapisywany nie rzadziej niz co tyle
+OKRES_ZAPISU_ZBIORCZEGO_S = 5.0  # seria plikow: manifest i stan obserwatora zapisywane nie czesciej niz co tyle (i zawsze na koncu serii)
 
 # progi szybkiej kontroli - wskazowki z testow na skanach sztucznych (T10), do sprawdzenia na prawdziwym skanie
 PROG_SZUMU_UWAGA_MM = 0.05  # RMS plaskiej czesci wiekszy niz to = zolte (cos sie ruszalo / podwojna powierzchnia)
@@ -508,6 +510,7 @@ class Sesja:
         self._zamek = threading.RLock()
         self._zamek_logu = threading.Lock()
         self._ostatni_zapis = 0.0
+        self._zalegly = False  # zmiana manifestu odlozona przez zapisz(pilne=False)
         self._pakowanie = False
         self.kroki = [Krok.ze_slownika(d) for d in manifest["definicje_krokow"]]
 
@@ -587,9 +590,11 @@ class Sesja:
 
     # --- zapis
     def zapisz(self, pilne: bool = True) -> None:
-        """Zapis manifestu. ``pilne=False`` (kopiowanie wielu plikow): nie czesciej niz co OKRES_ZAPISU_ZBIORCZEGO_S."""
+        """Zapis manifestu. ``pilne=False`` (seria plikow - kolejne czekaja na kopie): nie czesciej niz co
+        OKRES_ZAPISU_ZBIORCZEGO_S; niezapisana zmiana zostaje oznaczona i zapisuje ja ``zapisz_zalegle`` na koncu serii."""
         with self._zamek:
             if not pilne and time.monotonic() - self._ostatni_zapis < OKRES_ZAPISU_ZBIORCZEGO_S:
+                self._zalegly = True
                 return
             if self.m.get("spakowano") and not self.m.get("zmieniono_po_spakowaniu") and not self._pakowanie:
                 self.m["zmieniono_po_spakowaniu"] = True
@@ -597,6 +602,13 @@ class Sesja:
             dane = json.dumps(self.m, ensure_ascii=False, indent=1).encode("utf-8")
             zapisz_atomowo(self.folder / PLIK_MANIFESTU, dane, kopia=True)
             self._ostatni_zapis = time.monotonic()
+            self._zalegly = False
+
+    def zapisz_zalegle(self) -> None:
+        """Zapis zmian odlozonych przez ``zapisz(pilne=False)`` (koniec serii kopiowania)."""
+        with self._zamek:
+            if self._zalegly:
+                self.zapisz()
 
     def _uniewaznij_sumy(self) -> None:
         try:
@@ -956,7 +968,7 @@ def _kontrola_siatki(plik: Path, ust: dict | None, numer: int | None, wynik: dic
     else:
         wynik["format"] = roz.lstrip(".").upper()
     try:
-        m = trimesh.load(str(plik), force="mesh")
+        m = trimesh.load(_io(plik), force="mesh")  # _io: takze sciezki dluzsze niz 260 znakow (gleboki folder zlecenia)
     except Exception as e:  # noqa: BLE001
         wynik["blad_kod"], wynik["blad"] = "nieczytelny", f"{type(e).__name__}: {e}"
         return
@@ -994,9 +1006,11 @@ def _kontrola_siatki(plik: Path, ust: dict | None, numer: int | None, wynik: dic
         tr = maska[F].all(axis=1)
         plytka[nazwa] = _odstep(float(pola[tr].sum()), int(np.unique(F[tr]).size)) if tr.any() else None
     prace = [f for f in w.fragmenty if f.status in ("praca", "podwojny")]
+    poza = [f for f in w.fragmenty if f.status == "poza_gniazdem"]
+    na_stozkach = [f for f in poza if any(math.hypot(f.srodek[0] - z.x, f.srodek[1] - z.y) < z.d / 2 + 2.0 for z in uk.markers)]
     plytka.update({
         "prace": len(prace), "gniazda_zajete": sorted({f.gniazdo for f in prace if f.gniazdo is not None}),
-        "podwojne": list(w.gniazda_podwojne), "poza_gniazdem": sum(1 for f in w.fragmenty if f.status == "poza_gniazdem"),
+        "podwojne": list(w.gniazda_podwojne), "poza_gniazdem": len(poza) - len(na_stozkach), "poza_na_stozkach": len(na_stozkach),
         "drobne": sum(1 for f in w.fragmenty if f.status == "drobny"), "liczba_gniazd": len(uk.sockets),
         "fragmenty": [{"gniazdo": f.gniazdo, "status": f.status, "srodek": [round(float(v), 3) for v in f.srodek], "punkty": int(f.liczba),
                        "rozmiar_mm": [round(float(v), 2) for v in f.bbox()]} for f in w.fragmenty],
@@ -1077,6 +1091,8 @@ def werdykt_pliku(w: dict) -> dict:
         if p.get("poza_gniazdem"):
             kolor = "zolty"
             uwagi.append(f"{p['poza_gniazdem']} obiekt(y) leżą poza gniazdami płytki — sprawdź, czy tak miało być")
+        if p.get("poza_na_stozkach"):  # stozek w skanie rozni sie od modelu plytki: wazne dla programu, ale skan i tak sie przyda
+            info.append(f"w miejscu {p['poza_na_stozkach']} stożka(ów) znaczników skan różni się od modelu płytki (informacja dla koordynatora, nie błąd skanu)")
         if p.get("podwojne"):
             kolor = "zolty"
             uwagi.append("dwie prace w jednym gnieździe: " + ", ".join(map(str, p["podwojne"])))
@@ -1290,6 +1306,8 @@ class Zbieracz:
         self._proces = None  # (Popen, id pliku, czas startu, plik wyniku, plik logu)
         self._ostatni_auto_zrzut = -1e9
         self._ostatni_zapis_znanych = 0.0
+        self._znane_zalegle = False
+        self._czas_przegladu = 0.0  # ile trwal ostatni przeglad folderow obserwowanych (bez kopiowania)
         self._po_wznowieniu = False
         self._wczytaj_znane()
 
@@ -1323,16 +1341,24 @@ class Zbieracz:
             if w.get("folder") and w.get("wzgledna"):
                 klucz = (w["krok"], w["folder"], w["wzgledna"])
                 self._wersje[klucz] = self._wersje.get(klucz, 0) + 1
-            if w.get("kontrola") is None and Path(w["cel"]).suffix.lower() in ROZSZERZENIA_SIATEK:
+            if w.get("kontrola") is None and w["rodzaj"] != "kopia_folderu" and Path(w["cel"]).suffix.lower() in ROZSZERZENIA_SIATEK:
                 self._kontrole.append(w["id"])  # kontrola przerwana zamknieciem programu
         self._zapisz_znane(pilne=True)
 
     def _zapisz_znane(self, pilne: bool = True) -> None:
-        if not pilne and self.zegar() - self._ostatni_zapis_znanych < OKRES_ZAPISU_ZBIORCZEGO_S:
+        if not pilne and time.monotonic() - self._ostatni_zapis_znanych < OKRES_ZAPISU_ZBIORCZEGO_S:
+            self._znane_zalegle = True
             return
         dane = json.dumps({"zapisano": teraz_iso(), "znane": self.znane}, ensure_ascii=False).encode("utf-8")
         zapisz_atomowo(self.sesja.folder / PLIK_OBSERWATORA, dane, kopia=True)
-        self._ostatni_zapis_znanych = self.zegar()
+        self._ostatni_zapis_znanych = time.monotonic()
+        self._znane_zalegle = False
+
+    def _zapisz_zalegle(self) -> None:
+        """Koniec serii: manifest i stan obserwatora odlozone w trakcie kopiowania wielu plikow trafiaja na dysk."""
+        self.sesja.zapisz_zalegle()
+        if self._znane_zalegle:
+            self._zapisz_znane()
 
     def _pomijane(self) -> tuple:
         return (self.sesja.folder, self.sesja.folder.parent if self.sesja.folder.parent.name == KATALOG_SESJI.name else self.sesja.folder)
@@ -1392,7 +1418,8 @@ class Zbieracz:
             except BaseException as e:  # noqa: BLE001 - zaden wyjatek nie konczy zbierania
                 self.sesja.log_wyjatku("zbieracz.obieg", e)
                 self._zdarzenie("blad", tekst=f"Błąd wewnętrzny zbierania ({type(e).__name__}) — zapisany w log.txt, zbieranie trwa dalej.")
-            self._budzik.wait(OKRES_ODPYTYWANIA_S)  # polecenie z okna (zrzut, dodanie pliku) budzi watek od razu
+            # polecenie z okna (zrzut, dodanie pliku) budzi watek od razu; bardzo duzy folder (przeglad trwa dlugo) jest ogladany rzadziej
+            self._budzik.wait(max(OKRES_ODPYTYWANIA_S, min(30.0, 4 * self._czas_przegladu)))
             self._budzik.clear()
 
     def _zdarzenie(self, typ: str, **dane) -> None:
@@ -1525,8 +1552,17 @@ class Zbieracz:
 
     # --- foldery obserwowane
     def _odpytaj_foldery(self) -> None:
+        """Jeden przeglad folderow: kopie plikow stabilnych; manifest i stan obserwatora zapisane najpozniej na koncu przegladu
+        (w serii wielu plikow nie po kazdym pliku - na wolnym dysku kazdy zapis z fsync trwa)."""
+        try:
+            self._przeglad_folderow()
+        finally:
+            self._zapisz_zalegle()
+
+    def _przeglad_folderow(self) -> None:
         teraz = self.zegar()
         widziane = set()
+        czas_przegladu = 0.0
         pierwszy_po_wznowieniu, self._po_wznowieniu = self._po_wznowieniu, False
         for etykieta, korzen in self.sesja.foldery():
             istnieje = korzen.is_dir()
@@ -1536,7 +1572,11 @@ class Zbieracz:
             if not istnieje:
                 continue
             znane = self.znane.setdefault(etykieta, {})
-            for rel, rozmiar, mtime_ns in pliki_w_folderze(korzen, self._pomijane()):
+            t0 = time.monotonic()
+            lista = list(pliki_w_folderze(korzen, self._pomijane()))
+            czas_przegladu += time.monotonic() - t0
+            self._czas_przegladu = czas_przegladu
+            for rel, rozmiar, mtime_ns in lista:
                 klucz = (etykieta, rel)
                 widziane.add(klucz)
                 podpis = [rozmiar, mtime_ns]
@@ -1545,7 +1585,10 @@ class Zbieracz:
                     continue
                 k = self._kandydaci.get(klucz)
                 if k is None or k["podpis"] != podpis:
-                    self._kandydaci[klucz] = {"podpis": podpis, "licznik": 1, "od": teraz, "bledy": 0, "po_wznowieniu": pierwszy_po_wznowieniu}
+                    # krok z chwili, gdy plik sie pojawil albo zmienil: plik trafia do tego kroku, nawet gdy czlowiek przejdzie dalej,
+                    # zanim kopia sie skonczy (seria wielu plikow na wolnym dysku)
+                    self._kandydaci[klucz] = {"podpis": podpis, "licznik": 1, "od": teraz, "bledy": 0, "po_wznowieniu": pierwszy_po_wznowieniu,
+                                              "krok": self.sesja.biezacy}
                     continue
                 k["licznik"] += 1
                 if k["licznik"] >= STABILNE_ODCZYTY:
@@ -1576,7 +1619,7 @@ class Zbieracz:
         except OSError as e:
             self._blad_pliku(klucz, k, zrodlo, e)
             return
-        krok = self.sesja.biezacy
+        krok = k.get("krok") or self.sesja.biezacy
         nr = self._wersje.get((krok, etykieta, rel), 0)
         if nr >= LIMIT_WERSJI:
             self.znane[etykieta][rel] = k["podpis"]
@@ -1626,8 +1669,8 @@ class Zbieracz:
         if niepelny:
             uwagi.append("STL niepelny w chwili kopiowania (rozmiar niezgodny z naglowkiem)")
         wpis = self.sesja.dodaj_plik(krok, "obserwacja", cel, wyn["rozmiar"], wyn["sha256"], wyn["mtime_ns"], zrodlo=zrodlo, folder=etykieta, wzgledna=rel,
-                                     czas_kopii_s=wyn["czas_s"], uwagi=uwagi, pilne=len(self._kandydaci) < 20)
-        self._zapisz_znane(pilne=len(self._kandydaci) < 20)
+                                     czas_kopii_s=wyn["czas_s"], uwagi=uwagi, pilne=False)  # zapis najpozniej na koncu przegladu (_odpytaj_foldery)
+        self._zapisz_znane(pilne=False)
         self._po_skopiowaniu(wpis)
         if self.sesja.m.get("auto_zrzut") and self.zegar() - self._ostatni_auto_zrzut >= OKRES_AUTO_ZRZUTU_S:
             self._ostatni_auto_zrzut = self.zegar()
@@ -1658,6 +1701,12 @@ class Zbieracz:
         def postep(zrobione: int, razem: int, co: str) -> None:
             self.zdarzenia.put({"typ": "postep", "plik": co, "zrobione": zrobione, "razem": razem})
 
+        t0 = time.monotonic()
+        while self.kontrola_w_toku() and not self._stop.is_set() and time.monotonic() - t0 < CZEKAJ_NA_KONTROLE_PRZED_PAKOWANIEM_S:
+            self._obsluz_kontrole()  # raport ma miec oceny skanow; w trakcie pakowania wyniki kontroli nie sa dopisywane (ten sam watek)
+            if self._raz(("czekam_na_kontrole",), 5.0):
+                self._zdarzenie("info", tekst="Przed pakowaniem czekam na koniec sprawdzania skanów…")
+            time.sleep(0.2)
         try:
             wynik = spakuj(self.sesja, postep=postep, wolne=self.wolne)
         except BrakMiejsca as e:
@@ -1728,7 +1777,9 @@ class Zbieracz:
             polecenie += ["--numer", str(numer)]
         flagi = 0
         if os.name == "nt":
-            flagi = subprocess.CREATE_NO_WINDOW | subprocess.BELOW_NORMAL_PRIORITY_CLASS  # bez okna konsoli, nie spowalnia programu skanera
+            flagi = subprocess.CREATE_NO_WINDOW  # bez okna konsoli
+            if NIZSZY_PRIORYTET_KONTROLI:
+                flagi |= subprocess.BELOW_NORMAL_PRIORITY_CLASS  # nie spowalnia programu skanera (gdy wszystkie rdzenie sa zajete, kontrola czeka)
         srodowisko = {**os.environ, "PYTHONUTF8": "1", "PYTHONPATH": os.pathsep.join([str(UST.KORZEN)] + [p for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p])}
         with open(_io(plik_logu), "wb") as log:
             proc = subprocess.Popen(polecenie, cwd=str(UST.KORZEN), stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, creationflags=flagi, env=srodowisko)
@@ -2085,7 +2136,13 @@ class _ZrodloFolder:
 class _ZrodloZip:
     def __init__(self, pliki_zip: list[Path]):
         self.opis = "archiwum " + ", ".join(p.name for p in pliki_zip)
-        self.zipy = [zipfile.ZipFile(p) for p in pliki_zip]
+        self.zipy = []
+        try:
+            for p in pliki_zip:
+                self.zipy.append(zipfile.ZipFile(p))
+        except BaseException:
+            self.zamknij()
+            raise
         self.pliki = {}
         self.powtorzone_rozne = []
         for zf in self.zipy:
@@ -2112,14 +2169,28 @@ class _ZrodloZip:
         zf, info = self.pliki[rel]
         return zf.read(info)
 
+    def zamknij(self) -> None:
+        for zf in self.zipy:
+            zf.close()
+
 
 def sprawdz(sciezka) -> tuple[int, list[str]]:
     """Sprawdzenie paczki albo folderu sesji: sumy SHA-256, zgodnosc z manifestem, kompletnosc krokow.
 
     Kod: 0 = sumy zgodne i komplet wymaganych krokow; 1 = blad integralnosci (brak pliku, zla suma, uszkodzone archiwum,
     brak czesci); 3 = sumy zgodne, ale sa braki albo pominiecia wymaganych krokow; 2 = nie ma czego sprawdzac.
+    Niczego nie zapisuje (archiwum jest czytane strumieniowo, bez rozpakowywania na dysk).
     """
-    sciezka = Path(sciezka)
+    zrodla: list = []
+    try:
+        return _sprawdz(Path(sciezka), zrodla)
+    finally:
+        for z in zrodla:
+            if hasattr(z, "zamknij"):
+                z.zamknij()
+
+
+def _sprawdz(sciezka: Path, zrodla: list) -> tuple[int, list[str]]:
     L: list[str] = []
     bledy = 0
     if sciezka.is_dir() and not (sciezka / PLIK_MANIFESTU).exists():
@@ -2150,6 +2221,7 @@ def sprawdz(sciezka) -> tuple[int, list[str]]:
             bledy += 1
     else:
         return 2, [f"BLAD: nie ma takiego folderu ani pliku: {sciezka}"]
+    zrodla.append(zrodlo)
     L.insert(0, f"Sprawdzam: {zrodlo.opis}")
     # sumy
     if PLIK_SUM not in zrodlo.pliki:
@@ -2246,6 +2318,15 @@ def wczytaj_ustawienia_bezpiecznie(plik: Path | None = None) -> tuple[dict | Non
 # ----------------------------------------------------------------------------
 # wiersz polecen
 # ----------------------------------------------------------------------------
+def wypisz(linie: list[str]) -> None:
+    """Wynik na stdout; znaki spoza strony kodowej konsoli (tytuly krokow maja polskie litery) sa zastepowane, nie koncza programu."""
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, ValueError):
+        pass
+    print("\n".join(linie))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Dzien skanera: szybka kontrola skanu albo sprawdzenie paczki (bez okna)")
     ap.add_argument("--kontrola", type=Path, default=None, help="plik skanu (STL / PLY / OBJ) do szybkiej kontroli")
@@ -2256,7 +2337,7 @@ def main(argv: list[str] | None = None) -> int:
     a = ap.parse_args(argv)
     if a.sprawdz is not None:
         kod, linie = sprawdz(a.sprawdz)
-        print("\n".join(linie))
+        wypisz(linie)
         return kod
     if a.kontrola is not None:
         ust, _, _ = wczytaj_ustawienia_bezpiecznie(a.ustawienia)
