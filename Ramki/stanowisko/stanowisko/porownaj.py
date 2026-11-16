@@ -137,18 +137,27 @@ def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filt
     """match (+ inspect) dla każdego fragmentu (bez drobnych); wpisy JSON z 5 najlepszymi kandydatami.
 
     ``podglad`` (dict) dostaje ``WynikInspekcji`` każdego gniazda (punkty i odchyłki do podglądu 3D w oknie).
+
+    Korekta skali ze skanu (``match``): wpis gniazda ma pole ``skala`` — ``poprawka_proc`` (o ile % praca jest większa
+    niż projekt × współczynnik puli; None = nie wyznaczono), ``ostrzezenie`` (ponad ``[match] korekta_skali_ostrzezenie_proc``,
+    także poza oknem), ``niepewna`` (skan nie pasuje do projektu także w tej skali — bez ostrzeżenia), ``zastosowana``,
+    ``powod`` (dlaczego nie), ``wspolczynnik_puli``, ``wspolczynnik_ze_skanu``, pokrycie przed / po.
+    Na płytce porannej (prace spieczone, współczynnik 1,0) poprawka jest tylko mierzona.
+    Po zastosowanej korekcie transformacja kandydata jest podobieństwem i inspekcja liczy odchyłki w skali skorygowanej.
     """
     ust_m = ustawienia_bez_filtru(ust) if bez_filtru else ust
+    bez_korekty = "płytka poranna: prace spieczone (współczynnik 1,0) — poprawka skali tylko mierzona" if S.poranna(wyr.plytka) else ""
     gniazda = []
     for f in wyr.fragmenty:
         if f.status == "drobny":
             continue
-        r = M.dopasuj(f.punkty, f.normalne, pula, ust_m, f.gniazdo)
+        r = M.dopasuj(f.punkty, f.normalne, pula, ust_m, f.gniazdo, bez_korekty=bez_korekty)
         wpis = {
             "gniazdo": f.gniazdo, "status_fragmentu": f.status, "punkty": f.liczba, "srodek": [round(v, 3) for v in f.srodek],
             "status": r.status, "pewnosc": round(r.pewnosc, 4), "czas_s": r.czas_s, "uwagi": r.uwagi,
             "kandydaci": [{**asdict(k), "pokrycie": round(k.pokrycie, 4), "rms_mm": (round(k.rms_mm, 4) if math.isfinite(k.rms_mm) else None),
                            "pokrycie_odwrotne": round(k.pokrycie_odwrotne, 4)} for k in r.kandydaci[:5]],
+            "skala": asdict(r.skala) if r.skala is not None else None,
             "inspekcja": None,
         }
         k = r.najlepszy
@@ -422,13 +431,21 @@ def tabela(wynik: dict) -> str:
                 + (f" — {wynik['uklad_podpowiedz']}" if wynik.get("uklad_podpowiedz") else ""))
     w = [f"skan {wynik['skan']}: płytka {wynik['plytka']} nr {wynik['numer']} ({wynik['numer_zrodlo']}), współczynnik {wynik['wspolczynnik']}, "
          f"projektów w puli {wynik['projekty']}, czas {wynik['czas_s']['razem']} s (plate {wynik['czas_s']['plate']}, match {wynik['czas_s']['match']})",
-         "gniazdo  projekt           zęby          pokrycie  pewność  match    gniazdo       inspect           ubytki (metoda, ø mm)"]
+         "gniazdo  projekt           zęby          pokrycie  pewność  skala %   match    gniazdo       inspect           ubytki (metoda, ø mm)"]
+    ostrz_skali = []
     for g in sorted(wynik["gniazda"], key=lambda g: (g["gniazdo"] is None, g["gniazdo"] or 0)):
         k = g["kandydaci"][0] if g["kandydaci"] else None
         gn = "poza" if g["gniazdo"] is None else f"{g['gniazdo']:>4d}" + ("×2" if g["status_fragmentu"] == "podwojny" else "  ")
         ins = g.get("inspekcja")
         ub = ", ".join(f"{u['metoda']} {u['kolor'][0]} ø{u['srednica_mm']:.2f}" for u in ins["ubytki"]) if ins else ""
-        w.append(f"{gn:>7s}  {k['id'] if k else '—':16s}  {'-'.join(k['zeby']) if k else '':13s} {k['pokrycie'] if k else 0:8.3f}  {g['pewnosc']:7.3f}  {g['status']:8s} "
+        sk = g.get("skala")  # poprawka skali ze skanu: w nawiasie = zmierzona, ale niezastosowana; „!” = ostrzeżenie; „?” = estymata niepewna
+        if not sk or sk["poprawka_proc"] is None:
+            skala = "—"
+        else:
+            skala = (f"{sk['poprawka_proc']:+.2f}" if sk["zastosowana"] else f"({sk['poprawka_proc']:+.2f})") + ("!" if sk["ostrzezenie"] else "?" if sk.get("niepewna") else "")
+            if sk["ostrzezenie"]:
+                ostrz_skali.append(f"{gn.strip()}: {sk['poprawka_proc']:+.2f} %" + ("" if sk["zastosowana"] else f" (bez korekty: {sk['powod']})"))
+        w.append(f"{gn:>7s}  {k['id'] if k else '—':16s}  {'-'.join(k['zeby']) if k else '':13s} {k['pokrycie'] if k else 0:8.3f}  {g['pewnosc']:7.3f}  {skala:>8s}  {g['status']:8s} "
                  f"{g['status_gniazda']:13s} {ins['status'] if ins else '—':17s} {ub}")
     w.append(f"puste: {wynik['gniazda_puste']}; podwójne: {wynik['gniazda_podwojne']}; poza gniazdem: {wynik['poza_gniazdem']}; "
              f"gniazda: {', '.join(f'{s} {n}' for s, n in wynik['statusy_gniazd'].items() if n)}; ubytków {wynik['ubytki']}")
@@ -439,6 +456,8 @@ def tabela(wynik: dict) -> str:
         brzeg = (g.get("inspekcja") or {}).get("brzeg") or {}
         if brzeg and not brzeg.get("sprawdzony", True):
             w.append(f"  gniazdo {g['gniazdo']}: brzeg nie sprawdzony — {brzeg.get('opis', '')}")
+    if ostrz_skali:
+        w.append("OSTRZEŻENIE SKALI (praca większa / mniejsza niż projekt × współczynnik — sprawdź współczynnik / krążek): gniazdo " + "; ".join(ostrz_skali))
     return "\n".join(w)
 
 

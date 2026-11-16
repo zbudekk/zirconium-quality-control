@@ -655,7 +655,8 @@ def sprawdz(P: np.ndarray, N: np.ndarray, pr: M.Projekt, transformacja: np.ndarr
     T = transformacja_do_projektu(pr, transformacja)
     T_inv = np.linalg.inv(T)
     P_pula = P @ T[:3, :3].T + T[:3, 3]
-    N_pula = np.asarray(N, dtype=np.float64) @ T[:3, :3].T
+    # po korekcie skali w match transformacja jest podobieństwem (obrót + przesunięcie + skala ≤ ±1 %): normalne bez skali
+    N_pula = np.asarray(N, dtype=np.float64) @ (T[:3, :3] / M.skala_macierzy(T)).T
     d = odchylki(P_pula, pr)
     w = WynikInspekcji(gniazdo, pr.id, "ok", float(pokrycie), _P=P, _d=d)
     w.odchylki = {"punkty": int(len(P)), "udzial_pod": round(float(np.mean(d <= -ui["prog_glebokosci_mm"])), 4),
