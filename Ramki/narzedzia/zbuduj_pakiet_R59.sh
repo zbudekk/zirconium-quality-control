@@ -1,57 +1,67 @@
 #!/bin/bash
-# Buduje pakiet R59 (R59‑K): nowy układ gniazd płytek — wieczorna 18 gniazd + 1 rynienka (6 × ø12, 12 × ø15), poranna 23 + 1 (20 × ø12,5, 3 × ø15),
-# płytki okrągłe n8 / n9 z tymi samymi gniazdami. Zmieniły się TYLKO pliki płytek: te same nazwy co w pakietach R54–R57, nowe SHA‑256.
-# Na wzór zbuduj_pakiet_R57.sh; różnice:
-#  - dokumenty 01–04 z sufiksem _<data>_R59; 02_Druk_drukarnia_PA12: 8 plików płytek w nowym układzie, arkusz z narzedzia/arkusz_zamowienia_R59.py;
-#    03_Druk_wlasny: …_n1_v2_TEST_SKANERA.stl = kopia NOWEGO n1 (ta sama reguła co w R57);
-#  - 04_Model_i_animacje: wyniki_model_R59 (ramka_3d_v3_R59.html, animacja_ramki_R59.html — animacja pokazuje układ gniazd, 12 JPG) + 3 rendery Blendera;
+# Buduje pakiet R59 (R59-K): nowy uklad gniazd plytek - wieczorna 18 gniazd + 1 rynienka (6 x fi12, 12 x fi15), poranna 23 + 1 (20 x fi12,5, 3 x fi15),
+# plytki okragle n8 / n9 z tymi samymi gniazdami. Zmienily sie TYLKO pliki plytek: te same nazwy co w pakietach R54-R57, nowe SHA-256.
+# Na wzor zbuduj_pakiet_R57.sh; roznice:
+#  - dokumenty 01-04 z sufiksem _<data>_R59; 02_Druk_drukarnia_PA12: 8 plikow plytek w nowym ukladzie, arkusz z narzedzia/arkusz_zamowienia_R59.py;
+#    03_Druk_wlasny: ..._n1_v2_TEST_SKANERA.stl = kopia NOWEGO n1 (ta sama regula co w R57);
+#  - 04_Model_i_animacje: wyniki_model_R59 (ramka_3d_v3_R59.html, animacja_ramki_R59.html - animacja pokazuje uklad gniazd, 12 JPG) + 3 rendery Blendera;
 #  - 05_Zrodla: + R59_wdrozenie_zmiany.md, R59_propozycja_ukladu.md, raport wykonawcy R59 iter2, raport recenzenta R59 iter1, raport recenzji PR runda 1,
-#    uklad_kolo_R59.js i weryfikuj_uklad_R59.js (zamiast …_R54.js), arkusz_zamowienia_R59.py (zamiast …_R57.py), bazowe STL wszystkich 4 typów płytek
-#    (R57: tylko 2 okrągłe), opis programu stanowiska i jego raport R59 (dwa układy płytek, strażnik układu);
-#  - pakiet powstaje w katalogu roboczym obok celu i zastępuje poprzedni dopiero po przejściu WSZYSTKICH kontroli (R57: rm -rf na początku);
-#  - skrypt robi też pliki na Dysk (w R56 / R57 robione ręcznie): 3 ZIP‑y, SHA256SUMS, INSTRUKCJA_PAKIET, DO_WGRANIA_NA_DRIVE, 3 PDF;
-#    ZIP‑y modułem zipfile Pythona (stała kolejność i czas wpisów — ten sam Python daje bajtowo te same ZIP‑y);
-#  - tryb próbny (--proba <katalog>): pisze WYŁĄCZNIE do <katalog>, dopuszcza PDF sprzed R59 (tylko do sprawdzenia mechaniki — nie do wgrania);
-#  - --calosc <katalog> (krok 1b, polecenie właściciela: pakiet także w katalogu wydań serwera, jako jeden plik): DODATKOWO jeden ZIP
-#    Ramki_pakiet_<data>_R59.zip w <katalog> (poza repo — nie idzie do gita): katalog Ramki_pakiet_<data>_R59/ z całym pakietem, plikiem sum
-#    i INSTRUKCJA_PAKIET, bez ZIP‑ów częściowych w środku; do tego opis NA_SERWER_<data>_R59.md w katalogu do wgrania.
-#    Bez --calosc skrypt działa jak dotąd (trzy ZIP‑y częściowe na Dysk — bajtowo te same).
-# Kontrole (niezgodność = stop; poprzedni pakiet i katalog do wgrania zostają nietknięte):
-#   1. przypięte SHA‑256 12 STL płytek i 4 JSON układu = tabela w R59_wdrozenie_zmiany.md = pliki w wyniki_v2/;
-#   2. 9 plików niepłytkowych bajtowo jak w SHA256SUMS_2026-11-02_R57.txt (źródła i pakiet); wkładka = f4196fbc… (wariant z innym znakiem
-#      zera normalnych, K‑59 = stop z podpowiedzią, skąd przywrócić plik zweryfikowany);
-#   3. 3 PDF: istnieją; w trybie właściwym nie są plikami z pakietu R57, nie są starsze niż ich .md, a ich tekst (pypdf) zawiera „R59”
-#      i „23 gniazda” (nowy układ płytki porannej); kopia z git archive ma równe czasy plików — wtedy rozstrzyga treść;
-#   4. model 3D zawiera płytki n1 / n4 o przypiętych SHA i żadnego pliku starego układu;
-#   5. w pakiecie: każdy plik płytki i JSON układu ma przypiętą sumę; żaden plik nie ma sumy pliku płytki / JSON układu sprzed R59;
-#      liczba plików, nazwy tylko ASCII bez spacji; sha256sum -c;
-#   6. ZIP‑y: każdy < 10 MB, test CRC, każdy plik pakietu w dokładnie jednym ZIP‑ie, sumy plików w ZIP‑ach = SHA256SUMS;
-#   7. katalog do wgrania: istniejące pliki *_<data>_R59* nadpisuje tylko z --nadpisz; żaden inny plik nie może się zmienić ani zniknąć;
-#   8. ZIP całości (--calosc): test CRC; pliki = pakiet + plik sum + instrukcja (liczba, a sumy każdego pliku = SHA256SUMS); nazwa wg wzorca
-#      katalogu wydań (ASCII, .zip), < 2 GiB; plik o tej nazwie już jest w <katalog>: ta sama suma = bez zapisu, inna = odmowa bez --nadpisz
-#      (wydania na serwerze są niezmienne); w próbie <katalog> musi leżeć w katalogu próby, w trybie właściwym — poza repo.
+#    uklad_kolo_R59.js i weryfikuj_uklad_R59.js (zamiast ..._R54.js), arkusz_zamowienia_R59.py (zamiast ..._R57.py), bazowe STL wszystkich 4 typow plytek
+#    (R57: tylko 2 okragle), opis programu stanowiska i jego raport R59 (dwa uklady plytek, straznik ukladu);
+#  - pakiet powstaje w katalogu roboczym obok celu i zastepuje poprzedni dopiero po przejsciu WSZYSTKICH kontroli (R57: rm -rf na poczatku);
+#    zamiana przez przemianowanie: poprzedni pakiet -> <cel>.stary_R59, nowy na miejsce celu, sha256sum -c nowego; przy bledzie poprzedni wraca
+#    na miejsce, a kasowany jest dopiero po udanym sprawdzeniu nowego (do 16.11: rm -rf celu przed mv - nieudane rm zostawialo pakiet czesciowy);
+#  - skrypt robi tez pliki na Dysk (w R56 / R57 robione recznie): 3 ZIP-y, SHA256SUMS, INSTRUKCJA_PAKIET, DO_WGRANIA_NA_DRIVE, 3 PDF;
+#    ZIP-y modulem zipfile Pythona (stala kolejnosc i czas wpisow - ten sam Python daje bajtowo te same ZIP-y);
+#  - tryb probny (--proba <katalog>): pisze WYLACZNIE do <katalog>, ktory musi lezec POZA repo; dopuszcza PDF sprzed R59 (tylko do sprawdzenia
+#    mechaniki - nie do wgrania); README.txt i instrukcja maja napis PRZEBIEG PROBNY, wiec cz1 i ZIP calosci roznia sie od plikow wlasciwych;
+#  - --calosc <katalog> (krok 1b, polecenie wlasciciela: pakiet takze w katalogu wydan serwera, jako jeden plik): DODATKOWO jeden ZIP
+#    Ramki_pakiet_<data>_R59.zip w <katalog> (poza repo - nie idzie do gita): katalog Ramki_pakiet_<data>_R59/ z calym pakietem, plikiem sum
+#    i INSTRUKCJA_PAKIET, bez ZIP-ow czesciowych w srodku; do tego opis NA_SERWER_<data>_R59.md w katalogu do wgrania.
+#    Bez --calosc skrypt dziala jak dotad (trzy ZIP-y czesciowe na Dysk - bajtowo te same).
+# Straznik sciezek (sprawdzany przed jakakolwiek zmiana na dysku; niezgodnosc = stop). Repo = katalog nad Ramki, drzewo robocze git i glowna
+#   kopia repo, w ktorej lezy worktree. Katalogi zakazane = repo, Ramki_pakiet, ../Ramki_do_wgrania, archiwum: cel nie moze w nich lezec
+#   ani ich zawierac. Proba: <katalog> i wszystkie policzone cele (pakiet, pliki na Dysk, katalogi robocze, <cel>.stary_R59) poza zakazanymi,
+#   <katalog> poza kazdym drzewem roboczym git. Wlasciwy: pakiet TYLKO w Ramki_pakiet (inny katalog pakietu = odmowa; pakiet gdzie indziej
+#   tylko przez --proba), pliki na Dysk w ../Ramki_do_wgrania. --calosc: poza zakazanymi i poza kazdym drzewem roboczym git, w probie
+#   dodatkowo w katalogu proby.
+# Kontrole (niezgodnosc = stop; poprzedni pakiet i katalog do wgrania zostaja nietkniete):
+#   1. przypiete SHA-256 12 STL plytek i 4 JSON ukladu = tabela w R59_wdrozenie_zmiany.md = pliki w wyniki_v2/;
+#   2. 9 plikow nieplytkowych bajtowo jak w SHA256SUMS_2026-11-02_R57.txt (zrodla i pakiet); wkladka = f4196fbc... (wariant z innym znakiem
+#      zera normalnych, K-59 = stop z podpowiedzia, skad przywrocic plik zweryfikowany);
+#   3. 3 PDF: istnieja; w trybie wlasciwym nie sa plikami z pakietu R57, nie sa starsze niz ich .md, a ich tekst (pypdf) zawiera "R59"
+#      i "23 gniazda" (nowy uklad plytki porannej); kopia z git archive ma rowne czasy plikow - wtedy rozstrzyga tresc;
+#   4. model 3D zawiera plytki n1 / n4 o przypietych SHA i zadnego pliku starego ukladu;
+#   5. w pakiecie: kazdy plik plytki i JSON ukladu ma przypieta sume; zaden plik nie ma sumy pliku plytki / JSON ukladu sprzed R59;
+#      liczba plikow, nazwy tylko ASCII bez spacji; sha256sum -c;
+#   6. ZIP-y: kazdy < 10 MB, test CRC, kazdy plik pakietu w dokladnie jednym ZIP-ie, sumy plikow w ZIP-ach = SHA256SUMS;
+#   7. katalog do wgrania: istniejace pliki *_<data>_R59* nadpisuje tylko z --nadpisz; zaden inny plik nie moze sie zmienic ani zniknac;
+#   8. ZIP calosci (--calosc): test CRC; pliki = pakiet + plik sum + instrukcja (liczba, a sumy kazdego pliku = SHA256SUMS); nazwa wg wzorca
+#      katalogu wydan (ASCII, .zip), < 2 GiB; plik o tej nazwie juz jest w <katalog>: ta sama suma = bez zapisu, inna = odmowa bez --nadpisz
+#      (wydania na serwerze sa niezmienne); gdzie moze lezec <katalog>: straznik sciezek wyzej.
 # Uruchom z folderu Ramki:
-#   bash narzedzia/zbuduj_pakiet_R59.sh [--nadpisz] [--calosc <katalog>] [katalog_pakietu]   właściwy pakiet: Ramki_pakiet/ (albo katalog_pakietu)
-#                                                                                            + ../Ramki_do_wgrania/ (+ ZIP całości w <katalog>)
-#   bash narzedzia/zbuduj_pakiet_R59.sh --proba <katalog> [--nadpisz] [--calosc <katalog>]   przebieg próbny: <katalog>/Ramki_pakiet + <katalog>/Ramki_do_wgrania
-# Zmienne: DATA=RRRR-MM-DD (domyślnie dziś = dzień budowy), PY=<python.exe> (domyślnie pierwszy z: py -3, python3, python, znane ścieżki PC / MSI —
-#   z pierwszeństwem dla tego, który ma pypdf); PROBA=1 i NADPISZ=1 działają jak przełączniki. Ścieżki względne liczą się od folderu Ramki.
-# Kopia pakietu R57 sprzed przebudowy: archiwum/Ramki_pakiet_przed_R59_<data>/ — robi ją ten skrypt (tylko tryb właściwy, cel = Ramki_pakiet).
+#   bash narzedzia/zbuduj_pakiet_R59.sh [--nadpisz] [--calosc <katalog poza repo>]
+#       wlasciwy pakiet: Ramki_pakiet/ + ../Ramki_do_wgrania/ (+ ZIP calosci w <katalog>); innego katalogu pakietu skrypt nie przyjmuje
+#   bash narzedzia/zbuduj_pakiet_R59.sh --proba <katalog poza repo> [--nadpisz] [--calosc <katalog w katalogu proby>]
+#       przebieg probny: <katalog>/Ramki_pakiet + <katalog>/Ramki_do_wgrania (+ <katalog>/PRZEBIEG_PROBNY.txt)
+# Zmienne: DATA=RRRR-MM-DD (domyslnie dzis = dzien budowy), PY=<python.exe> (domyslnie pierwszy z: py -3, python3, python, znane sciezki PC / MSI -
+#   z pierwszenstwem dla tego, ktory ma pypdf); PROBA=1 i NADPISZ=1 dzialaja jak przelaczniki. Sciezki wzgledne licza sie od folderu Ramki.
+# Kopia pakietu R57 sprzed przebudowy: archiwum/Ramki_pakiet_przed_R59_<data>/ - robi ja ten skrypt (tylko tryb wlasciwy, cel = Ramki_pakiet).
 set -euo pipefail
 SKRYPT="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 cd "$(dirname "$SKRYPT")/.."
 
 R=R59
-DATA="${DATA:-$(date +%F)}"   # data pakietu = dzień właściwej budowy; inna: DATA=2026-11-16 bash narzedzia/zbuduj_pakiet_R59.sh
+DATA="${DATA:-$(date +%F)}"   # data pakietu = dzien wlasciwej budowy; inna: DATA=2026-11-16 bash narzedzia/zbuduj_pakiet_R59.sh
 PROBA="${PROBA:-0}"
 NADPISZ="${NADPISZ:-0}"
-LIMIT_ZIP=10000000            # każdy ZIP < 10 MB (ostrożnie: 10 000 000 bajtów)
+LIMIT_ZIP=10000000            # kazdy ZIP < 10 MB (ostroznie: 10 000 000 bajtow)
 LICZBA_PLIKOW=81              # pliki pakietu bez pliku sum (pakiet R57: 63)
 SUMY_R57_NAZWA=SHA256SUMS_2026-11-02_R57.txt
 WGRANIE_REPO=../Ramki_do_wgrania
-FRAZA_PDF="23 gniazda"        # liczba gniazd płytki porannej po R59: jest w każdym z trzech .md, więc musi być w tekście każdego PDF
+FRAZA_PDF="23 gniazda"        # liczba gniazd plytki porannej po R59: jest w kazdym z trzech .md, wiec musi byc w tekscie kazdego PDF
 
-# Przypięte SHA‑256 plików płytek i JSON układu: R59_wdrozenie_zmiany.md pkt 0 (= raport recenzenta R59 iter1 pkt 1, 12 / 12 i 4 / 4)
+# Przypiete SHA-256 plikow plytek i JSON ukladu: R59_wdrozenie_zmiany.md pkt 0 (= raport recenzenta R59 iter1 pkt 1, 12 / 12 i 4 / 4)
 SHA_PLYTEK="ramka_plytka_wieczorna_v2.stl 604ef8f2079184460c3e059edde4849e9feeefeab39a755c18d0079ea1e561a9
 ramka_plytka_wieczorna_n1_v2.stl 3b0db5452a0cd9533464772c10b67c05fa7a006fcdb3d140a74af275e79946f7
 ramka_plytka_wieczorna_n2_v2.stl b87026134b25cf32a84a231b73d5c4eb9fde4dfeb5b16b627cf09ccc3f29c999
@@ -71,7 +81,7 @@ uklad_gniazd_okragla_poranna.json b943e6c5dd54a8b3b35974908a3910bd654062bb659284
 SHA_WKLADKI=f4196fbc640450998634f50caa86051f89df2cbb2c218e317f5c2b193e3ef92b
 PLYTKI_DO_DRUKU="ramka_plytka_wieczorna_n1_v2 ramka_plytka_wieczorna_n2_v2 ramka_plytka_wieczorna_n3_v2 ramka_plytka_poranna_n4_v2 ramka_plytka_poranna_n5_v2 ramka_plytka_poranna_n6_v2 ramka_plytka_okragla_wieczorna_n8_v2 ramka_plytka_okragla_poranna_n9_v2"
 PLYTKI_BAZOWE="ramka_plytka_wieczorna_v2 ramka_plytka_poranna_v2 ramka_plytka_okragla_wieczorna_v2 ramka_plytka_okragla_poranna_v2"
-# dokument źródłowy (bez rozszerzenia) | nazwa w pakiecie (bez sufiksu daty)
+# dokument zrodlowy (bez rozszerzenia) | nazwa w pakiecie (bez sufiksu daty)
 PDFY=("Stanowisko kontroli cyrkonii — plan wdrozenia v2|01_Plan_wdrozenia_v2" "Zakupy i druk — stanowisko kontroli cyrkonii|02_Zakupy_i_druk" "Budowa ramki — decyzje i zamienniki|03_Budowa_ramki_decyzje_i_zamienniki")
 
 blad() { echo "BLAD: $*" >&2; exit 1; }
@@ -79,9 +89,9 @@ uwaga() { echo "UWAGA: $*"; }
 sha() { sha256sum -b "$1" | cut -c1-64; }
 suma_plytki() { awk -v p="$1" '$1==p{print $2}' <<< "$SHA_PLYTEK"; }
 tys() { echo "$1" | sed ':a;s/^\([0-9]\+\)\([0-9]\{3\}\)/\1 \2/;ta'; }   # 4516613 -> 4 516 613
-# Czy ścieżka $1 leży w katalogu $2 (albo nim jest)? Sam `realpath` tu nie wystarcza: w Git Bash zostawia C:/x obok /c/x i porównanie napisów
-# przepuszcza ścieżkę w postaci Windows (tak 15.11 przeszła próba z --calosc C:/…/repo/x). Dlatego: (1) napisy po normalizacji (cygpath, małe
-# litery na Windows), (2) tożsamość katalogów (-ef) na kolejnych przodkach ścieżki — odporne na wielkość liter, nazwy 8.3 i postać dysku.
+# Czy sciezka $1 lezy w katalogu $2 (albo nim jest)? Sam `realpath` tu nie wystarcza: w Git Bash zostawia C:/x obok /c/x i porownanie napisow
+# przepuszcza sciezke w postaci Windows (tak 15.11 przeszla proba z --calosc C:/.../repo/x). Dlatego: (1) napisy po normalizacji (cygpath, male
+# litery na Windows), (2) tozsamosc katalogow (-ef) na kolejnych przodkach sciezki - odporne na wielkosc liter, nazwy 8.3 i postac dysku.
 norm() {
   local p="$1"
   if command -v cygpath >/dev/null 2>&1; then p="$(cygpath -u "$p")"; p="$(realpath -m "$p")"; p="${p,,}"; else p="$(realpath -m "$p")"; fi
@@ -95,6 +105,22 @@ w_katalogu() {
   while :; do
     if [ -e "$p" ] && [ "$p" -ef "$2" ]; then return 0; fi
     rodzic="$(dirname "$p")"; [ "$rodzic" != "$p" ] || return 1; p="$rodzic"
+  done
+}
+# Czy $1 (moze jeszcze nie istniec) lezy w jakimkolwiek drzewie roboczym git? Pytam git o najblizszego istniejacego przodka.
+w_drzewie_git() {
+  local p="$1"
+  command -v git >/dev/null 2>&1 || return 1
+  if command -v cygpath >/dev/null 2>&1; then p="$(cygpath -u "$p")"; fi; p="$(realpath -m "$p")"
+  while [ ! -d "$p" ]; do p="$(dirname "$p")"; done
+  git -C "$p" rev-parse --git-dir >/dev/null 2>&1
+}
+# Straznik: cel $2 nie moze lezec w zadnym z katalogow zakazanych (dalsze argumenty) ani zadnego z nich zawierac; $1 = opis celu.
+straznik() {
+  local opis="$1" cel="$2" z; shift 2
+  for z in "$@"; do
+    if w_katalogu "$cel" "$z"; then blad "$opis ($cel) lezy w $z - odmowa przed jakakolwiek zmiana na dysku"; fi
+    if w_katalogu "$z" "$cel"; then blad "$opis ($cel) zawiera $z - odmowa przed jakakolwiek zmiana na dysku"; fi
   done
 }
 
@@ -112,42 +138,58 @@ while [ $# -gt 0 ]; do
 done
 [[ "$DATA" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || blad "DATA ma byc w postaci RRRR-MM-DD, jest: $DATA"
 
+# --- Cele i straznik sciezek: wszystkie kontrole przed jakakolwiek zmiana na dysku (incydent 15.11; uwaga D1 recenzji PR R59, runda 2)
+# Repo = katalog nad Ramki + drzewo robocze git + glowna kopia repo, w ktorej lezy worktree (bez gita zostaje sam katalog nad Ramki).
+REPO=(..)
+if command -v git >/dev/null 2>&1; then
+  if k="$(git rev-parse --show-toplevel 2>/dev/null)" && [ -n "$k" ] && [ -d "$k" ]; then REPO+=("$k"); fi
+  if k="$(git rev-parse --git-common-dir 2>/dev/null)" && [ -n "$k" ] && [ -d "$k" ] && k="$(cd "$k" && pwd)" && [ "${k##*/}" = .git ]; then REPO+=("${k%/*}"); fi
+fi
+ZAKAZANE=(Ramki_pakiet "$WGRANIE_REPO" archiwum "${REPO[@]}")
 if [ "$PROBA" = 1 ]; then
-  [ -n "$CEL" ] || blad "przebieg probny wymaga katalogu docelowego: --proba <katalog>"
-  for z in Ramki_pakiet "$WGRANIE_REPO" archiwum; do
-    if w_katalogu "$CEL" "$z"; then blad "przebieg probny nie moze pisac do Ramki_pakiet, Ramki_do_wgrania ani archiwum"; fi
-  done
+  [ -n "$CEL" ] || blad "przebieg probny wymaga katalogu docelowego poza repo: --proba <katalog>"
   D="${CEL%/}/Ramki_pakiet"; W="${CEL%/}/Ramki_do_wgrania"; TRYB=PROBNY
 else
-  D="${CEL:-Ramki_pakiet}"; D="${D%/}"; W="$WGRANIE_REPO"; TRYB=WLASCIWY
+  if [ -n "$CEL" ] && ! { w_katalogu "$CEL" Ramki_pakiet && w_katalogu Ramki_pakiet "$CEL"; }; then
+    blad "przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: $CEL) - pakiet w innym katalogu: --proba <katalog poza repo>"
+  fi
+  D=Ramki_pakiet; W="$WGRANIE_REPO"; TRYB=WLASCIWY
 fi
 T="$D.budowa_$R"              # katalog roboczy pakietu (znika po udanej budowie)
-TW="$D.budowa_${R}_wgranie"   # katalog roboczy plików na Dysk
+TW="$D.budowa_${R}_wgranie"   # katalog roboczy plikow na Dysk
+STARY="$D.stary_$R"           # poprzedni pakiet na czas zamiany (krok 6; kasowany po udanym sha256sum -c nowego)
+if [ "$PROBA" = 1 ]; then
+  straznik "katalog proby" "$CEL" "${ZAKAZANE[@]}"
+  if w_drzewie_git "$CEL"; then blad "katalog proby ($CEL) lezy w drzewie roboczym git - przebieg probny tylko poza repo"; fi
+  for c in "$D" "$W" "$T" "$TW" "$STARY"; do straznik "cel przebiegu probnego" "$c" "${ZAKAZANE[@]}"; done
+else
+  for c in "$D" "$T" "$TW" "$STARY"; do straznik "cel przebiegu wlasciwego" "$c" "$WGRANIE_REPO" archiwum; done
+fi
 SUMY="SHA256SUMS_${DATA}_${R}.txt"
 KATALOG_ZIP="Ramki_pakiet_${DATA}_${R}"
 ZIP1="${KATALOG_ZIP}_cz1_dokumenty_druk.zip"; ZIP2="${KATALOG_ZIP}_cz2_model.zip"; ZIP3="${KATALOG_ZIP}_cz3_zrodla.zip"
 INSTR="INSTRUKCJA_PAKIET_${DATA}_${R}.md"; LISTA="DO_WGRANIA_NA_DRIVE_${DATA}_${R}.md"
 NAZWY_DYSK=("$ZIP1" "$ZIP2" "$ZIP3" "$SUMY" "$INSTR")
 for p in "${PDFY[@]}"; do NAZWY_DYSK+=("${p##*|}_${DATA}_${R}.pdf"); done
-NAZWY_W=("${NAZWY_DYSK[@]}" "$LISTA")   # wszystko, co ten skrypt pisze do katalogu do wgrania (9 plików; z --calosc 10)
-# jeden ZIP z całością — tylko z --calosc <katalog>. Katalog wydań serwera: nazwa ASCII wg wzorca, plik do 2 GiB, wydanie niezmienne
-# (ta sama nazwa z inną sumą = odmowa), więc ZIP musi być powtarzalny bajtowo. Ten skrypt niczego na serwer nie wysyła.
+NAZWY_W=("${NAZWY_DYSK[@]}" "$LISTA")   # wszystko, co ten skrypt pisze do katalogu do wgrania (9 plikow; z --calosc 10)
+# jeden ZIP z caloscia - tylko z --calosc <katalog>. Katalog wydan serwera: nazwa ASCII wg wzorca, plik do 2 GiB, wydanie niezmienne
+# (ta sama nazwa z inna suma = odmowa), wiec ZIP musi byc powtarzalny bajtowo. Ten skrypt niczego na serwer nie wysyla.
 ZIPC="${KATALOG_ZIP}.zip"; NASERWER="NA_SERWER_${DATA}_${R}.md"
 WZORZEC_WYDAN='^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$'
 if [ -n "$CALOSC" ]; then
   { [[ "$ZIPC" =~ $WZORZEC_WYDAN ]] && [[ "$ZIPC" == *.zip ]]; } || blad "nazwa $ZIPC nie spelnia wzorca katalogu wydan ($WZORZEC_WYDAN, rozszerzenie zip)"
-  for z in "$D" "$W" archiwum; do
+  straznik "katalog --calosc" "$CALOSC" "${ZAKAZANE[@]}"
+  for z in "$D" "$W" "$T" "$TW" "$STARY"; do
     if w_katalogu "$CALOSC" "$z"; then blad "katalog --calosc nie moze lezec w $z"; fi
   done
+  if w_drzewie_git "$CALOSC"; then blad "katalog --calosc ($CALOSC) lezy w drzewie roboczym git - ZIP calosci (ok. 20 MB) nie idzie do zadnego repo"; fi
   if [ "$PROBA" = 1 ]; then
     w_katalogu "$CALOSC" "$CEL" || blad "w przebiegu probnym katalog --calosc musi lezec w katalogu proby ($CEL) - ZIP probny nie moze trafic miedzy prawdziwe wydania"
-  elif w_katalogu "$CALOSC" ..; then
-    blad "ZIP calosci nie idzie do repo (ok. 20 MB, zdublowalby pakiet w gicie) - podaj katalog poza $(realpath -m ..)"
   fi
   NAZWY_W+=("$NASERWER")
 fi
 
-# --- Python (ZIP‑y, arkusz zamówienia, tekst PDF)
+# --- Python (ZIP-y, arkusz zamowienia, tekst PDF)
 PYCMD=(); PYPDF=0
 if [ -n "${PY:-}" ]; then KAND=("$PY"); else KAND=("py -3" python3 python "<PC>/AppData/Local/Programs/Python/Python312/python.exe" "/c/Program Files/Python312/python.exe"); fi
 for wymog in pypdf dowolny; do
@@ -263,15 +305,16 @@ PYEOF
 echo "== zbuduj_pakiet_${R}.sh: przebieg $TRYB, data $DATA"
 echo "   pakiet: $D   pliki na Dysk: $W   Python: ${PYCMD[*]} (pypdf: $PYPDF)"
 
-# --- 0. Cele: nic nie kasuję na ślepo, nic starego nie nadpisuję
+# --- 0. Cele: nic nie kasuje na slepo, nic starego nie nadpisuje
 if [ -e "$D" ]; then
   [ -d "$D" ] || blad "$D istnieje i nie jest katalogiem"
   if [ -n "$(ls -A "$D")" ]; then
     { [ -f "$D/README.txt" ] && ls "$D"/SHA256SUMS_*.txt >/dev/null 2>&1; } || blad "katalog $D nie jest pusty i nie wyglada na pakiet (brak README.txt albo SHA256SUMS_*.txt) - nie kasuje"
   fi
 fi
+if [ -e "$STARY" ] || [ -L "$STARY" ]; then blad "$STARY juz istnieje (pozostalosc nieudanej zamiany?) - sprawdz go i usun recznie; nic nie zmieniam"; fi
 if [ "$PROBA" = 1 ]; then mkdir -p "$W"; else [ -d "$W" ] || blad "brak katalogu $W"; fi
-if [ -n "$CALOSC" ]; then   # katalog na ZIP całości musi dać się zapisać — sprawdzam teraz, nie po zamianie pakietu
+if [ -n "$CALOSC" ]; then   # katalog na ZIP calosci musi dac sie zapisac - sprawdzam teraz, nie po zamianie pakietu
   { mkdir -p "$CALOSC" 2>/dev/null && touch "$CALOSC/.zapis_$$" 2>/dev/null && rm -f "$CALOSC/.zapis_$$"; } || blad "katalogu --calosc ($CALOSC) nie da sie utworzyc albo nie da sie w nim pisac"
 fi
 ISTN=()
@@ -280,7 +323,7 @@ if [ "${#ISTN[@]}" -gt 0 ] && [ "$NADPISZ" != 1 ]; then blad "w $W juz sa pliki 
 INNE_R59=$(cd "$W" && find . -type f -name "*_${R}*" ! -name "*_${DATA}_${R}*" | sed 's|^\./||' | LC_ALL=C sort | tr '\n' ' ')
 [ -z "$INNE_R59" ] || uwaga "w $W sa pliki $R z inna data (zostaja nietkniete): $INNE_R59"
 if [ -z "$CALOSC" ] && [ -e "$W/$NASERWER" ]; then uwaga "w $W jest $NASERWER z wczesniejszego przebiegu z --calosc; ten przebieg (bez --calosc) go nie odswieza"; fi
-migawka() {  # sumy plików katalogu do wgrania, których ten skrypt nie pisze
+migawka() {  # sumy plikow katalogu do wgrania, ktorych ten skrypt nie pisze
   ( cd "$W" && find . -type f | sed 's|^\./||' | LC_ALL=C sort | while IFS= read -r n; do
       case " ${NAZWY_W[*]} " in *" $n "*) ;; *) sha256sum -b "$n";; esac
     done )
@@ -292,7 +335,7 @@ trap 'if [ "$SPRZATAJ" = 1 ]; then rm -rf "$T" "$TW"; fi' EXIT
 rm -rf "$T" "$TW"
 mkdir -p "$T/01_Dokumenty" "$T/02_Druk_drukarnia_PA12" "$T/03_Druk_wlasny/PETG_FDM" "$T/04_Model_i_animacje/rendery" "$T/05_Zrodla" "$TW"
 
-# --- 1. Źródła: sumy przypięte = dokument wdrożenia = pliki w wyniki_v2
+# --- 1. Zrodla: sumy przypiete = dokument wdrozenia = pliki w wyniki_v2
 echo "== 1. Zrodla"
 SUMY_R57=""
 for k in "$WGRANIE_REPO/$SUMY_R57_NAZWA" "Ramki_pakiet/$SUMY_R57_NAZWA" archiwum/Ramki_pakiet_przed_${R}_*/"$SUMY_R57_NAZWA"; do
@@ -311,9 +354,9 @@ $SHA_JSON"
 [ "$N" = 16 ] || blad "lista przypietych sum: oczekiwane 16 pozycji, jest $N"
 echo "  12 z 12 STL plytek i 4 z 4 JSON ukladu: suma przypieta = R59_wdrozenie_zmiany.md = plik w wyniki_v2"
 
-# wkładka: do zamówienia idzie plik zweryfikowany w R53/R54 (f4196fbc…). Znana pułapka (K‑59): po przebiegu generatora plik miewa inny znak zera
-# normalnych (siatka identyczna, inna suma). W R57 skrypt pakietu sam brał wtedy plik z archiwum; tu to STOP z podpowiedzią, bo arkusz zamówienia R59
-# porównuje wyniki_v2/stl z raportem generatora i z takim wariantem i tak by się zatrzymał — plik trzeba przywrócić w wyniki_v2/stl.
+# wkladka: do zamowienia idzie plik zweryfikowany w R53/R54 (f4196fbc...). Znana pulapka (K-59): po przebiegu generatora plik miewa inny znak zera
+# normalnych (siatka identyczna, inna suma). W R57 skrypt pakietu sam bral wtedy plik z archiwum; tu to STOP z podpowiedzia, bo arkusz zamowienia R59
+# porownuje wyniki_v2/stl z raportem generatora i z takim wariantem i tak by sie zatrzymal - plik trzeba przywrocic w wyniki_v2/stl.
 [ -f wyniki_v2/stl/ramka_wkladka_v2.stl ] || blad "brak wyniki_v2/stl/ramka_wkladka_v2.stl (STL nie sa w gicie: skopiuj 21 plikow do wyniki_v2/stl)"
 if [ "$(sha wyniki_v2/stl/ramka_wkladka_v2.stl)" != "$SHA_WKLADKI" ]; then
   DOBRA=""
@@ -323,7 +366,7 @@ if [ "$(sha wyniki_v2/stl/ramka_wkladka_v2.stl)" != "$SHA_WKLADKI" ]; then
   blad "wyniki_v2/stl/ramka_wkladka_v2.stl nie ma sumy f4196fbc... (znana pulapka: inny znak zera normalnych po przebiegu generatora). Przywroc plik zweryfikowany: cp ${DOBRA:-<plik o sumie f4196fbc z archiwum>} wyniki_v2/stl/ramka_wkladka_v2.stl"
 fi
 
-# 9 plików niepłytkowych: źródło bajtowo jak w pakiecie R57
+# 9 plikow nieplytkowych: zrodlo bajtowo jak w pakiecie R57
 N=0
 while read -r suma sciezka; do
   case "$sciezka" in *plytka*) continue;; *.stl) ;; *) continue;; esac
@@ -335,7 +378,7 @@ done < "$SUMY_R57"
 [ "$N" = 9 ] || blad "$SUMY_R57: oczekiwane 9 plikow nieplytkowych STL, jest $N"
 echo "  9 z 9 plikow nieplytkowych (korpus W, korpus P, blat, wkladka, pokrywka, tulejka DC, 3 podkladki) bajtowo jak w $SUMY_R57_NAZWA"
 
-# sumy plików płytek i JSON układu sprzed R59 — żadna nie może trafić do nowego pakietu ani modelu
+# sumy plikow plytek i JSON ukladu sprzed R59 - zadna nie moze trafic do nowego pakietu ani modelu
 STARE="$TW/sumy_sprzed_R59.txt"
 { awk '$2 ~ /plytka.*\.stl$/ || $2 ~ /uklad_gniazd_.*\.json$/ {print $1}' "$SUMY_R57"
   if [ -f archiwum/wyniki_v2_przed_R59_2026-11-14/sha256_stl_przed_R59.txt ]; then awk '$2 ~ /plytka/ {print $1}' archiwum/wyniki_v2_przed_R59_2026-11-14/sha256_stl_przed_R59.txt; fi
@@ -357,14 +400,14 @@ N_JPG=$(find wyniki_model_R59 -maxdepth 1 -name '*.jpg' | wc -l | tr -d ' '); N_
 [ "$N_JPG" = 12 ] || blad "wyniki_model_R59: oczekiwane 12 JPG, jest $N_JPG"
 [ "$N_PNG" = 3 ] || blad "wyniki_v2/render: oczekiwane 3 PNG, sa $N_PNG"
 
-# model 3D: wklejone płytki n1 / n4 mają przypięte sumy, żadnej sumy sprzed R59
+# model 3D: wklejone plytki n1 / n4 maja przypiete sumy, zadnej sumy sprzed R59
 for plik in ramka_plytka_wieczorna_n1_v2.stl ramka_plytka_poranna_n4_v2.stl; do
   grep -c -F "$(suma_plytki "$plik")" wyniki_model_R59/ramka_3d_v3_R59.html >/dev/null || blad "model 3D (ramka_3d_v3_R59.html) nie zawiera $plik w ukladzie R59"
 done
 if grep -c -F -f "$STARE" wyniki_model_R59/ramka_3d_v3_R59.html >/dev/null; then blad "model 3D (ramka_3d_v3_R59.html) zawiera plik plytki sprzed R59"; fi
 echo "  model 3D R59: plytki n1 i n4 o przypietych sumach, 0 z $N_STARE sum sprzed R59"
 
-# --- 2. PDF: w przebiegu właściwym muszą być zbudowane po R59 (narzedzia/buduj_pdf_R59.cmd)
+# --- 2. PDF: w przebiegu wlasciwym musza byc zbudowane po R59 (narzedzia/buduj_pdf_R59.cmd)
 echo "== 2. Dokumenty PDF"
 PDF_UWAGI=0
 pdf_zle() {
@@ -408,10 +451,10 @@ cp sesje_2026-10-31/poprawki_pasowan/weryfikacja_R53.md "$T/01_Dokumenty/06_R53_
 cp R54_wdrozenie_zmiany.md "$T/01_Dokumenty/07_R54_gniazda_w_kole_pola_skanowania_2026-11-01.md"
 cp recenzja/raport_recenzenta_R54_iter1.md "$T/01_Dokumenty/08_R54_recenzja_plytek_2026-11-01.md"
 for f in ramka_korpus_W_v2 ramka_korpus_P_v2 ramka_blat_v2 ramka_wkladka_v2 $PLYTKI_DO_DRUKU; do cp "wyniki_v2/stl/$f.stl" "$T/02_Druk_drukarnia_PA12/"; done
-# R59: arkusz generatora (15 pozycji) + 2 płytki okrągłe — tylko w pakiecie, wyniki_v2/arkusze bez zmian; skrypt sam sprawdza objętości i sumy z raportem
+# R59: arkusz generatora (15 pozycji) + 2 plytki okragle - tylko w pakiecie, wyniki_v2/arkusze bez zmian; skrypt sam sprawdza objetosci i sumy z raportem
 "${PYCMD[@]}" narzedzia/arkusz_zamowienia_R59.py "$T/02_Druk_drukarnia_PA12" | tr -d '\r' | sed 's/^/  /'
 for f in ramka_pokrywka_v2 ramka_tulejka_dc_v2 ramka_podkladka_panelu_05_v2 ramka_podkladka_panelu_1_v2 ramka_podkladka_panelu_2_v2; do cp "wyniki_v2/stl/$f.stl" "$T/03_Druk_wlasny/PETG_FDM/"; done
-# płytka do własnego druku testowego = kopia NOWEGO n1 (wersja ze starym układem R54 jest w pakiecie R57)
+# plytka do wlasnego druku testowego = kopia NOWEGO n1 (wersja ze starym ukladem R54 jest w pakiecie R57)
 cp wyniki_v2/stl/ramka_plytka_wieczorna_n1_v2.stl "$T/03_Druk_wlasny/PETG_FDM/ramka_plytka_wieczorna_n1_v2_TEST_SKANERA.stl"
 cp wyniki_model_R59/ramka_3d_v3_R59.html wyniki_model_R59/animacja_ramki_R59.html "$T/04_Model_i_animacje/"
 cp wyniki_model_R59/*.jpg wyniki_v2/render/*.png "$T/04_Model_i_animacje/rendery/"
@@ -420,16 +463,16 @@ cp wyniki_v2/README.md "$T/05_Zrodla/README_wyniki_v2.md"
 cp wyniki_v2/arkusze/arkusz_wymiarow.md wyniki_v2/arkusze/kody_plytek.md "$T/05_Zrodla/"
 cp wyniki_v2/json/uklad_gniazd_wieczorna.json wyniki_v2/json/uklad_gniazd_poranna.json wyniki_v2/json/uklad_gniazd_okragla_wieczorna.json wyniki_v2/json/uklad_gniazd_okragla_poranna.json "$T/05_Zrodla/"
 for f in $PLYTKI_BAZOWE; do cp "wyniki_v2/stl/$f.stl" "$T/05_Zrodla/"; done
-# starsze raporty: opisują poprzedni układ (stare płytki fizyczne zostają w użyciu) i płytkę okrągłą
+# starsze raporty: opisuja poprzedni uklad (stare plytki fizyczne zostaja w uzyciu) i plytke okragla
 cp wyniki_v2/raport/raport_wykonawcy_R54_iter1.md wyniki_v2/raport/raport_wykonawcy_R55_iter1.md wyniki_v2/raport/raport_wykonawcy_R57_iter2.md recenzja/raport_recenzenta_R57_iter1.md R57_wdrozenie_zmiany.md "$T/05_Zrodla/"
-# R59: opis zmiany, studium wariantów, raport generatora, recenzja płytek z siatek, recenzja całości zmian, narzędzia układu i arkusza
+# R59: opis zmiany, studium wariantow, raport generatora, recenzja plytek z siatek, recenzja calosci zmian, narzedzia ukladu i arkusza
 cp R59_wdrozenie_zmiany.md R59_propozycja_ukladu.md wyniki_v2/raport/raport_wykonawcy_R59_iter2.md recenzja/raport_recenzenta_R59_iter1.md recenzja/raport_recenzenta_PR_R59_runda1.md "$T/05_Zrodla/"
 cp narzedzia/uklad_kolo_R59.js narzedzia/weryfikuj_uklad_R59.js narzedzia/arkusz_zamowienia_R59.py "$T/05_Zrodla/"
-# R59: program stanowiska — dwa układy płytek (nowy i *_r54) i strażnik układu
+# R59: program stanowiska - dwa uklady plytek (nowy i *_r54) i straznik ukladu
 cp stanowisko/README.md "$T/05_Zrodla/stanowisko_README.md"
 cp stanowisko/raporty/R59_2026-11-14.md "$T/05_Zrodla/stanowisko_raport_R59_2026-11-14.md"
 
-# liczby do README i instrukcji — z arkusza zbudowanego przed chwilą (nic z ręki)
+# liczby do README i instrukcji - z arkusza zbudowanego przed chwila (nic z reki)
 ARK_MD="$T/02_Druk_drukarnia_PA12/arkusz_zamowienia.md"; ARK_CSV="$T/02_Druk_drukarnia_PA12/arkusz_zamowienia.csv"
 grep -F "17 pozycji: 12 do drukarni" "$ARK_MD" >/dev/null || blad "arkusz zamowienia: brak zdania '17 pozycji: 12 do drukarni'"
 pole() { awk -F'|' -v n="$2" '{gsub(/^ +| +$/, "", $n); print $n; exit}' <<< "$1"; }
@@ -437,7 +480,7 @@ W10=$(grep -m1 '^| 10 pozycji' "$ARK_MD") || blad "arkusz zamowienia: brak wiers
 W12=$(grep -m1 '^| 12 pozycji' "$ARK_MD") || blad "arkusz zamowienia: brak wiersza sum 12 pozycji"
 K10_MIN=$(pole "$W10" 4); K10_POK=$(pole "$W10" 5); K12_MIN=$(pole "$W12" 4); K12_POK=$(pole "$W12" 5)
 { [ -n "$K10_MIN" ] && [ -n "$K10_POK" ] && [ -n "$K12_MIN" ] && [ -n "$K12_POK" ]; } || blad "arkusz zamowienia: nie odczytano kosztow z wierszy sum"
-wiersze_plytek() {  # $1 = txt (README) albo md (instrukcja): 8 plików płytek do zamówienia z sumą, objętością i gabarytem
+wiersze_plytek() {  # $1 = txt (README) albo md (instrukcja): 8 plikow plytek do zamowienia z suma, objetoscia i gabarytem
   local f plik suma obj gab
   for f in $PLYTKI_DO_DRUKU; do
     plik="$f.stl"; suma=$(suma_plytki "$plik")
@@ -522,7 +565,7 @@ N_PLIKOW=$(wc -l < "$T/$SUMY" | tr -d ' ')
 [ "$N_PLIKOW" = "$LICZBA_PLIKOW" ] || blad "pakiet ma $N_PLIKOW plikow, oczekiwane $LICZBA_PLIKOW (zmienila sie lista? popraw LICZBA_PLIKOW swiadomie)"
 ZLE_NAZWY=$(cut -c67- "$T/$SUMY" | LC_ALL=C grep -v '^[A-Za-z0-9._/-]*$' || true)
 [ -z "$ZLE_NAZWY" ] || blad "nazwy plikow pakietu spoza ASCII albo ze spacja: $ZLE_NAZWY"
-# każdy plik płytki i JSON układu w pakiecie ma przypiętą sumę (po nazwie)
+# kazdy plik plytki i JSON ukladu w pakiecie ma przypieta sume (po nazwie)
 N=0
 while read -r suma sciezka; do
   plik="${sciezka##*/}"; plik="${plik/_TEST_SKANERA/}"
@@ -536,10 +579,10 @@ while read -r suma sciezka; do
 done < "$T/$SUMY"
 [ "$N" = 17 ] || blad "pliki plytek i JSON ukladu w pakiecie: oczekiwane 17 (8 do druku + kopia n1 + 4 bazowe + 4 JSON), jest $N"
 echo "  17 z 17 plikow plytek i JSON ukladu w pakiecie ma sume przypieta (12 roznych STL: 8 do druku + kopia n1 do testu + 4 bazowe; 4 JSON)"
-# żadnej sumy sprzed R59
+# zadnej sumy sprzed R59
 if cut -c1-64 "$T/$SUMY" | grep -F -x -f "$STARE" >/dev/null; then blad "w pakiecie jest plik plytki albo JSON ukladu sprzed R59 (suma z listy $N_STARE sum starego ukladu)"; fi
 echo "  0 z $N_PLIKOW plikow pakietu ma sume pliku plytki / JSON ukladu sprzed R59 (lista $N_STARE sum)"
-# 9 plików niepłytkowych: ta sama ścieżka i suma co w pakiecie R57
+# 9 plikow nieplytkowych: ta sama sciezka i suma co w pakiecie R57
 ZLE=0; N=0
 while read -r suma sciezka; do
   case "$sciezka" in *plytka*) continue;; *.stl) ;; *) continue;; esac
@@ -551,7 +594,7 @@ echo "  pliki nieplytkowe STL z pakietu R57: $N, identyczne w $R (sciezka i suma
 ( cd "$T" && sha256sum -c --quiet "$SUMY" ) || blad "sha256sum -c w katalogu roboczym pakietu"
 echo "  sha256sum -c: $N_PLIKOW z $N_PLIKOW OK"
 
-# --- 5. Pliki na Dysk: 3 ZIP‑y (podział jak R57), sumy, instrukcja, lista, 3 PDF
+# --- 5. Pliki na Dysk: 3 ZIP-y (podzial jak R57), sumy, instrukcja, lista, 3 PDF
 echo "== 5. Pliki na Dysk"
 ( cd "$T" && { find 01_Dokumenty 02_Druk_drukarnia_PA12 03_Druk_wlasny -type f | LC_ALL=C sort; echo README.txt; echo "$SUMY"; } ) > "$TW/cz1.lista"
 ( cd "$T" && find 04_Model_i_animacje -type f | LC_ALL=C sort ) > "$TW/cz2.lista"
@@ -623,8 +666,8 @@ ZIP‑y zbudowane i sprawdzone skryptem \`Ramki/narzedzia/zbuduj_pakiet_${R}.sh\
 TXT
 } > "$TW/$LISTA"
 
-# --calosc: jeden ZIP z całością do katalogu wydań serwera — wszystkie pliki pakietu (z README i plikiem sum) i instrukcja w jednym katalogu
-# głównym, bez ZIP‑ów częściowych; ta sama funkcja i te same stałe co ZIP‑y częściowe, więc plik jest powtarzalny bajtowo
+# --calosc: jeden ZIP z caloscia do katalogu wydan serwera - wszystkie pliki pakietu (z README i plikiem sum) i instrukcja w jednym katalogu
+# glownym, bez ZIP-ow czesciowych; ta sama funkcja i te same stale co ZIP-y czesciowe, wiec plik jest powtarzalny bajtowo
 if [ -n "$CALOSC" ]; then
   ( cd "$T" && find . -type f | sed 's|^\./||' | LC_ALL=C sort ) > "$TW/calosc.lista"
   NC=$(($(wc -l < "$TW/calosc.lista" | tr -d ' ') + 1))
@@ -664,7 +707,7 @@ TXT
   if LC_ALL=C grep -v '^[ -~]*$' "$TW/$NASERWER" >/dev/null; then blad "$NASERWER zawiera znaki spoza ASCII"; fi
 fi
 
-# --- 6. Zamiana: dopiero teraz zmieniam cel (wszystkie kontrole przeszły)
+# --- 6. Zamiana: dopiero teraz zmieniam cel (wszystkie kontrole przeszly)
 echo "== 6. Zapis"
 if [ "$PROBA" != 1 ] && [ -d "$D" ] && [ "$D" -ef Ramki_pakiet ] && [ -n "$(ls -A "$D")" ]; then
   if ls "$D"/SHA256SUMS_*_"$R".txt >/dev/null 2>&1; then
@@ -677,10 +720,18 @@ if [ "$PROBA" != 1 ] && [ -d "$D" ] && [ "$D" -ef Ramki_pakiet ] && [ -n "$(ls -
     echo "  poprzedni pakiet odlozony do $ARCH (sha256sum -c OK)"
   fi
 fi
-SPRZATAJ=0   # gdyby zamiana się nie udała, nowy pakiet zostaje w katalogu roboczym
-rm -rf "$D"
-mv "$T" "$D" || blad "nie udalo sie przeniesc $T do $D - nowy pakiet zostal w $T"
-( cd "$D" && sha256sum -c --quiet "$SUMY" ) || blad "sha256sum -c w $D"
+SPRZATAJ=0   # gdyby zamiana sie nie udala, nowy pakiet zostaje w katalogu roboczym
+# Zamiana przez przemianowanie (mv -T: nic nie trafia do srodka istniejacego katalogu): poprzedni pakiet -> $STARY, nowy na miejsce, sha256sum -c.
+# Przy bledzie nowy wraca do $T, a poprzedni na miejsce. Poprzedni kasowany dopiero po udanym sprawdzeniu nowego.
+przywroc() {
+  if [ -e "$D" ] && [ ! -e "$T" ]; then mv -T "$D" "$T" || blad "$1; nie udalo sie odlozyc nowego pakietu z $D do $T - poprzedni pakiet jest w $STARY, przywroc recznie"; fi
+  if [ -e "$STARY" ]; then mv -T "$STARY" "$D" || blad "$1; nie udalo sie przywrocic poprzedniego pakietu z $STARY do $D - przywroc recznie"; fi
+  blad "$1 - stan sprzed zamiany przywrocony (poprzedni pakiet, jesli byl, znow w $D), nowy pakiet zostal w $T"
+}
+if [ -e "$D" ]; then mv -T "$D" "$STARY" || blad "nie udalo sie przemianowac $D na $STARY (plik otwarty w innym programie?) - nic nie zmienione, nowy pakiet zostal w $T"; fi
+mv -T "$T" "$D" || przywroc "nie udalo sie przeniesc $T do $D"
+( cd "$D" && sha256sum -c --quiet "$SUMY" ) || przywroc "sha256sum -c w $D"
+if [ -e "$STARY" ]; then rm -rf "$STARY" || uwaga "nie udalo sie skasowac $STARY (plik otwarty?) - usun go recznie; nastepny przebieg odmowi, dopoki ten katalog jest"; fi
 for n in "${NAZWY_W[@]}"; do cp "$TW/$n" "$W/$n"; done
 for n in "${NAZWY_W[@]}"; do cmp -s "$TW/$n" "$W/$n" || blad "$W/$n rozni sie od zbudowanego"; done
 for p in "${PDFY[@]}"; do cel="${p##*|}"; cmp -s "$D/01_Dokumenty/${cel}_${DATA}_${R}.pdf" "$W/${cel}_${DATA}_${R}.pdf" || blad "PDF $cel w $W rozni sie od pakietu"; done
@@ -692,7 +743,7 @@ if [ -n "$CALOSC" ]; then
   if [ "$ZAPISZ_ZIPC" = 1 ]; then mkdir -p "$CALOSC"; cp "$TW/$ZIPC" "$CALOSC/$ZIPC"; echo "  $CALOSC/$ZIPC: zapisany"
   else echo "  $CALOSC/$ZIPC: juz byl, ta sama suma - bez zapisu"; fi
   [ "$(sha "$CALOSC/$ZIPC")" = "$SHA_ZIPC" ] || blad "$CALOSC/$ZIPC ma inna sume niz plik zbudowany"
-  py_narzedzie sprawdz "$D/$SUMY" "$KATALOG_ZIP" "$CALOSC/$ZIPC" + "$W/$INSTR"   # jeszcze raz, już na miejscu: ZIP całości = zapisany pakiet + instrukcja
+  py_narzedzie sprawdz "$D/$SUMY" "$KATALOG_ZIP" "$CALOSC/$ZIPC" + "$W/$INSTR"   # jeszcze raz, juz na miejscu: ZIP calosci = zapisany pakiet + instrukcja
 fi
 rm -rf "$TW"; SPRZATAJ=1
 if [ "$PROBA" = 1 ]; then
@@ -701,7 +752,7 @@ if [ "$PROBA" = 1 ]; then
 fi
 
 echo "== Wynik ($TRYB)"
-echo "Pakiet gotowy: $D — $N_PLIKOW plikow + plik sum (pakiet R57: 63 + 1); sha256sum -c OK"
+echo "Pakiet gotowy: $D - $N_PLIKOW plikow + plik sum (pakiet R57: 63 + 1); sha256sum -c OK"
 du -sh "$D" | sed 's/^/  /'
 echo "Pliki na Dysk: $W"
 for n in "${NAZWY_W[@]}"; do printf '  %-62s %12s B  %s\n' "$n" "$(tys "$(stat -c %s "$W/$n")")" "$(sha "$W/$n" | cut -c1-16)"; done
