@@ -860,92 +860,68 @@ def zrob_zrzut(sesja: Sesja, krok: str | None = None, powod: str = "", grab=None
 # szybka kontrola skanu
 # ----------------------------------------------------------------------------
 def rozpoznaj_uklad(siatka, ust: dict, numer: int | None = None) -> dict:
-    """Do ktorego ukladu plytki z ``[plytki]`` pasuje siatka skanu - JEDYNA funkcja do podmiany na automatyczne
-    rozpoznawanie ukladu.
+    """Do ktorego ukladu plytki z ``[plytki]`` pasuje siatka skanu - JEDYNA funkcja rozpoznania ukladu w tym module.
 
-    Dzis: kolejne uklady z ustawien sa probowane przez ``plate.wyrownaj`` (z cieciem na gniazda), bledy
-    ``BladWyrownania`` / ``NiezgodnyUklad`` sa lapane. Po pierwszej niezgodnosci rozstawu stozkow uklady, do ktorych
-    znalezione stozki nie pasuja (``plate.stozki_pasuja``), sa pomijane bez liczenia. Gdy pasuje kilka ukladow
-    (kwadrat i okragla tego samego ukladu maja te same stozki i gniazda), wygrywa ten, w ktorym numer z dolkow jest
-    numerem plytki tego ukladu; potem ten, w ktorym dolki sa poza skanem; na koncu ten z numerem nie z tego ukladu.
+    Od 16.11.2026 wola automatyczne rozpoznanie programu (``plate.rozpoznaj_uklad``: rozstaw stozkow -> wieczorna /
+    poranna i R59 / R54, numer plytki albo ksztalt brzegu -> kwadrat / kolo), to samo co ``porownaj --plytka auto``.
 
     Zwraca slownik:
       ``uklad``         - nazwa ukladu albo None,
       ``wyrownanie``    - ``plate.WynikWyrownania`` dla tego ukladu albo None,
       ``obiekt_ukladu`` - ``uklad.UkladPlytki`` albo None,
-      ``kandydaci``     - nazwy ukladow pasujacych rownie dobrze (pierwszy = wybrany),
+      ``kandydaci``     - pierwszy = wybrany; dalsze tylko przy rozpoznaniu niepewnym (pasuja rownie dobrze),
+      ``pewny``         - czy rozpoznanie jest pewne (``plate.rozpoznaj_uklad``),
       ``powod``         - "" gdy rozpoznano; inaczej: ``brak_plaszczyzny`` | ``malo_stozkow`` | ``zaden_uklad`` | ``blad``,
       ``komunikat``     - tekst bledu z plate (do logu i raportu),
       ``stozki``        - liczba dopasowanych stozkow, gdy znana (inaczej None),
-      ``proby``         - lista {uklad, wynik, komunikat, czas_s} dla kazdej proby.
+      ``proby``         - lista {uklad, wynik, komunikat, czas_s} dla kazdego ukladu z ustawien.
     """
     import warnings
 
     from . import plate as PL
-    from . import uklad as U
+    from . import porownaj as PO
 
-    nazwy = list(ust["plytki"])
-    uklady: dict = {}
-    proby, udane, pominiete = [], [], set()
-    bledy_ogolne, ostatni_blad, stozki, powod = 0, "", None, "blad"
-    for nazwa in nazwy:
-        try:
-            uklady[nazwa] = U.wczytaj(nazwa, UST.katalog_plytki(ust, nazwa))
-        except Exception as e:  # noqa: BLE001 - zly katalog jednego ukladu nie moze zatrzymac kontroli
-            proby.append({"uklad": nazwa, "wynik": "blad_ukladu", "komunikat": f"{type(e).__name__}: {e}", "czas_s": 0.0})
-    for nazwa in nazwy:
-        uk = uklady.get(nazwa)
-        if uk is None:
-            continue
-        if nazwa in pominiete:
-            proby.append({"uklad": nazwa, "wynik": "pominiety", "komunikat": "rozstaw stozkow w skanie nie pasuje do tego ukladu", "czas_s": 0.0})
-            continue
-        t0 = time.time()
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                w = PL.wyrownaj(siatka, uk, numer=numer if numer in uk.numery else None)
-            udane.append((nazwa, uk, w))
-            proby.append({"uklad": nazwa, "wynik": "ok", "komunikat": "", "czas_s": round(time.time() - t0, 2)})
-        except PL.NiezgodnyUklad as e:
-            ostatni_blad, powod = str(e), "zaden_uklad"
-            stozki = e.jakosc.get("stozki_dopasowane", stozki)
-            proby.append({"uklad": nazwa, "wynik": "niezgodny_" + str(e.powod), "komunikat": str(e), "czas_s": round(time.time() - t0, 2)})
-            if e.powod == "stozki" and e.stozki:
-                for inna, uk2 in uklady.items():
-                    try:
-                        if inna != nazwa and not PL.stozki_pasuja(e.stozki, uk2):
-                            pominiete.add(inna)
-                    except Exception:  # noqa: BLE001 - optymalizacja, nie warunek
-                        pass
-        except PL.BladWyrownania as e:
-            ostatni_blad = str(e)
-            tekst = ostatni_blad.lower()
-            if not udane and powod != "zaden_uklad":
-                powod = "malo_stozkow" if "sto" in tekst and "znacznik" in tekst else "brak_plaszczyzny" if ("wierzch" in tekst or "punkt" in tekst) else "blad"
-                if powod == "malo_stozkow":
-                    znal = re.search(r"znaleziono (\d+)", tekst)
-                    stozki = int(znal.group(1)) if znal else stozki
-            proby.append({"uklad": nazwa, "wynik": "blad_wyrownania", "komunikat": ostatni_blad, "czas_s": round(time.time() - t0, 2)})
-            bledy_ogolne += 1
-            if bledy_ogolne >= 2 and not udane:
-                break  # brak plaszczyzny / stozkow nie zalezy od ukladu: dalsze proby nic nie zmienia
-        except Exception as e:  # noqa: BLE001 - blad jednej proby nie moze zatrzymac kontroli
-            ostatni_blad = f"{type(e).__name__}: {e}"
-            proby.append({"uklad": nazwa, "wynik": "wyjatek", "komunikat": ostatni_blad, "czas_s": round(time.time() - t0, 2)})
-    if not udane:
-        return {"uklad": None, "wyrownanie": None, "obiekt_ukladu": None, "kandydaci": [], "powod": powod, "komunikat": ostatni_blad, "stozki": stozki, "proby": proby}
+    t0 = time.time()
+    uklady = PO.uklady_z_ustawien(ust)
+    proby = [{"uklad": n, "wynik": "blad_ukladu", "komunikat": "nie da sie wczytac ukladu", "czas_s": 0.0} for n in ust["plytki"] if n not in uklady]
 
-    def ocena(pozycja) -> int:
-        _, uk, w = pozycja
-        if w.numer_z_dolkow is not None:
-            return 2 if w.numer_z_dolkow in uk.numery else 0
-        return 1
+    def z_kandydatow(kandydaci: list) -> list:
+        out = []
+        for k in kandydaci:
+            odrz = k.get("odrzucony")
+            wynik = "ok" if not odrz else ("pominiety" if odrz == "stozki" else "blad_wyrownania" if str(odrz).startswith("blad") else "niezgodny_" + str(odrz))
+            kom = "rozstaw stozkow w skanie nie pasuje do tego ukladu" if odrz == "stozki" else ("" if not odrz else str(odrz))
+            out.append({"uklad": k["uklad"], "wynik": wynik, "komunikat": kom, "czas_s": 0.0})
+        return out
 
-    najlepsza = max(ocena(p) for p in udane)
-    wybrane = [p for p in udane if ocena(p) == najlepsza]
-    nazwa, uk, w = wybrane[0]
-    return {"uklad": nazwa, "wyrownanie": w, "obiekt_ukladu": uk, "kandydaci": [p[0] for p in wybrane], "powod": "", "komunikat": "",
+    if not uklady:
+        return {"uklad": None, "wyrownanie": None, "obiekt_ukladu": None, "kandydaci": [], "pewny": False, "powod": "blad",
+                "komunikat": "brak ukladow plytek w ustawieniach", "stozki": None, "proby": proby}
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            w, info = PL.rozpoznaj_uklad(siatka, list(uklady.values()), numer=numer)
+    except PL.NierozpoznanyUklad as e:
+        return {"uklad": None, "wyrownanie": None, "obiekt_ukladu": None, "kandydaci": [], "pewny": False, "powod": "zaden_uklad",
+                "komunikat": str(e), "stozki": e.jakosc.get("stozki_dopasowane"), "proby": proby + z_kandydatow(e.kandydaci)}
+    except PL.BladWyrownania as e:
+        tekst = str(e).lower()
+        powod = "malo_stozkow" if "sto" in tekst and "znacznik" in tekst else "brak_plaszczyzny" if ("wierzch" in tekst or "punkt" in tekst) else "blad"
+        znal = re.search(r"znaleziono (\d+)", tekst)
+        return {"uklad": None, "wyrownanie": None, "obiekt_ukladu": None, "kandydaci": [], "pewny": False, "powod": powod, "komunikat": str(e),
+                "stozki": int(znal.group(1)) if znal and powod == "malo_stozkow" else None,
+                "proby": proby + [{"uklad": "*", "wynik": "blad_wyrownania", "komunikat": str(e), "czas_s": round(time.time() - t0, 2)}]}
+    except Exception as e:  # noqa: BLE001 - blad rozpoznania nie moze zatrzymac kontroli
+        return {"uklad": None, "wyrownanie": None, "obiekt_ukladu": None, "kandydaci": [], "pewny": False, "powod": "blad",
+                "komunikat": f"{type(e).__name__}: {e}", "stozki": None,
+                "proby": proby + [{"uklad": "*", "wynik": "wyjatek", "komunikat": f"{type(e).__name__}: {e}", "czas_s": round(time.time() - t0, 2)}]}
+    proby += z_kandydatow(info["kandydaci"])
+    for pr in proby:
+        if pr["uklad"] == info["wybrany"]:
+            pr["czas_s"] = info["czas_s"]
+    inne = [k["uklad"] for k in info["kandydaci"] if not k.get("odrzucony") and k["uklad"] != info["wybrany"]]
+    return {"uklad": info["wybrany"], "wyrownanie": w, "obiekt_ukladu": uklady[info["wybrany"]],
+            "kandydaci": [info["wybrany"]] + ([] if info["pewny"] else inne), "pewny": info["pewny"], "powod": "", "komunikat": "",
             "stozki": w.jakosc.get("stozki_dopasowane"), "proby": proby}
 
 
