@@ -1,0 +1,361 @@
+# Kroki okna "Dzien skanera - krok po kroku" (stanowisko/dzien_skanera.py). Plik danych: kolejnosc i tresc krokow
+# zmienia sie tutaj, nie w kodzie. Teksty "tytul", "instrukcja", "etykieta" i "podpowiedz" widzi czlowiek w oknie
+# (polskie znaki, plik UTF-8); klucze i komentarze bez polskich znakow.
+#
+# Pola kroku:
+#   id             - krotka nazwa (male litery, cyfry, _; do 24 znakow) = nazwa folderu kroku w sesji
+#   tytul          - naglowek kroku
+#   instrukcja     - co zrobic, prostym jezykiem (co polozyc, czego nie ruszac, co zanotowac)
+#   wymagany       - true: brak kroku jest pokazywany jako brak (nie blokuje); false: krok opcjonalny
+#   ile_plikow     - ilu plikow rodzaju "rodzaj_plikow" sie spodziewamy (0 = krok bez plikow)
+#   rodzaj_plikow  - siatka (STL / PLY / OBJ) | obraz (PNG / JPG / ..., takze zrzuty ekranu) | dowolny | brak
+#   kontrola       - czego oczekujemy od skanu: brak | zrzuty | plytka_pusta | plytka_z_pracami | powtorka |
+#                    inny_eksport | ta_sama_plytka | dowolny_skan | kopia_folderu
+#   porownaj_z     - id wczesniejszego kroku, z ktorego skanem program porownuje (powtorka, inny eksport)
+#   pola           - pola do wypelnienia (klucze z [pola]); "czas_skanu" pokazuje stoper
+#   wymagane_pola  - pola, ktorych brak jest pokazywany jako brak kroku
+#
+# Nazwy angielskie w cudzyslowach sa z dokumentacji DentalScan 3.0.4; egzemplarz moze wygladac inaczej -
+# szczegoly i zrodla: Ramki/sciaga_skaner_DentalScan_2026-11-16.md.
+
+wersja = 1
+
+[pola.wersja_programu]
+etykieta = "Wersja programu skanera i model skanera"
+podpowiedz = "z okna „About” (np. DentalScan 3.0.4, A-IS Pro)"
+
+[pola.folder_zapisu]
+etykieta = "Folder zapisu zleceń („Order Save Path”)"
+podpowiedz = "przepisz ścieżkę z ustawień programu skanera; nie wiesz — wpisz „nie wiem”"
+
+[pola.rodzaj_plytki]
+etykieta = "Która płytka"
+podpowiedz = "kwadratowa wieczorna / kwadratowa poranna / okrągła wieczorna / okrągła poranna"
+
+[pola.numer_plytki]
+etykieta = "Numer płytki"
+podpowiedz = "cyfra wytłoczona na płytce, np. 1"
+
+[pola.wspolczynnik]
+etykieta = "Współczynnik z etykiety bloku"
+podpowiedz = "np. 1.2234; prace z kilku bloków — wszystkie współczynniki po przecinku"
+
+[pola.gniazda_z_pracami]
+etykieta = "W których gniazdach leżą prace"
+podpowiedz = "np. 3, 5, 12 — i co to za prace (korona, most), bez nazwisk"
+
+[pola.gniazda_ukruszone]
+etykieta = "Gniazda z pracami ukruszonymi i miejsce ukruszenia"
+podpowiedz = "np. 5: brzeg od strony policzka, ok. 0,2 mm; 12: narożnik brzegu"
+
+[pola.ustawienia_skanu]
+etykieta = "Opcje użyte w programie skanera"
+podpowiedz = "np. bez „Add details”; z „Add details”; co było zaznaczone"
+
+[pola.co_zmieniono]
+etykieta = "Co zmieniono względem poprzedniego zapisu"
+podpowiedz = "np. włączone „Add details”; wypełnione otwory; inny format"
+
+[pola.czas_skanu]
+etykieta = "Czas skanu"
+podpowiedz = "stoper wpisze sam; można też wpisać ręcznie, np. 2 min 40 s"
+
+
+[[krok]]
+id = "start"
+tytul = "Zanim zaczniesz"
+wymagany = true
+ile_plikow = 0
+rodzaj_plikow = "brak"
+kontrola = "brak"
+instrukcja = """
+To okno pilnuje, żeby z dzisiejszego dnia nic nie zginęło. Nie musisz znać programu skanera.
+
+• Okno samo kopiuje KAŻDY nowy plik z folderu, do którego zapisuje program skanera (folder widać na górze okna). Niczego nie przenosi ani nie kasuje — robi kopie.
+• Jeśli nie wiesz, gdzie program skanera zapisuje pliki: przycisk „Nie wiem, gdzie skaner zapisuje — szukaj” znajdzie świeże pliki na dysku.
+• Przy każdym kroku przeczytaj instrukcję, zrób skan w programie skanera i wróć tutaj. Gdy plik się pojawi, okno powie: zielone „skan dobry”, żółte „uwaga” albo czerwone „ten skan się nie nada — zrób tak…”.
+• Czegoś nie da się zrobić? Kliknij „Nie udało się / pomijam, bo…” i napisz jednym zdaniem dlaczego. To też jest cenna informacja i nic nie blokuje.
+• Nie wiesz, co jest ważne na ekranie programu skanera? Kliknij „Zrzut ekranu” — masz 3 sekundy na przełączenie okna. Lepiej zrobić za dużo zrzutów niż za mało.
+
+Sprawdź teraz na próbę: kliknij „Zrzut ekranu”. Potem kliknij „Krok zrobiony — dalej”.
+
+Pięć zasad na cały dzień:
+1. W programie skanera niczego nie kasuj (żadnych zleceń, skanów ani danych).
+2. Nie zamykaj zlecenia, dopóki to okno nie pokaże, że plik został skopiowany.
+3. Nie wygładzaj, nie wypełniaj otworów i nie obcinaj płytki — chyba że krok mówi inaczej.
+4. Wszystko, co program skanera pozwala zapisać — zapisz.
+5. W nazwach zleceń i plików nie wpisuj nazwisk pacjentów (wpisuj np. TEST1, TEST2).
+"""
+
+[[krok]]
+id = "ustawienia"
+tytul = "Ustawienia programu skanera — zrzuty ekranu"
+wymagany = true
+ile_plikow = 4
+rodzaj_plikow = "obraz"
+kontrola = "zrzuty"
+pola = ["wersja_programu", "folder_zapisu"]
+wymagane_pola = ["folder_zapisu"]
+instrukcja = """
+Cel: mieć na zdjęciach, jak program skanera był ustawiony. Niczego nie zmieniaj — tylko otwieraj okna i rób zrzuty (przycisk „Zrzut ekranu”, 3 sekundy na przełączenie).
+
+Zrób zrzut każdego z tych ekranów (ile znajdziesz):
+• ekran główny programu skanera (lista zleceń),
+• ustawienia zleceń — w dokumentacji: ikona ustawień → „Order Setting”; zakładki „General” (tam jest „Order Save Path” = folder zapisu), „Order File Naming Rule”, „Save Format” — każda zakładka osobno,
+• ustawienia skanu — w dokumentacji: ikona ustawień → „Scan Setting” („Save Image”, „AI Detection” i inne),
+• okno „About” (wersja programu, typ urządzenia, „Authorization Remaining Days”).
+
+Zanotuj w polach poniżej: wersję programu i folder zapisu zleceń („Order Save Path”).
+
+WAŻNE: porównaj folder zapisu z folderem na górze tego okna („Obserwuję”). Jeśli są różne — kliknij „Dodaj folder” i wskaż folder z programu skanera.
+
+Ekran wygląda inaczej niż w opisie? Zrób zrzut tego, co widzisz, i idź dalej.
+"""
+
+[[krok]]
+id = "pytania"
+tytul = "Pytania do instalatora (jeśli jest na miejscu)"
+wymagany = false
+ile_plikow = 0
+rodzaj_plikow = "brak"
+kontrola = "brak"
+instrukcja = """
+Jeśli skaner instaluje ktoś z Aidite albo od sprzedawcy — zapytaj i wpisz odpowiedzi w notatce (krótko, własnymi słowami). Poproś, żeby pokazał to na ekranie, i rób zrzuty.
+
+1. Proszę pokazać skan płytki z wieloma małymi pracami naraz (tryb „Multidie”) i zapis JEDNEGO pliku STL całej płytki — bez żadnej obróbki.
+2. W którym folderze leżą pliki zleceń i skanów? Jaki format mają pliki (STL, PLY, inne)?
+3. Czy program sam wygładza siatkę, wypełnia otwory albo upraszcza ją przy zapisie? Jak to wyłączyć?
+4. Czy płaszczyznę cięcia po skanie można ustawić poniżej wierzchu naszej płytki albo pominąć?
+5. Jaka jest najwyższa jakość skanu („Add details” / „High Quality”) i jak ją włączyć dla całej płytki?
+6. Licencja: czy jest klucz USB (dongle), ile dni autoryzacji zostało, czy program działa bez internetu?
+7. Gdzie „Save Image” zapisuje zdjęcia z kamer i w jakim formacie?
+
+Nie ma instalatora albo nie wie — kliknij „Nie udało się / pomijam, bo…”.
+"""
+
+[[krok]]
+id = "zlecenie"
+tytul = "Zlecenie testowe i ekran skanowania — zrzuty"
+wymagany = true
+ile_plikow = 2
+rodzaj_plikow = "obraz"
+kontrola = "zrzuty"
+pola = ["ustawienia_skanu"]
+instrukcja = """
+Cel: założyć w programie skanera zlecenie do skanowania całej płytki i mieć zrzuty tego, co zostało wybrane.
+
+Według dokumentacji (szczegóły w ściądze na kartce):
+• „New Order” → typ „Restoration” → tryb „Multidie Mode” (skan wielu pojedynczych prac naraz) → „Scan” (skanuj teraz) albo „Save” (zapisz i skanuj później).
+• W polach zlecenia wpisz TEST1 — żadnych nazwisk.
+
+Zrób zrzut: ekranu zakładania zlecenia (co wybrane) oraz ekranu skanowania przed pierwszym skanem (widać okno kamery i przyciski).
+
+Nie ma „Multidie Mode” albo program chce czegoś, czego nie rozumiesz? Zrób zrzut i wybierz to, co pozwala zeskanować cały przedmiot jednym skanem (w dokumentacji: „Unsectioned Model” — skan całego modelu). Liczy się jedno: plik STL z CAŁĄ płytką.
+"""
+
+[[krok]]
+id = "pusta"
+tytul = "Skan 1: pusta płytka"
+wymagany = true
+ile_plikow = 1
+rodzaj_plikow = "siatka"
+kontrola = "plytka_pusta"
+pola = ["rodzaj_plytki", "numer_plytki", "ustawienia_skanu", "czas_skanu"]
+wymagane_pola = ["numer_plytki"]
+instrukcja = """
+Połóż na stoliku skanera PUSTĄ płytkę (starą, np. kwadratową wieczorną nr 1), wierzchem do góry. Płytka czysta, stożki w rogach niczym nie zasłonięte.
+
+1. Wpisz poniżej, która to płytka i jej numer.
+2. W programie skanera uruchom skan (według dokumentacji: klawisz Spacja albo przycisk startu skanu).
+3. Po skanie program może pokazać płaszczyznę cięcia (czerwona część = do odcięcia). NIE obcinaj wierzchu płytki: płaszczyzna ma zostać poniżej wierzchu płytki. Nie wygładzaj, nie wypełniaj otworów, niczego nie kasuj.
+4. Zakończ skan i zapisz / wyeksportuj wynik tak, jak program pozwala (szukamy pliku STL całej płytki).
+5. Wróć tutaj i poczekaj na ocenę pliku.
+
+Jeśli po minucie żaden plik się nie pojawił: w programie skanera poszukaj przycisku „Explore” (otwiera folder zlecenia) albo eksportu („Go to Send” → „Export”), a tutaj kliknij „Nie wiem, gdzie skaner zapisuje — szukaj”.
+
+Nie ruszaj płytki, dopóki okno nie oceni pliku.
+"""
+
+[[krok]]
+id = "prace_cale"
+tytul = "Skan 2: płytka z pracami całymi"
+wymagany = true
+ile_plikow = 1
+rodzaj_plikow = "siatka"
+kontrola = "plytka_z_pracami"
+pola = ["rodzaj_plytki", "numer_plytki", "wspolczynnik", "gniazda_z_pracami", "ustawienia_skanu", "czas_skanu"]
+wymagane_pola = ["numer_plytki", "wspolczynnik", "czas_skanu"]
+instrukcja = """
+Połóż w gniazdach tej samej płytki 3–6 CAŁYCH prac (bez ukruszeń), brzegiem do góry — najlepiej pojedyncze korony, jeśli się da z różnych bloków.
+
+1. Wpisz poniżej: numer płytki, współczynnik z etykiety bloku każdej pracy i w których gniazdach leżą prace.
+2. Kliknij „Stoper: start” i od razu uruchom skan w programie skanera. Gdy skan się skończy (przed zapisem) — kliknij „Stoper: stop”.
+3. Zapisz / wyeksportuj tak samo jak pustą płytkę. Bez obcinania wierzchu płytki, bez wygładzania, bez wypełniania otworów.
+4. Poczekaj na ocenę pliku.
+
+PO SKANIE NIE RUSZAJ PŁYTKI ANI PRAC — następny krok to ten sam skan drugi raz.
+
+Nie zamykaj zlecenia w programie skanera, dopóki plik nie pojawi się na liście poniżej.
+"""
+
+[[krok]]
+id = "powtorka"
+tytul = "Skan 3: TO SAMO drugi raz, bez ruszania płytki"
+wymagany = true
+ile_plikow = 1
+rodzaj_plikow = "siatka"
+kontrola = "powtorka"
+porownaj_z = "prace_cale"
+pola = ["czas_skanu"]
+instrukcja = """
+Niczego nie dotykaj: płytka i prace leżą dokładnie tak, jak w poprzednim skanie.
+
+1. Zeskanuj jeszcze raz — z tymi samymi ustawieniami.
+2. Zapisz wynik pod INNĄ nazwą albo w nowym zleceniu (np. TEST2), żeby poprzedni plik został.
+3. Poczekaj na ocenę: okno porówna ten skan z poprzednim i powie, czy to ten sam układ prac.
+
+Po co: z dwóch skanów bez ruszania widać, ile skaner „pływa” sam z siebie. Bez tego nie da się ustawić progów wykrywania ukruszeń.
+
+Jeśli program skanera nadpisał poprzedni plik — nic się nie stało, okno ma już jego kopię.
+"""
+
+[[krok]]
+id = "inny_eksport"
+tytul = "Ten sam skan zapisany inaczej (inna jakość albo obróbka siatki)"
+wymagany = false
+ile_plikow = 1
+rodzaj_plikow = "siatka"
+kontrola = "inny_eksport"
+porownaj_z = "powtorka"
+pola = ["co_zmieniono"]
+wymagane_pola = ["co_zmieniono"]
+instrukcja = """
+Tylko jeśli program skanera na to pozwala. Płytki nadal nie ruszaj.
+
+Zmień JEDNĄ rzecz i zapisz wynik jako osobny plik (inna nazwa albo nowe zlecenie). Możliwości, o których mówi dokumentacja:
+• skan z dokładniejszą jakością — funkcja „Add details” (skan wysokiej jakości) na pracach,
+• ten sam skan zapisany z wypełnionymi otworami albo wygładzony (jeśli program ma taką opcję),
+• inny format zapisu albo inna droga eksportu („Go to Send” → „Export”).
+
+Zrób zrzut ekranu z tym, co zmieniłeś, i wpisz poniżej, co to było. Każdy kolejny wariant zapisz w tym samym kroku — okno przyjmie dowolnie wiele plików.
+
+Program nie ma takich opcji albo nie wiesz, gdzie ich szukać — kliknij „Nie udało się / pomijam, bo…”.
+"""
+
+[[krok]]
+id = "ukruszone"
+tytul = "Skan 4: płytka z 2–3 pracami celowo ukruszonymi"
+wymagany = true
+ile_plikow = 1
+rodzaj_plikow = "siatka"
+kontrola = "ta_sama_plytka"
+porownaj_z = "prace_cale"
+pola = ["gniazda_ukruszone", "wspolczynnik", "czas_skanu"]
+wymagane_pola = ["gniazda_ukruszone"]
+instrukcja = """
+Teraz wolno ruszyć prace. Wyjmij 2–3 prace, ukrusz je celowo na krawędzi brzegu (małe ukruszenia, takie jak zdarzają się naprawdę) i włóż z powrotem do TYCH SAMYCH gniazd. Reszta prac zostaje na miejscu.
+
+1. Wpisz poniżej: numer gniazda i gdzie mniej więcej jest ukruszenie (np. „5: brzeg od strony policzka”). Mikroskop nie jest potrzebny — wystarczy opis.
+2. Jeśli możesz, zrób telefonem zdjęcie każdego ukruszenia i dodaj je przyciskiem „Dodaj plik”.
+3. Zeskanuj i zapisz tak samo jak poprzednio (bez obróbki siatki).
+4. Poczekaj na ocenę pliku.
+
+Jeżeli ukruszona praca ma inny współczynnik niż wpisany wcześniej — wpisz go.
+"""
+
+[[krok]]
+id = "potracona"
+tytul = "Skan 5: praca potrącona w trakcie skanu"
+wymagany = false
+ile_plikow = 1
+rodzaj_plikow = "siatka"
+kontrola = "ta_sama_plytka"
+porownaj_z = "prace_cale"
+pola = ["gniazda_z_pracami"]
+instrukcja = """
+Tylko jeśli skaner pozwala sięgnąć do płytki w trakcie skanu bez ryzyka dla ręki i urządzenia. Nie otwieraj osłon na siłę.
+
+1. Uruchom skan tej samej płytki.
+2. W połowie skanu lekko potrąć JEDNĄ pracę (np. cienkim patyczkiem), żeby się przesunęła.
+3. Dokończ skan i zapisz wynik.
+4. Wpisz poniżej, w którym gnieździe była potrącona praca.
+
+Po co: program ma rozpoznawać skan „z drgnięciem” i prosić o powtórkę.
+
+Nie da się bezpiecznie — kliknij „Nie udało się / pomijam, bo…”.
+"""
+
+[[krok]]
+id = "bokiem"
+tytul = "Skan 6: praca bokiem i praca częściowo zasłonięta"
+wymagany = true
+ile_plikow = 1
+rodzaj_plikow = "siatka"
+kontrola = "dowolny_skan"
+pola = ["gniazda_z_pracami"]
+wymagane_pola = ["gniazda_z_pracami"]
+instrukcja = """
+Na tej samej płytce:
+• jedną pracę połóż w gnieździe BOKIEM (albo do góry nogami),
+• drugą pracę częściowo zasłoń — np. oprzyj o nią drugą pracę albo połóż ją tak, żeby część brzegu była schowana.
+Pozostałe prace mogą zostać.
+
+1. Wpisz poniżej: które gniazdo = praca bokiem, które = praca zasłonięta.
+2. Zeskanuj i zapisz tak samo jak poprzednio.
+3. Poczekaj na ocenę pliku (żółta uwaga o pracy poza gniazdem albo dwóch pracach w gnieździe jest tu w porządku).
+"""
+
+[[krok]]
+id = "druga_plytka"
+tytul = "Skan 7: druga płytka (poranna albo okrągła), jeśli jest"
+wymagany = false
+ile_plikow = 1
+rodzaj_plikow = "siatka"
+kontrola = "dowolny_skan"
+pola = ["rodzaj_plytki", "numer_plytki", "wspolczynnik", "gniazda_z_pracami", "czas_skanu"]
+wymagane_pola = ["rodzaj_plytki", "numer_plytki"]
+instrukcja = """
+Jeśli masz pod ręką drugą płytkę (kwadratową poranną albo okrągłą):
+
+1. Zeskanuj ją najpierw PUSTĄ, potem z kilkoma pracami. Oba pliki trafią do tego kroku.
+2. Wpisz poniżej, która to płytka, jej numer i gdzie leżą prace. Prace spieczone (poranne) mają współczynnik 1.
+3. Okrągła płytka ma dołki z numerem w polu skanera — okno powinno samo odczytać numer.
+
+Nie ma drugiej płytki — kliknij „Nie udało się / pomijam, bo…”.
+"""
+
+[[krok]]
+id = "zdjecia"
+tytul = "Zdjęcia z kamer skanera („Save Image”), jeśli się da"
+wymagany = false
+ile_plikow = 1
+rodzaj_plikow = "dowolny"
+kontrola = "brak"
+instrukcja = """
+Według dokumentacji w ustawieniach skanu („Scan Setting”) jest opcja „Save Image” — zapis oryginalnych zdjęć z kamer skanera. Skan trwa wtedy dłużej.
+
+1. Włącz „Save Image” (zrób zrzut ekranu ustawień).
+2. Zeskanuj dowolną płytkę z pracami jeszcze raz i zapisz wynik.
+3. Okno skopiuje wszystko, co pojawi się w obserwowanym folderze. Jeśli zdjęcia trafiły gdzie indziej — użyj „Nie wiem, gdzie skaner zapisuje — szukaj” albo „Dodaj folder ręcznie”.
+4. Po skanie WYŁĄCZ „Save Image” z powrotem.
+
+Nie ma takiej opcji — kliknij „Nie udało się / pomijam, bo…”.
+"""
+
+[[krok]]
+id = "kopia_folderu"
+tytul = "Na koniec: kopia CAŁEGO folderu zleceń programu skanera"
+wymagany = true
+ile_plikow = 1
+rodzaj_plikow = "dowolny"
+kontrola = "kopia_folderu"
+instrukcja = """
+Ostatni krok. Zabezpiecza wszystko, czego nie widać: pliki zleceń, ustawienia skanów, dane, o których nie wiemy.
+
+1. W programie skanera zapisz otwarte zlecenie (niczego nie kasuj). Program może zostać otwarty.
+2. Kliknij poniżej „Skopiuj cały folder zleceń skanera”. Okno skopiuje CAŁĄ zawartość obserwowanych folderów. Może to potrwać kilka minut — pasek pokaże postęp.
+3. Jeśli program skanera trzyma dane jeszcze w innym folderze (np. folder z „Order Save Path” jest inny niż obserwowany) — dodaj go przyciskiem „Dodaj folder ręcznie”.
+4. Gdy kopia się skończy, kliknij „Zakończ i spakuj” (na dole po lewej). Powstanie raport i archiwum ZIP do wysłania.
+
+Dopiero po spakowaniu zamknij program skanera.
+"""
