@@ -13,6 +13,11 @@ Uzycie (z katalogu stanowisko/; wynik: JSON w ``--wyjscie`` i tabela na stdout, 
     py -3.12 narzedzia/metryki_krawedz.py analiza --przed <metryki_P3a.json> --po <metryki_P3a.json> [--linie linie.json]
         P2 (c): inspect przed / po na tych samych skanach: prace cale (zmiana koloru, powody "nie sprawdzono"), falszywe
         alarmy, wykrycia krawedz / sciana, po rozmiarach i polozeniach (zestaw K6), pokrycie filarow mostow, czas
+    py -3.12 narzedzia/metryki_krawedz.py przed_po --skany <katalog..> --projekty <folder> --ustawienia-przed <plik.toml>
+        [--sufiks-ukladu _r54] [--procesy N] [--pamiec-linii katalog] [--nazwa R59]
+        to samo co dwa przebiegi metryki_P3a.py (przed / po), ale plate + match liczone raz na skan, a inspect dwa razy
+        na tych samych fragmentach i transformacjach (porownanie przed / po bez rozrzutu match); wynik: <nazwa>_przed.json
+        i <nazwa>_po.json w formacie metryki_P3a (wejscie polecenia analiza)
     py -3.12 narzedzia/metryki_krawedz.py mapa --wyniki <katalog z *_wynik.json> --wzor <t8_mapa_seed7001.json>
         P4 (d): mapa gniazdo -> projekt -> status na skanach seed 7001 vs mapa odniesienia
 
@@ -89,13 +94,13 @@ def polecenie_linie(a) -> None:
         "wieloczlonowe_projektow": sum(1 for r in wyniki if r["filarow"] > 1), "wieloczlonowe_petli": len(wielo),
         "wieloczlonowe_petle_cale_ponizej_starego_pasa": sum(1 for f in wielo if f["caly_ponizej_starego_pasa"]),
         "petle_cale_ponizej_starego_pasa": sum(1 for f in filary if f["caly_ponizej_starego_pasa"]),
-        "petle_z_kanalem_na_wylot": sum(1 for f in filary if f.get("kanal_na_wylot")),
+        "petle_z_otworem_na_wylot": sum(1 for f in filary if f.get("otwor_na_wylot")),
         "pas_brzegu_mm": pas, "wspolczynnik": a.wspolczynnik, "wersja_linii": KR.WERSJA,
         "czas_linii_s_mediana": float(np.median([r["czas_linii_s"] for r in wyniki])), "czas_linii_s_max": max(r["czas_linii_s"] for r in wyniki),
         "czas_calosci_s": round(time.time() - t0, 1),
     }
     (a.wyjscie / a.nazwa).write_text(json.dumps({"projekty": wyniki, "zbiorczo": zb}, ensure_ascii=False, indent=1), encoding="utf-8")
-    print("projekt           typ          zeby         filar war. zweryf.      ciag  przerwa  werdykt     dl. O (zweryf.)  z O                 pod starym pasem  kanal  czas")
+    print("projekt           typ          zeby         filar war. zweryf.      ciag  przerwa  werdykt     dl. O (zweryf.)  z O                 pod starym pasem  otwor  czas")
     for r in wyniki:
         if not r["filary"]:
             print(f"{r['projekt']}  {r['typ']:11s}  {'-'.join(r['zeby']):11s}  BRAK LINII: {'; '.join(r['uwagi'])}  {r['czas_linii_s']} s")
@@ -103,7 +108,7 @@ def polecenie_linie(a) -> None:
             print(f"{r['projekt']}  {r['typ']:11s}  {'-'.join(r['zeby']):11s}  {f['nr']:>3d}   {f['wariant']}   {f['przekroje_zweryfikowane']:>3d}/{f['przekroje']} ({f['udzial_zweryf']:.2f})"
                   f"  {f['najdl_ciag_st']:>5.1f}  {f['najdl_przerwa_mm']:>5.2f}  {f['werdykt']:10s}  {f['dlugosc_O_mm']:>5.1f} ({f['dlugosc_O_zweryf_mm']:>5.1f})"
                   f"  {f['z_O_min_max'][0]:>6.2f} ... {f['z_O_min_max'][1]:>5.2f}  {f['udzial_O_ponizej_starego_pasa']:>6.2f}{' CALY' if f['caly_ponizej_starego_pasa'] else '     '}"
-                  f"  {'tak' if f.get('kanal_na_wylot') else 'nie':5s}  {r['czas_linii_s']} s")
+                  f"  {'tak' if f.get('otwor_na_wylot') else 'nie':5s}  {r['czas_linii_s']} s")
     print("ZBIORCZO:", json.dumps(zb, ensure_ascii=False))
     print(a.wyjscie / a.nazwa)
 
@@ -232,7 +237,7 @@ def _k6_projektu(arg: tuple) -> list[dict]:
     m, linie = _praca(plik, w)
     skrot = S.skrot_pliku(plik)
     rng = np.random.default_rng(seed)
-    kanal = {f.nr: bool(f.kontrola.get("kanal_na_wylot")) for f in linie.filary}
+    otwor = {f.nr: bool(f.kontrola.get("otwor_na_wylot")) for f in linie.filary}
     wyniki = []
     for gdzie in S.POLOZENIA_UKRUSZEN:
         for s in rozmiary:
@@ -245,19 +250,20 @@ def _k6_projektu(arg: tuple) -> list[dict]:
                     continue
                 c, r = mat.kule[-1]
                 _, odl_pow, _ = trimesh.proximity.closest_point(m, [c])
-                wyniki.append({**rek, "postawione": True, "filar": ub.filar, "kanal_na_wylot": kanal.get(ub.filar, False), "klasa": ub.polozenie,
+                wyniki.append({**rek, "postawione": True, "filar": ub.filar, "otwor_na_wylot": otwor.get(ub.filar, False), "klasa": ub.polozenie,
                                "glebokosc_generator": ub.glebokosc_rzeczywista, "srodek_od_powierzchni_mm": round(float(odl_pow[0]), 6),
                                "odleglosc_od_linii": ub.odleglosc_od_linii, **_pomiar_czaszy(m, po, c, r)})
     return wyniki
 
 
 def _grupa_projektu(x: dict, typy: dict) -> str:
+    """Grupa wg typu projektu z katalogu (nazwa exocad): wieloczlonowe (> 1 filar), korona implantowa (bez lacznika),
+    korona, inna pojedyncza (waxup jednoczlonowy). Znacznik ``otwor_na_wylot`` z linii nie jest uzywany: to geometria
+    (otwor widoczny z gory), a nie typ pracy - nie pokrywa sie z lista pierscieni implantowych z T9."""
     typ = typy.get(x["projekt"], "")
     if x["filarow"] > 1:
-        return "wieloczlonowe_pierscien_implantowy" if x.get("kanal_na_wylot") else "wieloczlonowe_filar"
-    if x.get("kanal_na_wylot") or typ == "bez_lacznika":
-        return "korona_implantowa"
-    return "korona" if typ == "korona" else "pojedyncza_inna"
+        return "wieloczlonowe"
+    return {"korona": "korona", "bez_lacznika": "korona_implantowa"}.get(typ, "pojedyncza_inna")
 
 
 def polecenie_k6(a) -> None:
@@ -390,14 +396,25 @@ def polecenie_analiza(a) -> None:
     # zmiany wykryc tego samego ubytku (lista ubytkow ma te same skany i kolejnosc)
     lp, ln = _klasy_ubytkow(przed), _klasy_ubytkow(po)
     if len(lp) == len(ln):
-        zm = {"zyskane_dowolny": 0, "stracone_dowolny": 0, "zyskane_czerwony": 0, "stracone_czerwony": 0}
+        pas = (po["zbiorczo"].get("ustawienia_inspect") or {}).get("pas_brzegu_mm", 1.5)
+        zm: dict = {}
         for u, v in zip(lp, ln):
             if not u["wykrywalny"] and not u.get("celowy"):
                 continue
+            odl = v.get("odleglosc_od_linii")
+            gdzie = "brak linii" if odl is None else (f"<= {pas} mm od linii" if odl <= pas else f"> {pas} mm od linii")
             for m in ("dowolny", "czerwony"):
-                zm[f"zyskane_{m}"] += (not u["trafione"][m]) and v["trafione"][m]
-                zm[f"stracone_{m}"] += u["trafione"][m] and not v["trafione"][m]
+                for co, warunek in (("zyskane", (not u["trafione"][m]) and v["trafione"][m]), ("stracone", u["trafione"][m] and not v["trafione"][m])):
+                    if warunek:
+                        k = f"{co}_{m}"
+                        zm.setdefault(k, {"razem": 0})
+                        zm[k]["razem"] += 1
+                        kk = f"{gdzie} / {_grupa(v, typy, filarow)}"
+                        zm[k][kk] = zm[k].get(kk, 0) + 1
         out["zmiany_wykryc"] = zm
+        daleko = [v for v in ln if (v["wykrywalny"] or v.get("celowy")) and v.get("odleglosc_od_linii") is not None and v["odleglosc_od_linii"] > pas]
+        out["ubytki_dalej_niz_pas_od_linii"] = {"wykrywalnych": len(daleko), "grupy": {g: sum(1 for v in daleko if _grupa(v, typy, filarow) == g)
+                                                                                      for g in sorted({_grupa(v, typy, filarow) for v in daleko})}}
     # filary prac wieloczlonowych: pokrycie pasem (linie) i co sprawdzono na pracach calych (po)
     fil: dict = {}
     for k in wspolne:
@@ -418,6 +435,140 @@ def polecenie_analiza(a) -> None:
     a.wyjscie.mkdir(parents=True, exist_ok=True)
     (a.wyjscie / a.nazwa).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(out, ensure_ascii=False, indent=1))
+
+
+# ----------------------------------------------------------------------------
+# przed / po w jednym przebiegu (plate + match raz, inspect dwa razy)
+# ----------------------------------------------------------------------------
+_PULE: dict = {}
+
+
+def _dodaj(suma: dict, czesc: dict) -> None:
+    for k, v in czesc.items():
+        if isinstance(v, dict):
+            suma.setdefault(k, {})
+            _dodaj(suma[k], v)
+        elif isinstance(v, (int, float)) and not isinstance(v, bool):
+            suma[k] = suma.get(k, 0) + v
+
+
+def _przed_po_skanu(arg: tuple) -> dict | None:
+    """Jeden skan: plate i match jak ``porownaj.porownaj`` (ta sama kolejnosc i progi), potem inspect z ustawieniami
+    "przed" i "po" na tych samych fragmentach i transformacjach. Zwraca dwa rekordy w formacie ``metryki_P3a``."""
+    from stanowisko import inspect as I, plate as PL, porownaj as PO, uklad as U
+
+    p, projekty, sufiks, plik_po, plik_przed, katalog = arg
+    if katalog is not None:
+        KR.ustaw_katalog_pamieci(katalog)
+    ust = {"po": UST.wczytaj_ustawienia(plik_po), "przed": UST.wczytaj_ustawienia(plik_przed)}
+    prawda = S.wczytaj_prawde(p.with_suffix(".json"))
+    plytka = prawda.plytka if prawda.plytka.endswith(sufiks) else prawda.plytka + sufiks
+    uk = U.wczytaj(plytka, UST.katalog_plytki(ust["po"], plytka))
+    w = float(np.mean([x.wspolczynnik for x in prawda.prace])) if prawda.prace else 1.0
+    if (projekty, w) not in _PULE:
+        _PULE[(projekty, w)] = M.Pula(list(projekty), w)
+    pula = _PULE[(projekty, w)]
+    t0 = time.time()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        m = trimesh.load(p, force="mesh")
+        t1 = time.time()
+        try:
+            wyr = PL.wyrownaj(m, uk, numer=None, straznik=True)
+        except PL.NiezgodnyUklad:
+            return None
+        t2 = time.time()
+        gn = {"przed": [], "po": []}
+        t_ins = {"przed": 0.0, "po": 0.0}
+        t_lin = {"przed": 0.0, "po": 0.0}
+        for f in wyr.fragmenty:
+            if f.status == "drobny":
+                continue
+            r = M.dopasuj(f.punkty, f.normalne, pula, ust["po"], f.gniazdo)
+            baza = {"gniazdo": f.gniazdo, "status_fragmentu": f.status, "punkty": f.liczba, "status": r.status, "pewnosc": round(r.pewnosc, 4),
+                    "kandydaci": [{"id": k.id, "zeby": k.zeby, "pokrycie": round(k.pokrycie, 4), "transformacja": k.transformacja} for k in r.kandydaci[:5]]}
+            k = r.najlepszy
+            for wer in ("przed", "po"):
+                wpis = {**baza, "inspekcja": None}
+                if r.status != "szary" and k is not None and k.transformacja is not None:
+                    wi = I.sprawdz(f.punkty, f.normalne, pula.projekty[k.id], np.array(k.transformacja), k.pokrycie, ust[wer], f.gniazdo)
+                    wpis["inspekcja"] = wi.json()
+                    t_ins[wer] += wi.czas_s
+                    t_lin[wer] += wi.czas_linii_s
+                wpis["status_gniazda"] = PO.status_gniazda(r.status, wpis["inspekcja"])
+                gn[wer].append(wpis)
+        t3 = time.time()
+    praw = {x.gniazdo: x for x in prawda.prace}
+    klasy_gn = {g.id: (f"fi{g.d_top:g}" if g.okragle else "rynienka") for g in uk.sockets}
+    out = {}
+    for wer in ("przed", "po"):
+        wynik = {"skan": p.name, "plytka": plytka, "numer": wyr.numer, "numer_zrodlo": wyr.numer_zrodlo, "bity": wyr.bity, "numer_z_dolkow": wyr.numer_z_dolkow,
+                 "macierz_skan_do_plytki": wyr.macierz.tolist(), "gniazda": gn[wer], "gniazda_puste": wyr.gniazda_puste, "gniazda_podwojne": wyr.gniazda_podwojne,
+                 "poza_gniazdem": sum(1 for f in wyr.fragmenty if f.status == "poza_gniazdem")}
+        mt = PO.metryki(wynik, prawda, pula)
+        mi = PO.metryki_inspekcji(wynik, prawda, pula)
+        czas = {"wczytanie": round(t1 - t0, 2), "plate": round(t2 - t1, 2), "match_i_2x_inspect": round(t3 - t2, 2), "inspect": round(t_ins[wer], 2),
+                "linie_brzegu": round(t_lin[wer], 2), "inspect_bez_linii": round(t_ins[wer] - t_lin[wer], 2)}
+        statusy = {s: sum(1 for g in gn[wer] if g["status_gniazda"] == s) for s in PO.STATUSY_GNIAZDA}
+        out[wer] = {"skan": p.name, "zestaw": p.parent.name, "plytka": plytka, "seed": prawda.seed, "czas_s": czas, "metryki": mt, "inspekcja": mi,
+                    "statusy_gniazd": statusy,
+                    "gniazda": [{"gniazdo": g["gniazdo"], "status": g["status"], "status_gniazda": g["status_gniazda"], "klasa": klasy_gn.get(g["gniazdo"]),
+                                 "inspekcja": ({kk: v for kk, v in g["inspekcja"].items() if kk in ("status", "ubytki", "brzeg", "czas_s", "czas_linii_s", "linia_brzegu")}
+                                               if g["inspekcja"] else None),
+                                 "projekt": (g["kandydaci"][0]["id"] if g["kandydaci"] else None),
+                                 "projekt_prawda": (praw[g["gniazdo"]].projekt if g["gniazdo"] in praw else None),
+                                 "ubytkow_prawda": (len(praw[g["gniazdo"]].ubytki) if g["gniazdo"] in praw else None),
+                                 "scenariusz": (PO.scenariusz(praw[g["gniazdo"]]) if g["gniazdo"] in praw else None)} for g in gn[wer]]}
+    return out
+
+
+def polecenie_przed_po(a) -> None:
+    from stanowisko import porownaj as PO
+
+    skany = sorted(q for d in a.skany for q in d.glob(a.wzorzec))[: a.limit]
+    if not skany:
+        raise SystemExit(f"brak skanow w {a.skany}")
+    a.wyjscie.mkdir(parents=True, exist_ok=True)
+    zad = [(q, tuple(a.projekty), a.sufiks_ukladu, a.ustawienia, a.ustawienia_przed, a.pamiec_linii) for q in skany]
+    t0 = time.time()
+    wyniki = {"przed": [], "po": []}
+    niezgodne = 0
+    with mp.Pool(max(1, a.procesy)) as pool:
+        for odp in pool.imap(_przed_po_skanu, zad):
+            if odp is None:
+                niezgodne += 1
+                continue
+            for wer in ("przed", "po"):
+                wyniki[wer].append(odp[wer])
+            r0, r1 = odp["przed"]["inspekcja"]["razem"], odp["po"]["inspekcja"]["razem"]
+            print(f"{odp['po']['skan']:40s} ubytki {r1['ubytkow']}: dowolne {r0['wykryte']['dowolny']} -> {r1['wykryte']['dowolny']}, czerwone "
+                  f"{r0['wykryte']['czerwony']} -> {r1['wykryte']['czerwony']}; cale {r1['prac_calych']}: alarm {r0['prace_cale_z_alarmem']} -> "
+                  f"{r1['prace_cale_z_alarmem']}, czerwone {r0['prace_cale_z_czerwonym']} -> {r1['prace_cale_z_czerwonym']}, nie sprawdzono -> "
+                  f"{r1['prace_cale_nie_sprawdzono']}; gniazda {odp['przed']['statusy_gniazd']} -> {odp['po']['statusy_gniazd']}", flush=True)
+    for wer, plik in (("przed", a.ustawienia_przed), ("po", a.ustawienia)):
+        rek = wyniki[wer]
+        zb = {"razem": {}, "scenariusze": {}, "plate_match": {}}
+        for r in rek:
+            _dodaj(zb["razem"], r["inspekcja"]["razem"])
+            for s, v in r["inspekcja"]["scenariusze"].items():
+                zb["scenariusze"].setdefault(s, {})
+                _dodaj(zb["scenariusze"][s], v)
+        zb["plate_match"] = {"skanow": len(rek), "uklad_niezgodny": niezgodne, "prac": sum(r["metryki"]["prac_prawda"] for r in rek),
+                             "top1": sum(r["metryki"]["top1"] for r in rek), "wyrownanie_ok": sum(r["metryki"]["wyrownanie_ok"] for r in rek),
+                             "statusy_gniazd": {s: sum(r["statusy_gniazd"][s] for r in rek) for s in PO.STATUSY_GNIAZDA},
+                             "czas_s_mediana": {k: float(np.median([r["czas_s"][k] for r in rek])) for k in rek[0]["czas_s"]} if rek else {},
+                             "czas_calosci_s": round(time.time() - t0, 1)}
+        zb["ustawienia_inspect"] = {k: UST.wczytaj_ustawienia(plik)["inspect"][k] for k in ("pas_brzegu_od", "pas_brzegu_mm", "brzeg_min_sprawdzony", "brzeg_max_przerwa_mm")}
+        zb["drgniecie"] = {}
+        for r in rek:
+            _dodaj(zb["drgniecie"], r["inspekcja"]["drgniecie"])
+        (a.wyjscie / f"{a.nazwa}_{wer}.json").write_text(json.dumps({"skany": rek, "zbiorczo": zb}, ensure_ascii=False, indent=1), encoding="utf-8")
+        r = zb["razem"]
+        print(f"{wer.upper()}: skanow {len(rek)}, ubytkow {r.get('ubytkow')}, wykryte {r.get('wykryte')}, prace cale {r.get('prac_calych')}: czerwone "
+              f"{r.get('prace_cale_z_czerwonym')}, alarm {r.get('prace_cale_z_alarmem')}, nie sprawdzono {r.get('prace_cale_nie_sprawdzono')}, "
+              f"falszywe {r.get('falszywe_ubytki')} (czerwone {r.get('falszywe_czerwone')}), klasy {json.dumps(r.get('klasy'), ensure_ascii=False)}, "
+              f"gniazda {zb['plate_match']['statusy_gniazd']}, czas mediana {zb['plate_match']['czas_s_mediana']}")
+    print(a.wyjscie)
 
 
 # ----------------------------------------------------------------------------
@@ -487,6 +638,19 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--wyjscie", type=Path, default=Path("dane/krawedz"))
     p.add_argument("--nazwa", default="analiza.json")
     p.set_defaults(fun=polecenie_analiza)
+    p = sub.add_parser("przed_po", help="P2 (c): plate + match raz, inspect przed (ustawienia_przed) i po (ustawienia) na tych samych fragmentach")
+    p.add_argument("--skany", type=Path, nargs="+", required=True)
+    p.add_argument("--projekty", type=Path, nargs="+", required=True)
+    p.add_argument("--ustawienia", type=Path, default=None, help="ustawienia 'po' (domyslnie ustawienia.toml programu)")
+    p.add_argument("--ustawienia-przed", type=Path, required=True, help="ustawienia 'przed', np. z pas_brzegu_od = \"plaszczyzna\"")
+    p.add_argument("--sufiks-ukladu", default="")
+    p.add_argument("--wzorzec", default="skan_*.stl")
+    p.add_argument("--limit", type=int, default=None)
+    p.add_argument("--pamiec-linii", type=Path, default=None)
+    p.add_argument("--wyjscie", type=Path, default=Path("dane/wyniki_krawedz"))
+    p.add_argument("--nazwa", default="przed_po", help="przedrostek plikow: <nazwa>_przed.json i <nazwa>_po.json")
+    p.add_argument("--procesy", type=int, default=1)
+    p.set_defaults(fun=polecenie_przed_po)
     p = sub.add_parser("mapa", help="P4 (d): mapa seed 7001 vs mapa odniesienia")
     p.add_argument("--wyniki", type=Path, required=True)
     p.add_argument("--wzor", type=Path, required=True)

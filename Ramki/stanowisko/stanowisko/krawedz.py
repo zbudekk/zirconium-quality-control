@@ -786,8 +786,8 @@ def wyznacz(m: trimesh.Trimesh) -> LinieProjektu:
         rb1, zb1, _ = grzbiet(ws, nr, xs, ys, Z, c, katy)
         rb2, zb2 = koniec_sciany(rd if rd.sum() > 20 else w, xs, ys, Z, F, normalne, c, katy)
         rek, licz = _warianty_filaru(m, c, {"1": (rb1, zb1, "najwyzszy"), "2": (rb2, zb2, "najblizszy")}, katy)
-        # kanal sruby na wylot (korona implantowa bez lacznika): czesc niecki bez trafienia promienia
-        licz["kanal_na_wylot"] = bool(rd.any() and np.isnan(Z[rd]).mean() > 0.05)
+        # otwor na wylot widoczny z gory w niecce filaru (np. kanal sruby): czesc rdzenia niecki bez trafienia promienia
+        licz["otwor_na_wylot"] = bool(rd.any() and np.isnan(Z[rd]).mean() > 0.05)
         kand = {nazwa: (zbuduj_linie(r, katy, c) if np.isfinite(r[:, 0]).sum() >= 8 else None) for nazwa, r in rek.items()}
         z_grzb = float(np.nanmin(zb1)) if np.isfinite(zb1).any() else float(np.nanmin(Z))
         surowe.append((nr, c, kand, licz, z_grzb))
