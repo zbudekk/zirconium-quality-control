@@ -51,8 +51,17 @@ KOLORY = {"zielony": (60, 180, 75), "zolty": (240, 200, 40), "szary": (170, 170,
           "pusty": (235, 235, 235), "podwojny": (170, 80, 200), "poza": (160, 0, 0)}
 STATUSY_GNIAZDA = ("zielony", "czerwony", "zolty", "szary", "pomaranczowy")
 INSPECT_NA_STATUS = {"ok": "zielony", "ubytek": "czerwony", "sprawdz": "zolty", "sprawdz_ulozenie": "zolty", "popraw_ulozenie": "zolty",
-                     "skan_ponownie": "zolty", "poprawka": "pomaranczowy", "pominieto": None}
+                     "skan_ponownie": "zolty", "poprawka": "pomaranczowy", "nie_sprawdzono": "zolty", "pominieto": None}
 OPISY_STATUSU = {"zielony": "OK", "czerwony": "UBYTEK", "zolty": "sprawdź", "szary": "bez projektu", "pomaranczowy": "poprawka"}
+# podpis gniazda wg statusu inspect (P2: „nie sprawdzono” = żółte gniazdo z własnym opisem, nigdy zielone ani czerwone)
+OPISY_INSPEKCJI = {"ok": "OK", "ubytek": "UBYTEK", "sprawdz": "sprawdź", "sprawdz_ulozenie": "sprawdź ułożenie", "popraw_ulozenie": "popraw ułożenie",
+                   "skan_ponownie": "skan ponownie", "poprawka": "poprawka", "nie_sprawdzono": "nie sprawdzono", "pominieto": "pominięto"}
+KLASY_POLOZENIA = ("krawedz", "sciana", "nieznane")  # metryki inspect osobno dla ubytków na krawędzi brzegu i na ścianie (P4)
+
+
+def gniazda_nie_sprawdzone(wynik: dict) -> list:
+    """Numery gniazd ze statusem inspect ``nie_sprawdzono`` (brzegu któregoś filaru nie dało się sprawdzić)."""
+    return [g["gniazdo"] for g in wynik.get("gniazda", []) if (g.get("inspekcja") or {}).get("status") == "nie_sprawdzono"]
 
 
 def wspolczynnik_domyslny(plytka: str, ust: dict) -> float:
@@ -311,17 +320,35 @@ def scenariusz(p: S.PracaNaPlytce) -> str:
 SCENARIUSZE = ("dobrze", "bokiem", "czesciowo", "drgniecie")
 
 
-def metryki_inspekcji(wynik: dict, prawda: S.PrawdaPlytki) -> dict:
+def _sumuj(suma: dict, czesc: dict) -> None:
+    """Dodaje liczniki ``czesc`` do ``suma`` (słowniki zagnieżdżone dowolnie głęboko)."""
+    for k, v in czesc.items():
+        if isinstance(v, dict):
+            _sumuj(suma[k], v)
+        else:
+            suma[k] += v
+
+
+def metryki_inspekcji(wynik: dict, prawda: S.PrawdaPlytki, pula: M.Pula | None = None) -> dict:
     """Wykryte / fałszywe ubytki per metoda (A, B, A+B, czerwone, dowolne) i per scenariusz pracy; drgnięcie; poprawki.
 
     Praca liczy się, gdy fragment leży w swoim gnieździe, top‑1 trafny i inspekcja była liczona.
     Ubytki liczone tylko na pracach bez drgnięcia (drgnięcie = „skan ponownie”, ubytki nieliczone z definicji).
+    P4: te same liczniki osobno dla ubytków na krawędzi brzegu i na ścianie (``klasy``: ``krawedz`` / ``sciana`` /
+    ``nieznane``) — klasa z pola ``polozenie`` prawdy; dla prawdy sprzed P4 (bez tego pola) klasa jest liczona z linii
+    brzegu projektu, gdy podano ``pula`` (inaczej ``nieznane``). ``ubytki`` = lista wszystkich ubytków prawdy z wynikiem
+    (do metryk per rozmiar / położenie). P2: prace całe ze statusem „nie sprawdzono” liczone osobno — to nie alarm.
     """
     praw = {p.gniazdo: p for p in prawda.prace}
-    puste = lambda: {"prac": 0, "prac_calych": 0, "ubytkow": 0, "wykryte": {k: 0 for k in ("A", "B", "A+B", "czerwony", "dowolny")},  # noqa: E731
-                     "prace_cale_z_alarmem": 0, "prace_cale_z_czerwonym": 0, "falszywe_ubytki": 0, "falszywe_czerwone": 0, "falszywe_metoda": {"A": 0, "B": 0, "A+B": 0},
+    klucze = ("A", "B", "A+B", "czerwony", "dowolny")
+    puste = lambda: {"prac": 0, "prac_calych": 0, "ubytkow": 0, "wykryte": {k: 0 for k in klucze},  # noqa: E731
+                     "prace_cale_z_alarmem": 0, "prace_cale_z_czerwonym": 0, "prace_cale_nie_sprawdzono": 0, "prace_nie_sprawdzono": 0,
+                     "prace_cale_status_gniazda": {s: 0 for s in STATUSY_GNIAZDA},
+                     "falszywe_ubytki": 0, "falszywe_czerwone": 0, "falszywe_metoda": {"A": 0, "B": 0, "A+B": 0},
+                     "klasy": {kl: {"wszystkich": 0, "ubytkow": 0, "wykryte": {k: 0 for k in klucze}} for kl in KLASY_POLOZENIA},
                      "statusy": {s: 0 for s in I.STATUSY}, "statusy_gniazd": {s: 0 for s in STATUSY_GNIAZDA}, "top1_bledny": 0, "bez_inspekcji": 0}
     sc = {s: puste() for s in SCENARIUSZE}
+    lista: list[dict] = []
     drg = {"prac": 0, "wykryte": 0, "falszywe": 0}
     pop = {"prac": 0, "wykryte": 0, "falszywe": 0}
     for g in wynik["gniazda"]:
@@ -356,21 +383,33 @@ def metryki_inspekcji(wynik: dict, prawda: S.PrawdaPlytki) -> dict:
             s["wykryte"][k] += sum(t for t, w in zip(dp["trafione"][k], wykr) if w)
         for m in s["falszywe_metoda"]:
             s["falszywe_metoda"][m] += dp["falszywe_metoda"][m]
+        for j, u in enumerate(p.ubytki):  # P4: krawędź / ściana osobno + wiersz na ubytek
+            klasa, odl_linii = I.klasa_polozenia(u.polozenie), u.odleglosc_od_linii
+            if klasa == "nieznane" and pula is not None and p.projekt in pula.projekty:
+                klasa, odl_linii = I.polozenie_ubytku_prawdy(u, pula.projekty[p.projekt], np.array(p.transformacja))
+            kl = s["klasy"][klasa]
+            kl["wszystkich"] += 1
+            if u.wykrywalny:
+                kl["ubytkow"] += 1
+                for k in klucze:
+                    kl["wykryte"][k] += dp["trafione"][k][j]
+            lista.append({"gniazdo": g["gniazdo"], "projekt": p.projekt, "scenariusz": scenariusz(p), "klasa": klasa, "polozenie": u.polozenie,
+                          "srednica": u.srednica, "glebokosc": u.glebokosc, "glebokosc_rzeczywista": u.glebokosc_rzeczywista, "celowy": u.celowy,
+                          "filar": u.filar, "odleglosc_od_linii": odl_linii, "wykrywalny": u.wykrywalny, "widoczny": u.widoczny,
+                          "status_inspekcji": ins["status"], "trafione": {k: bool(dp["trafione"][k][j]) for k in klucze}})
+        s["prace_nie_sprawdzono"] += ins["status"] == "nie_sprawdzono"
         if not p.ubytki:
             s["prac_calych"] += 1
             s["prace_cale_z_alarmem"] += ins["status"] in ("ubytek", "sprawdz")
             s["prace_cale_z_czerwonym"] += ins["status"] == "ubytek"
+            s["prace_cale_nie_sprawdzono"] += ins["status"] == "nie_sprawdzono"
+            s["prace_cale_status_gniazda"][g["status_gniazda"]] += 1
         s["falszywe_ubytki"] += dp["falszywe"]
         s["falszywe_czerwone"] += dp["falszywe_czerwone"]
     razem = puste()
     for s in sc.values():
-        for k, v in s.items():
-            if isinstance(v, dict):
-                for kk in v:
-                    razem[k][kk] += v[kk]
-            else:
-                razem[k] += v
-    return {"scenariusze": sc, "razem": razem, "drgniecie": drg, "poprawki": pop}
+        _sumuj(razem, s)
+    return {"scenariusze": sc, "razem": razem, "drgniecie": drg, "poprawki": pop, "ubytki": lista}
 
 
 # ----------------------------------------------------------------------------
@@ -393,6 +432,13 @@ def tabela(wynik: dict) -> str:
                  f"{g['status_gniazda']:13s} {ins['status'] if ins else '—':17s} {ub}")
     w.append(f"puste: {wynik['gniazda_puste']}; podwójne: {wynik['gniazda_podwojne']}; poza gniazdem: {wynik['poza_gniazdem']}; "
              f"gniazda: {', '.join(f'{s} {n}' for s, n in wynik['statusy_gniazd'].items() if n)}; ubytków {wynik['ubytki']}")
+    nie_spr = gniazda_nie_sprawdzone(wynik)
+    if nie_spr:  # P2: żółte „nie sprawdzono” — brzegu nie dało się sprawdzić (to nie ubytek)
+        w.append(f"NIE SPRAWDZONO (żółte, brzegu nie dało się sprawdzić): gniazda {nie_spr}")
+    for g in sorted(wynik["gniazda"], key=lambda g: (g["gniazdo"] is None, g["gniazdo"] or 0)):
+        brzeg = (g.get("inspekcja") or {}).get("brzeg") or {}
+        if brzeg and not brzeg.get("sprawdzony", True):
+            w.append(f"  gniazdo {g['gniazdo']}: brzeg nie sprawdzony — {brzeg.get('opis', '')}")
     return "\n".join(w)
 
 
@@ -420,7 +466,7 @@ def mapa_png(wynik: dict, uk: U.UkladPlytki, plik: Path, px: float = 0.1) -> Pat
         d.polygon([P(x, y) for x, y in g.obrys(72)], fill=kolor, outline=(60, 60, 60))
         k = stan[g.id]["kandydaci"][0] if g.id in stan and stan[g.id]["kandydaci"] else None
         ins = stan[g.id].get("inspekcja") if g.id in stan else None
-        podpis = f"{g.id}" + (f"\n{'-'.join(k['zeby']) or k['id'][:6]}\n{k['pokrycie']:.2f}" if k else "") + (f"\n{ins['status']}" if ins and ins["status"] != "ok" else "")
+        podpis = f"{g.id}" + (f"\n{'-'.join(k['zeby']) or k['id'][:6]}\n{k['pokrycie']:.2f}" if k else "") + (f"\n{ins['status'].replace('_', ' ')}" if ins and ins["status"] != "ok" else "")
         d.multiline_text(P(g.x, g.y + (2.0 if k else 0.8)), podpis, fill=(0, 0, 0), align="center", anchor="ma")
         if ins:
             for u in ins["ubytki"]:
@@ -434,7 +480,7 @@ def mapa_png(wynik: dict, uk: U.UkladPlytki, plik: Path, px: float = 0.1) -> Pat
         if g["gniazdo"] is None:
             x, y, _ = g["srodek"]
             d.ellipse([P(x - 3, y + 3), P(x + 3, y - 3)], outline=KOLORY["poza"], width=3)
-    d.text(P(-r + 2, r - 2), f"{wynik['skan']}  {wynik['plytka']} nr {wynik['numer']}  zielone = OK, czerwone = ubytek, zolte = sprawdz, szare = bez projektu, "
+    d.text(P(-r + 2, r - 2), f"{wynik['skan']}  {wynik['plytka']} nr {wynik['numer']}  zielone = OK, czerwone = ubytek, zolte = sprawdz / nie sprawdzono, szare = bez projektu, "
            "pomaranczowe = poprawka; fiolet = podwojne; ciemnoczerwone kolko = poza gniazdem; male kolka = ubytki", fill=(0, 0, 0))  # domyślna czcionka PIL bez polskich znaków
     if wynik.get("uklad_zgodny") is False:  # strażnik układu: przekreślona mapa wybranego układu, żadnych kolorów gniazd
         pol = (uk.size if uk.shape == "square" else uk.d) / 2

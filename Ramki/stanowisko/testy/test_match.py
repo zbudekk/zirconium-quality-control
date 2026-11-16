@@ -41,7 +41,8 @@ def fragmenty(korony, request):
     """
     uk = U.wczytaj(request.param)
     rng = np.random.default_rng(22)  # seed 21 (i 27, 29): atrapa siekacza dopasowana odwrotnie (180°, pokrycie 0,52 → szary) — słabość match do P3a-2, patrz raporty/P3a_przekazanie.md
-    op = synth.Opcje.z_toml(plytka=uk.nazwa, prace_na_plytce=3, p_drgniecia=0.0, wspolczynnik=(1.22, 1.22), poza_uklad=True)
+    # wersja_ubytkow=1: seed 22 dobrano na generatorze sprzed P4 (nowa geometria ubytku zmienia strumień losowy i ten skan)
+    op = synth.Opcje.z_toml(plytka=uk.nazwa, prace_na_plytce=3, p_drgniecia=0.0, wspolczynnik=(1.22, 1.22), poza_uklad=True, wersja_ubytkow=1)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         skan, prawda = synth.generuj_plytke(uk, 8, list(korony), rng, op, 22)

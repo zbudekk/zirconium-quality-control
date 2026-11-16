@@ -152,7 +152,7 @@ class MapaPlytki(QWidget):
             podpis = str(g.id) + (f"\n{'-'.join(k['zeby']) or k['id'][:6]}" if k else "")
             ins = s.get("inspekcja") if s else None
             if ins and ins["status"] != "ok":
-                podpis += f"\n{ins['status']}"
+                podpis += f"\n{PO.OPISY_INSPEKCJI.get(ins['status'], ins['status'])}"  # m.in. żółte „nie sprawdzono” (P2)
             c = self.na_piksel(g.x, g.y)
             p.drawText(int(c.x()) - 40, int(c.y()) - 20, 80, 44, Qt.AlignCenter, podpis)
             if ins:
@@ -424,7 +424,9 @@ class Okno(QMainWindow):
         self.pasek.setValue(100)
         self.przycisk_porownaj.setEnabled(True)
         st = wynik["statusy_gniazd"]
-        self.etykieta_stanu.setText(f"gotowe: {wynik['czas_s']['razem']} s; " + ", ".join(f"{PO.OPISY_STATUSU[s]} {n}" for s, n in st.items() if n) + f"; ubytków {wynik['ubytki']}")
+        nie_spr = len(PO.gniazda_nie_sprawdzone(wynik))  # P2: część żółtych to „nie sprawdzono” (brzegu nie dało się sprawdzić)
+        self.etykieta_stanu.setText(f"gotowe: {wynik['czas_s']['razem']} s; " + ", ".join(f"{PO.OPISY_STATUSU[s]} {n}" for s, n in st.items() if n)
+                                    + (f"; z żółtych nie sprawdzono {nie_spr}" if nie_spr else "") + f"; ubytków {wynik['ubytki']}")
         self.mapa.ustaw(self.uk, wynik)
         self.wypelnij_tabele()
         if wynik.get("uklad_zgodny") is False and wynik.get("plytka_wybor") == "auto":  # żaden układ z ustawień nie pasuje do skanu

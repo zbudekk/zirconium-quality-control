@@ -259,12 +259,15 @@ def test_transformacje_z_prawdy_sa_sztywne_i_nakladaja_kazda_prace(korony):
         g = uk.gniazdo(p.gniazdo)
         assert g.zawiera(V[:, 0].mean(), V[:, 1].mean(), margines=1.0)
         assert V[:, 2].min() >= g.z_dno - 1e-6
-        assert przenikanie_okr(V, g) <= 1e-6
+        # P4: z nowym generatorem ubytków ten seed kładzie jedną z prac w rynience (inne losowanie po pierwszym ubytku)
+        assert (przenikanie_okr(V, g) if g.okragle else przenikanie_ryn(V, g)) <= 1e-6
         # ubytki leżą w pasie brzegu pracy ([inspect] pas_brzegu_mm) i na powierzchni pracy (albo na czaszy
         # poprzedniego ubytku tej pracy, czyli najwyżej o jego głębokość pod powierzchnią)
         powierzchnia = trimesh.Trimesh(V, m.faces, process=False)
         for u in p.ubytki:
-            assert V[:, 2].max() - pas - 0.05 <= u.z <= V[:, 2].max() + 0.05
+            # P4: pas brzegu liczy się od linii krawędzi brzegu (odległość 3D), nie od najwyższego punktu pracy w gnieździe
+            assert u.odleglosc_od_linii is not None and u.odleglosc_od_linii <= pas + 1e-6
+            assert V[:, 2].max() - pas - 1.0 <= u.z <= V[:, 2].max() + 0.05  # przechył pracy ≤ 4° obniża brzeg najwyżej o ~0,9 mm
             _, odl, _ = trimesh.proximity.closest_point(powierzchnia, [[u.x, u.y, u.z]])
             assert odl[0] < max(x.glebokosc for x in p.ubytki) + 0.01
 
@@ -349,3 +352,54 @@ def test_cli_domyslne_z_ustawien_i_wlasny_plik(korony, tmp_path, monkeypatch):
     assert pr.szum_sigma == 0.011
     uruchom_main(monkeypatch, "--projekty", korony[0].parent, "--prace", 1, "--ubytki", "0-0", "--wyjscie", tmp_path / "w2")
     assert synth.wczytaj_prawde(next((tmp_path / "w2").glob("*.json"))).szum_sigma == UST.domyslne()["synth"]["szum_sigma_mm"]
+
+
+# --- P4 (15.11.2026): ukruszenia celowe na krawędzi (K6), wersja generatora ---------------------------------
+def test_opcje_k6_domyslne_z_ustawien_i_walidacja():
+    s = UST.domyslne()["synth"]
+    op = synth.Opcje()
+    assert op.wersja_ubytkow == 2 and op.krawedz_na_prace == (0, 0) and op.krawedz_rozmiary is None
+    assert op.krawedz_rozmiar == (s["krawedz_rozmiar_min_mm"], s["krawedz_rozmiar_max_mm"]) and op.odstep_ubytku == s["odstep_ubytku_mm"]
+    assert synth.Opcje.z_toml(krawedz_rozmiar=(0.1, 0.2), odstep_ubytku=0.04).krawedz_rozmiar == (0.1, 0.2)
+    for pole, wartosc in [("krawedz_na_prace", (2, 1)), ("krawedz_rozmiar", (0.0, 0.2)), ("krawedz_rozmiary", ()), ("krawedz_rozmiary", (0.1, -0.2)),
+                          ("krawedz_polozenia", ("zewn", "obok")), ("krawedz_polozenia", ()), ("odstep_ubytku", 0.0)]:
+        with pytest.raises(ValueError, match=pole):
+            synth.Opcje(**{pole: wartosc})
+    assert synth.Opcje(krawedz_polozenia="sciana").krawedz_polozenia == ("sciana",)
+
+
+def test_cli_ukruszenia_krawedzi(korony, tmp_path, monkeypatch, capsys):
+    """K6 z wiersza poleceń: lista rozmiarów i położeń trafia do prawdy; bez --krawedz prawda nie ma ubytków celowych."""
+    wy = tmp_path / "k6"
+    uruchom_main(monkeypatch, "--projekty", korony[0].parent, "--plytka", "okragla_wieczorna", "--prace", 2, "--ubytki", "0-0", "--wspolczynnik", 1.22,
+                 "--krawedz", "2-2", "--krawedz-rozmiary", "0.10,0.25", "--krawedz-polozenie", "zewn,wewn", "--seed", 5, "--wyjscie", wy)
+    assert "celowych na krawędzi 4" in capsys.readouterr().out
+    pr = synth.wczytaj_prawde(next(wy.glob("*.json")))
+    ubytki = [u for p in pr.prace for u in p.ubytki]
+    assert len(ubytki) == 4 and all(u.celowy and u.polozenie in ("krawedz_zewn", "krawedz_wewn") for u in ubytki)
+    assert {round(u.srednica, 6) for u in ubytki} <= {0.2, 0.5} and all(0 < u.glebokosc_rzeczywista < u.glebokosc for u in ubytki)
+    op = synth.Opcje()
+    assert [u.wykrywalny for u in ubytki] == [op.wykrywalny(u.srednica, u.glebokosc) for u in ubytki]
+    uruchom_main(monkeypatch, "--projekty", korony[0].parent, "--prace", 1, "--ubytki", "1-1", "--wyjscie", tmp_path / "bez")
+    pr = synth.wczytaj_prawde(next((tmp_path / "bez").glob("*.json")))
+    assert all(not u.celowy and u.polozenie for p in pr.prace for u in p.ubytki) and sum(len(p.ubytki) for p in pr.prace) == 1
+
+
+@pytest.mark.parametrize("arg", [("--krawedz", "2"), ("--krawedz-polozenie", "zewn,obok"), ("--krawedz-rozmiary", "0.1,x"), ("--krawedz-rozmiar", "0-0.2"),
+                                 ("--wersja-ubytkow", "3"), ("--odstep-ubytku", "0")])
+def test_cli_k6_zle_wartosci_odrzucone(korony, tmp_path, monkeypatch, arg):
+    with pytest.raises(SystemExit):
+        uruchom_main(monkeypatch, "--projekty", korony[0].parent, *arg, "--wyjscie", tmp_path / "w")
+    assert not (tmp_path / "w").exists()
+
+
+def test_cli_wersja_1_nie_laczy_sie_z_k6_i_pamiec_linii(korony, tmp_path, monkeypatch):
+    from stanowisko import krawedz
+
+    with pytest.raises(SystemExit):
+        uruchom_main(monkeypatch, "--projekty", korony[0].parent, "--wersja-ubytkow", 1, "--krawedz", "1-1", "--wyjscie", tmp_path / "w")
+    assert not (tmp_path / "w").exists()
+    uruchom_main(monkeypatch, "--projekty", korony[0].parent, "--prace", 1, "--ubytki", "0-0", "--krawedz", "1-1", "--pamiec-linii", tmp_path / "linie",
+                 "--wyjscie", tmp_path / "w")
+    assert len(list((tmp_path / "linie").glob("*.npz"))) >= 1 and krawedz._KATALOG is None  # po zakończeniu pamięć na dysku wyłączona
+    krawedz.wyczysc_pamiec()

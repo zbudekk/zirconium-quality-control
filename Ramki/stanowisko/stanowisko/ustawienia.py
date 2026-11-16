@@ -62,11 +62,17 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "wciecie_min_mm": (float, "inspect"),
         "wciecie_pewne_mm": (float, "inspect"),
         "linia_min_udzial": (float, "inspect"),
+        "pas_brzegu_od": (str, "inspect"),
+        "brzeg_min_sprawdzony": (float, "inspect"),
+        "brzeg_max_przerwa_mm": (float, "inspect"),
     },
     "synth": {
         "szum_sigma_mm": (float, "synth"),
         "wspolczynnik_min": (float, "synth"),
         "wspolczynnik_max": (float, "synth"),
+        "odstep_ubytku_mm": (float, "synth"),
+        "krawedz_rozmiar_min_mm": (float, "synth"),
+        "krawedz_rozmiar_max_mm": (float, "synth"),
     },
     "excel": {
         "kolumna_kuwety": (str, PRZYSZLY),
@@ -89,6 +95,28 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
 UKLADY_WBUDOWANE = ("wieczorna", "poranna", "okragla_wieczorna", "okragla_poranna",
                     "wieczorna_r54", "poranna_r54", "okragla_wieczorna_r54", "okragla_poranna_r54")
 KATALOG_MODELI_WZGLEDNY = "modele_plytek"
+
+
+# Klucze dodane po R59 (16.11.2026). Lokalny ustawienia.toml założony wcześniej ich nie ma — brakujący klucz z tej listy
+# dostaje wartość ze wzoru (ustawienia.przyklad.toml; zgodność sprawdza test), zamiast błędu „brak klucza”. Klucz wpisany
+# w pliku ma pierwszeństwo. Klucze sprzed R59 nadal są wymagane.
+DOMYSLNE_NOWYCH = {
+    "inspect": {"pas_brzegu_od": "linia_i_plaszczyzna", "brzeg_min_sprawdzony": 0.9, "brzeg_max_przerwa_mm": 1.5},
+    "synth": {"odstep_ubytku_mm": 0.05, "krawedz_rozmiar_min_mm": 0.08, "krawedz_rozmiar_max_mm": 0.40},
+}
+
+
+def uzupelnij_domyslne(d: dict) -> list[str]:
+    """Dopisuje brakujące klucze z ``DOMYSLNE_NOWYCH`` (tylko w istniejących sekcjach); zwraca ``[sekcja] klucz`` dopisanych."""
+    dopisane = []
+    for sekcja, klucze in DOMYSLNE_NOWYCH.items():
+        if not isinstance(d.get(sekcja), dict):
+            continue
+        for k, v in klucze.items():
+            if k not in d[sekcja]:
+                d[sekcja][k] = v
+                dopisane.append(f"[{sekcja}] {k}")
+    return dopisane
 
 
 def uzupelnij_uklady_wbudowane(d: dict) -> list[str]:
@@ -149,6 +177,8 @@ def _waliduj(d: dict, plik: Path) -> dict:
     s, i, m = d["synth"], d["inspect"], d["match"]
     warunek(s["szum_sigma_mm"] >= 0, "synth", "szum_sigma_mm", "musi być >= 0")
     warunek(0 < s["wspolczynnik_min"] <= s["wspolczynnik_max"], "synth", "wspolczynnik_min", "musi być 0 < min <= wspolczynnik_max")
+    warunek(s["odstep_ubytku_mm"] > 0, "synth", "odstep_ubytku_mm", "musi być > 0")
+    warunek(0 < s["krawedz_rozmiar_min_mm"] <= s["krawedz_rozmiar_max_mm"], "synth", "krawedz_rozmiar_min_mm", "musi być 0 < min <= krawedz_rozmiar_max_mm")
     warunek(0 < i["srednica_min_mm"] <= i["srednica_max_mm"], "inspect", "srednica_min_mm", "musi być 0 < min <= srednica_max_mm")
     warunek(i["prog_glebokosci_mm"] > 0, "inspect", "prog_glebokosci_mm", "musi być > 0")
     warunek(i["pas_brzegu_mm"] > 0, "inspect", "pas_brzegu_mm", "musi być > 0")
@@ -157,6 +187,9 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(i["drgniecie_odchylka_mm"] > 0 and 0 < i["drgniecie_udzial_w_komorce"] <= 1 and 0 < i["drgniecie_udzial_obszaru"] <= 1, "inspect", "drgniecie_udzial_obszaru", "odchyłka > 0, udziały z (0, 1]")
     warunek(0 < i["wciecie_min_mm"] <= i["wciecie_pewne_mm"], "inspect", "wciecie_min_mm", "musi być 0 < wciecie_min_mm <= wciecie_pewne_mm")
     warunek(0 <= i["linia_min_udzial"] <= 1, "inspect", "linia_min_udzial", "udział z [0, 1]")
+    warunek(i["pas_brzegu_od"] in ("linia_i_plaszczyzna", "linia", "plaszczyzna"), "inspect", "pas_brzegu_od", "dopuszczalne: linia_i_plaszczyzna, linia, plaszczyzna")
+    warunek(0 <= i["brzeg_min_sprawdzony"] <= 1, "inspect", "brzeg_min_sprawdzony", "udział z [0, 1]")
+    warunek(i["brzeg_max_przerwa_mm"] >= 0, "inspect", "brzeg_max_przerwa_mm", "musi być >= 0")
     warunek(0 < m["prog_akceptacji_pokrycie"] <= 1, "match", "prog_akceptacji_pokrycie", "udział z przedziału (0, 1]")
     warunek(m["odleglosc_max_mm"] > 0, "match", "odleglosc_max_mm", "musi być > 0")
     warunek(0 < m["prog_ostrzezenia_pokrycie"] <= m["prog_akceptacji_pokrycie"], "match", "prog_ostrzezenia_pokrycie", "udział z (0, prog_akceptacji_pokrycie]")
@@ -180,6 +213,7 @@ def wczytaj_ustawienia(plik: Path | None = None) -> dict:
             d = tomllib.load(f)
     except tomllib.TOMLDecodeError as e:
         raise BladUstawien(f"{plik.name}: błąd składni TOML: {e}") from e
+    uzupelnij_domyslne(d)
     d = _waliduj(d, plik)
     uzupelnij_uklady_wbudowane(d)
     return d
