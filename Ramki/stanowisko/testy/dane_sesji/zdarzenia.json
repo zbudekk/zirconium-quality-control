@@ -1,0 +1,58 @@
+{
+ "wynik_plytka1": {
+  "plik": "C:/Skany/2026-11-17/skan_2026-11-17_19-02-11.stl",
+  "sha16": "fc39ce26913d5da7",
+  "rozmiar": 48000000,
+  "trojkaty": 960000,
+  "czas_pliku": "2026-11-17T19:02:11"
+ },
+ "wynik_plytka2": {
+  "plik": "C:/Skany/2026-11-17/skan_2026-11-17_19-08-40.stl",
+  "sha16": "809654501881fd85",
+  "rozmiar": 48001234,
+  "trojkaty": 960010,
+  "czas_pliku": "2026-11-17T19:08:40"
+ },
+ "wynik_plytka3": {
+  "plik": "C:/Skany/2026-11-17/skan_2026-11-17_19-15-03.stl",
+  "sha16": "f1cfd99083366184",
+  "rozmiar": 48002468,
+  "trojkaty": 960020,
+  "czas_pliku": "2026-11-17T19:15:03"
+ },
+ "wynik_plytka1_ponownie": {
+  "plik": "C:/Skany/2026-11-17/skan_2026-11-17_19-21-55.stl",
+  "sha16": "d5e26561b9f7da28",
+  "rozmiar": 48003702,
+  "trojkaty": 960030,
+  "czas_pliku": "2026-11-17T19:21:55"
+ },
+ "wynik_drgniecie": {
+  "plik": "C:/Skany/2026-11-17/skan_2026-11-17_19-30-12.stl",
+  "sha16": "80387efe9824d3a7",
+  "rozmiar": 48004936,
+  "trojkaty": 960040,
+  "czas_pliku": "2026-11-17T19:30:12"
+ },
+ "wynik_popraw_ulozenie": {
+  "plik": "C:/Skany/2026-11-17/skan_2026-11-17_19-36-48.stl",
+  "sha16": "69040440065ce0d7",
+  "rozmiar": 48006170,
+  "trojkaty": 960050,
+  "czas_pliku": "2026-11-17T19:36:48"
+ },
+ "wynik_konflikt": {
+  "plik": "C:/Skany/2026-11-17/skan_2026-11-17_19-44-09.stl",
+  "sha16": "ab697128fa0142ff",
+  "rozmiar": 48007404,
+  "trojkaty": 960060,
+  "czas_pliku": "2026-11-17T19:44:09"
+ },
+ "wynik_niezgodny_uklad": {
+  "plik": "C:/Skany/2026-11-17/skan_2026-11-17_19-50-30.stl",
+  "sha16": "0526fa88284f2229",
+  "rozmiar": 48008638,
+  "trojkaty": 960070,
+  "czas_pliku": "2026-11-17T19:50:30"
+ }
+}
