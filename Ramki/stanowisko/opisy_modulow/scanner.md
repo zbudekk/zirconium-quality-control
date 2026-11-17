@@ -18,7 +18,7 @@ testy `testy/test_scanner.py`. Modul nie laduje numpy, trimesh, Open3D ani Qt (d
 | `okres_s`, `przeglad_s` | 0,05 i 2 | co ile watek oglada pliki, na ktore czeka; co ile przeglada caly folder |
 | `zglos_zastane` | nie | czy WSZYSTKIE pliki zastane (obecne przy pierwszym udanym przegladzie) sa nowymi skanami |
 | `zglos_zastane_od` | brak | nadrabianie po restarcie: pliki zastane o czasie modyfikacji POZNIEJSZYM niz podany (sekundy od epoki) |
-| `znane` | brak | nadrabianie po restarcie: funkcja `znane(sciezka, rozmiar, mtime_ns) -> bool` (True = plik juz przyjety; pytana raz na plik zastany, bez czytania pliku); z `zglos_zastane_od` dziala razem (nowszy ORAZ nieznany) |
+| `znane` | brak | nadrabianie po restarcie: funkcja `znane(sciezka, rozmiar, mtime_ns) -> bool` (True = plik juz przyjety; pytana raz na plik zastany, bez czytania pliku, TYLKO w watku obserwatora - kontrakt nizej; gotowa wersja z bazy A1: `ZnanePliki`); z `zglos_zastane_od` dziala razem (nowszy ORAZ nieznany) |
 | `informuj_po_s`, `informuj_co_s` | 10 i 60 | plik zajety dluzej niz tyle = `Oczekiwanie`; kolejne co tyle |
 | `obserwator` | `watchdog` | `odpytywanie` = bez biblioteki watchdog (np. dysk sieciowy), sam przeglad co `przeglad_s` |
 | `start_skanu` | atrapa | funkcja akcji "start skanu" (patrz nizej) |
@@ -68,14 +68,36 @@ programu wraca przez nadrabianie (`znane` / `zglos_zastane_od`). Trwaly brak upr
 
 Pliki zastane (P3). Stan poczatkowy ustala PIERWSZY udany przeglad folderu - przy starcie albo pozniej, gdy folder
 (dysk sieciowy, OneDrive) pojawi sie po starcie z cala historia. Podfolder albo plik, ktorego przy tym nie dalo sie
-odczytac, jest "zastany" przy pierwszym udanym odczycie. Chwilowy blad listowania (folder albo podfolder niedostepny,
-pusta lista) nie kasuje wiedzy o znanych plikach: plik nieobecny na liscie jest zapominany dopiero, gdy `os.stat` mowi,
-ze go nie ma (albo watchdog zglosi usuniecie). Nadrabianie po restarcie (P2): z `zglos_zastane_od` i / albo `znane`
-pliki zastane nowsze / nieznane ida zwykla droga i daja zdarzenie z `zastany=True` (w kolejnosci czasu pliku); skrot
-liczony tylko dla nich, nie dla calej historii folderu. Folder usuniety i utworzony od nowa (D1): przeglad sprawdza,
+odczytac, jest "zastany" przy pierwszym udanym odczycie. Zastany jest tylko plik o czasie modyfikacji NIE pozniejszym
+niz start obserwatora (D-N1, runda 3): plik zapisany po starcie jest nowym skanem takze w folderze, ktory pojawil sie
+pozniej (program skanera zaklada folder przy pierwszym eksporcie, dysk podlaczony po starcie), i w podfolderze
+nieczytelnym przy starcie - bez nadrabiania nic nie przepada. Chwilowy blad listowania (folder albo podfolder
+niedostepny, pusta lista) nie kasuje wiedzy o znanych plikach: plik nieobecny na liscie jest zapominany dopiero, gdy
+`os.stat` mowi, ze go nie ma (albo watchdog zglosi usuniecie). Nadrabianie po restarcie (P2): z `zglos_zastane_od`
+i / albo `znane` pliki zastane nowsze / nieznane ida zwykla droga i daja zdarzenie z `zastany=True` (w kolejnosci czasu
+pliku); skrot liczony tylko dla nich, nie dla calej historii folderu. Pliki zastane sa ustalane w `start()` (przed
+powrotem), a decyzja nadrabiania (wywolania `znane`) zapada w pierwszym obiegu watku obserwatora - nigdy w watku okna.
+Folder usuniety i utworzony od nowa (D1): przeglad sprawdza,
 czy watek watchdog zyje i czy folder ma ten sam numer pliku - jesli nie, obserwator watchdog rusza od nowa.
 `stop()`, ktory nie doczekal sie konca watku (liczenie skrotu duzego pliku), zostawia watek widoczny w `dziala()`;
 watek niczego juz nie zglasza, a `start()` nie uruchamia drugiego (D11).
+
+**Kontrakt `znane` (D-N2, runda 3).**
+- WATEK: wolana wylacznie w watku obserwatora (`scanner`; w testach w watku, ktory sam wola `obieg()`), po jednym
+  wywolaniu naraz, nigdy w watku wolajacym `start()`. Nie moze uzywac obiektow przywiazanych do innego watku (polaczenie
+  `sqlite3` otwarte w watku okna rzuca `ProgrammingError`; wyjatek = plik "nieznany", zgloszony drugi raz).
+- ARGUMENTY: `sciezka` = `folder / sciezka wzgledna` (jak `ZdarzenieSkanu.plik`), `rozmiar` w bajtach, `mtime_ns` =
+  `os.stat().st_mtime_ns` jako LICZBA CALKOWITA (`ZdarzenieSkanu.czas_pliku` = `mtime_ns / 1e9`). Baza A1 trzyma
+  `skany.czas_pliku` jako czas lokalny ISO uciety do sekund (`session._czas_iso`) - porownanie przez
+  `scanner.czas_pliku_iso(mtime_ns)` (ten sam napis, ktory A1 zapisala dla tego pliku) i `scanner.klucz_znanego(sciezka,
+  rozmiar, czas_iso)` (sciezka po `normcase(abspath)`). Porownanie wprost z `mtime_ns` = zawsze "nieznany" (skrot calej
+  historii folderu przy kazdym starcie i duplikaty do odsiania po `sha16` - bez strat, ale koszt i szum).
+- ZNACZENIE: True = dla tej sciezki, rozmiaru i czasu aplikacja ma zapisany wynik analizy (dowolny status), blad pokazany
+  technikowi albo zadanie zapisane z `Silnik.stop()` (A3 zleca je sama po starcie). Samo przyjete zdarzenie skanu bez
+  wyniku = False (awaria miedzy zdarzeniem a wynikiem nie moze zgubic skanu).
+- Gotowa funkcja: `ZnanePliki(wpisy)` - `wpisy` = krotki (`plik`, `rozmiar`, `czas_pliku`) z tabeli `skany` wczytane
+  PRZED `start()`; zbior niezmienny, wiec wywolanie jest bezpieczne z kazdego watku i nie dotyka bazy. Stan z chwili
+  startu wystarcza: pliki zapisane po starcie obserwatora sa nowe bez pytania o `znane` (D-N1).
 
 Uzyte ponownie z okna "Dzien skanera" (`dzien_skanera_rdzen`, bez zmian w tamtym pliku): `ktos_pisze` (warunek 3),
 `otworz_zrodlo` (odczyt z pelnym wspoldzieleniem: nie blokuje zapisu, zmiany nazwy ani usuniecia przez program
@@ -108,12 +130,16 @@ zle; z `--pomiar` liczy zdarzenia i opoznienia, z `--analiza` przepuszcza skany 
 - Ponowny zapis, ktory zachowuje rozmiar i czas pliku co do 100 ns (kopia z zachowaniem czasu na ten sam plik bez
   usuwania), nie jest zauwazany - zawartosc jest wtedy w praktyce ta sama.
 - Pamiec duplikatow (`sha16` -> pierwszy plik) i numeracja zdarzen zyja tyle, co obiekt `Scanner`; trwala historia
-  skanow to zadanie sesji i bazy (A1, A3). Dlatego A3 MA podac nadrabianie: `znane` z bazy (sciezka + rozmiar + czas
-  pliku zapisanych skanow - lapie tez plik, ktory przed zamknieciem byl zajety) albo przynajmniej `zglos_zastane_od` =
-  czas pliku ostatniego skanu w bazie (tansze, ale zgubi plik starszy od ostatniego skanu, ktory nie dal zdarzenia).
-  Skan zgloszony drugi raz (zastany i juz w bazie) A3 rozpozna po `sha16`.
+  skanow to zadanie sesji i bazy (A1, A3). Dlatego A3 MA podac nadrabianie: `znane=ZnanePliki(<wiersze z bazy>)` (lapie
+  tez plik, ktory przed zamknieciem byl zajety albo czekal na wynik) albo przynajmniej `zglos_zastane_od` = czas pliku
+  ostatniego skanu w bazie (tansze, ale zgubi plik starszy od ostatniego skanu, ktory nie dal zdarzenia). Skan zgloszony
+  drugi raz (zastany i juz z wynikiem w bazie) A3 rozpozna po `sha16`. `zastany=True` nie znaczy "stary": to skan
+  sprzed startu programu, ktorego baza nie zna.
+- D-N1 porownuje czas pliku z zegarem komputera: plik na dysku sieciowym z czasem serwera przesunietym do przodu moze
+  byc uznany za nowy (duplikat, nie strata); plik przeniesiony po starcie do folderu poznego z zachowanym starym czasem
+  (napisany przed startem) jest zastany - wraca tylko z nadrabianiem. Rozdzielczosc: zegar systemu (ok. 16 ms na Windows).
 - Folder niedostepny przy starcie albo znikajacy w trakcie nie jest bledem: obserwator czeka i wraca do pracy
   (`stan()["folder_dostepny"]`).
-- Funkcje zwrotne sa wolane w watku obserwatora; okno Qt powinno w nich tylko emitowac sygnal albo wkladac do kolejki.
+- Funkcje zwrotne i `znane` sa wolane w watku obserwatora; okno Qt powinno w nich tylko emitowac sygnal albo wkladac do kolejki.
 - Nazwa pliku skanu jest w logu (poziom INFO) - jesli zlecenia w programie skanera beda nazywane nazwiskami, do decyzji
   po dniu skanera (D5, B2). Caly folder z podfolderami jest listowany co `przeglad_s` (D11 c - do pomiaru w B2).

@@ -14,15 +14,17 @@ tylko biblioteki standardowej - numpy, trimesh i Open3D laduje wylacznie proces 
 | `tryb` | `wieczor` | wieczor / rano - dla odbiorcy wyniku; analiza od trybu nie zalezy |
 | `uklad` | `auto` | `auto` albo `rozpoznaj` = program rozpoznaje uklad plytki (zalozenie Z2); inaczej nazwa z `[plytki]` |
 | `numer` | brak | numer plytki, gdy dolki kodu sa poza skanem |
-| `skan_sha16` | brak | skrot ze `ZdarzenieSkanu` - sprawdzany przed analiza i po niej (P1); bez niego silnik liczy sam |
+| `skan_sha16` | brak | skrot ze `ZdarzenieSkanu` - porownywany ze skrotem kopii roboczej (P1, N1); bez niego silnik liczy sam |
 | `inspekcja`, `bez_filtru`, `straznik` | tak, nie, tak | jak w `porownaj` |
-| `wyjscie` | brak | folder na `<czas przyjecia>_<sha16>_<nazwa skanu>[_n]_wynik.json` i `..._podglad.npz` |
+| `wyjscie` | brak | folder na `<czas przyjecia>_<sha16>[_n]_wynik.json` i `..._podglad.npz` (bez nazwy skanu, D-N6) |
 | `zadanie_id`, `przyjete` | - | nadaje `zlec` (numer od 1 w kazdym obiekcie `Silnik`, czas przyjecia) |
 
 Parametry `Silnik(...)`: `ust` (slownik ustawien) albo `plik_ustawien` (None = `ustawienia.toml` programu),
 `funkcja` (`"modul:funkcja"` analizy; domyslnie `stanowisko.porownaj:porownaj`), `limit_zadania_s` (600),
 `limit_startu_s` (180), `pul_w_pamieci` (2), `plik_logu` (wyjscie bibliotek z procesu roboczego), `pamiec_linii`
-(katalog pamieci linii brzegu na dysku; domyslnie wylaczona), `na_zdarzenie`.
+(katalog pamieci linii brzegu na dysku; domyslnie wylaczona), `katalog_roboczy` (kopie robocze skanow; domyslnie
+`<katalog tymczasowy systemu>\qc_silnik`), `czekaj_na_plik_s` (60: jak dlugo ponawiac kopiowanie zajetego pliku skanu),
+`na_zdarzenie`.
 
 **Wyjscie.** `ZdarzenieSilnika` do funkcji `na_zdarzenie` (wolanej w watku nadzorcy) albo do kolejki `Silnik.zdarzenia`:
 
@@ -30,16 +32,18 @@ Parametry `Silnik(...)`: `ust` (slownik ustawien) albo `plik_ustawien` (None = `
 |---|---|
 | `gotowy` | proces roboczy wystartowal (`czas_s` = czas startu) |
 | `start` | zadanie wyslane do procesu (`zadanie_id`, `zadanie`) |
-| `postep` | `etap`, `udzial` 0-1 (etapy z `porownaj`) |
-| `wynik` | `wynik` = slownik `porownaj` w postaci z pliku `<skan>_wynik.json` (z `ostrzezenia`, jak w wierszu polecen; teksty bez nazw z puli) + `zadanie_id` + `skan_sha16` (tresci faktycznie analizowanej); `pliki` (sciezki z `wyjscie` TEGO zadania); `czas_s` |
-| `blad` | `rodzaj`: `analiza` (wyjatek, brak pliku, pusta pula), `proces` (proces zniknal - `kod wyjscia` w komunikacie), `limit_czasu`, `start` (proces nie umie wystartowac), `plik_zmieniony` (tresc pliku inna niz w zdarzeniu skanu - przed analiza albo w jej trakcie; oba skroty w komunikacie, bez wyniku); `blad` (jedno zdanie), `szczegoly` (slad wyjatku), `czas_s` |
+| `postep` | `etap`, `udzial` 0-1 (etapy z `porownaj`; przed analiza ewentualnie `oczekiwanie na zwolnienie pliku skanu` z udzialem 0, gdy plik trzyma inny program) |
+| `wynik` | `wynik` = slownik `porownaj` w postaci z pliku `<skan>_wynik.json` (z `ostrzezenia`, jak w wierszu polecen; teksty wolne bez nazw z puli, pola decyzji bez zmian) + `zadanie_id` + `skan_sha16` (skrot kopii roboczej = tresci faktycznie analizowanej); `pliki` (sciezki z `wyjscie` TEGO zadania); `czas_s` |
+| `blad` | `rodzaj`: `analiza` (wyjatek, brak pliku, pusta pula, brak miejsca na kopie robocza), `proces` (proces zniknal - `kod wyjscia` w komunikacie), `limit_czasu`, `start` (proces nie umie wystartowac), `plik_zmieniony` (plik nadpisany, zanim analiza ruszyla: skrot kopii inny niz w zdarzeniu skanu; oba skroty w komunikacie, bez analizy - nowa tresc ma wlasne zdarzenie), `plik_niedostepny` (pliku skanu nie dalo sie skopiowac przez `czekaj_na_plik_s` - inny program trzyma go bez zgody na odczyt albo brak uprawnien; nazwa pliku i powod systemu w komunikacie - POKAZAC technikowi, zlecic ponownie); `blad` (jedno zdanie), `szczegoly` (slad wyjatku), `czas_s` |
 | `zatrzymany` | `niezakonczone` - krotka `ZadanieAnalizy` przerwanych przez `stop()` (w toku pierwsze, potem kolejka); wolane w watku, ktory wywolal `stop()` |
 
 `..._podglad.npz`: dla kazdego gniazda z inspekcja tablice `g<nr>_P` (punkty w ukladzie plytki) i `g<nr>_d`
-(odchylka w mm) - material na obraz odchylek w oknie; odczyt `silnik.wczytaj_podglad(plik)`. Pliki w `wyjscie` (P4):
-nazwa `<czas przyjecia RRRRMMDD_GGMMSS>_<sha16>_<nazwa skanu: litery ASCII, cyfry, ._->` i kolejny numer `_n`, gdy taki
-plik juz jest; zapis przez plik tymczasowy i zmiane nazwy bez nadpisywania - dwa skany `scan.stl` z dwoch podfolderow
-i ponowna analiza tego samego skanu daja osobne komplety, a urwany zapis nie zostawia polowy pliku.
+(odchylka w mm) - material na obraz odchylek w oknie; odczyt `silnik.wczytaj_podglad(plik)`. Pliki w `wyjscie` (P4, D-N6):
+nazwa `<czas przyjecia RRRRMMDD_GGMMSS>_<sha16>` i kolejny numer `_n`, gdy taki plik juz jest - BEZ nazwy skanu (jak
+w A1: program skanera moze nazywac eksport nazwiskiem ze zlecenia); zapis przez plik tymczasowy i zmiane nazwy bez
+nadpisywania, najpierw `_podglad.npz`, potem `_wynik.json` (plik wyniku = komplet) - dwa skany `scan.stl` z dwoch
+podfolderow i ponowna analiza tego samego skanu daja osobne komplety, a urwany zapis nie zostawia polowy pliku. Pliki
+tymczasowe `*.<pid>.tmp` po procesie zabitym w trakcie zapisu sa usuwane przy kolejnym zapisie do tego folderu.
 
 **Jak dziala.** `Silnik.start()` uruchamia watek nadzorcy (zwykly watek Pythona: bez Open3D i bez Qt) i proces roboczy
 (`multiprocessing`, metoda `spawn`, lacze `Pipe` - bez wspolnych kolejek, wiec zabity proces niczego nie blokuje).
@@ -50,19 +54,47 @@ zadanie, ktore jeszcze nie ruszylo. Nadzorca wysyla zadania po jednym, w kolejno
 (bez ponawiania zadania, ktore zabilo proces). Proces, ktory nie umie wystartowac (brak pakietu, zly plik ustawien),
 oddaje `blad` rodzaju `start` kolejnym zadaniom - jedna proba na zadanie, bez petli restartow. Limit czasu nadzorca
 sprawdza takze przy kazdej wiadomosci z procesu (zadanie, ktore stale przysyla postep, tez zostanie przerwane).
-`stop()` konczy proces i ZWRACA zadania niezakonczone (w toku i w kolejce), zglaszajac je zdarzeniem `zatrzymany` (P2) -
-zadne z nich nie dostaje `wynik` ani `blad`; kolejne `stop()` zwraca [].
+`stop()` konczy proces i ZWRACA zadania niezakonczone (w toku i w kolejce), zglaszajac je zdarzeniem `zatrzymany` (P2);
+kolejne `stop()` zwraca []. Gwarancja (D-N3, D-N4): kazde przyjete zadanie albo dostaje dokladnie jedno zdarzenie
+`wynik` / `blad`, albo jest na liscie `stop()` - nigdy oba; po rozpoczeciu `stop()` spoznione `wynik` / `blad` sa
+odrzucane. Jedyny wyjatek: zadanie, ktorego zdarzenie koncowe nadzorca WLASNIE przekazuje, gdy `na_zdarzenie` blokuje sie
+dluzej niz `czekaj_s` - nie ma go na liscie, a zdarzenie dojdzie po `zatrzymany`. `zlec` po rozpoczeciu `stop()` odmawia
+wyjatkiem `SilnikZatrzymany` (podklasa `RuntimeError`): zadanie nie ruszy; gdy `stop()` jeszcze nie zebral listy, jest
+na liscie niezakonczonych (`na_liscie` True), inaczej `na_liscie` False. Proces roboczy, ktory zaczal startowac, gdy
+`stop()` juz ruszyl (wolny start), jest od razu zabijany.
 
 Proces roboczy pilnuje sie sam (P6, `Straznik`): watek sprawdza co 0,5 s, czy zyje proces okna
-(`multiprocessing.parent_process()`), i konczy proces roboczy od razu, gdy go nie ma - takze W TRAKCIE analizy (zmierzone:
-0,4 s po zabiciu procesu okna). Ma tez wlasny limit zadania: `limit_zadania_s` + 30 s (nadzorcy moze juz nie byc).
-Plik skanu zmieniony po zdarzeniu (P1): proces roboczy liczy skrot przed analiza (inny niz `skan_sha16` zdarzenia =
-`plik_zmieniony`, analiza nie rusza) i po niej (inny = `plik_zmieniony`, wynik odrzucony); nowa tresc ma wlasne
-zdarzenie ze `scanner`. Dane osobowe (P5, `CzyscicielNazw`): ostrzezenia, uwagi i teksty bledow z procesu roboczego
-(zdarzenia, pliki w `wyjscie`) nie zawieraja nazw plikow ani folderow puli projektow - sciezka pod folderem puli i nazwa
-folderu = `<projekt>`, nazwa pliku z puli (z rozszerzeniem albo bez) = `<projekt sha16>`; zostaja: sam folder puli
-z zadania (`foldery_projektow`), nazwy folderow z mniej niz 2 literami (numer kuwety), rdzenie nazw plikow krotsze niz
-3 znaki. Nazwy etapow postepu to stale z `porownaj` - nie sa czyszczone.
+(`multiprocessing.parent_process()`), i konczy proces roboczy od razu, gdy go nie ma (zmierzone: 0,4 s po zabiciu procesu
+okna, gdy analiza zwalnia GIL). Ma tez wlasny limit zadania: `limit_zadania_s` + 30 s (nadzorcy moze juz nie byc).
+`Straznik` nie dostaje czasu, gdy analiza stoi w wywolaniu natywnym trzymajacym GIL (zmierzone przez recenzenta:
+`segment_plane`, `estimate_normals` w Open3D) - dlatego na Windows proces roboczy jest dodatkowo w obiekcie zadania
+(Job Object) procesu okna z `KILL_ON_JOB_CLOSE` (D-N5, `ctypes`): system konczy go razem z procesem okna niezaleznie od
+jego stanu (test z wywolaniem natywnym trzymajacym GIL 60 s: procesu roboczego nie ma 0,0 s po zabiciu okna).
+`stan()["obiekt_zadania"]` mowi, czy sie udalo; gdy obiektu zadania nie da sie utworzyc albo przypisac, silnik dziala jak
+dotad (sam `Straznik`, ostrzezenie w logu).
+
+Kopia robocza skanu (N1, runda 3): proces roboczy kopiuje plik skanu do `katalog_roboczy\<pid>_<zadanie_id>\<nazwa
+skanu>` przez `otworz_zrodlo` (pelne wspoldzielenie - program skanera moze w tym czasie pisac, przenosic i usuwac plik),
+liczy skrot KOPII przy kopiowaniu i analizuje kopie (ta sama nazwa pliku, wiec `wynik["skan"]` jak w wierszu polecen).
+Skrot kopii inny niz `skan_sha16` zdarzenia = plik nadpisany, zanim analiza ruszyla: `plik_zmieniony`, analiza nie rusza
+(nowa tresc ma wlasne zdarzenie ze `scanner`). Pozniejsza blokada, przeniesienie albo usuniecie pliku skanu nie
+uniewaznia wyniku - tresc analizowana i skrot sa z definicji te same. Plik zajety (inny program trzyma go bez zgody na
+odczyt) albo zmieniajacy sie w trakcie kopiowania: ponawianie co 0,1 s, potem 2x, 4x ... rzadziej (najrzadziej co 2 s;
+jak `scanner` B1), postep `oczekiwanie na zwolnienie pliku skanu`, po `czekaj_na_plik_s` blad `plik_niedostepny`.
+Brak pliku = blad `analiza` "brak pliku skanu ...". Kopia jest usuwana po zadaniu; resztki po procesach zabitych w trakcie
+zadania (i wlasne) sa usuwane przy starcie procesu roboczego i przed kazda kopia - na dysku jest najwyzej jedna kopia na
+proces roboczy; kopie innych zyjacych procesow zostaja. Kopia powstaje tylko, gdy po niej zostanie 256 MB wolnego miejsca.
+Koszt: 0,04-0,11 s na skan 46-55 MB (PC, 17.11).
+
+Dane osobowe (P5, `CzyscicielNazw`): ostrzezenia, uwagi i teksty bledow z procesu roboczego (zdarzenia, pliki
+w `wyjscie`) nie zawieraja nazw plikow ani folderow puli projektow - sciezka pod folderem puli i nazwa folderu =
+`<projekt>`, nazwa pliku z puli (z rozszerzeniem albo bez) = `<projekt sha16>`; tylko cale nazwy (granice slowa
+i separatory), najdluzsza najpierw. W wyniku czyszczone sa WYLACZNIE pola z tekstem wolnym (N2, runda 3:
+`POLA_TEKSTU_WOLNEGO` - `ostrzezenia`, `uwagi`, `blad`, `powod`, `powod_filtru`, `komunikat`, `podpowiedz`, `opis` ...
+i klucze konczace sie na `_` + jedno z nich, np. `uklad_komunikat`); statusy, typy, kolory, identyfikatory, nazwa skanu
+i liczby nigdy nie sa zmieniane - folder `OK` albo plik `korona.stl` w puli nie zmienia `inspekcja.status` ani
+`kandydaci[].typ`. Zostaja: sam folder puli z zadania (`foldery_projektow`), nazwy folderow z mniej niz 2 literami (numer
+kuwety), rdzenie nazw plikow krotsze niz 3 znaki. Nazwy etapow postepu to stale z `porownaj` - nie sa czyszczone.
 
 Pula projektow zostaje w pamieci procesu roboczego (`PamiecPul`): budowana raz na (foldery, wspolczynnik, orientacja,
 lista plikow w folderach z rozmiarami i czasami) - zmiana plikow w folderze = nowa pula przy nastepnym zadaniu.
@@ -100,11 +132,21 @@ W oknie Qt: `lacznik = lacznik_qt(silnik)` - obiekt z sygnalami `gotowy()`, `sta
 - Jedna analiza naraz i jeden proces (plan 3.8); rownolegle analizy nie sa przewidziane.
 - Program uruchamiajacy silnik musi miec glowny modul chroniony `if __name__ == "__main__":` (wymaganie
   `multiprocessing` na Windows); proces roboczy wykonuje glowny modul programu (patrz D8 wyzej).
-- Nazwa pliku skanu zostaje w komunikatach (np. "brak pliku skanu ...") i w nazwach plikow `wyjscie`; nazwy z puli nie.
+- Nazwa pliku skanu zostaje w komunikatach (np. "brak pliku skanu ...") i w polu `wynik["skan"]`; w nazwach plikow
+  `wyjscie` juz nie (D-N6). Nazwy z puli nie wychodza nigdzie.
 - Kolejka zadan zyje w pamieci procesu okna. Po zamknieciu programu nic nie ginie, o ile A3: (1) w `closeEvent` wola
-  `stop()` i zapisuje zwrocone zadania (sciezka, `skan_sha16`, tryb, numer) w bazie albo pliku; (2) po starcie zleca je
-  ponownie (`zlec` nadaje nowe numery); (3) przy awarii bez `stop()` - nadrabianie w `scanner` (`znane`). Bez `stop()`
-  przy wyjsciu zostaje kosmetyczny slad "Exception ignored in atexit" (D2); proces roboczy i tak konczy sie sam.
+  NAJPIERW `scanner.stop()`, POTEM `niezakonczone = silnik.stop()` (odwrotna kolejnosc: `zlec_skan` z watku obserwatora
+  dostaje `SilnikZatrzymany` - zadanie jest na liscie, gdy lista nie byla jeszcze zebrana, inaczej wraca dopiero przez
+  nadrabianie) i zapisuje zwrocone zadania (sciezka, `skan_sha16`, tryb, numer) w bazie albo pliku; (2) po starcie zleca je
+  ponownie (`zlec` nadaje nowe numery); (3) przy awarii bez `stop()` - nadrabianie w `scanner` (`znane`). `na_zdarzenie`
+  nie moze czekac na watek wolajacy `stop()` (najprosciej `lacznik_qt`). Bez `stop()` przy wyjsciu zostaje kosmetyczny
+  slad "Exception ignored in atexit" (D2); proces roboczy i tak konczy sie sam (obiekt zadania, `Straznik`).
+- Kopia robocza (N1): katalog roboczy musi miec miejsce na jedna kopie skanu + 256 MB (inaczej blad `analiza` z powodem).
+  Program skanera, ktory nadpisuje plik w miejscu w trakcie kopiowania, daje kopie, ktorej skrot nie zgadza sie ze
+  zdarzeniem (`plik_zmieniony`) albo ponowienie kopii; plik trwale bez uprawnien do odczytu = `plik_niedostepny` po 60 s.
+- Obiekt zadania (D-N5) obejmuje tez procesy uruchomione przez proces roboczy (dzis zadnych). Bez Windows albo przy
+  odmowie systemu zostaje sam `Straznik` - zawieszenie w wywolaniu natywnym trzymajacym GIL zostawia wtedy proces roboczy
+  do konca tego wywolania.
 - `zadanie_id` liczy sie od 1 w kazdym obiekcie `Silnik` (po `stop()` trzeba utworzyc nowy); sygnaly `wynik(int, object)`
   i `blad(int, str, str)` lacznika niosa tylko numer - A3 kluczuje po obiekcie silnika albo bierze `zdarzenie(object)`
   (D7). `zatrzymany` przychodzi tylko przez `zdarzenie(object)`.
