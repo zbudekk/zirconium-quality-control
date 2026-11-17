@@ -1,0 +1,220 @@
+R59-K - poprawka D1 i D2 recenzji PR R59 runda 2 w narzedzia/zbuduj_pakiet_R59.sh, 16.11.2026, wykonawca R59-K (Opus)
+Skrypt: 712 -> 763 linii, SHA-256 30d1b32a... -> 15b1133a2506f7cd5915be33a224a400e1d4bcc31189bbdeb6f0fc11b2a29995; bash -n OK; LF, 0 CR,
+0 znakow sterujacych poza TAB/LF. W worktree skrypt NIE byl uruchamiany (tylko bash -n, odczyt, kopia pliku, commit).
+
+ZMIANY
+D1 (straznik celow, zamiana przez przemianowanie):
+- nowe funkcje w_drzewie_git (czy sciezka lezy w jakimkolwiek drzewie roboczym git) i straznik (cel nie lezy w zakazanym ani go nie zawiera);
+- REPO = katalog nad Ramki + git rev-parse --show-toplevel + glowna kopia repo z --git-common-dir (worktree: <kod>/qc);
+  ZAKAZANE = Ramki_pakiet, ../Ramki_do_wgrania, archiwum, REPO;
+- proba: katalog proby i policzone cele D, W, T, TW, STARY (<cel>.stary_R59) porownane z ZAKAZANE w obie strony; katalog proby poza
+  kazdym drzewem git;
+- wlasciwy: pakiet tylko w Ramki_pakiet (podany inny katalog = odmowa; dawny argument katalog_pakietu usuniety z opisu), D, T, TW, STARY
+  porownane z archiwum i ../Ramki_do_wgrania;
+- --calosc: ZAKAZANE w obie strony, nie w D/W/T/TW/STARY, poza kazdym drzewem git; w probie dalej w katalogu proby;
+- krok 0: odmowa, gdy <cel>.stary_R59 istnieje (pozostalosc nieudanej zamiany);
+- krok 6: rm -rf "$D" + mv zastapione: mv -T D -> STARY, mv -T T -> D, sha256sum -c; przy bledzie nowy wraca do T, stary na miejsce;
+  STARY kasowany dopiero po udanym sha256sum -c (nieudane rm -> UWAGA, nie utrata pakietu);
+- wszystkie kontrole sciezek przed jakakolwiek zmiana na dysku (przed szukaniem Pythona i krokiem 0); naglowek / --help opisuje straznik.
+D2 (ASCII): linie z nie-ASCII przed 126, po 49. Zamienione 77 linii: komentarze (w tym naglowek = --help) i komunikat "Pakiet gotowy".
+Zostawione bajtowo 49 linii (tresc plikow pakietu i plikow do wgrania albo nazwy plikow zrodlowych): 75 (PDFY - nazwy plikow .md/.pdf
+z pauza), 447-448 (wiersze plytek do README/INSTRUKCJI), 453, 455 (napis PRZEBIEG PROBNY w README/INSTRUKCJI), 464-514 (README.txt),
+573-600 (INSTRUKCJA_PAKIET), 605 (domyslny folder w DO_WGRANIA), 608-622 (DO_WGRANIA_NA_DRIVE); numeracja przed zmiana. Watpliwych: 0.
+
+KOPIA TESTOWA
+<P> = katalog w scratchpadzie sesji; <P>/kopia = caly worktree razem z plikami ignorowanymi przez git (bez .git), 506 MB,
+diff -rq z worktree pusty; w kopii nowy skrypt. Uruchomienia z <P>/kopia/Ramki: DATA=2026-11-16 bash narzedzia/zbuduj_pakiet_R59.sh ...
+Odcisk = sha256 listy katalogow + sum wszystkich plikow (kopia i <P>/zewn) + listing <P>. Python: python3 = 3.12 z pypdf (jak szuka skrypt).
+Seria B: najpierw git init w kopii i drugie repo w <P>/zewn/inne_repo. Pierwsze podejscie do serii B zaklocilem sam (utworzylem plik
+w <P> w trakcie serii - zmienil sie listing <P>, 13 falszywych NIE); seria B powtorzona bez zaklocen - wynik ponizej.
+
+TESTY NEGATYWNE (kazdy ma skonczyc sie BLAD przed jakakolwiek zmiana; odcisk przed = po)
+== testy negatywne (A: kopia bez .git), odcisk kopii przed: 9eb2c963ca3f2ec1
+N1  --proba . | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog proby (.) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N2  --proba .. | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog proby (..) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N3  --proba archiwum/proba_test (w repo kopii) | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog proby (archiwum/proba_test) lezy w archiwum - odmowa przed jakakolwiek zmiana na dysku
+N3b --proba <kopia w postaci C:/>/tmp_proba | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>/kopia/tmp_proba) lezy w .. - odmowa przed jakakolwiek zmiana na dysku
+N3c --proba <kopia\Ramki w postaci C:\> (D = Ramki_pakiet) | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>\kopia\Ramki) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N3d PROBA=1 (zmienna) z katalogiem . | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog proby (.) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N4  --proba <P> (zawiera repo kopii) | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N4b --proba <P w postaci C:/ i dlugiej nazwy> (zawiera repo kopii) | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N5  wlasciwy, cel archiwum/Ramki_pakiet_przed_R59_2026-11-16 | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: archiwum/Ramki_pakiet_przed_R59_2026-11-16) - pakiet w innym katalogu: --proba <katalog poza repo>
+N5b wlasciwy --nadpisz, cel archiwum/Ramki_pakiet_przed_R59_2026-11-16 | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: archiwum/Ramki_pakiet_przed_R59_2026-11-16) - pakiet w innym katalogu: --proba <katalog poza repo>
+N6  wlasciwy, cel ../Ramki_do_wgrania | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: ../Ramki_do_wgrania) - pakiet w innym katalogu: --proba <katalog poza repo>
+N6b wlasciwy, cel poza repo (zewn/pakiet_poza) | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: <P>/zewn/pakiet_poza) - pakiet w innym katalogu: --proba <katalog poza repo>
+N7  wlasciwy --calosc ../serwer_w_repo | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (../serwer_w_repo) lezy w .. - odmowa przed jakakolwiek zmiana na dysku
+N7b wlasciwy --calosc <kopia w postaci C:/>/Ramki/serwer | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (<P>/kopia/Ramki/serwer) lezy w .. - odmowa przed jakakolwiek zmiana na dysku
+N7c wlasciwy --calosc <P> (zawiera repo kopii) | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (<P>) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N7d proba --calosc ../x (w repo) | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (../x) lezy w .. - odmowa przed jakakolwiek zmiana na dysku
+N8  proba --calosc poza katalogiem proby | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: w przebiegu probnym katalog --calosc musi lezec w katalogu proby (<P>/zewn/proba) - ZIP probny nie moze trafic miedzy prawdziwe wydania
+N8b proba --calosc w <proba>/Ramki_pakiet | kod 1 | odcisk po 9eb2c963ca3f2ec1 | odmowa bez zmian: TAK
+    BLAD: katalog --calosc nie moze lezec w <P>/zewn/proba/Ramki_pakiet
+N10 wlasciwy --nadpisz, istnieje Ramki_pakiet.stary_R59 | kod 1 | odcisk po 09bcead0e3af4198 | odmowa bez zmian: TAK
+    BLAD: Ramki_pakiet.stary_R59 juz istnieje (pozostalosc nieudanej zamiany?) - sprawdz go i usun recznie; nic nie zmieniam
+== wynik (A: kopia bez .git): 19 z 19 odmow bez zmian na dysku; odcisk kopii po: 9eb2c963ca3f2ec1
+
+== testy negatywne (B: kopia z git init, drugie repo w zewn), odcisk kopii przed: 2ef0bd8588909dfa
+N1  --proba . | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (.) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N2  --proba .. | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (..) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N3  --proba archiwum/proba_test (w repo kopii) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (archiwum/proba_test) lezy w archiwum - odmowa przed jakakolwiek zmiana na dysku
+N3b --proba <kopia w postaci C:/>/tmp_proba | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>/kopia/tmp_proba) lezy w .. - odmowa przed jakakolwiek zmiana na dysku
+N3c --proba <kopia\Ramki w postaci C:\> (D = Ramki_pakiet) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>\kopia\Ramki) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N3d PROBA=1 (zmienna) z katalogiem . | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (.) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N4  --proba <P> (zawiera repo kopii) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N4b --proba <P w postaci C:/ i dlugiej nazwy> (zawiera repo kopii) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N5  wlasciwy, cel archiwum/Ramki_pakiet_przed_R59_2026-11-16 | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: archiwum/Ramki_pakiet_przed_R59_2026-11-16) - pakiet w innym katalogu: --proba <katalog poza repo>
+N5b wlasciwy --nadpisz, cel archiwum/Ramki_pakiet_przed_R59_2026-11-16 | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: archiwum/Ramki_pakiet_przed_R59_2026-11-16) - pakiet w innym katalogu: --proba <katalog poza repo>
+N6  wlasciwy, cel ../Ramki_do_wgrania | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: ../Ramki_do_wgrania) - pakiet w innym katalogu: --proba <katalog poza repo>
+N6b wlasciwy, cel poza repo (zewn/pakiet_poza) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: przebieg wlasciwy buduje pakiet tylko w Ramki_pakiet (podano: <P>/zewn/pakiet_poza) - pakiet w innym katalogu: --proba <katalog poza repo>
+N7  wlasciwy --calosc ../serwer_w_repo | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (../serwer_w_repo) lezy w .. - odmowa przed jakakolwiek zmiana na dysku
+N7b wlasciwy --calosc <kopia w postaci C:/>/Ramki/serwer | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (<P>/kopia/Ramki/serwer) lezy w .. - odmowa przed jakakolwiek zmiana na dysku
+N7c wlasciwy --calosc <P> (zawiera repo kopii) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (<P>) zawiera Ramki_pakiet - odmowa przed jakakolwiek zmiana na dysku
+N7d proba --calosc ../x (w repo) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (../x) lezy w .. - odmowa przed jakakolwiek zmiana na dysku
+N8  proba --calosc poza katalogiem proby | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: w przebiegu probnym katalog --calosc musi lezec w katalogu proby (<P>/zewn/proba) - ZIP probny nie moze trafic miedzy prawdziwe wydania
+N8b proba --calosc w <proba>/Ramki_pakiet | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog --calosc nie moze lezec w <P>/zewn/proba/Ramki_pakiet
+N9  --proba w innym drzewie git (zewn/inne_repo/proba) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog proby (<P>/zewn/inne_repo/proba) lezy w drzewie roboczym git - przebieg probny tylko poza repo
+N9b wlasciwy --calosc w innym drzewie git (zewn/inne_repo/x) | kod 1 | odcisk po 2ef0bd8588909dfa | odmowa bez zmian: TAK
+    BLAD: katalog --calosc (<P>/zewn/inne_repo/x) lezy w drzewie roboczym git - ZIP calosci (ok. 20 MB) nie idzie do zadnego repo
+N10 wlasciwy --nadpisz, istnieje Ramki_pakiet.stary_R59 | kod 1 | odcisk po 9e9c05cfafd6a365 | odmowa bez zmian: TAK
+    BLAD: Ramki_pakiet.stary_R59 juz istnieje (pozostalosc nieudanej zamiany?) - sprawdz go i usun recznie; nic nie zmieniam
+== wynik (B: kopia z git init, drugie repo w zewn): 21 z 21 odmow bez zmian na dysku; odcisk kopii po: 2ef0bd8588909dfa
+
+STRAZNIK W PRAWDZIWYM WORKTREE (bez uruchamiania skryptu: z nowego skryptu tylko funkcje i blok REPO, katalog roboczy Ramki worktree)
+REPO (katalogi repo w worktree): .. <worktree> <kod>/qc
+ZAKAZANE: Ramki_pakiet ../Ramki_do_wgrania archiwum .. <worktree> <kod>/qc
+  proba: glowna kopia repo poza worktree (<kod>/qc/tmp_proba)                    odmowa      (oczekiwane odmowa)
+  proba: katalog zawierajacy glowna kopie (<kod>)                                odmowa      (oczekiwane odmowa)
+  proba: inny worktree w glownej kopii (<kod>/qc/.claude/worktrees/inny/x)       odmowa      (oczekiwane odmowa)
+  proba: worktree w postaci /c/ (<worktree>/tmp)                                 odmowa      (oczekiwane odmowa)
+  drzewo git: <kod>/qc/tmp_proba                                                 odmowa      (oczekiwane odmowa)
+  drzewo git: <worktree>/x/y (nie istnieje)                                      odmowa      (oczekiwane odmowa)
+  proba: katalog w scratchpadzie (<P>/zewn/proba)                                przepuszcza (oczekiwane przepuszcza)
+  drzewo git: <P>/zewn/proba (poza repo)                                         przepuszcza (oczekiwane przepuszcza)
+  wynik: 8 z 8 zgodnie z oczekiwaniem
+
+TESTY POZYTYWNE
+a) --proba <zewn/proba> --calosc <zewn/proba/serwer>: kod 0; odcisk kopii przed b65a8af4031b5258, po b65a8af4031b5258 (bez zmian)
+    == zbuduj_pakiet_R59.sh: przebieg PROBNY, data 2026-11-16
+    == 1. Zrodla
+    == 2. Dokumenty PDF
+    == 3. Pakiet
+    == 4. Sumy i kontrole pakietu
+      sha256sum -c: 81 z 81 OK
+    == 5. Pliki na Dysk
+      Ramki_pakiet_2026-11-16_R59.zip: CRC dobre, 81 z 81 plikow pakietu = SHA256SUMS_2026-11-16_R59.txt, plik sum i INSTRUKCJA_PAKIET_2026-11-16_R59.md bajtowo identyczne; razem 83 plikow, nic ponadto
+    == 6. Zapis
+      Ramki_pakiet_2026-11-16_R59.zip: CRC dobre, 81 z 81 plikow pakietu = SHA256SUMS_2026-11-16_R59.txt, plik sum i INSTRUKCJA_PAKIET_2026-11-16_R59.md bajtowo identyczne; razem 83 plikow, nic ponadto
+    == Wynik (PROBNY)
+    Pakiet gotowy: <P>/zewn/proba/Ramki_pakiet - 81 plikow + plik sum (pakiet R57: 63 + 1); sha256sum -c OK
+    real	1m41.586s
+    Ramki_pakiet_2026-11-16_R59_cz1_dokumenty_druk.zip: ROZNI SIE od Ramki_do_wgrania
+    wpisy 33 / 33, nazwy i kolejnosc te same: True, rozne tresci: 2 ['README.txt', 'SHA256SUMS_2026-11-16_R59.txt']
+    Ramki_pakiet_2026-11-16_R59_cz2_model.zip: bajtowo = Ramki_do_wgrania
+    Ramki_pakiet_2026-11-16_R59_cz3_zrodla.zip: bajtowo = Ramki_do_wgrania
+    ZIP calosci: 19852452 B, SHA-256 09db801e1482639f2c23a5d6e77032492ef0537db69d41a71d83b8e2122a06f6
+    ZIP calosci (proba) a wlasciwy z drugiego przebiegu b / oczekiwany d5c8508a: porownanie wpisow po kroku b
+    katalog proby: PRZEBIEG_PROBNY.txt
+    katalog proby: Ramki_do_wgrania
+    katalog proby: Ramki_pakiet
+    katalog proby: serwer
+    Uwaga: w przebiegu probnym README.txt (cz1) i INSTRUKCJA maja napis PRZEBIEG PROBNY (tak dziala skrypt od kroku 1),
+    wiec cz1 i ZIP calosci z proby nie moga byc bajtowo rowne wlasciwym; rownosc bajtowa wszystkich ZIP-ow pokazuje przebieg b.
+
+b) wlasciwy --nadpisz --calosc <zewn/serwer_wl>: kod 0; odcisk kopii przed b65a8af4031b5258, po b65a8af4031b5258 (bez zmian)
+    == zbuduj_pakiet_R59.sh: przebieg WLASCIWY, data 2026-11-16
+    == 1. Zrodla
+    == 2. Dokumenty PDF
+    == 3. Pakiet
+    == 4. Sumy i kontrole pakietu
+      sha256sum -c: 81 z 81 OK
+    == 5. Pliki na Dysk
+      Ramki_pakiet_2026-11-16_R59.zip: CRC dobre, 81 z 81 plikow pakietu = SHA256SUMS_2026-11-16_R59.txt, plik sum i INSTRUKCJA_PAKIET_2026-11-16_R59.md bajtowo identyczne; razem 83 plikow, nic ponadto
+    == 6. Zapis
+      poprzedni pakiet w Ramki_pakiet to juz R59 (przebudowa) - bez kopii do archiwum
+      ../Ramki_do_wgrania: zapisane 10 plikow R59; pozostale pliki bez zmian: 15 z 15 (sumy przed = po)
+      Ramki_pakiet_2026-11-16_R59.zip: CRC dobre, 81 z 81 plikow pakietu = SHA256SUMS_2026-11-16_R59.txt, plik sum i INSTRUKCJA_PAKIET_2026-11-16_R59.md bajtowo identyczne; razem 83 plikow, nic ponadto
+    == Wynik (WLASCIWY)
+    Pakiet gotowy: Ramki_pakiet - 81 plikow + plik sum (pakiet R57: 63 + 1); sha256sum -c OK
+    real	1m9.313s
+    sha256sum -c w Ramki_pakiet kopii: 81 OK, bledow 0
+    ZIP calosci: 19852286 B, SHA-256 d5c8508aa3262e2e90c1a4029aadaed25d6ad96a00d130b54352a56016dbc25a
+    ZIP calosci z proby (a) a wlasciwy (b):
+    wpisy 83 / 83, nazwy i kolejnosc te same: True, rozne tresci: 3 ['README.txt', 'SHA256SUMS_2026-11-16_R59.txt', 'INSTRUKCJA_PAKIET_2026-11-16_R59.md']
+    w Ramki: <P>/kopia/Ramki/Ramki_pakiet
+    diff -r Ramki_pakiet (oryginal worktree) z Ramki_pakiet kopii: pusty
+    diff -r Ramki_do_wgrania (oryginal) z kopia: pusty
+    3 ZIP-y czesciowe, plik sum, instrukcja, lista, NA_SERWER i 3 PDF zapisane na nowo w Ramki_do_wgrania kopii = oryginal (diff -r pusty).
+
+SYMULACJE BLEDU ZAMIANY (osobna kopia skryptu z podmienionym krokiem; potem usunieta razem z katalogami roboczymi)
+sym1) wlasciwy --nadpisz, skrypt z podmienionym krokiem zamiany: kod 1
+    UWAGA: w ../Ramki_do_wgrania jest NA_SERWER_2026-11-16_R59.md z wczesniejszego przebiegu z --calosc; ten przebieg (bez --calosc) go nie odswieza
+    == 6. Zapis
+    BLAD: SYMULACJA sym1: nie udalo sie przeniesc Ramki_pakiet.budowa_R59 do Ramki_pakiet - stan sprzed zamiany przywrocony (poprzedni pakiet, jesli byl, znow w Ramki_pakiet), nowy pakiet zostal w Ramki_pakiet.budowa_R59
+    w Ramki: <P>/kopia/Ramki/Ramki_pakiet
+    w Ramki: <P>/kopia/Ramki/Ramki_pakiet.budowa_R59
+    w Ramki: <P>/kopia/Ramki/Ramki_pakiet.budowa_R59_wgranie
+    id pliku Ramki_pakiet/README.txt: przed = po (ten sam, poprzedni pakiet na miejscu): TAK; w Ramki_pakiet.budowa_R59 inny plik (nowy pakiet): TAK
+    sha256sum -c nowego pakietu w Ramki_pakiet.budowa_R59: 81 OK
+    po usunieciu katalogow roboczych i skryptu symulacji: odcisk kopii przed b65a8af4031b5258, po b65a8af4031b5258 (bez zmian)
+    diff -r Ramki_pakiet (oryginal) z kopia po sym1: pusty
+    diff -r Ramki_do_wgrania (oryginal) z kopia po sym1: pusty
+
+sym2) wlasciwy --nadpisz, skrypt z podmienionym krokiem zamiany: kod 1
+    UWAGA: w ../Ramki_do_wgrania jest NA_SERWER_2026-11-16_R59.md z wczesniejszego przebiegu z --calosc; ten przebieg (bez --calosc) go nie odswieza
+    == 6. Zapis
+    BLAD: SYMULACJA sym2: sha256sum -c w Ramki_pakiet - stan sprzed zamiany przywrocony (poprzedni pakiet, jesli byl, znow w Ramki_pakiet), nowy pakiet zostal w Ramki_pakiet.budowa_R59
+    w Ramki: <P>/kopia/Ramki/Ramki_pakiet
+    w Ramki: <P>/kopia/Ramki/Ramki_pakiet.budowa_R59
+    w Ramki: <P>/kopia/Ramki/Ramki_pakiet.budowa_R59_wgranie
+    id pliku Ramki_pakiet/README.txt: przed = po (ten sam, poprzedni pakiet na miejscu): TAK; w Ramki_pakiet.budowa_R59 inny plik (nowy pakiet): TAK
+    sha256sum -c nowego pakietu w Ramki_pakiet.budowa_R59: 81 OK
+    po usunieciu katalogow roboczych i skryptu symulacji: odcisk kopii przed b65a8af4031b5258, po b65a8af4031b5258 (bez zmian)
+    diff -r Ramki_pakiet (oryginal) z kopia po sym2: pusty
+    diff -r Ramki_do_wgrania (oryginal) z kopia po sym2: pusty
+
+sym3) wlasciwy --nadpisz, niezmieniony skrypt, PDF w Ramki_pakiet kopii otwarty w innym procesie (FileShare.Read, jak przegladarka PDF):
+    mv: cannot move 'Ramki_pakiet' to 'Ramki_pakiet.stary_R59': Permission denied
+    BLAD: nie udalo sie przemianowac Ramki_pakiet na Ramki_pakiet.stary_R59 (plik otwarty w innym programie?) - nic nie zmienione, nowy pakiet zostal w Ramki_pakiet.budowa_R59
+    kod 1
+    id pliku Ramki_pakiet/README.txt przed = po (2533274791557643); Ramki_pakiet.stary_R59 nie powstal; nowy pakiet w Ramki_pakiet.budowa_R59: sha256sum -c 81 OK
+    diff -r Ramki_pakiet (oryginal) z kopia po sym3: pusty; diff -r Ramki_do_wgrania: pusty; po usunieciu katalogow roboczych odcisk kopii = b65a8af4031b5258
+    (stary skrypt w tej sytuacji: rm -rf skasowalby czesc pakietu i zostawil pakiet czesciowy - tego nie uruchamialem)
+
+NIE SPRAWDZONE: przebieg na PC; git starszy niz 2.5 (brak --git-common-dir -> zostaje katalog nad Ramki i --show-toplevel);
+nieudane rm -rf starego pakietu po udanej zamianie (galaz UWAGA) - tylko czytane, nie wywolane.
