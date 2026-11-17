@@ -2448,7 +2448,7 @@ def test_r3_drgajacy_czujnik_nie_blokuje_przyjecia_planu(kal):
 
         n0 = log.nr
         drgania(1000)  # 10 s
-        zdarzen = sum(1 for z in log.zdarzenia_od(n0)[0] if z["typ"] == "plytka")
+        zdarzen = sum(1 for z in log.zdarzenia_od(n0, 10 ** 6)[0] if z["typ"] == "plytka")
         od, proby, przyjety = 0, 0, False
         while not przyjety and proby < 20:
             proby += 1
@@ -2470,7 +2470,7 @@ def test_r3_drgajacy_czujnik_nie_blokuje_przyjecia_planu(kal):
     assert prog.konf.odstep_drgan_s == 3.0
     zdarzen0, _, przyjety0, _ = przebieg(odstep_drgan_s=0.0)
     print(f"POMIAR R3 drgania bez ograniczenia: {zdarzen0} zdarzen plytka w 10 s, plan przyjety: {przyjety0}")
-    assert zdarzen0 > 100 and not przyjety0
+    assert zdarzen0 > 150 and not przyjety0
 
 
 class SprzetPrzerywany(SprzetAtrapa):
@@ -2490,14 +2490,14 @@ class SprzetPrzerywany(SprzetAtrapa):
 
 def test_r3_d_n7_przerywana_awaria_najwyzej_para_zdarzen_na_3_s(kal):
     """D-N7 (N12): awaria przerywana (co drugi obieg wyjatek) przez ok. 60 s: jedno blad_sprzetu, zadnego
-    sprzet_dziala (w rundzie 2 ok. 60 par); gniazda ciemne, plany 409 blad_sprzetu; sprzet_dziala dopiero
-    po 3 s udanych obiegow, potem plan z aktualnym `zdarzenia_do` przyjety."""
+    sprzet_dziala (w rundzie 2 para zdarzen na kazdy udany obieg); gniazda ciemne, plany 409 blad_sprzetu;
+    sprzet_dziala dopiero po 3 s udanych obiegow, potem plan z aktualnym `zdarzenia_do` przyjety."""
     prog, sp, zegar, kroki = program_sztuczny("W", SprzetPrzerywany)
     log = prog.logika
     assert prog.plan(LAPTOP, plan_wieczor(kal, log))["wynik"] == "przyjety"
     sp.poloz_plytke(2)
     n0 = log.nr
-    for _ in range(120):  # jak N12: obieg nieudany + 0,5 s przerwy (petla programu), obieg udany
+    for _ in range(240):  # jak N12 (2 x dluzej): obieg nieudany + 0,5 s przerwy (petla programu), obieg udany
         zegar.t += 0.01
         if not prog.krok():
             zegar.t += 0.5
