@@ -213,9 +213,12 @@ def test_nowe_klucze_wpis_w_pliku_ma_pierwszenstwo(tmp_path):
     assert UST.wczytaj_ustawienia(p)["sesja"] == {"operatorzy": [], "przechowuj_skany_dni": 30, "granica_doby_godz": 6,
                                                    "zmiany_start_godz": [6, 14, 22], "ponowny_skan_okno_min": 60}
     # runda 2 (P5): doba robocza, zmiany i okno ponownego skanu sa ustawieniami
-    p = _stary_plik(tmp_path, "\n[sesja]\ngranica_doby_godz = 0\nzmiany_start_godz = [7, 19]\nponowny_skan_okno_min = 0\n")
+    p = _stary_plik(tmp_path, "\n[sesja]\ngranica_doby_godz = 7\nzmiany_start_godz = [7, 19]\nponowny_skan_okno_min = 30\n")
     sesja = UST.wczytaj_ustawienia(p)["sesja"]
-    assert (sesja["granica_doby_godz"], sesja["zmiany_start_godz"], sesja["ponowny_skan_okno_min"]) == (0, [7, 19], 0)
+    assert (sesja["granica_doby_godz"], sesja["zmiany_start_godz"], sesja["ponowny_skan_okno_min"]) == (7, [7, 19], 30)
+    # runda 3 (D8): nazwy osob sa przycinane z bialych znakow przy wczytaniu
+    p = _stary_plik(tmp_path, '\n[sesja]\noperatorzy = [" Technik A ", "Technik B\\t"]\n')
+    assert UST.wczytaj_ustawienia(p)["sesja"]["operatorzy"] == ["Technik A", "Technik B"]
 
 
 @pytest.mark.parametrize("dopisek,komunikat", [
@@ -233,6 +236,12 @@ def test_nowe_klucze_wpis_w_pliku_ma_pierwszenstwo(tmp_path):
     ("[sesja]\nzmiany_start_godz = [6, 14, 24]\n", r"\[sesja\] zmiany_start_godz: niepusta lista"),
     ("[sesja]\nzmiany_start_godz = 6\n", r"\[sesja\] zmiany_start_godz: oczekiwano list"),
     ("[sesja]\nponowny_skan_okno_min = -5\n", r"\[sesja\] ponowny_skan_okno_min: musi"),
+    # runda 3 (D8): okno > 0, pierwsza zmiana zaczyna dobe robocza, nazwy osob rozne takze po przycieciu
+    ("[sesja]\nponowny_skan_okno_min = 0\n", r"\[sesja\] ponowny_skan_okno_min: musi być > 0"),
+    ("[sesja]\nzmiany_start_godz = [7, 15, 23]\n", r"\[sesja\] zmiany_start_godz: pierwsza zmiana"),
+    ("[sesja]\ngranica_doby_godz = 5\n", r"\[sesja\] zmiany_start_godz: pierwsza zmiana"),
+    ('[sesja]\noperatorzy = ["Technik A", "Technik A "]\n', r"\[sesja\] operatorzy: lista niepustych"),
+    ('[sesja]\noperatorzy = ["Technik A", "   "]\n', r"\[sesja\] operatorzy: lista niepustych"),
     ("[sesja]\nponowny_skan_okno_min = \"60\"\n", r"\[sesja\] ponowny_skan_okno_min: oczekiwano int"),
     ('[sesja]\noperator = "Technik A"\n', r"\[sesja\] operator: nieznany klucz"),
     ('[sesje]\noperatorzy = []\n', r"\[sesje\]: nieznana sekcja"),

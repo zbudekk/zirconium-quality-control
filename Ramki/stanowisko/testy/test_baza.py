@@ -427,3 +427,51 @@ def test_d2_kolejne_nieudane_migracje_nie_mnoza_kopii_pliku(tmp_path, monkeypatc
     with pytest.raises(B.BladBazy):
         B.otworz(plik)
     assert len(list(tmp_path.glob("*kopia_v1*"))) == 2
+
+
+# --- runda 3 (recenzja przyrostowa PR #16): D5 - sciezki w tekstach -------------------------------------
+@pytest.mark.parametrize("tekst,oczekiwane", [
+    # sciezki bezwzgledne: dysk, zasob sieciowy w obu zapisach, zmienne srodowiskowe, katalog domowy
+    ("brak pliku C:\\Cyrkon\\9911 Zmyslony Nazwiskowski\\a.stl - pomijam", "brak pliku <sciezka>"),
+    ("zasob \\\\serwer\\Cyrkon\\9911 Zmyslony\\a.stl", "zasob <sciezka>"),
+    ("zasob //serwer/Cyrkon/9911 Zmyslony Nazwiskowski/a.stl niedostepny", "zasob <sciezka>"),
+    ("%USERPROFILE%\\OneDrive\\Cyrkon\\9911 Zmyslony Nazwiskowski", "<sciezka>"),
+    ("kopia do $HOME/Cyrkon/9911 x/a.stl oraz ~/Cyrkon/9911 y", "kopia do <sciezka>"),
+    # sciezka w cudzyslowie albo apostrofach konczy sie na zamykajacym znaku; apostrof w nazwie folderu nie wypuszcza reszty
+    ("[Errno 2] No such file or directory: 'C:\\\\Cyrkon\\\\9911 Zmyslony\\\\a.stl'", "[Errno 2] No such file or directory: '<sciezka>'"),
+    ('plik "C:\\Cyrkon\\9911 O\'Nazwiskowski\\a.stl" uszkodzony', 'plik "<sciezka>" uszkodzony'),
+    ("plik 'C:\\Cyrkon\\9911 O'Nazwiskowski\\a.stl' uszkodzony", "plik '<sciezka>'<sciezka>' uszkodzony"),
+    # sciezki wzgledne z separatorem: od poprzedniego ogranicznika (dwukropek, przecinek, nawias, cudzyslow) albo od poczatku wiersza
+    ("blad: Cyrkon\\9911 Zmyslony Nazwiskowski\\a.stl", "blad: <sciezka>"),
+    ("brak pliku 9911 Zmyslony Nazwiskowski\\a.stl - pomijam", "<sciezka>"),
+    ("otwieram '9911 Zmyslony Nazwiskowski\\a.stl' do odczytu", "otwieram '<sciezka>' do odczytu"),
+    ("zapis dane/wyniki/9911 Zmyslony/a.json gotowy", "<sciezka>"),
+    ("wczytano (Cyrkon/9911 Zmyslony Nazwiskowski/a.stl)", "wczytano (<sciezka>"),
+    ("lista, 9911 Zmyslony Nazwiskowski/a.stl", "lista, <sciezka>"),
+    ("wiersz 1 bez sciezki\nblad: x\\y\\z.stl\nwiersz 3", "wiersz 1 bez sciezki\nblad: <sciezka>\nwiersz 3"),
+])
+def test_d5r3_bez_sciezek_wycina_sciezki_bezwzgledne_i_wzgledne(tekst, oczekiwane):
+    wynik = B.bez_sciezek(tekst)
+    assert wynik == oczekiwane
+    assert "Zmyslony" not in wynik and "Nazwiskowski" not in wynik and "9911" not in wynik
+    assert B.bez_sciezek(wynik) == wynik  # powtorne czyszczenie nic nie zmienia
+
+
+@pytest.mark.parametrize("tekst", [
+    "pokrycie 0.91 / pewnosc 0.75; A/B; 19:02:11; skala: -0.4 %",
+    "korony 3/5, tempo 12 km/h, zakres 0.91/0.95, data 17/11, typ N/A",
+    "blad inspekcji: ValueError: za malo punktow (inspect.py:120 sprawdz)",
+    "dolki kodu poza skanem (3 z 3 niewidocznych) - podaj numer plytki (--numer)",
+    "plytka wieczorna, kwadratowa, nowy uklad gniazd (R59); rozstaw stozkow pasuje do ukladu: wieczorna_r54",
+    "filar 1: sprawdzono 69% linii brzegu, najdluzszy odcinek bez sprawdzenia 6.7 mm",
+    "<sciezka>",
+])
+def test_d5r3_bez_sciezek_nie_rusza_zwyklych_tekstow(tekst):
+    assert B.bez_sciezek(tekst) == tekst
+
+
+def test_d5r3_znana_granica_sama_nazwa_bez_separatora():
+    """Nazwa folderu albo pliku zlecenia podana bez separatora sciezki NIE jest rozpoznawana - to wymaganie dla wywolujacego
+    (A2 / A3: w tekstach przekazywanych do `session` i do dziennika nie podawac nazw zlecen)."""
+    tekst = "KeyError: '9911 Zmyslony Nazwiskowski'; plik 2026-11-16_nazwiskowski-11-crown_cad.stl"
+    assert B.bez_sciezek(tekst) == tekst
