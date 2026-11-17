@@ -868,53 +868,152 @@ def test_4_pasek_tryb_doba_zmiana(atrapa, ekrany):
 
 def test_4_pula_liczenie_i_skany_wstrzymane_czekaja(atrapa, ekrany):
     """Odswiezanie puli trwa: przycisk "Odswiez pule" nieaktywny, obok pasek. Skany wstrzymane sa pokazane jako czekajace
-    z powodem (na projekty w puli) - nie jako blad."""
+    z powodem (na projekty w puli) - nie jako blad. Kazdy stan puli z kontraktu ma napis ze stanu."""
     import dataclasses
 
     from stanowisko import kontroler_api as K
     from stanowisko import statusy as ST
     from stanowisko.ui import napisy as N
 
-    e = ekrany(atrapa)
+    k = Szpieg(atrapa)
+    e = ekrany(k)
     assert e.aktywny("przycisk_odswiez_pule") and not e.jest("pasek_puli")
-    for stan_puli in ("liczenie", "pusta", "nieustawiona", "brak_folderu", "gotowa"):
-        napis = ST.STANY_PULI[stan_puli].format(n=7)
-        podmien_zywe(atrapa, pula=dataclasses.replace(atrapa.stan().pula, stan=stan_puli, napis=napis, liczba_stl=None if stan_puli == "liczenie" else 7),
-                     kolejka=K.Kolejka(wstrzymane=0 if stan_puli == "gotowa" else 2, silnik_gotowy=True))
-        assert e.w("napis_pula").text() == napis
+    for stan_puli in K.STANY_PULI:
+        atrapa.symuluj_pule(stan_puli)
+        assert e.w("napis_pula").text() == atrapa.stan().pula.napis == ST.STANY_PULI[stan_puli].format(n=16)
         assert e.aktywny("przycisk_odswiez_pule") == (stan_puli != "liczenie") and e.jest("pasek_puli") == (stan_puli == "liczenie")
-        if stan_puli != "gotowa":
-            assert N.WSTRZYMANE_PULA.format(n=2) in e.w("napis_kolejka").text() and N.ANALIZA_CZEKA in e.w("napis_analiza").text()
-    podmien_zywe(atrapa, kolejka=K.Kolejka(wstrzymane=1, silnik_gotowy=False))  # pula gotowa, analiza jeszcze nie ruszyla
-    assert N.WSTRZYMANE_ANALIZA.format(n=1) in e.w("napis_kolejka").text()
+    atrapa.symuluj_pule("pusta")
+    atrapa.symuluj_kolejke(czeka=0, wstrzymane=2)
+    assert N.WSTRZYMANE_PULA.format(n=2) in e.w("napis_kolejka").text() and N.ANALIZA_CZEKA in e.w("napis_analiza").text()
+    assert e.jest("komunikat_pula_pusta") and e.aktywny("komunikat_odswiez_pule")  # powod i wyjscie: komunikat ze stanu
+    atrapa._pula_prawda = ("gotowa", 5)  # technik skopiowal projekty
+    e.klik("komunikat_odswiez_pule")
+    assert k.polecenia[-1] == ("odswiez_pule", ()) and not e.aktywny("przycisk_odswiez_pule") and e.jest("pasek_puli")  # liczenie trwa
+    e.czekaj(lambda: e.w("napis_pula").text() == ST.STANY_PULI["gotowa"].format(n=5), co="pula policzona")
+    assert not e.jest("komunikat_pula_pusta") and N.KOLEJKA.format(n=2) in e.w("napis_kolejka").text()  # skany poszly do analizy
+    atrapa.symuluj_kolejke(wstrzymane=1, silnik_gotowy=False)  # pula gotowa, analiza nie rusza
+    assert N.WSTRZYMANE_ANALIZA.format(n=1) in e.w("napis_kolejka").text() and e.jest("komunikat_silnik_nie_startuje")
     podmien_zywe(atrapa, pula=dataclasses.replace(atrapa.stan().pula, stan="stan_z_przyszlosci", napis="napis ze stanu"))
     assert e.w("napis_pula").text() == "napis ze stanu"  # stan puli nieznany tej wersji ekranu: napis ze stanu, bez bledu
 
 
 def test_4_skaner_niedostepny_i_nieudany_start_skanu(atrapa, ekrany):
-    """Folder skanera niedostepny: napis na pasku i komunikat ze stanu. Nieudany start skanu: tekst odmowy na ekranie - takze
-    wtedy, gdy kontroler nie dal go w komunikatach stanu."""
+    """Folder skanera niedostepny: napis na pasku i komunikat ze stanu. Nieudany start skanu (Spacja): komunikat, nie cisza."""
+    from PySide6.QtCore import Qt
+
+    from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
+
+    k = Szpieg(atrapa)
+    e = ekrany(k)
+    assert e.w("napis_skaner").text() == N.SKANER_GOTOWY
+    atrapa.symuluj_skaner(dostepny=False)
+    assert e.w("napis_skaner").text() == N.SKANER_BRAK_FOLDERU
+    assert e.jest("komunikat_folder_skanera_niedostepny") and ST.KOMUNIKATY["folder_skanera_niedostepny"].tekst in e.tekst()
+    atrapa.symuluj_skaner(dostepny=True, zajete=1)
+    assert e.w("napis_skaner").text() == N.SKANER_ZAJETY and e.jest("komunikat_plik_zajety")
+    assert not e.jest("komunikat_folder_skanera_niedostepny")
+    atrapa.symuluj_skaner(start_udany=False)
+    e.klawisz(Qt.Key.Key_Space)
+    assert k.polecenia == [("start_skanu", ())] and len(atrapa.starty_skanu) == 1
+    assert e.jest("komunikat_start_skanu_nieudany") and ST.KOMUNIKATY["start_skanu_nieudany"].tekst in e.tekst()
+    assert not e.jest("komunikat_odpowiedz") and N.SKANER_CZEKA not in e.tekst()  # jeden komunikat (ze stanu), ekran nie czeka na skan
+    atrapa.symuluj_skaner(start_udany=True)
+    e.klawisz(Qt.Key.Key_Space)
+    assert not e.jest("komunikat_start_skanu_nieudany") and e.w("napis_skaner").text() == N.SKANER_CZEKA
+
+
+def test_4_odmowa_spoza_stanu_tekst_odpowiedzi_na_ekranie(atrapa, ekrany):
+    """Odmowa, ktorej kontroler nie dal w komunikatach stanu: ekran pokazuje tekst ``Odpowiedz`` w panelu i pozwala go zamknac."""
     from PySide6.QtCore import Qt
 
     from stanowisko import kontroler_api as K
     from stanowisko import statusy as ST
-    from stanowisko.ui import napisy as N
 
     odmowa = K.Odpowiedz(False, ST.tekst_komunikatu("start_skanu_nieudany")[2], "start_skanu_nieudany")
     k = Podstawiony(atrapa, {"start_skanu": odmowa})
     e = ekrany(k)
-    podmien_zywe(atrapa, skaner=K.Skaner(dostepny=False, dziala=True))
-    assert e.w("napis_skaner").text() == N.SKANER_BRAK_FOLDERU
-    kom = atrapa.symuluj_komunikat("folder_skanera_niedostepny")
-    assert e.jest("komunikat_folder_skanera_niedostepny") and kom.tekst in e.tekst()
     e.klawisz(Qt.Key.Key_Space)
     assert k.polecenia == [("start_skanu", ())]
-    assert e.jest("komunikat_odpowiedz") and odmowa.tekst in e.tekst_elementu("komunikat_odpowiedz")  # komunikat, nie cisza
+    assert e.jest("komunikat_odpowiedz") and odmowa.tekst in e.tekst_elementu("komunikat_odpowiedz")
     e.klik("zamknij_odpowiedz")
     assert not e.jest("komunikat_odpowiedz")
-    komunikat = atrapa.symuluj_komunikat("start_skanu_nieudany")  # ten sam tekst w komunikatach stanu: jeden panel, nie dwa
-    e.klawisz(Qt.Key.Key_Space)
-    assert e.jest("komunikat_start_skanu_nieudany") and not e.jest("komunikat_odpowiedz") and komunikat.tekst == odmowa.tekst
+
+
+def test_4_blad_zapisu_komunikat_trwaly_pozycje_nie_zapisano_i_ponow_zapis(atrapa, ekrany):
+    """Wynikow nie da sie zapisac: komunikat TRWALY na ekranie (przed innymi), pozycje "nie zapisano" przy plytkach, "Ponow zapis".
+    Przyczyna ustepuje - komunikat i pozycje znikaja, plytki pojawiaja sie na liscie."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    atrapa.symuluj_skan("zwykla")
+    e = ekrany(k)
+    atrapa.symuluj_blad_zapisu(2)
+    stan = atrapa.stan()
+    assert len(stan.niezapisane) == 2 and any(x.id == K.ID_BLAD_ZAPISU and x.trwaly for x in stan.komunikaty)
+    assert e.jest("komunikat_blad_zapisu") and ST.KOMUNIKATY["blad_zapisu"].tytul in e.tekst_elementu("komunikat_blad_zapisu")
+    assert e.jest("niezapisany_0") and e.jest("niezapisany_1") and ST.NAPISY_NIEZAPISANE["blad_zapisu"] in e.tekst_elementu("niezapisany_0")
+    assert N.WSTRZYMANE_ZAPIS.format(n=2) in e.w("napis_kolejka").text()
+    for i in range(6):  # inne komunikaty nie spychaja bledu zapisu z ekranu
+        atrapa.symuluj_komunikat("plik_zmieniony")
+        atrapa.symuluj_komunikat("skan_juz_jest")
+    assert e.jest("komunikat_blad_zapisu")
+    assert e.w("przycisk_ponow_zapis").text() == ST.PRZYCISKI["ponow_zapis"] == e.w("komunikat_ponow_zapis").text()
+    k.polecenia.clear()
+    e.klik("przycisk_ponow_zapis")  # przyczyna trwa: odmowa, pozycje zostaja
+    assert k.polecenia == [("ponow_zapis", ())] and len(atrapa.stan().niezapisane) == 2 and e.jest("niezapisany_1")
+    assert e.jest("komunikat_blad_zapisu") and not e.jest("komunikat_odpowiedz")  # tekst odmowy = komunikat ze stanu, jeden panel
+    atrapa.symuluj_blad_zapisu(0)  # dysk wrocil
+    e.klik("komunikat_ponow_zapis")
+    assert atrapa.stan().niezapisane == () and not e.jest("niezapisany_0") and not e.jest("komunikat_blad_zapisu")
+    assert len(e.plytki()) == 3 and not e.jest("przycisk_ponow_zapis")
+    atrapa.symuluj_blad_zapisu(1, "baza_zajeta")
+    assert ST.NAPISY_NIEZAPISANE["baza_zajeta"] in e.tekst_elementu("niezapisany_0") and e.jest("komunikat_baza_zajeta")
+    bez_sciezek(e)
+
+
+def test_4_praca_bez_inspekcji_albo_o_nieznanym_statusie_nie_jest_zielona(atrapa, ekrany):
+    """P4 rdzenia: zielone na ekranie jest tylko to, co stan nazywa zielonym; praca bez inspekcji, z inspekcja pominieta albo
+    o statusie nieznanym tej wersji programu jest zolta z napisem ze stanu."""
+    from stanowisko import statusy as ST
+
+    atrapa.wybierz_operatora("Technik A")
+    rodzaje = {2: "zielony_bez_inspekcji", 3: "zielony_pominieto", 4: "zielony_nowa_inspekcja", 5: "zielony_nowe_dopasowanie", 6: "zielony"}
+    skan_id = atrapa.symuluj_skan("zwykla", gniazda=rodzaje)
+    e = ekrany(atrapa)
+    plytka = atrapa.stan().plytka(skan_id)
+    assert mapa_rowna_stanowi(e, plytka) == 19
+    zielone = {ST.STATUSY[x].hex for x in ST.STATUSY_ZIELONE}
+    piksele = e.kolory_pikseli()
+    assert piksele[6] in zielone and all(piksele[nr] not in zielone for nr in (2, 3, 4, 5))
+    assert [plytka.gniazdo(nr).status for nr in (2, 3, 4, 5)] == ["nie_sprawdzono", "nie_sprawdzono", "nieznany", "nieznany"]
+    assert e.w(f"plytka_{skan_id}").liczniki() == {"zielony": 1, "zolty": 4}
+    e.klik_gniazdo(4)
+    assert ST.STATUSY["nieznany"].opis in e.tekst_elementu("widok_pracy") and e.aktywny("przycisk_ukruszona") and e.aktywny("przycisk_ok")
+
+
+def test_4_wylogowanie_osoby(atrapa, ekrany):
+    """"Odchodze od stanowiska" (``wybierz_operatora(None)``): nikt nie jest wybrany, decyzje nieaktywne, ekran pyta o osobe."""
+    from stanowisko import statusy as ST
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    atrapa.symuluj_skan("zwykla")
+    e = ekrany(k)
+    e.klik_gniazdo(2)
+    assert e.aktywny("przycisk_ukruszona")
+    e.klik("przycisk_zmien_osobe")
+    assert e.w("osoba_wyloguj").text() == ST.PRZYCISK_WYLOGUJ
+    k.polecenia.clear()
+    e.klik("osoba_wyloguj")
+    assert k.polecenia == [("wybierz_operatora", (None,))] and atrapa.stan().operator is None
+    assert e.jest("panel_osoba") and not e.jest("osoba_wyloguj") and not e.aktywny("przycisk_ukruszona")
+    assert e.w("praca_wyjasnienie").text() == ST.tekst_komunikatu("brak_operatora")[2]
+    e.klik("osoba_1")
+    assert atrapa.stan().operator == "Technik B" and e.aktywny("przycisk_ukruszona")
 
 
 def test_4_zle_argumenty_tekst_odpowiedzi_na_ekranie(atrapa, ekrany):
@@ -964,24 +1063,28 @@ def test_4_komunikat_i_status_nieznane_tej_wersji_ekranu(atrapa, ekrany):
     assert "do sprawdzenia" in widok and "Opis ze stanu." in widok
 
 
-def test_lista_zapis_do_pliku_gdy_kontrakt_ma_polecenie(atrapa, ekrany):
-    """Polecenie ``zapisz_liste`` (kontrakt po rundzie 2 rdzenia): przycisk przy liscie jest wtedy i tylko wtedy, gdy kontrakt
-    ma to polecenie; klikniecie wysyla je raz, a ekran nie pokazuje nazwy pliku."""
-    from stanowisko import kontroler_api as K
+def test_lista_zapis_do_pliku(atrapa, ekrany):
+    """Polecenie ``zapisz_liste``: przycisk przy liscie wysyla je raz; ekran pokazuje godzine zapisu ze stanu, nigdy nazwe pliku.
+    Lista zapisuje sie tez sama po kazdej zmianie (``stan.lista_zapisana``)."""
+    from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
 
     k = Szpieg(atrapa)
     k.wybierz_operatora("Technik A")
     atrapa.symuluj_skan("zwykla")
     e = ekrany(k)
-    if "zapisz_liste" not in K.POLECENIA:
-        assert not e.jest("przycisk_zapisz_liste")
-        pytest.skip("kontrakt nie ma jeszcze polecenia zapisz_liste (czeka na rdzen)")
+    assert e.w("przycisk_zapisz_liste").text() == ST.PRZYCISKI["zapisz_liste"]
     e.klik_gniazdo(2)
     e.klik("przycisk_ukruszona")
+    assert atrapa.stan().lista_zapisana and e.w("lista_zapisano").text() == N.LISTA_PLIK.format(godzina="19:00")  # zapis samoczynny
     k.polecenia.clear()
     e.klik("przycisk_zapisz_liste")
-    assert k.polecenia == [("zapisz_liste", ())]
-    bez_sciezek(e)
+    assert k.polecenia == [("zapisz_liste", ())] and not e.jest("komunikat_odpowiedz")
+    assert e.jest("lista_zapisano") and bez_sciezek(e) > 20
+    kom = atrapa.symuluj_komunikat("lista_nie_zapisana")  # blad dysku przy zapisie listy: komunikat z przyciskiem ponowienia
+    assert e.jest("komunikat_lista_nie_zapisana") and kom.tekst in e.tekst()
+    e.klik("komunikat_zapisz_liste")
+    assert k.polecenia[-1] == ("zapisz_liste", ())
 
 
 # ----------------------------------------------------------------------------
@@ -1146,13 +1249,14 @@ def test_7_liczba_projektow_w_puli_i_odswiez_pule(atrapa, ekrany):
     e = ekrany(k)
     assert e.w("napis_pula").text() == ST.STANY_PULI["gotowa"].format(n=16) == atrapa.stan().pula.napis
     assert e.w("przycisk_odswiez_pule").text() == ST.PRZYCISKI["odswiez_pule"]
-    atrapa._liczba_stl = 21  # w folderze projektow przybylo plikow
+    atrapa._pula_prawda = ("gotowa", 21)  # w folderze projektow przybylo plikow (wynik nastepnego liczenia)
     e.klik("przycisk_odswiez_pule")
     assert k.polecenia == [("odswiez_pule", ())]
-    assert e.w("napis_pula").text() == ST.STANY_PULI["gotowa"].format(n=21)
-    atrapa._liczba_stl = 0
+    e.czekaj(lambda: e.w("napis_pula").text() == ST.STANY_PULI["gotowa"].format(n=21), co="pula po odswiezeniu")
+    assert e.aktywny("przycisk_odswiez_pule") and not e.jest("pasek_puli")
+    atrapa._pula_prawda = ("pusta", 0)
     e.klik("przycisk_odswiez_pule")
-    assert e.w("napis_pula").text() == ST.STANY_PULI["pusta"]
+    e.czekaj(lambda: e.w("napis_pula").text() == ST.STANY_PULI["pusta"], co="pusta pula po odswiezeniu")
 
 
 def test_7_pula_prawdziwy_kontroler(stanowiska, ekrany):
@@ -1174,7 +1278,7 @@ WZORY_SCIEZEK = (
     re.compile(r"\\\\|\\[A-Za-z0-9_]"),  # odwrotny ukosnik (sciezka Windows, zasob sieciowy)
     re.compile(r"\.(stl|npz|json|sqlite|toml|csv|db|log|txt|py)\b", re.I),  # nazwa pliku
     re.compile(r"[A-Za-z0-9_]/[A-Za-z_]"),  # sciezka z ukosnikiem (daty z kropkami i liczby sa dozwolone)
-    re.compile(r"atrapa|podglad|wynik|qc_|AppData|Temp|pytest", re.I),  # nazwy plikow i katalogow danych sztucznych
+    re.compile(r"atrapa|_podglad|_wynik|qc_|AppData|pytest|\bTemp\b", re.I),  # nazwy plikow i katalogow danych sztucznych
 )
 
 
@@ -1351,6 +1455,17 @@ def test_pakiet_ui_bez_qt_na_poziomie_modulu_i_okno_z_aplikacji(atrapa):
     finally:
         okno.close()
         lacznik.zatrzymaj()
+
+
+def test_program_startuje_z_oknem_wieczornym_i_zamyka_sie_czysto():
+    """Plik startowy z danymi sztucznymi (``--atrapa``): okno wieczorne powstaje, program konczy sie kodem 0 i bez sladu wyjatku."""
+    import subprocess
+    import sys
+
+    wynik = subprocess.run([sys.executable, "-m", "stanowisko.aplikacja", "--atrapa", "--zamknij-po", "1.5"], capture_output=True, text=True,
+                           cwd=str(TK.STANOWISKO), timeout=180, env={**os.environ, "QT_QPA_PLATFORM": "offscreen"})
+    assert wynik.returncode == 0, wynik.stdout + wynik.stderr
+    assert "Traceback" not in wynik.stderr and "Error" not in wynik.stderr, wynik.stderr
 
 
 def test_stan_o_nizszej_wersji_jest_pomijany(atrapa, ekrany):

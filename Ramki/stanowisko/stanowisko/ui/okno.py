@@ -16,8 +16,6 @@ albo zmiany osoby oraz tekst ostatniej odmowy, ktorej nie ma w komunikatach stan
 """
 from __future__ import annotations
 
-import logging
-
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
@@ -30,9 +28,7 @@ from .czesci import (LOKALNE_NUMER_BEZ_ZMIAN, LOKALNE_ZAMKNIJ_ODPOWIEDZ, Legenda
 from .mapa import MapaPlytki, geometria_ukladu
 from .obraz import WczytywaczObrazow
 
-LOG = logging.getLogger(__name__)
 SPRAWY_OSOBY = ("brak_operatora", "nowa_zmiana", "pusta_lista_operatorow", "osoba_spoza_listy")  # komunikaty pokazywane w panelu wyboru osoby
-WYLOGOWANIE = False  # ``wybierz_operatora(None)`` = wylogowanie osoby: wlaczane, gdy kontrakt to obsluguje (runda 2 rdzenia)
 PANELI = 3  # tyle pytan i komunikatow naraz (pierwsze: pokazana plytka, potem ogolne od najnowszego); reszta czeka na zamkniecie
 
 
@@ -102,6 +98,7 @@ class OknoWieczor(QWidget):
         self.lista_plytek = ListaPlytek()
         self.lista_plytek.wybrano.connect(lambda skan_id: QTimer.singleShot(0, lambda: self._pokaz_plytke(skan_id)))
         self.lista_plytek.przelacz_wczesniejsze.connect(lambda: QTimer.singleShot(0, self._przelacz_wczesniejsze))
+        self.lista_plytek.ponow_zapis.connect(lambda: QTimer.singleShot(0, lambda: self._polecenie("ponow_zapis")))
         srodek.addWidget(self.lista_plytek)
 
         kolumna = QFrame()
@@ -146,7 +143,7 @@ class OknoWieczor(QWidget):
         self.widok.inna_praca.connect(self._inna_praca)
         self.widok.setMinimumHeight(500)
         u.addWidget(self.widok, 9)
-        self.lista = ListaDofrezowania(z_zapisem="zapisz_liste" in K.POLECENIA)
+        self.lista = ListaDofrezowania()
         self.lista.filtr.connect(self._ustaw_filtr)
         self.lista.wybrano.connect(self._klik_pozycja)
         self.lista.zapisz.connect(self._zapisz_liste)
@@ -294,15 +291,11 @@ class OknoWieczor(QWidget):
         pokazuje go po odswiezeniu; gdy stan jej nie zawiera (np. ``zle_argumenty``), okno pokazuje tekst odpowiedzi samo."""
         if self._zamkniete or self._stan is None or self._stan.zamkniety:
             return None
-        try:
-            odpowiedz = self.k.wykonaj(nazwa, *argumenty)
-        except Exception:  # noqa: BLE001 - blad polecenia nie moze zamknac okna technikowi
-            LOG.exception("okno: polecenie %s zakonczone bledem", nazwa)
-            odpowiedz = None
+        odpowiedz = self.k.wykonaj(nazwa, *argumenty)  # kontrakt: polecenia nie rzucaja wyjatkow (zle dane = odmowa ``zle_argumenty``)
         stan = self.k.stan()
-        tekst = getattr(odpowiedz, "tekst", "") if odpowiedz is not None and not getattr(odpowiedz, "ok", True) else ""
+        tekst = odpowiedz.tekst if not odpowiedz.ok else ""
         self._odmowa = tekst if tekst and all(k.tekst != tekst for k in stan.komunikaty) else ""
-        if odpowiedz is not None and getattr(odpowiedz, "ok", False) and nazwa == "podaj_numer_plytki":
+        if odpowiedz.ok and nazwa == "podaj_numer_plytki":
             self._podaj_numer = False
         if stan.wersja == self._stan.wersja:
             self._odswiez()  # polecenie bez nowego stanu (odmowa bez komunikatu): pokaz tekst odpowiedzi
@@ -329,9 +322,7 @@ class OknoWieczor(QWidget):
         self._polecenie("wybierz_operatora", None)
 
     def _zapisz_liste(self) -> None:
-        odpowiedz = self._polecenie("zapisz_liste")
-        if odpowiedz is not None and odpowiedz.ok:
-            self.lista.pokaz_zapisano(N.LISTA_ZAPISANA)  # bez nazwy pliku: na ekranie nie ma sciezek
+        self._polecenie("zapisz_liste")  # czas zapisu wraca w stanie (``lista_zapisana``); odmowa = komunikat
 
     def _przelacz_numer(self) -> None:
         self._podaj_numer = not self._podaj_numer
@@ -396,7 +387,7 @@ class OknoWieczor(QWidget):
         widoczne = [p for p in stan.plytki if self._pokaz_wczesniejsze or p.zmiana in (None, stan.zmiana) or p.skan_id == self._plytka_id]
         wczesniejszych = sum(1 for p in stan.plytki if p.zmiana not in (None, stan.zmiana))
         self.lista_plytek.ustaw(widoczne, self._plytka_id, self._nieobejrzane, {q.skan_id for q in stan.pytania}, wczesniejszych,
-                                self._pokaz_wczesniejsze)
+                                self._pokaz_wczesniejsze, stan.niezapisane)
         gniazdo, praca = self._wybor()
         if gniazdo is None and praca is None:
             self._gniazdo, self._poza = None, None
@@ -411,7 +402,8 @@ class OknoWieczor(QWidget):
         else:
             self.widok.ustaw(stan, plytka, gniazdo, praca, self._nr_pracy, self._nastepna(plytka) is not None)
             self._odswiez_obraz(praca)
-        self.lista.ustaw(stan.do_dofrezowania_biezaca if self._lista_wszystkie else stan.do_dofrezowania, self._lista_wszystkie)
+        self.lista.ustaw(stan.do_dofrezowania_biezaca if self._lista_wszystkie else stan.do_dofrezowania, self._lista_wszystkie,
+                         stan.lista_zapisana)
 
     def _odswiez_naglowek(self, stan, plytka) -> None:
         if plytka is None:
@@ -475,7 +467,7 @@ class OknoWieczor(QWidget):
             return
         wyczysc(self._uwagi)
         if pokaz_osobe:
-            panel = PanelOsoby(stan.operatorzy, stan.operator, teksty, zmiana_osoby=not stan.wymaga_operatora, wylogowanie=WYLOGOWANIE)
+            panel = PanelOsoby(stan.operatorzy, stan.operator, teksty, zmiana_osoby=not stan.wymaga_operatora)
             panel.wybrano.connect(self._wybrano_osobe)
             panel.bez_zmian.connect(self._przelacz_zmiane_osoby)
             panel.wyloguj.connect(self._wyloguj)

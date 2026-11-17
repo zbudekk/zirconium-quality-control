@@ -1,8 +1,8 @@
 """obraz - obraz odchylek jednej pracy (widok z gory) liczony POZA watkiem okna.
 
 Kontroler podaje plik podgladu skanu (``SzczegolyPracy.plik_podgladu``: tablice ``g<nr>_P`` - punkty N x 3 w ukladzie
-plytki i ``g<nr>_d`` - odchylka kazdego punktu od projektu w mm). Plik czyta ``kontroler_api.wczytaj_podglad``, gdy kontrakt
-ja ma; inaczej ``wczytaj_plik_podgladu`` ponizej (sam numpy). Wczytanie pliku i narysowanie obrazu trwa dziesiatki milisekund,
+plytki i ``g<nr>_d`` - odchylka kazdego punktu od projektu w mm). Plik czyta ``kontroler_api.wczytaj_podglad`` (czysta
+funkcja kontraktu, bez kontrolera - mozna ja wolac poza watkiem okna). Wczytanie pliku i narysowanie obrazu trwa dziesiatki milisekund,
 wiec robi to jeden watek pomocniczy (``QThreadPool``); do okna wraca gotowy ``QImage`` sygnalem ``gotowy(klucz, obraz)``.
 Watek pomocniczy nie dotyka kontrolera ani widzetow. Sciezka pliku nigdy nie trafia na ekran.
 
@@ -22,14 +22,6 @@ PROG_ODCHYLKI_MM = 0.08  # od tej odchylki punkt jest kolorowany (prog wykrywani
 SZEROKOSC_PX, WYSOKOSC_PX = 520, 230
 PAMIEC_PLIKOW = 2  # tyle ostatnich plikow podgladu trzyma watek pomocniczy (kolejne prace tej samej plytki sa od reki)
 PAMIEC_OBRAZOW = 60
-
-
-def wczytaj_plik_podgladu(plik) -> dict:
-    """Plik podgladu skanu -> {numer gniazda: (punkty N x 3, odchylki w mm)}. Uzywane, dopoki kontrakt nie daje wlasnej funkcji."""
-    import numpy as np  # noqa: PLC0415 - tylko w watku pomocniczym
-
-    with np.load(plik) as z:
-        return {int(k[1:-2]): (z[k], z[k[:-2] + "_d"]) for k in z.files if k.startswith("g") and k.endswith("_P") and k[:-2] + "_d" in z.files}
 
 
 def rysuj_odchylki(P, d, ubytki=(), szer: int = SZEROKOSC_PX, wys: int = WYSOKOSC_PX, prog: float = PROG_ODCHYLKI_MM) -> QImage:
@@ -134,7 +126,7 @@ class WczytywaczObrazow(QObject):
         if klucz not in self._pliki:
             from .. import kontroler_api as K  # noqa: PLC0415
 
-            self._pliki[klucz] = getattr(K, "wczytaj_podglad", wczytaj_plik_podgladu)(plik)  # czysty odczyt pliku, bez kontrolera
+            self._pliki[klucz] = K.wczytaj_podglad(plik)  # czysty odczyt pliku (kontrakt), bez kontrolera
             while len(self._pliki) > PAMIEC_PLIKOW:
                 self._pliki.popitem(last=False)
         return self._pliki[klucz]

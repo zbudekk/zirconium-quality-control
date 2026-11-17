@@ -29,12 +29,12 @@ ANALIZA_CZEKA = "skany czekają"
 KOLEJKA = "w kolejce: {n}"
 WSTRZYMANE_PULA = "czekają na projekty w puli: {n}"
 WSTRZYMANE_ANALIZA = "czekają na uruchomienie analizy: {n}"
+WSTRZYMANE_ZAPIS = "czekają na zapis: {n}"
 
 # --- wybor osoby -----------------------------------------------------------------------------------
 KTO_PRACUJE = "Kto teraz pracuje?"
 ZMIANA_OSOBY = "Zmiana osoby"
 ZOSTAW_OSOBE = "Bez zmian"
-WYLOGUJ = "Wyloguj"
 
 # --- lista plytek ----------------------------------------------------------------------------------
 PLYTKI_ZMIANY = "Płytki tej zmiany"
@@ -44,6 +44,7 @@ PLYTKA_BEZ_NUMERU = "Płytka ?"
 PLYTKA_NOWA = "NOWA"
 PLYTKA_PYTANIE = "czeka na odpowiedź"
 PLYTKA_BEZ_PRAC = "brak prac"
+PRAC = "prac: {n}"
 WCZESNIEJSZE_POKAZ = "Pokaż wcześniejsze zmiany ({n})"
 WCZESNIEJSZE_UKRYJ = "Ukryj wcześniejsze zmiany"
 ZMIANA_NR = "zmiana {zmiana}"
@@ -92,8 +93,7 @@ LISTA_WSZYSTKIE = "Wszystkie otwarte"
 LISTA_PUSTA = "Lista jest pusta."
 KOLUMNY_LISTY = ("Kuweta", "Ząb", "Krążek", "Płytka", "Gniazdo", "Doba", "Zmiana")
 POWTORZONY = "oznaczony {n} razy"
-ZAPISZ_LISTE = "Zapisz listę do pliku"
-LISTA_ZAPISANA = "Lista zapisana."
+LISTA_PLIK = "plik listy zapisany o {godzina}"
 
 # --- rady do pytan (uzupelnienie tekstu pytania ze ``statusy``; patrz POTRZEBUJE w raporcie) --------
 RADA_PLYTKA_PORANNA = "To płytka poranna — przełóż prace na płytkę wieczorną i zeskanuj ponownie."

@@ -183,7 +183,7 @@ class PasekStanu(QFrame):
     def ustaw(self, stan) -> None:
         sk, kol, an = stan.skaner, stan.kolejka, stan.analiza
         sygnatura = (stan.tryb, stan.doba, stan.zmiana, stan.operator, stan.operatorzy, stan.wymaga_operatora, stan.pula.napis, stan.pula.stan,
-                     sk.dostepny, sk.dziala, sk.zajete, sk.czeka_na_skan, kol.czeka, kol.wstrzymane, kol.w_toku, kol.silnik_gotowy,
+                     sk.dostepny, sk.dziala, sk.zajete, sk.czeka_na_skan, kol, kol.w_toku, kol.silnik_gotowy,
                      None if an is None else round(an.udzial * 100), stan.zamkniety)
         if sygnatura == self._sygnatura:
             return
@@ -218,9 +218,12 @@ class PasekStanu(QFrame):
         else:
             self.analiza.setText(N.ANALIZA_CZEKA if kol.razem else N.ANALIZA_BRAK)
         czesci = [N.KOLEJKA.format(n=kol.czeka)] if kol.czeka else []
-        if kol.wstrzymane:  # skany wstrzymane CZEKAJA (na pule projektow albo na analize) - to nie blad
+        niezapisane = getattr(kol, "niezapisane", 0)  # czesc ``wstrzymane``: policzone, czekaja na zapis w bazie
+        if kol.wstrzymane - niezapisane > 0:  # skany wstrzymane CZEKAJA (na pule projektow albo na analize) - to nie blad
             czeka_na_pule = stan.pula.stan != "gotowa"
-            czesci.append((N.WSTRZYMANE_PULA if czeka_na_pule else N.WSTRZYMANE_ANALIZA).format(n=kol.wstrzymane))
+            czesci.append((N.WSTRZYMANE_PULA if czeka_na_pule else N.WSTRZYMANE_ANALIZA).format(n=kol.wstrzymane - niezapisane))
+        if niezapisane:
+            czesci.append(N.WSTRZYMANE_ZAPIS.format(n=niezapisane))
         self.kolejka.setText(", ".join(czesci))
         self.kolejka.setVisible(bool(czesci))
 
@@ -242,7 +245,7 @@ class PanelOsoby(QFrame):
     bez_zmian = Signal()
     wyloguj = Signal()
 
-    def __init__(self, operatorzy: tuple, obecna: str | None, teksty: list, zmiana_osoby: bool, wylogowanie: bool = False):
+    def __init__(self, operatorzy: tuple, obecna: str | None, teksty: list, zmiana_osoby: bool, wylogowanie: bool = True):
         super().__init__()
         self.setObjectName("panel_osoba")
         tlo, pasek, _ = styl.POZIOMY["info" if zmiana_osoby else "ostrzezenie"]
@@ -263,7 +266,7 @@ class PanelOsoby(QFrame):
             uklad.addWidget(b)
         if zmiana_osoby:
             if wylogowanie:
-                uklad.addWidget(przycisk(N.WYLOGUJ, "osoba_wyloguj", "lacze", self.wyloguj.emit))
+                uklad.addWidget(przycisk(ST.PRZYCISK_WYLOGUJ, "osoba_wyloguj", "lacze", self.wyloguj.emit))
             uklad.addWidget(przycisk(N.ZOSTAW_OSOBE, "osoba_bez_zmian", "lacze", self.bez_zmian.emit))
 
 
@@ -363,6 +366,10 @@ def panel_komunikatu(komunikaty: tuple, plytka: str = "") -> PanelUwagi:
     przyciski = []
     if komunikat.rodzaj in ("pula_pusta", "pula_brak_folderu"):
         przyciski.append(("komunikat_odswiez_pule", ST.PRZYCISKI["odswiez_pule"], "odswiez_pule", (), True, None))
+    if komunikat.rodzaj in ST.NAPISY_NIEZAPISANE:  # blad zapisu wynikow / baza zajeta: zapis mozna ponowic od razu
+        przyciski.append(("komunikat_ponow_zapis", ST.PRZYCISKI["ponow_zapis"], "ponow_zapis", (), True, None))
+    if komunikat.rodzaj == "lista_nie_zapisana":
+        przyciski.append(("komunikat_zapisz_liste", ST.PRZYCISKI["zapisz_liste"], "zapisz_liste", (), True, None))
     przyciski.append(("zamknij_komunikat", ST.PRZYCISKI["zamknij_komunikat"], "zamknij_komunikat", tuple(k.id for k in komunikaty), True, "lacze"))
     tytul = tytul_plytki(plytka, komunikat.tytul)
     if len(komunikaty) > 1:
@@ -423,11 +430,35 @@ class KafelekPlytki(QFrame):
             self.wybrano.emit(self._skan_id)
 
 
+class KafelekNiezapisany(QFrame):
+    """Skan policzony, ale jeszcze niezapisany (``StanAplikacji.niezapisane``): numer plytki, napis ze stanu, liczba prac.
+    Nie da sie go otworzyc - prace pojawia sie po udanym zapisie."""
+
+    def __init__(self, nr: int, pozycja):
+        super().__init__()
+        self.setObjectName(f"niezapisany_{nr}")
+        tlo, pasek, _ = styl.POZIOMY["blad"]
+        self.setStyleSheet(f"QFrame#niezapisany_{nr} {{ background: {tlo}; border: 2px dashed {pasek}; border-radius: 8px; }}")
+        uklad = QVBoxLayout(self)
+        uklad.setContentsMargins(10, 6, 10, 8)
+        uklad.setSpacing(3)
+        wiersz = QHBoxLayout()
+        wiersz.addWidget(etykieta(nazwa_plytki(pozycja.numer), "naglowek"))
+        wiersz.addStretch(1)
+        wiersz.addWidget(etykieta(godzina(pozycja.od), "slaby"))
+        uklad.addLayout(wiersz)
+        uklad.addWidget(etykieta(pozycja.napis, "duzy", zawijaj=True))
+        if pozycja.prac is not None:
+            uklad.addWidget(etykieta(N.PRAC.format(n=pozycja.prac), "slaby"))
+
+
 class ListaPlytek(QFrame):
-    """Plytki biezacej zmiany (kafelki, najnowsza na gorze); wczesniejsze zmiany tej doby na zadanie."""
+    """Plytki biezacej zmiany (kafelki, najnowsza na gorze); wczesniejsze zmiany tej doby na zadanie. Na samej gorze skany
+    policzone, ktorych wyniku nie udalo sie jeszcze zapisac ("nie zapisano") z przyciskiem "Ponow zapis"."""
 
     wybrano = Signal(int)
     przelacz_wczesniejsze = Signal()
+    ponow_zapis = Signal()
 
     def __init__(self):
         super().__init__()
@@ -451,14 +482,19 @@ class ListaPlytek(QFrame):
         uklad.addWidget(self._przewijanie, 1)
         self._sygnatura = None
 
-    def ustaw(self, plytki: list, wybrana: int | None, nowe: set, z_pytaniem: set, wczesniejszych: int, pokazane_wczesniejsze: bool) -> None:
+    def ustaw(self, plytki: list, wybrana: int | None, nowe: set, z_pytaniem: set, wczesniejszych: int, pokazane_wczesniejsze: bool,
+              niezapisane: tuple = ()) -> None:
         sygnatura = (tuple((p.skan_id, p.numer, p.napis, p.czas, p.aktywna, tuple(sorted(p.liczniki.items()))) for p in plytki), wybrana,
-                     frozenset(nowe), frozenset(z_pytaniem), wczesniejszych, pokazane_wczesniejsze)
+                     frozenset(nowe), frozenset(z_pytaniem), wczesniejszych, pokazane_wczesniejsze, tuple(niezapisane))
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
         wyczysc(self._kafelki)
-        if not plytki:
+        for nr, pozycja in enumerate(reversed(niezapisane)):
+            self._kafelki.addWidget(KafelekNiezapisany(nr, pozycja))
+        if niezapisane:
+            self._kafelki.addWidget(przycisk(ST.PRZYCISKI["ponow_zapis"], "przycisk_ponow_zapis", None, self.ponow_zapis.emit))
+        if not plytki and not niezapisane:
             self._kafelki.addWidget(etykieta(N.PLYTKI_BRAK, "slaby", zawijaj=True))
         for p in reversed(plytki):  # najnowsza na gorze
             kafelek = KafelekPlytki(p, p.skan_id == wybrana, p.skan_id in nowe, p.skan_id in z_pytaniem)
@@ -668,7 +704,7 @@ class ListaDofrezowania(QFrame):
     wybrano = Signal(object)  # PozycjaListy
     zapisz = Signal()
 
-    def __init__(self, z_zapisem: bool = False):
+    def __init__(self):
         super().__init__()
         self.setProperty("rola", "panel")
         self.setObjectName("lista_dofrezowania")
@@ -707,14 +743,14 @@ class ListaDofrezowania(QFrame):
         wiersz.addWidget(self.pusta)
         wiersz.addWidget(self.zapisano)
         wiersz.addStretch(1)
-        if z_zapisem:  # polecenie ``zapisz_liste`` (kontrakt po rundzie 2); lista zapisuje sie tez sama
-            wiersz.addWidget(przycisk(ST.PRZYCISKI.get("zapisz_liste", N.ZAPISZ_LISTE), "przycisk_zapisz_liste", "lacze", self.zapisz.emit))
+        # polecenie ``zapisz_liste``; lista zapisuje sie tez sama po kazdej zmianie (``StanAplikacji.lista_zapisana``)
+        wiersz.addWidget(przycisk(ST.PRZYCISKI["zapisz_liste"], "przycisk_zapisz_liste", "lacze", self.zapisz.emit))
         uklad.addLayout(wiersz)
         self._pozycje: tuple = ()
         self._sygnatura = None
 
-    def ustaw(self, pozycje: tuple, wszystkie: bool) -> None:
-        sygnatura = (pozycje, wszystkie)
+    def ustaw(self, pozycje: tuple, wszystkie: bool, zapisana: str | None = None) -> None:
+        sygnatura = (pozycje, wszystkie, zapisana)
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
@@ -735,11 +771,8 @@ class ListaDofrezowania(QFrame):
                 self.tabela.setItem(r, k, pole)
         self.tabela.clearSelection()
         self.pusta.setVisible(not pozycje)
-        self.pokaz_zapisano("")
-
-    def pokaz_zapisano(self, napis: str) -> None:
-        self.zapisano.setText(napis)
-        self.zapisano.setVisible(bool(napis))
+        self.zapisano.setText(N.LISTA_PLIK.format(godzina=godzina(zapisana)) if zapisana else "")  # bez nazwy pliku
+        self.zapisano.setVisible(bool(zapisana))
 
     def _klik(self, wiersz: int, _kolumna: int) -> None:
         if 0 <= wiersz < len(self._pozycje):
