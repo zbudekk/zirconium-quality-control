@@ -34,7 +34,6 @@ PROG_PRZERWY_S = 1.0 if os.environ.get("E3A3_LUZNE") == "1" else 0.2
 START = dt.datetime(2026, 11, 17, 19, 0, 0)  # wtorek, zmiana 2
 FONTY_WINDOWS = Path(r"C:\Windows\Fonts")
 ROZMIAR_OKNA = (1600, 900)
-ZIELONE_RGB = None  # ustawiane w fixture: kolory ekranu statusow zielonych (ze ``statusy``)
 
 
 @pytest.fixture(scope="module", autouse=True)
