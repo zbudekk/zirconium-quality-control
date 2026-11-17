@@ -14,7 +14,6 @@ import datetime as dt
 import json
 import logging
 import re
-import shutil
 import traceback
 from pathlib import Path
 
