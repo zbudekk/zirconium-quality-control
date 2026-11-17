@@ -600,9 +600,11 @@ def ocena_brzegu(brzeg: BrzegProjektu, st_O: np.ndarray | None, odl_O: np.ndarra
         ok_dane, udzial_danych, _ = _kryterium_brzegu(dn, krok, ust_i)
         if tylko_dane:
             powody = [] if ok else ["dane"]
-            if not ok_linia:
+            if not ok_linia:  # D5 (recenzja PR #13): pas od płaszczyzny NIE obejmuje brzegu leżącego głębiej niż pas — uwaga mówi to wprost
                 uwagi_linii.append(f"filar {f.nr}: linia projektu niepewna (pewne {udzial_linii:.0%} długości, najdłuższy odcinek "
-                                   f"niepewny {przerwa_linii:.1f} mm) — tam pas brzegu także od płaszczyzny")
+                                   f"niepewny {przerwa_linii:.1f} mm) — w tym trybie nie blokuje wyniku; pas od płaszczyzny obejmuje ten brzeg "
+                                   f"tylko do {ust_i['pas_brzegu_mm']:g} mm poniżej najwyższego punktu pracy, głębiej brzeg jest sprawdzany "
+                                   "wyłącznie przy tej niepewnej linii")
         else:
             powody = [] if ok else ([p for p, dobrze in (("linia", ok_linia), ("dane", ok_dane)) if not dobrze] or ["linia", "dane"])
         filary.append({"nr": f.nr, "sprawdzony": ok, "dlugosc_mm": round(f.dlugosc, 2), "werdykt_linii": f.werdykt,
