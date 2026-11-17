@@ -202,7 +202,7 @@ Ramka gasi gniazda sama:
 | Sytuacja | Co robi ramka | Jak wraca obraz |
 |---|---|---|
 | `DELETE /plan`, kazdy `PUT /tryb` | plan usuniety, wersja ostatnio przyjetego planu zamknieta (takze juz wygaslego), zdarzenie `zgaszono` | nowy plan, wyzsza `wersja`, aktualne `zdarzenia_do` |
-| odrzucone polecenie od wlasciciela (PUT /plan, PUT /tryb, DELETE, kazda metoda poza GET: 400 w tym `zly_parametr`, 404, 405, 411, 413, `plan_innej_ramki`, `konflikt_wersji`, `pole_tylko_rano`, `zly_stan`, `zdarzenia_nieodebrane`, 500) | jak po `DELETE` (stan `wynik` -> `gotowa`, inne stany bez zmian), zdarzenie `zgaszono` (`przyczyna` odrzucenie, `kod`), w odpowiedzi `zgaszono: true` | nowy plan, wyzsza `wersja` |
+| odrzucone polecenie od wlasciciela albo laptopa, ktory moglby nim zostac (PUT /plan, PUT /tryb, DELETE - kazda metoda poza GET / HEAD, bez `/atrapa/*`: 400 w tym `zly_parametr`, 404, 405, 411, 413, `plan_innej_ramki`, `konflikt_wersji`, `pole_tylko_rano`, `zly_stan`, `zdarzenia_nieodebrane`, 500) | plan usuniety, wersja zamknieta (jak po `DELETE`), stan `wynik` -> `gotowa`, inne stany bez zmian (np. `skanowanie` zostaje), zdarzenie `zgaszono` (`przyczyna` odrzucenie, `kod`), w odpowiedzi `zgaszono: true` | nowy plan, wyzsza `wersja` |
 | plan zbudowany przed ostatnim zdarzeniem ramki (`zdarzenia_do` za male) | 409 `zdarzenia_nieodebrane`, gasi | laptop odpytuje i wysyla nowa wersje |
 | spozniony `PUT /plan` (polaczenie przyjete przed zgaszeniem albo wersja zamknieta) | 409 `plan_zgaszony`, nic nie zapala | nowy plan (nowa decyzja), wyzsza `wersja` |
 | laptop milczy dluzej niz `wazny_s` (W najwyzej 30 s, P 600 s) | plan usuniety, stan `gotowa`, zdarzenie `plan_wygasl` | rano plan ponownie; wieczorem tylko wynik nowego skanu |
