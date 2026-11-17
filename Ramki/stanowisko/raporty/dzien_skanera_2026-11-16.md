@@ -44,9 +44,10 @@ Istniejace pliki programu nie zostaly zmienione.
 `stanowisko/dzien_skanera_rdzen.py :: rozpoznaj_uklad(siatka, ust, numer=None) -> dict`
 (klucze wyniku: `uklad`, `wyrownanie` - `plate.WynikWyrownania`, `obiekt_ukladu` - `uklad.UkladPlytki`, `kandydaci`,
 `powod` - "" | `brak_plaszczyzny` | `malo_stozkow` | `zaden_uklad` | `blad`, `komunikat`, `stozki`, `proby`).
-Wola ja tylko `_kontrola_siatki`. Dzis: `plate.wyrownaj` po kolei dla ukladow z `[plytki]`, lapanie
-`BladWyrownania` / `NiezgodnyUklad`, pomijanie ukladow o innym rozstawie stozkow (`plate.stozki_pasuja`), wybor
-miedzy kwadratem i okragla po numerze z dolkow.
+Wola ja tylko `_kontrola_siatki`. Stan w chwili pisania raportu: `plate.wyrownaj` po kolei dla ukladow z `[plytki]`,
+lapanie `BladWyrownania` / `NiezgodnyUklad`, pomijanie ukladow o innym rozstawie stozkow (`plate.stozki_pasuja`), wybor
+miedzy kwadratem i okragla po numerze z dolkow. Dopisek 17.11.2026 (recenzja PR #13, D7): podmiana jest zrobiona -
+od commitu `502212e` okno rozpoznaje uklad przez `plate.rozpoznaj_uklad` (to samo co `porownaj --plytka auto`).
 
 ## 3. Testy
 

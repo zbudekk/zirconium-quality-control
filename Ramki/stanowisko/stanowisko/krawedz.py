@@ -9,7 +9,8 @@ czyli tak jak ``match.Projekt.siatka`` i praca w ``synth`` przed ulozeniem w gni
 Wyjscie: ``LinieProjektu`` - lista filarow, a dla kazdego: linia naroznika zewnetrznego plaskiej krawedzi (O),
 wewnetrznego (I) i srodka plaskiej krawedzi lezacego NA powierzchni (S), ze znacznikiem ``zweryf`` na kazdej
 stacji / przekroju oraz miarami wiarygodnosci. Gdy linii nie da sie wyznaczyc wiarygodnie, wynik mowi to jawnie
-(``werdykt`` filaru: ``wiarygodna`` | ``czesciowa`` | ``niepewna``; brak filarow = ``stan`` ``brak``) - modul
+(``werdykt`` filaru: ``wiarygodna`` | ``czesciowa`` | ``niepewna``; brak filarow = ``stan`` ``brak``; filar z przyjeta
+niecka, dla ktorego linii nie wyznaczono = numer w ``filary_bez_linii`` i ``stan`` ``czesciowe``) - modul
 niczego nie zgaduje, a odcinki niezweryfikowane sa oznaczone, nie usuniete.
 
 Metoda (przeniesiona z prototypu sesji testowej T9, 06.11.2026, bez zmiany konstrukcji i stalych):
@@ -144,11 +145,18 @@ class LinieProjektu:
     skala: float = SKALA_ODNIESIENIA  # skala, w ktorej podane sa wspolrzedne (wzgledem pliku projektu)
 
     @property
+    def filary_bez_linii(self) -> list[int]:
+        """Numery filarow, ktorych niecka (wneka albo kanal sruby) zostala przyjeta, ale linii nie wyznaczono - nie ma
+        ich na liscie ``filary`` (w ``uwagi`` jest wtedy wpis "linii nie wyznaczono"). Liczone z ``niecki``."""
+        z_linia = {f.nr for f in self.filary}
+        return sorted({int(d["filar"]) for d in self.niecki if d.get("przyjeta") and d.get("filar") is not None} - z_linia)
+
+    @property
     def stan(self) -> str:
-        """``wiarygodne`` (kazdy filar wiarygodny) | ``czesciowe`` | ``brak`` (zadnego filaru z linia)."""
+        """``wiarygodne`` (kazdy filar ma linie i jest wiarygodny) | ``czesciowe`` | ``brak`` (zadnego filaru z linia)."""
         if not self.filary:
             return "brak"
-        return "wiarygodne" if all(f.werdykt == "wiarygodna" for f in self.filary) else "czesciowe"
+        return "wiarygodne" if all(f.werdykt == "wiarygodna" for f in self.filary) and not self.filary_bez_linii else "czesciowe"
 
     def przeksztalc(self, k: float, przesuniecie=(0.0, 0.0, 0.0)) -> LinieProjektu:
         """Kopia w ukladzie x' = k * x + przesuniecie (dlugosci x k)."""
@@ -163,7 +171,7 @@ class LinieProjektu:
 
     def opis(self) -> dict:
         """Liczniki do raportu / JSON (bez tablic)."""
-        return {"stan": self.stan, "filarow": len(self.filary), "uwagi": list(self.uwagi), "czas_s": self.czas_s,
+        return {"stan": self.stan, "filarow": len(self.filary), "filary_bez_linii": self.filary_bez_linii, "uwagi": list(self.uwagi), "czas_s": self.czas_s,
                 "filary": [{"nr": f.nr, "wariant": f.wariant, "wybor_pewny": f.wybor_pewny, "werdykt": f.werdykt,
                             "przekroje_zweryfikowane": int(f.zweryf.sum()), "przekroje": int(len(f.zweryf)),
                             "udzial_zweryf": round(f.udzial_zweryf, 4), "najdl_ciag_st": round(f.najdl_ciag_st, 1),
@@ -802,7 +810,7 @@ def wyznacz(m: trimesh.Trimesh) -> LinieProjektu:
         dobre = [nazwa for nazwa in kolejnosc if miary[nazwa][0] <= PRZERWA_DOBRA_ST and miary[nazwa][1] <= SKOK_DOBRY_MM]
         wyb = dobre[0] if dobre else min(kolejnosc, key=lambda nazwa: miary[nazwa][0] / PRZERWA_DOBRA_ST + miary[nazwa][1] / SKOK_DOBRY_MM)
         L = kand[wyb]
-        if L is None:
+        if L is None:  # filar zostaje bez linii: nie ma go w ``filary``, jest w ``niecki`` (przyjeta) -> ``filary_bez_linii``
             uwagi.append(f"filar {nr}: za malo udanych przekrojow - linii nie wyznaczono")
             continue
         pz = L["_przekroje"]

@@ -23,6 +23,9 @@ poprawka ręczna; fiolet = podwójne, czerwone kółko = praca poza gniazdem. Z 
 liczy metryki: wyrównanie, numer, gniazda, top‑1 / top‑2, błąd pozy, a dla inspect wykryte / fałszywe
 ubytki per metoda i scenariusz (dobrze / bokiem / częściowo / drgnięcie).
 
+Błąd (wyjątek) w inspekcji jednego gniazda nie kładzie całej płytki: to gniazdo jest żółte („nie sprawdzono”, uwaga
+„błąd inspekcji: …” w JSON, wiersz w tabeli i ostrzeżenie), pozostałe gniazda są policzone, a wynik zapisany.
+
 Sztuczne skany z ``synth`` są wyłącznie danymi do budowy i pomiaru kodu, bo skanera jeszcze nie ma;
 właściwy test skanera odbędzie się na prawdziwych płytkach i pracach w sesji P3.
 """
@@ -32,6 +35,7 @@ import argparse
 import json
 import math
 import time
+import traceback
 import warnings
 from dataclasses import asdict
 from pathlib import Path
@@ -60,7 +64,8 @@ KLASY_POLOZENIA = ("krawedz", "sciana", "nieznane")  # metryki inspect osobno dl
 
 
 def gniazda_nie_sprawdzone(wynik: dict) -> list:
-    """Numery gniazd ze statusem inspect ``nie_sprawdzono`` (brzegu któregoś filaru nie dało się sprawdzić)."""
+    """Numery gniazd ze statusem inspect ``nie_sprawdzono`` (brzegu któregoś filaru nie dało się sprawdzić albo inspekcja
+    gniazda zakończyła się błędem — wtedy wpis ma pole ``blad``)."""
     return [g["gniazdo"] for g in wynik.get("gniazda", []) if (g.get("inspekcja") or {}).get("status") == "nie_sprawdzono"]
 
 
@@ -79,6 +84,26 @@ def status_gniazda(status_match: str, inspekcja: dict | None) -> str:
     if status_match == "szary" or not inspekcja:
         return status_match
     return INSPECT_NA_STATUS.get(inspekcja["status"]) or status_match
+
+
+STATUS_BLEDU_INSPEKCJI = "nie_sprawdzono"  # wyjątek w inspekcji gniazda: pracy nie sprawdzono — gniazdo żółte, nigdy zielone ani czerwone
+UWAGA_BLEDU_INSPEKCJI = "błąd inspekcji"  # początek uwagi w takim wpisie
+DLUGOSC_TRESCI_BLEDU = 300  # treść wyjątku w wyniku przycięta do tylu znaków
+
+
+def inspekcja_z_bledem(gniazdo: int | None, projekt: str, pokrycie: float, blad: Exception) -> dict:
+    """Wpis ``inspekcja`` gniazda, dla którego ``inspect.sprawdz`` zakończył się wyjątkiem (P7, recenzja PR #13).
+
+    Te same pola co zwykły wynik inspekcji (``WynikInspekcji.json()``: puste listy ubytków / plam / wcięć, ``brzeg`` = {}),
+    status ``nie_sprawdzono`` (gniazdo żółte z opisem „nie sprawdzono” — pracy nie sprawdzono, więc nigdy zielone), uwaga
+    „błąd inspekcji: <typ>: <treść> (<plik>:<linia> <funkcja>)” i dodatkowe pole ``blad`` z tym samym opisem (tylko w takim wpisie).
+    """
+    opis = f"{type(blad).__name__}: {' '.join(str(blad).split())[:DLUGOSC_TRESCI_BLEDU]}"
+    slad = traceback.extract_tb(blad.__traceback__)
+    if slad:  # miejsce wyjątku: sama nazwa pliku (bez ścieżki konta), linia i funkcja
+        opis += f" ({Path(slad[-1].filename).name}:{slad[-1].lineno} {slad[-1].name})"
+    wi = I.WynikInspekcji(gniazdo, projekt, STATUS_BLEDU_INSPEKCJI, float(pokrycie), uwagi=[f"{UWAGA_BLEDU_INSPEKCJI}: {opis}"])
+    return {**wi.json(), "blad": opis}
 
 
 def uklady_pasujace(stozki: list, ust: dict, wybrany: str) -> list[str]:
@@ -138,6 +163,10 @@ def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filt
 
     ``podglad`` (dict) dostaje ``WynikInspekcji`` każdego gniazda (punkty i odchyłki do podglądu 3D w oknie).
 
+    Wyjątek w inspekcji jednego gniazda (P7, recenzja PR #13) nie przerywa płytki: gniazdo dostaje wpis ``inspekcja_z_bledem``
+    (status ``nie_sprawdzono`` = żółte, uwaga „błąd inspekcji: …”, pole ``blad``; bez wpisu w ``podglad``), idzie ostrzeżenie,
+    a pozostałe gniazda są liczone dalej. ``KeyboardInterrupt``, ``SystemExit`` i ``MemoryError`` nie są łapane.
+
     Korekta skali ze skanu (``match``): wpis gniazda ma pole ``skala`` — ``poprawka_proc`` (o ile % praca jest większa
     niż projekt × współczynnik puli; None = nie wyznaczono), ``ostrzezenie`` (ponad ``[match] korekta_skali_ostrzezenie_proc``,
     także poza oknem), ``niepewna`` (skan nie pasuje do projektu także w tej skali — bez ostrzeżenia), ``zastosowana``,
@@ -162,9 +191,16 @@ def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filt
         }
         k = r.najlepszy
         if inspekcja and r.status != "szary" and k is not None and k.transformacja is not None:
-            wi = I.sprawdz(f.punkty, f.normalne, pula.projekty[k.id], np.array(k.transformacja), k.pokrycie, ust, f.gniazdo)
-            wpis["inspekcja"] = wi.json()
-            if podglad is not None:
+            try:
+                wi = I.sprawdz(f.punkty, f.normalne, pula.projekty[k.id], np.array(k.transformacja), k.pokrycie, ust, f.gniazdo)
+                wpis["inspekcja"] = wi.json()
+            except MemoryError:  # brak pamięci dotyczy całego przebiegu, nie jednego gniazda
+                raise
+            except Exception as e:  # noqa: BLE001 — błąd inspekcji jednego gniazda nie może kłaść całej płytki (KeyboardInterrupt / SystemExit przechodzą)
+                wi = None
+                wpis["inspekcja"] = inspekcja_z_bledem(f.gniazdo, k.id, k.pokrycie, e)
+                warnings.warn(f"gniazdo {f.gniazdo}: {wpis['inspekcja']['uwagi'][0]} — gniazdo żółte „nie sprawdzono”, pozostałe gniazda policzone", stacklevel=2)
+            if podglad is not None and wi is not None:
                 podglad[f.gniazdo] = wi
         wpis["status_gniazda"] = status_gniazda(r.status, wpis["inspekcja"])
         gniazda.append(wpis)
@@ -456,6 +492,9 @@ def tabela(wynik: dict) -> str:
         brzeg = (g.get("inspekcja") or {}).get("brzeg") or {}
         if brzeg and not brzeg.get("sprawdzony", True):
             w.append(f"  gniazdo {g['gniazdo']}: brzeg nie sprawdzony — {brzeg.get('opis', '')}")
+        blad = (g.get("inspekcja") or {}).get("blad")
+        if blad:  # P7: wyjątek w inspekcji tego gniazda — reszta płytki policzona
+            w.append(f"  gniazdo {g['gniazdo']}: {UWAGA_BLEDU_INSPEKCJI.upper()} — pracy nie sprawdzono ({blad})")
     if ostrz_skali:
         w.append("OSTRZEŻENIE SKALI (praca większa / mniejsza niż projekt × współczynnik — sprawdź współczynnik / krążek): gniazdo " + "; ".join(ostrz_skali))
     return "\n".join(w)
