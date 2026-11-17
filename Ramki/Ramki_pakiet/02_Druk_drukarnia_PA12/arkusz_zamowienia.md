@@ -1,19 +1,19 @@
 # Arkusz zamówienia — części drukowane (v2)
 
-Wygenerowany przez `ramka_generator.py`. Objętości i gabaryty zmierzone na siatkach STL (gabaryt w orientacji druku). Ilości z `parametry.json → quantities`, materiały per część z `materials` (R50). 17 pozycji: 12 do drukarni (w tym 2 płytki okrągłe n8 / n9 dopisane w R57‑C skryptem `narzedzia/arkusz_zamowienia_R57.py`), 5 druku własnego (bez płytek bazowych, Z28). Ten sam arkusz w `arkusz_zamowienia.csv` (separator `;`, przecinek dziesiętny, UTF‑8; koszty puste = druk własny).
+Wygenerowany przez `ramka_generator.py`. Objętości i gabaryty zmierzone na siatkach STL (gabaryt w orientacji druku). Ilości z `parametry.json → quantities`, materiały per część z `materials` (R50). 17 pozycji: 12 do drukarni (w tym 2 płytki okrągłe n8 / n9 dopisane skryptem `narzedzia/arkusz_zamowienia_R59.py`; ich objętości i gabaryty z raportu generatora `raport_wykonawcy_R59_iter2.md`), 5 druku własnego (bez płytek bazowych, Z28). Ten sam arkusz w `arkusz_zamowienia.csv` (separator `;`, przecinek dziesiętny, UTF‑8; koszty puste = druk własny).
 
 ## A. Do zamówienia w drukarni (materiał „PA12 drukarnia…”)
 
 | Plik STL | Część | Szt. | Technologia | Materiał | Kolor | Wykończenie | Obj. [cm³] | Gabaryt X × Y × Z [mm] | Najtańszy [zł] | Pokazowy [zł] | Uwagi |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `ramka_plytka_wieczorna_n1_v2.stl` | płytka wieczorna n1 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,31 | 96,0 × 96,0 × 8,6 | 53–95 | 53–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_wieczorna_n2_v2.stl` | płytka wieczorna n2 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,31 | 96,0 × 96,0 × 8,6 | 53–95 | 53–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_wieczorna_n3_v2.stl` | płytka wieczorna n3 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,31 | 96,0 × 96,0 × 8,6 | 53–95 | 53–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_poranna_n4_v2.stl` | płytka poranna n4 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 60,87 | 96,0 × 96,0 × 8,6 | 55–97 | 55–97 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_poranna_n5_v2.stl` | płytka poranna n5 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 60,87 | 96,0 × 96,0 × 8,6 | 55–97 | 55–97 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_poranna_n6_v2.stl` | płytka poranna n6 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 60,87 | 96,0 × 96,0 × 8,6 | 55–97 | 55–97 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
-| `ramka_plytka_okragla_wieczorna_n8_v2.stl` | płytka okrągła wieczorna n8 (R57, test skanera) | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 49,01 | 100,0 × 100,0 × 8,6 | 44–78 | 44–78 | R57: drugi wariant do testu skanera, ścięcie orientacyjne (cięciwa 16) nie wygładzać, nie pasuje do wkładki ramki (R58) |
-| `ramka_plytka_okragla_poranna_n9_v2.stl` | płytka okrągła poranna n9 (R57, test skanera) | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 50,56 | 100,0 × 100,0 × 8,6 | 46–81 | 46–81 | R57: drugi wariant do testu skanera, ścięcie orientacyjne (cięciwa 16) nie wygładzać, nie pasuje do wkładki ramki (R58) |
+| `ramka_plytka_wieczorna_n1_v2.stl` | płytka wieczorna n1 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,66 | 96,0 × 96,0 × 8,6 | 54–95 | 54–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_wieczorna_n2_v2.stl` | płytka wieczorna n2 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,66 | 96,0 × 96,0 × 8,6 | 54–95 | 54–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_wieczorna_n3_v2.stl` | płytka wieczorna n3 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,66 | 96,0 × 96,0 × 8,6 | 54–95 | 54–95 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_poranna_n4_v2.stl` | płytka poranna n4 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,95 | 96,0 × 96,0 × 8,6 | 54–96 | 54–96 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_poranna_n5_v2.stl` | płytka poranna n5 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,95 | 96,0 × 96,0 × 8,6 | 54–96 | 54–96 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_poranna_n6_v2.stl` | płytka poranna n6 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 59,94 | 96,0 × 96,0 × 8,6 | 54–96 | 54–96 | alternatywa CNC PMMA opal: STEP przez FreeCAD (D2) |
+| `ramka_plytka_okragla_wieczorna_n8_v2.stl` | płytka okrągła wieczorna n8 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 49,36 | 100,0 × 100,0 × 8,6 | 44–79 | 44–79 | R59: układ gniazd jak płytka kwadratowa tego typu, ścięcie orientacyjne (cięciwa 16) nie wygładzać, tylko do skanera — nie pasuje do wkładki ramki (R58) |
+| `ramka_plytka_okragla_poranna_n9_v2.stl` | płytka okrągła poranna n9 | 1 | MJF/SLS (D2) | PA12 drukarnia | biały (naturalny) | mat, bez wygładzania wierzchu | 49,64 | 100,0 × 100,0 × 8,6 | 45–79 | 45–79 | R59: układ gniazd jak płytka kwadratowa tego typu, ścięcie orientacyjne (cięciwa 16) nie wygładzać, tylko do skanera — nie pasuje do wkładki ramki (R58) |
 | `ramka_korpus_W_v2.stl` | korpus W (napis „RAMKA WIECZORNA”) | 1 | MJF/SLS (D2) | PA12 drukarnia | grafit | barwienie na grafit; pokazowy: + wygładzanie parowe | 233,49 | 200,0 × 200,6 × 59,6 | 210–374 | 328–583 | geometria W i P identyczna poza napisem (Z18) |
 | `ramka_korpus_P_v2.stl` | korpus P (napis „RAMKA PORANNA”) | 1 | MJF/SLS (D2) | PA12 drukarnia | grafit | barwienie na grafit; pokazowy: + wygładzanie parowe | 233,47 | 200,0 × 200,6 × 59,6 | 210–374 | 328–583 | geometria W i P identyczna poza napisem (Z18) |
 | `ramka_blat_v2.stl` | blat | 2 | MJF/SLS (D2) | PA12 drukarnia | grafit | barwienie na grafit; pokazowy: + wygładzanie parowe | 72,52 | 200,0 × 200,0 × 14,0 | 131–232 | 204–362 | — |
@@ -33,7 +33,8 @@ Wygenerowany przez `ramka_generator.py`. Objętości i gabaryty zmierzone na sia
 
 | Zakres | Objętość [cm³] | Najtańszy [zł] | Pokazowy [zł] |
 |---|---|---|---|
-| 12 pozycji × ilości (z płytkami okrągłymi n8, n9) | 1109,34 | 998–1775 | 1307–2323 |
+| 10 pozycji × ilości | 1008,05 | 907–1613 | 1216–2161 |
+| 12 pozycji × ilości (z płytkami okrągłymi n8, n9) | 1107,05 | 996–1771 | 1305–2320 |
 
 Druk własny: 122,2 cm³ (pokrywka płytki × 4, tulejka redukcyjna gniazda DC × 2, podkładka panelu 0,5 mm × 8, podkładka panelu 1 mm × 8, podkładka panelu 2 mm × 8).
 
@@ -44,7 +45,19 @@ Druk własny: 122,2 cm³ (pokrywka płytki × 4, tulejka redukcyjna gniazda DC �
 - Wariant najtańszy (PA12 naturalne, bez barwienia): koszt = objętość × ilość × stawka (min…max).
 - Wariant pokazowy: części grafitowe (korpus, blat — Z19) = objętość × ilość × stawka × 1,20 × 1,30; części białe bez mnożników.
 - Płytki wieczorne n1–n3 liczone do drukarni (R55: bez alternatywy żywicznej).
-- R57: płytki okrągłe n8 (wieczorna) i n9 (poranna), ø100 × 8 (8,6 z cyfrą), objętości z siatek 49,01 / 50,56 cm³ (raport wykonawcy R57 iter2 §7.1, recenzja R57‑B), białe — bez mnożników; tylko do skanera (bez kieszeni magnesów, nie pasują do wkładki ramki).
+
+## Płytki w układzie R59 (dopisane skryptem `narzedzia/arkusz_zamowienia_R59.py`)
+
+- Układ gniazd (z `parametry.json`, rzędy `ev_rows` / `mo_rows`): płytka wieczorna 18 gniazd (6 × ø12, 12 × ø15) + 1 rynienka 60 × 15; płytka poranna 23 gniazda (20 × ø12,5, 3 × ø15) + 1 rynienka 50 × 13. Płytka okrągła ma te same gniazda co kwadratowa tego samego typu.
+- Płytki okrągłe n8 (wieczorna) i n9 (poranna): ø100 × 8 (8,6 z cyfrą), po 1 szt. jak w R57; objętości z siatek wg raportu generatora `raport_wykonawcy_R59_iter2.md`; białe — bez mnożników; tylko do skanera (bez kieszeni magnesów, nie pasują do wkładki ramki).
+- Ilości bez zmian (decyzja właściciela D6: „[cytat usuniety]”; co i ile zamówić, rozstrzyga właściciel po odbiorze). Wiersz sum „[cytat usuniety]” = bez płytek okrągłych.
+- Pliki płytek z poprzedniego układu (R54 / R57) mają te same nazwy i numery, ale inne sumy SHA‑256. Do zamówienia tylko pliki o sumach z `R59_wdrozenie_zmiany.md`.
+
+| Grupa | Szt. | Objętość [cm³] | Najtańszy [zł] | Pokazowy [zł] |
+|---|---|---|---|---|
+| płytki wieczorne n1–n3 (kwadratowe) | 3 | 178,98 | 161–286 | 161–286 |
+| płytki poranne n4–n6 (kwadratowe) | 3 | 179,84 | 162–288 | 162–288 |
+| płytki okrągłe n8 i n9 | 2 | 99,00 | 89–158 | 89–158 |
 
 ## Uwaga dla CNC (STEP / FreeCAD)
 

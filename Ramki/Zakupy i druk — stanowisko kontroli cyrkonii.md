@@ -1,18 +1,51 @@
 # Zakupy i druk — stanowisko kontroli cyrkonii
 
-2 listopada 2026 (R57: płytka okrągła) · Autor: Michał Budek
+14 listopada 2026 (R59: nowy układ gniazd płytek) · Autor: Michał Budek
 
 ## Streszczenie: co kupujemy i dlaczego
 
-Do stanowiska (poza skanerem, opisanym w planie wdrożenia) potrzebujemy dwóch ramek świetlnych i sześciu płytek na prace; do testu skanera dochodzą dwie płytki okrągłe ø100 (n8 wieczorna, n9 poranna) jako drugi wariant kształtu [R57]. Trzy grupy zakupów:
+Do stanowiska (poza skanerem, opisanym w planie wdrożenia) potrzebujemy dwóch ramek świetlnych i sześciu płytek na prace; do testu skanera dochodzą dwie płytki okrągłe ø100 (n8 wieczorna, n9 poranna) jako drugi wariant kształtu [R57]. [R59] Płytki mają nowy układ gniazd: wieczorna 18 gniazd i 1 rynienkę, poranna 23 gniazda i 1 rynienkę (było 18 i 2 oraz 31 i 2). To nowe pliki o nowych sumach SHA‑256; opis w sekcji „Nowy układ gniazd płytek [R59]”. Trzy grupy zakupów:
 
 1. **Elektronika i drobnica** (ok. 1 200–1 680 zł): panele LED, Raspberry Pi z nakładkami, zasilacze, gniazda, czujniki, magnesy, śruby, kable. Nic z tego nie zależy od żadnego pomiaru — zamawiamy od razu.
-2. **Druk w drukarni** (nylon PA12, 909–1 616 zł w wariancie najtańszym, 1 217–2 164 zł w pokazowym): korpusy, blaty, wkładki, płytki. Pliki są ostateczne i zweryfikowane (generator, recenzent, niezależna kontrola pasowań z siatek); zamawiać wyłącznie pliki z sumami SHA‑256 ze „Specyfikacji zamówienia”. Korpus W, korpus P i 2 blaty — od razu; płytki okrągłe n8 i n9 (90–159 zł) — od razu [R57]; 3 wkładki i płytki nr 1–6 — po potwierdzeniu pola skanowania. Z płytkami okrągłymi drukarnia kosztuje 998–1 775 zł (najtańszy) / 1 307–2 323 zł (pokazowy).
+2. **Druk w drukarni** (nylon PA12, 907–1 613 zł w wariancie najtańszym, 1 216–2 161 zł w pokazowym): korpusy, blaty, wkładki, płytki. Pliki są ostateczne i zweryfikowane (generator, recenzent, niezależna kontrola pasowań z siatek); zamawiać wyłącznie pliki z sumami SHA‑256 ze „[cytat usuniety]”. Korpus W, korpus P i 2 blaty — od razu; płytki okrągłe n8 i n9 (89–158 zł) — po decyzji właściciela, który skłania się ku okrągłym [R59]; 3 wkładki i płytki nr 1–6 — po potwierdzeniu pola skanowania. Z płytkami okrągłymi drukarnia kosztuje 996–1 771 zł (najtańszy) / 1 305–2 320 zł (pokazowy).
 3. **Druk własny** (koszt filamentu): wszystko z PETG na drukarce FDM u kolegi — pokrywki × 4, tulejki gniazda zasilania × 2, podkładki pod słupki panelu 3 × 8, płytka do testu skanera (nr 1) i prototypy pasowań.
 
 Dlaczego w tej kolejności: obudowa nie zależy od wymiarów kupowanej elektroniki (zapas 8 mm nad Raspberry Pi, rowki pod słupki panelu i flanszę USB, tulejka gniazda zasilania, mocowanie panelu z gwintem i bez, podkładki), więc korpusy i blaty — najdroższe i najdłużej drukowane — zamawiamy, zanim elektronika dotrze. Płytki mają gniazda i znaczniki w kole, które skaner widzi w całym obrocie stolika (założenie: ø100 mm wokół osi; gniazda w kole o promieniu 47 mm), a skanera jeszcze nie ma — więc płytki, wkładka i pokrywka czekają na potwierdzenie pola skanowania: przy polu ø94–100 nowe są tylko pliki płytek, poniżej ø94 płytka byłaby okrągła, z nową wkładką i pokrywką. Pomiary elektroniki decydują już tylko o drobnym sprzęcie mocującym (dystanse 50 czy 45 mm z tulejkami, tulejka gniazda, podkładki, ewentualne wiercenie).
 
 Elementy, z których świadomie zrezygnowano, oraz powody każdej decyzji konstrukcyjnej są w dokumencie „Budowa ramki — decyzje i zamienniki”.
+
+## Nowy układ gniazd płytek [R59]
+
+Płytki mają nowy układ gniazd: większe gniazda w miejscu małych i jedną rynienkę zamiast dwóch. Zmieniły się tylko pliki płytek. Korpusy, blaty, wkładki, pokrywki, tulejki, podkładki i cała elektronika zostają bez zmian — te same pliki i te same sumy SHA‑256.
+
+| Płytka | Było | Jest | Objętość [cm³] |
+|---|---|---|---|
+| Wieczorna nr 1–3 | 18 gniazd (7 × ø9, 6 × ø12, 5 × ø15) i 2 rynienki 60 × 15 mm | 18 gniazd (6 × ø12, 12 × ø15) i 1 rynienka 60 × 15 mm | było 59,31, jest 59,66 |
+| Poranna nr 4–6 | 31 gniazd (18 × ø7,5, 7 × ø10, 6 × ø12,5) i 2 rynienki 50 × 13 mm | 23 gniazda (20 × ø12,5, 3 × ø15) i 1 rynienka 50 × 13 mm | było 60,87, jest 59,95 (nr 6: 59,94) |
+| Okrągła wieczorna nr 8 | gniazda jak wieczorna | gniazda jak wieczorna | było 49,01, jest 49,36 |
+| Okrągła poranna nr 9 | gniazda jak poranna | gniazda jak poranna | było 50,56, jest 49,64 |
+
+Po co. W próbie 17 projektów w najmniejsze gniazda (ø9 wieczorem, ø7,5 rano) nie weszła żadna praca — 0 z 17. Ich miejsce zajęły gniazda większe. Próba jest mała i dobrana do testów programu, nie jest przekrojem produkcji.
+
+Co to kosztuje:
+
+- Jeden most na płytkę, bo rynienka jest jedna. Dwa mosty na jednej płytce wymagają zmiany programu — to osobna praca, bez ustalonego terminu.
+- Płytka poranna ma 23 gniazda zamiast 31. Duży piec (40–60 prac) to 2–3 płytki zamiast 2.
+- Koszt druku prawie się nie zmienia. Drukarnia w wariancie najtańszym: bez płytek okrągłych 907–1 613 zł (było 909–1 616), z okrągłymi 996–1 771 zł (było 998–1 775).
+
+Co ze starymi płytkami:
+
+- Płytki wykonane w poprzednim układzie zostają w użyciu. Pierwsze skany idą na płytce wieczornej poprzedniego układu, a nowe płytki zamawiamy w tym czasie.
+- Program zna oba układy i ostrzega, gdy zeskanowana płytka nie pasuje do wybranego.
+- Numery płytek są te same w obu układach (1–3, 4–6, 8 i 9). Numer nie odróżnia starej płytki od nowej, więc stare płytki trzeba opisać trwałym napisem i trzymać osobno.
+- Starych plików nie zamawiamy ponownie. Mają te same nazwy co nowe — różnią je tylko sumy SHA‑256 ze „Specyfikacji zamówienia”.
+
+Co zamawiamy:
+
+- Właściciel skłania się ku płytkom okrągłym. Co i ile zamówić, zdecyduje po odbiorze plików nowego układu. Ilości w arkuszu zamówienia zostają bez zmian: po 3 płytki kwadratowe wieczorne i poranne, po 1 okrągłej.
+- Płytka okrągła ma te same gniazda co kwadratowa tego samego typu: wieczorna 18 gniazd i 1 rynienkę, poranna 23 gniazda i 1 rynienkę. Kształt nie zmienia liczby gniazd.
+- Płytka okrągła kosztuje mniej: 44–79 zł za sztukę wobec 54–96 zł za kwadratową.
+- Płytka okrągła działa dziś tylko w skanerze. Na ramce świetlnej wymaga zmiany R58 (okrągła wkładka i pokrywka); wkładki i pokrywki z tej listy pasują tylko do płytek kwadratowych.
 
 ## Kolejność zakupów
 
@@ -20,9 +53,9 @@ Elementy, z których świadomie zrezygnowano, oraz powody każdej decyzji konstr
 |---|---|---|---|
 | od razu — nic nie zależy od pomiarów | Elektronika i drobnica (grupy A–G); dystanse panelu w obu długościach (8 × 50 i 8 × 45 mm) | Botland, Kamami, Allegro, AliExpress (panele) — sekcja „Gdzie zamawiać” | pomiary tej elektroniki odblokowują drobny sprzęt mocujący; obie długości dystansów (ok. 30 zł) zdejmują zależność od pomiaru gwintu panelu |
 | od razu — pliki ostateczne, sumy SHA‑256 w „Specyfikacji zamówienia” | Korpus „RAMKA WIECZORNA”, korpus „RAMKA PORANNA”, 2 blaty (PA12 grafit) | drukarnia MJF/SLS: Cadxpert, Spes3D, P3DRC, Send3D, Laboratorium Druku 3D (wycena u 2–3) — sekcja „Gdzie zamawiać” | geometria obudowy nie zależy od pomiarów elektroniki ani od skanera; najdłuższy etap i największy koszt, dlatego pierwszy |
-| od razu — drugi wariant do testu skanera [R57]; pliki zweryfikowane i zatwierdzone (recenzja R57‑B, właściciel 2.11), sumy SHA‑256 w „[cytat usuniety]” | Płytki okrągłe n8 (wieczorna) i n9 (poranna), ø100 × 8 mm, PA12 biały mat, bez wygładzania, ±0,3 mm | drukarnia MJF/SLS jak korpusy (to samo zamówienie albo osobna pozycja) — sekcja „[cytat usuniety]” | porównanie kwadrat vs koło na egzemplarzu skanera: ten sam układ gniazd i stożków co płytki 1–6, więc różni je tylko kształt; okrągła nie ma wystających rogów (dołki kodu leżą w polu ø100, na kwadracie poza nim); nie pasuje do wkładki ramki — do użycia na ramce potrzebna przyszła zmiana R58 (wkładka i pokrywka okrągłe) |
-| od razu — drukarka FDM z polem ≥ 100 × 100 mm i PETG biały matowy | Płytka wieczorna nr 1 (test skanera), prototyp wkładki, pokrywka i próbka zatrzasku | FDM u kolegi | test pasowań za kilka złotych filamentu przed zamówieniem w drukarni; płytka testowa czeka gotowa na egzemplarz skanera |
-| po potwierdzeniu pola skanowania (odpowiedź producenta o „scanning range” albo skan kartonowej makiety 96 × 96 z okręgami ø90/94/100 na egzemplarzu testowym; koło przy obrocie ≥ ø100 mm — kryterium 8 planu) | Płytki wieczorne nr 1–3, poranne nr 4–6, 3 wkładki (PA12 biały); 4 pokrywki (PETG) | drukarnia MJF/SLS — sekcja „Gdzie zamawiać”; pokrywki: FDM u kolegi | wszystkie mają obrys płytki 96 mm i dzielą jej los: przy polu ø94–100 nowe są tylko pliki płytek, poniżej ø94 płytka okrągła z nową wkładką i pokrywką |
+| po decyzji właściciela, który skłania się ku okrągłym [R59]; pliki nowego układu zweryfikowane (recenzja z siatek R59‑B: zaliczona), sumy SHA‑256 w „[cytat usuniety]” | Płytki okrągłe n8 (wieczorna) i n9 (poranna), ø100 × 8 mm, PA12 biały mat, bez wygładzania, ±0,3 mm | drukarnia MJF/SLS jak korpusy (to samo zamówienie albo osobna pozycja) — sekcja „[cytat usuniety]” | te same gniazda i stożki co płytki 1–3 i 4–6 (nowy układ [R59]), więc różni je tylko kształt; okrągła nie ma wystających rogów (dołki kodu leżą w polu ø100, na kwadracie poza nim); nie pasuje do wkładki ramki — do użycia na ramce potrzebna przyszła zmiana R58 (wkładka i pokrywka okrągłe) |
+| od razu — drukarka FDM z polem ≥ 100 × 100 mm i PETG biały matowy | Płytka wieczorna nr 1 (test skanera), prototyp wkładki, pokrywka i próbka zatrzasku | FDM u kolegi | test pasowań za kilka złotych filamentu przed zamówieniem w drukarni; płytka testowa czeka gotowa na egzemplarz skanera; [R59] wydruk sprzed zmiany ma poprzedni układ gniazd — opisać go jak pozostałe stare płytki |
+| po potwierdzeniu pola skanowania (odpowiedź producenta o „[cytat usuniety]” albo skan kartonowej makiety 96 × 96 z okręgami ø90/94/100 na egzemplarzu testowym; koło przy obrocie ≥ ø100 mm — kryterium 8 planu); [R59] o tym, czy zamawiamy płytki kwadratowe, okrągłe czy obie, decyduje właściciel po odbiorze plików nowego układu | Płytki wieczorne nr 1–3, poranne nr 4–6, 3 wkładki (PA12 biały); 4 pokrywki (PETG) | drukarnia MJF/SLS — sekcja „[cytat usuniety]”; pokrywki: FDM u kolegi | wszystkie mają obrys płytki 96 mm i dzielą jej los: przy polu ø94–100 nowe są tylko pliki płytek, poniżej ø94 płytka okrągła z nową wkładką i pokrywką |
 | po pomiarach elektroniki i odbiorze korpusów | 2 tulejki gniazda zasilania, podkładki 3 × 8 (PETG); ewentualnie tulejki F‑F klejone + epoksyd, wiercenie dna lub flanszy USB | FDM u kolegi; Allegro / warsztat | tulejka: pomiar 16 i zmierzony otwór ø12 w korpusie; podkładki: pomiary 4 i 9; reszta: pomiary 5a, 5, 6, 17 — dopiero pomiar mówi, czy są potrzebne (sekcja „Po pomiarach elektroniki”) |
 | przed uruchomieniem stanowiska | Osłona z czarnej płyty, pokrowce, hub USB 3.0, kable, listwa, ściereczki | sklep budowlany / Allegro | nie wpływają na montaż ramek; potrzebne dopiero przy skanerze na parapecie |
 
@@ -139,7 +172,7 @@ Razem elektronika i drobnica (grupy A–F): ok. 1 200–1 680 zł.
 
 ### Części do zamówienia
 
-Objętości zmierzone na siatkach STL, ceny z arkusza zamówienia (stawka 0,9–1,6 zł/cm³; barwienie × 1,2, wygładzanie × 1,3; drukarnia może doliczyć opłatę za gabaryt). Drukarnie: sekcja „Gdzie zamawiać”.
+Objętości zmierzone na siatkach STL, ceny z arkusza zamówienia (stawka 0,9–1,6 zł/cm³; barwienie × 1,2, wygładzanie × 1,3; drukarnia może doliczyć opłatę za gabaryt). [R59] Objętości i ceny płytek pochodzą z arkusza zamówienia nowego układu (`R59_arkusz_zamowienia.md`, liczony skryptem `narzedzia/arkusz_zamowienia_R59.py`). Drukarnie: sekcja „Gdzie zamawiać”.
 
 | Plik STL | Część | Ilość | Materiał / kolor | Objętość [cm³] | Cena ok. [zł] (najtańszy / pokazowy) | Warunek |
 |---|---|---|---|---|---|---|
@@ -147,18 +180,18 @@ Objętości zmierzone na siatkach STL, ceny z arkusza zamówienia (stawka 0,9–
 | ramka_korpus_P_v2.stl | Korpus z napisem „RAMKA PORANNA” | 1 | PA12 grafit | 233,5 | 210–374 / 328–583 | od razu |
 | ramka_blat_v2.stl | Blat z oknem i kieszenią dyfuzora | 2 | PA12 grafit | 72,5 | 131–232 / 204–362 | od razu |
 | ramka_wkladka_v2.stl | Wkładka gniazda płytki | 3 (2 + zapas) | PA12 naturalny biały | 12,4 | 34–60 | po potwierdzeniu pola skanowania |
-| ramka_plytka_poranna_n4_v2.stl, _n5_, _n6_ | Płytki poranne nr 4, 5, 6 (31 gniazd + 2 rynienki) | 3 (po 1 z każdym numerem) | PA12 naturalny biały, bez wygładzania | 60,9 | 164–292 | po potwierdzeniu pola skanowania |
-| ramka_plytka_wieczorna_n1_v2.stl, _n2_, _n3_ | Płytki wieczorne nr 1, 2, 3 (18 gniazd + 2 rynienki) | 3 (po 1 z każdym numerem) | PA12 naturalny biały, bez wygładzania | 59,3 | 160–285 | po potwierdzeniu pola skanowania |
-| **Razem** | 10 plików | 13 szt. | | 1 010 | **909–1 616 / 1 217–2 164** | |
-| ramka_plytka_okragla_wieczorna_n8_v2.stl [R57] | Płytka okrągła wieczorna nr 8, ø100 (18 gniazd + 2 rynienki, jak nr 1–3) — test skanera | 1 | PA12 naturalny biały, mat, bez wygładzania | 49,0 | 44–78 | od razu |
-| ramka_plytka_okragla_poranna_n9_v2.stl [R57] | Płytka okrągła poranna nr 9, ø100 (31 gniazd + 2 rynienki, jak nr 4–6) — test skanera | 1 | PA12 naturalny biały, mat, bez wygładzania | 50,6 | 46–81 | od razu |
-| **Razem z płytkami okrągłymi** | 12 plików | 15 szt. | | 1 109 | **998–1 775 / 1 307–2 323** | |
+| ramka_plytka_poranna_n4_v2.stl, _n5_, _n6_ | Płytki poranne nr 4, 5, 6 (23 gniazda + 1 rynienka [R59]) | 3 (po 1 z każdym numerem) | PA12 naturalny biały, bez wygładzania | 59,95 (nr 6: 59,94) | 162–288 | po potwierdzeniu pola skanowania |
+| ramka_plytka_wieczorna_n1_v2.stl, _n2_, _n3_ | Płytki wieczorne nr 1, 2, 3 (18 gniazd + 1 rynienka [R59]) | 3 (po 1 z każdym numerem) | PA12 naturalny biały, bez wygładzania | 59,66 | 161–286 | po potwierdzeniu pola skanowania |
+| **Razem** | 10 plików | 13 szt. | | 1 008 | **907–1 613 / 1 216–2 161** | |
+| ramka_plytka_okragla_wieczorna_n8_v2.stl [R57] [R59] | Płytka okrągła wieczorna nr 8, ø100 (18 gniazd + 1 rynienka, jak nr 1–3) | 1 | PA12 naturalny biały, mat, bez wygładzania | 49,36 | 44–79 | po decyzji właściciela [R59] |
+| ramka_plytka_okragla_poranna_n9_v2.stl [R57] [R59] | Płytka okrągła poranna nr 9, ø100 (23 gniazda + 1 rynienka, jak nr 4–6) | 1 | PA12 naturalny biały, mat, bez wygładzania | 49,64 | 45–79 | po decyzji właściciela [R59] |
+| **Razem z płytkami okrągłymi** | 12 plików | 15 szt. | | 1 107 | **996–1 771 / 1 305–2 320** | |
 
 Wariant najtańszy: wszystko w PA12 naturalnym (korpusy i blaty szare). Wariant pokazowy: korpusy i blaty barwione na grafit i wygładzane parowo; wkładki i płytki zawsze bez wygładzania. Korpusy to ok. 45 % kosztu; jeśli wycena przekroczy budżet, korpus można zamówić w SLS zamiast MJF (często taniej dla dużych brył).
 
 ### Specyfikacja zamówienia
 
-Zamawiać wyłącznie pliki o poniższych sumach SHA‑256 (folder `wyniki_v2/stl/`, te same pliki w pakiecie `Ramki_pakiet/`). Pliki korpusów, blatu i wkładki mają luzy policzone pod tolerancję druku MJF/SLS; pliki płytek mają gniazda, rynienki i stożki znaczników w kole o promieniu 47 mm; płytki okrągłe n8 i n9 [R57] mają ten sam układ gniazd i stożków co płytki 1–3 i 4–6, obrys ø100 i są tylko do skanera (bez kieszeni magnesów, spód płaski). Jeśli drukarnia ma starsze pliki, należy je zastąpić — sumy się różnią.
+Zamawiać wyłącznie pliki o poniższych sumach SHA‑256 (folder `wyniki_v2/stl/`, te same pliki w pakiecie `Ramki_pakiet/`). Pliki korpusów, blatu i wkładki mają luzy policzone pod tolerancję druku MJF/SLS; pliki płytek mają gniazda, rynienkę i stożki znaczników w kole o promieniu 47 mm; płytki okrągłe n8 i n9 [R57] mają te same gniazda i stożki co płytki 1–3 i 4–6, obrys ø100 i są tylko do skanera (bez kieszeni magnesów, spód płaski). [R59] Osiem plików płytek (n1–n6, n8, n9) ma nowy układ gniazd i nowe sumy. Nazwy plików zostały te same, więc stary plik od nowego odróżnia tylko suma. Jeśli drukarnia ma starsze pliki, należy je zastąpić.
 
 | Plik STL | Szt. | Materiał / technologia | Warunek | SHA‑256 |
 |---|---|---|---|---|
@@ -166,19 +199,21 @@ Zamawiać wyłącznie pliki o poniższych sumach SHA‑256 (folder `wyniki_v2/st
 | ramka_korpus_P_v2.stl | 1 | PA12 grafit (MJF/SLS) | od razu | `aadb91c9364cf39f1f4062d328616aa518e474b957315ed4a941de4f935ab2b7` |
 | ramka_blat_v2.stl | 2 | PA12 grafit (MJF/SLS) | od razu | `8c48856eb9addee2b37cfa5a03e5686ab7670bd92b724e488ccc8d8dd3a4b418` |
 | ramka_wkladka_v2.stl | 3 (2 + zapas) | PA12 naturalny biały (MJF/SLS) | po potwierdzeniu pola skanowania | `f4196fbc640450998634f50caa86051f89df2cbb2c218e317f5c2b193e3ef92b` |
-| ramka_plytka_wieczorna_n1_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `515d32d3dd8a69ae0a94d293a639b201f2d9ce9af19df664ad1b44b59408f775` |
-| ramka_plytka_wieczorna_n2_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `360cff9ddd6bbcf8a84b463fed930532612a38118006f1550c2df01b02fa852d` |
-| ramka_plytka_wieczorna_n3_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `2fc7040e212ace4a8efda17f61909ca09563009513adcd82ecf5bcaac3e98aaf` |
-| ramka_plytka_poranna_n4_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `a8d07cbeb0dafc0e55d3fe2fe516c7d3e854a6259bce587785b796d34b54c65e` |
-| ramka_plytka_poranna_n5_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `159503ca4cd66b90a1e2441cae64016901ed83390b48a27345f9484ac1a05830` |
-| ramka_plytka_poranna_n6_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `0d5d712d42084a19846f24d385484d01b2254c5c1ec3945d71cfd3493816f15e` |
-| ramka_plytka_okragla_wieczorna_n8_v2.stl [R57] — ø100 × 8 (100 × 100 × 8,6 z cyfrą), 49,01 cm³ | 1 | PA12 naturalny biały, mat, bez wygładzania (MJF/SLS) | od razu (test skanera) | `c4c8a18d0b83fd2a2903f5d782188a8de4827ee07c55dca9df7bd0d8e4a37d32` |
-| ramka_plytka_okragla_poranna_n9_v2.stl [R57] — ø100 × 8 (100 × 100 × 8,6 z cyfrą), 50,56 cm³ | 1 | PA12 naturalny biały, mat, bez wygładzania (MJF/SLS) | od razu (test skanera) | `a87bc6c5f8f0323bc202e5ebfeab6be6d7c8432beba6aafe4a8372d70666e2be` |
+| ramka_plytka_wieczorna_n1_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `3b0db5452a0cd9533464772c10b67c05fa7a006fcdb3d140a74af275e79946f7` |
+| ramka_plytka_wieczorna_n2_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `b87026134b25cf32a84a231b73d5c4eb9fde4dfeb5b16b627cf09ccc3f29c999` |
+| ramka_plytka_wieczorna_n3_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `59e615d596771c6c0351284c710e94e406a965afef423ffeae5cd18ffa2c4dd3` |
+| ramka_plytka_poranna_n4_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `20f15f2214f6c9a9baf2b4701e7f99bfbc5f739b6379398294e9f931b8763237` |
+| ramka_plytka_poranna_n5_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `a275775b9c9b5ddd015b68659f213505bdd28b9476cad5e13405bef2df5b64d1` |
+| ramka_plytka_poranna_n6_v2.stl | 1 | PA12 naturalny biały, mat (MJF/SLS) | po potwierdzeniu pola skanowania | `c44be370c8b9ad2b70f9e486c3f6f9d2b227b91f2a6544bfe14bf7e66bd65b21` |
+| ramka_plytka_okragla_wieczorna_n8_v2.stl [R57] [R59] — ø100 × 8 (100 × 100 × 8,6 z cyfrą), 49,36 cm³ | 1 | PA12 naturalny biały, mat, bez wygładzania (MJF/SLS) | po decyzji właściciela [R59] | `d5591f652ea1b6b23825abb5ad05ac12b78d17f6abb52946bd1a010ef5e4ff54` |
+| ramka_plytka_okragla_poranna_n9_v2.stl [R57] [R59] — ø100 × 8 (100 × 100 × 8,6 z cyfrą), 49,64 cm³ | 1 | PA12 naturalny biały, mat, bez wygładzania (MJF/SLS) | po decyzji właściciela [R59] | `f9444e6f14e37d9d0bcc8ae84cfec5249146bce20420c53a86a73965727fd4c4` |
 | ramka_pokrywka_v2.stl | 4 | PETG, FDM u kolegi | po potwierdzeniu pola skanowania | `ad23444483ac95733e92169af00e5271d8fc3b19a91854e8c8acddf06c8cd454` |
 | ramka_tulejka_dc_v2.stl | 2 | PETG, FDM u kolegi | po pomiarze 16 i po zmierzeniu otworu ø12 w gotowym korpusie | `b393256cd8cafdac6d125d6f9f25647c5f94840d1bc5eb87941b436f510bcc00` |
 | ramka_podkladka_panelu_05_v2.stl | 8 | PETG, FDM u kolegi | po pomiarach 4 i 9 | `4260d1f1957f32d101cae5da2cf4634e24239caf738592edd7007fc0728ec6b4` |
 | ramka_podkladka_panelu_1_v2.stl | 8 | PETG, FDM u kolegi | po pomiarach 4 i 9 | `e79a805121499f8d65b7d23ef6d2ae255549b4f55579ded7061b8996b91c9b78` |
 | ramka_podkladka_panelu_2_v2.stl | 8 | PETG, FDM u kolegi | po pomiarach 4 i 9 | `9c47aea4fbc946c16dab3813561d936745b88afde6092542de1d67a21656d5b5` |
+
+[R59] Początki sum plików poprzedniego układu — tylko do rozpoznania starego pliku, nie do zamówienia: n1 `515d32d3…`, n2 `360cff9d…`, n3 `2fc7040e…`, n4 `a8d07cbe…`, n5 `159503ca…`, n6 `0d5d712d…`, n8 `c4c8a18d…`, n9 `a87bc6c5…`.
 
 Do zamówienia dołączyć: ten dokument (sekcja „Czego wymagać od drukarni”), arkusz zamówienia z pakietu (`arkusz_zamowienia.csv`) i wymaganie pomiaru przy odbiorze: **odchyłka większa niż ±0,5 mm od wymiaru nominalnego = reklamacja**.
 
@@ -209,7 +244,7 @@ Wszystkie części druku własnego to FDM z PETG na drukarce kolegi. Filament: j
 | ramka_pokrywka_v2.stl | Pokrywka (99,6 × 99,6 × 20 mm, ok. 30 cm³) | 4 | po potwierdzeniu pola skanowania |
 | ramka_tulejka_dc_v2.stl | Tulejka redukcyjna gniazda zasilania (ø11,85 zewn. — celowo wciskowa, 0,075 mm na stronę w otworze ø12; ø8,2 wewn.; 2 mm; kołnierz ø15 × 1) | 2 | po pomiarze 16 (tylko gdy gniazdo ma gwint ø8) **i po zmierzeniu otworu ø12 w gotowym korpusie** (z druku może wyjść 11,7–11,9 mm) |
 | ramka_podkladka_panelu_05_v2.stl, _1_, _2_ | Podkładki pod dystanse panelu ø9, otwór 3,4, grubość 0,5 / 1 / 2 mm | po 8 (24) | po pomiarach 4 i 9 (albo od razu — minuty druku) |
-| ramka_plytka_wieczorna_n1_v2.stl | Płytka wieczorna nr 1 — test skanera (PETG biały matowy) | 1 | od razu; czeka na egzemplarz testowy skanera |
+| ramka_plytka_wieczorna_n1_v2.stl | Płytka wieczorna nr 1 — test skanera (PETG biały matowy) | 1 | od razu; czeka na egzemplarz testowy skanera; [R59] plik ma nowy układ gniazd, a wydruk sprzed zmiany — poprzedni (opisać go jak pozostałe stare płytki) |
 | ramka_wkladka_v2.stl | Prototyp wkładki (+ płytka nr 1 jak wyżej, próbka zatrzasku blatu) | 1 | od razu, przed zamówieniem wkładek w drukarni |
 
 Dlaczego PETG, nie PLA: pokrywka ma 4 zatrzaski o występie 0,7 mm, które muszą się sprężynować — PETG jest ciągliwy. Pokrywka bywa kładziona na płytkę z pracami prosto z pieca (40–70 °C): PETG trzyma kształt, PLA mięknie już około 55–60 °C. PETG ma też mały skurcz, więc wnęka 96,6 mm trafia w luz 0,3 mm wokół płytki.
@@ -280,6 +315,7 @@ Każdą część z drukarni zmierzyć suwmiarką przed montażem (tolerancja dru
 | Płytka | otwory w dnach gniazd | ø3 mm, przelotowe | | zarośnięte: przebić wiertłem ø3 |
 | Płytka | stożki znaczników | ø5, wysokość 3 mm, 3 szt. | | uszkodzone: płytka do wymiany (program wyrównuje po nich skan) |
 | Płytka | dołki kodu; kieszenie magnesów | dołki ø2 × 1; kieszenie ø5,2 × 2,2 od spodu | | magnes ø5 × 2 ma wejść z luzem na klej |
+| Płytka [R59] | liczba gniazd i rynienek | wieczorna: 18 gniazd (6 × ø12, 12 × ø15) i 1 rynienka; poranna: 23 gniazda (20 × ø12,5, 3 × ø15) i 1 rynienka; okrągłe tak samo | | 2 rynienki albo gniazda ø9, ø7,5, ø10 = wydruk ze starego pliku: sprawdzić sumę SHA‑256 wysłanego pliku i zamówić ponownie z właściwego |
 | Płytka okrągła n8 / n9 [R57] | średnica, grubość; ścięcie orientacyjne | ø100,0 mm, grubość 8 mm (8,6 z cyfrą); ścięcie: płaska ściana, cięciwa 16 mm, przód‑prawo | ±0,3 | ścięcie zaokrąglone albo niewidoczne: reklamacja (program i technik układają płytkę po nim) |
 | Pokrywka (PETG) | wnęka | 96,6 × 96,6 mm, wysokość 20 mm | +0,3 / −0 | ma trzymać na płytce po odwróceniu |
 | Wszystkie | próba na sucho | płytka we wkładce, wkładka na blacie, pokrywka na płytce, blat na korpusie | | według kroku 6 montażu w planie wdrożenia |

@@ -29,7 +29,10 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "baza": (str, PRZYSZLY),
         "log_excel": (str, PRZYSZLY),
     },
-    "plytki": {  # dowolne nazwy płytek (wieczorna, poranna, okragla_wieczorna, okragla_poranna, …): katalog modeli
+    # dowolne nazwy układów płytek → katalog modeli: wieczorna, poranna, okragla_wieczorna, okragla_poranna (układ R59)
+    # oraz wieczorna_r54, poranna_r54, okragla_wieczorna_r54, okragla_poranna_r54 (poprzedni układ R54, stare płytki);
+    # wymagane są tylko dwa pierwsze, reszta jest dostępna, gdy jest wpisana w [plytki]
+    "plytki": {
         "wieczorna": (str, "ustawienia"),
         "poranna": (str, "ustawienia"),
     },

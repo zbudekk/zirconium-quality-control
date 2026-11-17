@@ -1,12 +1,12 @@
 # Stanowisko kontroli cyrkonii — plan wdrożenia v2 (skaner laboratoryjny)
 
-2 listopada 2026 (R57: płytka okrągła) · Autor: Michał Budek
+14 listopada 2026 (R59: nowy układ gniazd płytek) · Autor: Michał Budek
 
 ## Streszczenie po ludzku
 
 Budujemy na parapecie frezowni jedno stanowisko z laboratoryjnym skanerem 3D, które wieczorem wyłapuje ukruszone prace z cyrkonii zanim trafią do pieca, a rano mówi, która praca należy do której kuwety, i samo odhacza zlecenia w firmowym Excelu. Obsługa sprowadza się do ułożenia prac w gniazdach płytki i naciśnięcia spacji na laptopie; resztę robi program.
 
-Jak to działa w jednym zdaniu: skaner mierzy całą płytkę prac naraz (do 18 koron i 2 mostów wieczorem, do 31 koron i 2 mostów rano), program nakłada każdą zmierzoną pracę na jej projekt z SharePointa i zaznacza miejsca, gdzie brakuje materiału; rano ten sam skan służy do rozpoznania, do którego zlecenia praca należy, a diody pod gniazdami podświetlają prace bieżącej kuwety.
+Jak to działa w jednym zdaniu: skaner mierzy całą płytkę prac naraz (do 18 koron i 1 mostu wieczorem, do 23 koron i 1 mostu rano), program nakłada każdą zmierzoną pracę na jej projekt z SharePointa i zaznacza miejsca, gdzie brakuje materiału; rano ten sam skan służy do rozpoznania, do którego zlecenia praca należy, a diody pod gniazdami podświetlają prace bieżącej kuwety.
 
 Trzy cele i co dostajemy:
 
@@ -14,11 +14,11 @@ Trzy cele i co dostajemy:
 2. **Szybsze rozkładanie rano** — program wskazuje kuwetę dla każdej pracy, a diody prowadzą rękę kuweta po kuwecie. Cel: duży piec z ok. 40 min do ok. 20–25 min.
 3. **Excel** — zlecenia, których wszystkie punkty wyszły z pieca, odhaczają się same (zielone pole w kolumnie B), z logiem każdej zmiany. Cel: 10–15 min na piec do zera.
 
-Co kupujemy: skaner laboratoryjny Aidite A-IS Pro 3 (ok. 20–25 tys. zł, przez istniejącą relację z Aidite; zamiennie Shining AutoScan-DS-EX Pro(H), DOF Freedom lub 3Shape F8), dwa komplety płytek z gniazdami (6 sztuk: 3 wieczorne i 3 poranne), dwie ramki świetlne (przy skanerze i w pokoju rozkładania) na Raspberry Pi z matrycą LED, bezprzewodową klawiaturę numeryczną, osłonę, drobne. Części ramek i płytek drukujemy w zewnętrznej drukarni z gotowych plików, a część ukrytych lub testowych elementów sami. Laptop daje firma. Oprogramowanie piszemy sami, bez płatnych bibliotek i subskrypcji.
+Co kupujemy: skaner laboratoryjny Aidite A-IS Pro 3 (ok. 20–25 tys. zł, przez istniejącą relację z Aidite; zamiennie Shining AutoScan-DS-EX Pro(H), DOF Freedom lub 3Shape F8), dwa komplety płytek z gniazdami (6 sztuk: 3 wieczorne i 3 poranne; o kształcie — okrągłe czy kwadratowe — właściciel decyduje po odbiorze plików nowego układu [R59]), dwie ramki świetlne (przy skanerze i w pokoju rozkładania) na Raspberry Pi z matrycą LED, bezprzewodową klawiaturę numeryczną, osłonę, drobne. Części ramek i płytek drukujemy w zewnętrznej drukarni z gotowych plików, a część ukrytych lub testowych elementów sami. Laptop daje firma. Oprogramowanie piszemy sami, bez płatnych bibliotek i subskrypcji.
 
-Stan prac: projekt ramek i płytek jest zamknięty w planie budowy v2, a obudowa została tak zaprojektowana, by nie zależała od wymiarów kupowanej elektroniki (zapasy, rowki i podkładki zamiast dopasowania po pomiarach). Pliki do druku są ostateczne, zweryfikowane trzykrotnie (generator, recenzent, niezależna kontrola pasowań); do drukarni: korpus W, korpus P, blat × 2 — od razu; wkładka × 3, płytki n1–n6 — po potwierdzeniu pola skanowania; pokrywki × 4 drukujemy sami po potwierdzeniu pola. Elektronikę ramek można zamawiać od razu. Aktualny model 3D z wymiarami do pomiaru: https://claude.ai/artifact/N1W9QKGcXq87t3GPhFp5Sf. Szczegółowa lista zakupów i instrukcje druku są w osobnym dokumencie „Zakupy i druk — stanowisko kontroli cyrkonii”; powody wyboru każdego elementu ramki, możliwe zamienniki i elementy, z których świadomie zrezygnowano, opisuje dokument „Budowa ramki — decyzje i zamienniki”.
+Stan prac: projekt ramek i płytek jest zamknięty w planie budowy v2, a obudowa została tak zaprojektowana, by nie zależała od wymiarów kupowanej elektroniki (zapasy, rowki i podkładki zamiast dopasowania po pomiarach). Pliki do druku są ostateczne, zweryfikowane trzykrotnie (generator, recenzent, niezależna kontrola pasowań); do drukarni: korpus W, korpus P, blat × 2 — od razu; wkładka × 3, płytki n1–n6 — po potwierdzeniu pola skanowania; pokrywki × 4 drukujemy sami po potwierdzeniu pola. Elektronikę ramek można zamawiać od razu. [R59] Płytki mają nowy układ gniazd: wieczorna 18 gniazd i 1 rynienkę, poranna 23 gniazda i 1 rynienkę; płytki wykonane wcześniej zostają w użyciu, a program zna oba układy (sekcja „Nowy układ gniazd płytek”). Model 3D ramki z wymiarami do pomiaru: https://claude.ai/artifact/N1W9QKGcXq87t3GPhFp5Sf (wersja online pokazuje płytki w poprzednim układzie gniazd; model z nowym układem jest w pakiecie plików). Szczegółowa lista zakupów i instrukcje druku są w osobnym dokumencie „Zakupy i druk — stanowisko kontroli cyrkonii”; powody wyboru każdego elementu ramki, możliwe zamienniki i elementy, z których świadomie zrezygnowano, opisuje dokument „Budowa ramki — decyzje i zamienniki”.
 
-Kolejność: zakup skanera poprzedza test na egzemplarzu testowym na naszych pracach (płytka z 20 zielonymi i 10 spieczonymi pracami), który rozstrzyga wybór skanera. Potem decyzja, zamówienie i oczekiwanie na dostawę — w tym czasie powstają oprogramowanie i obie ramki. Po dostawie: uruchomienie, tryb cienia (do spełnienia kryteriów odbiorczych) i tryb pełny.
+Kolejność: zakup skanera poprzedza test na egzemplarzu testowym na naszych pracach (20 zielonych i 10 spieczonych prac na płytkach), który rozstrzyga wybór skanera. Potem decyzja, zamówienie i oczekiwanie na dostawę — w tym czasie powstają oprogramowanie i obie ramki. Po dostawie: uruchomienie, tryb cienia (do spełnienia kryteriów odbiorczych) i tryb pełny.
 
 Czego stanowisko nie zrobi: nie rozróżni dwóch niemal identycznych prac implantologicznych (różnią się tylko kolorem, którego nie ma w danych — pokaże obu kandydatów, decyduje człowiek) i nie zagwarantuje wykrycia każdego ukruszenia wielkości pół kryształu cukru.
 
@@ -54,8 +54,8 @@ Jawne założenia (każde da się obalić testem lub rozmową i wtedy plan dosta
 7. Gęstość spieczonej cyrkonii jest stała (ok. 6,05 g/cm³) — używana tylko pomocniczo do zawężania kandydatów.
 8. Prezes akceptuje, że wykrywalność mierzymy na próbie i raportujemy liczbą, a nie obietnicą 100%.
 9. Pył ze szlifowania: skaner i ramka przy nim dostają pokrowce, płytki są wycierane przed skanem; obudowy ramek są zamknięte, a szczeliny wentylacyjne są nisko przy dnie, z dala od płytki.
-10. Zakres prac: korony i mosty do 4 punktów (rynienki 60 × 15 mm); mosty powyżej 4 punktów są poza zakresem stanowiska.
-11. [R54] Skaner obraca płytkę wokół osi pionowej, więc w całym obrocie widzi koło wokół osi stolika, nie kwadrat — założenie: koło o średnicy 100 mm. Dlatego wszystkie gniazda, rynienki i stożki znaczników leżą w kole o promieniu 47 mm od środka płytki (50 mm minus 1,5 mm na ułożenie płytki względem osi i 1,5 mm na wysięg korony poza gniazdo); obrys płytki 96 × 96 mm bez zmian. Średnica pola jest jedną liczbą w plikach projektu; jeśli okaże się mniejsza, gniazda przelicza się do mniejszego koła i drukuje nowe płytki, a ramka, wkładka i pokrywka zostają; dopiero przy polu poniżej ok. 94 mm płytka stałaby się okrągła i wymagała nowej wkładki i pokrywki.
+10. Zakres prac: korony i mosty do 4 punktów (rynienka 60 × 15 mm wieczorem, 50 × 13 mm rano); mosty powyżej 4 punktów są poza zakresem stanowiska. [R59] Płytka ma jedną rynienkę, więc mieści jeden most; kolejny most idzie na następną płytkę.
+11. [R54] Skaner obraca płytkę wokół osi pionowej, więc w całym obrocie widzi koło wokół osi stolika, nie kwadrat — założenie: koło o średnicy 100 mm. Dlatego wszystkie gniazda, rynienka i stożki znaczników leżą w kole o promieniu 47 mm od środka płytki (50 mm minus 1,5 mm na ułożenie płytki względem osi i 1,5 mm na wysięg korony poza gniazdo); obrys płytki 96 × 96 mm bez zmian. Średnica pola jest jedną liczbą w plikach projektu; jeśli okaże się mniejsza, gniazda przelicza się do mniejszego koła i drukuje nowe płytki, a ramka, wkładka i pokrywka zostają; dopiero przy polu poniżej ok. 94 mm płytka stałaby się okrągła i wymagała nowej wkładki i pokrywki.
 12. Panel LED i Raspberry Pi mają typowe wymiary (rozstaw otworów panelu 110–130 mm, elementy od spodu do 12 mm, stos Raspberry Pi z nakładką 26 mm). Obudowa ma na to zapasy (8 mm nad stosem, rowki pod słupki, okno USB z rowkami, otwór gniazda z tulejką), więc pomiary kupionej elektroniki nie zmieniają korpusu; przy nietypowym sprzęcie wystarczy wiercenie w dnie, tulejka lub podkładki.
 
 Co jest warunkowe:
@@ -91,14 +91,14 @@ Szczegółowa lista zakupów (parametry do wyszukania w sklepie, ilości, ceny),
 | 3 | Sprzęt mocujący panel i blat | 8 dystansów M3 żeńsko‑żeńskich 50 mm (albo 45 mm + tulejki klejone, gdy panel nie ma gwintu), wkręty dociskowe M3 × 5, wkręty M3 × 10 z podkładkami ø9, wkręty M3 × 8, wkręty do tworzyw, śruby M2,5, epoksyd | Botland, Kamami, Allegro | od razu (dystanse w obu długościach albo po sprawdzeniu gwintu panelu) | ok. 80–120 zł |
 | 4 | Pleksi mleczna 2 mm 160 × 160 | 2 szt. + 1 zapas, cięcie na wymiar | pleksi mleczna na wymiar, cięcie laserem: PlasticExpress, Plexigo, eplexi24, Plexinet | od razu | 10–20 zł/szt. |
 | 5 | Korpusy i blaty (drukarnia, PA12 grafit) | korpus „RAMKA WIECZORNA”, korpus „RAMKA PORANNA”, 2 blaty | drukarnia MJF/SLS PA12, np. Cadxpert (Poznań), Spes3D (Wrocław), P3DRC, Send3D, Laboratorium Druku 3D (Gliwice); wyceny u 2–3 | od razu — pliki ostateczne (nie zależą od pomiarów ani od skanera) | 551–980 zł (najtańszy) / 860–1 528 zł (pokazowy) |
-| 6 | Płytki poranne nr 4–6 (drukarnia, PA12 biały) | 3 szt., 31 gniazd + 2 rynienki [R54] | drukarnia jak w poz. 5 (to samo zamówienie lub ta sama firma) | po potwierdzeniu pola skanowania | 164–292 zł |
-| 7 | Płytki wieczorne nr 1–3 (drukarnia, PA12 biały) | 3 szt., 18 gniazd + 2 rynienki [R54] [R55] | drukarnia jak w poz. 5 | po potwierdzeniu pola skanowania | 160–285 zł |
-| 7a | Płytki okrągłe nr 8 (wieczorna) i 9 (poranna) — drugi wariant do testu skanera [R57] (drukarnia, PA12 biały mat, bez wygładzania) | 2 szt., ø100 × 8 mm, ten sam układ gniazd i stożków co nr 1–3 / 4–6, ścięcie orientacyjne na obwodzie; tylko do skanera — nie pasują do wkładki ramki | drukarnia jak w poz. 5 | od razu (pliki zweryfikowane i zatwierdzone 2.11) | 90–159 zł |
+| 6 | Płytki poranne nr 4–6 (drukarnia, PA12 biały) | 3 szt., 23 gniazda + 1 rynienka [R59] | drukarnia jak w poz. 5 (to samo zamówienie lub ta sama firma) | po potwierdzeniu pola skanowania i decyzji właściciela o kształcie płytek [R59] | 162–288 zł |
+| 7 | Płytki wieczorne nr 1–3 (drukarnia, PA12 biały) | 3 szt., 18 gniazd + 1 rynienka [R59] [R55] | drukarnia jak w poz. 5 | po potwierdzeniu pola skanowania i decyzji właściciela o kształcie płytek [R59] | 161–286 zł |
+| 7a | Płytki okrągłe nr 8 (wieczorna) i 9 (poranna) — drugi kształt płytki [R57], nowy układ gniazd [R59] (drukarnia, PA12 biały mat, bez wygładzania) | 2 szt., ø100 × 8 mm, te same gniazda i stożki co nr 1–3 / 4–6 (18 gniazd i 1 rynienka / 23 gniazda i 1 rynienka), ścięcie orientacyjne na obwodzie; tylko do skanera — nie pasują do wkładki ramki | drukarnia jak w poz. 5 | po decyzji właściciela, który skłania się ku okrągłym [R59] | 89–158 zł |
 | 8 | Wkładki gniazda płytki (drukarnia, PA12 biały) | 2 + 1 zapas; prototyp z PETG (FDM u kolegi) przed zamówieniem [R55] | drukarnia jak w poz. 5 | po potwierdzeniu pola skanowania | 34–60 zł |
 | 9 | Druk własny [R55: wszystko PETG, FDM u kolegi] | 4 pokrywki; 2 tulejki gniazda zasilania i 3 × 8 podkładek panelu (po pomiarach); płytka do testu skanera (PETG biały matowy) i prototypy pasowań | drukarka FDM u kolegi | pokrywki po potwierdzeniu pola; tulejka i podkładki po pomiarach; prototypy od razu | koszt filamentu |
 | 10 | Osłona, pokrowce, drobne stanowiska | osłona z czarnej płyty nad ramką przy skanerze (ok. 30 × 30 × 35 cm), pokrowce, hub USB 3.0, kable, listwa, ściereczki | Allegro, sklepy budowlane (płyta na osłonę) | przed uruchomieniem | 300–600 zł |
 
-Razem bez skanera: elektronika i drobne 1 200–1 680 zł, drukarnia 909–1 616 zł (najtańszy, PA12 naturalny i grafit bez wygładzania) lub 1 217–2 164 zł (pokazowy: korpusy i blaty barwione i wygładzane), osłona i drobne stanowiska 300–600 zł — razem ok. 2,4–3,9 tys. zł (do 4,4 tys. zł w wariancie pokazowym). [R57] Płytki okrągłe nr 8 i 9 (poz. 7a) dokładają do drukarni 90–159 zł: razem z nimi drukarnia 998–1 775 zł (najtańszy) / 1 307–2 323 zł (pokazowy); sumy ogółem w tym dokumencie rosną o mniej niż 0,2 tys. zł.
+Razem bez skanera: elektronika i drobne 1 200–1 680 zł, drukarnia 907–1 613 zł (najtańszy, PA12 naturalny i grafit bez wygładzania) lub 1 216–2 161 zł (pokazowy: korpusy i blaty barwione i wygładzane), osłona i drobne stanowiska 300–600 zł — razem ok. 2,4–3,9 tys. zł (do 4,4 tys. zł w wariancie pokazowym). [R57] Płytki okrągłe nr 8 i 9 (poz. 7a) dokładają do drukarni 89–158 zł: razem z nimi drukarnia 996–1 771 zł (najtańszy) / 1 305–2 320 zł (pokazowy); sumy ogółem w tym dokumencie rosną o mniej niż 0,2 tys. zł. [R59] Kwoty druku pochodzą z arkusza zamówienia nowego układu gniazd.
 
 Razem bez opcji: skaner 20–25 tys. zł + ramki, płytki, osłona i drobne 2,4–3,9 tys. zł = ok. 22,4–29 tys. zł. Z kamerą (plan B poranka): dodatkowo ok. 2 tys. zł.
 
@@ -115,7 +115,7 @@ architektura · 4 źródła danych, 1 program, 3 wyjścia (schemat w wersji PDF)
 Elementy i ich rola:
 
 1. **Skaner laboratoryjny** — mierzy całą płytkę naraz i zapisuje jeden plik STL (siatka trójkątów ze wszystkimi pracami i płytką). Jego własny program obsługuje skan i eksport; nasz program czeka na plik w folderze.
-2. **Płytka z gniazdami** — nadaje pracom znane miejsca: program wie, gdzie na płytce jest gniazdo numer 13, więc może powiedzieć „czerwone jest 13” i zapalić diodę dokładnie pod nim. Trzy stożki w narożnikach pozwalają programowi wyrównać skan do rysunku płytki z dokładnością poniżej 0,1 mm; współrzędne gniazd leżą w pliku obok modelu, więc zmiana układu nie wymaga zmiany kodu.
+2. **Płytka z gniazdami** — nadaje pracom znane miejsca: program wie, gdzie na płytce jest gniazdo numer 13, więc może powiedzieć „czerwone jest 13” i zapalić diodę dokładnie pod nim. Trzy stożki znaczników pozwalają programowi wyrównać skan do rysunku płytki z dokładnością poniżej 0,1 mm; współrzędne gniazd leżą w pliku obok modelu, więc zmiana układu nie wymaga zmiany kodu. [R59] Program zna dwa układy gniazd — nowy i poprzedni — bo płytki wykonane wcześniej zostają w użyciu; gdy zeskanowana płytka nie pasuje do wybranego układu, ostrzega.
 3. **Projekty STL** — wzorzec, do którego porównujemy. Wieczorem projekt jest powiększony o współczynnik skurczu krążka (z raportu MillBox), rano w wymiarach 1:1.
 4. **Dopasowanie 3D** — program najpierw zgaduje, który projekt pasuje (objętość, wymiary, kształt), potem nakłada go na pomiar z dokładnością do setnych milimetra (algorytm ICP, otwarta biblioteka Open3D).
 5. **Wykrywanie ubytków** — po nałożeniu liczymy, gdzie pomiar leży pod powierzchnią projektu. Mały, ostry, lokalny ubytek przy brzegu to ukruszenie; gładka, rozległa różnica to ręczna poprawka technika albo luz pasowania i nie jest zgłaszana.
@@ -139,7 +139,7 @@ Decyzja o każdym czerwonym gnieździe należy do technika; program zapamiętuje
 
 Krok po kroku (technik):
 
-1. Wycina prace z krążka i szlifuje piny jak dziś. Każdą gotową pracę odkłada do wolnego gniazda płytki brzegiem do góry (powierzchnią żującą w dół); mosty do rynienek. Rozmiar gniazda dobiera na oko — program nie dba, które gniazdo. Płytka ma gniazda w rzędach od najmniejszych z przodu do rynienek z tyłu.
+1. Wycina prace z krążka i szlifuje piny jak dziś. Każdą gotową pracę odkłada do wolnego gniazda płytki brzegiem do góry (powierzchnią żującą w dół); most do rynienki. [R59] Rynienka jest jedna, więc na płytkę przypada jeden most; drugi czeka na następną płytkę. Do rynienki idzie też praca za duża na gniazdo ø15 mm. Rozmiar gniazda dobiera na oko — program nie dba, które gniazdo. Płytka ma z przodu rynienkę, za nią rząd gniazd ø12 mm i trzy rzędy gniazd ø15 mm.
 2. Gdy płytka jest pełna albo krążek skończony: wsuwa płytkę do skanera do oporu (wycięcie orientacyjne wymusza jedno ułożenie) i naciska spację na laptopie. Zaczyna ładować drugą płytkę albo wraca do wycinania.
 3. Po 60–90 s ekran pokazuje mapę płytki: zielone gniazda bez uwag, czerwone z podejrzeniem ubytku, szare „bez projektu” (program nie dopasował żadnego STL — ogląda się jak dziś, gołym okiem). Ramka przy skanerze świeci to samo pod płytką, gdy technik ją na niej położy.
 4. Wyjmuje płytkę. Czerwone prace bierze do ręki; kliknięcie czerwonego gniazda na ekranie laptopa pokazuje pracę w 3D z mapą odchyłek (od turkusu do czerwieni) i powiększeniem miejsca ubytku z jego rozmiarem.
@@ -155,7 +155,7 @@ Co robi program w tle:
 - Odróżnia poprawkę ręczną: gładka różnica na obszarze większym niż 2 mm bez ostrej krawędzi nie jest zgłaszana.
 - Zapisuje w lokalnej bazie: plik skanu, gniazdo, dopasowany projekt, wynik, decyzję technika, czas.
 
-Czas na płytkę (do 18 koron i 2 mostów): ułożenie w gniazdach zastępuje odkładanie na tackę (bez dodatkowego czasu), zaniesienie i start 15 s, skan 30–60 s i analiza 20–40 s w tle, spojrzenie na ekran i wyjęcie czerwonych 30–60 s. Netto 1–2 min pracy technika na płytkę, czyli 10–20 min na typowy wieczór z 7–10 płytkami.
+Czas na płytkę (do 18 koron i 1 mostu): ułożenie w gniazdach zastępuje odkładanie na tackę (bez dodatkowego czasu), zaniesienie i start 15 s, skan 30–60 s i analiza 20–40 s w tle, spojrzenie na ekran i wyjęcie czerwonych 30–60 s. Netto 1–2 min pracy technika na płytkę, czyli 10–20 min na typowy wieczór z 7–10 płytkami.
 
 Sytuacje szczególne:
 
@@ -165,6 +165,8 @@ Sytuacje szczególne:
 - Podwójna powierzchnia w skanie (praca drgnęła w czasie skanu): program to wykrywa i prosi o ponowny skan tej płytki zamiast zgłaszać fałszywe ubytki.
 - Most 4-punktowy w rynience: analiza jak dla korony, brzegi każdego punktu i łączniki osobno.
 - Prace implantologiczne: wyznacznikiem są brzeg przy łączniku i krawędzie kanału śruby; sam kanał jest wyłączony z analizy.
+- [R59] Drugi most na tej samej płytce: nie ma na niego miejsca (jedna rynienka, a w jednym gnieździe jedna praca) — czeka na następną płytkę. Dwa mosty w jednej rynience będą możliwe dopiero po zmianie programu.
+- [R59] Ostrzeżenie, że płytka nie pasuje do wybranego układu: na skanerze leży płytka starego układu przy wybranym nowym albo odwrotnie — sprawdzić opis na płytce i wybrać w programie właściwy układ.
 
 ## Przepływ poranny krok po kroku
 
@@ -174,7 +176,7 @@ Przymierzanie na modelach zostaje tam, gdzie jest potrzebne do korekty; przestaj
 
 Krok po kroku (osoba rozkładająca piece):
 
-1. Otwiera pojemniki z pieca i przekłada prace (40–70 °C) do gniazd płytek porannych brzegiem do góry. Duży piec to 2 płytki po 31 gniazd i 2 rynienki, mały — jedna.
+1. Otwiera pojemniki z pieca i przekłada prace (40–70 °C) do gniazd płytek porannych brzegiem do góry. [R59] Płytka poranna ma 23 gniazda i 1 rynienkę: duży piec (40–60 prac) to 2–3 płytki, mały — jedna, w razie potrzeby druga. Na płytkę przypada jeden most.
 2. Skanuje wszystkie płytki pieca po kolei: płytka do skanera, spacja na laptopie, w czasie skanu ładuje następną. Po ostatnim skanie program zna cały piec: która praca leży na której płytce i które zlecenia są kompletne.
 3. Ekran przy skanerze pokazuje każdą płytkę z podpisami: numer kuwety, nazwisko, numer zęba, miniatura projektu. Gniazda pewne na zielono, dwuznaczne na żółto (dwóch kandydatów), poprawki na bursztynowo („poprawka: 3263”), nieznane na biało. Dwuznaczne rozstrzyga kliknięciem już tutaj (podgląd STL obu kandydatów, kolor z karty zlecenia).
 4. Zabiera do pokoju rozkładania to, co dziś: kuwety z szafki pieca oraz płytki z nałożonymi pokrywkami. Wyjmuje z szafki ramkę poranną, stawia na stole i wpina wtyk zasilacza czekający w klipsie przy krawędzi stołu (gniazdo jest wgłębione w tylnej ściance, wtyk kątowy nie wystaje poza obrys ramki); ramka startuje sama w 30–40 s i łączy się z Wi‑Fi. Klawiatura numeryczna leży obok. Po rozłożeniu pieców ramka wraca do szafki.
@@ -192,7 +194,7 @@ Co robi program w tle:
 - Ramki i płytki: każda płytka ma magnesy w spodzie (kod dla ramki) i kod geometryczny (dołki przy lewej krawędzi) czytany ze skanu, więc program wie, która płytka została zeskanowana i która leży na ramce. Ramka poranna dostaje przez Wi‑Fi plan płytki (gniazdo → kuweta), odsyła potwierdzenia i wpisane numery; przy braku sieci trzyma ostatni plan w pamięci i dosyła potwierdzenia po powrocie łączności.
 - Excel: tylko po „Zamknij piec”, tylko zlecenia kompletne; jeśli pole B jest już zielone (poprawka, dofrezowanie, reklamacja), program nic nie zapisuje i tylko loguje; każda zmiana w logu z datą, numerem kuwety i nazwą folderu.
 
-Czas (duży piec, 40–60 prac, 2 płytki poranne): przełożenie do gniazd zastępuje wyjmowanie na blat; skany 2 × 90 s w tle przy piecu; w pokoju rozkładania ok. 8–12 s na pracę według diod, dwuznaczne i nieznane 20–30 s na pracę. Cel: 20–25 min na duży piec zamiast 40, bez osobnego odhaczania w Excelu.
+Czas (duży piec, 40–60 prac, 2–3 płytki poranne [R59]): przełożenie do gniazd zastępuje wyjmowanie na blat; skany 2–3 × 90 s w tle przy piecu; w pokoju rozkładania ok. 8–12 s na pracę według diod, dwuznaczne i nieznane 20–30 s na pracę. Cel: 20–25 min na duży piec zamiast 40, bez osobnego odhaczania w Excelu.
 
 Plan B poranka: jeśli skan spieczonej, przeziernej cyrkonii bez sprayu daje mniej niż ok. 70% powierzchni, poranek przejmuje kamera 20 Mpx nad ramką LED: jedno zdjęcie płytki, identyfikacja po obrysie i widoku wnętrza, te same diody i ten sam Excel. Decyzja po teście z sekcji „Test przed zakupem”.
 
@@ -211,7 +213,7 @@ Ramka wieczorna stoi przy skanerze pod osłoną i po skanie pokazuje czerwone i 
 
 Wkładka gniazda (biała rama na blacie) jest osobną, tanią częścią: ustala położenie płytki z powtarzalnością ±0,5 mm, niesie 3 czujniki magnetyczne pod narożnikami płytki i kołek orientacyjny, który wchodzi w wycięcie płytki. Jeśli test skanera wymusi mniejszą płytkę, wymienia się tylko wkładkę, nie ramkę.
 
-Płytki: obie 96 × 96 × 8 mm, ten sam obrys, więc ta sama wkładka. Każda ma 3 stożki narożne dla skanera, wycięcie orientacyjne w czwartym narożniku, dołki kodu przy lewej krawędzi (skaner czyta numer płytki ze skanu), kieszenie na magnesy od spodu (ramka czyta numer przez czujniki), wytłoczoną cyfrę i rowek na pokrywkę. Numery 1–3 to płytki wieczorne, 4–6 poranne; brak magnesów = brak płytki. Pokrywka (jedna na obie płytki) zatrzaskuje się w rowek i zostawia 14 mm prześwitu nad płytką.
+Płytki: obie 96 × 96 × 8 mm, ten sam obrys, więc ta sama wkładka. Każda ma 3 stożki znaczników dla skanera (w kole gniazd, nie w narożnikach), wycięcie orientacyjne w narożniku przód‑prawym, dołki kodu przy lewej krawędzi (skaner czyta numer płytki ze skanu), kieszenie na magnesy od spodu (ramka czyta numer przez czujniki), wytłoczoną cyfrę i rowek na pokrywkę. Numery 1–3 to płytki wieczorne, 4–6 poranne; brak magnesów = brak płytki. Pokrywka (jedna na obie płytki) zatrzaskuje się w rowek i zostawia 14 mm prześwitu nad płytką.
 
 | Część | Ile | Materiał | Skąd |
 |---|---|---|---|
@@ -223,6 +225,39 @@ Płytki: obie 96 × 96 × 8 mm, ten sam obrys, więc ta sama wkładka. Każda ma
 | Wkładka gniazda | 2 + 1 zapas | PA12 biały | drukarnia (prototyp z PETG u kolegi [R55]) |
 | Tulejka redukcyjna gniazda zasilania (gdy gniazdo ma gwint ø8) | 2 | PETG [R55] | sami (FDM u kolegi) |
 | Podkładki pod dystanse panelu 0,5 / 1 / 2 mm | 3 × 8 | PETG [R55] | sami (FDM u kolegi) |
+
+### Nowy układ gniazd płytek [R59]
+
+Płytki mają nowy układ gniazd: większe gniazda w miejscu małych i jedną rynienkę zamiast dwóch. Obrys płytki, ramka, wkładka i pokrywka zostają bez zmian — zmieniły się tylko pliki płytek.
+
+| Płytka | Było | Jest |
+|---|---|---|
+| Wieczorna (nr 1–3, okrągła nr 8) | 18 gniazd: 7 × ø9, 6 × ø12, 5 × ø15; 2 rynienki 60 × 15 mm | 18 gniazd: 6 × ø12, 12 × ø15; 1 rynienka 60 × 15 mm |
+| Poranna (nr 4–6, okrągła nr 9) | 31 gniazd: 18 × ø7,5, 7 × ø10, 6 × ø12,5; 2 rynienki 50 × 13 mm | 23 gniazda: 20 × ø12,5, 3 × ø15; 1 rynienka 50 × 13 mm |
+
+Po co. Prace są większe, niż zakładał poprzedni układ. W próbie 17 projektów w najmniejsze gniazda (ø9 wieczorem, ø7,5 rano) nie weszła żadna praca — 0 z 17 — a 2 z 17 były za duże na największe gniazdo i zajmowały rynienkę. W nowym układzie w każde gniazdo wchodzi któraś praca z próby: wieczorem gniazd ø15 jest 12 zamiast 5, rano doszły 3 gniazda ø15, których wcześniej nie było. Próba jest mała i dobrana do testów programu, nie jest przekrojem produkcji — układ sprawdzi dopiero codzienna praca.
+
+Co to kosztuje:
+
+- Jeden most na płytkę. Rynienka jest jedna, a program przyjmuje jedną pracę w jednym gnieździe. Drugi most czeka na następną płytkę.
+- W próbie 17 projektów jest 6 mostów i wchodzą one tylko do rynienki. Wieczorem rynienki wymaga 7–8 z 17 prac: do mostów dochodzi trzonowiec, który nie mieści się w gnieździe ø15, a drugi duży trzonowiec mieści się w nim nie zawsze — program ułożył go tam w 13 z 20 prób.
+- Płytka poranna ma 23 gniazda zamiast 31. Duży piec (40–60 prac) to 2–3 płytki zamiast 2.
+- Najmniejsze gniazdo ma ø12 mm wieczorem i ø12,5 mm rano. Czy najmniejsze prace leżą w nim pewnie przy obrocie stolika, sprawdzi test skanera (kryterium 2).
+- Dwa mosty na jednej płytce wymagają zmiany programu. To osobna praca, bez ustalonego terminu.
+
+Co ze starymi płytkami:
+
+- Płytki wykonane w poprzednim układzie zostają w użyciu. Na płytce wieczornej poprzedniego układu idą pierwsze skany, gdy tylko skaner będzie na miejscu; nowe płytki zamawiamy w tym czasie.
+- Program zna oba układy: nowy i poprzedni (pod nazwą z dopiskiem `_r54`). Układ wybiera się w programie ręcznie. Gdy zeskanowana płytka nie pasuje do wybranego układu, program ostrzega.
+- Numery płytek są te same w obu układach: 1–3 wieczorne, 4–6 poranne, 8 i 9 okrągłe. Numer z dołków kodu nie odróżnia więc starej płytki od nowej.
+- Dlatego stare płytki trzeba opisać trwałym napisem na boku (na przykład „stary układ”) i trzymać osobno od nowych.
+
+Co zamawiamy:
+
+- Właściciel skłania się ku płytkom okrągłym. Co i ile zamówić, zdecyduje po odbiorze plików nowego układu. Ilości w arkuszu zamówienia zostają bez zmian.
+- Płytka okrągła ma te same gniazda co kwadratowa tego samego typu: wieczorna 18 gniazd i 1 rynienkę, poranna 23 gniazda i 1 rynienkę. Kształt płytki nie zmienia liczby gniazd.
+- Płytka okrągła działa dziś tylko w skanerze. Żeby leżała na ramce świetlnej, potrzebna jest zmiana R58 (okrągła wkładka i pokrywka).
+- Do drukarni idą wyłącznie pliki o sumach SHA‑256 z dokumentu „Zakupy i druk”. Pliki poprzedniego układu mają te same nazwy, ale inne sumy.
 
 ### Co zamawiamy w drukarni, a co drukujemy sami — i dlaczego
 
@@ -239,8 +274,8 @@ Drukarnie do wyceny części PA12 (MJF lub SLS, od 1 sztuki): Cadxpert (Poznań)
 | Pokrywka × 4 | sami (PETG, FDM u kolegi) | oszczędność ok. 110–190 zł; zatrzaski wymagają ciągliwości PETG; gładki wierzch, drukowana wierzchem do stołu |
 | Tulejka gniazda zasilania × 2, podkładki panelu 3 × 8 | sami (PETG, FDM u kolegi, po pomiarach) [R55] | małe części, druk w minuty; potrzebne tylko gdy gniazdo ma gwint ø8 lub dystans wymaga wyrównania; tulejka ø11,85 po wydruku sprawdzana w otworze ø12 korpusu — przy luzie lub zacisku skalowanie XY w slicerze ±1 %, bez zmiany pliku; podkładka 0,5 mm to 3–5 warstw 0,1–0,2 mm |
 | Prototypy pasowań | sami przed zamówieniem: 1 płytka, 1 wkładka, 1 pokrywka, próbka zatrzasku blatu | test realnych luzów za kilka złotych materiału, zanim pójdzie ok. 1 500 zł do drukarni |
-| Płytki okrągłe nr 8 i 9 [R57] | zamówić od razu (PA12 biały mat, bez wygładzania, ±0,3 mm) | drugi wariant kształtu do testu skanera: porównanie kwadrat vs koło na egzemplarzu skanera przy tym samym układzie gniazd i stożków; okrągła nie ma wystających rogów, a jej dołki kodu leżą w polu ø100; nie pasuje do wkładki ramki — do użycia na ramce potrzebna przyszła zmiana R58 (wkładka i pokrywka okrągłe) |
-| Płytka do testu skanera | 1 płytka wieczorna nr 1 z PETG białego matowego (FDM u kolegi) [R55], gotowa na test egzemplarza skanera | rozstrzyga, czy program widzi 3 stożki i dołki kodu oraz czy prace zostają w gniazdach; pole skanowania mierzy osobno kartonowa makieta z okręgami (kryterium 8) [R54]; skanera jeszcze nie ma, więc test odbędzie się na egzemplarzu testowym (albo wystarczy pisemna odpowiedź producenta o zakresie skanowania) |
+| Płytki okrągłe nr 8 i 9 [R57] | zamówić po decyzji właściciela, który skłania się ku okrągłym [R59] (PA12 biały mat, bez wygładzania, ±0,3 mm) | drugi kształt płytki: te same gniazda i stożki co w kwadratowej tego samego typu, więc różni je tylko obrys; okrągła nie ma wystających rogów, a jej dołki kodu leżą w polu ø100; nie pasuje do wkładki ramki — do użycia na ramce potrzebna przyszła zmiana R58 (wkładka i pokrywka okrągłe) |
+| Płytka do testu skanera | 1 płytka wieczorna nr 1 z PETG białego matowego (FDM u kolegi) [R55], gotowa na test egzemplarza skanera | rozstrzyga, czy program widzi 3 stożki i dołki kodu oraz czy prace zostają w gniazdach; pole skanowania mierzy osobno kartonowa makieta z okręgami (kryterium 8) [R54]; skanera jeszcze nie ma, więc test odbędzie się na egzemplarzu testowym (albo wystarczy pisemna odpowiedź producenta o zakresie skanowania); [R59] płytka wydrukowana przed zmianą układu ma poprzedni układ gniazd — program go zna, a płytkę trzeba opisać jak pozostałe stare płytki |
 
 Jeśli drukarka FDM nie będzie dostępna: zamówić wszystko, a prototypy pasowań zlecić w tej samej drukarni jako tanie próbki przed głównym zamówieniem.
 
@@ -292,7 +327,7 @@ Moduły:
 | Moduł | Co robi | Wejście → wyjście | Trudność |
 |---|---|---|---|
 | catalog | Indeksuje projekty: folder „Cyrkon” (OneDrive), folder „Prywatne”, raporty MillBox; liczy cechy każdego STL (objętość, wymiary, deskryptor kształtu, miniatura) i trzyma je w bazie | foldery → tabela projektów z cechami | średnia |
-| plate | Zna rysunek płytki z pliku układu gniazd: współrzędne gniazd, znaczników i dołków kodu; wyrównuje skan do płytki (ICP na stożkach), czyta numer płytki, tnie skan na gniazda, wykrywa gniazda puste, podwójne i prace poza gniazdem | STL płytki → lista fragmentów z numerem gniazda | średnia |
+| plate | Zna rysunek płytki z pliku układu gniazd: współrzędne gniazd, znaczników i dołków kodu; wyrównuje skan do płytki (ICP na stożkach), czyta numer płytki, tnie skan na gniazda, wykrywa gniazda puste, podwójne i prace poza gniazdem; [R59] zna nowy i poprzedni układ gniazd i ostrzega, gdy zeskanowana płytka nie pasuje do wybranego | STL płytki → lista fragmentów z numerem gniazda | średnia |
 | match | Identyfikuje fragment: filtr po objętości i wymiarach, zgrubne dopasowanie, ICP, ocena dopasowania; wieczorem pula dnia ze skalą z raportu, rano pula 3–4 dni w skali 1:1; zwraca ranking kandydatów z pewnością | fragment + pula → kandydat(ci) + transformacja | wysoka |
 | inspect | Mapa odchyłek skan–projekt; wyszukuje ubytki (ostre, małe, przy brzegu lub krawędzi); odrzuca gładkie poprawki ręczne; wykrywa podwójne powierzchnie (praca drgnęła) | fragment + projekt → lista ubytków z położeniem i rozmiarem | wysoka |
 | session | Logika wieczoru i poranka: stan płytki, decyzje technika, sesja pieca, zliczanie punktów zleceń (trwałe, między piecami i dniami), lista braków, lista „do dofrezowania”, oznaczanie poprawek | zdarzenia → stan | niska |
@@ -301,7 +336,7 @@ Moduły:
 | excel | Znajduje wiersz zlecenia i koloruje pole B na zielono; log; tryb „pytaj przed zapisem” | zlecenie → zmiana w Excelu + wpis w logu | niska, ale wrażliwa |
 | scanner | Obserwuje folder eksportu; opcjonalnie klika w programie producenta; waliduje plik (rozmiar, liczba trójkątów) | plik → zdarzenie „nowy skan” | niska |
 
-Struktura repozytorium: program stanowiska (moduły powyżej), program ramki na Raspberry Pi (matryca, Wi‑Fi, klawiatura, czujniki Halla), modele płytek z plikami układu gniazd, testy na danych syntetycznych z prawdziwych STL, narzędzia (generator sztucznych ubytków, raport metryk, kalibracja ramek), jeden plik ustawień (ścieżki, progi, parametry skanera) i instrukcja (uruchomienie, codzienna obsługa, co robić gdy nie działa).
+Struktura repozytorium: program stanowiska (moduły powyżej), program ramki na Raspberry Pi (matryca, Wi‑Fi, klawiatura, czujniki Halla), modele płytek z plikami układu gniazd (nowy układ i poprzedni, pod nazwą z dopiskiem `_r54`) [R59], testy na danych syntetycznych z prawdziwych STL, narzędzia (generator sztucznych ubytków, raport metryk, kalibracja ramek), jeden plik ustawień (ścieżki, progi, parametry skanera) i instrukcja (uruchomienie, codzienna obsługa, co robić gdy nie działa).
 
 Jak to powstanie z Claude Code (kolejność ma znaczenie):
 
@@ -375,19 +410,19 @@ Zestaw testowy (przygotowuję przed testem):
 |---|---|---|
 | Zielone korony pełnokonturowe, różne zęby | 12 | pokrycie brzegu, dopasowanie do projektu |
 | Zielone korony z celowo wykonanym ubytkiem na brzegu (0,25 mm, 0,4 mm, 0,6 mm; zmierzonym pod mikroskopem lub lupą z podziałką) | 3 | wykrywalność, dolna granica |
-| Zielony siekacz dolny (najmniejsza praca) | 1 | najmniejsze gniazdo, pokrycie |
+| Zielony siekacz dolny (najmniejsza praca) | 1 | pokrycie; czy mała praca leży pewnie w gnieździe ø12 mm — mniejszych w nowym układzie nie ma [R59] |
 | Zielony most 4-punktowy | 1 | rynienka, łączniki |
 | Zielone korony implantologiczne, w tym dwie niemal identyczne | 3 | kanał śruby, bliźniaki |
 | Spieczone korony (różna przezierność, w tym 5Y) | 8 | skan bez sprayu, poranek |
 | Spieczony most | 2 | jak wyżej |
 | Projekty STL wszystkich powyższych + współczynniki z raportów MillBox | komplet | porównanie |
-| Płytka wieczorna nr 1 wydrukowana z PETG białego matowego u kolegi (z gotowego pliku) [R55] | 1–2 | ułożenie prac, znaczniki, dołki kodu |
+| Płytka wieczorna nr 1 wydrukowana z PETG białego matowego u kolegi (z gotowego pliku) [R55] | 1–2 | ułożenie prac, znaczniki, dołki kodu; [R59] egzemplarz wydrukowany przed zmianą ma poprzedni układ gniazd — w programie wybiera się wtedy układ poprzedni |
 | Kartonowa makieta 96 × 96 mm z narysowanymi okręgami ø90, ø94 i ø100 (środek płytki) i zaznaczonymi rogami [R54] | 1 | pole skanowania przy obrocie stolika (kryterium 8) |
 
 Przebieg:
 
 1. Skan kartonowej makiety z okręgami (kryterium 8, pole przy obrocie) i pustej płytki testowej z PETG [R55]: czy program widzi 3 stożki i dołki kodu. To rozstrzyga zamówienie płytek w drukarni.
-2. Ułożenie 20 zielonych prac na płytce, brzegiem do góry. Zdjęcie telefonem (dokumentacja ułożenia).
+2. Ułożenie 20 zielonych prac na płytce, brzegiem do góry — w razie potrzeby w dwóch turach (płytka mieści 18 koron i 1 most w nowym układzie [R59], 18 koron i 2 mosty w poprzednim). Zdjęcie telefonem (dokumentacja ułożenia).
 3. Skan w trybie ręcznym lub własnej ścieżce: obrót 4–6 pozycji, przechył 0°, obrót spokojny (jeśli program pozwala zmieniać prędkość: osobno najniższa i domyślna). Zapis STL. Jeśli program nie ma takiego trybu: skan automatyczny i odnotowanie tego faktu (kryterium 1).
 4. Powtórzenie skanu bez dotykania płytki (powtarzalność).
 5. Ten sam skan dla 10 spieczonych prac, w trybie do błyszczących obiektów, jeśli jest.
@@ -434,7 +469,7 @@ Po dostawie elektroniki (równolegle pierwsze moduły programu):
 
 W czasie testu skanera u nas:
 
-- Pierwszego dnia testu: skan makiety z okręgami i płytki testowej z PETG (kryterium 8) → zamówienie płytek i wkładek w drukarni (poranne i wieczorne, PA12 [R55]) i pokrywek u kolegi — chyba że producent potwierdzi zakres skanowania wcześniej, wtedy zamówienie od razu.
+- Pierwszego dnia testu: skan makiety z okręgami i płytki testowej z PETG (kryterium 8) → zamówienie płytek i wkładek w drukarni (poranne i wieczorne, PA12 [R55]) i pokrywek u kolegi — chyba że producent potwierdzi zakres skanowania wcześniej, wtedy zamówienie od razu. [R59] Pierwsze skany idą na płytce wieczornej poprzedniego układu; nowe płytki zamawia się w tym czasie, a o tym, które i ile, decyduje właściciel po odbiorze plików nowego układu.
 - match: filtr po objętości i wymiarach, zgrubne dopasowanie, ICP, ranking; metryka: trafność top-1 i top-2 na 200 sztucznych fragmentach.
 - inspect: mapa odchyłek, wykrywanie ubytków, odrzucanie gładkich poprawek, wykrywanie podwójnych powierzchni; metryka: wykryte / pominięte / fałszywe na 100 sztucznych ubytków.
 
@@ -529,6 +564,8 @@ Największe ryzyka siedzą w trzech miejscach: w mechanice skanera (przechył i 
 | Ja jako jedyna osoba znająca program | pewne | zależność | instrukcje, opisy modułów, pliki ramek odtwarzalne jednym poleceniem, kod w repozytorium firmy po przekazaniu praw | druga osoba przeszkolona w obsłudze i restarcie; poprawki zdalnie |
 | Czas technika wieczorem przekracza 20 min w ciężkie dni | średnie | pomijanie kontroli | płytka zastępuje tackę; dwie płytki; skan w tle | priorytet dla prac o cienkich brzegach i implantologicznych; drugi skaner, jeśli ciężkie dni to norma |
 | Dostawa skanera opóźniona | średnie | przesunięcie uruchomienia | zamówienie od razu po teście; oprogramowanie i ramki nie czekają na sprzęt | uruchomienie przesuwa się 1:1 z dostawą, bez innych skutków |
+| [R59] Płytka starego układu wzięta za nową albo odwrotnie (numery płytek są te same) | średnie, dopóki stare płytki są w użyciu | prace przypisane do złych gniazd | stare płytki opisane i trzymane osobno; program zna oba układy i ostrzega, gdy zeskanowana płytka nie pasuje do wybranego | wycofanie starych płytek po dostawie nowych |
+| [R59] Mostów jest więcej niż płytek pod ręką (jedna rynienka, czyli jeden most na płytkę) | nieznane; w próbie 17 projektów rynienki wymaga wieczorem 7–8 prac: 6 mostów, trzonowiec za duży na gniazdo ø15 i drugi trzonowiec, który mieści się w ø15 w 13 z 20 prób ułożenia (próba mała, dobrana do testów programu) | mosty czekają na następną płytkę; więcej skanów | po 3 płytki każdego rodzaju; mosty układane po jednym na płytkę | zmiana programu: dwie prace w jednej rynience (osobna praca, bez ustalonego terminu) |
 
 Czego nie da się obejść planem B: gwarancji wykrycia każdego ubytku 0,25 mm (fizyka rozdzielczości skanera), zapisu „która kuweta w którym piecu” (świadomie wykluczone), oznaczania prac (zakaz).
 
@@ -543,6 +580,9 @@ Czego nie da się obejść planem B: gwarancji wykrycia każdego ubytku 0,25 mm 
 | 5 | Płytki wieczorne: materiał i wykonawca | [R55] rozstrzygnięte: wszystkie 6 płytek z drukarni (PA12); technologie odrzucone i powody w „Budowa ramki — decyzje i zamienniki” | rozstrzygnięte |
 | 6 | Wybór drukarni i wariant wykończenia (najtańszy vs pokazowy: barwienie i wygładzanie korpusów) | wyceny z 2–3 drukarni na gotowych plikach; zamawiać wyłącznie pliki o sumach SHA‑256 ze specyfikacji zamówienia w dokumencie „Zakupy i druk” [R53] | przed zamówieniem obudów |
 | 7 | Skaner: tryb bez przechyłu, pole skanowania, eksport | test u nas, kryteria 1–8 | egzemplarz testowy od Aidite; ja |
+| 8 | [R59] Które płytki nowego układu zamawiamy: okrągłe, kwadratowe czy obie, i ile sztuk | właściciel skłania się ku okrągłym; ilości w arkuszu zamówienia bez zmian (po 3 kwadratowe wieczorne i poranne, po 1 okrągłej); okrągłe nie pasują do wkładki ramki — żeby leżały na ramce świetlnej, potrzebna jest zmiana R58 (okrągła wkładka i pokrywka) | właściciel, po odbiorze plików nowego układu |
+| 9 | [R59] Dwa mosty na jednej płytce | dziś jedna rynienka i jedna praca w gnieździe, czyli jeden most na płytkę; dwa mosty w jednej rynience wymagają zmiany programu | osobna praca nad programem, bez ustalonego terminu |
+| 10 | [R59] Stare płytki na ramce świetlnej | ramka czyta numer płytki z magnesów, a numery są te same w obu układach, więc sama nie odróżni starej płytki od nowej; do ustalenia przy pisaniu programu ramki, skąd ramka bierze układ gniazd | przed użyciem starych płytek na ramkach |
 
 ## Koszty i kolejność
 
@@ -554,7 +594,7 @@ Koszty:
 |---|---|---|
 | Skaner laboratoryjny (Aidite A-IS Pro 3 lub zamiennik) | 20–25 tys. zł | oferta po teście; DOF i 3Shape na zapytanie |
 | Elektronika dwóch ramek: 2 panele LED, 2 Raspberry Pi 4 z nakładkami, zasilacze, pleksi, klawiatura, czujniki, magnesy, wkręty, drobne | 1,2–1,7 tys. zł | lista w sekcji „Lista zakupów”; można zamawiać od razu |
-| Druk w drukarni (PA12): 2 korpusy, 2 blaty, 3 wkładki, 6 płytek | 909–1 616 zł (najtańszy) / 1 217–2 164 zł (pokazowy) [R54] | 10 plików, 1 010 cm³ z arkusza zamówienia (objętości zmierzone na siatkach; płytki po R54 mają mniej gniazd, więc nieco więcej materiału); druk w drukarni to najdłuższy etap budowy ramek, dlatego korpusy i blaty idą do drukarni od razu; pokrywki, tulejki i podkładki drukowane samemu z PETG za koszt filamentu [R55: wszystkie płytki z drukarni] |
+| Druk w drukarni (PA12): 2 korpusy, 2 blaty, 3 wkładki, 6 płytek | 907–1 613 zł (najtańszy) / 1 216–2 161 zł (pokazowy) [R59] | 10 plików, 1 008 cm³ z arkusza zamówienia (objętości zmierzone na siatkach; po zmianie układu gniazd płytka wieczorna ma 59,66 cm³, poranna 59,95 cm³ — było 59,31 i 60,87); druk w drukarni to najdłuższy etap budowy ramek, dlatego korpusy i blaty idą do drukarni od razu; pokrywki, tulejki i podkładki drukowane samemu z PETG za koszt filamentu [R55: wszystkie płytki z drukarni] |
 | Osłona, pokrowce, drobne stanowiska | 0,3–0,6 tys. zł | |
 | Opcja: kamera 20 Mpx (plan B poranka) | 1,8–2,5 tys. zł | tylko po negatywnym kryterium 5 testu |
 | Laptop | 0 zł | daje firma |
@@ -595,16 +635,16 @@ Kamienie milowe i co je warunkuje:
 
 ### A. Specyfikacja płytki z gniazdami
 
-Płytka ma 96 × 96 × 8 mm. [R54] Skaner obraca ją wokół osi pionowej, więc w całym obrocie widzi koło wokół osi stolika — założenie: ø100 mm, do potwierdzenia na egzemplarzu testowym. Dlatego wszystkie gniazda, rynienki i stożki znaczników leżą w kole o promieniu 47 mm od środka płytki (zapas 1,5 mm na ułożenie płytki względem osi i 1,5 mm na wysięg korony poza obrys gniazda), a obrys płytki, wycięcie, numer, dołki kodu i kieszenie magnesów zostały bez zmian. Razem 6 płytek, każda z własnym numerem: wieczorne 1, 2, 3 (dwie w obiegu, jedna zapasowa) i poranne 4, 5, 6 (dwie na duży piec, jedna zapasowa). Między skanerem przy piecach a ramką w pokoju rozkładania płytki wędrują z pokrywką.
+Płytka ma 96 × 96 × 8 mm. [R54] Skaner obraca ją wokół osi pionowej, więc w całym obrocie widzi koło wokół osi stolika — założenie: ø100 mm, do potwierdzenia na egzemplarzu testowym. Dlatego wszystkie gniazda, rynienka i stożki znaczników leżą w kole o promieniu 47 mm od środka płytki (zapas 1,5 mm na ułożenie płytki względem osi i 1,5 mm na wysięg korony poza obrys gniazda), a obrys płytki, wycięcie, numer, dołki kodu i kieszenie magnesów zostały bez zmian. Razem 6 płytek, każda z własnym numerem: wieczorne 1, 2, 3 (dwie w obiegu, jedna zapasowa) i poranne 4, 5, 6 (dwie albo trzy na duży piec [R59]: dwie mieszczą 46 koron i 2 mosty, trzy — 69 koron i 3 mosty). Między skanerem przy piecach a ramką w pokoju rozkładania płytki wędrują z pokrywką.
 
 Układ gniazd (rysunki w wersji PDF; współrzędne każdego gniazda są w pliku obok modelu, więc program i ramka czytają je bez zmiany kodu):
 
-- **Płytka wieczorna** (prace zielone, większe o skurcz) [R54]: 18 gniazd w 3 rzędach — od przodu 6 × ø12 mm, 7 × ø9 mm, 5 × ø15 mm — i 2 rynienki 60 × 15 mm pod mosty do 4 punktów w rzędzie przednim i tylnym (tam koło jest wąskie: rynienka jeszcze się mieści, rząd gniazd już nie).
-- **Płytka poranna** (prace spieczone, 40–70 °C) [R54]: 31 gniazd w 5 rzędach — od przodu 3 × ø7,5 mm, 7 × ø10 mm, 6 × ø12,5 mm, 8 × ø7,5 mm, 7 × ø7,5 mm (dwa tylne rzędy przesunięte w szachownicę) — i 2 rynienki 50 × 13 mm: druga od przodu i tylna.
+- **Płytka wieczorna** (prace zielone, większe o skurcz) [R59]: 18 gniazd w 4 rzędach i 1 rynienka 60 × 15 mm pod most do 4 punktów. Od przodu: rynienka, 6 × ø12 mm, 5 × ø15 mm, 4 × ø15 mm, 3 × ø15 mm — razem 6 × ø12 i 12 × ø15. Poprzedni układ [R54]: 18 gniazd (7 × ø9, 6 × ø12, 5 × ø15) i 2 rynienki.
+- **Płytka poranna** (prace spieczone, 40–70 °C) [R59]: 23 gniazda w 5 rzędach i 1 rynienka 50 × 13 mm. Od przodu: rynienka, 5 × ø12,5 mm, 6 × ø12,5 mm, rząd 4 × ø12,5 z jednym ø15 pośrodku, rząd 2 × ø12,5 z dwoma ø15 po bokach, 3 × ø12,5 mm — razem 20 × ø12,5 i 3 × ø15; gniazd ø7,5 i ø10 już nie ma. Poprzedni układ [R54]: 31 gniazd (18 × ø7,5, 7 × ø10, 6 × ø12,5) i 2 rynienki.
 
-Gniazda: stożkowe, kąt ścianek 15°, głębokość 4 mm (ok. 40% wysokości korony), w dnie otwór przelotowy ø3 mm (rynienki mają 4 otwory); między gniazdami i rzędami ścianki dokładnie 3 mm; [R54] strefa gniazd: koło o promieniu 47 mm wokół środka płytki (wewnątrz dawnego kwadratu 90 × 90 mm); narożniki wolne od gniazd (tam są kod, magnesy, wycięcie i numer).
+Gniazda: stożkowe, kąt ścianek 15°, głębokość 4 mm (ok. 40% wysokości korony), w dnie otwór przelotowy ø3 mm (rynienka ma 4 otwory); między gniazdami i rzędami ścianki co najmniej 3 mm (najmniejsza ma dokładnie 3,00 mm, bez zapasu — układu nie poprawia się ręcznie) [R59]; [R54] strefa gniazd: koło o promieniu 47 mm wokół środka płytki (wewnątrz dawnego kwadratu 90 × 90 mm); narożniki wolne od gniazd (tam są kod, magnesy, wycięcie i numer).
 
-Znaczniki i orientacja: trzy stożki ø5 mm, wysokość 3 mm, [R54] przesunięte z narożników do koła gniazd, tuż za skrajnymi gniazdami (44,2–44,4 mm od środka płytki, czyli w kole 44,5 mm; wieczorna i poranna mają własne położenia stożków, bo układy gniazd są różne) — dawne stożki w narożnikach leżały 61,9 mm od środka i wypadały z pola przy obrocie; czwarty narożnik (przód‑prawy) ma wycięcie 5 × 5 mm, które wymusza to samo ułożenie w skanerze i na kołku ramki. Trzy stożki są jedynym elementem, który program mierzy na płytce: po nich wyrównuje skan do rysunku.
+Znaczniki i orientacja: trzy stożki ø5 mm, wysokość 3 mm, [R54] przesunięte z narożników do koła gniazd, tuż za skrajnymi gniazdami (44,20–44,48 mm od środka płytki [R59], czyli w kole 44,5 mm; wieczorna i poranna mają własne położenia stożków, bo układy gniazd są różne) — dawne stożki w narożnikach leżały 61,9 mm od środka i wypadały z pola przy obrocie; czwarty narożnik (przód‑prawy) ma wycięcie 5 × 5 mm, które wymusza to samo ułożenie w skanerze i na kołku ramki. Po trzech stożkach program wyrównuje skan do rysunku płytki. [R59] Sprawdza też, czy rozstaw stożków i gniazda widoczne na skanie zgadzają się z wybranym układem; gdy się nie zgadzają, ostrzega i nie pokazuje wyniku dla gniazd.
 
 Identyfikacja płytki, trzy sposoby na ten sam numer: cyfra wytłoczona (0,6 mm, 5 mm wysoka) w narożniku z wycięciem dla ludzi; 1–3 dołki ø2 × 1 mm przy lewej krawędzi dla skanera (program czyta je ze skanu); magnesy ø5 × 2 mm wklejone w kieszenie w spodzie trzech narożników dla ramek ([R54] kieszenie magnesów zostają w narożnikach, już nie pod stożkami znaczników; czujniki ramki bez zmian) (3 czujniki Halla: układ obecności magnesów = numer płytki; brak magnesów = brak płytki). Biegun magnesów jednakowy we wszystkich płytkach.
 
@@ -612,7 +652,7 @@ Pokrywka: nakładka 99,6 × 99,6 × 20 mm, jedna na obie płytki; 4 zatrzaski wc
 
 Materiał: nylon PA12 z zewnętrznej drukarni (SLS lub MJF), biały, naturalnie matowy — dobry dla skanera, sztywny, znosi temperaturę prac z pieca; przezroczystość nie jest potrzebna, bo gniazda mają otwór w dnie. [R55] Wszystkie 6 płytek z drukarni; jedynie płytka do testu skanera powstaje z PETG u kolegi. Inne materiały płytki i powody ich odrzucenia: „Budowa ramki — decyzje i zamienniki”.
 
-[R57] Drugi wariant do testu skanera — płytka okrągła: walec ø100 × 8 mm (ø100 = granica pola skanowania przy obrocie), faza 0,5 mm na górnej krawędzi, spód płaski. Gniazda, rynienki, otwory ø3 i stożki znaczników identyczne jak w płytce kwadratowej tego samego typu (wieczorna 18 + 2, poranna 31 + 2, w kole o promieniu 47 mm). Zamiast wycięcia 5 × 5 — ścięcie orientacyjne na obwodzie (płaska ściana pionowa, cięciwa 16 mm, głębokość 0,644 mm, przód‑prawo). Dołki kodu ø2 × 1 mm leżą w kole (na kwadracie leżą poza polem ø100), kod 4‑bitowy: płytka okrągła wieczorna = nr 8 (dołek D), poranna = nr 9 (dołki A + D); cyfra 8 / 9 wytłoczona w kole. Bez kieszeni magnesów i rowka pokrywki, więc działa tylko w skanerze: wkładka i pokrywka ramki jej nie obsługują. Ścianka obrysu gniazd do krawędzi: wieczorna 3,61 mm, poranna 3,07 mm (do początku fazy 3,11 / 2,57 mm). Pliki `ramka_plytka_okragla_wieczorna_n8_v2.stl` (49,01 cm³) i `ramka_plytka_okragla_poranna_n9_v2.stl` (50,56 cm³), PA12 biały mat z drukarni, zamawiane od razu (sumy SHA‑256 w „Zakupy i druk”). Test porówna kwadrat i koło na egzemplarzu skanera; jeśli wygra koło, na ramce potrzebna jest zmiana R58 (okrągła wkładka i pokrywka; korpus, blat i panel bez zmian).
+[R57] Drugi kształt płytki — płytka okrągła: walec ø100 × 8 mm (ø100 = granica pola skanowania przy obrocie), faza 0,5 mm na górnej krawędzi, spód płaski. [R59] Gniazda, rynienka, otwory ø3 i stożki znaczników są takie same jak w płytce kwadratowej tego samego typu: wieczorna 18 gniazd i 1 rynienka, poranna 23 gniazda i 1 rynienka, w kole o promieniu 47 mm. Kształt płytki nie zmienia liczby gniazd. Zamiast wycięcia 5 × 5 — ścięcie orientacyjne na obwodzie (płaska ściana pionowa, cięciwa 16 mm, głębokość 0,644 mm, przód‑prawo). Dołki kodu ø2 × 1 mm leżą w kole (na kwadracie leżą poza polem ø100), kod 4‑bitowy: płytka okrągła wieczorna = nr 8 (dołek D), poranna = nr 9 (dołki A + D); cyfra 8 / 9 wytłoczona w kole. [R59] Na okrągłej porannej dołki leżą w dwóch parach z prawej strony, a cyfra z lewej, bo rynienka jest dosunięta do przodu i przed nią nie ma już miejsca. Bez kieszeni magnesów i rowka pokrywki, więc działa tylko w skanerze: wkładka i pokrywka ramki jej nie obsługują. Ścianka obrysu gniazd do krawędzi [R59]: wieczorna 4,07 mm, poranna 3,59 mm (do początku fazy 3,57 / 3,09 mm). Pliki `ramka_plytka_okragla_wieczorna_n8_v2.stl` (49,36 cm³) i `ramka_plytka_okragla_poranna_n9_v2.stl` (49,64 cm³), PA12 biały mat z drukarni (sumy SHA‑256 w „[cytat usuniety]”). [R59] O zamówieniu decyduje właściciel po odbiorze plików; skłania się ku okrągłym. Żeby płytka okrągła leżała także na ramce, potrzebna jest zmiana R58 (okrągła wkładka i pokrywka; korpus, blat i panel bez zmian).
 
 Wersja następna (po teście): głębsze gniazda, jeśli prace drgają; mniejsze koło gniazd, jeśli pole skanowania przy obrocie jest mniejsze niż ø100 [R54] — obie zmiany to pojedyncze liczby w plikach projektu i pełny, automatyczny przebieg weryfikacji (płytka okrągła z nową wkładką dopiero poniżej ok. ø94).
 
@@ -636,6 +676,7 @@ Pomieszczenie pieców: długie, wejście krótką ścianą; wzdłuż lewej ścia
 
 - Laptop włączony, program stanowiska i program skanera uruchomione, Excel otwarty z Autozapisem; ramka przy skanerze świeci kolor gotowości.
 - Płytki czyste, znaczniki bez pyłu; szybka ramki przetarta.
+- Dopóki w użyciu są płytki poprzedniego układu: układ wybrany w programie zgadza się z płytką na stanowisku (stare płytki są opisane) [R59].
 - Pula dnia widoczna na ekranie (liczba STL z raportów MillBox); jeśli 0 — skopiować raporty.
 - Po ostatniej płytce: lista „do dofrezowania” wydrukowana lub wysłana; pokrowce nałożone.
 
@@ -654,6 +695,7 @@ Pomieszczenie pieców: długie, wejście krótką ścianą; wzdłuż lewej ścia
 | Wszystkie gniazda szare (brak projektów) | Raporty MillBox nie dotarły: skopiować folder, przycisk „Odśwież pulę” |
 | Komunikat „praca drgnęła” | Poprawić ułożenie, skanować ponownie; jeśli powtarza się na tej samej płytce — wymienić płytkę |
 | Program nie rozpoznaje numeru płytki ze skanu | Dołki kodu przy lewej krawędzi zapylone — przetrzeć; numer można wskazać ręcznie na ekranie |
+| Program ostrzega, że płytka nie pasuje do wybranego układu [R59] | Na skanerze leży płytka starego układu przy wybranym nowym albo odwrotnie: sprawdzić opis na płytce i wybrać w programie właściwy układ |
 | Diody nie świecą | Zasilanie ramki (wtyk w kieszeni z tyłu), przycisk „Test LED” na laptopie, ikona Wi‑Fi na matrycy; bez diod poranek działa po podpisach na ekranie laptopa |
 | Ramka nie widzi płytki (margines nie zmienia koloru) | Płytka nie leży na kołku orientacyjnym — docisnąć do narożnika z wycięciem; sprawdzić, czy magnesy w spodzie są na miejscu |
 | Ramka poranna nie łączy się z laptopem | Ramka trzyma ostatni plan i potwierdzenia w pamięci i dosyła je po powrocie sieci; sprawdzić Wi‑Fi, w ostateczności włączyć hotspot laptopa |
@@ -674,6 +716,8 @@ Pomieszczenie pieców: długie, wejście krótką ścianą; wzdłuż lewej ścia
 - **Top-1 / top-2** — trafność identyfikacji: właściwa kuweta jako pierwszy kandydat / wśród dwóch pierwszych.
 - **Ramka świetlna** — obudowa z matrycą diod pod płytką; świeci przez otwory w dnach gniazd. Dwie: wieczorna przy skanerze, poranna w pokoju rozkładania.
 - **Wkładka gniazda** — biała rama na blacie ramki, w której leży płytka; niesie czujniki i kołek orientacyjny; wymienna.
+- **Układ gniazd** — rozmieszczenie gniazd, rynienki i stożków znaczników na płytce. [R59] Są dwa: nowy (wieczorna 18 gniazd i 1 rynienka, poranna 23 gniazda i 1 rynienka) i poprzedni, który zostaje w programie dla płytek wykonanych wcześniej.
+- **Rynienka** — podłużne gniazdo na most; od R59 jedna na płytkę, czyli jeden most na płytkę.
 - **PA12 (SLS/MJF)** — nylon drukowany w zewnętrznej drukarni z proszku; matowy, sztywny, znosi 70 °C.
 - **PETG / FDM** — tworzywo i technologia drukarki z filamentu (u kolegi); [R55] na wszystko, co drukujemy sami: pokrywki, tulejki, podkładki, płytkę do testu skanera, prototypy pasowań.
 - **Tulejka redukcyjna** — drukowany pierścień (zewnątrz ø11,85 mm, wcisk 0,15 mm; otwór ø8,2 mm) wciskany w otwór ø12 mm gniazda zasilania, gdy kupione gniazdo ma gwint ø8 mm; drukowana dopiero po zmierzeniu otworu w gotowym korpusie, bo otwór z druku może wyjść 11,7–11,9 mm [R53].

@@ -1,0 +1,375 @@
+{
+ "zrodlo": "<PC-katalog>/r59/baseline/metryki/metryki_P3a.json",
+ "kod": "origin/main 4cc6090",
+ "per_zestaw": {
+  "syntetyczne_P2": {
+   "skanow": 24,
+   "wyr_ok": 24,
+   "wyr_max": 0.013698491884806128,
+   "top1": 271,
+   "prac": 271,
+   "numer_ok": 12,
+   "dolki_ok": 12,
+   "dolki_widoczne": 12,
+   "okragle": 12
+  },
+  "syntetyczne_P3a": {
+   "skanow": 16,
+   "wyr_ok": 16,
+   "wyr_max": 0.009658582278400465,
+   "top1": 140,
+   "prac": 149,
+   "numer_ok": 12,
+   "dolki_ok": 12,
+   "dolki_widoczne": 12,
+   "okragle": 12
+  }
+ },
+ "zbiorczo": {
+  "razem": {
+   "prac": 449,
+   "prac_calych": 129,
+   "ubytkow": 282,
+   "wykryte": {
+    "A": 230,
+    "B": 133,
+    "A+B": 104,
+    "czerwony": 113,
+    "dowolny": 259
+   },
+   "prace_cale_z_alarmem": 1,
+   "prace_cale_z_czerwonym": 0,
+   "falszywe_ubytki": 3,
+   "falszywe_czerwone": 0,
+   "falszywe_metoda": {
+    "A": 0,
+    "B": 3,
+    "A+B": 0
+   },
+   "statusy": {
+    "ok": 154,
+    "ubytek": 89,
+    "sprawdz": 121,
+    "sprawdz_ulozenie": 2,
+    "poprawka": 7,
+    "skan_ponownie": 29,
+    "popraw_ulozenie": 6,
+    "pominieto": 0
+   },
+   "statusy_gniazd": {
+    "zielony": 154,
+    "czerwony": 89,
+    "zolty": 158,
+    "szary": 41,
+    "pomaranczowy": 7
+   },
+   "top1_bledny": 38,
+   "bez_inspekcji": 3,
+   "udzialy": {
+    "wykryte_udzial": {
+     "A": 0.8156,
+     "B": 0.4716,
+     "A+B": 0.3688,
+     "czerwony": 0.4007,
+     "dowolny": 0.9184
+    },
+    "prace_cale_z_alarmem_udzial": 0.0078,
+    "prace_cale_z_czerwonym_udzial": 0.0
+   }
+  },
+  "scenariusze": {
+   "dobrze": {
+    "prac": 300,
+    "prac_calych": 103,
+    "ubytkow": 279,
+    "wykryte": {
+     "A": 229,
+     "B": 132,
+     "A+B": 103,
+     "czerwony": 112,
+     "dowolny": 258
+    },
+    "prace_cale_z_alarmem": 0,
+    "prace_cale_z_czerwonym": 0,
+    "falszywe_ubytki": 0,
+    "falszywe_czerwone": 0,
+    "falszywe_metoda": {
+     "A": 0,
+     "B": 0,
+     "A+B": 0
+    },
+    "statusy": {
+     "ok": 103,
+     "ubytek": 86,
+     "sprawdz": 107,
+     "sprawdz_ulozenie": 1,
+     "poprawka": 3,
+     "skan_ponownie": 0,
+     "popraw_ulozenie": 0,
+     "pominieto": 0
+    },
+    "statusy_gniazd": {
+     "zielony": 103,
+     "czerwony": 86,
+     "zolty": 108,
+     "szary": 0,
+     "pomaranczowy": 3
+    },
+    "top1_bledny": 0,
+    "bez_inspekcji": 0,
+    "udzialy": {
+     "wykryte_udzial": {
+      "A": 0.8208,
+      "B": 0.4731,
+      "A+B": 0.3692,
+      "czerwony": 0.4014,
+      "dowolny": 0.9247
+     },
+     "prace_cale_z_alarmem_udzial": 0.0,
+     "prace_cale_z_czerwonym_udzial": 0.0
+    }
+   },
+   "bokiem": {
+    "prac": 76,
+    "prac_calych": 20,
+    "ubytkow": 3,
+    "wykryte": {
+     "A": 1,
+     "B": 1,
+     "A+B": 1,
+     "czerwony": 1,
+     "dowolny": 1
+    },
+    "prace_cale_z_alarmem": 1,
+    "prace_cale_z_czerwonym": 0,
+    "falszywe_ubytki": 3,
+    "falszywe_czerwone": 0,
+    "falszywe_metoda": {
+     "A": 0,
+     "B": 3,
+     "A+B": 0
+    },
+    "statusy": {
+     "ok": 32,
+     "ubytek": 2,
+     "sprawdz": 7,
+     "sprawdz_ulozenie": 1,
+     "poprawka": 3,
+     "skan_ponownie": 1,
+     "popraw_ulozenie": 0,
+     "pominieto": 0
+    },
+    "statusy_gniazd": {
+     "zielony": 32,
+     "czerwony": 2,
+     "zolty": 9,
+     "szary": 30,
+     "pomaranczowy": 3
+    },
+    "top1_bledny": 27,
+    "bez_inspekcji": 3,
+    "udzialy": {
+     "wykryte_udzial": {
+      "A": 0.3333,
+      "B": 0.3333,
+      "A+B": 0.3333,
+      "czerwony": 0.3333,
+      "dowolny": 0.3333
+     },
+     "prace_cale_z_alarmem_udzial": 0.05,
+     "prace_cale_z_czerwonym_udzial": 0.0
+    }
+   },
+   "czesciowo": {
+    "prac": 36,
+    "prac_calych": 6,
+    "ubytkow": 0,
+    "wykryte": {
+     "A": 0,
+     "B": 0,
+     "A+B": 0,
+     "czerwony": 0,
+     "dowolny": 0
+    },
+    "prace_cale_z_alarmem": 0,
+    "prace_cale_z_czerwonym": 0,
+    "falszywe_ubytki": 0,
+    "falszywe_czerwone": 0,
+    "falszywe_metoda": {
+     "A": 0,
+     "B": 0,
+     "A+B": 0
+    },
+    "statusy": {
+     "ok": 19,
+     "ubytek": 1,
+     "sprawdz": 7,
+     "sprawdz_ulozenie": 0,
+     "poprawka": 1,
+     "skan_ponownie": 0,
+     "popraw_ulozenie": 0,
+     "pominieto": 0
+    },
+    "statusy_gniazd": {
+     "zielony": 19,
+     "czerwony": 1,
+     "zolty": 7,
+     "szary": 8,
+     "pomaranczowy": 1
+    },
+    "top1_bledny": 8,
+    "bez_inspekcji": 0,
+    "udzialy": {
+     "wykryte_udzial": {
+      "A": null,
+      "B": null,
+      "A+B": null,
+      "czerwony": null,
+      "dowolny": null
+     },
+     "prace_cale_z_alarmem_udzial": 0.0,
+     "prace_cale_z_czerwonym_udzial": 0.0
+    }
+   },
+   "drgniecie": {
+    "prac": 37,
+    "prac_calych": 0,
+    "ubytkow": 0,
+    "wykryte": {
+     "A": 0,
+     "B": 0,
+     "A+B": 0,
+     "czerwony": 0,
+     "dowolny": 0
+    },
+    "prace_cale_z_alarmem": 0,
+    "prace_cale_z_czerwonym": 0,
+    "falszywe_ubytki": 0,
+    "falszywe_czerwone": 0,
+    "falszywe_metoda": {
+     "A": 0,
+     "B": 0,
+     "A+B": 0
+    },
+    "statusy": {
+     "ok": 0,
+     "ubytek": 0,
+     "sprawdz": 0,
+     "sprawdz_ulozenie": 0,
+     "poprawka": 0,
+     "skan_ponownie": 28,
+     "popraw_ulozenie": 6,
+     "pominieto": 0
+    },
+    "statusy_gniazd": {
+     "zielony": 0,
+     "czerwony": 0,
+     "zolty": 34,
+     "szary": 3,
+     "pomaranczowy": 0
+    },
+    "top1_bledny": 3,
+    "bez_inspekcji": 0,
+    "udzialy": {
+     "wykryte_udzial": {
+      "A": null,
+      "B": null,
+      "A+B": null,
+      "czerwony": null,
+      "dowolny": null
+     },
+     "prace_cale_z_alarmem_udzial": null,
+     "prace_cale_z_czerwonym_udzial": null
+    }
+   }
+  },
+  "drgniecie": {
+   "prac": 34,
+   "wykryte": 28,
+   "falszywe": 1
+  },
+  "poprawki": {
+   "prac": 20,
+   "wykryte": 12,
+   "falszywe": 0
+  },
+  "plate_match": {
+   "skanow": 40,
+   "wyrownanie_ok": 40,
+   "wyrownanie_max_mm": 0.013698491884806128,
+   "prac": 420,
+   "fragment_w_swoim_gniezdzie": 449,
+   "top1": 411,
+   "top2": 412,
+   "statusy_match": {
+    "zielony": 370,
+    "zolty": 38,
+    "szary": 41
+   },
+   "statusy_gniazd": {
+    "zielony": 154,
+    "czerwony": 89,
+    "zolty": 158,
+    "szary": 41,
+    "pomaranczowy": 7
+   },
+   "czas_s_mediana": {
+    "plate": 2.0549999999999997,
+    "match": 8.425,
+    "inspect": 1.01,
+    "razem": 12.285
+   },
+   "czas_calosci_s": 669.7
+  },
+  "top1_per_scenariusz": {
+   "dobrze": {
+    "prac": 300,
+    "top1_bledny": 0,
+    "top1_udzial": 1.0,
+    "statusy_gniazd": {
+     "zielony": 103,
+     "czerwony": 86,
+     "zolty": 108,
+     "szary": 0,
+     "pomaranczowy": 3
+    }
+   },
+   "bokiem": {
+    "prac": 76,
+    "top1_bledny": 27,
+    "top1_udzial": 0.6447,
+    "statusy_gniazd": {
+     "zielony": 32,
+     "czerwony": 2,
+     "zolty": 9,
+     "szary": 30,
+     "pomaranczowy": 3
+    }
+   },
+   "czesciowo": {
+    "prac": 36,
+    "top1_bledny": 8,
+    "top1_udzial": 0.7778,
+    "statusy_gniazd": {
+     "zielony": 19,
+     "czerwony": 1,
+     "zolty": 7,
+     "szary": 8,
+     "pomaranczowy": 1
+    }
+   },
+   "drgniecie": {
+    "prac": 37,
+    "top1_bledny": 3,
+    "top1_udzial": 0.9189,
+    "statusy_gniazd": {
+     "zielony": 0,
+     "czerwony": 0,
+     "zolty": 34,
+     "szary": 3,
+     "pomaranczowy": 0
+    }
+   }
+  }
+ }
+}

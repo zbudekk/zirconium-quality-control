@@ -123,6 +123,9 @@ def _folder_projektow_p2() -> Path | None:
     return Path(os.path.commonpath([str(p) for p in sciezki]))
 
 
+# R59 (14.11.2026): zestaw dane/syntetyczne_P2 sprzed R59 jest w układzie R54, a w jego prawdzie plytka = „okragla_wieczorna”.
+# Po zdjęciu skip test musi wybrać układ z przyrostkiem: okno.lista_plytek.setCurrentText(prawda.plytka + "_r54") —
+# inaczej strażnik układu odpowie „płytka nie pasuje do wybranego układu”. Stan skip bez zmian (okno jest szkicem).
 @pytest.mark.skip(reason=SZKIC_OKNA)
 @pytest.mark.skipif(not (STANOWISKO / "dane" / "syntetyczne_P2").exists() or _folder_projektow_p2() is None, reason="brak dane/syntetyczne_P2 albo projektów z pulpitu")
 def test_okno_na_skanie_P2(app):

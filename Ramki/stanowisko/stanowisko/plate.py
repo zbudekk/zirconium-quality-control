@@ -16,6 +16,11 @@ Kroki:
    Kabsch 2D bez odbicia; trójkąt jest nierównoboczny, więc najmniejsza reszta jest jednoznaczna),
 5. ICP punkt–płaszczyzna (Open3D) skanu do modelu STL płytki, tylko na wierzchu i stożkach (prace
    w gniazdach nie biorą udziału) — dopracowanie i miara zgodności,
+5a. strażnik układu (R59): ten sam numer płytki ma dwa układy gniazd (R59 i poprzedni ``*_r54``), więc skan
+   jest sprawdzany z wybranym układem dwa razy — rozstaw stożków (krok 4: inny rozstaw = ``NiezgodnyUklad``)
+   i po wyrównaniu mapa wysokości skanu z modelem STL w miejscach jednoznacznych (dno gniazda modelu, nad
+   którym skan ma pełny wierzch; pełny wierzch modelu, w którym skan ma dziurę); niezgodność =
+   ``NiezgodnyUklad`` z komunikatem „płytka nie pasuje do wybranego układu”, bez cięcia na gniazda,
 6. numer z dołków kodu (ø2 × 1: w promieniu 0,8 mm od środka dołka 5. percentyl z < z_top − 0,4),
    dołek bez punktów = niewidoczny → numer nieznany, chyba że podany (``numer``),
 7. cięcie: punkty, które nie leżą na modelu płytki (odległość do STL > 0,12 mm), grupowane DBSCAN
@@ -24,6 +29,7 @@ Kroki:
 """
 from __future__ import annotations
 
+import functools
 import itertools
 import math
 import time
@@ -54,10 +60,36 @@ MIN_ROZMIAR_FRAGMENTU_Z = 1.5
 MARGINES_GNIAZDA = 1.0  # mm: fragment „nad gniazdem” także tuż za obrysem
 GLEBOKOSC_DOLKA_MIN = 0.4  # mm: dołek kodu (ø2 × 1) uznany za obecny
 MIN_PUNKTOW_DOLKA = 15
+# strażnik układu (R59): progi dobrane na 240 skanach syntetycznych (narzedzia/straznik_R59.py, raporty/R59_2026-11-14.md),
+# do sprawdzenia na prawdziwym skanie (P3b)
+PX_STRAZNIKA = 0.5  # mm na piksel map wysokości skanu i modelu
+MARGINES_WIERZCHU = 1.5  # mm: strefa „pełny materiał” modelu jest odsunięta o tyle od każdej krawędzi (gniazda, stożki, dołki, relief, brzeg)
+MARGINES_DNA = 1.0  # mm: strefa „dno gniazda” modelu jest odsunięta o tyle od ścianki gniazda i od otworu ø3 w dnie
+PROG_WIERZCHU_SKANU = 0.15  # mm: piksel skanu leży na wierzchu płytki, gdy jego najwyższy punkt jest tak blisko z = thickness
+GLEBOKOSC_DZIURY_MIN = 1.5  # mm: piksel skanu jest dziurą, gdy jego najwyższy punkt leży tyle pod wierzchem (dołek kodu ma 1 mm)
+PROG_GNIAZDO_NAD_PELNYM_MM2 = 150.0  # mm²: tyle dna gniazd modelu nad płaskim wierzchem skanu = płytka nie pasuje (zmierzone: zgodne ≤ 48, niezgodne ≥ 410)
+PROG_DZIURA_W_PELNYM_MM2 = 50.0  # mm²: tyle pełnego wierzchu modelu nad dziurą w skanie = płytka nie pasuje (zmierzone: zgodne 0, niezgodne ≥ 54 na pełnej płytce, ≥ 180 na pustej i częściowej)
 
 
 class BladWyrownania(RuntimeError):
     """Nie udało się wyrównać skanu do układu płytki (brak płaszczyzny / znaczników)."""
+
+
+class NiezgodnyUklad(BladWyrownania):
+    """Skan nie pasuje do wybranego układu płytki (strażnik układu, R59); komunikat zaczyna się od „płytka nie pasuje do wybranego układu”.
+
+    ``powod``: ``stozki`` — rozstaw stożków znaczników inny niż w układzie (wyrównania nie ma, ``macierz`` = None);
+    ``gniazda`` — stożki pasują, ale gniazda leżą inaczej niż w modelu (``macierz`` = wyrównanie po stożkach i ICP).
+    ``stozki``: środki dopasowanych stożków w układzie wypoziomowanego skanu (``stozki_pasuja`` sprawdza nimi inne układy);
+    ``jakosc``: miary zebrane do chwili błędu, zawsze z ``uklad_zgodny`` = False.
+    """
+
+    def __init__(self, komunikat: str, powod: str, stozki: list | None = None, jakosc: dict | None = None, macierz: np.ndarray | None = None):
+        super().__init__(komunikat)
+        self.powod = powod
+        self.stozki = list(stozki or [])
+        self.jakosc = {**(jakosc or {}), "uklad_zgodny": False, "uklad_powod": powod}
+        self.macierz = macierz
 
 
 @dataclass
@@ -234,21 +266,50 @@ def kabsch_2d(A: np.ndarray, B: np.ndarray) -> tuple[np.ndarray, np.ndarray, flo
     return R, t, float(np.sqrt(np.mean(np.sum(r**2, 1))))
 
 
-def przypisz_znaczniki(srodki: list[dict], uk: U.UkladPlytki) -> tuple[np.ndarray, dict]:
-    """Wybiera trójkę wykrytych stożków i ich przypisanie do A, B, C o najmniejszej reszcie Kabscha."""
+def _przypisania(srodki: list[dict], uk: U.UkladPlytki) -> list[tuple]:
+    """Wszystkie uporządkowane trójki wykrytych stożków dopasowane (Kabsch 2D) do znaczników A, B, C; od najmniejszej reszty."""
     cel = np.array([[z.x, z.y] for z in uk.markers])
-    if len(srodki) < 3:
-        raise BladWyrownania(f"znaleziono {len(srodki)} stożki znaczników, potrzeba 3")
     pts = np.array([[s["x"], s["y"]] for s in srodki])
     wyniki = []
     for trojka in itertools.permutations(range(len(srodki)), 3):
         R, t, rms = kabsch_2d(pts[list(trojka)], cel)
         wyniki.append((rms, trojka, R, t))
     wyniki.sort(key=lambda w: w[0])
+    return wyniki
+
+
+def _boki(pts: np.ndarray) -> list[float]:
+    """Długości boków trójkąta (rosnąco) — rozstaw trzech stożków."""
+    return sorted(float(np.linalg.norm(pts[i] - pts[j])) for i, j in ((0, 1), (1, 2), (0, 2)))
+
+
+def stozki_pasuja(srodki: list[dict], uk: U.UkladPlytki) -> bool:
+    """Czy wśród wykrytych stożków jest trójka o rozstawie znaczników układu ``uk`` (reszta ≤ RESZTA_ZNACZNIKOW_MAX)."""
+    return len(srodki) >= 3 and _przypisania(srodki, uk)[0][0] <= RESZTA_ZNACZNIKOW_MAX
+
+
+def przypisz_znaczniki(srodki: list[dict], uk: U.UkladPlytki) -> tuple[np.ndarray, dict]:
+    """Wybiera trójkę wykrytych stożków i ich przypisanie do A, B, C o najmniejszej reszcie Kabscha.
+
+    Trzy dobrze dopasowane stożki o innym rozstawie niż znaczniki układu to inna płytka albo inny układ gniazd
+    (R59: układ nowy i poprzedni ``*_r54`` mają te same numery płytek, ale inne pozycje stożków) → ``NiezgodnyUklad``.
+    """
+    if len(srodki) < 3:
+        raise BladWyrownania(f"znaleziono {len(srodki)} stożki znaczników, potrzeba 3")
+    pts = np.array([[s["x"], s["y"]] for s in srodki])
+    wyniki = _przypisania(srodki, uk)
     rms, trojka, R, t = wyniki[0]
     druga = wyniki[1][0] if len(wyniki) > 1 else math.inf
     if rms > RESZTA_ZNACZNIKOW_MAX:
-        raise BladWyrownania(f"stożki nie pasują do znaczników płytki {uk.nazwa}: reszta {rms:.3f} mm > {RESZTA_ZNACZNIKOW_MAX}")
+        w_skanie = _boki(pts[list(trojka)])
+        w_ukladzie = _boki(np.array([[z.x, z.y] for z in uk.markers]))
+        raise NiezgodnyUklad(
+            f"płytka nie pasuje do wybranego układu „{uk.nazwa}”: stożki znaczników nie pasują do układu (rozstaw w skanie "
+            f"{' / '.join(f'{b:.1f}' for b in w_skanie)} mm, w układzie {' / '.join(f'{b:.1f}' for b in w_ukladzie)} mm; "
+            f"reszta {rms:.3f} mm > {RESZTA_ZNACZNIKOW_MAX}) — sprawdź wybór układu płytki (R59 albo poprzedni …_r54)",
+            "stozki", srodki,
+            {"znaczniki_reszta_mm": rms, "uklad_rozstaw_skanu_mm": [round(b, 3) for b in w_skanie], "uklad_rozstaw_modelu_mm": [round(b, 3) for b in w_ukladzie]},
+        )
     T = np.eye(4)
     T[:2, :2] = R
     T[:2, 3] = t
@@ -305,6 +366,78 @@ def icp_do_modelu(P: np.ndarray, N: np.ndarray, uk: U.UkladPlytki, plik_modelu: 
     kat = math.degrees(math.acos(min(1.0, (np.trace(T[:3, :3]) - 1) / 2)))
     return T, {"icp_fitness": float(wynik.fitness), "icp_rmse_mm": float(wynik.inlier_rmse), "icp_punkty": int(len(sel)),
                "icp_poprawka_mm": float(np.linalg.norm(T[:3, 3])), "icp_poprawka_deg": kat}
+
+
+# ----------------------------------------------------------------------------
+# 5a. strażnik układu (R59): skan ↔ model w miejscach jednoznacznych
+# ----------------------------------------------------------------------------
+def _kolo(promien_px: int) -> np.ndarray:
+    k = np.arange(-promien_px, promien_px + 1)
+    return (k[:, None] ** 2 + k[None, :] ** 2) <= promien_px**2
+
+
+@functools.lru_cache(maxsize=16)
+def _strefy_modelu(plik: str, mtime_ns: int, z_top: float, dna: tuple, px: float) -> tuple[tuple[float, float], np.ndarray, np.ndarray]:
+    """Strefy pewne modelu STL widzianego z góry: (początek siatki xy, maska „pełny wierzch”, maska „dno gniazda”).
+
+    Mapa wysokości modelu = promienie w dół w środkach pikseli (Open3D). „Pełny wierzch”: z = ``z_top``, odsunięty
+    o MARGINES_WIERZCHU od wszystkiego, co wierzchem nie jest (gniazda, stożki, dołki, relief numeru, brzeg, ścięcie).
+    „Dno gniazda”: z = dno któregoś gniazda (``dna``), odsunięte o MARGINES_DNA od ścianki i od otworu w dnie.
+    """
+    m = o3d.io.read_triangle_mesh(plik)
+    V = np.asarray(m.vertices)
+    x0, y0 = float(V[:, 0].min()), float(V[:, 1].min())
+    nx, ny = int(math.ceil((V[:, 0].max() - x0) / px)), int(math.ceil((V[:, 1].max() - y0) / px))
+    X, Y = np.meshgrid(x0 + (np.arange(nx) + 0.5) * px, y0 + (np.arange(ny) + 0.5) * px)
+    z_start = float(V[:, 2].max()) + 10.0
+    promienie = np.zeros((X.size, 6), dtype=np.float32)
+    promienie[:, 0], promienie[:, 1], promienie[:, 2], promienie[:, 5] = X.ravel(), Y.ravel(), z_start, -1.0
+    scena = o3d.t.geometry.RaycastingScene()
+    scena.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(m))
+    Zm = z_start - scena.cast_rays(o3d.core.Tensor(promienie))["t_hit"].numpy().reshape(ny, nx)  # brak trafienia → −inf
+    wierzch = np.abs(Zm - z_top) < 0.02
+    dno = np.zeros_like(wierzch)
+    for zd in dna:
+        dno |= np.abs(Zm - zd) < 0.02
+    wierzch = ndimage.binary_erosion(wierzch, structure=_kolo(int(round(MARGINES_WIERZCHU / px))))
+    dno = ndimage.binary_erosion(dno, structure=_kolo(int(round(MARGINES_DNA / px))))
+    return (x0, y0), wierzch, dno
+
+
+def zgodnosc_ukladu(P: np.ndarray, uk: U.UkladPlytki, plik_modelu: Path, px: float = PX_STRAZNIKA) -> dict:
+    """Strażnik układu: czy skan (``P`` — punkty równomierne po powierzchni, już w układzie płytki) ma gniazda tam, gdzie model.
+
+    Porównuje mapę wysokości skanu (najwyższy punkt w pikselu ``px``) z modelem STL tylko w strefach pewnych modelu:
+    * ``uklad_gniazdo_nad_pelnym_mm2`` — pole dna gniazd modelu, nad którym skan ma płaski wierzch płytki (z = thickness
+      ± PROG_WIERZCHU_SKANU): w zeskanowanej płytce jest tam pełny materiał. Prace nie zasłaniają tej cechy (leżą
+      w gniazdach płytki zeskanowanej, nie na jej wierzchu), więc działa także na płytce pełnej prac;
+    * ``uklad_dziura_w_pelnym_mm2`` — pole pełnego wierzchu modelu, w którym skan jest głębszy niż GLEBOKOSC_DZIURY_MIN:
+      w zeskanowanej płytce jest tam gniazdo. Praca w tym gnieździe zasłania dziurę, więc na pełnej płytce ta miara maleje.
+    Piksel bez punktów skanu (poza polem skanowania, dziura w danych) nie jest dowodem. Układ jest zgodny, gdy pierwsza
+    miara jest mniejsza niż PROG_GNIAZDO_NAD_PELNYM_MM2, a druga niż PROG_DZIURA_W_PELNYM_MM2. Pierwsza miara nie jest
+    zerem na płytce zgodnej: dno wnętrza korony leżącej brzegiem do góry bywa na wysokości wierzchu płytki (zmierzone
+    1–2 mm² na pracę, najwyżej 48 mm² na pełnej płytce), stąd próg liczony w setkach mm².
+    """
+    plik_modelu = Path(plik_modelu)
+    dna = tuple(sorted({round(g.z_dno, 6) for g in uk.sockets}))
+    (x0, y0), wierzch_m, dno_m = _strefy_modelu(str(plik_modelu), plik_modelu.stat().st_mtime_ns, float(uk.thickness), dna, px)
+    ny, nx = wierzch_m.shape
+    i = np.floor((P[:, 0] - x0) / px).astype(np.int64)
+    j = np.floor((P[:, 1] - y0) / px).astype(np.int64)
+    w = (i >= 0) & (i < nx) & (j >= 0) & (j < ny)
+    Z = np.full((ny, nx), -np.inf)
+    np.maximum.at(Z, (j[w], i[w]), P[w, 2])
+    dane = np.isfinite(Z)
+    na_wierzchu = dane & (np.abs(Z - uk.thickness) <= PROG_WIERZCHU_SKANU)
+    dziura = dane & (Z < uk.thickness - GLEBOKOSC_DZIURY_MIN)
+    pole = px * px
+    gniazdo_nad_pelnym = float((dno_m & na_wierzchu).sum() * pole)
+    dziura_w_pelnym = float((wierzch_m & dziura).sum() * pole)
+    return {
+        "uklad_zgodny": bool(gniazdo_nad_pelnym < PROG_GNIAZDO_NAD_PELNYM_MM2 and dziura_w_pelnym < PROG_DZIURA_W_PELNYM_MM2),
+        "uklad_gniazdo_nad_pelnym_mm2": round(gniazdo_nad_pelnym, 2), "uklad_dziura_w_pelnym_mm2": round(dziura_w_pelnym, 2),
+        "uklad_strefa_dna_mm2": round(float((dno_m & dane).sum() * pole), 1), "uklad_strefa_wierzchu_mm2": round(float((wierzch_m & dane).sum() * pole), 1),
+    }
 
 
 # ----------------------------------------------------------------------------
@@ -426,9 +559,14 @@ def plik_modelu_plytki(uk: U.UkladPlytki, numer: int | None) -> Path:
 
 
 def wyrownaj(
-    skan: trimesh.Trimesh, uk: U.UkladPlytki, numer: int | None = None, seed: int = 0, icp: bool = True, ciecie: bool = True
+    skan: trimesh.Trimesh, uk: U.UkladPlytki, numer: int | None = None, seed: int = 0, icp: bool = True, ciecie: bool = True,
+    straznik: bool = True,
 ) -> WynikWyrownania:
-    """Pełny przebieg plate na siatce skanu; ``numer`` podany przez użytkownika ma pierwszeństwo nad dołkami."""
+    """Pełny przebieg plate na siatce skanu; ``numer`` podany przez użytkownika ma pierwszeństwo nad dołkami.
+
+    Skan, który nie pasuje do układu ``uk`` (inny rozstaw stożków albo gniazda w innych miejscach), kończy się
+    ``NiezgodnyUklad`` — wyniku z gniazdami nie ma. ``straznik=False`` wyłącza tylko drugie sprawdzenie (gniazda).
+    """
     t0 = time.time()
     rng = np.random.default_rng(seed)
     P0 = np.asarray(skan.vertices, dtype=np.float64)
@@ -452,7 +590,11 @@ def wyrownaj(
     jak["stozki_kandydaci"] = len(kand)
     jak["stozki_dopasowane"] = len(stozki)
     jak["stozki_rms_mm"] = [round(s["rms"], 4) for s in stozki]
-    T2, j = przypisz_znaczniki(stozki, uk)
+    try:
+        T2, j = przypisz_znaczniki(stozki, uk)
+    except NiezgodnyUklad as e:
+        e.jakosc = {**jak, **e.jakosc, "czas_s": round(time.time() - t0, 2)}
+        raise
     jak.update(j)
     T = T2 @ T1
     if icp:
@@ -485,6 +627,17 @@ def wyrownaj(
             f"dołki kodu poza skanem ({sum(b is None for b in bity)} z {len(bity)} niewidocznych) — podaj numer płytki (--numer)",
             stacklevel=2,
         )
+
+    if straznik:
+        jak.update(zgodnosc_ukladu(Ps2, uk, plik_modelu_plytki(uk, numer)))
+        if not jak["uklad_zgodny"]:
+            jak["czas_s"] = round(time.time() - t0, 2)
+            raise NiezgodnyUklad(
+                f"płytka nie pasuje do wybranego układu „{uk.nazwa}”: stożki znaczników pasują, ale gniazda leżą inaczej niż w modelu "
+                f"(dno gniazda modelu nad pełnym wierzchem skanu: {jak['uklad_gniazdo_nad_pelnym_mm2']:.0f} mm², pełny wierzch modelu nad dziurą "
+                f"w skanie: {jak['uklad_dziura_w_pelnym_mm2']:.0f} mm²; progi {PROG_GNIAZDO_NAD_PELNYM_MM2:.0f} / {PROG_DZIURA_W_PELNYM_MM2:.0f} mm²) — sprawdź wybór układu płytki",
+                "gniazda", stozki, jak, T,
+            )
 
     fragmenty: list[Fragment] = []
     puste, podwojne = [], []

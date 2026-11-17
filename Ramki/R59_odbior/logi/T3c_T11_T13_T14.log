@@ -1,0 +1,26 @@
+R59 testy koncowe T0, T3c, T11, T13, T14 - koordynator, MSI, HEAD po commicie skryptu (16.11.2026)
+T0: git status czysty, HEAD = galaz, 1536 plikow Ramki sledzonych, 21 STL w wyniki_v2/stl
+T3c  sha256sum -c w Ramki_pakiet                                  OK    plik sum SHA256SUMS_2026-11-16_R59.txt: 81/81 OK, plikow w pakiecie 82 (= sumy + plik sum)
+T11  Stanowisko kontroli cyrkonii - plan wdrozenia v2.md          OK    linii ze starymi liczbami 5, w tym bez znacznika historii 0 []
+T11  Zakupy i druk - stanowisko kontroli cyrkonii.md              OK    linii ze starymi liczbami 6, w tym bez znacznika historii 0 []
+T11  Budowa ramki - decyzje i zamienniki.md                       OK    linii ze starymi liczbami 5, w tym bez znacznika historii 0 []
+T11  plan_ramki_v2.md                                             OK    linii ze starymi liczbami 8, w tym bez znacznika historii 0 []
+T11  protokol_weryfikacji_v2.md                                   OK    linii ze starymi liczbami 0, w tym bez znacznika historii 0 []
+T11  Stanowisko kontroli cyrkonii - plan wdrozenia v2.pdf         OK    stron 27, nowszy niz .md True, R59 46, '23 gniazda' 9, '1 rynienka' 14, commit 8740198
+T11  Zakupy i druk - stanowisko kontroli cyrkonii.pdf             OK    stron 11, nowszy niz .md True, R59 28, '23 gniazda' 5, '1 rynienka' 4, commit 8740198
+T11  Budowa ramki - decyzje i zamienniki.pdf                      OK    stron 16, nowszy niz .md True, R59 34, '23 gniazda' 4, '1 rynienka' 6, commit 8740198
+T13  Ramki_pakiet_2026-11-16_R59_cz1_dokumenty_druk.zip           OK    rozmiar 4599220 B (limit 10000000), CRC OK, plikow 33, nazw nie-ASCII 0, trafien fragmentow nazw zlecen 0
+T13  Ramki_pakiet_2026-11-16_R59_cz2_model.zip                    OK    rozmiar 8359286 B (limit 10000000), CRC OK, plikow 17, nazw nie-ASCII 0, trafien fragmentow nazw zlecen 0
+T13  Ramki_pakiet_2026-11-16_R59_cz3_zrodla.zip                   OK    rozmiar 6891313 B (limit 10000000), CRC OK, plikow 32, nazw nie-ASCII 0, trafien fragmentow nazw zlecen 0
+T13  Ramki_pakiet_2026-11-16_R59.zip                              OK    rozmiar 19852286 B (limit 2147483648), CRC OK, plikow 83, nazw nie-ASCII 0, trafien fragmentow nazw zlecen 0
+T13  3 ZIP razem = Ramki_pakiet                                   OK    katalog glowny ['Ramki_pakiet_2026-11-16_R59'], plikow 82 (pakiet 82), bajtowo zgodnych 82, kazdy plik w dokladnie 1 ZIP: True
+T13  instrukcja pakietu                                           OK    plik INSTRUKCJA_PAKIET_2026-11-16_R59.md, nazwy 3 ZIP w tresci 3/3, linii 35
+T13  NA_SERWER vs ZIP calosci                                     OK    SHA i rozmiar ZIP calosci w pliku: True / True
+T13 fragmentow nazw z Prace_test do porownania: 42 (nie wypisywane)
+T14  git status czysty                                            OK    zmian niezatwierdzonych: 0
+T14  pliki w diffie origin/main...HEAD                            OK    plikow 580 (A 465, M 99, D 0)
+T14  STL poza dozwolonymi katalogami                              OK    0 []
+T14  nic w raporty/testy_krawedz                                  OK    0
+T14  nowe pliki nie-ASCII poza wyjatkami                          OK    0 []
+T14  znaki sterujace w plikach tekstowych                         OK    0 []
+RAZEM: 22/22 OK

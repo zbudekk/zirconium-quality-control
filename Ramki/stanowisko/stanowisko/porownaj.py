@@ -4,6 +4,13 @@ Pełny łańcuch plate → match → inspect (P3a). Użycie (z katalogu stanowis
     py -3.12 -m stanowisko.porownaj --skan <skan.stl> --projekty <folder> [<folder2> …]
         --plytka wieczorna|poranna|okragla_wieczorna|okragla_poranna [--wspolczynnik 1.22] [--numer N]
         [--wyjscie <folder>] [--prawda <skan.json>] [--bez-filtru] [--bez-inspekcji] [--orientacja auto|brzeg_dol|brzeg_gora]
+        [--bez-straznika]
+
+``--plytka`` to nazwa układu z ``[plytki]``: układ gniazd R59 (``wieczorna`` …) albo poprzedni R54 dla starych płytek
+fizycznych (``wieczorna_r54``, ``poranna_r54``, ``okragla_wieczorna_r54``, ``okragla_poranna_r54``). Numery płytek są w obu
+układach te same, więc układ wybiera człowiek; gdy skan nie pasuje do wybranego układu (strażnik układu w ``plate``),
+wynik ma ``uklad_zgodny`` = false, komunikat „płytka nie pasuje do wybranego układu”, nazwy układów, do których pasuje
+rozstaw stożków, i ŻADNYCH gniazd (nic nie jest zielone).
 
 Wynik: tabela gniazdo → id projektu → zęby → pokrycie → pewność → status match → status inspect → ubytki
 (stdout, bez nazw plików), ``<wyjscie>/<skan>_wynik.json`` (macierz wyrównania, numer, fragmenty, kandydaci,
@@ -63,6 +70,32 @@ def status_gniazda(status_match: str, inspekcja: dict | None) -> str:
     return INSPECT_NA_STATUS.get(inspekcja["status"]) or status_match
 
 
+def uklady_pasujace(stozki: list, ust: dict, wybrany: str) -> list[str]:
+    """Inne układy z ``[plytki]``, do których pasuje rozstaw stożków znalezionych w skanie (podpowiedź przy niezgodności)."""
+    pasuja = []
+    for nazwa in ust["plytki"]:
+        if nazwa == wybrany:
+            continue
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                uk = U.wczytaj(nazwa, UST.katalog_plytki(ust, nazwa))
+        except (OSError, ValueError):
+            continue
+        if PL.stozki_pasuja(stozki, uk):
+            pasuja.append(nazwa)
+    return pasuja
+
+
+PODPOWIEDZ_BRAK_R54 = ("w [plytki] lokalnego ustawienia.toml nie ma układów …_r54 (stare płytki fizyczne sprzed R59) — "
+                       "dopisz 4 wiersze *_r54 z ustawienia.przyklad.toml i porównaj ponownie z układem …_r54")
+
+
+def brak_ukladow_poprzednich(ust: dict) -> bool:
+    """Czy w ``[plytki]`` nie ma żadnego układu z przyrostkiem wersji (``*_r54``) — lokalny ``ustawienia.toml`` sprzed R59."""
+    return not any(U.typ_plytki(nazwa) != nazwa for nazwa in ust["plytki"])
+
+
 def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filtru: bool = False, inspekcja: bool = True,
                       podglad: dict | None = None) -> list[dict]:
     """match (+ inspect) dla każdego fragmentu (bez drobnych); wpisy JSON z 5 najlepszymi kandydatami.
@@ -95,8 +128,14 @@ def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filt
 
 def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynnik: float | None = None, numer: int | None = None,
              orientacja: str = "auto", bez_filtru: bool = False, pula: M.Pula | None = None, inspekcja: bool = True,
-             podglad: dict | None = None, postep=None) -> dict:
-    """Cały łańcuch na jednym skanie. ``postep(etap: str, udzial: float)`` — wywołanie zwrotne dla okna."""
+             podglad: dict | None = None, postep=None, straznik: bool = True) -> dict:
+    """Cały łańcuch na jednym skanie. ``postep(etap: str, udzial: float)`` — wywołanie zwrotne dla okna.
+
+    Skan, który nie pasuje do układu ``plytka`` (``plate.NiezgodnyUklad``), daje wynik z ``uklad_zgodny`` = False,
+    ``uklad_komunikat``, ``uklady_pasujace`` i pustą listą gniazd (match i inspect nie są liczone) oraz ostrzeżenie.
+    Gdy żaden inny układ nie pasuje, a w ``[plytki]`` nie ma układów ``*_r54`` (stary ``ustawienia.toml``), komunikat
+    i pole ``uklad_podpowiedz`` mówią, że trzeba dopisać 4 wiersze ``*_r54`` z ``ustawienia.przyklad.toml``.
+    """
     t0 = time.time()
 
     def krok(etap: str, udzial: float) -> None:
@@ -114,14 +153,35 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
     m = trimesh.load(skan, force="mesh")
     t1 = time.time()
     krok("wyrównanie płytki (plate)", 0.35)
-    wyr = PL.wyrownaj(m, uk, numer=numer)
+    try:
+        wyr = PL.wyrownaj(m, uk, numer=numer, straznik=straznik)
+    except PL.NiezgodnyUklad as e:
+        t2 = time.time()
+        pasujace = uklady_pasujace(e.stozki, ust, plytka)
+        podpowiedz = PODPOWIEDZ_BRAK_R54 if not pasujace and brak_ukladow_poprzednich(ust) else ""
+        komunikat = str(e) + (f"; rozstaw stożków w skanie pasuje do układu: {', '.join(pasujace)}" if pasujace
+                              else "; rozstaw stożków w skanie nie pasuje do żadnego innego układu z [plytki]")
+        komunikat += f"; {podpowiedz}" if podpowiedz else ""
+        warnings.warn(komunikat, stacklevel=2)
+        krok("wynik", 0.95)
+        return {
+            "skan": Path(skan).name, "plytka": plytka, "uklad_zgodny": False, "uklad_komunikat": komunikat, "uklady_pasujace": pasujace,
+            "uklad_podpowiedz": podpowiedz,
+            "wspolczynnik": w, "projekty": len(pula), "foldery_projektow": [str(f) for f in foldery],
+            "numer": None, "numer_zrodlo": "nieznany", "bity": [], "numer_z_dolkow": None,
+            "macierz_skan_do_plytki": e.macierz.tolist() if e.macierz is not None else None, "jakosc_wyrownania": e.jakosc,
+            "gniazda": [], "gniazda_puste": [], "gniazda_podwojne": [], "poza_gniazdem": 0, "fragmenty_drobne": 0,
+            "czas_s": {"wczytanie": round(t1 - t0, 2), "plate": round(t2 - t1, 2), "match": 0.0, "razem": round(t2 - t0, 2), "pula": pula.czas_s, "inspect": 0.0},
+            "bez_filtru": bez_filtru, "inspekcja": inspekcja, "statusy_gniazd": {s: 0 for s in STATUSY_GNIAZDA}, "ubytki": 0,
+        }
     t2 = time.time()
     krok("identyfikacja i inspekcja gniazd (match + inspect)", 0.55)
     gniazda = dopasuj_fragmenty(wyr, pula, ust, bez_filtru, inspekcja, podglad)
     t3 = time.time()
     krok("wynik", 0.95)
     wynik = {
-        "skan": Path(skan).name, "plytka": plytka, "wspolczynnik": w, "projekty": len(pula), "foldery_projektow": [str(f) for f in foldery],
+        "skan": Path(skan).name, "plytka": plytka, "uklad_zgodny": wyr.jakosc.get("uklad_zgodny"),  # None = strażnik wyłączony
+        "wspolczynnik": w, "projekty": len(pula), "foldery_projektow": [str(f) for f in foldery],
         "numer": wyr.numer, "numer_zrodlo": wyr.numer_zrodlo, "bity": wyr.bity, "numer_z_dolkow": wyr.numer_z_dolkow,
         "macierz_skan_do_plytki": wyr.macierz.tolist(), "jakosc_wyrownania": wyr.jakosc,
         "gniazda": gniazda, "gniazda_puste": wyr.gniazda_puste, "gniazda_podwojne": wyr.gniazda_podwojne,
@@ -251,6 +311,10 @@ def metryki_inspekcji(wynik: dict, prawda: S.PrawdaPlytki) -> dict:
 # tabela i mapa
 # ----------------------------------------------------------------------------
 def tabela(wynik: dict) -> str:
+    if wynik.get("uklad_zgodny") is False:
+        return (f"skan {wynik['skan']}: PŁYTKA NIE PASUJE DO WYBRANEGO UKŁADU „{wynik['plytka']}” — gniazd nie oceniano "
+                f"(układy o pasującym rozstawie stożków: {', '.join(wynik['uklady_pasujace']) or 'brak'})"
+                + (f" — {wynik['uklad_podpowiedz']}" if wynik.get("uklad_podpowiedz") else ""))
     w = [f"skan {wynik['skan']}: płytka {wynik['plytka']} nr {wynik['numer']} ({wynik['numer_zrodlo']}), współczynnik {wynik['wspolczynnik']}, "
          f"projektów w puli {wynik['projekty']}, czas {wynik['czas_s']['razem']} s (plate {wynik['czas_s']['plate']}, match {wynik['czas_s']['match']})",
          "gniazdo  projekt           zęby          pokrycie  pewność  match    gniazdo       inspect           ubytki (metoda, ø mm)"]
@@ -306,6 +370,13 @@ def mapa_png(wynik: dict, uk: U.UkladPlytki, plik: Path, px: float = 0.1) -> Pat
             d.ellipse([P(x - 3, y + 3), P(x + 3, y - 3)], outline=KOLORY["poza"], width=3)
     d.text(P(-r + 2, r - 2), f"{wynik['skan']}  {wynik['plytka']} nr {wynik['numer']}  zielone = OK, czerwone = ubytek, zolte = sprawdz, szare = bez projektu, "
            "pomaranczowe = poprawka; fiolet = podwojne; ciemnoczerwone kolko = poza gniazdem; male kolka = ubytki", fill=(0, 0, 0))  # domyślna czcionka PIL bez polskich znaków
+    if wynik.get("uklad_zgodny") is False:  # strażnik układu: przekreślona mapa wybranego układu, żadnych kolorów gniazd
+        pol = (uk.size if uk.shape == "square" else uk.d) / 2
+        for a, b in (((-pol, -pol), (pol, pol)), ((-pol, pol), (pol, -pol))):
+            d.line([P(*a), P(*b)], fill=KOLORY["czerwony"], width=6)
+        d.text(P(-r + 2, r - 6), f"PLYTKA NIE PASUJE DO WYBRANEGO UKLADU {wynik['plytka']} - gniazd nie oceniano; rozstaw stozkow pasuje do: "
+               f"{', '.join(wynik.get('uklady_pasujace', [])) or 'zadnego innego ukladu'}"
+               + ("; w ustawienia.toml brak ukladow _r54 - dopisz 4 wiersze z ustawienia.przyklad.toml" if wynik.get("uklad_podpowiedz") else ""), fill=KOLORY["czerwony"])
     im.save(plik)
     return plik
 
@@ -322,6 +393,7 @@ def main(argv: list[str] | None = None) -> dict:
     ap.add_argument("--orientacja", choices=S.ORIENTACJE, default="auto")
     ap.add_argument("--bez-filtru", action="store_true", help="dopasuj wszystkie projekty (bez filtru wymiarów)")
     ap.add_argument("--bez-inspekcji", action="store_true", help="tylko plate + match (bez ubytków)")
+    ap.add_argument("--bez-straznika", action="store_true", help="wyłącz sprawdzenie, czy gniazda skanu leżą jak w wybranym układzie (rozstaw stożków jest sprawdzany zawsze)")
     ap.add_argument("--ustawienia", type=Path, default=None)
     ap.add_argument("--bez-png", action="store_true")
     a = ap.parse_args(argv)
@@ -338,9 +410,11 @@ def main(argv: list[str] | None = None) -> dict:
     pula = M.Pula(a.projekty, w, a.orientacja)
     with warnings.catch_warnings(record=True) as ostrz:
         warnings.simplefilter("always")
-        wynik = porownaj(a.skan, a.projekty, a.plytka, ust, w, a.numer, a.orientacja, a.bez_filtru, pula, inspekcja=not a.bez_inspekcji)
+        wynik = porownaj(a.skan, a.projekty, a.plytka, ust, w, a.numer, a.orientacja, a.bez_filtru, pula, inspekcja=not a.bez_inspekcji,
+                         straznik=not a.bez_straznika)
     wynik["ostrzezenia"] = [str(o.message) for o in ostrz]
-    if a.prawda is not None:
+    niezgodny = wynik.get("uklad_zgodny") is False  # metryk na prawdzie nie ma: skan nie jest wyrównany do tego układu
+    if a.prawda is not None and not niezgodny:
         prawda = S.wczytaj_prawde(a.prawda)
         wynik["metryki"] = metryki(wynik, prawda, pula)
         if not a.bez_inspekcji:
@@ -352,7 +426,7 @@ def main(argv: list[str] | None = None) -> dict:
     print(tabela(wynik))
     for o in wynik["ostrzezenia"]:
         print("UWAGA:", o)
-    if a.prawda is not None:
+    if a.prawda is not None and not niezgodny:
         mt = wynik["metryki"]
         print(f"metryki: wyrównanie max {mt['wyrownanie']['max_przesuniecie_mm']:.4f} mm ({'OK' if mt['wyrownanie_ok'] else 'ZA DUŻO'}), numer {mt['numer_odczytany']} vs {mt['numer_prawda']} "
               f"({'OK' if mt['numer_ok'] else 'ŹLE'}, {mt['numer_zrodlo']}), fragmenty w swoim gnieździe {mt['fragment_w_swoim_gniezdzie']}/{mt['prac_prawda']}, puste {'OK' if mt['puste_ok'] else 'ŹLE'}, "

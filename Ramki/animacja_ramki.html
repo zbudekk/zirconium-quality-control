@@ -1,6 +1,6 @@
-<title>Ramka na stole</title>
+<meta charset="utf-8">
+<title>Ramka na stole R59</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: one scene at a time, tabs on top, legend under the drawing; drawings are SVG built from plan dimensions. */
 :root{
@@ -54,8 +54,8 @@ text{font-family:var(--font);fill:var(--fg)}
 </style>
 
 <div class="wrap">
-  <h1>Ramka świetlna wg planu v1: na stole, podłączenie, montaż</h1>
-  <p class="sub">Trzy sceny z wymiarów planu (obudowa 200 × 200 × 58,6 mm, płytka 96 × 96). Schemat, nie render 3D.</p>
+  <h1>Ramka świetlna wg planu v2 (po R59): na stole, podłączenie, montaż</h1>
+  <p class="sub">Trzy sceny z wymiarów parametry.json po R59, 14.11.2026 (obudowa 200 × 200 × 63,6 mm, płytka 96 × 96; układ gniazd R59: <span id="uk-opis"></span>, jedna rynienka z przodu). Schemat, nie render 3D; dokładna geometria w modelu 3D.</p>
   <div class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-scene="s1">1 · Na stole</button>
     <button role="tab" aria-selected="false" data-scene="s2">2 · Podłączenie</button>
@@ -70,11 +70,11 @@ text{font-family:var(--font);fill:var(--fg)}
     </div>
     <div class="stage"><svg id="iso" viewBox="0 0 1000 560" aria-label="Ramka na stole, widok izometryczny"></svg></div>
     <ul class="legend">
-      <li><b>A</b>Ramka: korpus + blat grafit, płytka biała na białej wkładce</li>
+      <li><b>A</b>Ramka: korpus + blat grafit, płytka biała na białej wkładce; gniazda wg układu R59 — <span id="s1-uklad"></span></li>
       <li><b>B</b>Zasilacz 5 V 4 A w gniazdku, wtyk DC w tylnej ściance</li>
       <li><b>C</b>Laptop = serwer; Wi‑Fi 2,4 GHz do ramki</li>
       <li><b>D</b>Wieczorna: skaner obok, głowica gestu z przodu po lewej, przycisk po prawej</li>
-      <li><b>E</b>Poranna: klawiatura numeryczna luzem na stole, kuwety z pracami</li>
+      <li><b>E</b>Poranna: klawiatura numeryczna luzem na stole (odbiornik USB w środku ramki), kuwety z pracami</li>
     </ul>
   </section>
 
@@ -100,21 +100,43 @@ text{font-family:var(--font);fill:var(--fg)}
     </div>
     <div class="stage"><svg id="cut" viewBox="0 0 1000 420" aria-label="Przekrój przez ramkę, kolejność montażu"></svg></div>
     <ul class="legend" id="s3-legend">
-      <li data-k="1"><b>1</b>Korpus 200 × 200 × 54,6, ściany 2,5, dno 3; stopki 4; bossy z wkładkami M3 / M2,5</li>
-      <li data-k="2"><b>2</b>Pi 4 + Bonnet na słupkach 5 mm (stos 26 mm, Z 8–34)</li>
-      <li data-k="3"><b>3</b>Dystanse M3 × 35 na bossach 11 mm → spód panelu na Z 49</li>
-      <li data-k="4"><b>4</b>Panel HUB75 160 × 160 złączami w dół; 4 wkręty od spodu</li>
-      <li data-k="5"><b>5</b>Blat z dyfuzorem w kieszeni i ramą dyfuzora od spodu; zatrzaski + 2 wkręty z tyłu</li>
-      <li data-k="6"><b>6</b>Wkładka na kołkach i magnesach; półki 2,5 mm z czujnikami Halla</li>
-      <li data-k="7"><b>7</b>Płytka 96 × 96 na półkach; magnesy 1,7 mm nad czujnikami</li>
+      <li data-k="1"><b>1</b>Korpus 200 × 200 × 59,6, ściany 2,5, dno 3; stopki ø10 × 4; stadiony panelu Z 4, bossy Pi ø8; 4 kieszenie zatrzasków 11 × 3,5 × 1,3 (Z 52,1–55,6)</li>
+      <li data-k="2"><b>2</b>Pi 4 + Bonnet na bossach 5 mm (stos 26 mm, Z 8–34)</li>
+      <li data-k="3"><b>3</b>Dystanse mosiężne M3 F‑F 50 na stadionach Z 4 → spód panelu na Z 54</li>
+      <li data-k="4"><b>4</b>Panel HUB75 160 × 160 złączami w dół (do Z 42); 4 wkręty M3 od spodu przez rowki 3,6</li>
+      <li data-k="5"><b>5</b>Blat z dyfuzorem w kieszeni 162; kołnierz 193,6 (luz 0,7), 4 haczyki 1,5 w kieszeniach zatrzasków + 2 wkręty M3 z tyłu</li>
+      <li data-k="6"><b>6</b>Wkładka (otwór 96,8) na kołkach i magnesach; półki 2,5 mm z czujnikami Halla</li>
+      <li data-k="7"><b>7</b>Płytka 96 × 96 na półkach (luz 0,4 na stronę); magnesy nad czujnikami; w przekroju rząd gniazd płytki wieczornej najbliżej środka (R59: <span id="s3-rzad"></span>)</li>
       <li data-k="8"><b>8</b>Pokrywka na czas przenoszenia; 14 mm nad płytką</li>
     </ul>
   </section>
 </div>
 
+<script type="application/json" id="uklad">
+{"zrodlo": "kopia wartości z parametry.json po R59 (14.11.2026); zgodność sprawdza narzedzia/zbuduj_model_offline.js",
+ "ev_rows": [{"y": -30.2, "type": "trough", "l": 60, "w": 15, "x": [0]}, {"y": -13.7, "type": "round", "d": 12, "x": [-37.5, -22.5, -7.5, 7.5, 22.5, 37.5]}, {"y": 2.75, "type": "round", "d": 15, "x": [-36, -18, 0, 18, 36]}, {"y": 18.35, "type": "round", "d": 15, "x": [-27, -9, 9, 27]}, {"y": 33.95, "type": "round", "d": 15, "x": [-18, 0, 18]}],
+ "mo_rows": [{"y": -35.3, "type": "trough", "l": 50, "w": 13, "x": [0]}, {"y": -19.55, "type": "round", "d": 12.5, "x": [-31, -15.5, 0, 15.5, 31]}, {"y": -6.1, "type": "round", "d": 12.5, "x": [-38.75, -23.25, -7.75, 7.75, 23.25, 38.75]}, {"y": 8, "type": "round", "d": 12.5, "x": [-32.25, -16.75, 16.75, 32.25]}, {"y": 8.75, "type": "round", "d": 15, "x": [0]}, {"y": 22.85, "type": "round", "d": 15, "x": [-24.5, 24.5]}, {"y": 23.6, "type": "round", "d": 12.5, "x": [-7.75, 7.75]}, {"y": 37.05, "type": "round", "d": 12.5, "x": [-15.5, 0, 15.5]}],
+ "ev_marker_pos": {"A": [-35.5, -26.5], "B": [-31, 31.5], "C": [42, 14.5]},
+ "mo_marker_pos": {"A": [-30.5, -32], "B": [-37.5, 23.5], "C": [41.5, 16]},
+ "marker_cone_d": 5,
+ "socket_depth": 4,
+ "socket_wall_angle": 15,
+ "socket_hole_d": 3,
+ "trough_hole_count": 4,
+ "ev_trough_hole_pitch": 12,
+ "mo_trough_hole_pitch": 10
+}
+</script>
 <script>
 (function(){
 const $=s=>document.querySelector(s);
+/* ---------- układ gniazd R59: blok „uklad” = kopia z parametry.json (ev_rows, mo_rows, znaczniki); nic zaszytego w rysunku ---------- */
+const UK=JSON.parse($('#uklad').textContent);
+const num=n=>String(Math.round(n*100)/100).replace('.',',');
+const ukTxt=rows=>{const by={},tr=[];let n=0;rows.forEach(r=>{if(r.type==='round'){by[r.d]=(by[r.d]||0)+r.x.length;n+=r.x.length;}else r.x.forEach(()=>tr.push(num(r.l)+' × '+num(r.w)+(r.y<0?' z przodu':' z tyłu')));});
+  return {n,t:tr.length,sr:Object.keys(by).map(Number).sort((a,b)=>a-b).map(d=>by[d]+' × ø'+num(d)).join(' + '),tr:tr.join(', ')};};
+const RED=[[1,2],[3,2]]; // płytka wieczorna: [wpis ev_rows, gniazdo] świecące na czerwono — te same gniazda co w modelu 3D (EV_RED)
+{const a=ukTxt(UK.ev_rows),b=ukTxt(UK.mo_rows);$('#uk-opis').textContent='wieczorna '+a.n+' + '+a.t+', poranna '+b.n+' + '+b.t;}
 const NS='http://www.w3.org/2000/svg';
 const el=(n,a,txt)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;return e;};
 const css=v=>`var(--${v})`;
@@ -160,30 +182,42 @@ function drawIso(){
   box(g,330,20,14,260,8,170,['#7d838d','#1c1e22','#5b6169']);
   g.appendChild(poly([P(342,28,28),P(578,28,28),P(578,28,172),P(342,28,172)],'#2f6fb3'));
   label(460,110,20,'Laptop (serwer)');
-  // ramka A: 200 x 200 x 58,6 z przodu po lewej/środku
+  // ramka A: 200 x 200 x 63,6 z przodu po lewej/środku
   const fx=room==='evening'?300:160, fy=room==='evening'?120:120;
   const fr=el('g',{id:'frame'}); g.appendChild(fr);
-  box(fr,fx,fy,0,200,200,58.6,GR);
+  box(fr,fx,fy,0,200,200,63.6,GR);
   // okno + dyfuzor + wkładka + płytka na wierzchu
-  const top=58.6;
+  const top=63.6;
   fr.appendChild(poly([P(fx+19,fy+19,top),P(fx+181,fy+19,top),P(fx+181,fy+181,top),P(fx+19,fy+181,top)],'#d7dbdf'));
   // cyfry na marginesie
   const [mx,my]=P(fx+100,fy+172,top+.1); fr.appendChild(el('text',{x:mx,y:my+4,'font-size':11,class:'mono',fill:css('wifi'),'text-anchor':'middle'},room==='evening'?'OK 4':'K 12 · 7'));
-  box(fr,fx+47.7,fy+47.7,top,104.6,104.6,6,WH);
+  box(fr,fx+47.6,fy+47.6,top,104.8,104.8,6,WH);
   const plate=el('g',{id:'plate'}); fr.appendChild(plate);
   box(plate,fx+52,fy+52,top+2.5,96,96,8,WH);
-  // gniazda: siatka 5x5 kolorowych kółek
-  for(let i=0;i<5;i++)for(let j=0;j<5;j++){
-    const [a,b]=P(fx+62+i*19,fy+62+j*19,top+10.6);
-    const red=room==='evening'&&((i*7+j*3)%9===0);
-    const on=room==='evening'||j>=3;
-    plate.appendChild(el('ellipse',{cx:a,cy:b,rx:7,ry:4,fill:on?(red?css('warn'):css('ok')):'#e2e1da',class:on?'glow':'',stroke:'#9b9a93','stroke-width':.5}));
-  }
+  // gniazda wg układu R59 (dotąd symboliczna siatka 5 × 5): plan X w prawo, Y do tyłu → scena (fx+100+X, fy+100−Y); okrąg o promieniu r → elipsa r·C·√2 × r·H·√2
+  const ev=room==='evening', rows=UK[ev?'ev_rows':'mo_rows'], zt=top+10.6, pcx=fx+100, pcy=fy+100, q2=Math.SQRT2;
+  const dot=(x,y,r,fill,cls)=>{const [a,b]=P(pcx+x,pcy-y,zt);plate.appendChild(el('ellipse',{cx:a,cy:b,rx:r*C*q2,ry:r*H*q2,fill,class:cls||'',stroke:'#9b9a93','stroke-width':.5}));};
+  rows.forEach((r,ri)=>{
+    if(r.type==='trough'){ // rynienka (gniazdo na most): stadion l × w, w dnie otwory w rozstawie *_trough_hole_pitch; wieczorna — świecą pod mostem
+      const rr=r.w/2, hx=r.l/2-rr, n=10, pitch=UK[ev?'ev_trough_hole_pitch':'mo_trough_hole_pitch'], nh=UK.trough_hole_count;
+      r.x.forEach(x=>{const pts=[];
+        for(let k=0;k<=n;k++){const t=-Math.PI/2+Math.PI*k/n;pts.push(P(pcx+x+hx+rr*Math.cos(t),pcy-r.y-rr*Math.sin(t),zt));}
+        for(let k=0;k<=n;k++){const t=Math.PI/2+Math.PI*k/n;pts.push(P(pcx+x-hx+rr*Math.cos(t),pcy-r.y-rr*Math.sin(t),zt));}
+        plate.appendChild(poly(pts,'#e2e1da',{stroke:'#9b9a93','stroke-width':.5}));
+        for(let k=0;k<nh;k++)dot(x+(k-(nh-1)/2)*pitch,r.y,2,ev?css('ok'):'#c9c7c0',ev?'glow':'');});
+      return;}
+    // wieczorna: wszystkie gniazda świecą, 2 na czerwono; poranna: świecą dwa rzędy od przodu (y < 0) — sens jak w dotychczasowym schemacie
+    r.x.forEach((x,i)=>{const red=ev&&RED.some(([a,b])=>a===ri&&b===i), on=ev||r.y<0;
+      dot(x,r.y,r.d/2,on?(red?css('warn'):css('ok')):'#e2e1da',on?'glow':'');});
+  });
+  {const mk=UK[ev?'ev_marker_pos':'mo_marker_pos'];['A','B','C'].forEach(k=>dot(mk[k][0],mk[k][1],UK.marker_cone_d/2,'#8d8c85'));} // stożki znaczników A, B, C
+  {const u=ukTxt(rows);$('#s1-uklad').textContent=(ev?'wieczorna ':'poranna ')+u.n+' + '+u.t+': '+u.sr+', rynienka '+u.tr;}
   // przód ramki: napis, przycisk / zaślepka, głowica
   const [lx,ly]=P(fx+80,fy+200,44); fr.appendChild(el('text',{x:lx,y:ly,'font-size':8,fill:'#b8bcc2','text-anchor':'middle',transform:`rotate(30 ${lx} ${ly})`,'letter-spacing':1},room==='evening'?'RAMKA WIECZORNA':'RAMKA PORANNA'));
   const [bx,by]=P(fx+130,fy+200,22); fr.appendChild(el('ellipse',{cx:bx,cy:by,rx:9,ry:11,fill:room==='evening'?'#e2b93b':css('graphite-2'),stroke:'#1d1f22'}));
   if(room==='evening'){ box(fr,fx+13,fy+200,30,34,26,16,GR); const [hx,hy]=P(fx+30,fy+213,47); fr.appendChild(el('rect',{x:hx-4,y:hy-3,width:8,height:5,fill:'#2a2d33'})); label(fx+30,fy+250,60,'gest ↑'); }
-  label(fx+100,fy+100,95,room==='evening'?'A · ramka wieczorna':'A · ramka poranna');
+  // podpis ramki na lewym pasie dyfuzora, wzdłuż krawędzi (R59: nie zasłania układu gniazd na płytce)
+  {const [ax,ay]=P(fx+35.5,fy+100,top+.1);fr.appendChild(el('text',{x:ax,y:ay+4,'font-size':12,'text-anchor':'middle',transform:`rotate(-30 ${ax} ${ay})`},room==='evening'?'A · ramka wieczorna':'A · ramka poranna'));}
   // zasilacz B: gniazdko na ścianie z tyłu po prawej + kabel do tylnej ścianki
   box(g,560,0,0,30,40,60,['#e9e9e6','#bdbdb8','#d5d5d0']);
   const [pa,pb]=P(575,20,30), [pc,pd]=P(fx+140,fy,20);
@@ -201,7 +235,6 @@ function drawIso(){
     label(485,265,45,'E · klawiatura numeryczna');
     const [ka,kb]=P(485,265,35), [kc,kd]=P(fx+150,fy+120,40);
     g.appendChild(el('path',{d:`M${ka} ${kb} Q ${(ka+kc)/2} ${Math.min(kb,kd)-70} ${kc} ${kd}`,fill:'none',stroke:css('wifi'),'stroke-width':2,class:'flow','stroke-dasharray':'3 6'}));
-    label(fx+150,fy+120,105,'odbiornik USB w środku','m');
   }
   $('#s1-cap').textContent=room==='evening'?'Ramka wieczorna na parapecie obok skanera':'Ramka poranna w pomieszczeniu kuwet, klawiatura obok';
   $('#s1-room').textContent=room==='evening'?'Pokaż: ramka poranna':'Pokaż: ramka wieczorna';
@@ -220,7 +253,7 @@ drawIso();
   const tag=(x,y,t,cls)=>svg.appendChild(el('text',{x,y,'font-size':11,class:'mono '+(cls||'m')},t));
   // obudowa (strefa przerywana)
   svg.appendChild(el('rect',{x:250,y:40,width:560,height:520,rx:10,fill:'none',stroke:css('graphite'),'stroke-dasharray':'8 6','stroke-width':1.5}));
-  tag(262,62,'WNĘTRZE OBUDOWY 200 × 200 × 58,6','m');
+  tag(262,62,'WNĘTRZE OBUDOWY 200 × 200 × 63,6','m');
   // elementy
   node(40,250,150,50,'Zasilacz','230 V → 5 V 4 A',null);
   node(255,250,70,50,'DC','5,5/2,1');
@@ -264,41 +297,46 @@ const parts=[]; let step=0, timer=null;
   const R=(g,x1,x2,z1,z2,fill,extra)=>g.appendChild(el('rect',Object.assign({x:X(Math.min(x1,x2)),y:Y(Math.max(z1,z2)),width:Math.abs(x2-x1)*K,height:Math.abs(z2-z1)*K,fill},extra||{})));
   const part=(k)=>{const g=el('g',{class:'part out','data-k':k});svg.appendChild(g);parts.push(g);return g;};
   const T=(x,z,t,anchor)=>svg.appendChild(el('text',{x:X(x),y:Y(z),'font-size':11,class:'mono m','text-anchor':anchor||'start'},t));
-  // 1 korpus + stopki + bossy
+  // 1 korpus + stopki + stadiony + bossy Pi; kieszenie zatrzasków w ścianach bocznych (y = 0)
   let g=part(1);
-  R(g,-100,100,0,3,css('graphite')); R(g,-100,-97.5,0,54.6,css('graphite')); R(g,97.5,100,0,54.6,css('graphite'));
-  R(g,-88,-78,-4,0,'#222'); R(g,78,88,-4,0,'#222');
-  [-60,60].forEach(x=>R(g,x-4.5,x+4.5,3,14,css('graphite-3')));
-  [-88.5,-30.5].forEach(x=>R(g,x-3,x+3,3,8,css('graphite-3')));
-  R(g,-97.5,-91,8,8.6,css('bg')); // szczelina SD w dnie: symbolicznie
+  R(g,-100,100,0,3,css('graphite')); R(g,-100,-97.5,0,59.6,css('graphite')); R(g,97.5,100,0,59.6,css('graphite'));
+  [-1,1].forEach(s=>R(g,s*97.5,s*98.8,52.1,55.6,css('bg'))); // kieszeń 1,3 × 3,5 (R53)
+  R(g,-93,-83,-4,0,'#222'); R(g,83,93,-4,0,'#222');
+  [-60,60].forEach(x=>R(g,x-4,x+4,3,4,css('graphite-3')));
+  [-46.5,11.5].forEach(x=>R(g,x-4,x+4,3,8,css('graphite-3')));
   // 2 Pi + Bonnet
   g=part(2);
-  R(g,-92,-7,8,9.6,'#2e7d4f'); R(g,-60,-40,9.6,20.6,'#222'); R(g,-80,-20,20.6,22.2,'#1d4ea3'); R(g,-85,-70,22.2,34,'#333'); R(g,-45,-25,22.2,30,'#444');
+  R(g,-50,35,8,9.6,'#2e7d4f'); R(g,-18,2,9.6,20.6,'#222'); R(g,-38,22,20.6,22.2,'#1d4ea3'); R(g,-43,-28,22.2,34,'#333'); R(g,-3,17,22.2,30,'#444');
   // 3 dystanse
-  g=part(3); [-60,60].forEach(x=>R(g,x-2.5,x+2.5,14,49,'#b8862b'));
+  g=part(3); [-60,60].forEach(x=>R(g,x-3.2,x+3.2,4,54,'#b8862b'));
   // 4 panel
-  g=part(4); R(g,-80,80,49,50.6,'#1f5f3a'); R(g,-80,80,50.6,52.6,'#333'); R(g,-70,-50,37,49,'#555'); R(g,20,45,41,49,'#555'); R(g,-20,0,43,49,'#555');
-  for(let x=-78;x<80;x+=4) g.appendChild(el('circle',{cx:X(x),cy:Y(52.6),r:1.6,fill:css('ok'),class:'glow'}));
-  // 5 blat + dyfuzor + rama
+  g=part(4); R(g,-80,80,54,55.6,'#1f5f3a'); R(g,-80,80,55.6,57.6,'#333'); R(g,-70,-50,42,54,'#555'); R(g,20,45,46,54,'#555'); R(g,-20,0,48,54,'#555');
+  for(let x=-78;x<80;x+=4) g.appendChild(el('circle',{cx:X(x),cy:Y(57.6),r:1.6,fill:css('ok'),class:'glow'}));
+  // 5 blat + dyfuzor; kołnierz 193,6 (luz 0,7), haczyk 96,8 → 98,3 (R53)
   g=part(5);
-  R(g,-100,-81,54.6,58.6,css('graphite')); R(g,81,100,54.6,58.6,css('graphite')); R(g,-81,-79,54.6,56.6,css('graphite')); R(g,79,81,54.6,56.6,css('graphite'));
-  R(g,-97.2,-95.2,44.6,54.6,css('graphite-3')); R(g,95.2,97.2,44.6,54.6,css('graphite-3'));
-  R(g,-80,80,56.6,58.6,'#e8ecef'); // dyfuzor
-  [-1,1].forEach(s=>R(g,s*80.5,s*85,48.6,54.6,css('graphite-3')));
+  R(g,-100,-81,59.6,63.6,css('graphite')); R(g,81,100,59.6,63.6,css('graphite')); R(g,-81,-79,59.6,61.6,css('graphite')); R(g,79,81,59.6,61.6,css('graphite'));
+  R(g,-96.8,-94.8,49.6,59.6,css('graphite-3')); R(g,94.8,96.8,49.6,59.6,css('graphite-3'));
+  [-1,1].forEach(s=>R(g,s*96.8,s*98.3,52.85,54.85,css('graphite-3')));
+  R(g,-80,80,61.6,63.6,'#e8ecef'); // dyfuzor
   // 6 wkładka
   g=part(6);
-  [-1,1].forEach(s=>{R(g,s*48.3,s*52.3,58.6,64.6,css('white')); R(g,s*36.3,s*48.3,58.6,61.1,css('white'));});
-  R(g,-44.5,-39.5,58.6,60.1,'#333'); R(g,39.5,44.5,58.6,60.1,'#333'); // czujniki Halla
+  [-1,1].forEach(s=>{R(g,s*48.4,s*52.4,63.6,69.6,css('white')); R(g,s*36.4,s*48.4,63.6,66.1,css('white'));});
+  R(g,-44.5,-39.5,63.6,65.1,'#333'); R(g,39.5,44.5,63.6,65.1,'#333'); // czujniki Halla
   // 7 płytka
-  g=part(7); R(g,-48,48,61.1,69.1,css('white'));
-  R(g,-44.6,-39.4,61.1,63.1,'#777'); R(g,39.4,44.6,61.1,63.1,'#777'); // magnesy
-  [-30,-12,6,24].forEach(x=>{g.appendChild(el('polygon',{points:`${X(x-6)},${Y(69.1)} ${X(x+6)},${Y(69.1)} ${X(x+3.9)},${Y(65.1)} ${X(x-3.9)},${Y(65.1)}`,fill:'#cfcdc6'}));R(g,x-1.5,x+1.5,61.1,65.1,css('bg'));});
-  g.appendChild(el('ellipse',{cx:X(6),cy:Y(70),rx:4*K,ry:5*K,fill:'#f0ede4',stroke:'#aaa'})); // korona w gnieździe
+  g=part(7); R(g,-48,48,66.1,74.1,css('white'));
+  R(g,-44.6,-39.4,66.1,68.1,'#777'); R(g,39.4,44.6,66.1,68.1,'#777'); // magnesy
+  // gniazda w przekroju: rząd płytki wieczornej najbliżej środka (R59: ø15 × 5 w y 2,75); ścianka socket_wall_angle, głębokość socket_depth, otwór socket_hole_d
+  {const row=UK.ev_rows.filter(r=>r.type==='round').sort((a,b)=>Math.abs(a.y)-Math.abs(b.y))[0], rt=row.d/2, zd=74.1-UK.socket_depth, rb=rt-UK.socket_depth*Math.tan(UK.socket_wall_angle*Math.PI/180), rh=UK.socket_hole_d/2;
+   row.x.forEach(x=>{g.appendChild(el('polygon',{points:`${X(x-rt)},${Y(74.1)} ${X(x+rt)},${Y(74.1)} ${X(x+rb)},${Y(zd)} ${X(x-rb)},${Y(zd)}`,fill:'#cfcdc6'}));R(g,x-rh,x+rh,66.1,zd,css('bg'));});
+   const xc=row.x[Math.min(row.x.length-1,Math.floor(row.x.length/2)+1)];
+   g.appendChild(el('ellipse',{cx:X(xc),cy:Y(75),rx:4*K,ry:5*K,fill:'#f0ede4',stroke:'#aaa'})); // korona w gnieździe
+   $('#s3-rzad').textContent=row.x.length+' × ø'+num(row.d)+', y '+num(row.y);}
   // 8 pokrywka
-  g=part(8); R(g,-49.8,49.8,83.1,85.1,css('white-2')); R(g,-49.8,-48.3,65.1,85.1,css('white-2')); R(g,48.3,49.8,65.1,85.1,css('white-2'));
+  g=part(8); R(g,-49.8,49.8,88.1,90.1,css('white-2')); R(g,-49.8,-48.3,70.1,90.1,css('white-2')); R(g,48.3,49.8,70.1,90.1,css('white-2'));
   // wymiary
-  const dim=(z,t)=>{svg.appendChild(el('line',{x1:X(104),x2:X(118),y1:Y(z),y2:Y(z),stroke:css('line')}));T(120,z+1,`Z ${z}  ${t}`);};
-  dim(0,'dno'); dim(8,'spód Pi'); dim(34,'szczyt Bonnetu'); dim(49,'spód panelu'); dim(58.6,'wierzch blatu'); dim(69.1,'wierzch płytki'); dim(85.1,'pokrywka');
+  const dim=(z,t)=>{svg.appendChild(el('line',{x1:X(104),x2:X(118),y1:Y(z),y2:Y(z),stroke:css('line')}));T(120,z+1,`Z ${String(z).replace('.',',')}  ${t}`);};
+  dim(0,'dno'); dim(8,'spód Pi'); dim(34,'szczyt Bonnetu'); dim(54,'spód panelu'); dim(63.6,'wierzch blatu'); dim(74.1,'wierzch płytki'); dim(90.1,'pokrywka');
+  T(-100,52,'zatrzask','end');
   T(-100,-8,'0 mm'); T(100,-8,'200 mm','end'); T(0,-8,'PRZEKRÓJ PRZEZ ŚRODEK, WIDOK OD PRZODU','middle');
 })();
 function show(n){step=Math.max(0,Math.min(8,n));parts.forEach(g=>g.classList.toggle('out',+g.dataset.k>step));

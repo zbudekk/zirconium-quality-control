@@ -1,0 +1,84 @@
+{
+ "chrome": "Chrome/157.0.8103.78",
+ "model_gotowe": true,
+ "komunikat": "(ukryty)",
+ "zadania_lacznie": 1,
+ "zadania_poza_plikiem": 0,
+ "konsola_error": 0,
+ "konsola_warning": 0,
+ "wyjatki": 0,
+ "stl_wczytane": 7,
+ "stl_sha_przegladarka_zgodne": 7,
+ "stl_sha_node": {
+  "plikow": 7,
+  "zgodne_z_lista": 7,
+  "niezgodne": []
+ },
+ "sondy_W": {
+  "plik": "ramka_plytka_wieczorna_n1_v2",
+  "dno": [
+   36,
+   36
+  ],
+  "otwor": [
+   18,
+   18
+  ],
+  "wierzch_obok": [
+   72,
+   72
+  ],
+  "rynienka_dno": [
+   3,
+   3
+  ],
+  "rynienka_otwor": [
+   4,
+   4
+  ],
+  "rynienka_obok": [
+   4,
+   4
+  ],
+  "stozek": [
+   6,
+   6
+  ],
+  "niezgodne": []
+ },
+ "sondy_P": {
+  "plik": "ramka_plytka_poranna_n4_v2",
+  "dno": [
+   46,
+   46
+  ],
+  "otwor": [
+   23,
+   23
+  ],
+  "wierzch_obok": [
+   92,
+   92
+  ],
+  "rynienka_dno": [
+   3,
+   3
+  ],
+  "rynienka_otwor": [
+   4,
+   4
+  ],
+  "rynienka_obok": [
+   4,
+   4
+  ],
+  "stozek": [
+   6,
+   6
+  ],
+  "niezgodne": []
+ },
+ "animacja_zadania_poza_plikiem": 0,
+ "animacja_konsola_error": 0,
+ "zrzuty": 12
+}

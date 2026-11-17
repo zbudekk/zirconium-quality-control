@@ -1,0 +1,125 @@
+weryfikuj_uklad_R59: parametry.json
+reguly: R59; rzedy z rynienka = 1; rynienek w rzedzie = 1 (D3-a, decyzja G0); boki trojkata rozne o >= 5; kolo R = 47, strefa +-45, scianka >= 3; sprawdzane plytki: obie
+  OK   socket_zone_r 47 = scan_field_d/2 - scan_center_tol - work_overhang = 47
+
+=== PLYTKA WIECZORNA (kwadrat 96 i okragla fi100; rzedy ev_rows) ===
+  OK   rzedy poprawnie zapisane (5 wpisow)
+ [1] liczby i K-05
+  info gniazda okragle 18 (6 x fi12, 12 x fi15) + rynienki 1 = 19 miejsc
+  OK   K-05 b: kazdy z 5 rzedow symetryczny wzgledem x = 0
+  OK   K-05 g: kazdy wpis rzedu ma inne y (id rzedami od przodu)
+  OK   brak powtorzonych x w rzedzie
+  OK   K-05 c: max promien obrysu 45.927 <= 47 (fi15 id17 (18; 33.95)); zapas 1.073
+  OK   K-05 c: max |x|+r, |y|+r = 43.500 <= 45 (fi12 id2 (37.5; -13.7))
+  OK   K-05 d: zaden obrys nie wchodzi w kwadrat narozny 13 mm (|x| > 35 i |y| > 35)
+  OK   K-05 e: min scianka miedzy obrysami 3.000 >= 3 (rynienka 60x15 id1 (0; -30.2) - fi12 id3 (22.5; -13.7))
+ [2] rynienki
+  OK   rzedow z rynienka: 1 (oczekiwane dokladnie 1, zlecenie R59 pkt 4); y = -30.2 (przednia)
+  OK   rynienek w tym rzedzie: 1 (oczekiwana dokladnie 1: D3-a, jedna dluga - decyzja wlasciciela na G0)
+  OK   rynienka 60x15 id1 (0; -30.2): 4 otwory fi3 co 12 (skrajny 18.0 od srodka), dno 57.86 x 12.86, od otworu do konca dna 9.43 >= 1,5
+  OK   rynienka 60x15 id1 (0; -30.2): mostek miedzy otworami 9.00 >= 1,5
+  OK   rynienka 60x15 id1 (0; -30.2): dlugosc dna 57.86 > prog mostu 20 mm (PROG_MOSTU_MM w synth.py); praca do ok. 57.9 mm lezy na dnie, do 58.7 mm po uniesieniu 1,5
+ [3] stozki znacznikow (K-16) i trojkat
+  OK   ev_marker_pos: klucze A, B, C z para liczb
+  OK   znacznik A (-35.5; -26.5): promien srodka 44.30 <= 44.5
+  OK   znacznik A: obrys w strefie, max |x|+r, |y|+r = 38.00 <= 45
+  OK   znacznik A: scianka do gniazda 3.52 >= 3 (rynienka 60x15 id1 (0; -30.2))
+  OK   znacznik A: do dolka kodu kwadratu 6.01 >= 1,5
+  OK   znacznik A: do kieszeni magnesu (XY) 11.71 >= 1,5
+  OK   znacznik A: do krawedzi kwadratu 10.00 i okraglej 3.20 >= 1,5
+  OK   znacznik B (-31; 31.5): promien srodka 44.20 <= 44.5
+  OK   znacznik B: obrys w strefie, max |x|+r, |y|+r = 34.00 <= 45
+  OK   znacznik B: scianka do gniazda 3.23 >= 3 (fi15 id19 (-18; 33.95))
+  OK   znacznik B: do dolka kodu kwadratu 56.65 >= 1,5
+  OK   znacznik B: do kieszeni magnesu (XY) 10.11 >= 1,5
+  OK   znacznik B: do krawedzi kwadratu 14.00 i okraglej 3.30 >= 1,5
+  OK   znacznik C (42; 14.5): promien srodka 44.43 <= 44.5
+  OK   znacznik C: obrys w strefie, max |x|+r, |y|+r = 44.50 <= 45
+  OK   znacznik C: scianka do gniazda 3.19 >= 3 (fi15 id8 (36; 2.75))
+  OK   znacznik C: do dolka kodu kwadratu 92.89 >= 1,5
+  OK   znacznik C: do kieszeni magnesu (XY) 22.40 >= 1,5
+  OK   znacznik C: do krawedzi kwadratu 3.50 i okraglej 3.07 >= 1,5
+  OK   znaczniki miedzy soba: scianka 53.17 >= 3
+  OK   trojkat znacznikow: AB 58.17, BC 74.95, AC 87.68; najmniejsza roznica bokow 12.72 >= 5 (regula planu R59 pkt 6.4)
+  OK   przypisanie A/B/C jednoznaczne: reszta najlepszego blednego przypisania (BCA zamiast ABC, Kabsch bez odbicia) 16.99 mm >= 5 (program przyjmuje reszte <= 0,3)
+  OK   trojkat znacznikow nie jest zdegenerowany: pole 2155 mm2 >= 500
+ [4] plytka kwadratowa: dolki kodu, cyfra, wyciecie D
+  OK   kwadrat: gniazdo - dolek kodu (A, B, C, D) 8.27 >= 3 (dolek D - fi12 id7 (-37.5; -13.7))
+  OK   kwadrat: dolek - krawedz plytki 2.00 >= 1,5
+  OK   kwadrat: cyfra (39.5; -44.5, obrys 3.6 x 5) - gniazdo 11.74 >= 3 (rynienka 60x15 id1 (0; -30.2))
+  OK   kwadrat: wyciecie D - gniazdo 16.67 >= 3 (rynienka 60x15 id1 (0; -30.2))
+ [5] plytka okragla fi100: krawedz, sciecie (K-61 f), dolki (K-62), cyfra
+  OK   okragla K-16: gniazdo/rynienka - krawedz (okrag i sciecie) 4.07 >= 1,5 (fi15 id17 (18; 33.95))
+  OK   code_dimples_round.wieczorna: klucze A, B, C, D z para liczb
+  OK   okragla K-61 f: scianka sciecie orientacyjne (cieciwa 16, -45 st., 49.356 od srodka) - obrysy 4.59 >= 3 (rynienka 60x15 id1 (0; -30.2))
+  OK   okragla K-62: dolek A (-4.5; -43.5): promien 43.73 <= 44, do gniazda 4.80 >= 3 (rynienka 60x15 id1 (0; -30.2)), do stozka 31.86 >= 1,5, do krawedzi 5.27 >= 1,5
+  OK   okragla K-62: dolek B (-1.5; -43.5): promien 43.53 <= 44, do gniazda 4.80 >= 3 (rynienka 60x15 id1 (0; -30.2)), do stozka 34.51 >= 1,5, do krawedzi 5.47 >= 1,5
+  OK   okragla K-62: dolek C (1.5; -43.5): promien 43.53 <= 44, do gniazda 4.80 >= 3 (rynienka 60x15 id1 (0; -30.2)), do stozka 37.22 >= 1,5, do krawedzi 5.47 >= 1,5
+  OK   okragla K-62: dolek D (4.5; -43.5): promien 43.73 <= 44, do gniazda 4.80 >= 3 (rynienka 60x15 id1 (0; -30.2)), do stozka 39.96 >= 1,5, do krawedzi 5.27 >= 1,5
+  OK   okragla: scianka miedzy dolkami kodu 1.00 >= 1
+  OK   okragla: cyfra (35; -26.5, obrys 3.6 x 5) w kole: promien naroznika 46.85 <= 47
+  OK   okragla: cyfra - gniazdo 3.27 >= 3 (rynienka 60x15 id1 (0; -30.2))
+  OK   okragla: cyfra - dolek 31.15 >= 1,5; cyfra - stozek 36.35 >= 1,5
+  info okragla: cyfra - plaszczyzna sciecia 2.83 (relief, informacyjnie; R57: 2,8 / 3,2)
+
+=== PLYTKA PORANNA (kwadrat 96 i okragla fi100; rzedy mo_rows) ===
+  OK   rzedy poprawnie zapisane (8 wpisow)
+ [1] liczby i K-05
+  info gniazda okragle 23 (20 x fi12.5, 3 x fi15) + rynienki 1 = 24 miejsc
+  OK   K-05 b: kazdy z 8 rzedow symetryczny wzgledem x = 0
+  OK   K-05 g: kazdy wpis rzedu ma inne y (id rzedami od przodu)
+  OK   brak powtorzonych x w rzedzie
+  OK   K-05 c: max promien obrysu 46.412 <= 47 (fi12.5 id22 (15.5; 37.05)); zapas 0.588
+  OK   K-05 c: max |x|+r, |y|+r = 45.000 <= 45 (fi12.5 id7 (38.75; -6.1))
+  OK   K-05 d: zaden obrys nie wchodzi w kwadrat narozny 13 mm (|x| > 35 i |y| > 35)
+  OK   K-05 e: min scianka miedzy obrysami 3.000 >= 3 (rynienka 50x13 id1 (0; -35.3) - fi12.5 id3 (15.5; -19.55))
+ [2] rynienki
+  OK   rzedow z rynienka: 1 (oczekiwane dokladnie 1, zlecenie R59 pkt 4); y = -35.3 (przednia)
+  OK   rynienek w tym rzedzie: 1 (oczekiwana dokladnie 1: D3-a, jedna dluga - decyzja wlasciciela na G0)
+  OK   rynienka 50x13 id1 (0; -35.3): 4 otwory fi3 co 10 (skrajny 15.0 od srodka), dno 47.86 x 10.86, od otworu do konca dna 7.43 >= 1,5
+  OK   rynienka 50x13 id1 (0; -35.3): mostek miedzy otworami 7.00 >= 1,5
+  OK   rynienka 50x13 id1 (0; -35.3): dlugosc dna 47.86 > prog mostu 20 mm (PROG_MOSTU_MM w synth.py); praca do ok. 47.9 mm lezy na dnie, do 48.7 mm po uniesieniu 1,5
+ [3] stozki znacznikow (K-16) i trojkat
+  OK   mo_marker_pos: klucze A, B, C z para liczb
+  OK   znacznik A (-30.5; -32): promien srodka 44.21 <= 44.5
+  OK   znacznik A: obrys w strefie, max |x|+r, |y|+r = 34.50 <= 45
+  OK   znacznik A: scianka do gniazda 3.45 >= 3 (rynienka 50x13 id1 (0; -35.3))
+  OK   znacznik A: do dolka kodu kwadratu 11.03 >= 1,5
+  OK   znacznik A: do kieszeni magnesu (XY) 10.14 >= 1,5
+  OK   znacznik A: do krawedzi kwadratu 13.50 i okraglej 3.29 >= 1,5
+  OK   znacznik B (-37.5; 23.5): promien srodka 44.25 <= 44.5
+  OK   znacznik B: obrys w strefie, max |x|+r, |y|+r = 40.00 <= 45
+  OK   znacznik B: scianka do gniazda 3.02 >= 3 (fi15 id19 (-24.5; 22.85))
+  OK   znacznik B: do dolka kodu kwadratu 47.55 >= 1,5
+  OK   znacznik B: do kieszeni magnesu (XY) 13.94 >= 1,5
+  OK   znacznik B: do krawedzi kwadratu 8.00 i okraglej 3.25 >= 1,5
+  OK   znacznik C (41.5; 16): promien srodka 44.48 <= 44.5
+  OK   znacznik C: obrys w strefie, max |x|+r, |y|+r = 44.00 <= 45
+  OK   znacznik C: scianka do gniazda 3.48 >= 3 (fi12.5 id13 (32.25; 8))
+  OK   znacznik C: do dolka kodu kwadratu 93.10 >= 1,5
+  OK   znacznik C: do kieszeni magnesu (XY) 20.90 >= 1,5
+  OK   znacznik C: do krawedzi kwadratu 4.00 i okraglej 3.02 >= 1,5
+  OK   znaczniki miedzy soba: scianka 50.94 >= 3
+  OK   trojkat znacznikow: AB 55.94, BC 79.36, AC 86.53; najmniejsza roznica bokow 7.18 >= 5 (regula planu R59 pkt 6.4)
+  OK   przypisanie A/B/C jednoznaczne: reszta najlepszego blednego przypisania (CAB zamiast ABC, Kabsch bez odbicia) 17.69 mm >= 5 (program przyjmuje reszte <= 0,3)
+  OK   trojkat znacznikow nie jest zdegenerowany: pole 2166 mm2 >= 500
+ [4] plytka kwadratowa: dolki kodu, cyfra, wyciecie D
+  OK   kwadrat: gniazdo - dolek kodu (A, B, C, D) 8.61 >= 3 (dolek D - fi12.5 id6 (-31; -19.55))
+  OK   kwadrat: dolek - krawedz plytki 2.00 >= 1,5
+  OK   kwadrat: cyfra (39.5; -44.5, obrys 3.6 x 5) - gniazdo 13.84 >= 3 (rynienka 50x13 id1 (0; -35.3))
+  OK   kwadrat: wyciecie D - gniazdo 19.18 >= 3 (rynienka 50x13 id1 (0; -35.3))
+ [5] plytka okragla fi100: krawedz, sciecie (K-61 f), dolki (K-62), cyfra
+  OK   okragla K-16: gniazdo/rynienka - krawedz (okrag i sciecie) 3.59 >= 1,5 (fi12.5 id22 (15.5; 37.05))
+  OK   code_dimples_round.poranna: klucze A, B, C, D z para liczb
+  OK   okragla K-61 f: scianka sciecie orientacyjne (cieciwa 16, -45 st., 49.356 od srodka) - obrysy 4.81 >= 3 (rynienka 50x13 id1 (0; -35.3))
+  OK   okragla K-62: dolek A (36.5; 18.5): promien 40.92 <= 44, do gniazda 4.08 >= 3 (fi12.5 id13 (32.25; 8)), do stozka 2.09 >= 1,5, do krawedzi 8.08 >= 1,5
+  OK   okragla K-62: dolek B (36.5; 21.5): promien 42.36 <= 44, do gniazda 3.58 >= 3 (fi15 id18 (24.5; 22.85)), do stozka 3.93 >= 1,5, do krawedzi 6.64 >= 1,5
+  OK   okragla K-62: dolek C (43; 6): promien 43.42 <= 44, do gniazda 3.68 >= 3 (fi12.5 id13 (32.25; 8)), do stozka 6.61 >= 1,5, do krawedzi 5.58 >= 1,5
+  OK   okragla K-62: dolek D (43; 9): promien 43.93 <= 44, do gniazda 3.55 >= 3 (fi12.5 id13 (32.25; 8)), do stozka 3.66 >= 1,5, do krawedzi 5.07 >= 1,5
+  OK   okragla: scianka miedzy dolkami kodu 1.00 >= 1
+  OK   okragla: cyfra (-44; 5.5, obrys 3.6 x 5) w kole: promien naroznika 46.49 <= 47
+  OK   okragla: cyfra - gniazdo 3.48 >= 3 (fi12.5 id12 (-38.75; -6.1))
+  OK   okragla: cyfra - dolek 78.40 >= 1,5; cyfra - stozek 13.70 >= 1,5
+  info okragla: cyfra - plaszczyzna sciecia 81.32 (relief, informacyjnie; R57: 2,8 / 3,2)
+
+WYNIK: OK - uklad zgodny z regulami R59; sprawdzen OK 103, bledow 0, uwag 0
