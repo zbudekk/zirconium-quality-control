@@ -9,14 +9,16 @@ Plan etapu 3, sekcja 3.5; decyzje wlasciciela z 17.11.2026 (DW6 = CSV i wpis rec
   z ``wolne`` nie zuzywaja okna - w poniedzialek pula obejmuje piatek) polaczone z indeksem od nowa przy kazdym wywolaniu
   (P2). Doba robocza D trwa od D 06:00 do D+1 06:00, a data frezowania to data kalendarza bez godziny - wiersz nalezy do puli,
   gdy jego dzien zachodzi na okno dob: o 20:00 17.11 (doba 17.11) i o 03:00 18.11 (3. zmiana tej samej doby) pula obejmuje daty
-  16, 17 i 18.11. Wspolczynnik w tej kolejnosci: z wiersza (CSV / raport) -> wpis reczny krazka obowiazujacy dla doby
-  frezowania (najnowszy z data odlegla najwyzej o ``wazny_dni``, ``wspolczynniki.wpisz_reczny``) -> ``wspolczynnik_awaryjny``
-  (gdy podany) -> brak: wiersz liczony w ``bez_wspolczynnika``, krazek w ``krazki_bez_wspolczynnika`` (okno prosi o wpis).
-  SPRZECZNE wspolczynniki (P4): krazek, ktory w jednej dobie ma w CSV dwie rozne wartosci albo wartosc inna niz obowiazujacy
-  wpis reczny, nie daje wspolczynnika ZADNEJ swojej pracy z okna (licznik ``sprzeczne_wspolczynniki``, lista
-  ``krazki_sprzeczne``), az czlowiek rozstrzygnie wpisem recznym z ``zmien=True`` (``reczny_potwierdzony``) - obejmuje on
-  wiersze CSV wczytane przed nim; wiersz zmieniony pozniej to nowa sprzecznosc. STL z wiersza, ktorego nie ma w indeksie =
-  licznik ``brakujace``.
+  16, 17 i 18.11. Wspolczynnik (runda 3, P5 - krazek niepowtarzalny, decyzja wlasciciela A: jeden krazek = jeden
+  wspolczynnik na zawsze, ``wspolczynniki.stan_krazkow``): krazek z potwierdzonym wpisem (``zmien=True``) -> wartosc
+  potwierdzona dla wszystkich jego prac; inaczej wartosc z wiersza (CSV / raport) -> wspolczynnik krazka z innych jego wierszy
+  albo z wpisu recznego (dowolna data, bez limitu dni) -> ``wspolczynnik_awaryjny`` (gdy podany) -> brak: wiersz liczony
+  w ``bez_wspolczynnika``, krazek w ``krazki_bez_wspolczynnika`` (okno prosi o wpis). SPRZECZNE wspolczynniki: krazek, ktory
+  GDZIEKOLWIEK (wiersze CSV z dowolnych dat, CSV kontra wpis reczny) ma dwie rozne wartosci, nie daje wspolczynnika ZADNEJ
+  swojej pracy z okna (licznik ``sprzeczne_wspolczynniki``, lista ``krazki_sprzeczne``), az czlowiek potwierdzi jedna wartosc
+  wpisem z ``zmien=True`` (``reczny_potwierdzony``) - trwale; po nim tylko INNA wartosc zmieniona / dopisana pozniej to nowa
+  sprzecznosc. STL z wiersza, ktorego nie ma w indeksie = licznik ``brakujace``; wiersze CSV z okna zastapione poprawka
+  w pliku = licznik ``nieaktualne`` (P6).
 - Pula PORANNA (``pula_poranna``): wszystkie pliki STL zlecen (folderow), w ktorych cos sie zmienilo od poczatku doby
   ``[match] pula_rano_dni_roboczych`` dni roboczych wstecz (sobota i niedziela sie nie licza - weekend nalezy do piatku;
   biezaca doba zawsze; swieta jak dni robocze - decyzja robocza 3, ``DNI_WOLNE`` puste), ale nie dawniej niz
@@ -33,6 +35,7 @@ Opis: ``opisy_modulow/pula.md``.
 from __future__ import annotations
 
 import datetime as dt
+import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
@@ -134,49 +137,40 @@ def _wiersze_okna(baza: B.Baza, pierwsza: str, ostatnia: str) -> list[dict]:
                         (pierwsza, ostatnia, W.ZRODLO_CSV_NIEAKTUALNY))
 
 
+def _nieaktualne_okna(baza: B.Baza, pierwsza: str, ostatnia: str) -> int:
+    """Liczba wierszy CSV z dat okna zastapionych poprawka w pliku (``csv_nieaktualny``, P6) - licznik dla ekranu."""
+    return baza.wiersz("SELECT count(*) AS n FROM frezowania WHERE plik_w_raporcie IS NOT NULL AND data >= ? AND data <= ? "
+                       "AND zrodlo = ?", (pierwsza, ostatnia, W.ZRODLO_CSV_NIEAKTUALNY))["n"]
+
+
 @dataclass
 class _Ocena:
     """Wspolczynniki wierszy okna: ``wiersze`` frezowanie_id -> (wspolczynnik albo None, zrodlo albo "sprzeczne" / "brak")."""
     wiersze: dict
-    sprzeczne: list  # krazki ze sprzecznymi wspolczynnikami (nierozstrzygnietymi)
+    sprzeczne: list  # krazki okna ze sprzecznymi wspolczynnikami (nierozstrzygnietymi albo nowymi po potwierdzeniu)
+    stany: dict  # krazek -> wspolczynniki.StanKrazka
 
 
-def _ocen(wiersze: list[dict], reczne: dict[str, list[dict]], wazny_dni: int) -> _Ocena:
-    """Wspolczynnik kazdego wiersza okna (P4). Grupa = (krazek, data): rozne wartosci CSV w grupie albo wartosc CSV inna niz
-    wpis reczny obowiazujacy dla tej doby = sprzecznosc; rozstrzyga ja tylko wpis ``reczny_potwierdzony`` wpisany nie
-    wczesniej niz wiersze CSV grupy. Krazek z nierozstrzygnieta sprzecznoscia nie daje wspolczynnika zadnej pracy okna."""
-    grupy: dict[tuple, list[dict]] = {}
-    for f in wiersze:
-        if f["krazek"] is not None:
-            grupy.setdefault((f["krazek"], f["data"]), []).append(f)
-    sprzeczne, rozstrzygniete, obowiazujace = set(), {}, {}
-    for (krazek, data), ws in grupy.items():
-        r = W.reczny_dla(reczne.get(krazek, ()), dt.date.fromisoformat(data), wazny_dni)
-        obowiazujace[(krazek, data)] = r
-        z_wartoscia = [f for f in ws if f["wspolczynnik"] is not None]
-        wartosci = {round(float(f["wspolczynnik"]), 6) for f in z_wartoscia}
-        sprzecznosc = len(wartosci) > 1 or (len(wartosci) == 1 and r is not None and not W._rowne(next(iter(wartosci)), r["wspolczynnik"]))
-        if not sprzecznosc:
-            continue
-        if r is not None and r["zrodlo"] == W.ZRODLO_RECZNY_POTWIERDZONY and (r["wczytano"] or "") >= max(f["wczytano"] or "" for f in z_wartoscia):
-            rozstrzygniete[(krazek, data)] = r
-        else:
-            sprzeczne.add(krazek)
+def _ocen(baza: B.Baza, wiersze: list[dict], krazki_dodatkowe=()) -> _Ocena:
+    """Wspolczynnik kazdego wiersza okna (P5, runda 3): krazek niepowtarzalny = jeden wspolczynnik z dowolnych dat albo
+    sprzecznosc (``wspolczynniki.stan_krazkow``). Krazek sprzeczny nie daje wspolczynnika zadnej pracy okna; krazek
+    z potwierdzonym wpisem daje wszystkim pracom wartosc potwierdzona; inaczej wartosc wiersza albo wspolczynnik krazka."""
+    stany = W.stan_krazkow(baza, {f["krazek"] for f in wiersze} | set(krazki_dodatkowe))
     wynik = {}
     for f in wiersze:
-        g = (f["krazek"], f["data"])
-        r = obowiazujace.get(g)
-        if f["krazek"] in sprzeczne:
+        s = stany.get(f["krazek"]) if f["krazek"] is not None else None
+        if s is not None and s.sprzeczny:
             wynik[f["id"]] = (None, "sprzeczne")
-        elif g in rozstrzygniete:
-            wynik[f["id"]] = (float(rozstrzygniete[g]["wspolczynnik"]), W.ZRODLO_RECZNY)
+        elif s is not None and s.potwierdzony is not None:
+            wynik[f["id"]] = (s.wspolczynnik, W.ZRODLO_RECZNY)
         elif f["wspolczynnik"] is not None:
             wynik[f["id"]] = (float(f["wspolczynnik"]), f["zrodlo"] or W.ZRODLO_CSV)
-        elif r is not None:
-            wynik[f["id"]] = (float(r["wspolczynnik"]), W.ZRODLO_RECZNY)
+        elif s is not None and s.wspolczynnik is not None:
+            wynik[f["id"]] = (s.wspolczynnik, s.zrodlo)
         else:
             wynik[f["id"]] = (None, "brak")
-    return _Ocena(wynik, sorted(sprzeczne))
+    sprzeczne = sorted({f["krazek"] for f in wiersze if f["krazek"] is not None and stany[f["krazek"]].sprzeczny})
+    return _Ocena(wynik, sprzeczne, stany)
 
 
 def _z_cechami(baza: B.Baza, skroty: set[str]) -> set[str]:
@@ -190,18 +184,18 @@ def _z_cechami(baza: B.Baza, skroty: set[str]) -> set[str]:
 
 def pula_wieczorna(baza: B.Baza, teraz: dt.datetime | None = None, *, dni: int = DNI_WIECZOR,
                    granica_doby_godz: int = GRANICA_DOBY_GODZ, wspolczynnik_awaryjny: float | None = None,
-                   wazny_dni: int = W.WAZNY_DNI, wolne=DNI_WOLNE) -> Pula:
+                   wolne=DNI_WOLNE) -> Pula:
     """Pula wieczorna (opis w naglowku modulu). Nic nie zapisuje: kazdy wiersz jest laczony z indeksem w pamieci od nowa
     (zapisane powiazanie nie ma pierwszenstwa - P2; zapis powiazan: ``wspolczynniki.powiaz_frezowania`` / ``KatalogPul.odswiez``)."""
     teraz = teraz or dt.datetime.now()
     doba, od, do, pierwsza, ostatnia = okno_wieczoru(teraz, dni, granica_doby_godz, wolne)
     indeks = I.IndeksPlikow(baza)
     wiersze = _wiersze_okna(baza, pierwsza, ostatnia)
-    ocena = _ocen(wiersze, W.wpisy_reczne(baza), wazny_dni)
+    ocena = _ocen(baza, wiersze)
     wpisy: list[Wpis] = []
     lz = {"wierszy": len(wiersze), "wpisow": 0, "brakujace": 0, "niejednoznaczne": 0, "po_samej_nazwie": 0, "bez_wspolczynnika": 0,
           "krazki_bez_wspolczynnika": [], "sprzeczne_wspolczynniki": 0, "krazki_sprzeczne": ocena.sprzeczne, "bez_sha16": 0,
-          "bez_cech": 0, "sha16_z_kilkoma_wspolczynnikami": 0}
+          "bez_cech": 0, "sha16_z_kilkoma_wspolczynnikami": 0, "nieaktualne": _nieaktualne_okna(baza, pierwsza, ostatnia)}
     krazki_bez: set[str] = set()
     for f in wiersze:
         d = indeks.dopasuj(f["plik_w_raporcie"], dt.date.fromisoformat(f["data"]))
@@ -264,40 +258,44 @@ def pula_poranna(baza: B.Baza, teraz: dt.datetime | None = None, *, dni_robocze:
 
 
 def krazki(baza: B.Baza, teraz: dt.datetime | None = None, *, dni: int = DNI_WIECZOR, granica_doby_godz: int = GRANICA_DOBY_GODZ,
-           wazny_dni: int = W.WAZNY_DNI, wolne=DNI_WOLNE) -> list[dict]:
+           wolne=DNI_WOLNE) -> list[dict]:
     """Krazki z okna puli wieczornej (aktualne wiersze z plikiem i wpisy reczne z tych dob) - lista do wpisu recznego.
 
     Pola: ``krazek``, ``plikow`` (wiersze z plikiem w oknie), ``plikow_bez_wspolczynnika``, ``wspolczynniki_csv`` (rozne wartosci
-    z wierszy), ``wspolczynnik_reczny`` / ``data_recznego`` / ``frezowanie_reczne_id`` (ostatni wpis reczny, z dowolnego dnia),
-    ``brakuje`` (sa pliki bez wspolczynnika i bez wpisu recznego obowiazujacego dla ich doby - takze, gdy ostatni wpis jest
-    starszy niz ``wazny_dni``: program pyta ponownie), ``sprzeczne`` (P4: okno prosi o rozstrzygniecie wpisem z
-    ``zmien=True``). Kolejnosc: oznaczenie krazka.
+    z aktualnych wierszy krazka z DOWOLNYCH dat - krazek niepowtarzalny, P5), ``wspolczynnik_reczny`` / ``data_recznego`` /
+    ``frezowanie_reczne_id`` (ostatni wpis reczny, z dowolnego dnia - obowiazuje bez limitu dni), ``wspolczynnik`` (obowiazujacy
+    dla wszystkich prac krazka albo None), ``brakuje`` (sa pliki krazka bez wspolczynnika: krazek nie ma wartosci ani w CSV,
+    ani we wpisie recznym - okno prosi o wpis), ``sprzeczne`` (dwie rozne wartosci krazka: okno pokazuje ``wspolczynniki_csv``
+    i ``wspolczynnik_reczny`` i prosi o potwierdzenie jednej wpisem z ``zmien=True``). Kolejnosc: oznaczenie krazka.
     """
     teraz = teraz or dt.datetime.now()
     _, _, _, pierwsza, ostatnia = okno_wieczoru(teraz, dni, granica_doby_godz, wolne)
     reczne = W.wpisy_reczne(baza)
     wiersze = _wiersze_okna(baza, pierwsza, ostatnia)
-    ocena = _ocen(wiersze, reczne, wazny_dni)
+    z_wpisem = [k for k, ws in reczne.items() if any(pierwsza <= w["data"] <= ostatnia for w in ws)]
+    ocena = _ocen(baza, wiersze, z_wpisem)
     wynik: dict[str | None, dict] = {}
 
     def pozycja(k: str | None) -> dict:
         if k not in wynik:
-            r = reczne[k][-1] if k in reczne else None
-            wynik[k] = {"krazek": k, "plikow": 0, "plikow_bez_wspolczynnika": 0, "wspolczynniki_csv": set(),
+            s = ocena.stany.get(k) if k is not None else None
+            r = s.reczny if s is not None else None
+            wynik[k] = {"krazek": k, "plikow": 0, "plikow_bez_wspolczynnika": 0,
+                        "wspolczynniki_csv": {round(v, 4) for v in s.wartosci_csv} if s is not None else set(),
                         "wspolczynnik_reczny": r["wspolczynnik"] if r else None, "data_recznego": r["data"] if r else None,
-                        "frezowanie_reczne_id": r["id"] if r else None, "brakuje": False, "sprzeczne": k in ocena.sprzeczne}
+                        "frezowanie_reczne_id": r["id"] if r else None, "wspolczynnik": s.wspolczynnik if s is not None else None,
+                        "brakuje": False, "sprzeczne": bool(s is not None and s.sprzeczny)}
         return wynik[k]
 
-    for k, ws in reczne.items():  # wpis reczny z dob okna: krazek na liscie
-        if any(pierwsza <= w["data"] <= ostatnia for w in ws):
-            pozycja(k)
+    for k in z_wpisem:  # wpis reczny z dob okna: krazek na liscie
+        pozycja(k)
     for f in wiersze:
         p = pozycja(f["krazek"])
         p["plikow"] += 1
         if f["wspolczynnik"] is None:
             p["plikow_bez_wspolczynnika"] += 1
-        else:
-            p["wspolczynniki_csv"].add(round(float(f["wspolczynnik"]), 4))
+        elif f["krazek"] is None:
+            p["wspolczynniki_csv"].add(round(float(f["wspolczynnik"]), 4))  # wiersze bez krazka: wartosci z okna
         p["brakuje"] |= ocena.wiersze[f["id"]][1] == "brak"
     lista = []
     for k in sorted(wynik, key=lambda k: (k is None, k or "")):
@@ -330,8 +328,9 @@ class KatalogPul:
 
     ``odswiez(teraz)``: indeks folderow (z folderami starymi, do ktorych odwoluja sie wiersze frezowania z okna puli - D3) +
     plik CSV wspolczynnikow (jesli jest) + powiazanie wierszy frezowania z okna od nowa (P2); zwraca liczby (bez nazw), w tym
-    ``sprzeczne_wspolczynniki`` i ``krazki_sprzeczne`` (P4); zly CSV nie przerywa odswiezenia (``csv_plik = "blad"``,
-    ``csv_blad`` = komunikat z numerami linii). Pozostale metody jak funkcje modulu z parametrami z ustawien. Odswiezenie trwa
+    ``sprzeczne_wspolczynniki`` i ``krazki_sprzeczne`` (wpis w dzienniku tylko przy zmianie listy spraw - D16); zly CSV nie
+    przerywa odswiezenia (``csv_plik = "blad"``, ``csv_blad`` = komunikat z numerami linii). Pozostale metody jak funkcje
+    modulu z parametrami z ustawien. Odswiezenie trwa
     (cechy nowych plikow) - w programie okienkowym w watku roboczym, z obiektem utworzonym w tym watku (``z_ustawien``: wlasne
     polaczenie z baza).
     """
@@ -339,7 +338,7 @@ class KatalogPul:
     def __init__(self, baza: B.Baza, zrodla: dict[str, str | Path | None], *, plik_csv: str | Path | None = None,
                  dni_wieczor: int = DNI_WIECZOR, dni_rano: int = DNI_RANO, usun_po_dniach: int = USUN_PO_DNIACH,
                  granica_doby_godz: int = GRANICA_DOBY_GODZ, wspolczynnik_awaryjny: float | None = None, licz_cechy: bool = True,
-                 dni_prywatne: int = DNI_PRYWATNE, wazny_dni: int = W.WAZNY_DNI, wolne=DNI_WOLNE, wlasna_baza: bool = False):
+                 dni_prywatne: int = DNI_PRYWATNE, wolne=DNI_WOLNE, wlasna_baza: bool = False):
         self.baza = baza
         self.zrodla = dict(zrodla)
         self.plik_csv = Path(plik_csv) if plik_csv is not None else None
@@ -350,7 +349,6 @@ class KatalogPul:
         self.wspolczynnik_awaryjny = wspolczynnik_awaryjny
         self.licz_cechy = licz_cechy
         self.dni_prywatne = dni_prywatne
-        self.wazny_dni = wazny_dni
         self.wolne = frozenset(wolne)
         self._wlasna_baza = wlasna_baza
 
@@ -398,28 +396,43 @@ class KatalogPul:
         wynik["powiazanie"] = W.powiaz_frezowania(self.baza, okno=(pierwsza, ostatnia)).do_slownika()
         lz = self.pula_wieczorna(teraz).liczniki
         wynik["sprzeczne_wspolczynniki"], wynik["krazki_sprzeczne"] = lz["sprzeczne_wspolczynniki"], lz["krazki_sprzeczne"]
-        if lz["krazki_sprzeczne"]:
-            self.baza.zdarzenie("pula", "sprzeczne_wspolczynniki", {"prac": lz["sprzeczne_wspolczynniki"], "krazki": lz["krazki_sprzeczne"]})
+        self._zapisz_sprzecznosci(lz["sprzeczne_wspolczynniki"], lz["krazki_sprzeczne"])
         return wynik
+
+    def _zapisz_sprzecznosci(self, prac: int, krazki_sprzeczne: list[str]) -> None:
+        """Wpis ``pula / sprzeczne_wspolczynniki`` TYLKO przy zmianie listy spraw (D16): nowa sprzecznosc albo rozstrzygniecie
+        (wpis z pusta lista), nie przy kazdym odswiezeniu. Sprawa = krazek + chwila potwierdzenia, po ktorym powstala, wiec
+        sprzecznosc otwarta na nowo po potwierdzeniu to nowa sprawa (jeden nowy wpis)."""
+        stany = W.stan_krazkow(self.baza, krazki_sprzeczne) if krazki_sprzeczne else {}
+        sprawy = B.oczysc(sorted(stany[k].sprawa for k in krazki_sprzeczne if k in stany))
+        ostatni = self.baza.wiersz("SELECT dane FROM zdarzenia WHERE zrodlo = 'pula' AND typ = 'sprzeczne_wspolczynniki' "
+                                   "ORDER BY id DESC LIMIT 1")
+        poprzednie: list | None = []
+        if ostatni is not None:
+            try:
+                poprzednie = json.loads(ostatni["dane"]).get("sprawy")
+            except (TypeError, ValueError, AttributeError):
+                poprzednie = None
+        if sprawy != poprzednie:
+            self.baza.zdarzenie("pula", "sprzeczne_wspolczynniki", {"prac": prac, "krazki": krazki_sprzeczne, "sprawy": sprawy})
 
     def pula_wieczorna(self, teraz: dt.datetime | None = None) -> Pula:
         return pula_wieczorna(self.baza, teraz, dni=self.dni_wieczor, granica_doby_godz=self.granica_doby_godz,
-                              wspolczynnik_awaryjny=self.wspolczynnik_awaryjny, wazny_dni=self.wazny_dni, wolne=self.wolne)
+                              wspolczynnik_awaryjny=self.wspolczynnik_awaryjny, wolne=self.wolne)
 
     def pula_poranna(self, teraz: dt.datetime | None = None) -> Pula:
         return pula_poranna(self.baza, teraz, dni_robocze=self.dni_rano, usun_po_dniach=self.usun_po_dniach,
                             granica_doby_godz=self.granica_doby_godz, dni_prywatne=self.dni_prywatne, wolne=self.wolne)
 
     def krazki(self, teraz: dt.datetime | None = None) -> list[dict]:
-        return krazki(self.baza, teraz, dni=self.dni_wieczor, granica_doby_godz=self.granica_doby_godz, wazny_dni=self.wazny_dni,
-                      wolne=self.wolne)
+        return krazki(self.baza, teraz, dni=self.dni_wieczor, granica_doby_godz=self.granica_doby_godz, wolne=self.wolne)
 
     def wpisz_wspolczynnik(self, krazek: str, wspolczynnik, *, operator: str, zmien: bool = False, data: str | dt.date | None = None,
                            teraz: dt.datetime | None = None) -> int:
-        """Wpis reczny (``wspolczynniki.wpisz_reczny``); ``operator`` wymagany (decyzja robocza 5), ``zmien=True`` rozstrzyga
-        sprzecznosc z CSV (P4)."""
+        """Wpis reczny (``wspolczynniki.wpisz_reczny``); ``operator`` wymagany (decyzja robocza 5), ``zmien=True`` = potwierdzona
+        wartosc dla WSZYSTKICH prac krazka, rozstrzyga sprzecznosc (P5)."""
         return W.wpisz_reczny(self.baza, krazek, wspolczynnik, operator=operator, zmien=zmien, data=data, teraz=teraz,
-                              granica_doby_godz=self.granica_doby_godz, wazny_dni=self.wazny_dni)
+                              granica_doby_godz=self.granica_doby_godz)
 
     def wspolczynnik_krazka(self, krazek: str) -> dict | None:
         return W.wspolczynnik_krazka(self.baza, krazek)

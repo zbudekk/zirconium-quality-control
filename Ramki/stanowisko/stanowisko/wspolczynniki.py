@@ -3,22 +3,31 @@
 Decyzja wlasciciela DW6 = (c) z 17.11.2026: do czasu parsera raportow MillBox wspolczynnik pracy pochodzi z pliku CSV
 wypelnianego przy frezarce ORAZ z wpisu recznego w programie raz na krazek. Oba zrodla to wiersze tabeli ``frezowania``:
 - wiersz CSV: ``plik_w_raporcie`` = nazwa pliku STL (moze byc z folderem, ``Folder\\plik.stl``), ``krazek``, ``wspolczynnik``
-  (moze byc pusty, gdy podano krazek - wtedy liczy sie wpis reczny krazka), ``data``, ``zrodlo = csv``, ``raport_plik`` = nazwa
+  (moze byc pusty, gdy podano krazek - wtedy liczy sie wspolczynnik krazka), ``data``, ``zrodlo = csv``, ``raport_plik`` = nazwa
   pliku CSV; ``projekt_id`` = plik z indeksu (``indeks.IndeksPlikow``) albo NULL, gdy pliku jeszcze nie ma w indeksie;
 - wpis reczny (rozstrzygniecie koordynatora): wiersz bez pliku - ``plik_w_raporcie`` i ``projekt_id`` NULL, ``krazek``,
   ``wspolczynnik``, ``data`` = doba robocza wpisu, ``zrodlo = reczny`` (``reczny_potwierdzony``, gdy wpisany z ``zmien=True``).
+KRAZEK NIEPOWTARZALNY (decyzja wlasciciela A z 17.11.2026, runda 3 - P5): oznaczenie krazka sie nie powtarza, wiec krazek ma
+JEDEN wspolczynnik na zawsze, wspolny dla wszystkich jego frezowan z dowolnych dob (``stan_krazkow``): wartosc z wierszy CSV
+albo z wpisu recznego - bez limitu dni. Dwie rozne wartosci krazka gdziekolwiek (wiersze CSV z dowolnych dat, CSV kontra wpis
+reczny) = SPRZECZNOSC: prace krazka nie dostaja wspolczynnika, az czlowiek potwierdzi jedna wartosc (``wpisz_reczny(...,
+zmien=True)`` = ``reczny_potwierdzony``). Potwierdzenie dotyczy calego krazka i jest trwale: kazdy wiersz z ta sama wartoscia
+(wczesniejszy i pozniejszy) jest zgodny; wiersz z inna wartoscia zmieniony / dopisany po potwierdzeniu (``wczytano``) = nowa
+sprzecznosc (``StanKrazka.sprawa`` - nowa sprawa, jeden wpis w dzienniku).
 "Raz na krazek" pilnuje ten modul, nie baza (unikat ``frezowania`` nie obejmuje wierszy z NULL): ta sama wartosc drugi raz =
-nic nowego; inna wartosc = odmowa z komunikatem, chyba ze ``zmien=True`` (ten sam dzien: poprawka wiersza, inny dzien: nowy
-wiersz - obowiazuje najnowszy wpis krazka). Wpis z data wczesniejsza niz obowiazujacy = odmowa (D8). Wpis obowiazuje dla
-frezowan z dob odleglych od jego daty najwyzej o ``WAZNY_DNI`` (P4: oznaczenia krazkow moga sie powtarzac) - po tym czasie
-nowa wartosc nie wymaga potwierdzenia, a ta sama tworzy nowy wpis. Kto wpisal: ``operator`` w dzienniku (decyzja robocza 5).
-Plik CSV wczytuje sie w calosci albo wcale: bledna linia = ``BladWspolczynnikow`` z numerami linii, w bazie nic; data dalej
-niz ``OKNO_DAT_DNI`` od dzisiaj to blad linii (literowka roku, D7). Ponowne wczytanie tego samego pliku nie dubluje wierszy
-(klucz: plik, krazek, data). Dla dni (dat) obecnych w pliku plik jest zrodlem prawdy (P3, pytanie 6): wiersz tego pliku
-z takiego dnia, ktorego w pliku juz nie ma (poprawiona literowka, skasowany wiersz), dostaje ``zrodlo = csv_nieaktualny``
-i ``projekt_id`` NULL - nie jest kasowany (klucze obce z ``prace``) i nie wchodzi do pul; wraca, gdy wiersz wroci do pliku.
-Dni, ktorych plik nie zawiera (plik czyszczony co dzien), zostaja. Powiazanie wiersza z plikiem jest przeliczane przy
-kazdym wczytaniu i odswiezeniu (P2) - wynik nie zalezy od kolejnosci, w jakiej pliki trafily do indeksu.
+nic nowego; inna wartosc = odmowa z komunikatem (zawsze - bez limitu dni), chyba ze ``zmien=True`` (ten sam dzien: poprawka
+wiersza, inny dzien: nowy wiersz - obowiazuje najnowszy wpis krazka). Wpis z data wczesniejsza niz ostatni = odmowa (D8). Kto
+wpisal: ``operator`` w dzienniku (decyzja robocza 5).
+PLIK CSV prowadzony dowolnie (decyzja B, runda 3 - P6, D14): tylko rosnie, poprawiany recznie albo czyszczony o dowolnej
+porze - wynik nie zalezy od pory czyszczenia. Plik wczytuje sie w calosci albo wcale: bledna linia = ``BladWspolczynnikow``
+z numerami linii, w bazie nic; data nieparsowalna i data pozniejsza niz ``PRZYSZLOSC_DNI`` od dzisiaj to blad linii (literowka
+roku / miesiaca); wiersz starszy niz ``OKNO_DAT_DNI`` jest POMIJANY (licznik ``stare``) - plik narastajacy nie przestaje sie
+wczytywac. Ponowne wczytanie nie dubluje wierszy (klucz: plik, krazek, data). Wiersz z bazy, ktorego klucza nie ma w biezacym
+pliku, staje sie ``csv_nieaktualny`` (``projekt_id`` NULL, nie jest kasowany - klucze obce z ``prace``; nie wchodzi do pul)
+TYLKO wtedy, gdy plik EWIDENTNIE go poprawil: zawiera wiersz z tym samym plikiem i tym samym krazkiem albo ta sama data
+(poprawiona literowka daty albo krazka). Wiersze znikajace bez takiego zastepnika (plik wyczyszczony w calosci albo czesciowo)
+zostaja aktualne. Wiersz nieaktualny wraca, gdy wroci do pliku. Powiazanie wiersza z plikiem jest przeliczane przy kazdym
+wczytaniu i odswiezeniu (P2) - wynik nie zalezy od kolejnosci, w jakiej pliki trafily do indeksu.
 
 DANE OSOBOWE: nazwy plikow STL z CSV (z nazwiskami) trafiaja tylko do ``frezowania.plik_w_raporcie``; komunikaty bledow
 podaja numery linii i opis, nigdy tresci pol ani sciezki pliku. Tylko biblioteka standardowa. Opis: ``opisy_modulow/pula.md``.
@@ -41,13 +50,14 @@ NAGLOWEK = ("plik", "krazek", "wspolczynnik", "data")
 WSPOLCZYNNIK_MIN = 1.0  # zakres sensownego wspolczynnika skurczu cyrkonii (literowka "12,2" albo "0,122" = blad linii)
 WSPOLCZYNNIK_MAX = 1.6
 ZRODLO_CSV = "csv"
-ZRODLO_CSV_NIEAKTUALNY = "csv_nieaktualny"  # P3: wiersz pliku CSV, ktorego w pliku juz nie ma (dzien obecny w pliku)
+ZRODLO_CSV_NIEAKTUALNY = "csv_nieaktualny"  # P6: wiersz pliku CSV poprawiony w pliku (ten sam plik, inny krazek albo data)
 ZRODLO_RECZNY = "reczny"
-ZRODLO_RECZNY_POTWIERDZONY = "reczny_potwierdzony"  # P4: wpis reczny z zmien=True - rozstrzyga sprzecznosc z CSV
+ZRODLO_RECZNY_POTWIERDZONY = "reczny_potwierdzony"  # wpis reczny z zmien=True - rozstrzyga sprzecznosc krazka (P5)
 ZRODLA_RECZNE = (ZRODLO_RECZNY, ZRODLO_RECZNY_POTWIERDZONY)
-WAZNY_DNI = 7  # P4: wpis reczny obowiazuje dla frezowan z dob najwyzej tyle dni od daty wpisu (oznaczenia krazkow sie powtarzaja)
-OKNO_DAT_DNI = 60  # D7: data w CSV dalej niz tyle dni od dzisiaj = blad linii (literowka roku)
+OKNO_DAT_DNI = 60  # D14: wiersz z data starsza niz tyle dni = pominiety (licznik ``stare``), nie blad - plik moze tylko rosnac
+PRZYSZLOSC_DNI = 2  # D14: data pozniejsza niz dzisiaj + tyle dni = blad linii (literowka roku albo miesiaca)
 GRANICA_DOBY_GODZ = 6
+_PORCJA = 500
 KODOWANIA = ("utf-8-sig", "cp1250")  # CSV UTF-8 albo "CSV (rozdzielany srednikami)" z polskiego Excela
 PODPOWIEDZ = "zapisz jako CSV rozdzielany srednikami; pierwsza linia: plik;krazek;wspolczynnik;data"
 BLEDOW_W_KOMUNIKACIE = 10
@@ -79,7 +89,8 @@ class RaportCsv:
     zmienione: int = 0
     bez_zmian: int = 0
     przywrocone: int = 0  # P3: wiersz nieaktualny, ktory wrocil do pliku
-    nieaktualne: int = 0  # P3: wiersze tego pliku z dni obecnych w pliku, ktorych w pliku juz nie ma
+    nieaktualne: int = 0  # P6: wiersze tego pliku poprawione w pliku (ten sam plik, inny krazek albo inna data)
+    stare: int = 0  # D14: wiersze z data starsza niz OKNO_DAT_DNI - pominiete (plik narastajacy), nie blad
     powiazane: int = 0  # wiersze pliku powiazane z plikiem z indeksu (po wczytaniu)
     brakujace: int = 0  # wiersze, ktorych pliku nie ma w indeksie
     niejednoznaczne: int = 0  # sama nazwa pliku pasuje do kilku plikow indeksu (wybrany najblizszy dacie)
@@ -155,12 +166,15 @@ def _bledne(n: int) -> str:
 
 
 def wczytaj_csv(plik: str | Path, *, dzis: dt.date | None = None, okno_dat_dni: int = OKNO_DAT_DNI,
-                wspolczynnik_min: float = WSPOLCZYNNIK_MIN, wspolczynnik_max: float = WSPOLCZYNNIK_MAX) -> list[WierszCsv]:
+                przyszlosc_dni: int = PRZYSZLOSC_DNI, wspolczynnik_min: float = WSPOLCZYNNIK_MIN,
+                wspolczynnik_max: float = WSPOLCZYNNIK_MAX) -> list[WierszCsv]:
     """Wiersze pliku CSV (srednik, naglowek ``plik;krazek;wspolczynnik;data`` w pierwszej niepustej linii, UTF-8 albo cp1250,
-    przecinek dziesietny dozwolony, data RRRR-MM-DD albo DD.MM.RRRR nie dalej niz ``okno_dat_dni`` od ``dzis`` (domyslnie
-    dzisiaj), puste linie i puste pola na koncu wiersza - srednik na koncu z Excela - pomijane). Kazdy blad =
+    przecinek dziesietny dozwolony, data RRRR-MM-DD albo DD.MM.RRRR nie pozniejsza niz ``dzis`` (domyslnie dzisiaj) +
+    ``przyszlosc_dni``, puste linie i puste pola na koncu wiersza - srednik na koncu z Excela - pomijane). Wiersze z data
+    starsza niz ``okno_dat_dni`` sa pomijane (D14 - plik narastajacy; ``wczytaj_do_bazy`` je liczy). Kazdy blad =
     ``BladWspolczynnikow`` z numerami WSZYSTKICH blednych linii (do ``BLEDOW_W_KOMUNIKACIE`` w tresci)."""
-    wiersze, _ = _wczytaj_csv(Path(plik), wspolczynnik_min, wspolczynnik_max, dzis or dt.date.today(), okno_dat_dni)
+    wiersze, _, _ = _wczytaj_csv(Path(plik), wspolczynnik_min, wspolczynnik_max, dzis or dt.date.today(), okno_dat_dni,
+                                 przyszlosc_dni)
     return wiersze
 
 
@@ -171,8 +185,9 @@ def _bez_pustych_na_koncu(pola: list[str]) -> list[str]:
     return pola
 
 
-def _wczytaj_csv(plik: Path, wspolczynnik_min: float, wspolczynnik_max: float, dzis: dt.date,
-                 okno_dat_dni: int) -> tuple[list[WierszCsv], str]:
+def _wczytaj_csv(plik: Path, wspolczynnik_min: float, wspolczynnik_max: float, dzis: dt.date, okno_dat_dni: int,
+                 przyszlosc_dni: int) -> tuple[list[WierszCsv], list[WierszCsv], str]:
+    """(wiersze do wczytania, wiersze pominiete jako starsze niz ``okno_dat_dni``, kodowanie)."""
     try:
         dane = plik.read_bytes()
     except FileNotFoundError:
@@ -184,6 +199,7 @@ def _wczytaj_csv(plik: Path, wspolczynnik_min: float, wspolczynnik_max: float, d
     czytnik = csv.reader(io.StringIO(tekst, newline=""), delimiter=";")
     bledy: list[tuple[int, str]] = []
     wiersze: list[WierszCsv] = []
+    stare: list[WierszCsv] = []
     klucze: dict[tuple, WierszCsv] = {}
     naglowek_ok = False
     for pola in czytnik:
@@ -223,14 +239,17 @@ def _wczytaj_csv(plik: Path, wspolczynnik_min: float, wspolczynnik_max: float, d
         except ValueError as e:
             bledy.append((linia, str(e)))
             continue
-        if abs((data - dzis).days) > okno_dat_dni:
-            bledy.append((linia, f"data dalej niz {okno_dat_dni} dni od dzisiaj - sprawdz rok i miesiac"))
+        if (data - dzis).days > przyszlosc_dni:
+            bledy.append((linia, f"data z przyszlosci (pozniej niz {przyszlosc_dni} dni od dzisiaj) - sprawdz rok i miesiac"))
             continue
         if wsp is None and krazek is None:
             bledy.append((linia, "pusty wspolczynnik i pusty krazek - podaj wspolczynnik albo krazek (wspolczynnik krazka "
                                  "wpisuje sie w programie)"))
             continue
         w = WierszCsv(linia, nazwa, krazek, wsp, data)
+        if (dzis - data).days > okno_dat_dni:
+            stare.append(w)  # D14: plik narastajacy - wiersz spoza okna pomijany (licznik), nie blad
+            continue
         klucz = (N.klucz_pliku(nazwa), krazek, data)
         poprzedni = klucze.get(klucz)
         if poprzedni is not None:
@@ -248,29 +267,34 @@ def _wczytaj_csv(plik: Path, wspolczynnik_min: float, wspolczynnik_max: float, d
         naglowek = "plik CSV wspolczynnikow, nic nie wczytano" if len(bledy) == 1 else \
             f"plik CSV wspolczynnikow: {_bledne(len(bledy))}, nic nie wczytano"
         raise BladWspolczynnikow(f"{naglowek} - {opis}", [n for n, _ in bledy])
-    return wiersze, kodowanie
+    return wiersze, stare, kodowanie
 
 
 def wczytaj_do_bazy(baza: B.Baza, plik: str | Path, *, teraz: dt.datetime | None = None, okno_dat_dni: int = OKNO_DAT_DNI,
-                    wspolczynnik_min: float = WSPOLCZYNNIK_MIN, wspolczynnik_max: float = WSPOLCZYNNIK_MAX) -> RaportCsv:
+                    przyszlosc_dni: int = PRZYSZLOSC_DNI, wspolczynnik_min: float = WSPOLCZYNNIK_MIN,
+                    wspolczynnik_max: float = WSPOLCZYNNIK_MAX) -> RaportCsv:
     """Wczytuje plik CSV do ``frezowania`` (w jednej transakcji, calosc albo nic) i laczy wiersze z indeksem.
 
     Wiersz o kluczu (plik, krazek, data), ktory juz jest w bazie: bez zmian albo poprawiony wspolczynnik (wiersze z innego
-    zrodla, np. raportu MillBox, nie sa nadpisywane); powiazanie z plikiem liczone od nowa (P2). Wiersze tego pliku CSV
-    (``raport_plik``) z dni obecnych w pliku, ktorych w pliku juz nie ma = ``csv_nieaktualny`` (P3); wiersz nieaktualny,
-    ktory wrocil do pliku = znow ``csv``. Data dalej niz ``okno_dat_dni`` od ``teraz`` = blad linii (D7). Bledny plik =
-    ``BladWspolczynnikow``, w bazie nic.
+    zrodla, np. raportu MillBox, nie sa nadpisywane); powiazanie z plikiem liczone od nowa (P2). Wiersz tego pliku CSV
+    (``raport_plik``), ktorego klucza nie ma w pliku, = ``csv_nieaktualny`` TYLKO, gdy plik ma wiersz z tym samym plikiem
+    i tym samym krazkiem albo ta sama data (P6: ewidentna poprawka literowki daty / krazka; wiersze bez zastepnika - plik
+    wyczyszczony o dowolnej porze - zostaja); wiersz nieaktualny, ktory wrocil do pliku = znow ``csv``. Data pozniejsza niz
+    ``przyszlosc_dni`` od ``teraz`` = blad linii; starsza niz ``okno_dat_dni`` = wiersz pominiety (``stare``, D14), ale nadal
+    "w pliku" (jego wiersz w bazie nie staje sie nieaktualny). Bledny plik = ``BladWspolczynnikow``, w bazie nic.
     """
     plik = Path(plik)
     teraz = teraz or dt.datetime.now()
-    wiersze, kodowanie = _wczytaj_csv(plik, wspolczynnik_min, wspolczynnik_max, teraz.date(), okno_dat_dni)
+    wiersze, stare, kodowanie = _wczytaj_csv(plik, wspolczynnik_min, wspolczynnik_max, teraz.date(), okno_dat_dni, przyszlosc_dni)
     czas = teraz.replace(microsecond=0).isoformat()
     indeks = I.IndeksPlikow(baza)
     w_bazie = baza.wiersze("SELECT * FROM frezowania WHERE plik_w_raporcie IS NOT NULL ORDER BY id")
     istniejace = {(N.klucz_pliku(w["plik_w_raporcie"]), w["krazek"], w["data"]): w for w in w_bazie}
-    dni = {w.data.isoformat() for w in wiersze}
+    w_pliku = {(N.klucz_pliku(w.plik), w.krazek, w.data.isoformat()) for w in wiersze + stare}  # DANE OSOBOWE: tylko w pamieci
+    plik_krazek = {(p, k) for p, k, _ in w_pliku}
+    plik_data = {(p, d) for p, _, d in w_pliku}
     dopasowane: set[int] = set()  # id wierszy bazy, ktore sa w biezacym pliku
-    r = RaportCsv(wierszy=len(wiersze), kodowanie=kodowanie)
+    r = RaportCsv(wierszy=len(wiersze), stare=len(stare), kodowanie=kodowanie)
     with baza.transakcja():
         for w in wiersze:
             d = indeks.dopasuj(w.plik, w.data)
@@ -298,8 +322,13 @@ def wczytaj_do_bazy(baza: B.Baza, plik: str | Path, *, teraz: dt.datetime | None
                 r.zmienione += 1
             else:
                 r.bez_zmian += 1
-        for s in w_bazie:  # P3: dla dni z pliku plik jest zrodlem prawdy
-            if s["zrodlo"] == ZRODLO_CSV and s["raport_plik"] == plik.name and s["data"] in dni and s["id"] not in dopasowane:
+        for s in w_bazie:  # P6: nieaktualny tylko wiersz, ktory plik ewidentnie poprawil (nie zalezy od daty ani pory czyszczenia)
+            if s["zrodlo"] != ZRODLO_CSV or s["raport_plik"] != plik.name or s["id"] in dopasowane:
+                continue
+            p = N.klucz_pliku(s["plik_w_raporcie"])
+            if (p, s["krazek"], s["data"]) in w_pliku:
+                continue  # D14: wiersz nadal w pliku, tylko pominiety jako stary
+            if (p, s["krazek"]) in plik_krazek or (p, s["data"]) in plik_data:
                 baza.wykonaj("UPDATE frezowania SET zrodlo = ?, projekt_id = NULL WHERE id = ?", (ZRODLO_CSV_NIEAKTUALNY, s["id"]))
                 r.nieaktualne += 1
         baza.zdarzenie("pula", "wspolczynniki_csv", r.do_slownika())
@@ -365,8 +394,8 @@ _RECZNE_SQL = f"zrodlo IN ({', '.join('?' * len(ZRODLA_RECZNE))}) AND plik_w_rap
 
 
 def wspolczynnik_krazka(baza: B.Baza, krazek: str | None) -> dict | None:
-    """Ostatni wpis reczny krazka (najnowsza data, potem najnowszy wiersz) albo None. Czy obowiazuje dla danego frezowania,
-    decyduje odleglosc dat (``WAZNY_DNI``) - patrz ``reczny_dla``."""
+    """Ostatni wpis reczny krazka (najnowsza data, potem najnowszy wiersz) albo None - obowiazuje bez limitu dni. Wspolczynnik
+    krazka razem z wierszami CSV i sprzecznoscia podaje ``stan_krazkow``."""
     k = N.normalizuj_krazek(krazek) if isinstance(krazek, str) else None
     if k is None:
         return None
@@ -383,28 +412,85 @@ def wpisy_reczne(baza: B.Baza) -> dict[str, list[dict]]:
     return wynik
 
 
-def reczny_dla(wpisy: list[dict] | tuple, dzien: dt.date, wazny_dni: int = WAZNY_DNI) -> dict | None:
-    """Wpis reczny obowiazujacy dla frezowania z doby ``dzien``: najnowszy (data, id) z data odlegla najwyzej o ``wazny_dni``."""
-    for w in reversed(wpisy):
-        if abs((dt.date.fromisoformat(w["data"]) - dzien).days) <= wazny_dni:
-            return w
-    return None
+@dataclass(frozen=True)
+class StanKrazka:
+    """Wspolczynnik krazka w modelu "krazek niepowtarzalny" (decyzja wlasciciela A, 17.11.2026). Bez nazw plikow."""
+    krazek: str
+    wspolczynnik: float | None  # obowiazuje dla WSZYSTKICH frezowan krazka; None = brak wartosci albo sprzecznosc
+    zrodlo: str | None  # "csv" (wartosc tylko z wierszy z plikiem), "reczny" (wpis reczny / potwierdzenie) albo None
+    sprzeczny: bool  # dwie rozne wartosci (nierozstrzygniete albo nowe po potwierdzeniu)
+    wartosci_csv: tuple[float, ...]  # rozne wartosci z aktualnych wierszy z plikiem, z dowolnych dat
+    reczny: dict | None  # ostatni wpis reczny (id, krazek, wspolczynnik, data, zrodlo, wczytano)
+    potwierdzony: dict | None  # ostatni wpis z ``zmien=True`` (rozstrzygniecie), gdy jest
+    sprawa: str | None  # znacznik sprzecznosci "krazek|czas potwierdzenia" (pusty, gdy bez potwierdzenia): ta sama sprawa =
+    #                     jeden wpis w dzienniku (``pula.KatalogPul.odswiez``)
+
+
+_POLA_WPISU = ("id", "krazek", "wspolczynnik", "data", "zrodlo", "wczytano")
+
+
+def _r6(wartosc) -> float:
+    return round(float(wartosc), 6)
+
+
+def _stan(krazek: str, reczne: list[dict], inne: list[dict]) -> StanKrazka:
+    """Regula P5 (runda 3): jedna wartosc krazka z dowolnych dat albo sprzecznosc; potwierdzenie (``reczny_potwierdzony``)
+    obowiazuje dla calego krazka i trwale - nowa sprzecznosc tworzy tylko inna wartosc zmieniona / dopisana po nim."""
+    z_wartoscia = [f for f in inne if f["wspolczynnik"] is not None]
+    wartosci_csv = tuple(sorted({_r6(f["wspolczynnik"]) for f in z_wartoscia}))
+    reczny = reczne[-1] if reczne else None
+    nr = max((i for i, r in enumerate(reczne) if r["zrodlo"] == ZRODLO_RECZNY_POTWIERDZONY), default=None)
+    if nr is not None:
+        potw = reczne[nr]
+        c, znacznik = _r6(potw["wspolczynnik"]), potw["wczytano"] or ""
+        pozniejsze = [f for f in z_wartoscia if (f["wczytano"] or "") > znacznik] + reczne[nr + 1:]
+        if any(_r6(f["wspolczynnik"]) != c for f in pozniejsze):
+            return StanKrazka(krazek, None, None, True, wartosci_csv, reczny, potw, f"{krazek}|{znacznik}")
+        return StanKrazka(krazek, float(potw["wspolczynnik"]), ZRODLO_RECZNY, False, wartosci_csv, reczny, potw, None)
+    if len(set(wartosci_csv) | {_r6(r["wspolczynnik"]) for r in reczne}) > 1:
+        return StanKrazka(krazek, None, None, True, wartosci_csv, reczny, None, f"{krazek}|")
+    if reczny is not None:
+        return StanKrazka(krazek, float(reczny["wspolczynnik"]), ZRODLO_RECZNY, False, wartosci_csv, reczny, None, None)
+    if z_wartoscia:
+        return StanKrazka(krazek, float(z_wartoscia[0]["wspolczynnik"]), ZRODLO_CSV, False, wartosci_csv, None, None, None)
+    return StanKrazka(krazek, None, None, False, (), None, None, None)
+
+
+def stan_krazkow(baza: B.Baza, krazki=None) -> dict[str, StanKrazka]:
+    """Krazek -> ``StanKrazka`` z WSZYSTKICH aktualnych wierszy krazka (CSV / raport z dowolnych dat i wpisy reczne; bez
+    ``csv_nieaktualny``); ``krazki`` = ktore krazki (domyslnie wszystkie). Krazek bez zadnego wiersza nie wystepuje w wyniku."""
+    sql = ("SELECT id, krazek, wspolczynnik, data, zrodlo, wczytano, plik_w_raporcie IS NULL AS bez_pliku FROM frezowania "
+           "WHERE krazek IS NOT NULL AND (zrodlo IS NULL OR zrodlo != ?)")
+    if krazki is None:
+        wiersze = baza.wiersze(sql, (ZRODLO_CSV_NIEAKTUALNY,))
+    else:
+        lista, wiersze = sorted({k for k in krazki if k is not None}), []
+        for i in range(0, len(lista), _PORCJA):
+            czesc = lista[i:i + _PORCJA]
+            wiersze += baza.wiersze(f"{sql} AND krazek IN ({', '.join('?' * len(czesc))})", (ZRODLO_CSV_NIEAKTUALNY, *czesc))
+    grupy: dict[str, tuple[list, list]] = {}
+    for w in sorted(wiersze, key=lambda w: (w["data"] or "", w["id"])):
+        reczne, inne = grupy.setdefault(w["krazek"], ([], []))
+        if w["bez_pliku"] and w["zrodlo"] in ZRODLA_RECZNE:
+            reczne.append({p: w[p] for p in _POLA_WPISU})
+        else:
+            inne.append(w)
+    return {k: _stan(k, reczne, inne) for k, (reczne, inne) in grupy.items()}
 
 
 def wpisz_reczny(baza: B.Baza, krazek: str, wspolczynnik, *, operator: str, data: str | dt.date | None = None,
                  zmien: bool = False, teraz: dt.datetime | None = None, granica_doby_godz: int = GRANICA_DOBY_GODZ,
-                 wazny_dni: int = WAZNY_DNI, wspolczynnik_min: float = WSPOLCZYNNIK_MIN,
-                 wspolczynnik_max: float = WSPOLCZYNNIK_MAX) -> int:
+                 wspolczynnik_min: float = WSPOLCZYNNIK_MIN, wspolczynnik_max: float = WSPOLCZYNNIK_MAX) -> int:
     """Wpis reczny wspolczynnika krazka (K7, raz na krazek); zwraca id wiersza ``frezowania``.
 
     ``operator`` (wymagany, decyzja robocza 5): kto wpisuje - trafia do dziennika ``zdarzenia`` (schemat bez zmian).
     ``wspolczynnik``: liczba albo tekst z okna ("1,2250"). ``data``: domyslnie doba robocza chwili ``teraz`` (wpis z 02:00
-    na 3. zmianie nalezy do doby poprzedniego dnia); wczesniejsza niz data ostatniego wpisu krazka = odmowa (D8 - taki wpis
-    by nie obowiazywal). Ostatni wpis odlegly od ``data`` najwyzej o ``wazny_dni``: ta sama wartosc = nic nowego (zwraca
-    istniejacy wpis), inna = ``BladWspolczynnikow``, chyba ze ``zmien=True``. Wpis starszy (oznaczenia krazkow moga sie
-    powtarzac, P4) nie blokuje: powstaje nowy wpis. ``zmien=True``: wpis z tego samego dnia jest poprawiany, z innego -
-    powstaje nowy (historia; obowiazuje najnowszy), w obu razach ``zrodlo = reczny_potwierdzony`` - taki wpis rozstrzyga
-    sprzecznosc z wierszami CSV wczytanymi przed nim (P4, ``pula``).
+    na 3. zmianie nalezy do doby poprzedniego dnia); wczesniejsza niz data ostatniego wpisu krazka = odmowa (D8). Krazek ma
+    juz wpis (z dowolnego dnia - krazek niepowtarzalny, decyzja A): ta sama wartosc = nic nowego (zwraca istniejacy wpis),
+    inna = ``BladWspolczynnikow`` z obecna wartoscia, chyba ze ``zmien=True``. ``zmien=True``: wpis z tego samego dnia jest
+    poprawiany, z innego - powstaje nowy (historia; obowiazuje najnowszy), w obu razach ``zrodlo = reczny_potwierdzony`` -
+    potwierdzona wartosc obowiazuje dla WSZYSTKICH prac krazka i rozstrzyga sprzecznosc z wierszami CSV wczytanymi przed nia
+    (P5, ``stan_krazkow``). Wpis bez potwierdzenia inny niz wartosc w CSV jest przyjmowany, ale daje sprzecznosc krazka.
     """
     k = N.normalizuj_krazek(krazek) if isinstance(krazek, str) else None
     if k is None:
@@ -428,12 +514,12 @@ def wpisz_reczny(baza: B.Baza, krazek: str, wspolczynnik, *, operator: str, data
     if ostatni is not None and dzien < dt.date.fromisoformat(ostatni["data"]):
         raise BladWspolczynnikow(f"krazek {k} ma pozniejszy wpis z {ostatni['data']} - wpis z data {dzien.isoformat()} nie "
                                  f"obowiazywalby; wpisz wspolczynnik z data dzisiejsza")
-    wazny = ostatni is not None and (dzien - dt.date.fromisoformat(ostatni["data"])).days <= wazny_dni
-    if wazny and not zmien:
+    if ostatni is not None and not zmien:
         if _rowne(ostatni["wspolczynnik"], w):
             return ostatni["id"]
         raise BladWspolczynnikow(f"krazek {k} ma juz wspolczynnik {format_wspolczynnika(ostatni['wspolczynnik'])} (wpis z "
-                                 f"{ostatni['data']}) - zeby zmienic go na {format_wspolczynnika(w)}, potwierdz zmiane")
+                                 f"{ostatni['data']}) - zeby zmienic go na {format_wspolczynnika(w)}, potwierdz zmiane "
+                                 f"(dotyczy wszystkich prac tego krazka)")
     zrodlo = ZRODLO_RECZNY_POTWIERDZONY if zmien else ZRODLO_RECZNY
     czas = teraz.replace(microsecond=0).isoformat()
     with baza.transakcja():
