@@ -754,7 +754,7 @@ class KontrolerSesji(Kontroler):
             return (), ()
         if nazwa not in self._uklady:
             try:
-                from . import uklad as U  # numpy: ladowane dopiero przy pierwszej plytce
+                from . import uklad as U  # numpy: Aplikacja laduje uklady w start(), atrapa - przy pierwszej plytce
 
                 katalog = None
                 if self.ust is not None and nazwa in (self.ust.get("plytki") or {}):

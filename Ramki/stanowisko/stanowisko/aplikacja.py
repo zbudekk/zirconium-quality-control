@@ -17,9 +17,16 @@ oknu stan oraz polecenia opisane w ``kontroler_api`` (kontrakt dla ekranu - pacz
   niezakonczone (w toku, w kolejce, wstrzymane) zapisywane do pliku obok bazy i zlecane ponownie po starcie;
 * akcja "start skanu" (DW5): interfejs ``Scanner.start_skanu`` z atrapa - zadnego automatu klikajacego w programie skanera.
 
+Runda 2 recenzji PR #20: jeden egzemplarz programu na plik bazy (``BlokadaStanowiska``, B1) i twarde odsiewanie wyniku
+o ``sha16`` juz przyjetym w tej samej transakcji co zapis; wynik / blad, ktorego nie da sie zapisac (baza zajeta, dysk),
+czeka w pamieci jako pozycja "nie zapisano" i jest zapisywany ponownie z rosnacym odstepem (P1, P8); plik przemianowany
+w kolejce przejmuje zadanie (P2); po bledzie analizy pula jest liczona od nowa - pusta albo zniknieta = skan czeka (P3);
+log bez nazw plikow (``FiltrNazw``, P5); kopie wynikow silnika nie zostaja w ``dane/podglady`` (P9).
+
 Dane osobowe: nazwy plikow i folderow (skanu, puli, zlecen) nie trafiaja do komunikatow, stanu, dziennika ani logu tego
 modulu - skan jest opisywany skrotem ``sha16``. Wyjatki zamierzone: ``skany.plik`` (kolumna z planu, pisze ``session``)
-i dwa pliki robocze obok bazy (``PLIK_ZADAN``: sciezki skanow czekajacych na analize; ``PLIK_PULI``: folder puli).
+i dwa pliki robocze obok bazy (``PLIK_ZADAN``: sciezki skanow czekajacych na analize; ``PLIK_PULI``: folder puli). Pole
+``skan`` wyniku (nazwa pliku skanu wpisywana przez ``porownaj``) jest przed zapisem w sesji zastepowane skrotem ``sha16``.
 
 Plik startowy: ``python -m stanowisko.aplikacja`` (``uruchom_stanowisko.bat``). Na poziomie modulu NIE MA importu Qt -
 proces roboczy silnika wykonuje ten plik ponownie (``__mp_main__``) i zaladowalby Qt obok Open3D (``silnik.md``, D8).
@@ -28,6 +35,7 @@ Wszystkie moduly PySide6 sa importowane w calosci na poczatku ``main()``, przed 
 from __future__ import annotations
 
 import argparse
+import collections
 import dataclasses
 import datetime as dt
 import json
@@ -36,6 +44,8 @@ import logging.handlers
 import multiprocessing
 import os
 import queue
+import re
+import sqlite3
 import sys
 import threading
 import time
@@ -57,9 +67,30 @@ PLIK_ZADAN = "zadania_niezakonczone.json"  # obok bazy: zadania przerwane zamkni
 PLIK_PULI = "stanowisko_pula.json"  # obok bazy: folder puli i wspolczynnik wpisane przez technika (poziom 1 planu)
 WSPOLCZYNNIK_MIN, WSPOLCZYNNIK_MAX = K.WSPOLCZYNNIK_MIN, K.WSPOLCZYNNIK_MAX  # walidacja wspolna z atrapa (KontrolerSesji._sprawdz_pule)
 PROBY_STARTU_SILNIKA = 1  # ile razy zadanie jest zlecane ponownie, gdy proces silnika nie umie wystartowac
-OKRES_KONTROLI_S = 1.0  # co ile ``przetworz`` sprawdza stan obserwatora (folder dostepny, pliki zajete) i ponawia zapis do zajetej bazy
+OKRES_KONTROLI_S = 1.0  # co ile ``przetworz`` sprawdza stan obserwatora (folder dostepny, pliki zajete); pierwszy odstep ponowienia zapisu
+ODSTEP_ZAPISU_MAX_S = 30.0  # P1 / P8: ponowienia zapisu wyniku co OKRES_KONTROLI_S, potem 2x, 4x ... rzadziej, najrzadziej co tyle
 PLIK_LOGU = "stanowisko.log"
 PLIK_LOGU_SILNIKA = "silnik.log"
+KOD_PROGRAM_JUZ_DZIALA = 3  # kod wyjscia main(), gdy inny egzemplarz pracuje na tej bazie (B1)
+PRZYCZYNA_BAZA_ZAJETA, PRZYCZYNA_BLAD_ZAPISU = "baza_zajeta", "blad_zapisu"  # ``Niezapisany.przyczyna``
+
+
+def _istnieje(plik: str | Path) -> bool:
+    try:
+        return Path(plik).is_file()
+    except (OSError, ValueError):
+        return False
+
+
+def _klucz_sciezki(plik: str | Path) -> str:
+    return os.path.normcase(os.path.abspath(str(plik)))
+
+
+def _blad_zapisu(blad: BaseException) -> bool:
+    """Blad zapisu, ktory moze minac (P1): pelny dysk, blad wejscia / wyjscia, dysk odlaczony, brak uprawnien do pliku -
+    ``OSError`` albo blad operacyjny SQLite (``database or disk is full``, ``disk I/O error``). Blad danych (ograniczenie
+    bazy, zly wynik) - nie: ponowienie nic by nie dalo."""
+    return isinstance(blad, (OSError, sqlite3.OperationalError)) or type(blad) is sqlite3.DatabaseError
 
 
 @dataclasses.dataclass
@@ -77,18 +108,200 @@ class Zlecenie:
     wznowiony: bool = False  # zadanie zapisane przy zamknieciu programu
     proby: int = 0  # ile razy silnik oddal blad ``plik_niedostepny``
     proby_startu: int = 0  # ile razy silnik oddal blad ``start``
+    zastepcze: list = dataclasses.field(default_factory=list)  # P2: (plik, mtime_ns) tej samej tresci pod inna nazwa (przemianowany)
 
     @classmethod
     def ze_zdarzenia(cls, z: Any, tryb: str) -> "Zlecenie":
         return cls(plik=str(z.plik), sha16=z.sha16, rozmiar=z.rozmiar, mtime_ns=z.mtime_ns, trojkaty=z.trojkaty, tryb=tryb, zastany=bool(z.zastany))
 
+    def sciezka_aktualna(self) -> tuple:
+        """(plik, mtime_ns) pod ktorymi skan lezy teraz: pierwsza istniejaca sciezka z ``plik`` i ``zastepcze`` (P2 - plik
+        przemianowany w kolejce); gdy zadnej nie ma - ``plik``."""
+        for plik, mtime_ns in [(self.plik, self.mtime_ns)] + list(self.zastepcze):
+            if _istnieje(plik):
+                return plik, mtime_ns
+        return self.plik, self.mtime_ns
+
+    def przejmij_zastepcza(self) -> bool:
+        """P2: pliku pod ``plik`` nie ma - zlecenie przechodzi na pierwsza istniejaca sciezke zastepcza (zuzywa ja). False = brak."""
+        while self.zastepcze:
+            plik, mtime_ns = self.zastepcze.pop(0)
+            if _istnieje(plik):
+                self.plik, self.mtime_ns = plik, mtime_ns
+                return True
+        return False
+
     def zdarzenie(self) -> dict:
         """Zdarzenie skanu dla ``session`` (kontrakt ``ZdarzenieSkanu``: plik, sha16, rozmiar, czas_pliku w sekundach od epoki)."""
-        return {"plik": self.plik, "sha16": self.sha16, "rozmiar": self.rozmiar,
-                "czas_pliku": self.mtime_ns / 1e9 if self.mtime_ns is not None else None}
+        plik, mtime_ns = self.sciezka_aktualna()
+        return {"plik": plik, "sha16": self.sha16, "rozmiar": self.rozmiar, "czas_pliku": mtime_ns / 1e9 if mtime_ns is not None else None}
 
     def do_zapisu(self) -> dict:
-        return {k: getattr(self, k) for k in ("plik", "sha16", "rozmiar", "mtime_ns", "trojkaty", "tryb", "numer")}
+        plik, mtime_ns = self.sciezka_aktualna()
+        return {"plik": plik, "sha16": self.sha16, "rozmiar": self.rozmiar, "mtime_ns": mtime_ns, "trojkaty": self.trojkaty, "tryb": self.tryb,
+                "numer": self.numer}
+
+
+@dataclasses.dataclass(eq=False)
+class DoZapisu:
+    """Wynik (``rodzaj`` wynik, ``zdarzenie`` silnika) albo blad analizy (``rodzaj`` blad, ``blad_rodzaj`` / ``blad_opis``),
+    ktorego nie udalo sie zapisac w bazie (P1, P8): czeka w pamieci, ponowienie po ``nastepna`` (time.monotonic())."""
+
+    zlecenie: Zlecenie
+    rodzaj: str
+    zdarzenie: Any = None
+    blad_rodzaj: str = ""
+    blad_opis: str = ""
+    przyczyna: str = PRZYCZYNA_BAZA_ZAJETA
+    proby: int = 0
+    od: str = ""
+    nastepna: float = 0.0
+
+
+def odstep_ponowienia(proby: int) -> float:
+    """Odstep przed kolejna proba zapisu po ``proby`` nieudanych: OKRES_KONTROLI_S, 2x, 4x ..., najwyzej ODSTEP_ZAPISU_MAX_S."""
+    return min(ODSTEP_ZAPISU_MAX_S, OKRES_KONTROLI_S * 2 ** max(0, min(proby, 16) - 1))
+
+
+class ProgramJuzDziala(RuntimeError):
+    """Inny egzemplarz programu pracuje juz na tym pliku bazy (B1). Drugi egzemplarz nie dotyka bazy ani folderu skanera."""
+
+
+class BlokadaStanowiska:
+    """B1: jeden egzemplarz programu na dany plik bazy. Plik ``<baza>.blokada`` obok bazy jest otwarty i zablokowany przez caly
+    czas pracy (Windows: ``msvcrt.locking``, inne systemy: ``fcntl.flock``). Blokade trzyma system: znika razem z procesem -
+    takze po awarii, zabiciu procesu albo wylaczeniu pradu - wiec nie ma "wiszacej" blokady do recznego usuwania."""
+
+    def __init__(self, plik_bazy: str | Path):
+        plik_bazy = Path(plik_bazy)
+        self.plik = plik_bazy.with_name(plik_bazy.name + ".blokada")
+        self._fd: int | None = None
+
+    def zajmij(self) -> "BlokadaStanowiska":
+        """Zajmuje blokade albo rzuca ``ProgramJuzDziala`` (od razu, bez czekania)."""
+        if self._fd is not None:
+            return self
+        self.plik.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(self.plik, os.O_RDWR | os.O_CREAT, 0o644)
+        try:
+            if os.name == "nt":
+                import msvcrt  # noqa: PLC0415
+
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl  # noqa: PLC0415
+
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            os.close(fd)
+            raise ProgramJuzDziala("Program \"Stanowisko\" juz dziala na tym komputerze (ta sama baza stanowiska) - przejdz do otwartego "
+                                   "okna programu. Drugi egzemplarz liczylby kazdy skan dwa razy, dlatego nie zostal uruchomiony.") from None
+        self._fd = fd
+        return self
+
+    @property
+    def zajeta(self) -> bool:
+        return self._fd is not None
+
+    def zwolnij(self) -> None:
+        fd, self._fd = self._fd, None
+        if fd is None:
+            return
+        try:
+            if os.name == "nt":
+                import msvcrt  # noqa: PLC0415
+
+                os.lseek(fd, 0, os.SEEK_SET)
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+        except OSError:
+            pass
+        finally:
+            os.close(fd)
+
+
+_SHA16 = re.compile(r"[0-9a-f]{16}")
+_NAZWA_PLIKU = re.compile(r"\.[A-Za-z][A-Za-z0-9]{0,4}$")
+_SLAD_MODULU = re.compile(r'File "(?:[^"\n]*[\\/])?([^"\\/\n]+\.py)"')
+ZNACZNIK_PLIKU = "<plik>"
+LOGGERY_Z_FILTREM = ("__main__", "stanowisko", "stanowisko.aplikacja", "stanowisko.kontroler_api", "stanowisko.scanner", "stanowisko.silnik",
+                     "stanowisko.session", "stanowisko.baza", "stanowisko.uklad", "stanowisko.ustawienia", "stanowisko.dzien_skanera_rdzen")
+
+
+class FiltrNazw(logging.Filter):
+    """P5: wpisy logu bez nazw plikow skanow i projektow (nazwy zlecen bywaja nazwiskami) - takze z modulow ``scanner``
+    i ``silnik``, ktorych kodu ta paczka nie zmienia. Argument wpisu, ktory jest sciezka albo nazwa pliku, staje sie skrotem
+    ``sha16`` skanu (gdy znany: z ``zapamietaj`` albo z tego samego wpisu, np. "nowy skan nr 3: <nazwa> sha16=...") albo
+    znacznikiem ``<plik>``; w calym tekscie (takze slad wyjatku) znane nazwy -> ``sha16``, sciezki -> ``<sciezka>``
+    (``baza.bez_sciezek``), sciezki modulow programu w sladzie wyjatku -> sama nazwa modulu. Zmienia sam wpis, wiec dziala
+    dla kazdego odbiorcy (plik logu, konsola, ``caplog``), gdy jest filtrem loggera (``konfiguruj_logi``)."""
+
+    LIMIT = 4000  # tyle ostatnich nazw plikow pamietanych do zamiany na sha16
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._znane: collections.OrderedDict = collections.OrderedDict()
+        self._zamek = threading.Lock()
+
+    def zapamietaj(self, plik: Any, sha16: str | None) -> None:
+        if not plik or not sha16:
+            return
+        p = Path(os.fspath(plik))
+        with self._zamek:
+            for nazwa in {str(plik), p.as_posix(), p.name, p.stem}:
+                if len(nazwa) >= 3:
+                    self._znane[nazwa] = sha16
+                    self._znane.move_to_end(nazwa)
+            while len(self._znane) > self.LIMIT:
+                self._znane.popitem(last=False)
+
+    @staticmethod
+    def _jak_plik(a: Any) -> bool:
+        return isinstance(a, os.PathLike) or (isinstance(a, str) and ("/" in a or "\\" in a or bool(_NAZWA_PLIKU.search(a))))
+
+    def _argument(self, a: Any, sha16: str | None) -> Any:
+        if not self._jak_plik(a):
+            return a
+        tekst = os.fspath(a) if isinstance(a, os.PathLike) else a
+        with self._zamek:
+            znany = self._znane.get(str(tekst)) or self._znane.get(Path(str(tekst)).name)
+        return znany or sha16 or ZNACZNIK_PLIKU
+
+    def oczysc(self, tekst: str) -> str:
+        with self._zamek:
+            nazwy = sorted(self._znane.items(), key=lambda kv: len(kv[0]), reverse=True)
+        for nazwa, sha16 in nazwy:
+            if nazwa in tekst:
+                tekst = tekst.replace(nazwa, sha16)
+        return B.bez_sciezek(_SLAD_MODULU.sub(r'File "\1"', tekst))
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if getattr(record, "bez_nazw", False):
+            return True
+        try:
+            args = record.args
+            if isinstance(args, dict):
+                record.args = {k: self._argument(v, None) for k, v in args.items()}
+            elif args:
+                sha16 = next((a for a in args if isinstance(a, str) and _SHA16.fullmatch(a)), None)
+                if sha16 is not None:
+                    for a in args:
+                        if self._jak_plik(a):
+                            self.zapamietaj(a, sha16)
+                record.args = tuple(self._argument(a, sha16) for a in args)
+            record.msg, record.args = self.oczysc(record.getMessage()), None
+            if record.exc_info and not record.exc_text:
+                record.exc_text = logging.Formatter().formatException(record.exc_info)
+            if record.exc_text:
+                record.exc_text = self.oczysc(record.exc_text)
+            if record.stack_info:
+                record.stack_info = self.oczysc(record.stack_info)
+        except Exception:  # noqa: BLE001 - filtr logu nie moze zatrzymac programu; wpis bez tresci zamiast nazwy
+            record.msg, record.args, record.exc_info, record.exc_text = f"{record.levelname}: wpis logu pominiety (blad filtra nazw)", None, None, None
+        record.bez_nazw = True
+        return True
+
+
+FILTR_NAZW = FiltrNazw()  # jeden na proces: Aplikacja dopisuje nazwy plikow skanow, konfiguruj_logi wlacza go w loggerach
 
 
 def pliki_stl(folder: Path) -> int:
@@ -113,16 +326,26 @@ class Aplikacja(K.KontrolerSesji):
 
     Parametry do testow: ``zegar``, ``funkcja_analizy`` (``"modul:funkcja"`` zamiast ``porownaj``), ``start_skanu`` (akcja
     DW5; domyslnie atrapa ze ``scanner``), ``parametry_scannera`` / ``parametry_silnika`` (nadpisuja wartosci z ustawien).
+    ``blokada`` - zajeta wczesniej ``BlokadaStanowiska`` (``main``); bez niej konstruktor zajmuje ja sam, ZANIM otworzy baze
+    (drugi egzemplarz na tej samej bazie = ``ProgramJuzDziala``, B1), a ``zamknij`` ja zwalnia.
     """
 
     def __init__(self, ust: dict, *, tryb: str = SE.TRYB_WIECZOR, zegar: Callable[[], dt.datetime] | None = None, start_skanu=None,
-                 funkcja_analizy: str = SI.FUNKCJA_ANALIZY, parametry_scannera: dict | None = None, parametry_silnika: dict | None = None):
-        baza = B.otworz(B.sciezka_bazy(ust), zegar=zegar)
+                 funkcja_analizy: str = SI.FUNKCJA_ANALIZY, parametry_scannera: dict | None = None, parametry_silnika: dict | None = None,
+                 blokada: BlokadaStanowiska | None = None):
+        self._blokada = blokada if blokada is not None else BlokadaStanowiska(B.sciezka_bazy(ust))
+        self._blokada.zajmij()  # B1: przed otwarciem bazy i obserwacja folderu
+        try:
+            baza = B.otworz(B.sciezka_bazy(ust), zegar=zegar)
+        except BaseException:
+            self._blokada.zwolnij()
+            raise
         try:
             sesja = SE.Sesja.z_ustawien(ust, baza, zegar=zegar, wersja_programu=WERSJA_PROGRAMU)
             super().__init__(sesja, ust, tryb=tryb, zegar=zegar)
         except BaseException:
             baza.zamknij()
+            self._blokada.zwolnij()
             raise
         self.katalog_danych = baza.plik.parent
         self.folder_skanera = katalog_z_ustawien(ust, "folder_eksportu_skanera")
@@ -141,7 +364,8 @@ class Aplikacja(K.KontrolerSesji):
         self._skrzynka: queue.Queue = queue.Queue()  # z watkow obserwatora i liczenia puli: (rodzaj, dane)
         self._zlecone: dict[int, Zlecenie] = {}  # zadanie_id silnika -> zlecenie (w toku albo w kolejce silnika)
         self._wstrzymane: list[Zlecenie] = []  # czekaja na pule projektow albo na silnik
-        self._nieprzyjete: list[tuple] = []  # (zlecenie, zdarzenie silnika z wynikiem), gdy baza byla zajeta - ponawiane
+        self._do_zapisu: list[DoZapisu] = []  # P1 / P8: wyniki i bledy, ktorych nie udalo sie zapisac - ponawiane z rosnacym odstepem
+        self._do_sprawdzenia: list[tuple] = []  # P3: (zlecenie, zdarzenie bledu, nr liczenia puli) - blad analizy czeka na liczenie puli
         self._w_toku: int | None = None
         self._analiza: K.Postep | None = None
         self._silnik_gotowy = False
@@ -160,6 +384,8 @@ class Aplikacja(K.KontrolerSesji):
         self._pula_stan = "liczenie"
         self._pula_czas: str | None = None
         self._pula_nr = 0  # numer liczenia: wynik starszego liczenia jest pomijany
+        self._liczenie_puli = False  # trwa liczenie o numerze _pula_nr (D4: nie uruchamiac drugiego cichego)
+        self._pula_ponownie = False  # po biezacym liczeniu policzyc jeszcze raz (zmiana w trakcie liczenia)
         self._wczytaj_pule()
 
     # --- start -----------------------------------------------------------------------------------
@@ -169,6 +395,7 @@ class Aplikacja(K.KontrolerSesji):
             return
         s, ust = self._parametry_silnika, self.ust
         self.katalog_logow.mkdir(parents=True, exist_ok=True)
+        self._sprzatnij_podglady()  # P9: przed silnikiem - zaden nowy plik nie zostanie usuniety
         self.silnik = SI.Silnik(**{
             "ust": ust, "funkcja": self._funkcja_analizy, "limit_zadania_s": float(ust["silnik"]["limit_zadania_s"]),
             "czekaj_na_plik_s": float(ust["silnik"]["czekaj_na_plik_s"]), "pamiec_linii": self.pula_cache if ust["silnik"]["pamiec_linii"] else None,
@@ -183,6 +410,7 @@ class Aplikacja(K.KontrolerSesji):
         znane = [(w["plik"], w["rozmiar"], w["czas_pliku"]) for w in self.sesja.baza.wiersze("SELECT plik, rozmiar, czas_pliku FROM skany")]
         znane += [(z.plik, z.rozmiar, SC.czas_pliku_iso(z.mtime_ns)) for z in wznowione if z.mtime_ns is not None]
         for z in wznowione:  # przed obserwatorem: powtorka z nadrabiania zostanie odsiana po sha16 zadania w kolejce
+            FILTR_NAZW.zapamietaj(z.plik, z.sha16)
             self._nowy_skan(z)
         sc, p = ust["scanner"], self._parametry_scannera
         self.scanner = SC.Scanner(
@@ -198,6 +426,42 @@ class Aplikacja(K.KontrolerSesji):
             self._komunikat("wznowiono", id_="wznowiono", ile=len(wznowione))
         LOG.info("stanowisko: start, zadan wznowionych %d, plikow znanych %d", len(wznowione), len(znane))
         self._odswiez()
+
+    def _sprzatnij_podglady(self) -> int:
+        """P9: przy starcie usuwa z ``dane/podglady`` kopie wynikow silnika (``*_wynik.json`` - zawieraja folder puli; zadna
+        nie jest potrzebna, obowiazuje plik sesji bez sciezek) i pliki ``*_podglad.npz``, do ktorych nie prowadzi wpis
+        ``podglad`` w dzienniku (po awarii, odrzuconym wyniku, zamknieciu z wynikiem niezapisanym). Zwraca liczbe usunietych."""
+        katalog = self.katalog_podgladow
+        if not katalog.is_dir():
+            return 0
+        znane = set()
+        for w in self.sesja.baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'podglad'"):
+            try:
+                znane.add(json.loads(w["dane"])["plik"])
+            except (TypeError, ValueError, KeyError):
+                continue
+        usuniete = 0
+        for p in katalog.iterdir():
+            if p.name.endswith("_wynik.json") or (p.name.endswith("_podglad.npz") and p.name not in znane):
+                try:
+                    p.unlink()
+                    usuniete += 1
+                except OSError as e:
+                    LOG.warning("stanowisko: osieroconego pliku podgladu nie da sie usunac (%s)", type(e).__name__)
+        if usuniete:
+            LOG.info("stanowisko: usuniete osierocone pliki w katalogu podgladow: %d", usuniete)
+        return usuniete
+
+    @staticmethod
+    def _usun_pliki_wyniku(e: Any, podglad: bool) -> None:
+        """P9: kopia wyniku z silnika (zawiera folder puli) zawsze; plik podgladu - gdy nie zostal powiazany ze skanem."""
+        pliki = (getattr(e, "pliki", None) or {}) if e is not None else {}
+        for klucz in ("wynik", "podglad") if podglad else ("wynik",):
+            if pliki.get(klucz):
+                try:
+                    Path(pliki[klucz]).unlink(missing_ok=True)
+                except OSError:
+                    pass
 
     def _wczytaj_zadania(self) -> list[Zlecenie]:
         plik = self.katalog_danych / PLIK_ZADAN
@@ -237,20 +501,27 @@ class Aplikacja(K.KontrolerSesji):
 
     def _policz_pule(self, ciche: bool = False) -> None:
         """Liczy pliki STL puli w watku pomocniczym (folder sieciowy moze odpowiadac dlugo); wynik wraca przez skrzynke.
-        ``ciche``: odswiezenie liczby po skanie - stan puli zostaje ``gotowa`` do czasu nowego wyniku (skany nie czekaja)."""
+        ``ciche``: odswiezenie po skanie, wyniku albo bledzie analizy (P3) - stan puli zostaje do czasu nowego wyniku (skany
+        nie czekaja na liczenie); gdy liczenie juz trwa, nie startuje drugiego watku, tylko zamawia kolejne liczenie po nim
+        (D4: folder sieciowy, ktory nie odpowiada, nie mnozy wiszacych watkow)."""
+        if ciche and self._liczenie_puli:
+            self._pula_ponownie = True
+            return
         self._pula_nr += 1
         if self._pula_folder is None:
-            self._pula_stan, self._pula_liczba = "nieustawiona", None
-            self._komunikat_puli("nieustawiona", len(self._wstrzymane))
+            self._pula_stan, self._pula_liczba, self._liczenie_puli = "nieustawiona", None, False
+            self._rozstrzygnij_sprawdzenia(self._pula_nr)
+            self._komunikat_puli("nieustawiona", self._czeka_na_pule())
             return
-        if not (ciche and self._pula_stan == "gotowa"):
+        if not ciche:
             self._pula_stan = "liczenie"
         nr, folder = self._pula_nr, self._pula_folder
+        self._liczenie_puli = True
 
         def licz() -> None:
             try:
                 wynik = ("pula", (nr, pliki_stl(folder) if folder.is_dir() else None))
-            except OSError:
+            except Exception:  # noqa: BLE001 - D4: kazdy blad (takze ValueError dla zlej sciezki) = brak folderu, nigdy wiszace "liczenie"
                 wynik = ("pula", (nr, None))
             self._skrzynka.put(wynik)
 
@@ -259,13 +530,46 @@ class Aplikacja(K.KontrolerSesji):
     def _pula_policzona(self, nr: int, liczba: int | None) -> None:
         if nr != self._pula_nr:
             return
+        self._liczenie_puli = False
         self._pula_liczba, self._pula_czas = liczba, self._teraz()
         self._pula_stan = "brak_folderu" if liczba is None else ("gotowa" if liczba > 0 else "pusta")
+        self._rozstrzygnij_sprawdzenia(nr)
         if self._pula_stan == "gotowa":
-            self._usun_komunikat("pula")
-            self._zwolnij_wstrzymane()
+            if not self._do_sprawdzenia:
+                self._zwolnij_wstrzymane()
         else:
-            self._komunikat_puli(self._pula_stan, len(self._wstrzymane))
+            self._wstrzymaj_kolejke_silnika()
+        self._komunikat_puli(self._pula_stan, self._czeka_na_pule())
+        if self._pula_ponownie:
+            self._pula_ponownie = False
+            self._policz_pule(ciche=True)
+
+    def _czeka_na_pule(self) -> int:
+        return len(self._wstrzymane) + len(self._do_sprawdzenia)
+
+    def _sprawdz_pule_po_bledzie(self, z: Zlecenie, e: Any) -> None:
+        """P3: blad analizy moze wynikac z puli oproznionej albo znikajacej po policzeniu. Zanim skan dostanie ``blad``, pula
+        jest liczona od nowa; wynik liczenia rozstrzyga: pula niepusta = blad analizy, pusta / brak folderu = skan czeka."""
+        nr_min = self._pula_nr + 1  # nastepne liczenie: uruchamiane teraz albo zaraz po biezacym
+        self._do_sprawdzenia.append((z, e, nr_min))
+        self._policz_pule(ciche=True)
+
+    def _rozstrzygnij_sprawdzenia(self, nr: int) -> None:
+        gotowe = [x for x in self._do_sprawdzenia if x[2] <= nr]
+        self._do_sprawdzenia = [x for x in self._do_sprawdzenia if x[2] > nr]
+        for z, e, _ in gotowe:
+            if self._pula_stan == "gotowa":
+                self._zapisz_blad(z, e.rodzaj, self._bez_nazw(e.blad, z))
+            else:  # pula pusta / brak folderu / nieustawiona: skan czeka na pule (zamiast "blad analizy")
+                self.sesja.baza.zdarzenie("silnik", "skan_czeka_na_pule", {"sha16": z.sha16, "pula": self._pula_stan}, czas=self._teraz())
+                self._wstrzymane.append(z)
+
+    def _wstrzymaj_kolejke_silnika(self) -> None:
+        """P3: pula okazala sie pusta / bez folderu - zadania czekajace w kolejce silnika (jeszcze nie ruszyly) wracaja do
+        wstrzymanych, zamiast po kolei konczyc sie bledem analizy."""
+        for nr in sorted(self._zlecone):
+            if nr != self._w_toku and self.silnik is not None and self.silnik.anuluj(nr):
+                self._wstrzymane.append(self._zlecone.pop(nr))
 
     def ustaw_pule(self, folder: str | None, wspolczynnik: float | None = None) -> K.Odpowiedz:
         """Folder projektow i wspolczynnik skurczu wpisane recznie (None = domyslny dla rozpoznanego typu plytki). Walidacja
@@ -305,15 +609,28 @@ class Aplikacja(K.KontrolerSesji):
         w_toku = 1 if self._w_toku is not None and self._w_toku in self._zlecone else 0
         napis = ST.STANY_PULI.get(self._pula_stan, "").format(n=self._pula_liczba)
         sc = self.scanner.stan() if self.scanner is not None else {}
+        niezapisane = self._niezapisane()
         return {
             "analiza": self._analiza,
-            "kolejka": K.Kolejka(w_toku=w_toku, czeka=len(self._zlecone) - w_toku, wstrzymane=len(self._wstrzymane) + len(self._nieprzyjete),
-                                 silnik_gotowy=self._silnik_gotowy),
+            "kolejka": K.Kolejka(w_toku=w_toku, czeka=len(self._zlecone) - w_toku,
+                                 wstrzymane=len(self._wstrzymane) + len(self._do_zapisu) + len(self._do_sprawdzenia),
+                                 silnik_gotowy=self._silnik_gotowy, niezapisane=len(niezapisane)),
             "pula": K.Pula(folder=str(self._pula_folder) if self._pula_folder is not None else None, wspolczynnik=self._pula_wspolczynnik,
                            liczba_stl=self._pula_liczba, stan=self._pula_stan, napis=napis, odswiezono=self._pula_czas),
             "skaner": K.Skaner(folder=str(self.folder_skanera), dostepny=bool(sc.get("folder_dostepny")), dziala=bool(sc.get("dziala")),
                                zajete=int(sc.get("zajete") or 0), ostatni_start_skanu=self._ostatni_start_skanu, startow_skanu=self._starty_skanu,
-                               czeka_na_skan=self._czeka_na_skan)}
+                               czeka_na_skan=self._czeka_na_skan),
+            "niezapisane": niezapisane}
+
+    def _niezapisane(self) -> tuple:
+        """Pozycje "nie zapisano" dla okna (``kontroler_api.Niezapisany``) z wynikow i bledow czekajacych na zapis."""
+        wynik = []
+        for d in self._do_zapisu:
+            w = (getattr(d.zdarzenie, "wynik", None) or {}) if d.rodzaj == "wynik" else {}
+            wynik.append(K.Niezapisany(sha16=d.zlecenie.sha16, rodzaj=d.rodzaj, przyczyna=d.przyczyna, napis=ST.NAPISY_NIEZAPISANE.get(d.przyczyna, ""),
+                                       od=d.od, proby=d.proby, numer=w.get("numer"), uklad=w.get("plytka"),
+                                       prac=len(w.get("gniazda") or []) if d.rodzaj == "wynik" else None))
+        return tuple(wynik)
 
     def _katalog_podgladow(self) -> Path | None:
         return self.katalog_podgladow
@@ -346,10 +663,9 @@ class Aplikacja(K.KontrolerSesji):
         zmiany: set[str] = set()
         if self._sprawdz_zmiane():
             zmiany.add("stan")
-        if self._nieprzyjete and t0 - self._ostatnia_kontrola >= OKRES_KONTROLI_S:
-            czekajace, self._nieprzyjete = self._nieprzyjete, []
-            for z, e in czekajace:
-                zmiany.add(self._przyjmij_wynik(z, e))
+        for d in [x for x in self._do_zapisu if x.nastepna <= t0]:  # P1 / P8: ponowienie zapisu z rosnacym odstepem
+            d.nastepna = t0 + odstep_ponowienia(d.proby + 1)  # takze gdy proba skonczy sie nieoczekiwanym wyjatkiem
+            zmiany.add(self._bezpiecznie(self._zapisz, d, False))  # pozycja zostaje na liscie, dopoki zapis sie nie uda
         while True:
             bylo = False
             try:
@@ -414,6 +730,7 @@ class Aplikacja(K.KontrolerSesji):
             self._czeka_na_skan = False
             self._usun_komunikat("plik_zajety:skaner")
             z = Zlecenie.ze_zdarzenia(dane, self.tryb)
+            FILTR_NAZW.zapamietaj(z.plik, z.sha16)  # P5: dalsze wpisy logu z ta nazwa pliku -> sha16
             self.sesja.baza.zdarzenie("scanner", "nowy_skan", {"sha16": z.sha16, "rozmiar": z.rozmiar, "trojkaty": z.trojkaty, "zastany": z.zastany,
                                                                "ponowny": bool(dane.ponowny), "duplikat": bool(dane.duplikat)}, czas=self._teraz())
             self._nowy_skan(z)
@@ -429,26 +746,61 @@ class Aplikacja(K.KontrolerSesji):
             return "stan"
         return ""
 
+    def _skan_z_wynikiem(self, sha16: str) -> dict | None:
+        """Skan tej samej tresci, ktory MA wynik w bazie (kazdy status poza ``blad``) - wtedy skanu nie liczy sie drugi raz."""
+        return self.sesja.baza.wiersz("SELECT id, plik FROM skany WHERE sha16 = ? AND status != ? ORDER BY id DESC LIMIT 1", (sha16, SE.STATUS_BLAD))
+
+    def _w_kolejce(self) -> list:
+        """Wszystkie skany prowadzone przez kontroler, ktore nie maja jeszcze zapisu w bazie."""
+        return (list(self._zlecone.values()) + self._wstrzymane + [d.zlecenie for d in self._do_zapisu]
+                + [x[0] for x in self._do_sprawdzenia])
+
     def _nowy_skan(self, z: Zlecenie) -> None:
-        """Skan do analizy - o ile ta sama tresc nie ma juz wyniku w bazie i nie czeka w kolejce (zaden skan liczony dwa razy)."""
+        """Skan do analizy - o ile ta sama tresc nie ma juz wyniku w bazie i nie czeka w kolejce (zaden skan liczony dwa razy).
+        Ta sama tresc pod INNA sciezka, gdy skan czeka w kolejce = plik przemianowany: zadanie przejmuje nowa sciezke (P2)."""
         baza = self.sesja.baza
-        jest = baza.wiersz("SELECT id FROM skany WHERE sha16 = ? AND status != ? ORDER BY id DESC LIMIT 1", (z.sha16, SE.STATUS_BLAD))
+        jest = self._skan_z_wynikiem(z.sha16)
         if jest is not None:  # powtorka wobec skanu Z WYNIKIEM (skan ``blad`` wyniku nie ma - wolno liczyc ponownie)
-            baza.zdarzenie("scanner", "skan_powtorzony", {"sha16": z.sha16, "zastany": z.zastany, "wznowiony": z.wznowiony}, skan_id=jest["id"],
-                           czas=self._teraz())
-            if not z.zastany and not z.wznowiony:
+            przemianowany = bool(jest["plik"]) and _klucz_sciezki(jest["plik"]) != _klucz_sciezki(z.plik) and not _istnieje(jest["plik"])
+            baza.zdarzenie("scanner", "skan_powtorzony", {"sha16": z.sha16, "zastany": z.zastany, "wznowiony": z.wznowiony,
+                                                          "przemianowany": przemianowany}, skan_id=jest["id"], czas=self._teraz())
+            if not z.zastany and not z.wznowiony and not przemianowany:  # zmiana nazwy pliku to nie drugi skan
                 self._komunikat("skan_juz_jest", skan_id=jest["id"])
             return
-        if any(x.sha16 == z.sha16 for x in list(self._zlecone.values()) + self._wstrzymane + [n[0] for n in self._nieprzyjete]):
-            baza.zdarzenie("scanner", "skan_powtorzony_w_kolejce", {"sha16": z.sha16, "zastany": z.zastany}, czas=self._teraz())
+        x = next((x for x in self._w_kolejce() if x.sha16 == z.sha16), None)
+        if x is not None:
+            inna = _klucz_sciezki(x.plik) != _klucz_sciezki(z.plik)
+            baza.zdarzenie("scanner", "skan_powtorzony_w_kolejce", {"sha16": z.sha16, "zastany": z.zastany, "inna_sciezka": inna}, czas=self._teraz())
+            if inna:
+                if all(_klucz_sciezki(p) != _klucz_sciezki(z.plik) for p, _ in x.zastepcze):
+                    x.zastepcze.append((z.plik, z.mtime_ns))
+                self._przejmij_przemianowany(x)
             return
         self._zlec(z)
+        self._policz_pule(ciche=True)  # P3: pula sprawdzana przy kazdym nowym skanie (w tle; pusta = kolejne skany czekaja)
+
+    def _przejmij_przemianowany(self, x: Zlecenie) -> None:
+        """P2: plik skanu czekajacego w kolejce zmienil nazwe (stara sciezka zniknela) - zadanie przechodzi na nowa sciezke:
+        wstrzymane od razu, czekajace w kolejce silnika (jeszcze nie ruszylo) - anulowane i zlecone ponownie. Zadanie w toku
+        nie jest ruszane: silnik analizuje kopie, a gdy nie zdazyl jej zrobic ("brak pliku"), ``_blad_analizy`` zleca ponownie."""
+        if _istnieje(x.plik) or not any(_istnieje(p) for p, _ in x.zastepcze):
+            return
+        nr = next((n for n, v in self._zlecone.items() if v is x), None)
+        if nr is None:  # wstrzymane, czeka na zapis albo na liczenie puli: sama zmiana sciezki
+            x.przejmij_zastepcza()
+            self.sesja.baza.zdarzenie("scanner", "skan_przemianowany", {"sha16": x.sha16}, czas=self._teraz())
+            return
+        if nr != self._w_toku and self.silnik is not None and self.silnik.anuluj(nr):
+            del self._zlecone[nr]
+            x.przejmij_zastepcza()
+            self.sesja.baza.zdarzenie("scanner", "skan_przemianowany", {"sha16": x.sha16}, czas=self._teraz())
+            self._zlec(x)
 
     def _zlec(self, z: Zlecenie) -> None:
-        if self._zamykanie or self._silnik_nie_startuje or self._pula_stan != "gotowa":
-            self._wstrzymane.append(z)
+        if self._zamykanie or self._silnik_nie_startuje or self._pula_stan != "gotowa" or self._do_sprawdzenia:
+            self._wstrzymane.append(z)  # pula niegotowa albo sprawdzana po bledzie analizy (P3): skan czeka
             if not self._zamykanie:
-                self._komunikat_puli(self._pula_stan, len(self._wstrzymane))
+                self._komunikat_puli(self._pula_stan, self._czeka_na_pule())
             return
         try:
             nr = self.silnik.zlec(SI.ZadanieAnalizy(skan=Path(z.plik), pula=self._opis_puli(), tryb=z.tryb, numer=z.numer, skan_sha16=z.sha16,
@@ -478,8 +830,10 @@ class Aplikacja(K.KontrolerSesji):
         if e.typ == "zatrzymany":
             return ""
         z = self._zlecone.get(e.zadanie_id)
-        if z is None:
-            return ""  # zdarzenie zadania, ktorego kontroler juz nie prowadzi
+        if z is None:  # zdarzenie zadania, ktorego kontroler juz nie prowadzi
+            if e.typ == "wynik":
+                self._usun_pliki_wyniku(e, podglad=True)  # P9: pliki silnika bez skanu nie zostaja w dane/podglady
+            return ""
         if e.typ == "start":
             self._w_toku = e.zadanie_id
             self._analiza = K.Postep(zadanie_id=e.zadanie_id, etap="", udzial=0.0, od=e.czas, sha16=z.sha16)
@@ -505,29 +859,91 @@ class Aplikacja(K.KontrolerSesji):
         return self._blad_analizy(z, e)
 
     def _przyjmij_wynik(self, z: Zlecenie, e: Any) -> str:
-        pliki = e.pliki or {}
+        """Wynik silnika -> sesja (``_zapisz``); nieudany zapis = pozycja "nie zapisano", ponawiana (P1, P8). Kopia wyniku
+        zapisana przez silnik (zawiera folder puli) jest usuwana od razu - wynik jest w pamieci, a obowiazuje plik sesji (P9)."""
+        self._usun_pliki_wyniku(e, podglad=False)
+        return self._zapisz(DoZapisu(zlecenie=z, rodzaj="wynik", zdarzenie=e, od=self._teraz()), True)
+
+    def _zapisz_blad(self, z: Zlecenie, rodzaj: str, opis: str) -> str:
+        """Skan ``blad`` w sesji (``_zapisz``); baza zajeta / blad dysku = blad czeka w pamieci i jest zapisywany ponownie bez
+        ponownej analizy (P8 - dawniej skan czekal na "Odswiez pule" i liczyl sie od nowa)."""
+        return self._zapisz(DoZapisu(zlecenie=z, rodzaj="blad", blad_rodzaj=rodzaj, blad_opis=opis, od=self._teraz()), True)
+
+    def _zapisz(self, d: DoZapisu, nowy: bool) -> str:
+        """Jedna proba zapisu wyniku albo bledu. Baza zajeta (``BladBazy``) albo blad zapisu (pelny dysk, blad wejscia / wyjscia:
+        ``_blad_zapisu``) = pozycja zostaje w ``_do_zapisu`` z terminem kolejnej proby (rosnacy odstep) i komunikatem
+        (``baza_zajeta`` / trwaly ``blad_zapisu``) - skan nie znika z ekranu (P1, P8). Blad danych (wynik, ktorego sesja nie
+        umie przyjac) = skan ``blad`` z komunikatem (ponowienie nic by nie dalo)."""
+        z = d.zlecenie
+        d.proby += 1
         try:
-            with self.sesja.baza.transakcja():  # skan, prace i wpis o pliku podgladu: jeden zapis na dysk (krotsza przerwa petli okna)
-                skan_id = self.sesja.przyjmij_wynik(z.zdarzenie(), e.wynik, z.tryb)
-                self._zapisz_podglad(skan_id, pliki.get("podglad"))
-        except B.BladBazy:  # baza zajeta przez inny program: wynik czeka w pamieci i jest zapisywany ponownie
-            self._nieprzyjete.append((z, e))
-            self._komunikat("baza_zajeta", id_="baza_zajeta:wyniki")
-            return "stan"
-        except Exception as blad:  # noqa: BLE001 - wynik, ktorego sesja nie umie przyjac, nie moze zatrzymac programu
+            self._zapis_w_bazie(d)
+        except Exception as blad:  # noqa: BLE001 - zaden blad zapisu nie zatrzymuje programu ani nie gubi skanu
+            przyczyna = PRZYCZYNA_BAZA_ZAJETA if isinstance(blad, B.BladBazy) else (PRZYCZYNA_BLAD_ZAPISU if _blad_zapisu(blad) else None)
+            if przyczyna is not None:
+                if nowy:
+                    self._do_zapisu.append(d)
+                    LOG.warning("stanowisko: %s skanu %s czeka na zapis (%s: %s)", d.rodzaj, z.sha16, przyczyna, type(blad).__name__)
+                d.przyczyna, d.nastepna = przyczyna, time.monotonic() + odstep_ponowienia(d.proby)
+                self._komunikaty_zapisu(list(self._niezapisane()), nowy=nowy)
+                return "stan"
+            if d in self._do_zapisu:
+                self._do_zapisu.remove(d)
+            self._komunikaty_zapisu(list(self._niezapisane()), nowy=False)
+            if d.rodzaj != "wynik":  # blad, ktorego nie da sie zapisac z powodu danych - skan wroci przez nadrabianie po restarcie
+                LOG.exception("stanowisko: bledu analizy skanu %s nie da sie zapisac", z.sha16)
+                return "stan"
             LOG.exception("stanowisko: wyniku skanu %s nie da sie przyjac do sesji", z.sha16)
+            self._usun_pliki_wyniku(d.zdarzenie, podglad=True)
             return self._zapisz_blad(z, "analiza", f"wyniku nie da sie zapisac: {type(blad).__name__}")
-        self._usun_komunikat("baza_zajeta:wyniki")
+        if d in self._do_zapisu:
+            self._do_zapisu.remove(d)
+        self._komunikaty_zapisu(list(self._niezapisane()), nowy=False)  # baza_zajeta / blad_zapisu znikaja, gdy nic nie czeka
+        return "stan"
+
+    def _wynik_do_sesji(self, wynik: dict, z: Zlecenie) -> dict:
+        """Kopia wyniku dla sesji: pole ``skan`` (nazwa pliku skanu wpisana przez ``porownaj``) -> ``sha16`` skanu - nazwa pliku
+        (moze byc nazwiskiem ze zlecenia) zostaje tylko w ``skany.plik``. Slownik z silnika nie jest zmieniany."""
+        return {**wynik, "skan": z.sha16} if "skan" in wynik else wynik
+
+    def _zapis_w_bazie(self, d: DoZapisu) -> None:
+        """Zapis w JEDNEJ transakcji (``BEGIN IMMEDIATE`` - wylacznosc na zapis): sprawdzenie, czy skan tej samej tresci nie
+        ma juz wyniku (B1: twarde zabezpieczenie - drugi egzemplarz programu albo ten sam skan dwa razy nie da dwoch skanow),
+        skan z pracami albo skan ``blad`` i wpis w dzienniku. Wyjatek = nic nie zapisano."""
+        z, baza = d.zlecenie, self.sesja.baza
+        zdarzenie = z.zdarzenie()  # sciezka aktualna (P2: plik przemianowany w kolejce)
+        with baza.transakcja():
+            jest = self._skan_z_wynikiem(z.sha16)
+            if jest is not None:
+                baza.zdarzenie("silnik", "wynik_powtorzony", {"sha16": z.sha16, "rodzaj": d.rodzaj}, skan_id=jest["id"], czas=self._teraz())
+            elif d.rodzaj == "wynik":
+                skan_id = self.sesja.przyjmij_wynik(zdarzenie, self._wynik_do_sesji(d.zdarzenie.wynik, z), z.tryb)
+                self._zapisz_podglad(skan_id, (d.zdarzenie.pliki or {}).get("podglad"))
+            else:
+                skan_id = self.sesja.przyjmij_blad(zdarzenie, f"{d.blad_rodzaj}: {d.blad_opis}", z.tryb)
+                baza.zdarzenie("silnik", "blad_analizy_rodzaj", {"rodzaj": d.blad_rodzaj}, skan_id=skan_id, czas=self._teraz())
         self._usun_komunikat(f"plik_niedostepny:{z.sha16}")
-        if pliki.get("wynik"):  # kopia wyniku z silnika zawiera folder puli; obowiazuje plik zapisany przez sesje (bez sciezek)
-            try:
-                Path(pliki["wynik"]).unlink(missing_ok=True)
-            except OSError:
-                pass
-        LOG.info("stanowisko: skan %s przyjety jako %d (%.1f s)", z.sha16, skan_id, e.czas_s or 0.0)
+        if d.rodzaj != "wynik":
+            return
+        if jest is not None:
+            self._usun_pliki_wyniku(d.zdarzenie, podglad=True)  # P9: podglad wyniku odrzuconego jako powtorka nie zostaje
+            LOG.warning("stanowisko: wynik skanu %s pominiety - ta sama tresc ma juz wynik (skan %d)", z.sha16, jest["id"])
+            return
+        LOG.info("stanowisko: skan %s przyjety jako %d (%.1f s)", z.sha16, skan_id, d.zdarzenie.czas_s or 0.0)
         if not self._zamykanie:
             self._policz_pule(ciche=True)  # liczba STL na ekranie aktualna po kazdej plytce (silnik i tak czyta folder przy kazdym zadaniu)
-        return "stan"
+
+    def ponow_zapis(self) -> K.Odpowiedz:
+        """18. polecenie (P1): od razu ponawia zapis wszystkich pozycji "nie zapisano"."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        for d in list(self._do_zapisu):
+            self._bezpiecznie(self._zapisz, d, False)
+        self._odswiez()
+        if not self._do_zapisu:
+            return K.Odpowiedz(True, dane=0)
+        przyczyna = self._do_zapisu[-1].przyczyna
+        return K.Odpowiedz(False, ST.tekst_komunikatu(przyczyna, ile=len(self._do_zapisu))[2], przyczyna, dane=len(self._do_zapisu))
 
     def _bez_nazw(self, tekst: str, z: Zlecenie) -> str:
         """Tekst bledu bez nazwy i sciezki pliku skanu oraz bez sciezek (nazwy z puli wycina juz ``silnik``)."""
@@ -560,17 +976,14 @@ class Aplikacja(K.KontrolerSesji):
             self.sesja.baza.zdarzenie("silnik", "silnik_nie_startuje", {"opis": self._bez_nazw(e.blad, z)[:SE.OPIS_BLEDU_MAX]}, czas=self._teraz())
             return "stan"
         self._usun_komunikat(f"plik_niedostepny:{z.sha16}")
+        if e.rodzaj == "analiza":
+            if not _istnieje(z.plik) and z.przejmij_zastepcza():  # P2: plik przemianowany, zanim silnik zrobil kopie - nowa sciezka
+                self.sesja.baza.zdarzenie("silnik", "skan_przemianowany", {"sha16": z.sha16}, czas=self._teraz())
+                self._zlec(z)
+                return "zywe"
+            self._sprawdz_pule_po_bledzie(z, e)  # P3: blad zapisany dopiero, gdy pula okaze sie niepusta
+            return "zywe"
         return self._zapisz_blad(z, e.rodzaj, self._bez_nazw(e.blad, z))
-
-    def _zapisz_blad(self, z: Zlecenie, rodzaj: str, opis: str) -> str:
-        try:
-            with self.sesja.baza.transakcja():
-                skan_id = self.sesja.przyjmij_blad(z.zdarzenie(), f"{rodzaj}: {opis}", z.tryb)
-                self.sesja.baza.zdarzenie("silnik", "blad_analizy_rodzaj", {"rodzaj": rodzaj}, skan_id=skan_id, czas=self._teraz())
-        except B.BladBazy:
-            self._wstrzymane.append(z)  # baza zajeta: skan zostaje do ponownej analizy (nic nie ginie)
-            self._komunikat("baza_zajeta", id_="baza_zajeta:wyniki")
-        return "stan"
 
     # --- zamkniecie ------------------------------------------------------------------------------
     def zamknij(self) -> K.Odpowiedz:
@@ -604,13 +1017,16 @@ class Aplikacja(K.KontrolerSesji):
                     break
                 if e.typ in ("wynik", "blad"):
                     self._bezpiecznie(self._zdarzenie_silnika, e)
-            czekajace, self._nieprzyjete = self._nieprzyjete, []
-            for z, e in czekajace:  # ostatnia proba zapisu wynikow, ktore czekaly na zajeta baze
-                self._bezpiecznie(self._przyjmij_wynik, z, e)
+            for d in list(self._do_zapisu):  # ostatnia proba zapisu wynikow i bledow, ktore czekaly na baze / dysk
+                self._bezpiecznie(self._zapisz, d, False)
             if {x.zadanie_id for x in z_silnika} != set(self._zlecone):
                 LOG.warning("stanowisko: lista zadan z silnika (%d) rozni sie od listy kontrolera (%d) - zapisuje liste kontrolera",
                             len(z_silnika), len(self._zlecone))
-            niezakonczone = [self._zlecone[nr] for nr in sorted(self._zlecone)] + [n[0] for n in self._nieprzyjete] + self._wstrzymane
+            for d in self._do_zapisu:  # wynik niezapisany: zadanie liczy sie od nowa po starcie (nowy komplet plikow) - P9
+                if d.rodzaj == "wynik":
+                    self._usun_pliki_wyniku(d.zdarzenie, podglad=True)
+            niezakonczone = ([self._zlecone[nr] for nr in sorted(self._zlecone)] + [d.zlecenie for d in self._do_zapisu]
+                             + [x[0] for x in self._do_sprawdzenia] + self._wstrzymane)
             try:
                 self._zapisz_zadania(niezakonczone)
             except OSError as e:
@@ -624,7 +1040,10 @@ class Aplikacja(K.KontrolerSesji):
             stan = dataclasses.replace(self._stan, zamkniety=True, analiza=None) if self._stan is not None else K.StanAplikacji(zamkniety=True)
         self._zamkniety = True
         self._stan = stan
-        self.sesja.baza.zamknij()
+        try:
+            self.sesja.baza.zamknij()
+        finally:
+            self._blokada.zwolnij()  # B1: nastepny start (takze drugi egzemplarz) moze juz pracowac na tej bazie
         LOG.info("stanowisko: zamkniete, zadan niezakonczonych %d", len(niezakonczone))
         self._powiadom("zamkniety", stan=stan)
         return K.Odpowiedz(True, dane=len(niezakonczone))
@@ -634,18 +1053,36 @@ class Aplikacja(K.KontrolerSesji):
 # uruchomienie programu
 # ----------------------------------------------------------------------------
 def konfiguruj_logi(ust: dict, poziom: int = logging.INFO) -> Path:
-    """Log programu w ``[sciezki] logi`` (plik ``stanowisko.log``, 5 x 2 MB). Zwraca plik logu. Ten modul nie loguje nazw
-    plikow; ``scanner`` loguje nazwe pliku skanu (znana granica do rozstrzygniecia po pierwszych skanach - ``scanner.md``)."""
+    """Log programu w ``[sciezki] logi`` (plik ``stanowisko.log``, 5 x 2 MB). Zwraca plik logu. P5: ``FILTR_NAZW`` w loggerach
+    programu (takze ``scanner`` i ``silnik``, ktore loguja nazwy plikow skanu) i na uchwycie pliku (wpisy innych bibliotek) -
+    w logu zamiast nazwy pliku skanu jest jego ``sha16`` (albo ``<plik>``), zamiast sciezek ``<sciezka>``."""
     katalog = katalog_z_ustawien(ust, "logi")
     katalog.mkdir(parents=True, exist_ok=True)
     plik = katalog / PLIK_LOGU
     korzen = logging.getLogger()
+    for nazwa in LOGGERY_Z_FILTREM:
+        logger = logging.getLogger(nazwa)
+        if FILTR_NAZW not in logger.filters:
+            logger.addFilter(FILTR_NAZW)
     if not any(isinstance(h, logging.handlers.RotatingFileHandler) and Path(h.baseFilename) == plik for h in korzen.handlers):
         uchwyt = logging.handlers.RotatingFileHandler(plik, maxBytes=2 * 1024 * 1024, backupCount=5, encoding="utf-8")
         uchwyt.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        uchwyt.addFilter(FILTR_NAZW)
         korzen.addHandler(uchwyt)
     korzen.setLevel(min(korzen.level or poziom, poziom))
     return plik
+
+
+def odlacz_logi(plik: Path | None = None) -> None:
+    """Odwrotnosc ``konfiguruj_logi`` (testy, osadzenie w innym programie): zdejmuje uchwyt pliku logu ``plik`` (None = kazdy
+    uchwyt z ``FILTR_NAZW``) i filtr nazw z loggerow programu."""
+    korzen = logging.getLogger()
+    for h in list(korzen.handlers):
+        if isinstance(h, logging.handlers.RotatingFileHandler) and FILTR_NAZW in h.filters and (plik is None or Path(h.baseFilename) == Path(plik)):
+            korzen.removeHandler(h)
+            h.close()
+    for nazwa in LOGGERY_Z_FILTREM:
+        logging.getLogger(nazwa).removeFilter(FILTR_NAZW)
 
 
 def utworz_okno(kontroler: K.Kontroler, lacznik: Any):
@@ -706,20 +1143,45 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
+
+    def pokaz_blad(tekst: str) -> None:  # komunikat dla czlowieka zamiast sladu wyjatku w oknie konsoli
+        if args.zamknij_po is None:
+            QtWidgets.QMessageBox.critical(None, "Stanowisko", tekst)
+        else:
+            print(f"BLAD: {tekst}", file=sys.stderr)
+
     if args.atrapa:
         kontroler: K.Kontroler = K.AtrapaKontrolera()
         kontroler.scenariusz_pokazowy()
     else:
         try:
             ust = UST.wczytaj_ustawienia(args.ustawienia)
+        except (FileNotFoundError, UST.BladUstawien) as e:
+            pokaz_blad(str(e))
+            return 2
+        blokada = BlokadaStanowiska(B.sciezka_bazy(ust))
+        try:
+            blokada.zajmij()  # B1: zanim program dotknie logu, bazy i folderu skanera
+        except ProgramJuzDziala as e:
+            pokaz_blad(str(e))
+            return KOD_PROGRAM_JUZ_DZIALA
+        except OSError as e:  # katalogu bazy nie da sie utworzyc / otworzyc pliku blokady
+            pokaz_blad(f"Nie mozna przygotowac folderu danych programu ({type(e).__name__}): {B.bez_sciezek(str(e))}")
+            return 2
+        kontroler = None
+        try:
             konfiguruj_logi(ust)
-            kontroler = Aplikacja(ust)
+            kontroler = Aplikacja(ust, blokada=blokada)
             kontroler.start()
-        except (FileNotFoundError, UST.BladUstawien, B.BladBazy) as e:  # komunikat dla czlowieka zamiast sladu wyjatku
-            if args.zamknij_po is None:
-                QtWidgets.QMessageBox.critical(None, "Stanowisko", str(e))
-            else:
-                print(f"BLAD: {e}", file=sys.stderr)
+        except Exception as e:  # noqa: BLE001 - D9: kazdy blad startu = komunikat dla czlowieka i wpis w logu
+            LOG.exception("stanowisko: program nie wystartowal")
+            if kontroler is not None:
+                try:
+                    kontroler.zamknij()
+                except Exception:  # noqa: BLE001
+                    LOG.exception("stanowisko: blad zamykania po nieudanym starcie")
+            blokada.zwolnij()
+            pokaz_blad(str(e) if isinstance(e, (B.BladBazy, OSError)) else f"Program nie wystartowal ({type(e).__name__}): {B.bez_sciezek(str(e))}")
             return 2
     lacznik = K.lacznik_qt(kontroler)
     okno = utworz_okno(kontroler, lacznik)

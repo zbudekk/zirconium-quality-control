@@ -72,6 +72,13 @@ def analiza_sztuczna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, 
     if opis.get("zabij"):
         os._exit(7)
     projekty = [p for f in foldery for p in sorted(Path(f).rglob("*.stl"))]
+    if opis.get("podglad") and kw.get("podglad") is not None:  # jak porownaj: punkty i odchylki gniazd -> silnik zapisze *_podglad.npz
+        import numpy as np
+
+        for nr in (opis.get("gniazda") or {}):
+            wpis = type("WynikInspekcji", (), {})()
+            wpis._P, wpis._d = np.zeros((20, 3)), np.full(20, -0.05)
+            kw["podglad"][int(nr)] = wpis
     if opis.get("blad"):
         gdzie = f"{projekty[0].parent.name} ({projekty[0]})" if projekty else "?"
         raise ValueError(f"blad sztuczny w projekcie z folderu {gdzie}")
