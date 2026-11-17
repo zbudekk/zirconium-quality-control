@@ -21,12 +21,15 @@ rzadziej (najrzadziej co ``ODSTEP_ZAJETY_MAX_S``) BEZ limitu liczby prob, a po `
 zdarzenie. Tak samo (bez rosnacego odstepu) plik kompletny, ktory inny program trzyma jeszcze otwarty do zapisu.
 
 Pliki zastane = obecne w folderze przy PIERWSZYM udanym przegladzie (takze gdy folder pojawil sie po starcie albo
-podfolderu nie dalo sie przy starcie odczytac - wtedy przy pierwszym udanym odczycie tego podfolderu). Nie sa nowymi
-skanami, chyba ze wlaczone jest nadrabianie po restarcie: ``zglos_zastane_od`` (pliki nowsze niz podany czas) i / albo
-``znane(sciezka, rozmiar, mtime_ns)`` (funkcja aplikacji: czy plik byl juz przyjety; pytana raz na plik) - pliki
-zastane, ktore przejda te warunki, ida zwykla droga i daja zdarzenie z ``zastany=True``; skrot liczony tylko dla nich.
-``zglos_zastane=True`` = wszystkie pliki zastane. Chwilowy blad listowania folderu albo podfolderu nie kasuje wiedzy
-o znanych plikach: plik jest zapominany dopiero, gdy naprawde zniknal (sprawdzenie ``os.stat`` albo zdarzenie watchdog).
+podfolderu nie dalo sie przy starcie odczytac - wtedy przy pierwszym udanym odczycie tego podfolderu), o czasie
+modyfikacji NIE pozniejszym niz start obserwatora. Plik z czasem pozniejszym niz start jest zawsze nowy, niezaleznie od
+tego, kiedy folder stal sie widoczny (D-N1: nowy skan w folderze zalozonym po starcie nie przepada bez nadrabiania).
+Pliki zastane nie sa nowymi skanami, chyba ze wlaczone jest nadrabianie po restarcie: ``zglos_zastane_od`` (pliki
+nowsze niz podany czas) i / albo ``znane(sciezka, rozmiar, mtime_ns)`` (funkcja aplikacji: czy plik byl juz przyjety;
+kontrakt w opisie ``Scanner``; gotowa wersja z rekordow bazy A1: ``ZnanePliki``) - pliki zastane, ktore przejda te
+warunki, ida zwykla droga i daja zdarzenie z ``zastany=True``; skrot liczony tylko dla nich. ``zglos_zastane=True`` =
+wszystkie pliki zastane. Chwilowy blad listowania folderu albo podfolderu nie kasuje wiedzy o znanych plikach: plik jest
+zapominany dopiero, gdy naprawde zniknal (sprawdzenie ``os.stat`` albo zdarzenie watchdog).
 
 Nie zakladamy nazw ani struktury plikow prawdziwego skanera: wzorzec nazwy, podfoldery i wszystkie czasy sa parametrami
 konstruktora (podpiecie do ``ustawienia.toml`` robi paczka A3; proponowane klucze ``[scanner]``: ``stabilizacja_ms``,
@@ -47,6 +50,7 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import datetime
 import fnmatch
 import hashlib
 import logging
@@ -198,6 +202,38 @@ def _klucz(sciezka) -> str:
     return os.path.normcase(os.path.abspath(str(sciezka)))
 
 
+def czas_pliku_iso(mtime_ns: int) -> str:
+    """Czas pliku w formacie bazy A1 (``skany.czas_pliku``, ``session._czas_iso`` z ``ZdarzenieSkanu.czas_pliku``): czas
+    LOKALNY ISO bez strefy, uciety do sekund, np. ``2026-11-17T18:05:03``. Liczony z tej samej liczby co ``czas_pliku``
+    zdarzenia (``mtime_ns / 1e9``), wiec daje dokladnie ten sam napis, ktory A1 zapisala dla tego pliku."""
+    return datetime.datetime.fromtimestamp(int(mtime_ns) / 1e9).replace(microsecond=0, tzinfo=None).isoformat()
+
+
+def klucz_znanego(sciezka, rozmiar: int, czas_iso: str) -> tuple:
+    """Klucz porownania pliku z rekordem bazy: (sciezka po ``normcase(abspath)``, rozmiar w bajtach, czas pliku w formacie
+    ``czas_pliku_iso``). Ta sama sciezka zapisana inaczej (wielkosc liter na Windows, ``..``, ``/``) daje ten sam klucz."""
+    return _klucz(sciezka), int(rozmiar), str(czas_iso)
+
+
+class ZnanePliki:
+    """Gotowa funkcja ``znane`` dla aplikacji (D-N2): zbior plikow PRZYJETYCH skanow wczytany PRZED ``Scanner.start()``.
+
+    ``wpisy`` - krotki (``plik``, ``rozmiar``, ``czas_pliku``) jak w tabeli ``skany`` bazy A1 (``czas_pliku`` w formacie
+    ``czas_pliku_iso``); wpisy bez rozmiaru albo czasu sa pomijane. Wywolanie ``znane(sciezka, rozmiar, mtime_ns)`` porownuje
+    sciezke (znormalizowana), rozmiar i czas pliku z dokladnoscia do sekundy. Zbior jest niezmienny - wywolanie jest
+    bezpieczne z kazdego watku i nie dotyka bazy (polaczenia ``sqlite3`` nie wolno uzywac poza watkiem, ktory je otworzyl).
+    Wystarczy stan z chwili startu: pliki zapisane po starcie obserwatora sa nowe bez pytania o ``znane`` (D-N1)."""
+
+    def __init__(self, wpisy=()):
+        self._klucze = frozenset(klucz_znanego(p, r, c) for p, r, c in wpisy if p and r is not None and c)
+
+    def __len__(self) -> int:
+        return len(self._klucze)
+
+    def __call__(self, sciezka, rozmiar: int, mtime_ns: int) -> bool:
+        return klucz_znanego(sciezka, rozmiar, czas_pliku_iso(mtime_ns)) in self._klucze
+
+
 def _pod(k: str, zbior) -> bool:
     """Czy klucz sciezki ``k`` jest jednym z kluczy ``zbior`` albo lezy pod ktoryms z nich."""
     return any(k == p or k.startswith(p.rstrip("\\/") + os.sep) for p in zbior)
@@ -226,10 +262,26 @@ class Scanner:
 
     ``obserwator``: ``"watchdog"`` (domyslnie; gdy biblioteki nie da sie uzyc - samo odpytywanie) albo ``"odpytywanie"``
     (tylko przeglad folderu co ``przeglad_s``, np. dla dysku sieciowego). Pliki zastane (obecne przy pierwszym udanym
-    przegladzie folderu) nie sa nowymi skanami, chyba ze: ``zglos_zastane`` (wszystkie), ``zglos_zastane_od`` (czas w
-    sekundach od epoki: pliki o czasie modyfikacji POZNIEJSZYM) albo ``znane`` (funkcja ``znane(sciezka: Path, rozmiar: int,
-    mtime_ns: int) -> bool``: True = plik byl juz przyjety; wyjatek = plik nieznany). Podane razem dzialaja razem (nowszy
-    ORAZ nieznany). ``na_oczekiwanie`` dostaje ``Oczekiwanie`` (plik zajety dluzej niz ``informuj_po_s``). ``zegar`` - do testow.
+    przegladzie folderu, z czasem modyfikacji nie pozniejszym niz start obserwatora) nie sa nowymi skanami, chyba ze:
+    ``zglos_zastane`` (wszystkie), ``zglos_zastane_od`` (czas w sekundach od epoki: pliki o czasie modyfikacji POZNIEJSZYM)
+    albo ``znane``. Podane razem dzialaja razem (nowszy ORAZ nieznany). ``na_oczekiwanie`` dostaje ``Oczekiwanie`` (plik
+    zajety dluzej niz ``informuj_po_s``). ``zegar`` - do testow.
+
+    Kontrakt ``znane(sciezka: Path, rozmiar: int, mtime_ns: int) -> bool`` (D-N2):
+    * WATEK: wolana wylacznie w watku obserwatora (``scanner``; w testach - w watku, ktory sam wola ``obieg()``), po jednym
+      wywolaniu naraz, nigdy w watku wolajacym ``start()``. Nie moze uzywac obiektow przywiazanych do innego watku
+      (polaczenie ``sqlite3`` otwarte w watku okna rzuca ``ProgrammingError``) - najprosciej ``ZnanePliki`` (zbior wczytany
+      z bazy przed ``start()``) albo wlasne polaczenie otwierane w funkcji.
+    * ARGUMENTY: ``sciezka`` = ``folder / sciezka wzgledna`` (jak ``ZdarzenieSkanu.plik``), ``rozmiar`` w bajtach,
+      ``mtime_ns`` = czas modyfikacji jako LICZBA CALKOWITA nanosekund (``os.stat().st_mtime_ns``; ``ZdarzenieSkanu.czas_pliku``
+      = ``mtime_ns / 1e9``). Baza A1 trzyma ``czas_pliku`` jako czas lokalny ISO uciety do sekund - porownanie przez
+      ``czas_pliku_iso(mtime_ns)`` i ``klucz_znanego`` (sciezka znormalizowana, rozmiar, czas do sekundy); porownanie wprost
+      z ``mtime_ns`` dawaloby zawsze "nieznany" (skrot calej historii folderu przy kazdym starcie, duplikaty do odsiania).
+    * ZNACZENIE: True = dla tej sciezki, rozmiaru i czasu aplikacja ma zapisany wynik analizy (dowolny status), blad
+      pokazany technikowi albo zadanie zapisane z ``Silnik.stop()`` (zleca je sama po starcie). Samo przyjete zdarzenie
+      skanu bez wyniku = False (awaria miedzy zdarzeniem a wynikiem nie moze zgubic skanu).
+    * Pytana raz na plik zastany (przy ustalaniu plikow zastanych), bez czytania pliku; wyjatek = plik nieznany (zgloszony
+      z ``zastany=True``, aplikacja odsieje powtorke po ``sha16``). Pliki zapisane po starcie obserwatora sa nowe bez pytania.
     """
 
     def __init__(self, folder, na_skan=None, na_odrzucenie=None, *, na_oczekiwanie=None, wzorzec_pliku: str = WZORZEC_PLIKU,
@@ -269,6 +321,8 @@ class Scanner:
         self._skroty: dict[str, str] = {}  # sha16 -> sciezka pierwszego pliku o tej zawartosci
         self._poczatek_ustalony = False  # P3: pliki zastane ustalone (pierwszy udany przeglad folderu)
         self._niezbadane: set[str] = set()  # klucze katalogow / plikow, ktorych nie dalo sie odczytac przy ustalaniu zastanych
+        self._start_ns: int | None = None  # D-N1: czas startu obserwatora (time.time_ns()); plik z pozniejszym czasem jest nowy
+        self._do_nadrobienia: list = []  # D-N2: pliki zastane czekajace na decyzje nadrabiania (w watku obserwatora)
         self._nr = 0
         self._odrzucen = 0
         self._oczekiwan = 0
@@ -285,7 +339,9 @@ class Scanner:
                 self._uruchom_watchdog()  # D11 (a): stop() nie doczekal sie konca watku - ten sam watek pracuje dalej
                 return
             self._watek_konczy = False
-            self.przygotuj()
+            if self._start_ns is None:
+                self._start_ns = time.time_ns()  # D-N1: przed pierwszym przegladem - plik zapisany w trakcie startu jest nowy
+            self.przygotuj()  # pliki zastane ustalane tu (przed powrotem z start()); decyzje ``znane`` - w watku obserwatora
             self._uruchom_watchdog()  # po stop() i ponownym start() stan zostaje, watchdog rusza od nowa
             self._watek = threading.Thread(target=self._petla, name="scanner", daemon=True)
             self._watek.start()
@@ -325,10 +381,13 @@ class Scanner:
     # --- stan poczatkowy i watchdog
     def przygotuj(self) -> None:
         """Stan poczatkowy: start watchdog i pliki zastane (ustalane przy PIERWSZYM udanym przegladzie folderu - tutaj albo
-        pozniej, gdy folderu jeszcze nie ma). Wolane przez ``start()``; osobno tylko wtedy, gdy obiegi wywoluje test."""
+        pozniej, gdy folderu jeszcze nie ma). Wolane przez ``start()``; osobno tylko wtedy, gdy obiegi wywoluje test.
+        Funkcji ``znane`` tu nie wola: pliki do nadrabiania czekaja na pierwszy ``obieg()`` (D-N2)."""
         if self._przygotowany:
             return
         self._przygotowany = True
+        if self._start_ns is None:
+            self._start_ns = time.time_ns()
         self._folder_dostepny = self.folder.is_dir()
         if self._folder_dostepny:
             self._uruchom_watchdog()
@@ -357,16 +416,36 @@ class Scanner:
         k = _klucz(sciezka)
         if k in self._kandydaci or k in self._znane:
             return
-        if not self._pasuje(rel):
+        if self._start_ns is not None and mtime_ns > self._start_ns:
+            self._zglos_zmiane(sciezka, teraz)  # D-N1: zapisany po starcie obserwatora - nowy plik, nie zastany
+        elif not self._pasuje(rel):
             self._pominiete.add(k)  # plik spoza wzorca zastany w folderze: bez wpisu w dzienniku
-        elif self._nadrabiaj(sciezka, rozmiar, mtime_ns):
-            self._zglos_zmiane(sciezka, teraz, zastany=True)
         else:
             self._znane[k] = (rozmiar, mtime_ns)
+            if self._nadrabianie_wlaczone():
+                self._do_nadrobienia.append((k, sciezka, rozmiar, mtime_ns))  # decyzja w watku obserwatora (D-N2)
+
+    def _nadrabianie_wlaczone(self) -> bool:
+        return bool(self.zglos_zastane or self.zglos_zastane_od is not None or self.znane is not None)
+
+    def _nadrob(self, teraz: float) -> None:
+        """P2 (a) / D-N2: pliki zastane czekajace na decyzje nadrabiania - wolane w ``obieg()``, czyli w watku obserwatora
+        (funkcja ``znane`` nigdy nie jest wolana w watku okna). Plik zmieniony albo usuniety od ustalenia ocenia zwykla droga."""
+        lista, self._do_nadrobienia = self._do_nadrobienia, []
+        for k, sciezka, rozmiar, mtime_ns in lista:
+            if self._znane.get(k) != (rozmiar, mtime_ns):
+                continue
+            if self._nadrabiaj(sciezka, rozmiar, mtime_ns):
+                del self._znane[k]
+                kand = self._kandydaci.get(k)
+                if kand is not None:
+                    kand["zastany"] = True  # powiadomienie watchdog zdazylo zrobic z niego kandydata
+                else:
+                    self._zglos_zmiane(sciezka, teraz, zastany=True)
 
     def _nadrabiaj(self, sciezka: Path, rozmiar: int, mtime_ns: int) -> bool:
         """P2 (a): czy plik zastany ma byc zgloszony (nadrabianie po restarcie). Bez liczenia skrotu."""
-        if not (self.zglos_zastane or self.zglos_zastane_od is not None or self.znane is not None):
+        if not self._nadrabianie_wlaczone():
             return False
         if self.zglos_zastane_od is not None and not mtime_ns / 1e9 > self.zglos_zastane_od:
             return False
@@ -475,6 +554,8 @@ class Scanner:
         """Jeden obieg: powiadomienia z watchdog, przeglad okresowy folderu, ocena plikow, na ktore czekamy."""
         teraz = self.zegar()
         przeglad = teraz - self._ostatni_przeglad >= self.przeglad_s
+        if self._do_nadrobienia:
+            self._nadrob(teraz)  # pliki zastane z start(): decyzja przed powiadomieniami watchdog
         while self._zmiany:
             rodzaj, sciezka = self._zmiany.popleft()
             if rodzaj == "przeglad":
@@ -486,6 +567,8 @@ class Scanner:
         if przeglad:
             self._ostatni_przeglad = teraz
             self._przeglad(teraz)
+        if self._do_nadrobienia:
+            self._nadrob(teraz)
         gotowe = []
         for k, kand in list(self._kandydaci.items()):
             try:
