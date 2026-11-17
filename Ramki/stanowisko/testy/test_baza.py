@@ -449,6 +449,14 @@ def test_d2_kolejne_nieudane_migracje_nie_mnoza_kopii_pliku(tmp_path, monkeypatc
     ("wczytano (Cyrkon/9911 Zmyslony Nazwiskowski/a.stl)", "wczytano (<sciezka>"),
     ("lista, 9911 Zmyslony Nazwiskowski/a.stl", "lista, <sciezka>"),
     ("wiersz 1 bez sciezki\nblad: x\\y\\z.stl\nwiersz 3", "wiersz 1 bez sciezki\nblad: <sciezka>\nwiersz 3"),
+    # runda 4 (D3): w apostrofach / cudzyslowie separator wystarczy (takze sciezka wzgledna bez rozszerzenia); folder z ukosnikiem
+    # na koncu; sciezka od \ albo / na poczatku slowa; nazwa pliku z rozszerzeniem po ukosniku
+    ("KeyError: 'Cyrkon/9911 Zmyslony Nazwiskowski'", "KeyError: '<sciezka>'"),
+    ('NotADirectoryError: "Cyrkon\\9911 Zmyslony" (folder)', 'NotADirectoryError: "<sciezka>" (folder)'),
+    ("brak folderu Cyrkon/9911 Zmyslony Nazwiskowski/ - pomijam", "<sciezka>"),
+    ("brak pliku \\Cyrkon\\9911 Zmyslony Nazwiskowski\\a.stl", "brak pliku <sciezka>"),
+    ("brak pliku /9911_Zmyslony_Nazwiskowski.stl", "brak pliku <sciezka>"),
+    ("zakres 0.91/0.95, plik: 9911 Zmyslony Nazwiskowski/2026-11-16_zmyslony-11-crown_cad.stl", "zakres 0.91/0.95, plik: <sciezka>"),
 ])
 def test_d5r3_bez_sciezek_wycina_sciezki_bezwzgledne_i_wzgledne(tekst, oczekiwane):
     wynik = B.bez_sciezek(tekst)
@@ -465,6 +473,24 @@ def test_d5r3_bez_sciezek_wycina_sciezki_bezwzgledne_i_wzgledne(tekst, oczekiwan
     "plytka wieczorna, kwadratowa, nowy uklad gniazd (R59); rozstaw stozkow pasuje do ukladu: wieczorna_r54",
     "filar 1: sprawdzono 69% linii brzegu, najdluzszy odcinek bez sprawdzenia 6.7 mm",
     "<sciezka>",
+    # runda 4 (D3): przyklady recenzenta rundy 3 - zwykly tekst z ukosnikami (daty, ulamki, a/b/c, zwrot z nazwa pliku) zostaje
+    "pas 0.15 / 0.20 mm",
+    "pas 0.15/0.20 mm, prog 0.25 mm",
+    "pokrycie 0.85 < 0.9: popraw ulozenie / skan ponownie, ubytki nieliczone",
+    "skala o 0.50 % - sprawdz wspolczynnik / krazek",
+    "filar 2: sprawdzono 61% linii brzegu, najdluzszy odcinek bez sprawdzenia 1.4 mm",
+    "ValueError: shape (3,)/(4,) mismatch",
+    "Uwaga: skan z 17/11/2026 ma drgniecie",
+    "skan z 17/11/2026 godz. 18:05 - drgniecie",
+    "2026/11/17 18:05 skan",
+    "korony 3/5 i 4/5 gotowe",
+    "data 17/11 i 18/11",
+    "wartosci 1/2/3 mm",
+    "statusy zielony/zolty/czerwony: 3/4/1",
+    "tryb linia/plaszczyzna wg ustawienia.toml",
+    "patrz https://example.org/a/b",
+    "tempo 12 km/h, zakres 0.91/0.95 i 0.85/0.90 wg ustawienia.toml",
+    "data 17/11/2026, korony 3/5 i 4/5, statusy 3/4/1",
 ])
 def test_d5r3_bez_sciezek_nie_rusza_zwyklych_tekstow(tekst):
     assert B.bez_sciezek(tekst) == tekst
