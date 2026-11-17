@@ -2,7 +2,11 @@
 
 Kryteria odbioru z planu etapu 3 (sekcja 4.1, E3-A2), ktore sprawdza ten plik:
   4. 20 plikow naraz: analiza po kolei w kolejnosci zapisu, zadnego zgubionego (symulator -> scanner -> silnik),
-  5. wynik silnika dla sztucznego skanu kazdego z 4 typow plytek = wynik ``porownaj`` z wiersza polecen (pole po polu, poza czasami),
+  5. wynik silnika dla sztucznego skanu kazdego z 4 typow plytek = wynik ``porownaj`` z wiersza polecen (pole po polu, poza
+     czasami). UWAGA - odstepstwo opisane w ``roznice`` i ``_rowne``: ``porownaj`` nie jest powtarzalne nawet miedzy dwoma
+     uruchomieniami wiersza polecen, wiec rownosc bit w bit jest nieosiagalna; test wymaga rownosci wszystkich pol
+     z tolerancja 1e-3 dla liczb zmiennoprzecinkowych (bez 3 licznikow ICP korekty skali), a liczbe pol roznych przy
+     tolerancji 1e-9 wypisuje (wymagana tylko z E3A2_SCISLE=1),
   6. silnik wywolany z aplikacji Qt (offscreen) konczy plytke w czasie do 60 s, petla okna bez przerw dluzszych niz 200 ms,
   7. awaria analizy (zly plik, zabity proces) = komunikat i podjecie nastepnego zadania.
 
@@ -14,12 +18,13 @@ Dane. Testy domyslne buduja male plytki z 3 atrap koron (bez danych z dysku). Te
 sztucznych skanach odniesienia (45-55 MB, pula prawdziwych projektow) wlaczaja zmienne E3A2_DANE_REF (folder ze skanami
 ``skan_<typ>_n*.stl``) i E3A2_PROJEKTY (folder puli); bez nich te warianty sa pomijane z opisem.
 
-Funkcje ``analiza_probna`` i ``analiza_wolna`` sa ladowane w procesie silnika (parametr ``funkcja``) zamiast ``porownaj``
+Funkcja ``analiza_probna`` jest ladowana w procesie silnika (parametr ``funkcja``) zamiast ``porownaj``
 - dlatego ten modul na poziomie importu uzywa tylko biblioteki standardowej i pytest.
 """
 from __future__ import annotations
 
 import json
+import math
 import os
 import signal
 import subprocess
@@ -61,11 +66,6 @@ def analiza_probna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, *r
         postep("proba: koniec", 0.9)
     return {"skan": Path(skan).name, "plytka": plytka, "numer": numer, "wspolczynnik": wspolczynnik, "bajtow": len(dane),
             "pid": os.getpid(), "start": t0, "koniec": time.time(), "gniazda": [], "czas_s": {"razem": round(time.time() - t0, 3)}}
-
-
-def analiza_wolna(skan, *a, postep=None, **kw):
-    time.sleep(60.0)
-    return {"skan": Path(skan).name}
 
 
 # ----------------------------------------------------------------------------
@@ -152,21 +152,41 @@ def bez_czasow(o):
     return o
 
 
-def roznice(a, b, sciezka="") -> list[str]:
-    """Lista pol, ktorymi roznia sie dwie struktury JSON (do czytelnego komunikatu testu)."""
-    if type(a) is not type(b) and not (isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool) and not isinstance(b, bool)):
+TOL_SZUMU = 1e-9  # poziom 1: szum numeryczny
+TOL_DECYZJI = 1e-3  # poziom 2: 0,001 mm (albo wzglednie) - 50 razy ponizej najmniejszego progu decyzji (0,05 mm)
+LICZNIKI_ICP_SKALI = ("iteracje", "punktow", "punktow_w_obszarach")  # liczniki korekty skali w ``match`` (pola ``skala``)
+
+
+def roznice(a, b, sciezka="", tol: float = TOL_SZUMU, bez_licznikow_skali: bool = False) -> list[str]:
+    """Lista pol, ktorymi roznia sie dwie struktury JSON. Wszystko porownywane dokladnie, poza liczbami zmiennoprzecinkowymi:
+    te moga sie roznic o ``tol`` (wzglednie albo bezwzglednie); ``bez_licznikow_skali`` pomija trzy liczniki ICP korekty skali.
+
+    Dlaczego nie rownosc bit w bit: ``porownaj`` nie jest powtarzalne - DWA URUCHOMIENIA Z WIERSZA POLECEN na tym samym
+    skanie roznia sie (pomiar 17.11.2026 na PC, 2 x 6 przebiegow na plytkach z atrap): (1) zawsze szumem rzedu 1e-15 w 31-52
+    polach (ICP Open3D liczy wielowatkowo; ta sama uwaga i tolerancja 1e-9 jest w test_auto_uklad.py), (2) czasem (2 z 12
+    przebiegow jednej plytki) inna galezia ICP korekty skali jednego gniazda: ``skala.iteracje`` 20 albo 41, liczniki punktow
+    o 1, transformacja o ok. 1e-5. Poziom 1 (``TOL_SZUMU``) wychwytuje wszystko poza (1); poziom 2 (``TOL_DECYZJI`` +
+    ``bez_licznikow_skali``) jest odporny takze na (2) i nadal wymaga rownych statusow, identyfikatorow, licznikow i tekstow."""
+    if bez_licznikow_skali and ".skala." in sciezka and sciezka.rsplit(".", 1)[-1] in LICZNIKI_ICP_SKALI:
+        return []
+    liczby = lambda x: isinstance(x, (int, float)) and not isinstance(x, bool)  # noqa: E731
+    if liczby(a) and liczby(b):
+        if isinstance(a, float) or isinstance(b, float):
+            return [] if math.isclose(a, b, rel_tol=tol, abs_tol=tol) or (math.isnan(a) and math.isnan(b)) else [f"{sciezka}: {a!r} != {b!r}"]
+        return [] if a == b else [f"{sciezka}: {a!r} != {b!r}"]
+    if type(a) is not type(b):
         return [f"{sciezka}: typ {type(a).__name__} != {type(b).__name__}"]
     if isinstance(a, dict):
         w = [f"{sciezka}.{k}: brak po jednej stronie" for k in sorted(set(a) ^ set(b))]
         for k in sorted(set(a) & set(b)):
-            w += roznice(a[k], b[k], f"{sciezka}.{k}")
+            w += roznice(a[k], b[k], f"{sciezka}.{k}", tol, bez_licznikow_skali)
         return w
     if isinstance(a, list):
         if len(a) != len(b):
             return [f"{sciezka}: dlugosc {len(a)} != {len(b)}"]
         w = []
         for i, (x, y) in enumerate(zip(a, b)):
-            w += roznice(x, y, f"{sciezka}[{i}]")
+            w += roznice(x, y, f"{sciezka}[{i}]", tol, bez_licznikow_skali)
         return w
     return [] if a == b else [f"{sciezka}: {a!r} != {b!r}"]
 
@@ -471,13 +491,25 @@ def wyniki_atrap(plytki, tmp_path_factory):
     return cli, sil, zdarzenia, d
 
 
-def _sprawdz_rownosc(typ: str, cli: dict, sil: dict) -> None:
+def _sprawdz_rownosc(typ: str, cli: dict, sil: dict, zrodlo: str = "atrapy") -> None:
     assert sil["plytka"] == typ == cli["plytka"] and sil["plytka_wybor"] == "auto" and sil["uklad_zgodny"] is True
     assert len(sil["gniazda"]) >= 1
     dodatkowe = {"zadanie_id", "skan_sha16"}
     assert dodatkowe <= set(sil) and set(sil) - dodatkowe == set(cli)  # kontrakt 3.8: slownik porownaj + zadanie_id + skan_sha16
-    a, b = bez_czasow({k: v for k, v in sil.items() if k not in dodatkowe}), bez_czasow(cli)
-    assert a == b, "\n".join(roznice(a, b)[:40])
+    _rowne(f"kryterium 5, {zrodlo}, {typ}", bez_czasow({k: v for k, v in sil.items() if k not in dodatkowe}), bez_czasow(cli))
+
+
+def _rowne(opis: str, a, b) -> None:
+    """Porownanie dwoch wynikow na dwoch poziomach (patrz ``roznice``). Poziom 2 obowiazuje zawsze; poziom 1 (sam szum
+    numeryczny) jest wypisywany, a wymagany tylko z E3A2_SCISLE=1 - bywa niespelniony takze miedzy dwoma uruchomieniami
+    wiersza polecen, wiec w zwyklym zestawie dawalby losowo czerwony test."""
+    poziom1 = roznice(a, b)
+    poziom2 = roznice(a, b, tol=TOL_DECYZJI, bez_licznikow_skali=True)
+    print(f"\n[{opis}] pol roznych: {len(poziom1)} przy tolerancji 1e-9, {len(poziom2)} przy tolerancji 1e-3 bez licznikow ICP skali"
+          + "".join(f"\n    {x}" for x in poziom1[:6]))
+    assert not poziom2, f"pol roznych: {len(poziom2)}\n" + "\n".join(poziom2[:40])
+    if SCISLE:
+        assert not poziom1, f"pol roznych: {len(poziom1)}\n" + "\n".join(poziom1[:40])
 
 
 @pytest.mark.parametrize("typ", TYPY)
@@ -526,7 +558,8 @@ def test_awaria_prawdziwej_analizy_i_nastepne_zadanie(plytki, wyniki_atrap, tmp_
         koncowe = odb.czekaj_na_koncowe(3, 600.0)
     assert [(z.zadanie_id, z.typ, z.rodzaj) for z in koncowe] == [(a, "blad", "proces"), (b, "blad", "analiza"), (c, "wynik", "")]
     assert koncowe[1].blad and koncowe[0].blad
-    assert bez_czasow(koncowe[2].wynik) == bez_czasow({**sil["okragla_poranna"], "zadanie_id": c})
+    # nowy proces po awarii daje ten sam wynik, co pierwszy
+    _rowne("kryterium 7, wynik po restarcie procesu", bez_czasow(koncowe[2].wynik), bez_czasow({**sil["okragla_poranna"], "zadanie_id": c}))
 
 
 def test_brak_projektow_w_puli_to_blad_a_nie_koniec_procesu(plytki, tmp_path):
@@ -605,7 +638,7 @@ def test_qt_offscreen_plytka_bez_zamrozenia_okna(plytki, wyniki_atrap):
     assert m["czas_s"] <= PROG_PLYTKI_S
     assert m["przerwa_s"] <= PROG_PRZERWY_S
     assert m["tykniec"] >= 20 and len(m["postep"]) >= 4  # petla okna naprawde pracowala w trakcie analizy
-    _sprawdz_rownosc("okragla_wieczorna", cli["okragla_wieczorna"], m["wynik"])
+    _sprawdz_rownosc("okragla_wieczorna", cli["okragla_wieczorna"], m["wynik"], "atrapy, Qt")
 
 
 # ----------------------------------------------------------------------------
@@ -640,7 +673,7 @@ def wyniki_ref(tmp_path_factory):
 def test_skany_odniesienia_wynik_rowny_wierszowi_polecen(wyniki_ref, typ):
     """Kryterium 5 na sztucznych skanach odniesienia 45-55 MB z pula prawdziwych projektow (tylko z E3A2_DANE_REF)."""
     cli, sil = wyniki_ref
-    _sprawdz_rownosc(typ, cli[typ], sil[typ])
+    _sprawdz_rownosc(typ, cli[typ], sil[typ], "skany odniesienia")
 
 
 def test_skany_odniesienia_qt_offscreen(wyniki_ref):
@@ -653,4 +686,4 @@ def test_skany_odniesienia_qt_offscreen(wyniki_ref):
           f"najdluzsza przerwa petli Qt {m['przerwa_s'] * 1000:.0f} ms (prog testu {PROG_PRZERWY_S * 1000:.0f} ms, kryterium 200 ms), tykniec zegara {m['tykniec']}")
     assert m["czas_s"] <= PROG_PLYTKI_S
     assert m["przerwa_s"] <= PROG_PRZERWY_S
-    _sprawdz_rownosc(typ, cli[typ], m["wynik"])
+    _sprawdz_rownosc(typ, cli[typ], m["wynik"], "skany odniesienia, Qt")
