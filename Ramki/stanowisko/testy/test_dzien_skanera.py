@@ -1242,6 +1242,184 @@ def test_sprawdz_folderu_z_kilkoma_paczkami_sprawdza_kazda(tmp_path):
 
 
 # ----------------------------------------------------------------------------
+# poprawki po recenzji przyrostowej PR #13 (runda 2): P-n1, D-n2, D-n3, D-n6, D-n7
+# ----------------------------------------------------------------------------
+def test_notatka_z_nazwa_projektu_exocad_nie_psuje_pakowania(tmp_path):
+    """P-n1: notatka kroku z nazwa ``*_cad.stl`` pliku, ktorego nie ma w manifescie - w drugim wierszu, po tabulatorze, w cudzyslowie,
+    po ukosniku wstecznym. Nazwy sa usuwane w kazdym napisie manifestu osobno (nie w tekscie JSON): pakowanie dziala, ``--sprawdz``
+    folderu i ZIP = 0, w ZIP nie ma nazwy projektu, a reszta notatki zostaje."""
+    sesja, zb, _ = sesja_kompletna(tmp_path)
+    nazwa = "2026-11-17_Zmyslonska-21-crown_cad.stl"
+    notatki = {"start": f"Powtorka skanu.\nW folderze byl plik {nazwa}\ntrzeci wiersz zostaje",
+               "pusta": f"kolumna pierwsza\t{nazwa}\tkolumna trzecia",
+               "prace_cale": f'cytat "{nazwa}" i sciezka C:\\Scan\\zlecenie\\{nazwa} oraz D:/inne/{nazwa} koniec',
+               "powtorka": f'\\{nazwa}\r\n"{nazwa}"\n\n{nazwa}'}
+    for krok, tekst in notatki.items():
+        sesja.ustaw_notatke(krok, tekst)
+    assert sesja.braki() == ([], [])
+    m2, _ = R.manifest_bez_projektow(sesja.m, set())
+    assert "Zmyslonska" not in json.dumps(m2, ensure_ascii=False) and "_cad" not in json.dumps(m2["kroki"], ensure_ascii=False)
+    assert m2["kroki"]["start"]["notatka"].startswith("Powtorka skanu.\n") and m2["kroki"]["start"]["notatka"].endswith("\ntrzeci wiersz zostaje")
+    assert m2["kroki"]["pusta"]["notatka"] == f"kolumna pierwsza\t{R.ZNACZNIK_PROJEKTU}\tkolumna trzecia"
+    assert m2["kroki"]["prace_cale"]["notatka"] == f'cytat "{R.ZNACZNIK_PROJEKTU}" i sciezka C:\\Scan\\zlecenie\\{R.ZNACZNIK_PROJEKTU} oraz D:/inne/{R.ZNACZNIK_PROJEKTU} koniec'
+    assert sesja.m["kroki"]["start"]["notatka"] == notatki["start"]  # manifest sesji bez zmian
+    wynik = R.spakuj(sesja)
+    zip_ = Path(wynik["czesci"][0]["sciezka"])
+    with zipfile.ZipFile(zip_) as zf:
+        for wpis in zf.namelist():
+            assert b"Zmyslonska" not in zf.read(wpis), wpis
+        m_zip = json.loads(zf.read(f"{sesja.m['nazwa']}/{R.PLIK_MANIFESTU}"))
+        assert m_zip["kroki"]["start"]["notatka"].endswith("\ntrzeci wiersz zostaje") and m_zip["zakonczono"]
+        assert "znane" in json.loads(zf.read(f"{sesja.m['nazwa']}/{R.PLIK_OBSERWATORA}"))  # stan obserwatora w paczce to nadal poprawny JSON
+    assert "Zmyslonska" not in (sesja.folder / R.PLIK_RAPORTU).read_text(encoding="utf-8")
+    assert "Zmyslonska" in (sesja.folder / R.PLIK_MANIFESTU).read_text(encoding="utf-8")
+    for cel in (sesja.folder, zip_):
+        kod, linie = R.sprawdz(cel)
+        assert kod == 0, linie
+
+
+def test_blad_zamiany_czesci_archiwum_przywraca_stara_paczke(tmp_path, monkeypatch):
+    """D-n2: paczka wieloczesciowa, ponowne pakowanie, zamiana drugiej czesci nie udaje sie (plik otwarty w innym programie).
+    Stara paczka ma zostac CALA (wszystkie czesci z dawna trescia); gdy nie da sie jej przywrocic - wyjatek ``PaczkaNiespojna``
+    i znacznik w manifescie, a nastepne udane pakowanie sprzata."""
+    sesja, zb, _ = sesja_z_plikami(tmp_path)
+    wynik = R.spakuj(sesja, limit=120_000)
+    czesci = [Path(c["sciezka"]) for c in wynik["czesci"]]
+    paczka = sesja.folder / R.KATALOG_PACZKI
+    assert len(czesci) >= 2 and "_cz2z" in czesci[1].name
+    stare = {c.name: sha(c) for c in czesci}
+    sesja.ustaw_notatke("pusta", "dopisane po spakowaniu")
+    prawdziwy = os.replace
+
+    def zamiana_z_bledem(takze_cofniecie: bool):
+        def replace(src, dst, **k):
+            if str(src).endswith(".zip.czesc") and ("_cz2z" in str(dst) or takze_cofniecie):  # druga czesc; w drugim wariancie kazda nowa czesc
+                raise PermissionError(13, "plik otwarty w innym programie (test)")
+            if takze_cofniecie and str(src).endswith(".zip.stara"):
+                raise PermissionError(13, "nie da sie przywrocic (test)")
+            return prawdziwy(src, dst, **k)
+        return replace
+
+    with monkeypatch.context() as mp:
+        mp.setattr(R.os, "replace", zamiana_z_bledem(False))
+        with pytest.raises(PermissionError, match="otwarty w innym programie"):
+            R.spakuj(sesja, limit=120_000)
+    assert {p.name: sha(p) for p in paczka.iterdir() if p.name != "paczka.json"} == stare  # wszystkie czesci stare, zadnych .czesc / .stara
+    assert R.sprawdz(czesci[0])[0] == 3
+    m = na_dysku(sesja)
+    assert len(m["spakowano"]) == 1 and m["zmieniono_po_spakowaniu"] is True and m["nieudane_pakowanie"]["paczka_niespojna"] is False
+    # nie udaje sie takze przywrocenie starej paczki: jasny wyjatek i znacznik, komunikat dla okna
+    with monkeypatch.context() as mp:
+        mp.setattr(R.os, "replace", zamiana_z_bledem(True))
+        with pytest.raises(R.PaczkaNiespojna):
+            R.spakuj(sesja, limit=120_000)
+        assert na_dysku(sesja)["nieudane_pakowanie"]["paczka_niespojna"] is True
+        zb.spakuj()
+        zb._obsluz_polecenia()
+    z = [x for x in zdarzenia(zb) if x["typ"] == "spakowano"]
+    assert len(z) == 1 and z[0]["wynik"] is None and z[0]["paczka_niespojna"] is True
+    # nastepne udane pakowanie sprzata i zdejmuje znacznik
+    wynik3 = R.spakuj(sesja)
+    assert sorted(p.name for p in paczka.iterdir()) == sorted([Path(wynik3["czesci"][0]["sciezka"]).name, "paczka.json"])
+    assert R.sprawdz(sesja.folder)[0] == 3 and "nieudane_pakowanie" not in na_dysku(sesja)
+    # program zabity w trakcie zamiany, zanim weszla nowa czesc (w folderze same *.zip.stara, bez znacznika w manifescie):
+    # nastepna proba pakowania przywraca stara paczke, nawet gdy sama sie nie uda
+    jedyna = Path(wynik3["czesci"][0]["sciezka"])
+    suma = sha(jedyna)
+    os.replace(jedyna, str(jedyna) + ".stara")
+    with monkeypatch.context() as mp:
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        with pytest.raises(OSError, match="No space left"):
+            R.spakuj(sesja)
+    assert sha(jedyna) == suma and not list(paczka.glob("*.stara")) and not list(paczka.glob("*.czesc"))
+
+
+def test_pytanie_startowe_po_zmianie_i_po_nieudanym_pakowaniu(tmp_path, monkeypatch):
+    """D-n3: sesja spakowana, potem zmieniona albo z nieudanym ponownym pakowaniem - okno przy starcie nie moze pytac
+    "ostatnia sesja jest zakonczona i spakowana"; ma powiedziec, ze paczka jest nieaktualna / ostatnie pakowanie sie nie udalo."""
+    class A:
+        sesja, nowa, dane, folder = None, False, tmp_path / "sesje", None
+
+    class Pytanie(Exception):
+        pass
+
+    def pytaj(tytul, tekst):  # wyjatek zamiast odpowiedzi: samo pytanie niczego w sesji nie zmienia
+        raise Pytanie(f"{tytul} | {tekst}")
+
+    def pytanie() -> str:
+        with pytest.raises(Pytanie) as e:
+            DS.wybierz_sesje(A, None, pytaj)
+        return str(e.value)
+
+    sesja, zb, _ = sesja_z_plikami(tmp_path)
+    with monkeypatch.context() as mp:  # pierwsze pakowanie nieudane: sesja niedokonczona, z informacja o nieudanej probie
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        with pytest.raises(OSError):
+            R.spakuj(sesja)
+    assert R.Sesja.lista(tmp_path / "sesje")[0]["nieudane_pakowanie"]["czas"]
+    tekst = pytanie()
+    assert tekst.startswith("Niedokończona sesja") and "nie udało się" in tekst
+    R.spakuj(sesja)
+    ost = R.Sesja.lista(tmp_path / "sesje")[0]
+    assert ost["zakonczono"] and ost["zmieniono_po_spakowaniu"] is False and ost["nieudane_pakowanie"] is None
+    tekst = pytanie()
+    assert tekst.startswith("Ostatnia sesja jest spakowana") and "zakończona i spakowana" in tekst
+    sesja.ustaw_notatke("pusta", "dopisane po spakowaniu")
+    tekst = pytanie()
+    assert "zakończona i spakowana" not in tekst and "zmieniona" in tekst and "nieaktualna" in tekst
+    with monkeypatch.context() as mp:
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        with pytest.raises(OSError):
+            R.spakuj(sesja)
+    ost = R.Sesja.lista(tmp_path / "sesje")[0]
+    assert ost["zakonczono"] and ost["nieudane_pakowanie"]["blad"].startswith("OSError")
+    tekst = pytanie()
+    assert "zakończona i spakowana" not in tekst and "nie udało się" in tekst and "nieaktualna" in tekst
+    R.spakuj(sesja)
+    assert pytanie().startswith("Ostatnia sesja jest spakowana") and "nieudane_pakowanie" not in na_dysku(sesja)
+
+
+def test_stan_kopii_folderow_liczy_pliki_tylko_z_ocenianego_kroku():
+    """D-n6: wpisy kopii calego folderu z INNEGO kroku nie moga uzupelniac liczby plikow ocenianego kroku."""
+    plik = {"rodzaj": "kopia_folderu", "cel": "x", "rozmiar": 1}
+    m = {"kopie_folderow": [{"krok": "kopia_folderu", "stan": "pelna", "plikow": 2, "juz_byly": 0, "skopiowane": 2, "pierwszy_id": 1}],
+         "pliki": [{**plik, "id": 1, "krok": "start"}, {**plik, "id": 2, "krok": "start"}]}
+    k = R.stan_kopii_folderow(m)[0]
+    assert (k["jest"], k["pelna"]) == (0, False) and R.brak_kopii_folderow(m, "kopia_folderu")
+    m["pliki"] += [{**plik, "id": 3, "krok": "kopia_folderu"}, {**plik, "id": 4, "krok": "kopia_folderu"}]
+    k = R.stan_kopii_folderow(m)[0]
+    assert (k["jest"], k["pelna"]) == (2, True) and R.brak_kopii_folderow(m, "kopia_folderu") is None
+    m["kopie_folderow"][0].update({"stan": "w_toku", "skopiowane": 0})  # kopia w toku: liczone wpisy tylko tego kroku
+    assert R.stan_kopii_folderow(m)[0]["skopiowane"] == 2
+
+
+def test_niepelna_kopia_podaje_nazwy_plikow_i_co_zrobic(srodowisko, monkeypatch):
+    """D-n7: plik trzymany przez program skanera (blad odczytu) - komunikat i brak kroku podaja nazwe pliku i mowia wprost, co robic:
+    spakowac mimo to, a kopie dokonczyc po zamknieciu programu skanera. To samo jest w instrukcji kroku."""
+    eksport, sesja, zb, _ = srodowisko
+    (eksport / "zlecenia").mkdir()
+    (eksport / "zlecenia" / "baza_programu.db").write_bytes(b"x" * 100)
+    prawdziwa = R.kopiuj_plik
+
+    def kopiuj(zr, cel, **k):
+        if Path(zr).name == "baza_programu.db":
+            raise PermissionError(13, "plik zajety przez program skanera (test)")
+        return prawdziwa(zr, cel, **k)
+
+    monkeypatch.setattr(R, "kopiuj_plik", kopiuj)
+    zb.kopia_calych_folderow("kopia_folderu")
+    zb._obsluz_polecenia()
+    k = na_dysku(sesja)["kopie_folderow"][-1]
+    assert (k["stan"], k["bledy"], k["nieskopiowane"]) == ("niepelna", 1, ["Scandata/zlecenia/baza_programu.db"])
+    komunikaty = [z["tekst"] for z in zdarzenia(zb) if z["typ"] == "blad"]
+    assert len(komunikaty) == 1 and "baza_programu.db" in komunikaty[0] and "spakuj mimo to" in komunikaty[0] and "po zamknięciu programu skanera" in komunikaty[0]
+    brak = R.brak_kopii_folderow(sesja.m, "kopia_folderu")
+    assert "baza_programu.db" in brak and "po zamknięciu programu skanera" in brak
+    instrukcja = sesja.krok("kopia_folderu").instrukcja
+    assert "NIEPEŁNA" in instrukcja and "spakuj mimo to" in instrukcja and "po zamknięciu programu skanera" in instrukcja
+
+
+# ----------------------------------------------------------------------------
 # szybka kontrola skanu
 # ----------------------------------------------------------------------------
 def _skan(uk: U.UkladPlytki, numer: int, projekty, seed: int, **opcje):
@@ -1597,6 +1775,10 @@ def test_okno_zamkniecie_w_trakcie_pakowania_pyta_i_nieudane_pakowanie_nie_jest_
     o._odswiez_kroki()
     assert o.wynik_paczki is None and "Pakowanie nie udało się" in o.etykieta_oceny.text() and "Spakowano" not in o.etykieta_kompletnosci.text()
     assert na_dysku(o.sesja)["zakonczono"] is None and o.przycisk_spakuj.isEnabled()
+    assert "Ostatnie pakowanie nie udało się" in o.etykieta_kompletnosci.text()  # D-n3: widac to takze po ponownym otwarciu sesji
+    o.zbieracz.zdarzenia.put({"typ": "spakowano", "wynik": None, "blad": "PaczkaNiespojna: test", "paczka_niespojna": True})
+    o._takt()
+    assert "niespójn" in o.etykieta_oceny.text() and "została bez zmian" not in o.etykieta_oceny.text()  # D-n2: komunikat zgodny ze stanem paczki
     pytania = []
 
     def pytaj(tytul, tekst, *a, **k):
