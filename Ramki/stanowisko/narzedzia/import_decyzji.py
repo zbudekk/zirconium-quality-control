@@ -1,14 +1,16 @@
 """Import decyzji technika z okna testowego (``dane/decyzje.csv``, pisze je ``ui_test.py``) do bazy stanowiska.
 
 Uzycie (z katalogu stanowisko/):
-    py -3.12 narzedzia/import_decyzji.py [--plik dane/decyzje.csv] [--baza dane/stanowisko.sqlite]
+    py -3.12 narzedzia/import_decyzji.py [--plik dane/decyzje.csv] [--baza dane/stanowisko.sqlite] [--wymus]
 
-Kazdy wiersz pliku staje sie jednym wierszem tabeli ``decyzje`` (``rodzaj`` = ukruszona / ok, ``czas`` z pliku, bez
-operatora). Do wiersza powstaja potrzebne rekordy: jeden skan na nazwe pliku skanu i jedna praca na pare (skan, gniazdo)
-z identyfikatorem projektu (``sha16``), statusem programu i liczba ubytkow z pliku. Skany z importu maja
-``wersja_programu`` = "import decyzje.csv" i pusty ``tryb`` - nie naleza do zadnego wieczoru, wiec nie zmieniaja list
-ani stanu zlecen. Plik zly w ktorymkolwiek wierszu nie jest importowany wcale. Ponowny import tego samego pliku nic
-nie dopisuje; gdy okno dopisalo nowe wiersze na koncu, importowane sa tylko one.
+Kazdy wiersz pliku staje sie jednym wierszem tabeli ``decyzje`` (``rodzaj`` = ukruszona / ok, ``czas`` z pliku,
+``operator`` = "import"). Do wiersza powstaja potrzebne rekordy: jeden skan na nazwe pliku skanu i jedna praca na pare
+(skan, gniazdo) z identyfikatorem projektu (``sha16``), statusem programu i liczba ubytkow z pliku. Skany z importu maja
+status ``import``, ``wersja_programu`` = "import decyzje.csv" i pusty ``tryb`` - nie sa aktywne i nie naleza do zadnej doby,
+wiec nie zmieniaja list ani stanu zlecen i nie przyjmuja decyzji. Plik zly w ktorymkolwiek wierszu nie jest importowany wcale.
+Ponowny import tego samego pliku nic nie dopisuje; gdy okno dopisalo nowe wiersze na koncu, importowane sa tylko one.
+Plik, ktory NIE jest przedluzeniem wczesniejszego importu (zmieniony wczesniejszy wiersz, inny plik), jest odrzucany -
+tabela ``decyzje`` jest tylko do dopisywania i dubli nie da sie usunac; swiadomy import calego takiego pliku: ``--wymus``.
 
 Na stdout same liczby (bez nazw plikow skanow). Plik decyzji nie jest zmieniany ani usuwany.
 """
@@ -28,6 +30,8 @@ from stanowisko import baza as B  # noqa: E402
 KOLUMNY = ("czas", "skan", "gniazdo", "projekt", "zeby", "decyzja", "status_programu", "ubytkow")  # = ui_test.KOLUMNY_DECYZJI
 DECYZJE = ("ukruszona", "ok")
 ZNACZNIK = "import decyzje.csv"  # skany.wersja_programu rekordow z importu
+STATUS_IMPORT = "import"  # skany.status: skan z okna testowego, nieaktywny dla sesji
+OPERATOR_IMPORT = "import"  # decyzje.operator (decyzja wlasciciela z 17.11.2026)
 
 
 class BladImportu(ValueError):
@@ -74,15 +78,23 @@ def _skrot(wiersze: list[dict], n: int) -> str:
     return hashlib.sha256("\n".join(w["surowy"] for w in wiersze[:n]).encode("utf-8")).hexdigest()[:16]
 
 
-def importuj(baza: B.Baza, plik: Path) -> dict:
-    """Importuje plik decyzji; zwraca liczniki: wiersze pliku, dopisane decyzje, nowe skany i prace, wiersze pominiete (zaimportowane wczesniej)."""
+def importuj(baza: B.Baza, plik: Path, wymus: bool = False) -> dict:
+    """Importuje plik decyzji; zwraca liczniki: wiersze pliku, dopisane decyzje, nowe skany i prace, wiersze pominiete (zaimportowane wczesniej).
+
+    Gdy w bazie jest juz import, a plik nie zaczyna sie od zadnego z wczesniej zaimportowanych - ``BladImportu``
+    (chyba ze ``wymus``: wtedy caly plik jest dopisywany).
+    """
     wiersze = wczytaj(plik)
     pominiete = 0
-    for z in baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'import_decyzji'"):
+    wczesniejsze = baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'import_decyzji'")
+    for z in wczesniejsze:
         wczesniej = json.loads(z["dane"])
         n = int(wczesniej.get("wiersze", 0))
         if pominiete < n <= len(wiersze) and wczesniej.get("skrot") == _skrot(wiersze, n):
             pominiete = n  # poczatek pliku jest juz w bazie
+    if wczesniejsze and pominiete == 0 and wiersze and not wymus:
+        raise BladImportu(f"{Path(plik).name}: plik nie jest przedluzeniem wczesniejszego importu (w bazie sa juz decyzje z {len(wczesniejsze)} "
+                          f"importu / importow) - dopisanie zdublowaloby decyzje, ktorych nie da sie usunac; swiadomy import calosci: --wymus")
     wynik = {"wiersze": len(wiersze), "decyzje": 0, "skany": 0, "prace": 0, "pominiete": pominiete}
     nowe = wiersze[pominiete:]
     if not nowe:
@@ -91,7 +103,7 @@ def importuj(baza: B.Baza, plik: Path) -> dict:
         for w in nowe:
             skan = baza.wiersz("SELECT id FROM skany WHERE plik = ? AND wersja_programu = ?", (w["skan"], ZNACZNIK))
             if skan is None:
-                skan_id = baza.wstaw("skany", plik=w["skan"], czas_analizy=w["czas"], status="przyjety", wersja_programu=ZNACZNIK)
+                skan_id = baza.wstaw("skany", plik=w["skan"], czas_analizy=w["czas"], status=STATUS_IMPORT, wersja_programu=ZNACZNIK)
                 wynik["skany"] += 1
             else:
                 skan_id = skan["id"]
@@ -104,7 +116,7 @@ def importuj(baza: B.Baza, plik: Path) -> dict:
                 wynik["prace"] += 1
             else:
                 praca_id = praca["id"]
-            baza.wstaw("decyzje", praca_id=praca_id, rodzaj=w["decyzja"], czas=w["czas"])
+            baza.wstaw("decyzje", praca_id=praca_id, rodzaj=w["decyzja"], operator=OPERATOR_IMPORT, czas=w["czas"])
             wynik["decyzje"] += 1
         baza.zdarzenie("system", "import_decyzji", {"wiersze": len(wiersze), "nowe": len(nowe), "skrot": _skrot(wiersze, len(wiersze))})
     return wynik
@@ -114,6 +126,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--plik", type=Path, default=None, help="plik decyzji okna testowego (domyslnie dane/decyzje.csv w katalogu programu)")
     ap.add_argument("--baza", type=Path, default=None, help="plik bazy (domyslnie [sciezki] baza z ustawienia.toml)")
+    ap.add_argument("--wymus", action="store_true", help="importuj caly plik, choc nie jest przedluzeniem wczesniejszego importu (dubluje decyzje)")
     a = ap.parse_args(argv)
     from stanowisko import ustawienia as UST
 
@@ -124,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         sciezka = a.baza if a.baza is not None else B.sciezka_bazy(UST.wczytaj_ustawienia())
         with B.otworz(sciezka) as baza:
-            r = importuj(baza, plik)
+            r = importuj(baza, plik, wymus=a.wymus)
     except (BladImportu, B.BladBazy, UST.BladUstawien, FileNotFoundError) as e:
         print(f"import nieudany, niczego nie dopisano: {e}", file=sys.stderr)
         return 1
