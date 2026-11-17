@@ -11,7 +11,11 @@
 #  - pakiet powstaje w katalogu roboczym obok celu i zastępuje poprzedni dopiero po przejściu WSZYSTKICH kontroli (R57: rm -rf na początku);
 #  - skrypt robi też pliki na Dysk (w R56 / R57 robione ręcznie): 3 ZIP‑y, SHA256SUMS, INSTRUKCJA_PAKIET, DO_WGRANIA_NA_DRIVE, 3 PDF;
 #    ZIP‑y modułem zipfile Pythona (stała kolejność i czas wpisów — ten sam Python daje bajtowo te same ZIP‑y);
-#  - tryb próbny (--proba <katalog>): pisze WYŁĄCZNIE do <katalog>, dopuszcza PDF sprzed R59 (tylko do sprawdzenia mechaniki — nie do wgrania).
+#  - tryb próbny (--proba <katalog>): pisze WYŁĄCZNIE do <katalog>, dopuszcza PDF sprzed R59 (tylko do sprawdzenia mechaniki — nie do wgrania);
+#  - --calosc <katalog> (krok 1b, polecenie właściciela: pakiet także w katalogu wydań serwera, jako jeden plik): DODATKOWO jeden ZIP
+#    Ramki_pakiet_<data>_R59.zip w <katalog> (poza repo — nie idzie do gita): katalog Ramki_pakiet_<data>_R59/ z całym pakietem, plikiem sum
+#    i INSTRUKCJA_PAKIET, bez ZIP‑ów częściowych w środku; do tego opis NA_SERWER_<data>_R59.md w katalogu do wgrania.
+#    Bez --calosc skrypt działa jak dotąd (trzy ZIP‑y częściowe na Dysk — bajtowo te same).
 # Kontrole (niezgodność = stop; poprzedni pakiet i katalog do wgrania zostają nietknięte):
 #   1. przypięte SHA‑256 12 STL płytek i 4 JSON układu = tabela w R59_wdrozenie_zmiany.md = pliki w wyniki_v2/;
 #   2. 9 plików niepłytkowych bajtowo jak w SHA256SUMS_2026-11-02_R57.txt (źródła i pakiet); wkładka = f4196fbc… (wariant z innym znakiem
@@ -22,10 +26,14 @@
 #   5. w pakiecie: każdy plik płytki i JSON układu ma przypiętą sumę; żaden plik nie ma sumy pliku płytki / JSON układu sprzed R59;
 #      liczba plików, nazwy tylko ASCII bez spacji; sha256sum -c;
 #   6. ZIP‑y: każdy < 10 MB, test CRC, każdy plik pakietu w dokładnie jednym ZIP‑ie, sumy plików w ZIP‑ach = SHA256SUMS;
-#   7. katalog do wgrania: istniejące pliki *_<data>_R59* nadpisuje tylko z --nadpisz; żaden inny plik nie może się zmienić ani zniknąć.
+#   7. katalog do wgrania: istniejące pliki *_<data>_R59* nadpisuje tylko z --nadpisz; żaden inny plik nie może się zmienić ani zniknąć;
+#   8. ZIP całości (--calosc): test CRC; pliki = pakiet + plik sum + instrukcja (liczba, a sumy każdego pliku = SHA256SUMS); nazwa wg wzorca
+#      katalogu wydań (ASCII, .zip), < 2 GiB; plik o tej nazwie już jest w <katalog>: ta sama suma = bez zapisu, inna = odmowa bez --nadpisz
+#      (wydania na serwerze są niezmienne); w próbie <katalog> musi leżeć w katalogu próby, w trybie właściwym — poza repo.
 # Uruchom z folderu Ramki:
-#   bash narzedzia/zbuduj_pakiet_R59.sh [--nadpisz] [katalog_pakietu]   właściwy pakiet: Ramki_pakiet/ (albo katalog_pakietu) + ../Ramki_do_wgrania/
-#   bash narzedzia/zbuduj_pakiet_R59.sh --proba <katalog> [--nadpisz]   przebieg próbny: <katalog>/Ramki_pakiet + <katalog>/Ramki_do_wgrania
+#   bash narzedzia/zbuduj_pakiet_R59.sh [--nadpisz] [--calosc <katalog>] [katalog_pakietu]   właściwy pakiet: Ramki_pakiet/ (albo katalog_pakietu)
+#                                                                                            + ../Ramki_do_wgrania/ (+ ZIP całości w <katalog>)
+#   bash narzedzia/zbuduj_pakiet_R59.sh --proba <katalog> [--nadpisz] [--calosc <katalog>]   przebieg próbny: <katalog>/Ramki_pakiet + <katalog>/Ramki_do_wgrania
 # Zmienne: DATA=RRRR-MM-DD (domyślnie dziś = dzień budowy), PY=<python.exe> (domyślnie pierwszy z: py -3, python3, python, znane ścieżki PC / MSI —
 #   z pierwszeństwem dla tego, który ma pypdf); PROBA=1 i NADPISZ=1 działają jak przełączniki. Ścieżki względne liczą się od folderu Ramki.
 # Kopia pakietu R57 sprzed przebudowy: archiwum/Ramki_pakiet_przed_R59_<data>/ — robi ją ten skrypt (tylko tryb właściwy, cel = Ramki_pakiet).
@@ -71,14 +79,33 @@ uwaga() { echo "UWAGA: $*"; }
 sha() { sha256sum -b "$1" | cut -c1-64; }
 suma_plytki() { awk -v p="$1" '$1==p{print $2}' <<< "$SHA_PLYTEK"; }
 tys() { echo "$1" | sed ':a;s/^\([0-9]\+\)\([0-9]\{3\}\)/\1 \2/;ta'; }   # 4516613 -> 4 516 613
+# Czy ścieżka $1 leży w katalogu $2 (albo nim jest)? Sam `realpath` tu nie wystarcza: w Git Bash zostawia C:/x obok /c/x i porównanie napisów
+# przepuszcza ścieżkę w postaci Windows (tak 15.11 przeszła próba z --calosc C:/…/repo/x). Dlatego: (1) napisy po normalizacji (cygpath, małe
+# litery na Windows), (2) tożsamość katalogów (-ef) na kolejnych przodkach ścieżki — odporne na wielkość liter, nazwy 8.3 i postać dysku.
+norm() {
+  local p="$1"
+  if command -v cygpath >/dev/null 2>&1; then p="$(cygpath -u "$p")"; p="$(realpath -m "$p")"; p="${p,,}"; else p="$(realpath -m "$p")"; fi
+  printf '%s/' "$p"
+}
+w_katalogu() {
+  local p rodzic
+  case "$(norm "$1")" in "$(norm "$2")"*) return 0;; esac
+  [ -d "$2" ] || return 1
+  p="$1"; if command -v cygpath >/dev/null 2>&1; then p="$(cygpath -u "$p")"; fi; p="$(realpath -m "$p")"
+  while :; do
+    if [ -e "$p" ] && [ "$p" -ef "$2" ]; then return 0; fi
+    rodzic="$(dirname "$p")"; [ "$rodzic" != "$p" ] || return 1; p="$rodzic"
+  done
+}
 
-CEL=""
+CEL=""; CALOSC=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --proba) PROBA=1;;
     --nadpisz) NADPISZ=1;;
+    --calosc) [ $# -ge 2 ] || blad "--calosc wymaga katalogu docelowego: --calosc <katalog>"; CALOSC="${2%/}"; [ -n "$CALOSC" ] || blad "--calosc: pusty katalog docelowy"; shift;;
     -h|--help) sed -n '2,/^set -euo pipefail/p' "$SKRYPT" | sed '$d'; exit 0;;
-    -*) blad "nieznany przelacznik $1 (znane: --proba, --nadpisz)";;
+    -*) blad "nieznany przelacznik $1 (znane: --proba, --nadpisz, --calosc <katalog>)";;
     *) [ -z "$CEL" ] || blad "podano dwa katalogi docelowe: $CEL i $1"; CEL="$1";;
   esac
   shift
@@ -87,9 +114,9 @@ done
 
 if [ "$PROBA" = 1 ]; then
   [ -n "$CEL" ] || blad "przebieg probny wymaga katalogu docelowego: --proba <katalog>"
-  case "$(realpath -m "$CEL")/" in
-    "$(realpath -m Ramki_pakiet)/"*|"$(realpath -m "$WGRANIE_REPO")/"*|"$(realpath -m archiwum)/"*) blad "przebieg probny nie moze pisac do Ramki_pakiet, Ramki_do_wgrania ani archiwum";;
-  esac
+  for z in Ramki_pakiet "$WGRANIE_REPO" archiwum; do
+    if w_katalogu "$CEL" "$z"; then blad "przebieg probny nie moze pisac do Ramki_pakiet, Ramki_do_wgrania ani archiwum"; fi
+  done
   D="${CEL%/}/Ramki_pakiet"; W="${CEL%/}/Ramki_do_wgrania"; TRYB=PROBNY
 else
   D="${CEL:-Ramki_pakiet}"; D="${D%/}"; W="$WGRANIE_REPO"; TRYB=WLASCIWY
@@ -102,7 +129,23 @@ ZIP1="${KATALOG_ZIP}_cz1_dokumenty_druk.zip"; ZIP2="${KATALOG_ZIP}_cz2_model.zip
 INSTR="INSTRUKCJA_PAKIET_${DATA}_${R}.md"; LISTA="DO_WGRANIA_NA_DRIVE_${DATA}_${R}.md"
 NAZWY_DYSK=("$ZIP1" "$ZIP2" "$ZIP3" "$SUMY" "$INSTR")
 for p in "${PDFY[@]}"; do NAZWY_DYSK+=("${p##*|}_${DATA}_${R}.pdf"); done
-NAZWY_W=("${NAZWY_DYSK[@]}" "$LISTA")   # wszystko, co ten skrypt pisze do katalogu do wgrania (9 plików)
+NAZWY_W=("${NAZWY_DYSK[@]}" "$LISTA")   # wszystko, co ten skrypt pisze do katalogu do wgrania (9 plików; z --calosc 10)
+# jeden ZIP z całością — tylko z --calosc <katalog>. Katalog wydań serwera: nazwa ASCII wg wzorca, plik do 2 GiB, wydanie niezmienne
+# (ta sama nazwa z inną sumą = odmowa), więc ZIP musi być powtarzalny bajtowo. Ten skrypt niczego na serwer nie wysyła.
+ZIPC="${KATALOG_ZIP}.zip"; NASERWER="NA_SERWER_${DATA}_${R}.md"
+WZORZEC_WYDAN='^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$'
+if [ -n "$CALOSC" ]; then
+  { [[ "$ZIPC" =~ $WZORZEC_WYDAN ]] && [[ "$ZIPC" == *.zip ]]; } || blad "nazwa $ZIPC nie spelnia wzorca katalogu wydan ($WZORZEC_WYDAN, rozszerzenie zip)"
+  for z in "$D" "$W" archiwum; do
+    if w_katalogu "$CALOSC" "$z"; then blad "katalog --calosc nie moze lezec w $z"; fi
+  done
+  if [ "$PROBA" = 1 ]; then
+    w_katalogu "$CALOSC" "$CEL" || blad "w przebiegu probnym katalog --calosc musi lezec w katalogu proby ($CEL) - ZIP probny nie moze trafic miedzy prawdziwe wydania"
+  elif w_katalogu "$CALOSC" ..; then
+    blad "ZIP calosci nie idzie do repo (ok. 20 MB, zdublowalby pakiet w gicie) - podaj katalog poza $(realpath -m ..)"
+  fi
+  NAZWY_W+=("$NASERWER")
+fi
 
 # --- Python (ZIP‑y, arkusz zamówienia, tekst PDF)
 PYCMD=(); PYPDF=0
@@ -134,23 +177,26 @@ def pdf(sciezka, fraza):
     print("%d %d %d" % (len(czytnik.pages), a, b))
     sys.exit(0 if a and b else 3)
 
-def zbuduj(pakiet, katalog, wyjscie, data, lista):
-    # ZIP powtarzalny: kolejnosc z listy, staly czas wpisow (poludnie dnia pakietu), stale atrybuty
+def zbuduj(pakiet, katalog, wyjscie, data, lista, *dodatkowe):
+    # ZIP powtarzalny: kolejnosc z listy (pliki dodatkowe na koncu, pod sama nazwa pliku), staly czas wpisow
+    # (poludnie dnia pakietu), stale atrybuty
     r, m, d = (int(t) for t in data.split("-"))
     with open(lista, encoding="utf-8") as f:
         nazwy = [w.strip() for w in f if w.strip()]
+    pliki = [(n, os.path.join(pakiet, n)) for n in nazwy] + [(os.path.basename(s), s) for s in dodatkowe]
     with zipfile.ZipFile(wyjscie, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-        for n in nazwy:
+        for n, sciezka in pliki:
             wpis = zipfile.ZipInfo(katalog + "/" + n, date_time=(r, m, d, 12, 0, 0))
             wpis.compress_type = zipfile.ZIP_DEFLATED
             wpis.create_system = 0
             wpis.external_attr = 0
-            with open(os.path.join(pakiet, n), "rb") as f:
+            with open(sciezka, "rb") as f:
                 z.writestr(wpis, f.read(), compresslevel=9)
-    print("  %s: %d plikow" % (os.path.basename(wyjscie), len(nazwy)))
+    print("  %s: %d plikow" % (os.path.basename(wyjscie), len(pliki)))
 
-def sprawdz(plik_sum, katalog, zipy):
-    # kazdy plik z sum (i sam plik sum) w dokladnie jednym ZIP-ie, CRC dobre, SHA-256 = plik sum
+def sprawdz(plik_sum, katalog, zipy, dodatkowe):
+    # kazdy plik z sum, sam plik sum i pliki dodatkowe (np. instrukcja) w dokladnie jednym ZIP-ie, nic ponadto;
+    # CRC dobre, SHA-256 plikow pakietu = plik sum, plik sum i pliki dodatkowe bajtowo identyczne z podanymi
     nazwa_sum = os.path.basename(plik_sum)
     oczekiwane = {}
     with open(plik_sum, encoding="utf-8") as f:
@@ -160,6 +206,10 @@ def sprawdz(plik_sum, katalog, zipy):
                 oczekiwane[w[66:]] = w[:64]
     with open(plik_sum, "rb") as f:
         bajty_sum = f.read()
+    inne = {}
+    for s in dodatkowe:
+        with open(s, "rb") as f:
+            inne[os.path.basename(s)] = f.read()
     widziane = {}
     for sciezka in zipy:
         with zipfile.ZipFile(sciezka) as z:
@@ -177,23 +227,34 @@ def sprawdz(plik_sum, katalog, zipy):
                 if n == nazwa_sum:
                     if dane != bajty_sum:
                         blad("plik sum w ZIP-ie rozni sie od %s" % nazwa_sum)
+                elif n in inne:
+                    if dane != inne[n]:
+                        blad("%s w ZIP-ie rozni sie od pliku zbudowanego" % n)
                 elif n not in oczekiwane:
                     blad("%s: plik spoza %s" % (n, nazwa_sum))
                 elif hashlib.sha256(dane).hexdigest() != oczekiwane[n]:
                     blad("%s: SHA-256 w ZIP-ie inne niz w %s" % (n, nazwa_sum))
-    brak = sorted((set(oczekiwane) | {nazwa_sum}) - set(widziane))
+    brak = sorted((set(oczekiwane) | {nazwa_sum} | set(inne)) - set(widziane))
     if brak:
         blad("brak w ZIP-ach: " + ", ".join(brak))
-    print("  po zlozeniu %d ZIP-ow: %d z %d plikow = %s, plik sum identyczny, kazdy plik w dokladnie jednym ZIP-ie"
-          % (len(zipy), len(oczekiwane), len(oczekiwane), nazwa_sum))
+    if dodatkowe:
+        print("  %s: CRC dobre, %d z %d plikow pakietu = %s, plik sum i %s bajtowo identyczne; razem %d plikow, nic ponadto"
+              % (", ".join(os.path.basename(s) for s in zipy), len(oczekiwane), len(oczekiwane), nazwa_sum,
+                 ", ".join(sorted(inne)), len(widziane)))
+    else:
+        print("  po zlozeniu %d ZIP-ow: %d z %d plikow = %s, plik sum identyczny, kazdy plik w dokladnie jednym ZIP-ie"
+              % (len(zipy), len(oczekiwane), len(oczekiwane), nazwa_sum))
 
 polecenie = sys.argv[1]
 if polecenie == "pdf":
     pdf(sys.argv[2], sys.argv[3])
 elif polecenie == "zip":
-    zbuduj(*sys.argv[2:7])
+    zbuduj(*sys.argv[2:])
 elif polecenie == "sprawdz":
-    sprawdz(sys.argv[2], sys.argv[3], sys.argv[4:])
+    # sprawdz <plik_sum> <katalog w ZIP> <zip> [<zip> ...] [+ <plik dodatkowy> ...]
+    reszta = sys.argv[4:]
+    i = reszta.index("+") if "+" in reszta else len(reszta)
+    sprawdz(sys.argv[2], sys.argv[3], reszta[:i], reszta[i + 1:])
 else:
     blad("nieznane polecenie " + polecenie)
 PYEOF
@@ -210,11 +271,15 @@ if [ -e "$D" ]; then
   fi
 fi
 if [ "$PROBA" = 1 ]; then mkdir -p "$W"; else [ -d "$W" ] || blad "brak katalogu $W"; fi
+if [ -n "$CALOSC" ]; then   # katalog na ZIP całości musi dać się zapisać — sprawdzam teraz, nie po zamianie pakietu
+  { mkdir -p "$CALOSC" 2>/dev/null && touch "$CALOSC/.zapis_$$" 2>/dev/null && rm -f "$CALOSC/.zapis_$$"; } || blad "katalogu --calosc ($CALOSC) nie da sie utworzyc albo nie da sie w nim pisac"
+fi
 ISTN=()
 for n in "${NAZWY_W[@]}"; do if [ -e "$W/$n" ]; then ISTN+=("$n"); fi; done
 if [ "${#ISTN[@]}" -gt 0 ] && [ "$NADPISZ" != 1 ]; then blad "w $W juz sa pliki tego pakietu (${ISTN[*]}) - nie nadpisuje; swiadoma przebudowa: --nadpisz"; fi
 INNE_R59=$(cd "$W" && find . -type f -name "*_${R}*" ! -name "*_${DATA}_${R}*" | sed 's|^\./||' | LC_ALL=C sort | tr '\n' ' ')
 [ -z "$INNE_R59" ] || uwaga "w $W sa pliki $R z inna data (zostaja nietkniete): $INNE_R59"
+if [ -z "$CALOSC" ] && [ -e "$W/$NASERWER" ]; then uwaga "w $W jest $NASERWER z wczesniejszego przebiegu z --calosc; ten przebieg (bez --calosc) go nie odswieza"; fi
 migawka() {  # sumy plików katalogu do wgrania, których ten skrypt nie pisze
   ( cd "$W" && find . -type f | sed 's|^\./||' | LC_ALL=C sort | while IFS= read -r n; do
       case " ${NAZWY_W[*]} " in *" $n "*) ;; *) sha256sum -b "$n";; esac
@@ -390,7 +455,10 @@ if [ "$PROBA" = 1 ]; then
   ZNAK_MD="**PRZEBIEG PRÓBNY (sprawdzenie mechaniki skryptu) — NIE WGRYWAĆ; dokumenty PDF mogą być sprzed R59.**
 
 "
-else ZNAK_TXT=""; ZNAK_MD=""; fi
+  ZNAK_ASCII="PRZEBIEG PROBNY (sprawdzenie mechaniki skryptu) - NIE REJESTROWAC NA SERWERZE; dokumenty PDF moga byc sprzed R59.
+
+"
+else ZNAK_TXT=""; ZNAK_MD=""; ZNAK_ASCII=""; fi
 
 cat > "$T/README.txt" <<TXT
 ${ZNAK_TXT}Ramki swietlne i plytki 96x96 + plytki okragle o100 — pakiet wynikowy v2 po R59, ${DATA}
@@ -555,9 +623,50 @@ ZIP‑y zbudowane i sprawdzone skryptem \`Ramki/narzedzia/zbuduj_pakiet_${R}.sh\
 TXT
 } > "$TW/$LISTA"
 
+# --calosc: jeden ZIP z całością do katalogu wydań serwera — wszystkie pliki pakietu (z README i plikiem sum) i instrukcja w jednym katalogu
+# głównym, bez ZIP‑ów częściowych; ta sama funkcja i te same stałe co ZIP‑y częściowe, więc plik jest powtarzalny bajtowo
+if [ -n "$CALOSC" ]; then
+  ( cd "$T" && find . -type f | sed 's|^\./||' | LC_ALL=C sort ) > "$TW/calosc.lista"
+  NC=$(($(wc -l < "$TW/calosc.lista" | tr -d ' ') + 1))
+  [ "$NC" = "$((N_PLIKOW + 2))" ] || blad "ZIP calosci: $NC pozycji, oczekiwane $((N_PLIKOW + 2)) (pliki pakietu + plik sum + instrukcja)"
+  py_narzedzie zip "$T" "$KATALOG_ZIP" "$TW/$ZIPC" "$DATA" "$TW/calosc.lista" "$TW/$INSTR"
+  py_narzedzie sprawdz "$T/$SUMY" "$KATALOG_ZIP" "$TW/$ZIPC" + "$TW/$INSTR"
+  rm -f "$TW/calosc.lista"
+  B_ZIPC=$(stat -c %s "$TW/$ZIPC"); SHA_ZIPC=$(sha "$TW/$ZIPC")
+  [ "$B_ZIPC" -lt 2147483648 ] || blad "$ZIPC ma $(tys "$B_ZIPC") bajtow - limit katalogu wydan to 2 GiB"
+  ZAPISZ_ZIPC=1
+  if [ -e "$CALOSC/$ZIPC" ]; then
+    if [ "$(sha "$CALOSC/$ZIPC")" = "$SHA_ZIPC" ]; then ZAPISZ_ZIPC=0
+    elif [ "$NADPISZ" != 1 ]; then blad "$CALOSC/$ZIPC juz istnieje i ma INNA sume niz plik zbudowany teraz (${SHA_ZIPC:0:16}...) - wydania sa niezmienne; nie nadpisuje bez --nadpisz"
+    else uwaga "$CALOSC/$ZIPC istnieje z inna suma - zostanie nadpisany (--nadpisz); pliku juz zarejestrowanego na serwerze podmienic sie nie da"; fi
+  fi
+  cat > "$TW/$NASERWER" <<TXT
+# Pakiet Ramki R59 - jeden plik ZIP do katalogu wydan serwera (projekt qc) - pakiet z ${DATA}
+
+${ZNAK_ASCII}Plik: ${ZIPC}
+Rozmiar: $(tys "$B_ZIPC") bajtow (${B_ZIPC})
+SHA-256: ${SHA_ZIPC}
+
+Zawartosc: jeden katalog ${KATALOG_ZIP}/ z calym pakietem - ${N_PLIKOW} plikow pakietu (01_Dokumenty, 02_Druk_drukarnia_PA12,
+03_Druk_wlasny, 04_Model_i_animacje, 05_Zrodla, README.txt), plik sum ${SUMY} i ${INSTR}; razem ${NC} plikow.
+To te same pliki co w trzech ZIP-ach czesciowych na Dysk Google (cz1, cz2, cz3) po zlozeniu w jeden folder; ZIP-ow czesciowych w srodku nie ma.
+Instrukcja opisuje pliki na Dysku Google (trzy czesci) - przy tym jednym pliku wystarczy go rozpakowac.
+
+Sprawdzenie po pobraniu:
+1. Suma pliku ZIP: \`sha256sum ${ZIPC}\` (w PowerShell: \`Get-FileHash ${ZIPC} -Algorithm SHA256\`) - ma dac SHA-256 podane wyzej.
+2. Rozpakowac, wejsc do katalogu ${KATALOG_ZIP} i uruchomic \`sha256sum -c ${SUMY}\` - oczekiwane ${N_PLIKOW} razy OK
+   (instrukcja lezy w tym samym katalogu, ale nie ma jej na liscie sum).
+
+Przeznaczenie: katalog wydan serwera, projekt qc. Nazwa pliku spelnia wzorzec katalogu wydan, a plik jest powtarzalny bajtowo
+(ponowna budowa z tych samych zrodel daje te sama sume SHA-256). Rejestracja pliku na serwerze to osobny krok, dopiero po zgodzie wlasciciela;
+ten opis niczego nie rejestruje. Plik ZIP lezy poza repozytorium (nie ma go w gicie); buduje go \`Ramki/narzedzia/zbuduj_pakiet_${R}.sh --calosc <katalog>\`.
+TXT
+  if LC_ALL=C grep -v '^[ -~]*$' "$TW/$NASERWER" >/dev/null; then blad "$NASERWER zawiera znaki spoza ASCII"; fi
+fi
+
 # --- 6. Zamiana: dopiero teraz zmieniam cel (wszystkie kontrole przeszły)
 echo "== 6. Zapis"
-if [ "$PROBA" != 1 ] && [ "$D" = Ramki_pakiet ] && [ -d "$D" ] && [ -n "$(ls -A "$D")" ]; then
+if [ "$PROBA" != 1 ] && [ -d "$D" ] && [ "$D" -ef Ramki_pakiet ] && [ -n "$(ls -A "$D")" ]; then
   if ls "$D"/SHA256SUMS_*_"$R".txt >/dev/null 2>&1; then
     echo "  poprzedni pakiet w $D to juz $R (przebudowa) - bez kopii do archiwum"
   else
@@ -579,9 +688,16 @@ cmp -s "$D/$SUMY" "$W/$SUMY" || blad "$SUMY w $W rozni sie od pakietu"
 [ "$PRZED" = "$(migawka)" ] || blad "w $W zmienil sie albo zniknal plik spoza pakietu $R - sprawdz git status"
 N_INNE=$(printf '%s' "$PRZED" | grep -c . || true)
 echo "  $W: zapisane ${#NAZWY_W[@]} plikow $R; pozostale pliki bez zmian: $N_INNE z $N_INNE (sumy przed = po)"
+if [ -n "$CALOSC" ]; then
+  if [ "$ZAPISZ_ZIPC" = 1 ]; then mkdir -p "$CALOSC"; cp "$TW/$ZIPC" "$CALOSC/$ZIPC"; echo "  $CALOSC/$ZIPC: zapisany"
+  else echo "  $CALOSC/$ZIPC: juz byl, ta sama suma - bez zapisu"; fi
+  [ "$(sha "$CALOSC/$ZIPC")" = "$SHA_ZIPC" ] || blad "$CALOSC/$ZIPC ma inna sume niz plik zbudowany"
+  py_narzedzie sprawdz "$D/$SUMY" "$KATALOG_ZIP" "$CALOSC/$ZIPC" + "$W/$INSTR"   # jeszcze raz, już na miejscu: ZIP całości = zapisany pakiet + instrukcja
+fi
 rm -rf "$TW"; SPRZATAJ=1
 if [ "$PROBA" = 1 ]; then
   printf 'PRZEBIEG PROBNY zbuduj_pakiet_%s.sh, data %s.\nSprawdzenie mechaniki skryptu. NIE WGRYWAC na Dysk i NIE ZAMAWIAC z tego katalogu.\nZastrzezenia do PDF w tym przebiegu: %s (PDF moga byc sprzed R59).\n' "$R" "$DATA" "$PDF_UWAGI" > "${CEL%/}/PRZEBIEG_PROBNY.txt"
+  [ -z "$CALOSC" ] || printf 'ZIP calosci %s z tego przebiegu: NIE REJESTROWAC w katalogu wydan serwera.\n' "$ZIPC" >> "${CEL%/}/PRZEBIEG_PROBNY.txt"
 fi
 
 echo "== Wynik ($TRYB)"
@@ -589,4 +705,8 @@ echo "Pakiet gotowy: $D — $N_PLIKOW plikow + plik sum (pakiet R57: 63 + 1); sh
 du -sh "$D" | sed 's/^/  /'
 echo "Pliki na Dysk: $W"
 for n in "${NAZWY_W[@]}"; do printf '  %-62s %12s B  %s\n' "$n" "$(tys "$(stat -c %s "$W/$n")")" "$(sha "$W/$n" | cut -c1-16)"; done
+if [ -n "$CALOSC" ]; then
+  echo "ZIP calosci do katalogu wydan serwera (poza repo; rejestracja na serwerze to osobny krok): $CALOSC"
+  printf '  %s  %s B  %s plikow  SHA-256 %s\n' "$ZIPC" "$(tys "$B_ZIPC")" "$NC" "$SHA_ZIPC"
+fi
 [ "$PROBA" != 1 ] || echo "PRZEBIEG PROBNY - wynik nie jest pakietem do wgrania (zastrzezen do PDF: $PDF_UWAGI)"

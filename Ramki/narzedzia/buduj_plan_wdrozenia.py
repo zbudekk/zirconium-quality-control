@@ -527,13 +527,15 @@ def build_html(md_text, toc_pages=None, landscape=False):
                 col = soup.new_tag("col", attrs={"style": f"width:{pc:.1f}%"})
                 cg.append(col)
             t.insert(0, cg)
-        # pozycja kroków / numerów w pierwszej kolumnie
+        # pozycja kroków / numerów w pierwszej kolumnie — tylko gdy wszystkie jej komórki są krótkie
+        # (numer albo krótka etykieta); długi opis z white-space: nowrap wypychał tabelę poza stronę
         first = rows[0].find(["th", "td"])
         if first and first.get_text(strip=True) in ("Krok", "Nr", "Dzień", "Id", "Nr uwagi"):
-            for r in rows[1:]:
-                c = r.find("td")
-                if c:
-                    c["class"] = "num"
+            col1 = [r.find("td") for r in rows[1:]]
+            if all(len(c.get_text(strip=True)) <= 12 for c in col1 if c):
+                for c in col1:
+                    if c:
+                        c["class"] = "num"
 
     # --- rysunki
     def put_fig(marker, svg, caption, replace_text=None):
