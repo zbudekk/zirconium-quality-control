@@ -28,8 +28,11 @@ rem   1. Trzy linie  OK: nazwa.pdf, stron: N  - okolo 20 s na dokument.
 rem   2. Na koncu lista trzech PDF z dzisiejsza data i godzina.
 rem   3. W planie wdrozenia rysunki 4 i 5 pokazuja plytki z JEDNA rynienka:
 rem      wieczorna 18 gniazd, poranna 23 gniazda; w tekscie jest znacznik [R59].
+rem
+rem  Kod wyjscia: 0 = trzy PDF zbudowane; 1 = blad, na ekranie linia BLAD.
 rem ==========================================================================
 setlocal
+set "KOD=0"
 set "CP_PRZED="
 for /f "tokens=2 delims=:" %%C in ('chcp') do set "CP_PRZED=%%C"
 chcp 65001 >nul
@@ -92,34 +95,34 @@ goto koniec
 :brak_skryptu
 echo BLAD: w folderze roboczym nie ma pliku narzedzia\buduj_plan_wdrozenia.py.
 echo Ten plik .cmd musi lezec w podfolderze narzedzia folderu Ramki.
-goto koniec
+goto koniec_blad
 
 :brak_json
 echo BLAD: brak plikow wyniki_v2\json\uklad_gniazd_wieczorna.json i _poranna.json.
 echo Bez nich PDF nie mialby rysunkow plytek. Skopiuj je z repo - stan po R59.
-goto koniec
+goto koniec_blad
 
 :brak_md
 echo BLAD: w folderze roboczym powinny byc trzy dokumenty .md, znaleziono: %N%.
 echo Potrzebne: plan wdrozenia v2, Zakupy i druk, Budowa ramki.
-goto koniec
+goto koniec_blad
 
 :stare_md
 echo BLAD: co najmniej jeden dokument .md nie ma znacznika [R59] - to wersja
 echo sprzed zmiany ukladu gniazd. Skopiuj trzy dokumenty .md z repo - stan po R59.
-goto koniec
+goto koniec_blad
 
 :stary_json
 echo BLAD: pliki wyniki_v2\json\uklad_gniazd_*.json opisuja STARY uklad gniazd,
 echo sa w nich gniazda 9 albo 7,5 mm. Rysunki 4 i 5 pokazalyby stare plytki.
 echo Skopiuj oba pliki z repo - stan po R59.
-goto koniec
+goto koniec_blad
 
 :stare_podpisy
 echo BLAD: narzedzia\buduj_plan_wdrozenia.py to wersja sprzed R59. Podpisy
 echo rysunkow 4 i 5 maja w niej liczby gniazd wpisane na stale, wiec PDF mialby
 echo nowy rysunek ze starym podpisem. Skopiuj skrypt z repo - stan po R59.
-goto koniec
+goto koniec_blad
 
 :brak_pakietow
 echo.
@@ -127,15 +130,18 @@ echo BLAD: interpreter %PYTHON_PDF% nie dziala albo brakuje mu pakietow
 echo markdown_it, bs4, playwright, pdfplumber, reportlab, pypdf.
 echo Uruchom ten plik na koncie, na ktorym budowano PDF przy R56 i R57,
 echo albo wskaz inny interpreter zmienna PYTHON_PDF. Niczego nie zainstalowano.
-goto koniec
+goto koniec_blad
 
 :blad_budowy
 echo BLAD: co najmniej jedno wywolanie skryptu PDF zakonczylo sie bledem -
 echo komunikat jest wyzej. PDF z nowa data sa zbudowane, pozostale sa stare.
-goto koniec
+goto koniec_blad
+
+:koniec_blad
+set "KOD=1"
 
 :koniec
 if defined CP_PRZED chcp %CP_PRZED% >nul 2>nul
 echo.
 pause
-endlocal
+exit /b %KOD%
