@@ -169,7 +169,9 @@ class ObslugaRamki(BaseHTTPRequestHandler):
             log.exception("blad wewnetrzny przy %s %s", metoda, trasa)
             status, odp = 500, {"protokol": protokol.PROTOKOL,
                                 "blad": {"kod": "blad_wewnetrzny", "opis": "blad wewnetrzny ramki"}}
-        log.info("%s %s %s -> %d", self.client_address[0], metoda, trasa, status)
+        # odpytywanie (GET) co kilka sekund tylko na poziomie DEBUG - log w RAM ramki nie puchnie
+        log.log(logging.DEBUG if metoda == "GET" and status == 200 else logging.INFO,
+                "%s %s %s -> %d", self.client_address[0], metoda, trasa, status)
         self._odpowiedz(status, odp)
 
     def _wykonaj(self, program, metoda, trasa, q, laptop, dane):

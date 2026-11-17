@@ -25,6 +25,7 @@ TYPY_STANU_PLANU = ("potwierdzenie", "cofniecie", "kuweta_wybrana")
 MAX_KONTAKTOW = 16
 MAX_WERSJI = 64
 MAX_WPISYWANYCH = 6
+CZAS_TEST_LED_S = 8.0  # test_led konczy sie sam (2 cykle kolorow) - nie zostaje przy zerwanej sieci
 
 
 class LogikaRamki:
@@ -134,11 +135,15 @@ class LogikaRamki:
         self.komunikat = ""
 
     def tick(self, teraz: float) -> None:
-        """Uplyw czasu: wygasniecie planu po utracie lacznosci z laptopem."""
+        """Uplyw czasu: wygasniecie planu po utracie lacznosci z laptopem, koniec test_led."""
         if self.plan is not None and not self._plan_wazny(teraz):
             plan_id = self.plan.plan_id
             self._wyczysc_stan_planu()
             self._dodaj("plan_wygasl", teraz, plan_id=plan_id)
+        if self.tryb == "test_led" and teraz - self.tryb_od >= CZAS_TEST_LED_S:
+            self.tryb = "gotowa"
+            self.tryb_od = teraz
+            self.zmiana += 1
 
     def _zapamietaj_wersje(self, plan) -> None:
         self.wersje.pop(plan.plan_id, None)
@@ -377,7 +382,7 @@ class LogikaRamki:
     def obraz(self, teraz: float) -> obraz.Klatka:
         """Klatka 64 x 64 wynikajaca ze stanu (bez zmiany stanu)."""
         k = obraz.Klatka()
-        if self.tryb == "test_led":
+        if self.tryb == "test_led" and teraz - self.tryb_od < CZAS_TEST_LED_S:
             faza = int(max(0.0, teraz - self.tryb_od) // 1.0) % len(obraz.KOLORY_TEST_LED)
             k.wypelnij(obraz.KOLORY_TEST_LED[faza])
             return k

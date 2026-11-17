@@ -115,7 +115,8 @@ Wynik przyjecia planu:
    gniazda na tej plytce i nie jest na niej potwierdzona.
 4. Stany `skanowanie` (zolty pierscien), `analiza` (fioletowy), `gotowa` (niebieski), `blad`
    (czerwony + "BLAD") = zadne gniazdo nie swieci, plan zostaje. `test_led` = cala matryca
-   kolejno czerwona, zielona, niebieska, biala (co 1 s). `DELETE /plan` = zgas.
+   kolejno czerwona, zielona, niebieska, biala (co 1 s), po 8 s sam wraca do `gotowa`.
+   `DELETE /plan` = zgas.
 5. Waznosc: gdy laptop-wlasciciel planu nie odezwie sie przez `wazny_s` sekund, ramka usuwa plan
    (zdarzenie `plan_wygasl`) i nic nie swieci. Laptop dostaje to zdarzenie i wysyla plan ponownie.
    Ramka poranna moze dostac dluzsze `wazny_s` (np. 600 s) - wtedy bez sieci pracuje dalej na

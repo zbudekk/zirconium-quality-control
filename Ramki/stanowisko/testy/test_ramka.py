@@ -695,6 +695,11 @@ def test_tryb_test_led_cala_matryca(kal):
         assert len(set(z.values())) == 1
         kolory.append(next(iter(z.values())))
     assert len(set(kolory)) == 4
+    # test LED konczy sie sam po 8 s (zerwana siec nie zostawia zapalonej calej matrycy)
+    assert len(log.obraz(18.5).zapalone()) < 64 * 64
+    log.kontakt(LAPTOP, 18.0)
+    log.tick(18.5)
+    assert log.tryb == "gotowa"
 
 
 # ----------------------------------------------------------------------------- K5: utrata sieci
