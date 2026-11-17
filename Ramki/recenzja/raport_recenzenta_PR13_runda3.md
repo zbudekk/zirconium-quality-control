@@ -1,0 +1,50 @@
+# Raport recenzenta PR #13 - runda 3 (przyrostowa)
+
+Data: 2026-11-17. Recenzent: swieza subsesja, niezalezna od wykonawcy i koordynatora; werdyktu nie znalem.
+Stan: `origin/przed-skanerem` @ `328de49`, zakres `git diff 4cd7c3e..328de49 -- Ramki/stanowisko` (6 plikow; pozniejsze
+`f0dde27`, `0c22262` zmieniaja tylko `00_NADZOR_STAN.md`). Podstawa: `recenzja/raport_recenzenta_PR13_runda2.md` i "Runda 2"
+w `raporty/PR13_poprawki_dzien_skanera_2026-11-17.md` (czytane jako twierdzenia). Czytane: caly diff kodu i testow + kontekst
+(`spakuj`, `sprawdz`, `kompletnosc_z_manifestu`, `_polecenie_reczne`, `Sesja.zapisz`). Uruchomione tylko na PC
+(`<PC-katalog>\app\r13c`, kod z `git archive 328de49`, ustawienia wzoru PC, `run.cmd` z limitem watkow, 1 proces python, start po
+koncu pelnego pytest, wolny RAM 15 GB): skrypt `proba_r3.py` (4 proby, < 1 min). Logi PC: `k2\pytest_328de49.log` =
+**439 passed, 3 skipped, 0 failed** (560 s; 434 + 5 nowych); `p2\ds_r2_czerwone.log` = 6 failed przed poprawka (5 nowych testow +
+rozszerzony test okna); `p2\ds_r2_koniec.log` = 76 passed. Na MSI nic nie uruchamiano.
+
+## Werdykt
+
+**do scalenia** - nowe uwagi: B 0 / P 0 / D 5.
+
+P-n1, D-n2, D-n3, D-n6, D-n7 zalatwione. Nie znalazlem sciezki, w ktorej stara paczka ginie albo miesza sie jednoczesnie bez
+komunikatu i bez wykrycia przez `--sprawdz` archiwum. Zostaja waskie przypadki zamiany czesci (zabicie procesu w oknie
+milisekund, druga awaria po `PaczkaNiespojna` - komunikat bywa wtedy zbyt optymistyczny, `--sprawdz` wykrywa) i kosmetyka.
+
+## Uwagi rundy 2 -> stan
+
+| Nr | Stan | Dowod |
+|---|---|---|
+| P-n1 | zalatwione | `manifest_bez_projektow` (`dzien_skanera_rdzen.py:2154`) nie tworzy juz tekstu JSON: `bez_nazw_projektow_w_danych` (`:2109-2118`) czysci kazdy napis i klucz osobno, wynik to struktura, wiec `json.dumps` nie moze zawiesc i `JSONDecodeError` nie ma skad sie wziac. Stan obserwatora: `json.loads` oryginalu w `try/except ValueError`, dalej struktura (`:2292-2296`). Wersja tekstowa zostala tylko dla logu (zwykly tekst, nikt go nie parsuje); raport idzie z `manifest_paczki`, takze nazwy z `nieskopiowane` w brakach raportu. Kolizja kluczy scala tylko wpisy juz zanonimizowane (`Zlec/A_cad.stl` i `Zlec/B_cad.stl` -> jeden klucz `Zlec/projekt_pominiety` w obserwatorze paczki) - bez skutku. **Uruchomione** (proba C): 3000 losowych napisow z `\n \r \t " \\n { ' NUL`, unicode i wariantami `_cad__N.stl` w kluczach i wartosciach -> 0 bledow JSON, 0 pozostalych nazw. Poza ZIP: `wynik["braki"]` liczone z `m_po` (nieoczyszczony) niesie do `paczka/paczka.json` do 3 nazw z `nieskopiowane` - w granicy znanego D-n4 (b). Skutek uboczny (ucinanie wiersza) - D-r3-3. |
+| D-n2 | zalatwione dla pojedynczej awarii | `:2370-2395`: najpierw WSZYSTKIE stare `<nazwa>*.zip` -> `*.zip.stara`, potem nowe; blad = usuniecie wstawionych nowych, powrot `.stara`, ten sam wyjatek; nieudane cofniecie albo pozostala `.stara` -> `PaczkaNiespojna` (okno "NIE wysylaj", znacznik, `zmieniono_po_spakowaniu`, sumy uniewaznione). Przeszedlem czytaniem: blad na 1. / srodkowej / ostatniej STAREJ czesci (Windows: stary ZIP otwarty w innym programie) - odlozone wracaja, stara cala; blad na 1. / srodkowej / ostatniej NOWEJ - nowe usuniete, stare wracaja; nowa paczka z mniejsza albo wieksza liczba czesci - stare odkladane po prefiksie, po sukcesie nie zostaje zadna obca czesc (to zamyka tez przypadek "inna liczba czesci" z rundy 2); blad przy cofaniu - `PaczkaNiespojna`, nastepne pakowanie przywraca `.stara` o wolnej nazwie; `*.zip.czesc` po zabiciu - kasowane jak dotad. Komunikat okna (`dzien_skanera.py:779-782`) zgodny ze stanem. Resztki: D-r3-1, D-r3-2 (uruchomione). |
+| D-n3 | zalatwione | Znacznik zdejmowany tylko w sciezce sukcesu (`:2263` kopia do paczki, `:2420` sesja); zapis w `except` (`:2440-2453`) z `_pakowanie = True`, wiec nie ustawia `zmieniono_po_spakowaniu`; w `manifest_paczki` i raporcie go nie ma (`m_po`); wszystkie odczyty przez `.get` (`Sesja.lista`, panel, pytanie startowe, `przywracaj`), `wznow` nie filtruje kluczy - stara sesja bez klucza otwiera sie. `stan_przed` ma stary znacznik po obu stronach porownania - udane ponowne pakowanie nie daje falszywego "zmieniona w trakcie". Drobiazg: po nieudanym ponownym pakowaniu NIEZMIENIONEJ sesji pytanie mowi "paczka nieaktualna", choc stara nadal jej odpowiada - kierunek ostrozny, bez uwagi. |
+| D-n6 | zalatwione | `:473-477`, `:924-926`: liczone tylko wpisy `kopia_folderu` ocenianego kroku. `juz_byly` liczy pliki tego samego kroku (`_polecenie_reczne:1632-1639`), wiec `juz + skopiowane <= len(kopie_kroku)`; warunek "pelna" jest ostrzejszy niz przed zmiana - falszywej "pelnej" nie da. "Niepelna" po recznym przeniesieniu pliku kopii do innego kroku nie jest trwala: ponowna kopia nie ma go w `mam` i kopiuje znowu. Test sprawdza obie strony i stan `w_toku`. |
+| D-n7 | zalatwione | Pole `nieskopiowane` (do 20), nazwy w komunikacie i w braku, instrukcja kroku 14 bez sprzecznosci (pkt 4-6: spakuj mimo to, po zamknieciu programu skanera kopia i pakowanie jeszcze raz). "Niepelna" zostaje tylko, gdy technik nie ponowi kopii - komunikat mowi to wprost. Kosmetyka - D-r3-4. |
+
+## Nowe uwagi
+
+| Nr | Waga | Plik:linia | Scenariusz (wejscie -> zly wynik) | Sprawdzone | Oczekiwane |
+|---|---|---|---|---|---|
+| D-r3-1 | D | `dzien_skanera_rdzen.py:2334-2347` (warunek `przywracaj`); zdanie wykonawcy "w paczka/ leza same *.zip.stara" | Paczka wieloczesciowa, program zabity w petli odkladania (`:2372-2375`) po 1. z n czesci: `cz1.zip.stara` + `cz2..n.zip`. Nastepne pakowanie widzi `*.zip`, znacznika nie ma -> `przywracaj` False -> `cz1.zip.stara` skasowana PRZED budowa; gdy to pakowanie padnie przed zamiana (brak miejsca, przerwanie), stara paczka nie ma cz1, a log i okno mowia "poprzednia paczka zostala bez zmian". Wykrywa `--sprawdz` archiwum (kod 1, "brakuje czesci"); `--sprawdz` folderu sesji nie (sumy sesji wazne). Ten sam warunek przywroci `.stara` sprzed dwoch pakowan, gdy jej skasowanie po sukcesie sie nie udalo, a ZIP-y przeniesiono z `paczka/` (czytaniem). | **Uruchomione** (proba A: 4 czesci; po nieudanym pakowaniu cz2-cz4 STARE, cz1 brak, `paczka_niespojna` False, log "zostaje bez zmian", `--sprawdz` folderu paczki = 1). | O przywracaniu decydowac po sladzie zapisanym przed zamiana (lista odkladanych czesci w pliku w `paczka/` albo w manifescie), nie po obecnosci `*.zip`; poprawic zdanie w raporcie wykonawcy. |
+| D-r3-2 | D | `dzien_skanera_rdzen.py:2342-2345` (`.stara` przy zajetej nazwie jest kasowana), `:2442` (znacznik nadpisywany) | Po `PaczkaNiespojna` z nowa cz1 zablokowana na miejscu (nie dalo sie jej usunac ani nadpisac): nowa cz1 + `cz1.zip.stara` + stare cz2..n. Nastepne pakowanie kasuje STARA `cz1.zip.stara` (nazwa zajeta) i gdy samo padnie przed zamiana, zapisuje `paczka_niespojna` False: okno pisze "poprzednia paczka ... zostala bez zmian", czerwone "niespojne" znika, a ZIP-y sa pomieszane. Zostaje "zmieniona po spakowaniu - spakuj ponownie", pytanie startowe "nieaktualna" i `--sprawdz` archiwum = 1. Wymaga dwoch awarii z rzedu. W druga strone (bez szkody): pozostala `.stara`, ktorej nie udalo sie skasowac wczesniej, albo udane nadpisanie po nieudanym `unlink` daja `PaczkaNiespojna` przy poprawnie przywroconej paczce. | **Uruchomione** (proba B: po trzecim pakowaniu cz1 NOWA, cz2-cz4 STARE, `.stara` brak, zdarzenie okna bez `paczka_niespojna`, `--sprawdz` = 1, 12 x "rozna tresc"). Falszywy alarm - czytaniem. | `paczka_niespojna` trzymac do udanego pakowania (`niespojna or poprzedni`); przy przywracaniu ze znacznikiem `os.replace(.stara, nazwa)` takze nad zajeta nazwa. |
+| D-r3-3 | D | `dzien_skanera_rdzen.py:2103` | Skutek uboczny P-n1: nazwa siega wstecz do poczatku wiersza (albo `/ \ " tab`), wiec w notatce w paczce znika tekst przed nazwa: "Skan powtorzony, bo plik X Y_cad.stl byl otwarty; dalej ok" -> "projekt_pominiety byl otwarty; dalej ok"; apostrof nie jest separatorem ("plik 'X Y_cad.stl' i ..." -> "projekt_pominiety' i ..."). Bez wycieku, tylko utrata tresci w kopii notatki (manifest sesji nietkniety); test deklaruje "reszta notatki zostaje", a sprawdza tylko inne wiersze. | **Uruchomione** (proba C). | Przyjac (nazwy maja spacje) i dopisac granice w opisie modulu; ewentualnie znacznik czytelny dla analityka. |
+| D-r3-4 | D | `dzien_skanera_rdzen.py:487-490` (`_nazwy_nieskopiowanych`) | Sesja zapisana przed ta runda (wpis kopii bez `nieskopiowane`) z `bledy` > 3: "nie udalo sie: 5 -  i 2 innych" (pusty poczatek listy; cytat bez znakow diakrytycznych). | **Uruchomione** (proba D). | Zwracac "", gdy brak nazw. |
+| D-r3-5 | D | `testy/test_dzien_skanera.py` (`test_blad_zamiany_czesci_archiwum_przywraca_stara_paczke`) | Test D-n2 nie obejmuje najczestszego przypadku w Windows - bledu przy ODKLADANIU starej czesci (stary ZIP otwarty w innym programie) - ani D-r3-1 / D-r3-2; kod tej galezi jest prosty, ale bez testu. Pozostale 4 nowe testy sprawdzaja to, co deklaruja (D-n3 cala sekwencja pytan startowych, D-n6 obie strony, D-n7 komunikat + brak + instrukcja); istniejacych nie oslabiono (testy: 182 linie dodane, 0 usunietych). | Czytaniem. | Dopisac wariant: `os.replace` pada na `*.zip` -> `*.zip.stara` przy 2. czesci -> stara paczka cala, zadnej `.stara`. |
+
+Higiena diffu: sciezek kont 0; nazwy w testach zmyslone; wszystkie 6 plikow LF jak dotad; polskie znaki tylko w komunikatach okna (jak dotad).
+
+## Czego NIE sprawdzilem
+
+- Prawdziwej blokady pliku w Windows (inny program, antywirus, synchronizacja) - tylko podstawione `os.replace` / `os.unlink`.
+- Prawdziwego zabicia procesu - stan po zabiciu odtworzony recznie (proba A; test wykonawcy dla paczki jednoczesciowej).
+- Okna na ekranie (panel, pytanie startowe, komunikat niespojnosci) - tylko czytanie i testy offscreen z pelnego pytest.
+- Zaniku zasilania w trakcie zamiany (trwalosc `os.replace` bez fsync) - poza zakresem.
+- "Czerwone przed" nowych testow - z logu wykonawcy `p2\ds_r2_czerwone.log`, sam na `4cd7c3e` nie uruchamialem.
+- Plikow spoza `Ramki/stanowisko`, karty dnia skanera i sciagi. Prawdziwych skanow nie bylo (decyzja z 15.11).
