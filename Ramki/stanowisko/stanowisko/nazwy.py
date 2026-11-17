@@ -6,7 +6,10 @@ wiodace usuwane (decyzja robocza 1: 3 = 03 = 003 -> "3", "0412" = "00412" -> "41
 byc z prawej sklejona z kodem literowym ("Nazwisko 1784PG" -> "1784"), ale nie z cyframi ("12345" -> nie kuweta) ani
 z literami z lewej ("PG1784" -> nie kuweta). Kropka i podkreslnik sa separatorami ("J.3263", "_88_"). Kandydatami NIE sa:
 - daty z poprawnymi zakresami (dzien 1-31, miesiac 1-12, rok 19xx / 20xx albo 2 cyfry): 2026-11-16, 2026_11_16, 16.11.2026,
-  16-11-26 - "3263_16_11_2026" to kuweta 3263 i data (wczesniej wzor bez zakresow zjadal numer kuwety);
+  16-11-26 - "3263_16_11_2026" to kuweta 3263 i data (wczesniej wzor bez zakresow zjadal numer kuwety); wyjatek (runda 3,
+  D19): lancuch z lacznikiem albo podkreslnikiem z rokiem sprzed ``ROK_DATY_MIN`` (2020), w ktorym dwie liczby po pierwszej
+  to numery zebow FDI, nie jest data, tylko numerem + zebami ("2012_11_21" -> kuweta 2012, most 11-21; "5-11-12" -> 5);
+  granica: "12-11-21" (most 12-11-21 albo kuweta 12 + 11-21) i rok od 2020 ("2021-11-21") - bez kuwety (licznik);
 - numery zebow FDI dopisane po numerze kuwety lacznikiem albo podkreslnikiem ("3263-24-25", "3263_24_25": kuweta 3263,
   zeby 24-25); sam lancuch numerow zebow ("24-25-26") to zeby, nie kuweta.
 "#1234" = zlecenie prywatne, kandydat "#1234" (numer zlecenia z maila - cyfry bez zmian). Ten sam numer kilka razy = jeden
@@ -29,6 +32,7 @@ from pathlib import PurePath
 
 KUWETA_BEZ_ZER = True  # decyzja robocza 1 (17.11.2026): zera wiodace usuwane, porownanie i pokazywanie bez zer
 KUWETA_MAX_CYFR = 4  # numer kuwety: do 4 cyfr znaczacych (1-9999)
+ROK_DATY_MIN = 2020  # D19: data z rokiem wczesniejszym i zebami FDI w miejscu miesiaca i dnia = numer kuwety + zeby
 NIEJEDNOZNACZNA = "?"  # poczatek oznaczenia kuwety niejednoznacznej: "?46,3263"
 PRYWATNE = "#"
 
@@ -71,6 +75,18 @@ class Zlecenie:
         return len(self.kandydaci) > 1
 
 
+def _bez_daty(m: re.Match) -> str:
+    """Data -> spacja. D19: lancuch bez kropek z rokiem sprzed ``ROK_DATY_MIN``, ktorego dwie ostatnie liczby to zeby FDI
+    ("2012_11_21", "5-11-12"), zostaje - to numer kuwety z zebami (rozbiera go ``_bez_zebow``), nie data zlecenia."""
+    tekst = m.group()
+    if "." not in tekst:
+        liczby = re.split(r"[-_]", tekst)
+        rok = int(liczby[0]) if len(liczby[0]) == 4 else int(liczby[2]) if len(liczby[2]) == 4 else 2000 + int(liczby[2])
+        if rok < ROK_DATY_MIN and liczby[1] in _ZEBY_FDI and liczby[2] in _ZEBY_FDI:
+            return tekst
+    return " "
+
+
 def _bez_zebow(m: re.Match) -> str:
     """Lancuch "3263-24-25": numery zebow FDI po pierwszej liczbie nie sa kandydatami; sam lancuch zebow ("24-25") tez nie."""
     liczby = re.split(r"[-_]", m.group())
@@ -81,7 +97,7 @@ def _bez_zebow(m: re.Match) -> str:
 
 def kandydaci_z_nazwy(folder: str) -> tuple[str, ...]:
     """Kandydaci na numer kuwety w nazwie folderu (w kolejnosci wystapienia, bez powtorzen): "3263", "41", "#1234"."""
-    tekst = _LANCUCH.sub(_bez_zebow, _DATA.sub(" ", nfc(folder)))
+    tekst = _LANCUCH.sub(_bez_zebow, _DATA.sub(_bez_daty, nfc(folder)))
     wynik: list[str] = []
     for m in _KANDYDAT.finditer(tekst):
         if m.group(1) is not None:
