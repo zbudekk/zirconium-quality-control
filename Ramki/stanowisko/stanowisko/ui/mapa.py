@@ -239,7 +239,7 @@ class MapaPlytki(QWidget):
             p.drawText(QRectF(srodek.x() - promien, srodek.y() - promien * 0.6, 2 * promien, promien * 1.2), int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
             return
         p.drawText(QRectF(srodek.x() - promien, srodek.y() - promien * 0.88, 2 * promien, promien * 0.6), int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
-        pol_szer = max(10.0, promien * 0.95 - 7)  # 7 px zapasu na obrys zaznaczonego gniazda
+        pol_szer = max(10.0, promien * 0.95 - 5)  # 5 px zapasu na obrys zaznaczonego gniazda
         pole = QRectF(srodek.x() - pol_szer, srodek.y() - promien * 0.3, 2 * pol_szer, promien * 0.9)
         flagi = int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap)
         for rozmiar in range(int(max(9, min(18, promien * 0.36))), 7, -1):  # najwiekszy napis, ktory miesci sie w gniezdzie

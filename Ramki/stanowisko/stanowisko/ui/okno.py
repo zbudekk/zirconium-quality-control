@@ -449,7 +449,7 @@ class OknoWieczor(QWidget):
 
     def _odswiez_uwagi(self, stan, plytka) -> None:
         """Pod paskiem stanu, nad lista plytek i mapa: wybor osoby, tekst odmowy spoza stanu, reczny numer plytki, otwarte pytania
-        pokazanej plytki (``stan.pytania``), jej komunikaty, komunikaty ogolne (od najnowszego; jednakowe razem)."""
+        pokazanej plytki (``stan.pytania``), jej komunikaty, komunikaty ogolne (bledy pierwsze, potem od najnowszego; jednakowe razem)."""
         pokaz_osobe = stan.wymaga_operatora or self._zmiana_osoby
         if not stan.operatorzy:
             teksty = [ST.tekst_komunikatu("pusta_lista_operatorow")[2]]
@@ -463,7 +463,8 @@ class OknoWieczor(QWidget):
                  and not any(q.rodzaj == "brak_numeru_plytki" for q in pytania))
         ogolne = [k for k in stan.komunikaty
                   if (k.skan_id is None or stan.plytka(k.skan_id) is None) and not (pokaz_osobe and k.rodzaj in SPRAWY_OSOBY)]
-        ogolne.sort(key=lambda k: -self._nr_komunikatow.get(k.id, 0))
+        # bledy przed reszta (np. trwaly blad zapisu nie chowa sie pod "i jeszcze n"), w kazdej grupie od najnowszego
+        ogolne.sort(key=lambda k: (0 if k.poziom == ST.POZIOM_BLAD else 1, -self._nr_komunikatow.get(k.id, 0)))
         grupy: dict = {}  # jednakowe komunikaty (ten sam rodzaj i tekst) jako jeden panel z licznikiem
         for k in ogolne:
             grupy.setdefault((k.rodzaj, k.poziom, k.tytul, k.tekst), []).append(k)

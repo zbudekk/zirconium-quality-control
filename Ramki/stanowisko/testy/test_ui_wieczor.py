@@ -1382,3 +1382,54 @@ def test_nowa_plytka_nie_zabiera_otwartej_pracy(atrapa, ekrany):
     assert e.okno.pokazana_plytka() == trzecia  # bez otwartej pracy ekran idzie za nowa plytka
     e.klik(f"plytka_{druga}")
     assert N.PLYTKA_NOWA not in e.tekst_elementu(f"plytka_{druga}")
+
+
+def test_nawigacja_lista_nastepna_poza_gniazdem_dwie_prace_i_wczesniejsze_zmiany(atrapa, ekrany, zegar):
+    """Drogi po ekranie: klikniecie pozycji listy pokazuje prace, N = nastepna praca do obejrzenia, praca poza gniazdem
+    i dwie prace w gniezdzie maja swoj widok, plytki wczesniejszej zmiany tej doby sa pod przyciskiem."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
+
+    atrapa.wybierz_operatora("Technik A")
+    pierwsza = atrapa.symuluj_skan("zwykla", numer=1)
+    atrapa.ukruszona(atrapa.stan().plytka(pierwsza).gniazdo(2).praca.praca_id)
+    druga = atrapa.symuluj_skan("do_powtorzenia", numer=2, gniazda={1: "zielony", 3: "podwojny"}, poza_gniazdem=1, projekty={1: 11, 3: 13})
+    e = ekrany(atrapa)
+    assert e.okno.pokazana_plytka() == druga
+    # praca poza gniazdem i dwie prace w jednym gniezdzie
+    e.klik("poza_0")
+    assert e.jest("widok_pracy") and e.w("praca_tytul").text() == N.PRACA_TYTUL_POZA
+    assert ST.STATUSY["poza_gniazdem"].opis in e.tekst_elementu("widok_pracy")
+    e.klik_gniazdo(3)
+    assert e.jest("przycisk_inna_praca") and e.w("przycisk_inna_praca").text() == N.PRACA_Z_DWOCH.format(nr=1, ile=2)
+    e.klik("przycisk_inna_praca")
+    assert e.w("przycisk_inna_praca").text() == N.PRACA_Z_DWOCH.format(nr=2, ile=2)
+    e.klik("przycisk_zamknij_prace")
+    assert not e.jest("widok_pracy")
+    # pozycja listy -> plytka i gniazdo tej pracy
+    tabela = e.w("tabela_dofrezowania")
+    QTest.mouseClick(tabela.viewport(), Qt.MouseButton.LeftButton, pos=tabela.visualItemRect(tabela.item(0, 0)).center())
+    e.odczekaj(20)
+    assert e.okno.pokazana_plytka() == pierwsza and e.jest("widok_pracy")
+    assert e.w("praca_tytul").text() == N.PRACA_TYTUL.format(gniazdo=2)
+    # N: kolejne prace bez decyzji, ktore nie sa zielone (3, 4, 5, 6, 7, 9), potem od poczatku
+    kolejne = []
+    for _ in range(7):
+        e.klawisz(Qt.Key.Key_N)
+        kolejne.append(e.w("praca_tytul").text())
+    assert kolejne == [N.PRACA_TYTUL.format(gniazdo=nr) for nr in (3, 4, 5, 6, 7, 9, 3)]
+    e.klawisz(Qt.Key.Key_Escape)
+    # nastepna zmiana tej samej doby: lista pokazuje plytki biezacej zmiany, wczesniejsze pod przyciskiem
+    zegar.przesun(4 * 60)
+    atrapa.przetworz()
+    atrapa.wybierz_operatora("Technik A")
+    trzecia = atrapa.symuluj_skan("czysta", numer=3, projekty={1: 21, 2: 22, 3: 23, 4: 24})
+    assert atrapa.stan().zmiana == 3 and e.plytki() == [trzecia]
+    assert e.w("przycisk_wczesniejsze").text() == N.WCZESNIEJSZE_POKAZ.format(n=2)
+    e.klik("przycisk_wczesniejsze")
+    assert e.plytki() == [pierwsza, druga, trzecia] and e.w("przycisk_wczesniejsze").text() == N.WCZESNIEJSZE_UKRYJ
+    e.klik("przycisk_wczesniejsze")
+    assert e.plytki() == [trzecia]
