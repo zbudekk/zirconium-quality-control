@@ -631,7 +631,7 @@ def _plytka_w_qt(skan: Path, folder_puli: Path) -> dict:
     lacznik.postep.connect(lambda nr, etap, udzial: stan["postep"].append((etap, udzial)))
     lacznik.wynik.connect(lambda nr, w: (stan.update(wynik=w, t_koniec=time.perf_counter()), petla.quit()))
     lacznik.blad.connect(lambda nr, rodzaj, tekst: (stan.update(blad=f"{rodzaj}: {tekst}"), petla.quit()))
-    QTimer.singleShot(int(PROG_PLYTKI_S * 1000) + 60000, petla.quit)
+    QTimer.singleShot(900_000, petla.quit)  # czekamy na wynik dluzej niz prog: przy przekroczeniu test ma podac zmierzony czas
     zegar.start()
     stan["ostatni"] = time.perf_counter()
     t0 = time.perf_counter()
@@ -653,10 +653,10 @@ def test_qt_offscreen_plytka_bez_zamrozenia_okna(plytki, wyniki_atrap):
     m = _plytka_w_qt(pliki["okragla_wieczorna"], proj)
     print(f"\n[kryterium 6, atrapy] plytka {m['czas_s']:.1f} s (prog testu {PROG_PLYTKI_S:.0f} s, kryterium 60 s), "
           f"najdluzsza przerwa petli Qt {m['przerwa_s'] * 1000:.0f} ms (prog testu {PROG_PRZERWY_S * 1000:.0f} ms, kryterium 200 ms), tykniec zegara {m['tykniec']}")
-    assert m["czas_s"] <= PROG_PLYTKI_S
     assert m["przerwa_s"] <= PROG_PRZERWY_S
     assert m["tykniec"] >= 20 and len(m["postep"]) >= 4  # petla okna naprawde pracowala w trakcie analizy
     _sprawdz_rownosc("okragla_wieczorna", cli["okragla_wieczorna"], m["wynik"], "atrapy, Qt")
+    assert m["czas_s"] <= PROG_PLYTKI_S
 
 
 # ----------------------------------------------------------------------------
@@ -682,8 +682,8 @@ def wyniki_ref(tmp_path_factory):
     t1 = time.time()
     sil, zdarzenia = _uruchom_silnik(skany, Path(PROJEKTY_REF))
     print(f"\n[kryterium 5, skany odniesienia] {', '.join(p.name for p in skany.values())}: wiersz polecen (4 procesy po kolei) {t1 - t0:.0f} s, "
-          f"silnik (po kolei) {time.time() - t1:.0f} s; czas plytki w silniku: "
-          + ", ".join(f"{t} {w['czas_s']['razem']} s" for t, w in sil.items()))
+          f"silnik (jeden proces, po kolei) {time.time() - t1:.0f} s; czas porownaj na plytke, wiersz polecen / silnik: "
+          + ", ".join(f"{t} {cli[t]['czas_s']['razem']} / {w['czas_s']['razem']} s" for t, w in sil.items()))
     return cli, sil
 
 
@@ -700,8 +700,10 @@ def test_skany_odniesienia_qt_offscreen(wyniki_ref):
     skany = _skany_ref()
     typ = os.environ.get("E3A2_TYP_QT", "wieczorna")
     m = _plytka_w_qt(skany[typ], Path(PROJEKTY_REF))
-    print(f"\n[kryterium 6, skan odniesienia {skany[typ].name}] plytka {m['czas_s']:.1f} s (prog testu {PROG_PLYTKI_S:.0f} s, kryterium 60 s), "
-          f"najdluzsza przerwa petli Qt {m['przerwa_s'] * 1000:.0f} ms (prog testu {PROG_PRZERWY_S * 1000:.0f} ms, kryterium 200 ms), tykniec zegara {m['tykniec']}")
-    assert m["czas_s"] <= PROG_PLYTKI_S
+    print(f"\n[kryterium 6, skan odniesienia {skany[typ].name}] plytka {m['czas_s']:.1f} s od zlecenia do wyniku, z zimnym startem procesu "
+          f"(prog testu {PROG_PLYTKI_S:.0f} s, kryterium 60 s; samo porownaj w silniku {m['wynik']['czas_s']['razem']} s, "
+          f"ten sam skan z wiersza polecen {cli[typ]['czas_s']['razem']} s), najdluzsza przerwa petli Qt {m['przerwa_s'] * 1000:.0f} ms "
+          f"(prog testu {PROG_PRZERWY_S * 1000:.0f} ms, kryterium 200 ms), tykniec zegara {m['tykniec']}")
     assert m["przerwa_s"] <= PROG_PRZERWY_S
     _sprawdz_rownosc(typ, cli[typ], m["wynik"], "skany odniesienia, Qt")
+    assert m["czas_s"] <= PROG_PLYTKI_S  # na koncu: czas zalezy od obciazenia komputera, pozostale warunki nie
