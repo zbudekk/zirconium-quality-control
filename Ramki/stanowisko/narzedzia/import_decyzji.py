@@ -9,8 +9,11 @@ Kazdy wiersz pliku staje sie jednym wierszem tabeli ``decyzje`` (``rodzaj`` = uk
 status ``import``, ``wersja_programu`` = "import decyzje.csv" i pusty ``tryb`` - nie sa aktywne i nie naleza do zadnej doby,
 wiec nie zmieniaja list ani stanu zlecen i nie przyjmuja decyzji. Plik zly w ktorymkolwiek wierszu nie jest importowany wcale.
 Ponowny import tego samego pliku nic nie dopisuje; gdy okno dopisalo nowe wiersze na koncu, importowane sa tylko one.
-Plik, ktory NIE jest przedluzeniem wczesniejszego importu (zmieniony wczesniejszy wiersz, inny plik), jest odrzucany -
-tabela ``decyzje`` jest tylko do dopisywania i dubli nie da sie usunac; swiadomy import calego takiego pliku: ``--wymus``.
+Plik, ktorego wszystkie wiersze sa juz w bazie (np. starsza kopia ``decyzje.csv``), daje "nic do zaimportowania" (kod 0).
+Plik, ktory NIE jest przedluzeniem OSTATNIEGO importu i ma wiersze, ktorych w bazie nie ma (zmieniony wczesniejszy wiersz,
+inny plik), jest odrzucany - tabela ``decyzje`` jest tylko do dopisywania i dubli nie da sie usunac; swiadomy import:
+``--wymus``, ktory dopisuje TYLKO wiersze, ktorych w bazie nie ma (wiersz identyczny z decyzja z importu - ten sam plik skanu,
+gniazdo, decyzja i czas - jest pomijany; liczone sztukami, wiec dwa identyczne wiersze pliku to dwie decyzje).
 
 Na stdout same liczby (bez nazw plikow skanow). Plik decyzji nie jest zmieniany ani usuwany.
 """
@@ -22,6 +25,7 @@ import datetime as dt
 import hashlib
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -78,25 +82,45 @@ def _skrot(wiersze: list[dict], n: int) -> str:
     return hashlib.sha256("\n".join(w["surowy"] for w in wiersze[:n]).encode("utf-8")).hexdigest()[:16]
 
 
-def importuj(baza: B.Baza, plik: Path, wymus: bool = False) -> dict:
-    """Importuje plik decyzji; zwraca liczniki: wiersze pliku, dopisane decyzje, nowe skany i prace, wiersze pominiete (zaimportowane wczesniej).
+def _brakujace(baza: B.Baza, wiersze: list[dict]) -> list[dict]:
+    """Wiersze pliku, ktorych nie ma jeszcze w bazie jako decyzji z importu: ten sam plik skanu, gniazdo, decyzja i czas (tyle baza
+    zapamietuje z wiersza). Liczone sztukami - dwa identyczne wiersze pliku (podwojne klikniecie w oknie) to dwie decyzje."""
+    w_bazie = Counter((w["plik"], w["gniazdo"], w["rodzaj"], w["czas"]) for w in baza.wiersze(
+        "SELECT s.plik, p.gniazdo, d.rodzaj, d.czas FROM decyzje d JOIN prace p ON p.id = d.praca_id JOIN skany s ON s.id = p.skan_id "
+        "WHERE d.operator = ? AND s.wersja_programu = ?", (OPERATOR_IMPORT, ZNACZNIK)))
+    brak = []
+    for w in wiersze:
+        klucz = (w["skan"], w["gniazdo"], w["decyzja"], w["czas"])
+        if w_bazie[klucz] > 0:
+            w_bazie[klucz] -= 1
+        else:
+            brak.append(w)
+    return brak
 
-    Gdy w bazie jest juz import, plik musi byc przedluzeniem OSTATNIEGO importu (zaczynac sie od wszystkich jego wierszy);
-    inaczej ``BladImportu`` (chyba ze ``wymus``: wtedy caly plik jest dopisywany).
+
+def importuj(baza: B.Baza, plik: Path, wymus: bool = False) -> dict:
+    """Importuje plik decyzji; zwraca liczniki: wiersze pliku, dopisane decyzje, nowe skany i prace, wiersze pominiete (juz w bazie).
+
+    Gdy w bazie jest juz import: przedluzenie OSTATNIEGO importu (plik zaczyna sie od wszystkich jego wierszy) = dopisywane sa
+    nowe wiersze z konca. Inny plik: gdy wszystkie jego wiersze sa juz w bazie - nic do zaimportowania (``decyzje`` = 0,
+    ``pominiete`` = ``wiersze``); gdy czegos brakuje - ``BladImportu``, chyba ze ``wymus``: wtedy dopisywane sa tylko wiersze,
+    ktorych w bazie nie ma (``_brakujace``), identyczne sa pomijane.
     """
     wiersze = wczytaj(plik)
-    pominiete = 0
+    nowe = wiersze
     wczesniejsze = baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'import_decyzji' ORDER BY id")
     if wczesniejsze:
         ostatni = json.loads(wczesniejsze[-1]["dane"])
         n = int(ostatni.get("wiersze", 0))
         if n <= len(wiersze) and ostatni.get("skrot") == _skrot(wiersze, n):
-            pominiete = n  # poczatek pliku (caly ostatni import) jest juz w bazie
-        elif wiersze and not wymus:
-            raise BladImportu(f"{Path(plik).name}: plik nie jest przedluzeniem ostatniego importu ({n} wierszy; importow w bazie: {len(wczesniejsze)}) - "
-                              f"dopisanie zdublowaloby decyzje, ktorych nie da sie usunac; swiadomy import calosci: --wymus")
-    wynik = {"wiersze": len(wiersze), "decyzje": 0, "skany": 0, "prace": 0, "pominiete": pominiete}
-    nowe = wiersze[pominiete:]
+            nowe = wiersze[n:]  # poczatek pliku (caly ostatni import) jest juz w bazie
+        else:
+            nowe = _brakujace(baza, wiersze)
+            if nowe and not wymus:
+                raise BladImportu(f"{Path(plik).name}: plik nie jest przedluzeniem ostatniego importu ({n} wierszy; importow w bazie: {len(wczesniejsze)}), "
+                                  f"a {len(nowe)} z {len(wiersze)} wierszy nie ma w bazie (zmieniony wiersz albo inny plik) - dopisanie moze zdublowac "
+                                  f"decyzje, ktorych nie da sie usunac; swiadomy import tylko brakujacych wierszy: --wymus")
+    wynik = {"wiersze": len(wiersze), "decyzje": 0, "skany": 0, "prace": 0, "pominiete": len(wiersze) - len(nowe)}
     if not nowe:
         return wynik
     with baza.transakcja():
@@ -126,7 +150,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--plik", type=Path, default=None, help="plik decyzji okna testowego (domyslnie dane/decyzje.csv w katalogu programu)")
     ap.add_argument("--baza", type=Path, default=None, help="plik bazy (domyslnie [sciezki] baza z ustawienia.toml)")
-    ap.add_argument("--wymus", action="store_true", help="importuj caly plik, choc nie jest przedluzeniem wczesniejszego importu (dubluje decyzje)")
+    ap.add_argument("--wymus", action="store_true", help="importuj plik, choc nie jest przedluzeniem ostatniego importu: dopisuje tylko wiersze, "
+                                                         "ktorych nie ma w bazie (identyczne pomija)")
     a = ap.parse_args(argv)
     from stanowisko import ustawienia as UST
 
@@ -141,6 +166,9 @@ def main(argv: list[str] | None = None) -> int:
     except (BladImportu, B.BladBazy, UST.BladUstawien, FileNotFoundError) as e:
         print(f"import nieudany, niczego nie dopisano: {e}", file=sys.stderr)
         return 1
+    if r["decyzje"] == 0 and r["pominiete"] == r["wiersze"]:
+        print(f"{plik.name}: nic do zaimportowania - wszystkie wiersze pliku ({r['wiersze']}) sa juz w bazie; baza: {sciezka}")
+        return 0
     print(f"{plik.name}: {r['wiersze']} wierszy w pliku, zaimportowano {r['decyzje']} decyzji ({r['skany']} nowych skanow, {r['prace']} nowych prac), "
           f"pominieto {r['pominiete']} wierszy zaimportowanych wczesniej; baza: {sciezka}")
     return 0
