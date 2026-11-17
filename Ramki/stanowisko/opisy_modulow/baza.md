@@ -1,0 +1,24 @@
+# baza - plik SQLite stanowiska (E3-A1, 17.11.2026)
+
+**Co robi.** Zaklada i otwiera lokalna baze programu (`stanowisko/baza.py`): schemat z planu etapu 3, sekcja 3.4 (11 tabel, jeden plik - decyzje wlasciciela DW1 i DW2 z 17.11.2026), migracje schematu z kopia pliku, zrzut stanu i kopia na zyczenie. Tylko biblioteka standardowa (`sqlite3`), zadnych nowych zaleznosci. Baze pisze jeden proces (proces okna przez `session`); narzedzia i raporty otwieraja ja do odczytu.
+
+**Wejscie.** Sciezka pliku: `[sciezki] baza` z `ustawienia.toml` (domyslnie `dane/stanowisko.sqlite`; sciezka wzgledna liczona od katalogu programu - `baza.sciezka_bazy(ust)`). Plik lezy poza repozytorium (`dane/` i `*.sqlite` sa w `.gitignore`) i ma lezec poza OneDrive.
+
+**Wyjscie / API.**
+- `otworz(plik, tylko_odczyt=False)` -> `Baza`. Nowy plik: zalozenie schematu. Plik starszy: kopia pliku, potem migracja. Plik nowszy niz program, plik niebedacy baza, nieudana migracja: `BladBazy` z komunikatem dla czlowieka, plik bez zmian. `tylko_odczyt=True`: nic nie zaklada i nie migruje.
+- `Baza`: `wstaw(tabela, **kolumny)` (nazwy sprawdzane ze schematem), `wiersze(sql, parametry)`, `wiersz(...)`, `wykonaj(...)`, `transakcja()` (calosc albo nic; zagniezdzona nalezy do zewnetrznej), `zdarzenie(zrodlo, typ, dane, skan_id)` (dziennik), `zrzut(tabele=None)` (tabela -> wiersze, do porownania stanu przed i po restarcie), `kopia(cel)` (spojna kopia przy otwartym polaczeniu), `wersja()`, `zamknij()`; pola `plik`, `kopia_przed_migracja`, `zmigrowano`.
+- Stale: `TABELE` (11 nazw), `TABELE_Z_NAZWA_FOLDERU` (`zlecenia`, `excel_zapisy`), `MIGRACJE`, `WERSJA_SCHEMATU` (= 1).
+
+**Tabele (kolumny dokladnie wg sekcji 3.4 planu).** `zlecenia` (folder zlecenia, kuweta), `projekty` (plik STL zlecenia = punkt pracy, `sha16`), `cechy_stl`, `frezowania` (krazek, wspolczynnik), `skany`, `prace` (jedno gniazdo jednego skanu), `decyzje` (tylko dopisywanie), `sesje_pieca`, `stan_punktow`, `excel_zapisy`, `zdarzenia` (dziennik, tylko dopisywanie). E3-A1 wypelnia `skany`, `prace`, `decyzje`, `stan_punktow` (czesc wieczorna) i `zdarzenia`; pozostale tabele sa zalozone dla kolejnych paczek (indeks A4, pula A5, poranek A6, Excel A9).
+
+**Migracje.** Wersja schematu = `PRAGMA user_version`. Nowa wersja: dopisac `MIGRACJE[n] = (polecenia SQL...)` i podniesc `WERSJA_SCHEMATU`; przejscie idzie wersja po wersji, kazda w jednej transakcji (blad = baza zostaje w poprzedniej wersji). Przed pierwsza migracja istniejacego pliku powstaje kopia `<nazwa>.kopia_v<stara wersja>_<RRRRMMDD_GGMMSS>.sqlite` obok bazy, a w `zdarzenia` wpis `system / migracja`. Kazda zmiana schematu to zmiana modelu danych: najpierw opis dla wlasciciela (plan, DW1).
+
+**Kryterium "dziala".** `testy/test_baza.py` (20 testow): 11 tabel i kolumny rowne tabeli z sekcji 3.4, indeksy i unikaty, klucze obce, `decyzje` i `zdarzenia` nie daja sie zmienic ani usunac, statusy przyjmuja dowolny tekst, zrzut po zamknieciu i otwarciu identyczny (kryterium 5), migracja 0 -> 1 i 1 -> 3 z kopia pliku, baza nowsza niz program = odmowa bez zmiany pliku, nieudana migracja cofnieta w calosci (kryterium 7), kolumny z nazwa folderu tylko w `zlecenia` i `excel_zapisy` (kryterium 8).
+
+**Zalozenia i granice.**
+- Sekcja 3.4 nie podaje typow kolumn. Przyjete: czasy jako tekst ISO czasu lokalnego do sekundy (`2026-11-17T19:02:11`), flagi 0 / 1, `zeby` jako tekst `26-27`, `kuweta` jako tekst, `miniatura` jako BLOB, statusy i rodzaje jako tekst bez listy zamknietej (nowy status nie wymaga migracji).
+- Dane osobowe: nazwa folderu zlecenia jest tylko w `zlecenia.folder`, `zlecenia.folder_norm` i `excel_zapisy.folder`. Sekcja 3.4 ma tez kolumny z NAZWAMI PLIKOW: `projekty.plik`, `frezowania.plik_w_raporcie`, `frezowania.raport_plik` - nazwy plikow STL zlecen zawieraja nazwiska, wiec to miejsce poza dwiema tabelami. Kolumny sa zalozone zgodnie z planem, kod E3-A1 do nich nie pisze; czy tak zostaje - punkt "do decyzji wlasciciela" w `raporty/E3-A1_2026-11-17.md`.
+- `Baza.zrzut()` zwraca tez `zlecenia.folder` - nie zapisywac go do logow ani raportow. Kopia bazy dla programistow musi byc bez kolumn z nazwami (narzedzia jeszcze nie ma).
+- Tryb dziennika SQLite domyslny (jeden plik, bez plikow `-wal`); jeden proces piszacy. Baza zajeta przez inny proces: 5 s czekania, potem blad `sqlite3.OperationalError` - komunikat dla technika nalezy do okna (A3).
+- Poza kluczem glownym i unikatami sa tylko indeksy wymienione w planie (`zlecenia.kuweta`, `projekty.sha16`); przy obecnej skali (kilkaset wierszy dziennie) wiecej nie trzeba - do zmierzenia w A10.
+- Nie ma jeszcze: usuwania starych skanow (DW4; klucz `[sesja] przechowuj_skany_dni` jest tylko zapisany), cyklicznej kopii zapasowej (A11), tabeli `testy_wykrywalnosci` (A10, migracja do wersji 2), kontroli, czy plik bazy nie lezy w folderze OneDrive (samokontrola, A11).
