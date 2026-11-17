@@ -554,7 +554,13 @@ class KontrolerSesji(Kontroler):
         """Stan od nowa z bazy + sygnaly: ``stan``, potem ``komunikat`` / ``pytanie`` dla kazdej nowej pozycji."""
         if self._zamkniety:
             return self.stan()
-        self._stan = stan = self._zbuduj()
+        try:
+            self._stan = stan = self._zbuduj()
+        except B.BladBazy:  # baza zajeta przez inny program: zostaje poprzedni stan, nastepne odswiezenie go nadrobi
+            LOG.warning("kontroler: baza zajeta - stan nie zostal odswiezony")
+            if self._stan is None:
+                raise
+            return self._stan
         self._powiadom("stan", stan=stan)
         for k in stan.komunikaty:
             if k.id not in self._ogloszone:

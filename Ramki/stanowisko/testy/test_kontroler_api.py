@@ -202,8 +202,8 @@ class StanowiskoAplikacji(Stanowisko):
         self.ust = parametry.pop("ust", None) or ustawienia_probne(tmp_path)
         self.atrapa_startu = SC.AtrapaStartuSkanu()
         self._nr = len(list(self.eksport.rglob("*.stl")))
-        self.k = AP.Aplikacja(self.ust, zegar=self.zegar, funkcja_analizy=FUNKCJA_SZTUCZNA, start_skanu=self.atrapa_startu,
-                              parametry_scannera=PARAMETRY_SCANNERA, **parametry)
+        self.k = AP.Aplikacja(self.ust, **{"zegar": self.zegar, "funkcja_analizy": FUNKCJA_SZTUCZNA, "start_skanu": self.atrapa_startu,
+                                           "parametry_scannera": PARAMETRY_SCANNERA, **parametry})
         self.k.subskrybuj(self.odbierz)
         self.k.start()
         K.indeks_sztuczny(self.k.sesja.baza, self.k.sesja.teraz())

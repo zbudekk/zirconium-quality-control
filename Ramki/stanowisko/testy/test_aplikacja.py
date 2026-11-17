@@ -477,6 +477,67 @@ def test_plik_odrzucony_i_plik_zajety_w_stanie(stanowiska):
     assert not [k for k in st.stan().komunikaty if k.rodzaj == "plik_zajety"] and st.stan().skaner.zajete == 0
 
 
+def test_silnik_nie_startuje_skan_czeka_i_wraca_po_restarcie(stanowiska):
+    """Proces analizy nie umie wystartowac (brak pakietu, zly plik): skan NIE dostaje bledu - czeka, technik widzi komunikat,
+    a po zamknieciu i poprawnym starcie programu skan jest policzony (nic nie ginie)."""
+    st = stanowiska(funkcja_analizy="nie_ma_takiego_modulu_analizy:funkcja")
+    st.zapisz({"gniazda": {1: "zielony", 2: "czerwony"}, "numer": 1})
+    st.czekaj(lambda: any(k.rodzaj == "silnik_nie_startuje" for k in st.stan().komunikaty), 90.0, "komunikat o silniku")
+    s = st.stan()
+    assert s.plytki == () and s.kolejka.wstrzymane == 1 and not s.kolejka.silnik_gotowy and skany_w_bazie(st) == []
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 2, "projekty": {1: 12}})  # kolejne skany tez czekaja
+    st.czekaj(lambda: st.stan().kolejka.wstrzymane == 2, 30.0, "drugi skan wstrzymany")
+    assert st.k.zamknij().dane == 2
+
+    st2 = stanowiska()  # program uruchomiony ponownie z dzialajaca analiza
+    st2.czekaj(lambda: len(st2.stan().plytki) == 2 and st2.stan().kolejka.razem == 0, 90.0, "skany policzone po restarcie")
+    assert [p.numer for p in st2.stan().plytki] == [1, 2] and {s["status"] for s in skany_w_bazie(st2)} == {"przyjety"}
+    assert not [k for k in st2.stan().komunikaty if k.rodzaj == "silnik_nie_startuje"]
+
+
+def test_folder_skanera_pojawia_sie_pozniej(tmp_path):
+    """Folderu skanera nie ma przy starcie (dysk niepodlaczony): komunikat w stanie; gdy folder sie pojawi - komunikat znika,
+    a skan zapisany potem jest analizowany."""
+    from stanowisko import aplikacja as AP
+
+    TK.pula_probna(tmp_path)
+    k = AP.Aplikacja(TK.ustawienia_probne(tmp_path), funkcja_analizy=TK.FUNKCJA_SZTUCZNA, parametry_scannera=TK.PARAMETRY_SCANNERA)
+
+    def czekaj(warunek, co: str, limit_s: float = 60.0) -> None:
+        koniec = time.monotonic() + limit_s
+        while not warunek():
+            k.przetworz()
+            assert time.monotonic() < koniec, f"nie doczekalem sie: {co}; komunikaty {[x.rodzaj for x in k.stan().komunikaty]}"
+            time.sleep(0.02)
+
+    try:
+        k.start()
+        czekaj(lambda: any(x.rodzaj == "folder_skanera_niedostepny" for x in k.stan().komunikaty), "komunikat o braku folderu")
+        assert not k.stan().skaner.dostepny and k.stan().skaner.dziala
+        (tmp_path / "eksport").mkdir()
+        czekaj(lambda: k.stan().skaner.dostepny and not [x for x in k.stan().komunikaty if x.rodzaj == "folder_skanera_niedostepny"], "folder widoczny")
+        (tmp_path / "eksport" / "skan_po_podlaczeniu.stl").write_bytes(TK.plik_skanu({"gniazda": {1: "zielony"}, "numer": 1}))
+        czekaj(lambda: len(k.stan().plytki) == 1, "skan z folderu, ktory pojawil sie pozniej")
+        assert k.stan().plytki[0].status == "przyjety"
+    finally:
+        k.zamknij()
+
+
+def test_odrzucona_propozycja_ponownego_skanu_nie_wraca_po_restarcie(stanowiska):
+    st = stanowiska()
+    assert st.k.wybierz_operatora("Technik A")
+    pierwszy, drugi = st.wrzuc("czysta", numer=3), st.wrzuc("czysta", numer=3)
+    assert [q.rodzaj for q in st.stan().pytania] == ["ponowny_skan"] and st.k.odrzuc_ponowny_skan(drugi) and st.stan().pytania == ()
+    st.k.zamknij()
+    st2 = stanowiska()
+    s = st2.stan()
+    assert len(s.plytki) == 2 and s.pytania == () and s.plytka(drugi).moze_zastapic == pierwszy  # propozycja jest, pytanie nie wraca
+    wpis = st2.k.sesja.baza.wiersz("SELECT dane, skan_id FROM zdarzenia WHERE typ = 'ponowny_skan_odrzucony'")
+    assert wpis["skan_id"] == drugi and json.loads(wpis["dane"]) == {"operator": "Technik A", "poprzedni_id": pierwszy}
+    assert st2.k.wybierz_operatora("Technik B") and st2.k.potwierdz_ponowny_skan(drugi)  # zmiana zdania: zastapienie wprost nadal dziala
+    assert st2.stan().plytka(pierwszy).status == "zastapiony"
+
+
 # ----------------------------------------------------------------------------
 # (i) nazwy zlecen nie wychodza poza 4 tabele
 # ----------------------------------------------------------------------------

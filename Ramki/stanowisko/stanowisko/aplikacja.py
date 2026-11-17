@@ -360,14 +360,14 @@ class Aplikacja(K.KontrolerSesji):
                 pass
             else:
                 bylo = True
-                zmiany.add(self._zdarzenie_silnika(e))
+                zmiany.add(self._bezpiecznie(self._zdarzenie_silnika, e))
             try:
                 rodzaj, dane = self._skrzynka.get_nowait()
             except queue.Empty:
                 pass
             else:
                 bylo = True
-                zmiany.add(self._zdarzenie_skrzynki(rodzaj, dane))
+                zmiany.add(self._bezpiecznie(self._zdarzenie_skrzynki, rodzaj, dane))
             if not bylo:
                 break
             obsluzone += 1
@@ -383,6 +383,15 @@ class Aplikacja(K.KontrolerSesji):
         elif "postep" in zmiany:
             self._odswiez_zywe("postep")
         return obsluzone
+
+    def _bezpiecznie(self, funkcja: Callable[..., str], *argumenty: Any) -> str:
+        """Blad obslugi jednego zdarzenia nie zatrzymuje programu: wpis w logu i nastepne zdarzenie. Skan, ktorego zdarzenia
+        nie udalo sie obsluzyc, nie ma wyniku w bazie, wiec wroci przez nadrabianie po nastepnym starcie."""
+        try:
+            return funkcja(*argumenty)
+        except Exception:  # noqa: BLE001
+            LOG.exception("stanowisko: blad obslugi zdarzenia (%s)", funkcja.__name__)
+            return "stan"
 
     def _kontrola_skanera(self) -> str:
         """Zmiany stanu obserwatora, o ktorych nie ma zdarzen: folder zniknal / wrocil, pliki zajete zostaly zwolnione."""
