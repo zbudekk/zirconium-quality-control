@@ -8,7 +8,7 @@ To NIE jest opis prawdziwego skanera: nazwy plikow (``--wzor-nazwy``), sposob za
 Uzycie (z katalogu stanowisko/):
     py -3.12 narzedzia/symulator_skanera.py --folder FOLDER [--zrodla SKAN.stl|KATALOG ...] [--ile N] [--czas 1 5]
         [--kawalki 5 20] [--rownolegle 4] [--odstep 0] [--zle uciety pusty ...] [--seed 0] [--wzor-nazwy "skan_{nr:04d}.stl"]
-        [--tryb wprost|dopisywanie|tymczasowy] [--dziennik PLIK.json]
+        [--tryb wprost|dopisywanie|tymczasowy|wylaczny] [--dziennik PLIK.json]
         [--pomiar [--stabilizacja-ms 300] [--odrzuc-po 5]]                 obserwuj folder modulem scanner i policz opoznienia
         [--analiza --projekty FOLDER ... [--wyjscie FOLDER] [--ustawienia PLIK]]   dodatkowo analizuj kazdy skan silnikiem
 
@@ -16,7 +16,9 @@ Bez ``--zrodla`` symulator sam tworzy male poprawne pliki binarnego STL (losowe 
 nie do analizy). Z ``--pomiar`` wypisuje liczniki (zdarzen / zapisow, ile zdarzen przed koncem zapisu, mediana opoznienia,
 odrzucenia z powodami) i konczy kodem 0 tylko wtedy, gdy kazdy dobry plik dal dokladnie jedno zdarzenie po koncu zapisu,
 a kazdy zly - zero zdarzen i wpis z powodem. Z ``--analiza`` dochodza wyniki silnika (czas od konca zapisu do startu
-analizy, czas plytki, statusy gniazd) i pliki ``<skan>_wynik.json`` w ``--wyjscie``.
+analizy, czas plytki, statusy gniazd) i pliki ``<czas>_<sha16>_<skan>_wynik.json`` w ``--wyjscie``. ``--tryb wylaczny``
+(tylko Windows) zapisuje plik bez zgody na wspoldzielenie - obserwator czeka wtedy na zwolnienie pliku (``Oczekiwanie``
+po 10 s, liczone w ``--pomiar``).
 
 Funkcje dla testow: ``sztuczny_stl``, ``zly_plik``, ``zapisz_jak_skaner``, ``symuluj``, ``statystyki``.
 """
@@ -38,7 +40,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 RODZAJE_ZLYCH = ("uciety", "pusty", "nie_stl", "zly_naglowek", "za_krotki", "stl_tekstowy", "inne_rozszerzenie")
-TRYBY = ("wprost", "dopisywanie", "tymczasowy")
+TRYBY = ("wprost", "dopisywanie", "tymczasowy", "wylaczny")
 BLOK = 1024 * 1024
 
 
@@ -96,11 +98,31 @@ def _kawalki(zrodlo, ile: int):
             yield blok
 
 
+def otworz_wylacznie(plik, zapis: bool):
+    """Windows: plik otwarty BEZ zgody na wspoldzielenie - dopoki uchwyt zyje, zaden inny program nie otworzy tego pliku
+    nawet do odczytu (tak domyslnie otwieraja pliki np. ``File.Create`` / ``File.OpenWrite`` w .NET; tak tez moze trzymac
+    plik podglad w programie skanera albo antywirus). ``zapis``: nowy plik do zapisu; inaczej istniejacy plik do odczytu."""
+    if os.name != "nt":
+        raise NotImplementedError("uchwyt wylaczny (bez wspoldzielenia) jest dostepny tylko na Windows")
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    k.CreateFileW.restype = wintypes.HANDLE
+    uchwyt = k.CreateFileW(str(plik), 0x40000000 if zapis else 0x80000000, 0, None, 2 if zapis else 3, 0, None)  # GENERIC_WRITE / READ; CREATE_ALWAYS / OPEN_EXISTING
+    if uchwyt is None or uchwyt == wintypes.HANDLE(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    return os.fdopen(msvcrt.open_osfhandle(uchwyt, (0 if zapis else os.O_RDONLY) | getattr(os, "O_BINARY", 0)), "wb" if zapis else "rb")
+
+
 def zapisz_jak_skaner(zrodlo, cel, czas_s: float = 1.0, kawalki: int = 10, tryb: str = "wprost", trzymaj_s: float = 0.0) -> dict:
     """Zapisuje ``zrodlo`` (``bytes`` albo sciezka pliku) do ``cel`` w ``kawalki`` czesciach rozlozonych na ``czas_s`` sekund.
 
     ``tryb``: ``wprost`` - plik otwarty przez caly zapis; ``dopisywanie`` - plik zamykany po kazdym kawalku;
-    ``tymczasowy`` - zapis do ``<cel>.tmp`` i zmiana nazwy na koncu. ``trzymaj_s``: tyle po ostatnim kawalku plik jest
+    ``tymczasowy`` - zapis do ``<cel>.tmp`` i zmiana nazwy na koncu; ``wylaczny`` - jak ``wprost``, ale plik otwarty bez zgody
+    na wspoldzielenie (``otworz_wylacznie``; tylko Windows). ``trzymaj_s``: tyle po ostatnim kawalku plik jest
     jeszcze trzymany otwarty. Zwraca opis zapisu: ``plik``, ``start``, ``koniec`` (time.time() PO zamknieciu pliku), ``rozmiar``,
     ``sha16``, ``mtime_ns``.
     """
@@ -126,7 +148,7 @@ def zapisz_jak_skaner(zrodlo, cel, czas_s: float = 1.0, kawalki: int = 10, tryb:
             cel.write_bytes(b"")
     else:
         roboczy = cel.with_name(cel.name + ".tmp") if tryb == "tymczasowy" else cel
-        with open(roboczy, "wb") as f:
+        with (otworz_wylacznie(roboczy, zapis=True) if tryb == "wylaczny" else open(roboczy, "wb")) as f:
             if kawalki == 1:
                 time.sleep(przerwa)
             for i, blok in enumerate(czesci):
@@ -265,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--czekaj", type=float, default=60.0, help="ile najdluzej czekac na zdarzenia po ostatnim zapisie, s")
     ap.add_argument("--analiza", action="store_true", help="analizuj kazdy zgloszony skan silnikiem (wymaga --projekty)")
     ap.add_argument("--projekty", type=Path, nargs="+", default=[], help="folder(y) puli projektow dla --analiza")
-    ap.add_argument("--wyjscie", type=Path, default=None, help="folder na <skan>_wynik.json z silnika")
+    ap.add_argument("--wyjscie", type=Path, default=None, help="folder na <czas>_<sha16>_<skan>_wynik.json z silnika")
     ap.add_argument("--ustawienia", type=Path, default=None)
     ap.add_argument("--limit-analizy", type=float, default=3600.0, help="ile najdluzej czekac na wszystkie analizy, s")
     a = ap.parse_args(argv)
@@ -273,7 +295,7 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--analiza wymaga --projekty")
     zrodla = _zrodla_z_argumentow(a.zrodla, a.ile, a.trojkaty, a.seed)
     obserwuj = a.pomiar or a.analiza
-    skany, odrzucone, zdarzenia_silnika = [], [], []
+    skany, odrzucone, oczekiwania, zdarzenia_silnika = [], [], [], []
     zmiana = threading.Condition()
     sc = silnik = None
     if a.analiza:
@@ -308,7 +330,7 @@ def main(argv: list[str] | None = None) -> int:
         if a.odrzuc_po is not None:
             parametry["odrzuc_po_s"] = a.odrzuc_po
         a.folder.mkdir(parents=True, exist_ok=True)
-        sc = SC.Scanner(a.folder, na_skan=na_skan, na_odrzucenie=na_odrzucenie, **parametry)
+        sc = SC.Scanner(a.folder, na_skan=na_skan, na_odrzucenie=na_odrzucenie, na_oczekiwanie=oczekiwania.append, **parametry)
         sc.start()
     kod = 0
     wynik: dict = {}
@@ -327,6 +349,9 @@ def main(argv: list[str] | None = None) -> int:
             wynik["zdarzenia"] = [{"plik": Path(z.plik).name, "sha16": z.sha16, "rozmiar": z.rozmiar, "trojkaty": z.trojkaty, "czas_zdarzenia": z.czas_zdarzenia,
                                    "nr": z.nr, "ponowny": z.ponowny, "duplikat": z.duplikat} for z in skany]
             wynik["odrzucone"] = [{"plik": Path(o.plik).name, "powod": o.powod, "opis": o.opis, "rozmiar": o.rozmiar} for o in odrzucone]
+            wynik["oczekiwania"] = [{"plik": Path(o.plik).name, "od_s": o.od_s, "opis": o.opis} for o in list(oczekiwania)]
+            if oczekiwania:
+                print(f"informacji 'czeka na zwolnienie pliku': {len(oczekiwania)} (plikow {len({str(o.plik) for o in oczekiwania})})")
             print(f"zdarzen {st['zdarzen']} / {st['dobrych']}, przed koncem zapisu {st['przed_koncem']}, bez zdarzenia {len(st['bez_zdarzenia'])}, "
                   f"nadmiarowych {st['nadmiarowe']}, zly skrot {st['zly_skrot']}")
             if st["opoznienie_mediana_s"] is not None:
