@@ -243,7 +243,9 @@ def _waliduj(d: dict, plik: Path) -> dict:
     zmiany = d["sesja"]["zmiany_start_godz"]
     warunek(bool(zmiany) and all(_typ_zgodny(g, int) and 0 <= g <= 23 for g in zmiany) and zmiany == sorted(set(zmiany)),
             "sesja", "zmiany_start_godz", "niepusta lista rosnących godzin 0…23")
-    warunek(d["sesja"]["ponowny_skan_okno_min"] >= 0, "sesja", "ponowny_skan_okno_min", "musi być >= 0 (0 = nigdy nie proponować zastąpienia)")
+    warunek(zmiany[0] == d["sesja"]["granica_doby_godz"], "sesja", "zmiany_start_godz",
+            f"pierwsza zmiana musi zaczynać się o granicy doby (granica_doby_godz = {d['sesja']['granica_doby_godz']})")
+    warunek(d["sesja"]["ponowny_skan_okno_min"] > 0, "sesja", "ponowny_skan_okno_min", "musi być > 0 (minuty)")
     return d
 
 
@@ -260,6 +262,9 @@ def wczytaj_ustawienia(plik: Path | None = None) -> dict:
     except tomllib.TOMLDecodeError as e:
         raise BladUstawien(f"{plik.name}: błąd składni TOML: {e}") from e
     uzupelnij_domyslne(d)
+    osoby = d.get("sesja", {}).get("operatorzy") if isinstance(d.get("sesja"), dict) else None
+    if isinstance(osoby, list):  # nazwy osób bez białych znaków na końcach (inaczej osoby z listy nie da się wybrać)
+        d["sesja"]["operatorzy"] = [o.strip() if isinstance(o, str) else o for o in osoby]
     d = _waliduj(d, plik)
     uzupelnij_uklady_wbudowane(d)
     return d
