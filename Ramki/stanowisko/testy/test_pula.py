@@ -314,8 +314,8 @@ def test_csv_kodowanie_bom_crlf_puste_linie_spacje(tmp_path, kodowanie, bom):
 
 @pytest.mark.parametrize("wiersze, naglowek, linie, fragment", [
     ([f"{PLIK_A};K-1;1,22;2026-11-17"], "plik,krazek,wspolczynnik,data", [1], "srednik"),
-    ([f"{PLIK_A};K-1;1,22;2026-11-17"], None, [1], "naglowek"),
-    ([], "", [1], "naglowek"),
+    ([f"{PLIK_A};K-1;1,22;2026-11-17"], None, [1], "naglowka"),
+    ([], "", [1], "naglowka"),
     ([f"{PLIK_A};K-1;1,22;2026-11-17", f"{PLIK_B};K-1;1,22"], NAGLOWEK, [3], "4 pola"),
     ([f"{PLIK_A};K-1;1,22;2026-11-17", f"{PLIK_B};K-1;1,22;2026-11-17", f"{PLIK_C};K-1;1,2x;2026-11-17"], NAGLOWEK, [4], "liczba"),
     ([f"{PLIK_A};K-1;12,2;2026-11-17"], NAGLOWEK, [2], "zakres"),
