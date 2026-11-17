@@ -16,7 +16,8 @@ Zasady (plan: Z3, Z4, DW3; decyzje wlasciciela i koordynatora z 17.11.2026 po re
   ``Sesja.doba``, ``Sesja._przedzial_doby`` i ``Sesja.zmiana`` (bez kolumn w schemacie);
 - skan ma status ``przyjety``, ``do_powtorzenia`` (drgniecie, dwie prace w gniezdzie, praca poza gniazdem - zadna praca
   takiego skanu nie liczy sie jako zielona), ``niezgodny_uklad``, ``zastapiony`` albo ``blad``; decyzje przyjmuje tylko
-  praca skanu ``przyjety``;
+  praca skanu ``przyjety`` w trybie ``wieczor`` (skan ``rano`` jest przyjmowany do bazy, ale decyzje poranne obsluzy sesja
+  poranna - A6; do tego czasu prace skanow porannych nie zmieniaja ``stan_punktow`` ani listy);
 - plytka nie z tego trybu (poranna skanowana w trybie ``wieczor`` albo wieczorna w trybie ``rano``) = status
   ``plytka_nie_z_trybu``: skan nieaktywny jak ``niezgodny_uklad`` (0 zielonych, bez decyzji, poza listami, nie zastepuje
   i nie jest zastepowany), dopoki operator swiadomie go nie dopusci (``dopusc_plytke``; cofa ``cofnij_dopuszczenie``);
@@ -42,7 +43,7 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Any, Callable
 
 from . import baza as B
@@ -296,7 +297,8 @@ class Sesja:
 
         ``zdarzenie``: slownik albo obiekt z polami ``plik``, ``sha16``, ``rozmiar``, ``czas_pliku`` (kontrakt
         ``ZdarzenieSkanu`` z sekcji 3.8 planu). Skan nalezy do doby roboczej, w ktorej zostal przyjety (``czas_analizy`` = teraz).
-        Wynik jest zapisywany do ``katalog_wynikow`` bez ``foldery_projektow`` i bez sciezek w tekstach (``do_zapisu``).
+        Wynik jest zapisywany do ``katalog_wynikow`` bez ``foldery_projektow`` i bez sciezek w tekstach (``do_zapisu``), w pliku
+        ``<czas przyjecia>_<sha16 skanu>_wynik.json`` (bez nazwy pliku skanu; ta zostaje tylko w ``skany.plik``).
         Niczego nie zastepuje - ponowny skan plytki wymaga potwierdzenia (``zastap_skan``). Nie wymaga operatora.
         Plytka nie z tego trybu (poranna wieczorem albo wieczorna rano) = status ``plytka_nie_z_trybu``: skan nieaktywny,
         dopoki operator swiadomie go nie dopusci (``dopusc_plytke``).
@@ -332,7 +334,7 @@ class Sesja:
                 w_gniezdzie[g.get("gniazdo")] = w_gniezdzie.get(g.get("gniazdo"), 0) + 1
                 self._wstaw_prace(skan_id, g, w_gniezdzie[g.get("gniazdo")], wynik)
             if self.katalog_wynikow is not None:
-                self.baza.wykonaj("UPDATE skany SET wynik_json = ? WHERE id = ?", (self._zapisz_wynik(plik, wynik, teraz, sha16), skan_id))
+                self.baza.wykonaj("UPDATE skany SET wynik_json = ? WHERE id = ?", (self._zapisz_wynik(wynik, teraz, sha16), skan_id))
             self.baza.zdarzenie("silnik", "skan_przyjety", {"status": status, "prace": len(gniazda), "czas_s": (wynik.get("czas_s") or {}).get("razem")},
                                 skan_id=skan_id, czas=teraz)
             nowe = [k["sha16"] for k in self.konflikty(doba, tryb) if k["sha16"] not in przed]
@@ -402,18 +404,18 @@ class Sesja:
         w = self.baza.wiersze("SELECT id FROM frezowania WHERE projekt_id = ? ORDER BY id LIMIT 2", (projekt_id,))
         return w[0]["id"] if len(w) == 1 else None
 
-    def _zapisz_wynik(self, plik: Any, wynik: dict, czas: str, sha16: str | None) -> str:
+    def _zapisz_wynik(self, wynik: dict, czas: str, sha16: str | None) -> str:
         """Zapisuje wynik (``do_zapisu``) do ``katalog_wynikow``; zwraca sciezke do ``skany.wynik_json`` (wzgledna od folderu bazy, gdy sie da).
 
-        Nazwa pliku nie zalezy od numeracji bazy: ``<czas przyjecia>_<sha16 skanu>_<nazwa skanu>_wynik.json``. Istniejacego pliku
-        NIGDY nie nadpisuje ani nie usuwa (wyniki sa trzymane bezterminowo, takze po zalozeniu bazy od nowa albo przywroceniu
+        Nazwa pliku nie zalezy od numeracji bazy ani od nazwy pliku skanu: ``<czas przyjecia>_<sha16 skanu>_wynik.json`` (skaner moze
+        nazywac pliki wg zlecenia, a nazwa skanu wydluzala nazwe ponad 255 znakow - recenzja PR #16 runda 3, D1 i D2). Istniejacego
+        pliku NIGDY nie nadpisuje ani nie usuwa (wyniki sa trzymane bezterminowo, takze po zalozeniu bazy od nowa albo przywroceniu
         jej z kopii): gdy nazwa jest zajeta, dostaje przyrostek ``_2``, ``_3``... Plik powstaje przed zatwierdzeniem transakcji
         (blad zapisu wycofuje caly skan); po zabitym procesie moze zostac plik bez wiersza w bazie - wypisuje je ``osierocone_wyniki``.
         """
         self.katalog_wynikow.mkdir(parents=True, exist_ok=True)
-        rdzen = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", PureWindowsPath(str(plik)).stem) or "skan"
         skrot = re.sub(r"[^0-9A-Za-z]", "", str(sha16 or "")) or "bezskrotu"
-        podstawa = f"{dt.datetime.fromisoformat(czas):%Y%m%d_%H%M%S}_{skrot}_{rdzen}"
+        podstawa = f"{dt.datetime.fromisoformat(czas):%Y%m%d_%H%M%S}_{skrot}"
         tresc = json.dumps(do_zapisu(wynik), ensure_ascii=False, indent=1)
         nr = 1
         while True:
@@ -455,7 +457,7 @@ class Sesja:
         """Dopisuje decyzje technika i aktualizuje stan; zwraca ``decyzje.id``.
 
         Rodzaje obslugiwane wieczorem: ``ukruszona``, ``ok``, ``ukruszona_niewykryta`` (tryb cienia), ``cofniecie``
-        (dla ``praca_id``; tylko praca skanu ``przyjety``) oraz ``powtorz_skan``, ``cofnij_zastapienie``, ``numer_plytki``,
+        (dla ``praca_id``; tylko praca skanu ``przyjety`` w trybie ``wieczor`` - skan ``rano`` = ``BladSesji`` do A6) oraz ``powtorz_skan``, ``cofnij_zastapienie``, ``numer_plytki``,
         ``uklad`` z wartoscia ``dopusc_plytke_nie_z_trybu`` i jej ``cofniecie`` (dla ``skan_id``). Kazda decyzja wymaga operatora
         z listy; ``operator``: osoba inna niz wybrana na poczatku zmiany.
         """
@@ -645,7 +647,9 @@ class Sesja:
         return STATUS_DO_POWTORZENIA if n else STATUS_PRZYJETY
 
     def _praca_do_decyzji(self, praca_id: int | None) -> dict:
-        """Praca, o ktorej wolno zdecydowac: tylko ze skanu ``przyjety`` (nie: do powtorzenia, niezgodny uklad, blad, zastapiony, import)."""
+        """Praca, o ktorej wolno zdecydowac: tylko ze skanu ``przyjety`` (nie: do powtorzenia, niezgodny uklad, blad, zastapiony, import)
+        w trybie ``wieczor``. Skan poranny (``rano``) decyzji o pracach nie przyjmuje, dopoki nie powstanie sesja poranna (A6) - inaczej
+        "Ukruszona" rano przenosila punkt projektu na prace poranna i zab znikal z listy wieczoru (recenzja PR #16 runda 3, P1)."""
         praca = self.baza.wiersz("SELECT p.*, s.status AS status_skanu, s.tryb AS tryb_skanu FROM prace p JOIN skany s ON s.id = p.skan_id "
                                  "WHERE p.id = ?", (praca_id,))
         if praca is None:
@@ -657,6 +661,10 @@ class Sesja:
                     }.get(praca["status_skanu"], "ten skan nie nalezy do wieczoru")
             raise BladSesji(f"praca {praca_id}: skan {praca['skan_id']} ma status {praca['status_skanu']!r} - decyzje mozna podejmowac "
                             f"tylko na skanie przyjetym ({rada})")
+        if praca["tryb_skanu"] != TRYB_WIECZOR:
+            rada = "decyzje poranne obsluzy sesja poranna (paczka A6)" if praca["tryb_skanu"] == TRYB_RANO else "ten skan nie nalezy do wieczoru"
+            raise BladSesji(f"praca {praca_id}: skan {praca['skan_id']} ma tryb {praca['tryb_skanu']!r} - decyzje o pracach przyjmuje tylko skan "
+                            f"wieczorny; {rada}; stan wieczoru i lista do dofrezowania bez zmian")
         return praca
 
     def _decyzja_pracy(self, praca_id: int) -> dict | None:
@@ -745,32 +753,39 @@ class Sesja:
     def _odswiez_punkt(self, praca: dict, tryb: str | None, aktywna: bool = True) -> None:
         """Uzgadnia ``stan_punktow`` projektu pracy z jej obowiazujaca decyzja.
 
-        "Ukruszona" -> ``do_dofrezowania`` wskazujace te prace - nadpisuje KAZDY wczesniejszy stan punktu i zeruje
-        ``sesja_pieca_id`` (cykl zycia punktu rano ustali paczka A6). Gdy decyzja przestaje obowiazywac (cofniecie, "OK",
-        skan zastapiony), a punkt wskazywal te prace: przechodzi na inna prace tego projektu oznaczona jako ukruszona
-        w skanie aktywnym tego samego trybu, a gdy takiej nie ma - do ``oczekuje`` (poprzedni stan nie jest odtwarzany).
-        W tej galezi punktow w innych stanach albo wskazujacych inna prace nie rusza.
+        Punkt w stanie ``do_dofrezowania`` wskazuje zawsze prace z NAJNOWSZA (najwyzsze ``decyzje.id``) obowiazujaca "Ukruszona"
+        projektu w skanie wieczornym aktywnym (``_najnowsza_ukruszona``) - takze po cofnieciu zastapienia, ponownym dopuszczeniu
+        skanu i cofnieciu nowszej decyzji tej samej pracy (recenzja PR #16 runda 3, D5). Praca z obowiazujaca "Ukruszona" ->
+        ``do_dofrezowania`` - nadpisuje KAZDY wczesniejszy stan punktu i zeruje ``sesja_pieca_id`` (cykl zycia punktu rano ustali
+        paczka A6). Gdy decyzja przestaje obowiazywac (cofniecie, "OK", skan zastapiony albo zablokowany), a punkt wskazywal te
+        prace: przechodzi na najnowsza inna ukruszona prace projektu, a gdy takiej nie ma - do ``oczekuje`` (poprzedni stan nie jest
+        odtwarzany). W tej galezi punktow w innych stanach albo wskazujacych inna prace nie rusza.
+        Prace skanow innego trybu niz ``wieczor`` (``rano`` - do A6, import okna testowego) punktow nie ruszaja (P1).
         """
         projekt_id = praca["projekt_id"]
-        if projekt_id is None:
+        if projekt_id is None or tryb != TRYB_WIECZOR:
             return
         decyzja = self._decyzja_pracy(praca["id"]) if aktywna else None
-        if decyzja is not None and decyzja["rodzaj"] in DECYZJE_UKRUSZENIA:
-            self._ustaw_punkt(projekt_id, STAN_DO_DOFREZOWANIA, praca["id"], decyzja["czas"])
-            return
-        punkt = self.baza.wiersz("SELECT * FROM stan_punktow WHERE projekt_id = ?", (projekt_id,))
-        if punkt is None or punkt["stan"] != STAN_DO_DOFREZOWANIA or punkt["praca_id"] != praca["id"]:
-            return
-        inne = self.baza.wiersze(  # tylko skany aktywne tego samego trybu: decyzje z importu okna testowego (bez trybu) sie nie licza
-            f"SELECT p.id, p.skan_id FROM prace p JOIN skany s ON s.id = p.skan_id WHERE p.projekt_id = ? AND p.id <> ? "
-            f"AND s.tryb = ? AND s.status IN ({_znaki(len(STATUSY_AKTYWNE))})", (projekt_id, praca["id"], tryb, *STATUSY_AKTYWNE))
-        decyzje = self._decyzje_skanow(sorted({w["skan_id"] for w in inne}))
-        ukruszone = [decyzje[w["id"]] for w in inne if w["id"] in decyzje and decyzje[w["id"]]["rodzaj"] in DECYZJE_UKRUSZENIA]
-        if ukruszone:
-            ostatnia = max(ukruszone, key=lambda d: d["id"])
+        ukruszona = decyzja is not None and decyzja["rodzaj"] in DECYZJE_UKRUSZENIA
+        if not ukruszona:
+            punkt = self.baza.wiersz("SELECT * FROM stan_punktow WHERE projekt_id = ?", (projekt_id,))
+            if punkt is None or punkt["stan"] != STAN_DO_DOFREZOWANIA or punkt["praca_id"] != praca["id"]:
+                return
+        ostatnia = self._najnowsza_ukruszona(projekt_id, bez=None if ukruszona else praca["id"])
+        if ostatnia is not None:
             self._ustaw_punkt(projekt_id, STAN_DO_DOFREZOWANIA, ostatnia["praca_id"], ostatnia["czas"])
         else:
             self._ustaw_punkt(projekt_id, STAN_OCZEKUJE, None, self.teraz())
+
+    def _najnowsza_ukruszona(self, projekt_id: int, bez: int | None = None) -> dict | None:
+        """Najnowsza (najwyzsze ``decyzje.id``) obowiazujaca decyzja "Ukruszona" / "ukruszona_niewykryta" na pracy projektu w skanie
+        wieczornym aktywnym; ``bez`` = praca pomijana. Decyzje z importu okna testowego (skany bez trybu) i skanow porannych sie nie licza."""
+        prace = self.baza.wiersze(
+            f"SELECT p.id, p.skan_id FROM prace p JOIN skany s ON s.id = p.skan_id WHERE p.projekt_id = ? AND p.id IS NOT ? "
+            f"AND s.tryb = ? AND s.status IN ({_znaki(len(STATUSY_AKTYWNE))})", (projekt_id, bez, TRYB_WIECZOR, *STATUSY_AKTYWNE))
+        decyzje = self._decyzje_skanow(sorted({w["skan_id"] for w in prace}))
+        ukruszone = [decyzje[w["id"]] for w in prace if w["id"] in decyzje and decyzje[w["id"]]["rodzaj"] in DECYZJE_UKRUSZENIA]
+        return max(ukruszone, key=lambda d: d["id"]) if ukruszone else None
 
     def _ustaw_punkt(self, projekt_id: int, stan: str, praca_id: int | None, czas: str) -> None:
         self.baza.wykonaj(
@@ -906,7 +921,7 @@ class Sesja:
         (pozycja nie znika na granicy doby). Z ``data``: filtr "ta doba" (pozycje skanow przyjetych w tej dobie roboczej).
 
         Lista wynika ze ``stan_punktow``: JEDEN punkt projektu w stanie ``do_dofrezowania`` = JEDNA pozycja - praca, na ktora
-        punkt wskazuje (ostatnio oznaczona "Ukruszona" w skanie wieczornym aktywnym). Inne aktywne prace tego samego projektu
+        punkt wskazuje (praca z NAJNOWSZA obowiazujaca "Ukruszona" projektu w skanie wieczornym aktywnym). Inne aktywne prace tego samego projektu
         z "Ukruszona" (ta sama plytka zeskanowana jako nowy wsad, zab dofrezowany i znow ukruszony) nie tworza drugiej pozycji -
         sa w polu ``powtorzenia``. Punkt zamkniety (poranek, A6) = pozycja znika. Praca bez projektu w indeksie nie ma punktu:
         jest pozycja sama dla siebie (nie ma jeszcze czym jej zamknac).
