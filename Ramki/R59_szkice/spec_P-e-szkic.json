@@ -1,0 +1,11 @@
+{
+ "id": "P-e-szkic", "plytka": "poranna", "nazwa": "szkic wlasciciela doslownie (tylko do diagnozy: uloz --diagnoza)",
+ "rzedy": [
+  {"typ": "T", "l": 50, "w": 13},
+  {"mieszany": [12.5, 12.5, 15, 12.5, 12.5]},
+  {"d": 12.5, "k": 6},
+  {"d": 12.5, "k": 6},
+  {"d": 12.5, "k": 5},
+  {"d": 15, "k": 2}
+ ]
+}
