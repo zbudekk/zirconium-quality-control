@@ -729,6 +729,697 @@ def test_sprawdz_komplet_daje_kod_zero(tmp_path):
 
 
 # ----------------------------------------------------------------------------
+# poprawki po recenzji PR #13 (runda 1): P2-P6, D1, D10, D11. Nazwiska w nazwach plikow sa zmyslone.
+# ----------------------------------------------------------------------------
+def sesja_kompletna(tmp_path) -> tuple[R.Sesja, R.Zbieracz, Path]:
+    """Sesja ze wszystkimi wymaganymi krokami (pliki i pola), jak w tescie kodu 0; zbieracz bez kontroli."""
+    eksport = tmp_path / "Scandata"
+    eksport.mkdir()
+    sesja = R.Sesja.nowa(tmp_path / "sesje", foldery=[eksport])
+    zb = R.Zbieracz(sesja, None, None, "brak")
+    for i, k in enumerate(sesja.kroki):
+        if not k.wymagany:
+            continue
+        sesja.ustaw_biezacy(k.id)
+        for p in k.wymagane_pola:
+            sesja.ustaw_pole(k.id, p, "wpisane")
+        roz = {"siatka": ".stl", "obraz": ".png", "dowolny": ".dat"}.get(k.rodzaj_plikow)
+        for j in range(k.ile_plikow):
+            (eksport / f"plik_{i}_{j}{roz}").write_bytes(stl_binarny(3 + i + j))
+        obiegi(zb)
+        sesja.zakoncz_krok(k.id)
+    assert sesja.braki() == ([], [])
+    return sesja, zb, eksport
+
+
+def zip_psujacy_sie(po_ilu: int = 1):
+    """Klasa archiwum, w ktorej zapis kolejnego pliku z dysku (po ``po_ilu`` udanych) konczy sie bledem - brak miejsca w TRAKCIE pakowania."""
+    class Zip(zipfile.ZipFile):
+        licznik = 0
+
+        def write(self, *a, **k):
+            Zip.licznik += 1
+            if Zip.licznik > po_ilu:
+                raise OSError(28, "No space left on device (test)")
+            return super().write(*a, **k)
+
+    return Zip
+
+
+def bez_bledow(linie: list[str]) -> bool:
+    return not any(x.startswith("BLAD") for x in linie)
+
+
+def test_zrodlo_zmienione_w_trakcie_kopii_jest_odrzucane_i_kopiowane_ponownie(srodowisko, tmp_path, monkeypatch):
+    """D11: plik zrodlowy zmieniony w trakcie kopiowania - kopia odrzucona (nie ma pliku ani ``.czesc``), nastepna proba daje cala nowa tresc."""
+    eksport, sesja, zb, _ = srodowisko
+    monkeypatch.setattr(R, "BLOK_KOPII", 1000)
+    zrodlo = tmp_path / "pisany.bin"
+    zrodlo.write_bytes(b"a" * 5000)
+
+    def dopisz(n, razem):
+        if n == 1000:
+            with open(zrodlo, "ab") as f:
+                f.write(b"b" * 700)
+
+    with pytest.raises(R.ZrodloZmienione):
+        R.kopiuj_plik(zrodlo, tmp_path / "cel" / "pisany.bin", postep=dopisz)
+    assert not list((tmp_path / "cel").iterdir()) and zrodlo.stat().st_size == 5700
+    # to samo w zbieraczu: pierwsza proba odrzucona, plik podjety ponownie w nastepnych przegladach
+    p = eksport / "rosnie.bin"
+    p.write_bytes(b"a" * 5000)
+    zb.obieg()
+    prawdziwa, proby = R.kopiuj_plik, []
+
+    def kopiuj(zr, cel, postep=None, **k):
+        proby.append(Path(zr).name)
+
+        def psuj(n, razem):
+            if len(proby) == 1 and n == 1000:
+                with open(zr, "ab") as f:
+                    f.write(b"b" * 700)
+            if postep is not None:
+                postep(n, razem)
+
+        return prawdziwa(zr, cel, postep=psuj, **k)
+
+    monkeypatch.setattr(R, "kopiuj_plik", kopiuj)
+    zb.obieg()
+    assert proby == ["rosnie.bin"] and not sesja.m["pliki"] and not list(sesja.folder.rglob("*.czesc")) and not list(sesja.folder.rglob("rosnie*"))
+    obiegi(zb, 3)
+    assert [w["rozmiar"] for w in sesja.m["pliki"]] == [5700] and (sesja.folder / sesja.m["pliki"][0]["cel"]).read_bytes() == p.read_bytes()
+
+
+def test_wznowienie_z_pliku_tmp_gdy_manifest_i_kopia_sa_uszkodzone(tmp_path):
+    """D11: awaria w trakcie zapisu atomowego - ``sesja.json`` uciety, ``.bak`` pusty, caly stan jest w ``sesja.json.tmp``."""
+    s = R.Sesja.nowa(tmp_path / "sesje")
+    s.ustaw_notatke("start", "stan z pliku tymczasowego")
+    dobry = (s.folder / R.PLIK_MANIFESTU).read_bytes()
+    (s.folder / (R.PLIK_MANIFESTU + ".tmp")).write_bytes(dobry)
+    (s.folder / R.PLIK_MANIFESTU).write_bytes(dobry[: len(dobry) // 2])
+    (s.folder / (R.PLIK_MANIFESTU + ".bak")).write_bytes(b"")
+    s2 = R.Sesja.wznow(s.folder)
+    assert s2.m["kroki"]["start"]["notatka"] == "stan z pliku tymczasowego" and s2.m["zdarzenia"][-1]["co"] == f"wznowienie sesji z {R.PLIK_MANIFESTU}.tmp"
+    assert na_dysku(s2)["kroki"]["start"]["notatka"] == "stan z pliku tymczasowego"  # po wznowieniu manifest na dysku znow jest caly
+
+
+def test_awaria_w_srodku_serii_stan_obserwatora_nie_wyprzedza_manifestu(srodowisko, tmp_path, monkeypatch):
+    """P2: plik A skopiowany, zapis manifestu odlozony (seria), a stan obserwatora ma wlasny licznik 5 s i zapisalby A jako "znany"
+    od razu; awaria w trakcie kopiowania nastepnego pliku. Na dysku A moze byc "znany" tylko wtedy, gdy jest w manifescie,
+    a po wznowieniu oba pliki sa w sesji dokladnie raz."""
+    eksport, sesja, zb, _ = srodowisko
+    (eksport / "a_pierwszy.stl").write_bytes(stl_binarny(10, 1))
+    (eksport / "b_duzy.stl").write_bytes(stl_binarny(11, 2))
+    zb.obieg()  # pierwszy odczyt: oba pliki czekaja na drugi
+    sesja._ostatni_zapis = time.monotonic()  # manifest zapisany przed chwila: zapis po pliku A bedzie odlozony
+    zb._ostatni_zapis_znanych = time.monotonic() - 2 * R.OKRES_ZAPISU_ZBIORCZEGO_S  # licznik stanu obserwatora juz minal
+    prawdziwa, kopie, migawka = R.kopiuj_plik, [], tmp_path / "po_awarii"
+
+    def kopiuj(zr, cel, **k):
+        if len(kopie) == 1:  # "awaria" w trakcie kopiowania drugiego pliku: na dysku zostaje tyle, ile jest w tej chwili
+            shutil.copytree(sesja.folder, migawka / sesja.folder.name)
+        kopie.append(Path(zr).name)
+        return prawdziwa(zr, cel, **k)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(R, "kopiuj_plik", kopiuj)
+        zb.obieg()
+    assert len(kopie) == 2
+    folder = migawka / sesja.folder.name
+    w_manifescie = {w["wzgledna"] for w in json.loads((folder / R.PLIK_MANIFESTU).read_text(encoding="utf-8"))["pliki"]}
+    znane = json.loads((folder / R.PLIK_OBSERWATORA).read_text(encoding="utf-8"))["znane"]["Scandata"]
+    assert kopie[0] not in znane or kopie[0] in w_manifescie, "plik oznaczony jako znany, a nie ma go w zapisanym manifescie"
+    s2 = R.Sesja.wznow(folder)
+    zb2 = R.Zbieracz(s2, None, None, "brak")
+    obiegi(zb2)
+    assert sorted(w["wzgledna"] for w in s2.m["pliki"]) == ["a_pierwszy.stl", "b_duzy.stl"]  # bez utraty i bez duplikatu
+    assert sorted(p.name for p in (folder / "kroki").rglob("*") if p.is_file()) == ["a_pierwszy.stl", "b_duzy.stl"]
+    assert na_dysku(s2)["pliki"] == s2.m["pliki"]
+
+
+def test_kopia_bez_wpisu_w_manifescie_jest_po_wznowieniu_podjeta_ponownie(srodowisko):
+    """P2, sesja zapisana wersja sprzed poprawki: plik "znany" w ``obserwator.json``, kopia lezy w folderze kroku, wpisu w manifescie nie ma.
+    Po wznowieniu plik jest podjety ponownie: jeden wpis, jedna kopia."""
+    eksport, sesja, zb, _ = srodowisko
+    (eksport / "a.stl").write_bytes(stl_binarny(10, 1))
+    (eksport / "b.stl").write_bytes(stl_binarny(11, 2))
+    obiegi(zb)
+    m = na_dysku(sesja)
+    m["pliki"] = [w for w in m["pliki"] if w["wzgledna"] != "a.stl"]
+    (sesja.folder / R.PLIK_MANIFESTU).write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+    assert "a.stl" in json.loads((sesja.folder / R.PLIK_OBSERWATORA).read_text(encoding="utf-8"))["znane"]["Scandata"]
+    s2 = R.Sesja.wznow(sesja.folder)
+    zb2 = R.Zbieracz(s2, None, None, "brak")
+    obiegi(zb2)
+    assert sorted(w["cel"] for w in s2.m["pliki"]) == ["kroki/k01_start/pliki/Scandata/a.stl", "kroki/k01_start/pliki/Scandata/b.stl"]
+    assert sorted(p.name for p in (sesja.folder / "kroki").rglob("*") if p.is_file()) == ["a.stl", "b.stl"]
+    assert (sesja.folder / "kroki/k01_start/pliki/Scandata/a.stl").read_bytes() == stl_binarny(10, 1)
+
+
+def test_pliki_bak_tmp_czesc_ze_skanera_sa_w_paczce_a_pliki_robocze_programu_nie(tmp_path):
+    """P3: folder skanera zawiera ``*.bak`` / ``*.tmp`` / ``*.czesc``. Sa w manifescie, wiec musza byc w sumach i w ZIP, a ``--sprawdz``
+    folderu i ZIP ma dac ten sam wynik. Wlasne pliki robocze programu (kopie ``.bak`` manifestu, urwana kopia ``.czesc``) do paczki nie trafiaja."""
+    sesja, zb, eksport = sesja_z_plikami(tmp_path)
+    skanera = {"zlecenie/baza.db.bak": b"kopia bazy programu skanera", "zlecenie/stan.tmp": b"plik tymczasowy skanera",
+               "zlecenie/eksport.czesc": b"plik skanera o takim rozszerzeniu", "ustawienia.json.bak": b"{}"}
+    for rel, tresc in skanera.items():
+        (eksport / rel).parent.mkdir(parents=True, exist_ok=True)
+        (eksport / rel).write_bytes(tresc)
+    obiegi(zb)
+    zb.kopia_calych_folderow("kopia_folderu")
+    zb.obieg()
+    cele = [w["cel"] for w in sesja.m["pliki"] if w["cel"].endswith((".bak", ".tmp", ".czesc"))]
+    assert len(cele) == 2 * len(skanera)  # z obserwacji i z kopii calego folderu
+    robocze = ["kroki/k05_pusta/pliki/Scandata/urwana_kopia.stl.czesc", "kontrole/k0001.json.tmp", R.PLIK_MANIFESTU + ".bak", R.PLIK_OBSERWATORA + ".bak"]
+    for rel in robocze[:2]:
+        (sesja.folder / rel).parent.mkdir(parents=True, exist_ok=True)
+        (sesja.folder / rel).write_bytes(b"niedokonczony zapis programu")
+    assert all((sesja.folder / rel).exists() for rel in robocze)
+    wynik = R.spakuj(sesja)
+    zip_ = Path(wynik["czesci"][0]["sciezka"])
+    sumy = dict(reversed(linia.split("  ", 1)) for linia in (sesja.folder / R.PLIK_SUM).read_text(encoding="utf-8").splitlines())
+    with zipfile.ZipFile(zip_) as zf:
+        nazwy = {n.split("/", 1)[1] for n in zf.namelist()}
+        for cel in cele:
+            assert cel in sumy and cel in nazwy, cel
+            assert hashlib.sha256(zf.read(f"{sesja.m['nazwa']}/{cel}")).hexdigest() == sumy[cel]
+    for rel in robocze:
+        assert rel not in sumy and rel not in nazwy, rel
+    wyniki = [R.sprawdz(sesja.folder), R.sprawdz(zip_)]
+    assert [kod for kod, _ in wyniki] == [3, 3] and all(bez_bledow(linie) for _, linie in wyniki), wyniki
+    assert not any("urwana_kopia" in x or "k0001.json.tmp" in x for _, linie in wyniki for x in linie)  # robocze nie sa tez "plikami spoza listy sum"
+
+
+def test_plik_roboczy_programu_i_usuwanie_nazw_projektow_z_tekstu():
+    """P3 / P5: reguly wprost - co jest wlasnym plikiem roboczym programu i jak znikaja nazwy projektow exocad z tekstu (log, stan obserwatora)."""
+    for rel in ("sesja.json.bak", "sesja.json.tmp", "obserwator.json.bak", "SHA256SUMS.txt.tmp", "kontrole/k0001.json.tmp", "kroki/k01_start/pliki/A/x.stl.czesc"):
+        assert R.plik_roboczy_programu(rel), rel
+    for rel in ("kroki/k01_start/pliki/A/baza.db.bak", "kroki/k01_start/reczne/stan.tmp", "ustawienia.bak", "pomiary/k0001_x_pomiar/wynik.tmp", "log.txt"):
+        assert not R.plik_roboczy_programu(rel), rel
+    assert not R.plik_roboczy_programu("kroki/k01_start/pliki/A/eksport.czesc", frozenset({"kroki/k01_start/pliki/A/eksport.czesc"}))  # plik skanera z manifestu
+    for wpis, projekt in (({"cel": "kroki/k/pliki/A/X_cad.stl"}, True), ({"cel": "kroki/k/pliki/A/X_cad__zmiana2.stl"}, True), ({"cel": "kroki/k/reczne/X_CAD__2.STL"}, True),
+                          ({"cel": "kroki/k/pliki/A/inna_nazwa.stl", "zrodlo": "~/Scandata/X_cad.stl"}, True), ({"cel": "kroki/k/pliki/A/skan_cad_plytki.stl"}, False),
+                          ({"cel": "kroki/k/pliki/A/X_cad.stl.txt", "zrodlo": None, "wzgledna": None}, False)):
+        assert R.czy_projekt_exocad(wpis) is projekt, wpis
+    tekst = ('{"znane": {"A": {"zlecenie/Jan Zmyslony-11_cad.stl": [1, 2], "skan.stl": [3, 4]}}}\n'
+             "2026-11-17T10:00:00 nie skopiowano D:\\Scan\\Ewa Wymyslna-21_cad__zmiana2.stl: PermissionError\n"
+             "2026-11-17T10:00:01 kontrola pliku 7 (znany_cad.stl): zielony\n")
+    czysty = R.bez_nazw_projektow(tekst, {"znany_cad.stl": "projekt_pominiety_0123"})
+    assert "Zmyslony" not in czysty and "Wymyslna" not in czysty and "_cad" not in czysty and czysty.count(R.ZNACZNIK_PROJEKTU) == 3
+    assert '"zlecenie/projekt_pominiety": [1, 2], "skan.stl": [3, 4]' in czysty and "D:\\Scan\\projekt_pominiety: PermissionError" in czysty
+    assert "kontrola pliku 7 (projekt_pominiety_0123): zielony" in czysty and R.bez_nazw_projektow("zwykly tekst, skan.stl") == "zwykly tekst, skan.stl"
+
+
+def test_nieudane_pakowanie_nie_oznacza_sesji_i_zostawia_stara_paczke(tmp_path, monkeypatch):
+    """P4: znaczniki "zakonczono / spakowano" i wymiana archiwow dopiero PO udanym zbudowaniu nowej paczki."""
+    sesja, zb, _ = sesja_z_plikami(tmp_path)
+    paczka = sesja.folder / R.KATALOG_PACZKI
+
+    def smieci() -> list[str]:
+        return sorted(p.name for p in paczka.glob("*.czesc")) if paczka.is_dir() else []
+
+    # (a) pierwsze pakowanie konczy sie brakiem miejsca w trakcie budowania archiwum
+    with monkeypatch.context() as mp:
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        with pytest.raises(OSError, match="No space left"):
+            R.spakuj(sesja)
+    m = na_dysku(sesja)
+    assert m["zakonczono"] is None and m["spakowano"] == [] and sesja.m["zakonczono"] is None and sesja.m["spakowano"] == []
+    assert R.Sesja.lista(tmp_path / "sesje")[0]["zakonczono"] is None  # przy starcie okna: "niedokonczona sesja", nie "spakowana"
+    assert not smieci() and not list(paczka.glob("*.zip")) and not (sesja.folder / R.PLIK_SUM).exists()
+    assert R.sprawdz(sesja.folder)[0] == 1  # nie ma sum: sesja nie byla spakowana
+    # to samo przez zbieracz (okno): zdarzenie z bledem, sesja dalej nie jest spakowana
+    with monkeypatch.context() as mp:
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        zb.spakuj()
+        zb.obieg()
+    z = [x for x in zdarzenia(zb) if x["typ"] == "spakowano"]
+    assert len(z) == 1 and z[0]["wynik"] is None and "No space left" in z[0]["blad"] and na_dysku(sesja)["zakonczono"] is None
+    # (b) udane pakowanie, zmiana w sesji, nieudane ponowne pakowanie: stara paczka zostaje cala
+    wynik = R.spakuj(sesja)
+    zip_ = Path(wynik["czesci"][0]["sciezka"])
+    stara = sha(zip_)
+    assert R.sprawdz(zip_)[0] == 3 and len(na_dysku(sesja)["spakowano"]) == 1 and na_dysku(sesja)["zakonczono"]
+    sesja.ustaw_notatke("pusta", "dopisane po spakowaniu")
+    with monkeypatch.context() as mp:
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        with pytest.raises(OSError, match="No space left"):
+            R.spakuj(sesja)
+    assert zip_.exists() and sha(zip_) == stara and R.sprawdz(zip_)[0] == 3 and not smieci()
+    m = na_dysku(sesja)
+    assert len(m["spakowano"]) == 1 and m["zmieniono_po_spakowaniu"] is True  # nadal "zmieniona po spakowaniu - spakuj ponownie"
+    # (c) ponowne pakowanie udane: nowa paczka zastepuje stara
+    wynik2 = R.spakuj(sesja)
+    m = na_dysku(sesja)
+    assert len(m["spakowano"]) == 2 and m["zmieniono_po_spakowaniu"] is False and sha(zip_) != stara
+    assert R.sprawdz(sesja.folder)[0] == 3 and R.sprawdz(Path(wynik2["czesci"][0]["sciezka"]))[0] == 3 and not smieci()
+
+
+def test_pakowanie_przerwane_zamykaniem_programu_i_zmiana_w_trakcie_pakowania(tmp_path):
+    """P4: pakowanie przerwane (zamykanie okna) nie zostawia znacznikow ani plikow; D10: zmiana sesji w TRAKCIE pakowania jest zapisana
+    na dysku jako "zmieniono po spakowaniu" (nie tylko w pamieci)."""
+    sesja, zb, _ = sesja_z_plikami(tmp_path)
+    paczka = sesja.folder / R.KATALOG_PACZKI
+    pytania = []
+
+    def przerwij() -> bool:
+        pytania.append(1)
+        return len(pytania) > 4
+
+    with pytest.raises(R.Przerwano):
+        R.spakuj(sesja, przerwij=przerwij)
+    assert na_dysku(sesja)["zakonczono"] is None and not na_dysku(sesja)["spakowano"] and (not paczka.is_dir() or not list(paczka.iterdir()))
+    zb._stop.set()  # okno jest zamykane, a polecenie pakowania czeka w kolejce
+    zb.spakuj()
+    zb._obsluz_polecenia()
+    z = [x for x in zdarzenia(zb) if x["typ"] == "spakowano"]
+    assert len(z) == 1 and z[0]["wynik"] is None and "przerwane" in z[0]["blad"] and na_dysku(sesja)["zakonczono"] is None
+    zb._stop.clear()
+    zmiany = []
+
+    def postep(zrobione: int, razem: int, co: str) -> None:
+        if not zmiany and co != "sumy kontrolne":  # czlowiek dopisuje notatke, gdy archiwum jest juz budowane
+            zmiany.append(co)
+            sesja.ustaw_notatke("pusta", "dopisane w trakcie pakowania")
+
+    wynik = R.spakuj(sesja, postep=postep)
+    m = na_dysku(sesja)
+    assert zmiany and m["zakonczono"] and len(m["spakowano"]) == 1 and m["zmieniono_po_spakowaniu"] is True
+    assert not (sesja.folder / R.PLIK_SUM).exists() and (sesja.folder / R.PLIK_SUM_NIEAKTUALNYCH).exists()
+    assert R.sprawdz(Path(wynik["czesci"][0]["sciezka"]))[0] == 3  # sama paczka jest spojna (stan sprzed notatki)
+
+
+def test_kolejne_wersje_i_duplikaty_projektu_exocad_nie_trafiaja_do_paczki(tmp_path):
+    """P5 (ochrona danych osobowych): projekt exocad ``X_cad.stl`` zapisany ponownie w tym samym kroku ma w sesji nazwe
+    ``X_cad__zmiana2.stl``, dodany drugi raz - ``X_cad__2.stl``. Zaden z nich ani jego nazwa nie moze trafic do ZIP, raportu,
+    sum ani manifestu paczki; to samo nazwa projektu, ktory lezal w folderze przed sesja (jest tylko w stanie obserwatora)."""
+    eksport = tmp_path / "Scandata"
+    eksport.mkdir()
+    (eksport / "2026-11-10_Wymyslny-36-crown_cad.stl").write_bytes(stl_binarny(4, 7))  # zastany: nie jest kopiowany
+    sesja = R.Sesja.nowa(tmp_path / "sesje", foldery=[eksport])
+    zb = R.Zbieracz(sesja, None, None, "brak")
+    projekt = eksport / "2026-11-17_Zmyslonska-21-crown_cad.stl"
+    (eksport / "skan.stl").write_bytes(stl_binarny(50, 1))
+    projekt.write_bytes(stl_binarny(10, 3))
+    obiegi(zb)
+    projekt.write_bytes(stl_binarny(12, 4))  # exocad zapisal projekt ponownie: druga wersja w tym samym kroku
+    obiegi(zb)
+    for _ in range(2):  # dodany recznie dwa razy: duplikat
+        zb.dodaj_recznie([projekt])
+        zb.obieg()
+    cele = [w["cel"] for w in sesja.m["pliki"] if "Zmyslonska" in w["cel"]]
+    assert [Path(c).name for c in cele] == ["2026-11-17_Zmyslonska-21-crown_cad.stl", "2026-11-17_Zmyslonska-21-crown_cad__zmiana2.stl",
+                                            "2026-11-17_Zmyslonska-21-crown_cad.stl", "2026-11-17_Zmyslonska-21-crown_cad__2.stl"]
+    wynik = R.spakuj(sesja)
+    assert sorted(wynik["pominiete_w_paczce"]) == sorted(cele) and all((sesja.folder / c).exists() for c in cele)  # w folderze sesji zostaja
+    for nazwa in (R.PLIK_RAPORTU, R.PLIK_SUM):
+        tekst = (sesja.folder / nazwa).read_text(encoding="utf-8")
+        assert "Zmyslonska" not in tekst and "Wymyslny" not in tekst and "_cad" not in tekst, nazwa
+    zip_ = Path(wynik["czesci"][0]["sciezka"])
+    with zipfile.ZipFile(zip_) as zf:
+        for nazwa in zf.namelist():
+            assert "Zmyslonska" not in nazwa and "Wymyslny" not in nazwa and "_cad" not in nazwa, nazwa
+            tresc = zf.read(nazwa)
+            assert b"Zmyslonska" not in tresc and b"Wymyslny" not in tresc, nazwa
+        m_zip = json.loads(zf.read(f"{sesja.m['nazwa']}/{R.PLIK_MANIFESTU}"))
+        assert [w.get("pominiety_w_paczce", False) for w in m_zip["pliki"]].count(True) == 4 and len(m_zip["pliki"]) == len(sesja.m["pliki"])
+        assert f"{sesja.m['nazwa']}/kroki/k01_start/pliki/Scandata/skan.stl" in zf.namelist()
+    assert "Zmyslonska" in (sesja.folder / R.PLIK_MANIFESTU).read_text(encoding="utf-8")  # manifest lokalny bez zmian
+    for cel in (sesja.folder, zip_):
+        kod, linie = R.sprawdz(cel)
+        assert kod == 3 and bez_bledow(linie), linie
+
+
+def test_przerwana_kopia_calego_folderu_zostawia_slad_a_ponowienie_ja_dokancza(tmp_path, monkeypatch):
+    """P6: kopia calego folderu przerwana (jeden plik zablokowany, potem brak miejsca) zostawia w manifescie liczby skopiowanych / bledow /
+    pominietych, krok nie jest "zrobiony" po pierwszym pliku, ``--sprawdz`` folderu i ZIP zglasza niepelna kopie; ponowne klikniecie
+    kopiuje tylko brakujace pliki (bez duplikatow) i dopiero wtedy sesja jest kompletna."""
+    sesja, zb, eksport = sesja_kompletna(tmp_path)
+    n = sum(1 for p in eksport.rglob("*") if p.is_file())
+    assert n >= 7
+    prawdziwa, proby = R.kopiuj_plik, []
+
+    def kopiuj(zr, cel, **k):
+        proby.append(Path(zr).name)
+        if len(proby) == 2:
+            raise PermissionError(13, "plik zablokowany przez program skanera (test)")
+        if len(proby) == 5:
+            raise R.BrakMiejsca(10, 1)
+        return prawdziwa(zr, cel, **k)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(R, "kopiuj_plik", kopiuj)
+        zb.kopia_calych_folderow("kopia_folderu")
+        zb.obieg()
+    k = na_dysku(sesja)["kopie_folderow"][-1]
+    assert (k["krok"], k["stan"], k["plikow"], k["skopiowane"], k["bledy"], k["pominiete"]) == ("kopia_folderu", "przerwana", n, 3, 1, n - 4), k
+    assert k["koniec"] and "miejsc" in k["powod"]
+    assert any(z["typ"] == "blad" and "NIEPEŁNA" in z["tekst"] for z in zdarzenia(zb))
+    ocena = {o["id"]: o for o in sesja.kompletnosc()}["kopia_folderu"]
+    assert ocena["stan"] == "niepelny" and any(f"3 z {n}" in b for b in ocena["braki"]), ocena
+    wynik = R.spakuj(sesja)
+    for cel in (sesja.folder, Path(wynik["czesci"][0]["sciezka"])):
+        kod, linie = R.sprawdz(cel)
+        assert kod == 3 and bez_bledow(linie) and any(x.startswith("KOPIA FOLDERU") and "NIEPELNA" in x for x in linie), linie
+    # ponowne klikniecie "Skopiuj caly folder": tylko brakujace pliki
+    zb.kopia_calych_folderow("kopia_folderu")
+    zb.obieg()
+    k = na_dysku(sesja)["kopie_folderow"][-1]
+    assert (k["stan"], k["plikow"], k["juz_byly"], k["skopiowane"], k["bledy"], k["pominiete"]) == ("pelna", n, 3, n - 3, 0, 0), k
+    kopie = [w["cel"] for w in sesja.m["pliki"] if w["rodzaj"] == "kopia_folderu"]
+    assert len(kopie) == len(set(kopie)) == n and not any("__" in Path(c).name for c in kopie)
+    assert sesja.braki() == ([], [])
+    wynik = R.spakuj(sesja)
+    for cel in (sesja.folder, Path(wynik["czesci"][0]["sciezka"])):
+        kod, linie = R.sprawdz(cel)
+        assert kod == 0 and any(x.startswith("KOPIA FOLDERU") and "pelna" in x for x in linie), linie
+
+
+def test_kopia_calego_folderu_przerwana_awaria_jest_po_wznowieniu_oznaczona_i_dokanczana(srodowisko, tmp_path, monkeypatch):
+    """P6: program zabity w trakcie kopii calego folderu. W manifescie na dysku kopia jest "w toku"; po wznowieniu sesji jest jasno
+    oznaczona jako przerwana (ile plikow jest, ilu brakuje), okno dostaje komunikat, a ponowne klikniecie dokancza kopie."""
+    eksport, sesja, zb, _ = srodowisko
+    for i in range(5):
+        (eksport / "zlecenia" / f"plik_{i}.dat").parent.mkdir(exist_ok=True)
+        (eksport / "zlecenia" / f"plik_{i}.dat").write_bytes(bytes([i + 1]) * 300)
+    sesja.ustaw_biezacy("kopia_folderu")
+    prawdziwa, proby, migawka = R.kopiuj_plik, [], tmp_path / "po_awarii"
+
+    def kopiuj(zr, cel, **k):
+        proby.append(Path(zr).name)
+        if len(proby) == 3:  # "awaria" w trakcie trzeciego pliku
+            shutil.copytree(sesja.folder, migawka / sesja.folder.name)
+        return prawdziwa(zr, cel, **k)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(R, "kopiuj_plik", kopiuj)
+        zb.kopia_calych_folderow()
+        zb._obsluz_polecenia()
+    folder = migawka / sesja.folder.name
+    k = json.loads((folder / R.PLIK_MANIFESTU).read_text(encoding="utf-8"))["kopie_folderow"][-1]
+    assert (k["stan"], k["plikow"], k["koniec"]) == ("w_toku", 6, None)
+    kod, linie = R.sprawdz(folder)
+    assert any(x.startswith("KOPIA FOLDERU") and "NIEPELNA" in x for x in linie), linie  # --sprawdz folderu po awarii, bez wznawiania
+    s2 = R.Sesja.wznow(folder)
+    k = na_dysku(s2)["kopie_folderow"][-1]
+    assert (k["stan"], k["plikow"], k["skopiowane"], k["pominiete"]) == ("przerwana", 6, 2, 4) and "zamkni" in k["powod"], k
+    zb2 = R.Zbieracz(s2, None, None, "brak")
+    assert any(z["typ"] == "blad" and "kopia" in z["tekst"].lower() for z in zdarzenia(zb2))
+    ocena = {o["id"]: o for o in s2.kompletnosc()}["kopia_folderu"]
+    assert ocena["stan"] == "niepelny" and any("2 z 6" in b for b in ocena["braki"]), ocena
+    zb2.kopia_calych_folderow()
+    zb2._obsluz_polecenia()
+    k = na_dysku(s2)["kopie_folderow"][-1]
+    assert (k["stan"], k["plikow"], k["juz_byly"], k["skopiowane"]) == ("pelna", 6, 2, 4), k
+    kopie = [w["cel"] for w in s2.m["pliki"] if w["rodzaj"] == "kopia_folderu"]
+    assert len(kopie) == len(set(kopie)) == 6 and not any("__" in Path(c).name for c in kopie)
+    assert {o["id"]: o for o in s2.kompletnosc()}["kopia_folderu"]["stan"] == "zrobiony"
+
+
+def test_kopia_folderu_z_niedostepnym_podkatalogiem_jest_niepelna(srodowisko, monkeypatch):
+    """P6: podkatalog, ktorego nie da sie odczytac (brak uprawnien), nie moze zniknac z kopii bez sladu."""
+    eksport, sesja, zb, _ = srodowisko
+    for kat in ("otwarty", "zamkniety"):
+        (eksport / kat).mkdir()
+        (eksport / kat / "dane.bin").write_bytes(b"x" * 100)
+    prawdziwy = os.scandir
+
+    def scandir(sciezka):
+        if Path(sciezka).name == "zamkniety":
+            raise PermissionError(13, "brak uprawnien (test)")
+        return prawdziwy(sciezka)
+
+    monkeypatch.setattr(R.os, "scandir", scandir)
+    zb.kopia_calych_folderow("kopia_folderu")
+    zb._obsluz_polecenia()
+    k = na_dysku(sesja)["kopie_folderow"][-1]
+    assert (k["stan"], k["plikow"], k["skopiowane"], k["bledy"], k["niedostepne_katalogi"]) == ("niepelna", 2, 2, 0, 1), k
+    ocena = {o["id"]: o for o in sesja.kompletnosc()}["kopia_folderu"]
+    assert ocena["stan"] == "niepelny" and any("niedostępn" in b for b in ocena["braki"]), ocena
+    assert "zamkniety" in (sesja.folder / R.PLIK_LOGU).read_text(encoding="utf-8")
+
+
+def test_sesja_zapisana_starsza_wersja_bez_rejestru_kopii_otwiera_sie_i_pakuje(tmp_path):
+    """Manifest bez klucza ``kopie_folderow`` (sesja sprzed poprawki P6) wznawia sie, ocenia i pakuje jak dotad."""
+    sesja, zb, _ = sesja_kompletna(tmp_path)
+    m = na_dysku(sesja)
+    assert "kopie_folderow" not in m or not m["kopie_folderow"]
+    m.pop("kopie_folderow", None)
+    (sesja.folder / R.PLIK_MANIFESTU).write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+    s2 = R.Sesja.wznow(sesja.folder)
+    assert s2.braki() == ([], []) and {o["id"]: o for o in s2.kompletnosc()}["kopia_folderu"]["stan"] == "zrobiony"
+    wynik = R.spakuj(s2)
+    assert R.sprawdz(s2.folder)[0] == 0 and R.sprawdz(Path(wynik["czesci"][0]["sciezka"]))[0] == 0
+
+
+def test_plik_z_data_sprzed_1980_nie_zatrzymuje_pakowania(tmp_path):
+    """D1: kopia zachowuje czas pliku zrodlowego; plik z data sprzed 1980 (zegar skanera, stary plik) nie moze wywrocic ZIP."""
+    sesja, zb, eksport = sesja_z_plikami(tmp_path)
+    stary = eksport / "plik_z_zegarem_1975.dat"
+    stary.write_bytes(b"dane z blednym zegarem")
+    os.utime(stary, (157766400, 157766400))  # 1975-01-01
+    obiegi(zb)
+    w = sesja.m["pliki"][-1]
+    assert Path(w["cel"]).name == stary.name and os.stat(sesja.folder / w["cel"]).st_mtime < 315532800  # kopia ma czas sprzed 1980
+    wynik = R.spakuj(sesja)
+    zip_ = Path(wynik["czesci"][0]["sciezka"])
+    with zipfile.ZipFile(zip_) as zf:
+        assert zf.read(f"{sesja.m['nazwa']}/{w['cel']}") == b"dane z blednym zegarem"
+    for cel in (sesja.folder, zip_):
+        kod, linie = R.sprawdz(cel)
+        assert kod == 3 and bez_bledow(linie), linie
+
+
+def test_pakowanie_czeka_na_pliki_w_drodze(srodowisko, monkeypatch):
+    """D10: plik, ktory pojawil sie tuz przed "Zakoncz i spakuj" (jeszcze nie skopiowany), trafia do paczki, a nie obok niej."""
+    eksport, sesja, zb, _ = srodowisko
+    monkeypatch.setattr(R, "OKRES_ODPYTYWANIA_S", 0.01)
+    (eksport / "ostatni_skan.stl").write_bytes(stl_binarny(30))
+    zb.spakuj()
+    zb.obieg()
+    z = [x for x in zdarzenia(zb) if x["typ"] == "spakowano"]
+    assert len(z) == 1 and z[0]["wynik"], z
+    with zipfile.ZipFile(z[0]["wynik"]["czesci"][0]["sciezka"]) as zf:
+        assert any(n.endswith("/pliki/Scandata/ostatni_skan.stl") for n in zf.namelist())
+    assert na_dysku(sesja)["zmieniono_po_spakowaniu"] is False
+
+
+def test_kopia_dwoch_folderow_o_tej_samej_nazwie_nie_miesza_plikow(tmp_path):
+    """D10: dwa obserwowane foldery o tej samej nazwie (np. na dwoch dyskach) maja w kopii calego folderu osobne katalogi (etykiety)."""
+    a, b = tmp_path / "dysk_c" / "Scandata", tmp_path / "dysk_d" / "Scandata"
+    for folder, znak in ((a, b"c"), (b, b"d")):
+        folder.mkdir(parents=True)
+        (folder / "skan.stl").write_bytes(znak * 200)
+        (folder / f"tylko_{znak.decode()}.txt").write_bytes(znak)
+    sesja = R.Sesja.nowa(tmp_path / "sesje", foldery=[a, b])
+    zb = R.Zbieracz(sesja, None, None, "brak")
+    zb.kopia_calych_folderow("kopia_folderu")
+    zb._obsluz_polecenia()
+    baza = "kroki/k14_kopia_folderu/kopia_folderu"
+    assert sorted(w["cel"] for w in sesja.m["pliki"]) == [f"{baza}/Scandata/skan.stl", f"{baza}/Scandata/tylko_c.txt",
+                                                         f"{baza}/Scandata_2/skan.stl", f"{baza}/Scandata_2/tylko_d.txt"]
+    assert (sesja.folder / baza / "Scandata_2" / "skan.stl").read_bytes() == b"d" * 200
+
+
+def test_sprawdz_folderu_z_kilkoma_paczkami_sprawdza_kazda(tmp_path):
+    """D10: folder z archiwami dwoch sesji - ``--sprawdz`` nie moze poprzestac na pierwszej paczce."""
+    odebrane = tmp_path / "odebrane"
+    odebrane.mkdir()
+    for litera in "ab":
+        (tmp_path / litera).mkdir()
+        sesja, _, _ = sesja_z_plikami(tmp_path / litera)
+        wynik = R.spakuj(sesja)
+        shutil.copy(wynik["czesci"][0]["sciezka"], odebrane / f"dzien_skanera_paczka_{litera}.zip")
+    kod, linie = R.sprawdz(odebrane)
+    assert kod == 3 and sum(1 for x in linie if x.startswith("Sprawdzam: archiwum")) == 2, linie
+    druga = odebrane / "dzien_skanera_paczka_b.zip"
+    dane = bytearray(druga.read_bytes())
+    for i in range(len(dane) // 2, len(dane) // 2 + 64):
+        dane[i] ^= 0xFF
+    druga.write_bytes(bytes(dane))
+    kod, linie = R.sprawdz(odebrane)
+    assert kod == 1 and any(x.startswith("BLAD") for x in linie), linie
+
+
+# ----------------------------------------------------------------------------
+# poprawki po recenzji przyrostowej PR #13 (runda 2): P-n1, D-n2, D-n3, D-n6, D-n7
+# ----------------------------------------------------------------------------
+def test_notatka_z_nazwa_projektu_exocad_nie_psuje_pakowania(tmp_path):
+    """P-n1: notatka kroku z nazwa ``*_cad.stl`` pliku, ktorego nie ma w manifescie - w drugim wierszu, po tabulatorze, w cudzyslowie,
+    po ukosniku wstecznym. Nazwy sa usuwane w kazdym napisie manifestu osobno (nie w tekscie JSON): pakowanie dziala, ``--sprawdz``
+    folderu i ZIP = 0, w ZIP nie ma nazwy projektu, a reszta notatki zostaje."""
+    sesja, zb, _ = sesja_kompletna(tmp_path)
+    nazwa = "2026-11-17_Zmyslonska-21-crown_cad.stl"
+    notatki = {"start": f"Powtorka skanu.\nW folderze byl plik {nazwa}\ntrzeci wiersz zostaje",
+               "pusta": f"kolumna pierwsza\t{nazwa}\tkolumna trzecia",
+               "prace_cale": f'cytat "{nazwa}" i sciezka C:\\Scan\\zlecenie\\{nazwa} oraz D:/inne/{nazwa} koniec',
+               "powtorka": f'\\{nazwa}\r\n"{nazwa}"\n\n{nazwa}'}
+    for krok, tekst in notatki.items():
+        sesja.ustaw_notatke(krok, tekst)
+    assert sesja.braki() == ([], [])
+    m2, _ = R.manifest_bez_projektow(sesja.m, set())
+    assert "Zmyslonska" not in json.dumps(m2, ensure_ascii=False) and "_cad" not in json.dumps(m2["kroki"], ensure_ascii=False)
+    assert m2["kroki"]["start"]["notatka"].startswith("Powtorka skanu.\n") and m2["kroki"]["start"]["notatka"].endswith("\ntrzeci wiersz zostaje")
+    assert m2["kroki"]["pusta"]["notatka"] == f"kolumna pierwsza\t{R.ZNACZNIK_PROJEKTU}\tkolumna trzecia"
+    assert m2["kroki"]["prace_cale"]["notatka"] == f'cytat "{R.ZNACZNIK_PROJEKTU}" i sciezka C:\\Scan\\zlecenie\\{R.ZNACZNIK_PROJEKTU} oraz D:/inne/{R.ZNACZNIK_PROJEKTU} koniec'
+    assert sesja.m["kroki"]["start"]["notatka"] == notatki["start"]  # manifest sesji bez zmian
+    wynik = R.spakuj(sesja)
+    zip_ = Path(wynik["czesci"][0]["sciezka"])
+    with zipfile.ZipFile(zip_) as zf:
+        for wpis in zf.namelist():
+            assert b"Zmyslonska" not in zf.read(wpis), wpis
+        m_zip = json.loads(zf.read(f"{sesja.m['nazwa']}/{R.PLIK_MANIFESTU}"))
+        assert m_zip["kroki"]["start"]["notatka"].endswith("\ntrzeci wiersz zostaje") and m_zip["zakonczono"]
+        assert "znane" in json.loads(zf.read(f"{sesja.m['nazwa']}/{R.PLIK_OBSERWATORA}"))  # stan obserwatora w paczce to nadal poprawny JSON
+    assert "Zmyslonska" not in (sesja.folder / R.PLIK_RAPORTU).read_text(encoding="utf-8")
+    assert "Zmyslonska" in (sesja.folder / R.PLIK_MANIFESTU).read_text(encoding="utf-8")
+    for cel in (sesja.folder, zip_):
+        kod, linie = R.sprawdz(cel)
+        assert kod == 0, linie
+
+
+def test_blad_zamiany_czesci_archiwum_przywraca_stara_paczke(tmp_path, monkeypatch):
+    """D-n2: paczka wieloczesciowa, ponowne pakowanie, zamiana drugiej czesci nie udaje sie (plik otwarty w innym programie).
+    Stara paczka ma zostac CALA (wszystkie czesci z dawna trescia); gdy nie da sie jej przywrocic - wyjatek ``PaczkaNiespojna``
+    i znacznik w manifescie, a nastepne udane pakowanie sprzata."""
+    sesja, zb, _ = sesja_z_plikami(tmp_path)
+    wynik = R.spakuj(sesja, limit=120_000)
+    czesci = [Path(c["sciezka"]) for c in wynik["czesci"]]
+    paczka = sesja.folder / R.KATALOG_PACZKI
+    assert len(czesci) >= 2 and "_cz2z" in czesci[1].name
+    stare = {c.name: sha(c) for c in czesci}
+    sesja.ustaw_notatke("pusta", "dopisane po spakowaniu")
+    prawdziwy = os.replace
+
+    def zamiana_z_bledem(takze_cofniecie: bool):
+        def replace(src, dst, **k):
+            if str(src).endswith(".zip.czesc") and ("_cz2z" in str(dst) or takze_cofniecie):  # druga czesc; w drugim wariancie kazda nowa czesc
+                raise PermissionError(13, "plik otwarty w innym programie (test)")
+            if takze_cofniecie and str(src).endswith(".zip.stara"):
+                raise PermissionError(13, "nie da sie przywrocic (test)")
+            return prawdziwy(src, dst, **k)
+        return replace
+
+    with monkeypatch.context() as mp:
+        mp.setattr(R.os, "replace", zamiana_z_bledem(False))
+        with pytest.raises(PermissionError, match="otwarty w innym programie"):
+            R.spakuj(sesja, limit=120_000)
+    assert {p.name: sha(p) for p in paczka.iterdir() if p.name != "paczka.json"} == stare  # wszystkie czesci stare, zadnych .czesc / .stara
+    assert R.sprawdz(czesci[0])[0] == 3
+    m = na_dysku(sesja)
+    assert len(m["spakowano"]) == 1 and m["zmieniono_po_spakowaniu"] is True and m["nieudane_pakowanie"]["paczka_niespojna"] is False
+    # nie udaje sie takze przywrocenie starej paczki: jasny wyjatek i znacznik, komunikat dla okna
+    with monkeypatch.context() as mp:
+        mp.setattr(R.os, "replace", zamiana_z_bledem(True))
+        with pytest.raises(R.PaczkaNiespojna):
+            R.spakuj(sesja, limit=120_000)
+        assert na_dysku(sesja)["nieudane_pakowanie"]["paczka_niespojna"] is True
+        zb.spakuj()
+        zb._obsluz_polecenia()
+    z = [x for x in zdarzenia(zb) if x["typ"] == "spakowano"]
+    assert len(z) == 1 and z[0]["wynik"] is None and z[0]["paczka_niespojna"] is True
+    # nastepne udane pakowanie sprzata i zdejmuje znacznik
+    wynik3 = R.spakuj(sesja)
+    assert sorted(p.name for p in paczka.iterdir()) == sorted([Path(wynik3["czesci"][0]["sciezka"]).name, "paczka.json"])
+    assert R.sprawdz(sesja.folder)[0] == 3 and "nieudane_pakowanie" not in na_dysku(sesja)
+    # program zabity w trakcie zamiany, zanim weszla nowa czesc (w folderze same *.zip.stara, bez znacznika w manifescie):
+    # nastepna proba pakowania przywraca stara paczke, nawet gdy sama sie nie uda
+    jedyna = Path(wynik3["czesci"][0]["sciezka"])
+    suma = sha(jedyna)
+    os.replace(jedyna, str(jedyna) + ".stara")
+    with monkeypatch.context() as mp:
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        with pytest.raises(OSError, match="No space left"):
+            R.spakuj(sesja)
+    assert sha(jedyna) == suma and not list(paczka.glob("*.stara")) and not list(paczka.glob("*.czesc"))
+
+
+def test_pytanie_startowe_po_zmianie_i_po_nieudanym_pakowaniu(tmp_path, monkeypatch):
+    """D-n3: sesja spakowana, potem zmieniona albo z nieudanym ponownym pakowaniem - okno przy starcie nie moze pytac
+    "ostatnia sesja jest zakonczona i spakowana"; ma powiedziec, ze paczka jest nieaktualna / ostatnie pakowanie sie nie udalo."""
+    class A:
+        sesja, nowa, dane, folder = None, False, tmp_path / "sesje", None
+
+    class Pytanie(Exception):
+        pass
+
+    def pytaj(tytul, tekst):  # wyjatek zamiast odpowiedzi: samo pytanie niczego w sesji nie zmienia
+        raise Pytanie(f"{tytul} | {tekst}")
+
+    def pytanie() -> str:
+        with pytest.raises(Pytanie) as e:
+            DS.wybierz_sesje(A, None, pytaj)
+        return str(e.value)
+
+    sesja, zb, _ = sesja_z_plikami(tmp_path)
+    with monkeypatch.context() as mp:  # pierwsze pakowanie nieudane: sesja niedokonczona, z informacja o nieudanej probie
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        with pytest.raises(OSError):
+            R.spakuj(sesja)
+    assert R.Sesja.lista(tmp_path / "sesje")[0]["nieudane_pakowanie"]["czas"]
+    tekst = pytanie()
+    assert tekst.startswith("Niedokończona sesja") and "nie udało się" in tekst
+    R.spakuj(sesja)
+    ost = R.Sesja.lista(tmp_path / "sesje")[0]
+    assert ost["zakonczono"] and ost["zmieniono_po_spakowaniu"] is False and ost["nieudane_pakowanie"] is None
+    tekst = pytanie()
+    assert tekst.startswith("Ostatnia sesja jest spakowana") and "zakończona i spakowana" in tekst
+    sesja.ustaw_notatke("pusta", "dopisane po spakowaniu")
+    tekst = pytanie()
+    assert "zakończona i spakowana" not in tekst and "zmieniona" in tekst and "nieaktualna" in tekst
+    with monkeypatch.context() as mp:
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        with pytest.raises(OSError):
+            R.spakuj(sesja)
+    ost = R.Sesja.lista(tmp_path / "sesje")[0]
+    assert ost["zakonczono"] and ost["nieudane_pakowanie"]["blad"].startswith("OSError")
+    tekst = pytanie()
+    assert "zakończona i spakowana" not in tekst and "nie udało się" in tekst and "nieaktualna" in tekst
+    R.spakuj(sesja)
+    assert pytanie().startswith("Ostatnia sesja jest spakowana") and "nieudane_pakowanie" not in na_dysku(sesja)
+
+
+def test_stan_kopii_folderow_liczy_pliki_tylko_z_ocenianego_kroku():
+    """D-n6: wpisy kopii calego folderu z INNEGO kroku nie moga uzupelniac liczby plikow ocenianego kroku."""
+    plik = {"rodzaj": "kopia_folderu", "cel": "x", "rozmiar": 1}
+    m = {"kopie_folderow": [{"krok": "kopia_folderu", "stan": "pelna", "plikow": 2, "juz_byly": 0, "skopiowane": 2, "pierwszy_id": 1}],
+         "pliki": [{**plik, "id": 1, "krok": "start"}, {**plik, "id": 2, "krok": "start"}]}
+    k = R.stan_kopii_folderow(m)[0]
+    assert (k["jest"], k["pelna"]) == (0, False) and R.brak_kopii_folderow(m, "kopia_folderu")
+    m["pliki"] += [{**plik, "id": 3, "krok": "kopia_folderu"}, {**plik, "id": 4, "krok": "kopia_folderu"}]
+    k = R.stan_kopii_folderow(m)[0]
+    assert (k["jest"], k["pelna"]) == (2, True) and R.brak_kopii_folderow(m, "kopia_folderu") is None
+    m["kopie_folderow"][0].update({"stan": "w_toku", "skopiowane": 0})  # kopia w toku: liczone wpisy tylko tego kroku
+    assert R.stan_kopii_folderow(m)[0]["skopiowane"] == 2
+
+
+def test_niepelna_kopia_podaje_nazwy_plikow_i_co_zrobic(srodowisko, monkeypatch):
+    """D-n7: plik trzymany przez program skanera (blad odczytu) - komunikat i brak kroku podaja nazwe pliku i mowia wprost, co robic:
+    spakowac mimo to, a kopie dokonczyc po zamknieciu programu skanera. To samo jest w instrukcji kroku."""
+    eksport, sesja, zb, _ = srodowisko
+    (eksport / "zlecenia").mkdir()
+    (eksport / "zlecenia" / "baza_programu.db").write_bytes(b"x" * 100)
+    prawdziwa = R.kopiuj_plik
+
+    def kopiuj(zr, cel, **k):
+        if Path(zr).name == "baza_programu.db":
+            raise PermissionError(13, "plik zajety przez program skanera (test)")
+        return prawdziwa(zr, cel, **k)
+
+    monkeypatch.setattr(R, "kopiuj_plik", kopiuj)
+    zb.kopia_calych_folderow("kopia_folderu")
+    zb._obsluz_polecenia()
+    k = na_dysku(sesja)["kopie_folderow"][-1]
+    assert (k["stan"], k["bledy"], k["nieskopiowane"]) == ("niepelna", 1, ["Scandata/zlecenia/baza_programu.db"])
+    komunikaty = [z["tekst"] for z in zdarzenia(zb) if z["typ"] == "blad"]
+    assert len(komunikaty) == 1 and "baza_programu.db" in komunikaty[0] and "spakuj mimo to" in komunikaty[0] and "po zamknięciu programu skanera" in komunikaty[0]
+    brak = R.brak_kopii_folderow(sesja.m, "kopia_folderu")
+    assert "baza_programu.db" in brak and "po zamknięciu programu skanera" in brak
+    instrukcja = sesja.krok("kopia_folderu").instrukcja
+    assert "NIEPEŁNA" in instrukcja and "spakuj mimo to" in instrukcja and "po zamknięciu programu skanera" in instrukcja
+
+
+# ----------------------------------------------------------------------------
 # szybka kontrola skanu
 # ----------------------------------------------------------------------------
 def _skan(uk: U.UkladPlytki, numer: int, projekty, seed: int, **opcje):
@@ -1068,6 +1759,43 @@ def test_okno_brak_miejsca_pokazuje_alarm(okno):
     o.zbieracz.wolne = R.wolne_miejsce
     takty(o, 2)
     assert o.etykieta_alarmu.isHidden() and len(o.sesja.m["pliki"]) == 1
+
+
+def test_okno_zamkniecie_w_trakcie_pakowania_pyta_i_nieudane_pakowanie_nie_jest_spakowane(okno, monkeypatch):
+    """P4: zamkniecie okna w trakcie pakowania - ostrzezenie (odpowiedz Nie zostawia okno i zbieranie); nieudane pakowanie w oknie
+    nie pokazuje "Spakowano"."""
+    o, eksport = okno
+    (eksport / "skan.stl").write_bytes(stl_binarny(40))
+    (eksport / "obraz.png").write_bytes(b"\x89PNG" + bytes(100))
+    takty(o)
+    with monkeypatch.context() as mp:
+        mp.setattr(zipfile, "ZipFile", zip_psujacy_sie())
+        QTest.mouseClick(o.przycisk_spakuj, Qt.LeftButton)
+        takty(o, 1)
+    o._odswiez_kroki()
+    assert o.wynik_paczki is None and "Pakowanie nie udało się" in o.etykieta_oceny.text() and "Spakowano" not in o.etykieta_kompletnosci.text()
+    assert na_dysku(o.sesja)["zakonczono"] is None and o.przycisk_spakuj.isEnabled()
+    assert "Ostatnie pakowanie nie udało się" in o.etykieta_kompletnosci.text()  # D-n3: widac to takze po ponownym otwarciu sesji
+    o.zbieracz.zdarzenia.put({"typ": "spakowano", "wynik": None, "blad": "PaczkaNiespojna: test", "paczka_niespojna": True})
+    o._takt()
+    assert "niespójn" in o.etykieta_oceny.text() and "została bez zmian" not in o.etykieta_oceny.text()  # D-n2: komunikat zgodny ze stanem paczki
+    pytania = []
+
+    def pytaj(tytul, tekst, *a, **k):
+        pytania.append(tytul)
+        return o.odpowiedz_tak
+
+    o._pytaj_tak_nie = pytaj
+    assert o.close() is True and not pytania  # bez pakowania okno zamyka sie bez pytania
+    o.show()
+    o.zegar.start()
+    o.zbieracz._stop.clear()
+    o._pakowanie = True  # pakowanie trwa w watku zbieracza
+    o.odpowiedz_tak = False
+    assert o.close() is False and o.isVisible() and len(pytania) == 1 and o.zegar.isActive() and not o.zbieracz._stop.is_set()
+    o.odpowiedz_tak = True
+    assert o.close() is True and len(pytania) == 2 and o.zbieracz._stop.is_set()
+    o._pakowanie = False
 
 
 def test_okno_pomiar_szczegolowy_to_osobny_proces_z_wynikiem_w_sesji(okno, monkeypatch):
