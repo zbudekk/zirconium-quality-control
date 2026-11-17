@@ -56,7 +56,9 @@ pominiecia z powodem), ekran (zrzuty). Uruchomienie: `uruchom_dzien_skanera.bat`
    pierwszym plikiem, na koncu liczby skopiowanych / bledow / pominietych / niedostepnych podfolderow i stan `pelna` |
    `niepelna` | `przerwana` (brak miejsca, zamkniecie okna); kopia "w toku" znaleziona przy wznowieniu sesji (program
    zabity) dostaje stan `przerwana`. Krok jest "zrobiony" dopiero przy kopii pelnej; niepelna = brak kroku w panelu,
-   czerwony komunikat w oknie, wiersz `KOPIA FOLDERU ... NIEPELNA` i kod 3 w `--sprawdz`. Ponowne klikniecie przycisku
+   czerwony komunikat w oknie (z nazwami plikow, ktorych nie udalo sie skopiowac, i wskazowka: plik zajety przez
+   program skanera = spakuj mimo to, kopie dokoncz po zamknieciu programu skanera), wiersz `KOPIA FOLDERU ... NIEPELNA`
+   i kod 3 w `--sprawdz`. Liczone sa tylko pliki kopii z ocenianego kroku. Ponowne klikniecie przycisku
    kopiuje tylko pliki, ktorych kopia w tym kroku jeszcze nie ma (to samo zrodlo, rozmiar i czas) - bez duplikatow.
    Foldery obserwowane o tej samej nazwie maja w kopii osobne katalogi (etykiety `Scandata`, `Scandata_2`).
 4. **Szybka kontrola** kazdego pliku STL / PLY / OBJ (`kontrola_pliku`), w OSOBNYM PROCESIE na plik
@@ -85,11 +87,18 @@ pominiecia z powodem), ekran (zrzuty). Uruchomienie: `uruchom_dzien_skanera.bat`
    pakowane jak kazde inne. Projekty exocad nie trafiaja do paczki (`czy_projekt_exocad`: decyduje nazwa ZRODLA zapisana
    w manifescie, wiec takze kolejne wersje `X_cad__zmiana2.stl` i duplikaty `X_cad__2.stl`; do tego wyniki ich kontroli
    i pomiarow), a ich nazwy sa usuwane z manifestu, logu, stanu obserwatora i raportu w paczce - razem z kazda inna
-   nazwa `*_cad.stl` w tych tekstach (plik zastany w folderze skanera, plik, ktorego nie udalo sie skopiowac).
-   Kolejnosc odporna na awarie: nowe archiwa powstaja jako `*.zip.czesc`; dopiero gdy wszystkie sa gotowe, zastepuja
-   stare, potem zapisywane sa raport i sumy, a na koncu znaczniki `zakonczono` / `spakowano` w manifescie. Nieudane
-   albo przerwane pakowanie (brak miejsca, wyjatek, zamkniecie okna) = sesja NIE jest oznaczona jako spakowana,
-   poprzednia paczka zostaje bez zmian. Zamkniecie okna w trakcie pakowania: pytanie "zamknac mimo to?"; po "Tak"
+   nazwa `*_cad.stl` w tych tekstach (plik zastany w folderze skanera, plik, ktorego nie udalo sie skopiowac, nazwa
+   wpisana w notatce). W manifescie i stanie obserwatora zamiana idzie po strukturze danych, napis po napisie
+   (`bez_nazw_projektow_w_danych`), nigdy po tekscie JSON - notatka wielowierszowa z taka nazwa nie psuje pakowania.
+   Kolejnosc odporna na awarie: nowe archiwa powstaja jako `*.zip.czesc`; dopiero gdy wszystkie sa gotowe, stare
+   czesci sa odkladane jako `*.zip.stara`, nowe wchodza na miejsce, potem zapisywane sa raport i sumy, a na koncu
+   znaczniki `zakonczono` / `spakowano` w manifescie. Nieudane albo przerwane pakowanie (brak miejsca, wyjatek,
+   zamkniecie okna) = sesja NIE jest oznaczona jako spakowana, poprzednia paczka zostaje bez zmian; blad przy samej
+   zamianie czesci jest cofany (stare czesci wracaja), a gdy cofniecie sie nie uda - wyjatek `PaczkaNiespojna`
+   i komunikat "pliki ZIP sa niespojne, nie wysylaj". Kazda nieudana proba zostawia w manifescie znacznik
+   `nieudane_pakowanie` {czas, blad, paczka_niespojna} (znika po udanym pakowaniu): panel pokazuje "Ostatnie pakowanie
+   nie udalo sie", a przy starcie okno nie mowi wtedy "zakonczona i spakowana" - pyta o sesje z nieaktualna paczka
+   (to samo dla sesji zmienionej po spakowaniu). Zamkniecie okna w trakcie pakowania: pytanie "zamknac mimo to?"; po "Tak"
    pakowanie jest przerywane miedzy plikami (`Przerwano`). Braki wymaganych krokow = wyrazne ostrzezenie, bez blokady.
    Przed pakowaniem okno czeka najwyzej 2 min na trwajace kontrole i najwyzej 20 s na pliki, ktore wlasnie pojawily
    sie w folderze skanera; pozniejszy plik albo wynik kontroli, a takze zmiana sesji w trakcie pakowania, oznacza
@@ -106,7 +115,7 @@ pominiecia z powodem), ekran (zrzuty). Uruchomienie: `uruchom_dzien_skanera.bat`
    obserwowanego nie jest kopiowany do siebie; gdy `ustawienia.toml` jest zly albo go nie ma, okno dziala (zbieranie bez
    kontroli skanow).
 
-**Kryterium "dziala".** `testy/test_dzien_skanera.py` (71 testow; 18 dodanych 17.11 po recenzji PR #13 - awaria
+**Kryterium "dziala".** `testy/test_dzien_skanera.py` (76 testow; 18 + 5 dodanych 17.11 po dwoch rundach recenzji PR #13 - awaria
 miedzy kopia a manifestem, zrodlo zmienione w trakcie kopii, wznowienie z `.tmp`, pliki `.bak` / `.tmp` skanera
 w paczce, nieudane i przerwane pakowanie, zamkniecie okna w trakcie pakowania, kolejne wersje i duplikaty projektu
 exocad, przerwana i wznowiona kopia calego folderu, plik sprzed 1980, sesja zapisana starsza wersja): manifest na dysku po kazdej akcji i wznowienie
@@ -140,6 +149,8 @@ okno offscreen (kroki, przyciski, przeciaganie, pakowanie, pomiar szczegolowy ja
   duplikatow) i tylko dla NAZWY PLIKU. Nazwisk w nazwach zlecen wpisanych w programie skanera ani w nazwie FOLDERU
   projektu exocad (inne pliki z tego folderu trafiaja do paczki ze swoja sciezka) program nie rozpozna - instrukcja
   kaze nazywac zlecenia TEST1, TEST2 i sprawdzic nazwy przed wyslaniem. Zrzut ekranu tez moze pokazywac nazwe.
+  Plik `paczka/paczka.json` (lezy obok ZIP, nie w nim) zawiera pelne nazwy pominietych projektow i sciezki z nazwa
+  konta - nie wysylac go razem z archiwum (znane, do nastepnej paczki okna: recenzja PR #13 runda 2, D-n4).
   Sciezki zrodlowe w manifescie maja katalog domowy uzytkownika zastapiony przez `~`.
 - Rejestr kopii calego folderu przechowuje liczby, nie liste plikow: `--sprawdz` porownuje liczbe plikow kopii
   w manifescie z liczba plikow, ktore kopia zastala w folderach. Folder obserwowany, ktory w chwili kopii nie
