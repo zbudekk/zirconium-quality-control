@@ -9,8 +9,9 @@ from dataclasses import asdict
 import numpy as np
 import pytest
 import trimesh
+from scipy.spatial import cKDTree
 
-from stanowisko import inspect as I, match, plate, porownaj as PO, synth, ustawienia as UST, uklad as U
+from stanowisko import inspect as I, krawedz as KR, match, plate, porownaj as PO, synth, ustawienia as UST, uklad as U
 
 
 @pytest.fixture(scope="module")
@@ -511,6 +512,65 @@ def test_projekt_bez_linii_z_wcieciem_w_trybie_sumy_dziala_jak_przed_p2(tmp_path
         assert I.sprawdz(P, N0, pr, pr.T0, 0.99, _ust(ust, pas_brzegu_od="linia"), 1).status == "nie_sprawdzono"
         statusy.append((plaszcz.status, sorted({(u.metoda, u.kolor) for u in plaszcz.ubytki})))
     assert statusy == [("ubytek", [("A+B", "czerwony")]), ("sprawdz", [("B", "zolty")])], statusy  # jak na ``main``: czerwony ubytek / żółte „sprawdź”
+
+
+def test_filar_z_niecka_bez_linii_nie_znika_po_cichu(tmp_path, ust, monkeypatch):
+    """P1 (recenzja PR #13): praca z dwoma filarami; dla filaru 2 niecka jest przyjęta, ale linii nie wyznaczono
+    (``krawedz.wyznacz`` zostawia wtedy tylko wpis „linii nie wyznaczono” w ``uwagi`` — filaru nie ma na liście ``filary``).
+    Tryb ``linia``: brzeg tego filaru nie jest sprawdzony → „nie sprawdzono”, nigdy zielone. Tryb domyślny: działa pas od
+    płaszczyzny (jak przed P2), ale wynik ma o tym uwagę."""
+    pr = _projekt(tmp_path, "dwa_filary", [filar_zaokraglony((-5.0, 0.0)), filar_zaokraglony((5.0, 0.0))])
+    pelny = I.brzeg_projektu(pr)
+    assert [f.nr for f in pelny.linie.filary] == [1, 2] and sum(n["przyjeta"] for n in pelny.linie.niecki) == 2
+    P, N = _skan(pr.siatka)
+    ust_linia, ust_suma = _ust(ust, pas_brzegu_od="linia"), _ust(ust, pas_brzegu_od="linia_i_plaszczyzna")
+    for u in (ust_linia, ust_suma):  # komplet linii: zielone, a wynik nie ma nowego pola (zwykłe dane bez zmian)
+        wi = I.sprawdz(P, N, pr, pr.T0, 0.99, u, 1)
+        assert wi.status == "ok" and wi.brzeg["filarow"] == 2 and "filary_bez_linii" not in wi.brzeg, (wi.status, wi.uwagi)
+        assert not any("nie wyznaczono" in x for x in wi.uwagi)
+    # te same linie bez filaru 2 — tak zwraca je krawedz.wyznacz, gdy żaden wariant nie da linii filaru
+    bez_2 = KR.LinieProjektu([pelny.linie.filary[0]], pelny.linie.niecki, ["filar 2: za malo udanych przekrojow - linii nie wyznaczono"],
+                             0.0, pelny.linie.skala)
+    st, so = KR.stacje(bez_2, ("O", "I")), KR.stacje(bez_2, ("O",))
+    brzeg = I.BrzegProjektu(bez_2, st["X"], st["filar"], cKDTree(st["X"]), so["X"], so["filar"], so["zweryf"], cKDTree(so["X"]))
+    klucz = next(k for k, b in I._BRZEGI.items() if b is pelny)
+    monkeypatch.setitem(I._BRZEGI, klucz, brzeg)
+    assert I.brzeg_projektu(pr) is brzeg
+    wi = I.sprawdz(P, N, pr, pr.T0, 0.99, ust_linia, 1)
+    # przed poprawką: "ok" — zielone, choć brzegu filaru 2 nikt nie sprawdził
+    assert wi.status == "nie_sprawdzono" and wi.ubytki == [], (wi.status, wi.brzeg.get("opis"), wi.uwagi)
+    b = wi.brzeg
+    assert not b["sprawdzony"] and b["nie_sprawdzono"] == [2] and b["filary_bez_linii"] == [2]
+    assert "filar 2" in b["opis"] and "nie wyznaczono" in b["opis"]
+    f1, f2 = (next(f for f in b["filary"] if f["nr"] == nr) for nr in (1, 2))
+    assert f1["sprawdzony"] and f1["powody"] == []
+    assert not f2["sprawdzony"] and f2["powody"] == ["linia"] and f2["werdykt_linii"] == "brak" and f2["odcinki"] == [] and f2["udzial_sprawdzony"] == 0.0
+    assert set(f2) == set(f1)  # wpis filaru bez linii ma te same pola co zwykły
+    assert any("brzeg nie sprawdzony" in u and "filar 2" in u for u in wi.uwagi)
+    assert PO.status_gniazda("zielony", wi.json()) == "zolty" and PO.OPISY_INSPEKCJI[wi.status] == "nie sprawdzono"
+    suma = I.sprawdz(P, N, pr, pr.T0, 0.99, ust_suma, 1)
+    assert suma.status == "ok" and suma.brzeg["sprawdzony"] and suma.brzeg["nie_sprawdzono"] == []
+    # przed poprawką: uwagi_linii puste — wynik nie mówił, że linii filaru 2 nie wyznaczono
+    assert suma.brzeg["filary_bez_linii"] == [2] and "filar 2" in suma.brzeg["uwagi_linii"] and "nie wyznaczono" in suma.brzeg["uwagi_linii"]
+    assert any("filar 2" in u and "nie wyznaczono" in u for u in suma.uwagi)
+    assert [f["nr"] for f in suma.brzeg["filary"]] == [1]  # w trybie sumy brzeg filaru bez linii ocenia tylko pas od płaszczyzny
+    # ukruszenie brzegu filaru 2 (brzeg na z = 0, czyli w pasie od płaszczyzny): tryb domyślny widzi je jak przed P2
+    f = pelny.linie.filary[1]
+    i = int(np.flatnonzero(f.zweryf)[int(f.zweryf.sum()) // 2])
+
+    class _Staly:  # „rng” stawiający ukruszenie na filarze 2
+        def integers(self, n):
+            return 1
+
+        def choice(self, a):
+            return i
+
+    po, ub = synth.wytnij_ukruszenie(pr.siatka, pelny.linie, "srodek", 0.3, _Staly())
+    assert ub is not None and ub.filar == 2
+    Pu, Nu = _skan(po)
+    z_ukr = I.sprawdz(Pu, Nu, pr, pr.T0, 0.99, ust_suma, 1)
+    assert z_ukr.status in ("ubytek", "sprawdz") and any(math.dist((u.x, u.y, u.z), (ub.x, ub.y, ub.z)) <= 0.6 for u in z_ukr.ubytki)
+    assert any("filar 2" in u and "nie wyznaczono" in u for u in z_ukr.uwagi)
 
 
 def test_prace_bokiem_i_czesciowe_nie_sa_zielone_bez_sprawdzonego_brzegu(korony, pula, ust):

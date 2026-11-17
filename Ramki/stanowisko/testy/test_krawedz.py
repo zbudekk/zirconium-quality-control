@@ -125,6 +125,42 @@ def test_bryla_bez_wneki_nie_ma_linii(bryla):
     assert KR.stacje(linie)["X"].shape == (0, 3)
 
 
+def test_filar_z_niecka_bez_linii_jest_jawny(monkeypatch, tmp_path):
+    """P1 (recenzja PR #13): niecka filaru przyjeta, ale zaden wariant nie daje linii ("linii nie wyznaczono") - filaru
+    nie ma na liscie ``filary``, wiec wynik musi mowic o nim jawnie: ``filary_bez_linii`` i ``stan`` inny niz
+    ``wiarygodne`` (takze po przeliczeniu ukladu i po odczycie z pamieci na dysku)."""
+    from test_inspect import filar_zaokraglony  # dwa osobne filary z wneka (kazdy wiarygodny)
+
+    m = trimesh.util.concatenate([filar_zaokraglony((-5.0, 0.0)), filar_zaokraglony((5.0, 0.0))])
+    pelne = KR.linie_siatki(m, skala=1.0)
+    assert [f.nr for f in pelne.filary] == [1, 2] and pelne.stan == "wiarygodne" and pelne.uwagi == []
+    nr = next(f.nr for f in pelne.filary if f.srodek[0] > 0)
+    prawdziwe = KR._warianty_filaru
+
+    def bez_prawego(siatka, c, wskazania, katy):  # filar po prawej: zaden przekroj sie nie udaje
+        rek, licz = prawdziwe(siatka, c, wskazania, katy)
+        if c[0] > 0:
+            rek = {nazwa: np.full_like(r, np.nan) for nazwa, r in rek.items()}
+        return rek, licz
+
+    monkeypatch.setattr(KR, "_warianty_filaru", bez_prawego)
+    linie = KR.linie_siatki(m, skala=1.0)
+    assert [f.nr for f in linie.filary] == [3 - nr] and len(linie.uwagi) == 1
+    assert f"filar {nr}" in linie.uwagi[0] and "linii nie wyznaczono" in linie.uwagi[0]
+    assert sum(n["przyjeta"] for n in linie.niecki) == 2
+    assert linie.stan == "czesciowe"  # przed poprawka: "wiarygodne", choc jeden filar nie ma linii
+    assert linie.filary_bez_linii == [nr] and linie.opis()["filary_bez_linii"] == [nr] and linie.opis()["stan"] == "czesciowe"
+    assert linie.przeksztalc(2.0, (1.0, 2.0, 3.0)).filary_bez_linii == [nr]
+    plik = tmp_path / "linie.npz"
+    KR.zapisz_npz(linie, plik)
+    z_dysku = KR.wczytaj_npz(plik)
+    assert z_dysku.filary_bez_linii == [nr] and z_dysku.stan == "czesciowe" and [f.nr for f in z_dysku.filary] == [3 - nr]
+    # komplet linii, niecka nieprzyjeta albo bryla bez niecki: nic do zgloszenia
+    assert pelne.filary_bez_linii == [] and pelne.opis()["filary_bez_linii"] == []
+    assert KR.LinieProjektu(list(pelne.filary), [{"etykieta": 3, "przyjeta": False}], ["x"]).filary_bez_linii == []
+    assert KR.linie_siatki(trimesh.creation.box([8.0, 6.0, 5.0])).filary_bez_linii == []
+
+
 # --- skala, przesuniecie, pamiec -------------------------------------------------------------
 def test_skala_i_przesuniecie_nie_zmieniaja_linii(linie_korony):
     m, linie = linie_korony
