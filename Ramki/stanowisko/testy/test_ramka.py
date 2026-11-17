@@ -196,14 +196,27 @@ def ramka_w():
     prog.zatrzymaj()
 
 
+# Zapis ruchu wszystkich klientow testowych (sciezka, naglowki, tresc w obie strony) - sprawdza go
+# ostatni test pliku (K8). Klient z zapis_zadan=False (celowo zle zadania z nazwami) zapisuje
+# tylko odpowiedzi ramki.
+RUCH = []
+_RUCH_BLOK = threading.Lock()
+
+
+def _zapisz_ruch(b: bytes) -> None:
+    with _RUCH_BLOK:
+        RUCH.append(b)
+
+
 class Laptop:
     """Minimalny klient laptopa (biblioteka standardowa): odpytywanie z kursorem zdarzen."""
 
-    def __init__(self, port, laptop_id=LAPTOP, host="127.0.0.1"):
+    def __init__(self, port, laptop_id=LAPTOP, host="127.0.0.1", zapis_zadan=True):
         self.host, self.port, self.id = host, port, laptop_id
         self.od = 0
         self.start_id = None
         self.zdarzenia = []
+        self.zapis_zadan = zapis_zadan
 
     def zadanie(self, metoda, sciezka, tresc=None, naglowki=None, timeout=15.0, surowa=None):
         c = http.client.HTTPConnection(self.host, self.port, timeout=timeout)
@@ -214,9 +227,12 @@ class Laptop:
             if tresc is not None:
                 body = json.dumps(tresc).encode("utf-8")
                 h["Content-Type"] = "application/json"
+            if self.zapis_zadan:
+                _zapisz_ruch(f"{metoda} {sciezka} {h}".encode("utf-8") + (body or b""))
             c.request(metoda, sciezka, body=body, headers=h)
             r = c.getresponse()
             dane = r.read()
+            _zapisz_ruch(str(r.getheaders()).encode("utf-8") + dane)
             return r.status, (json.loads(dane.decode("utf-8")) if dane else None)
         finally:
             c.close()
@@ -334,8 +350,8 @@ class Posrednik:
 
 
 def czekaj_na(warunek, timeout=3.0, krok=0.003):
-    koniec = time.monotonic() + timeout
-    while time.monotonic() < koniec:
+    koniec = time.perf_counter() + timeout
+    while time.perf_counter() < koniec:
         if warunek():
             return True
         time.sleep(krok)
@@ -561,22 +577,26 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     czasy = []
     for _ in range(10):
         for n, ocz in ((4, o4), (0, {}), (5, o5), (0, {})):
-            t0 = time.monotonic()
+            t0 = time.perf_counter()
             atrapa.poloz_plytke(n)
             ok = atrapa.czekaj(lambda a, o=ocz: a.klatka is not None and porownaj_obszar_plytki(a.klatka, o) == [], 2.0)
-            czasy.append(time.monotonic() - t0)
+            czasy.append(time.perf_counter() - t0)
             assert ok, f"plytka {n}: brak wlasciwego obrazu"
+    s = sorted(czasy)
+    print(f"POMIAR K4: {len(s)} przelaczen, mediana {s[len(s) // 2] * 1000:.0f} ms, maks {s[-1] * 1000:.0f} ms")
     assert max(czasy) < 0.100, f"najdluzsze przelaczenie {max(czasy) * 1000:.0f} ms"
     zd, _ = prog.logika.zdarzenia_od(n0)
     assert [z["plytka"] for z in zd if z["typ"] == "plytka"] == [4, 0, 5, 0] * 10
     # stary plan nie swieci pod nowa plytka: klatka wyswietlana 100 ms po polozeniu plytki 5
-    # (ostatnia wyslana do matrycy do tej chwili) nie ma pikseli planu plytki 4
-    assert len(atrapa.zmiany_plytki) == 40
+    # (albo tuz przed zdjeciem plytki, gdy test zdjal ja wczesniej) ma plan plytki 5, nie 4
+    zmiany = atrapa.zmiany_plytki
+    assert len(zmiany) == 40
     sprawdzone = 0
-    for c, n in atrapa.zmiany_plytki:
+    for i, (c, n) in enumerate(zmiany):
         if n != 5:
             continue
-        klatki_do = [k for czas, _, k in atrapa.historia if czas <= c + 0.100]
+        nastepna = zmiany[i + 1][0] if i + 1 < len(zmiany) else float("inf")
+        klatki_do = [k for czas, _, k in atrapa.historia if czas <= c + 0.100 and czas <= nastepna]
         assert klatki_do
         assert not (set(piksele_plytki(klatki_do[-1])) & set(o4)), "plan plytki 4 swieci pod plytka 5"
         assert porownaj_obszar_plytki(klatki_do[-1], o5) == []
@@ -726,6 +746,10 @@ def test_k5_utrata_sieci_5_potwierdzen_100_powtorzen(kal, ramka_p):
                 [("potwierdzenie", k) for k in ["5001", "5002", "5003", "5004", "5005"]], f"powtorzenie {rep}"
         nry = [z["nr"] for z in lap.zdarzenia]
         assert nry == list(range(1, len(nry) + 1)), "luka albo powtorka w numeracji zdarzen"
+        potw = sum(1 for z in lap.zdarzenia if z["typ"] == "potwierdzenie")
+        print(f"POMIAR K5: 100 powtorzen, potwierdzen odebranych {potw} z 500, zdarzen {len(nry)}, "
+              f"nieudanych odpytan (awaria / zgubiona odpowiedz) {nieudane_odpytania}")
+        assert potw == 500
         assert nieudane_odpytania >= 100
     finally:
         proxy.zamknij()
@@ -750,7 +774,7 @@ def test_k6_restart_ramki_laptop_wysyla_plan_ponownie_do_5_s(kal):
                     st, _ = lap.wyslij_plan(plan_rano(kal, wersja=len(wyslane) + 1))
                     if st == 200:
                         znany = lap.start_id
-                        wyslane.append(time.monotonic())
+                        wyslane.append(time.perf_counter())
             except BLEDY_SIECI:
                 time.sleep(0.05)
 
@@ -760,12 +784,13 @@ def test_k6_restart_ramki_laptop_wysyla_plan_ponownie_do_5_s(kal):
     try:
         assert czekaj_na(lambda: prog.logika.plan is not None, 5.0)
         stary_start = prog.logika.start_id
-        t0 = time.monotonic()
+        t0 = time.perf_counter()
         prog.zatrzymaj()
         prog2, _, _ = uruchom("P", port=port, sprzet=atrapa)
         assert prog2.logika.start_id != stary_start
         assert czekaj_na(lambda: prog2.logika.plan is not None, 6.0)
-        dt = time.monotonic() - t0
+        dt = time.perf_counter() - t0
+        print(f"POMIAR K6: plan ponownie w ramce po {dt:.2f} s od zatrzymania programu ramki")
         assert dt < 5.0, f"plan po restarcie po {dt:.2f} s"
     finally:
         stop.set()
@@ -826,11 +851,13 @@ def test_k7_spacja_zmienia_stan_ramki_w_ponizej_1_s_dwa_procesy(tmp_path):
 
         for i in range(10):
             stan = "skanowanie" if i % 2 == 0 else "gotowa"
-            t0 = time.monotonic()
+            t0 = time.perf_counter()
             st, odp = lap.zadanie("PUT", "/tryb", {"protokol": 1, "stan": stan})
             assert st == 200, odp
             assert czekaj_na(lambda s=stan: kolor_pierscienia() == obraz.KOLORY_STANU[s], 2.0, 0.005)
-            czasy.append(time.monotonic() - t0)
+            czasy.append(time.perf_counter() - t0)
+        s = sorted(czasy)
+        print(f"POMIAR K7: {len(s)} zmian stanu, mediana {s[len(s) // 2] * 1000:.0f} ms, maks {s[-1] * 1000:.0f} ms")
         assert max(czasy) < 1.0, f"najdluzej {max(czasy):.3f} s"
     finally:
         try:
@@ -911,7 +938,7 @@ def test_k8_ruch_sieciowy_testow_bez_nazw_folderow(kal, ramka_p, caplog):
 def test_k8_ramka_odrzuca_nazwy_i_nie_powtarza_ich_w_odpowiedzi_ani_logu(kal, ramka_p, caplog):
     caplog.set_level(logging.DEBUG)
     prog, atrapa, port = ramka_p
-    lap = Laptop(port)
+    lap = Laptop(port, zapis_zadan=False)  # celowo zle zadania z nazwami - w zapisie tylko odpowiedzi
     lap.stan()
     plan = plan_rano(kal)
     plan["kuwety"][0]["kuweta"] = FOLDERY["3263"]
@@ -1251,8 +1278,8 @@ def test_dwa_laptopy_naraz(kal):
         assert [z["nr"] for z in a.zdarzenia] == [z["nr"] for z in b.zdarzenia]
         assert b.stan()["laptop"] == "lap-a"
         # laptop A milknie dluzej niz limit lacznosci -> B przejmuje ramke (plan A nadal wazny 600 s)
-        deadline = time.monotonic() + 3.0
-        while time.monotonic() < deadline:
+        deadline = time.perf_counter() + 3.0
+        while time.perf_counter() < deadline:
             st, odp = b.wyslij_plan(plan_rano(kal, plan_id="plan-b"))
             if st == 200:
                 break
@@ -1405,3 +1432,30 @@ def test_logi_serwera_bez_tresci_zadan(kal, ramka_p, caplog):
     lap.wyslij_plan(plan_rano(kal))
     assert "PUT" in caplog.text and "/plan" in caplog.text
     assert "3263" not in caplog.text and "gniazda" not in caplog.text
+
+
+def test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow(kal):
+    """Ostatni test pliku: zapis ruchu WSZYSTKICH klientow testowych tego przebiegu (RUCH).
+    Uruchomiony osobno sam wytwarza ruch scenariusza porannego."""
+    if len(RUCH) < 100:
+        prog, atrapa, port = uruchom("P")
+        try:
+            lap = Laptop(port)
+            lap.stan()
+            lap.dobierz()
+            lap.wyslij_plan(plan_rano(kal))
+            atrapa.poloz_plytke(4)
+            for k in ["enter", "1", "2", "3", "4", "enter", "zamknij_piec"]:
+                atrapa.nacisnij(k)
+            assert czekaj_na(lambda: prog.logika.nr >= 5)
+            lap.dobierz()
+            lap.zadanie("DELETE", "/plan")
+        finally:
+            prog.zatrzymaj()
+    with _RUCH_BLOK:
+        ruch = b"\n".join(RUCH).decode("utf-8", "replace").lower()
+        n = len(RUCH)
+    print(f"POMIAR K8: zapis ruchu {n} komunikatow, {len(ruch)} znakow; trafienia nazw: 0 wymagane")
+    trafienia = [nazwa for nazwa in list(FOLDERY.values()) + list(NAZWISKA) if nazwa.lower() in ruch]
+    assert trafienia == []
+    assert n >= 20
