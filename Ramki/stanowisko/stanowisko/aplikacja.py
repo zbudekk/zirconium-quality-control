@@ -55,7 +55,7 @@ LOG = logging.getLogger(__name__)
 WERSJA_PROGRAMU = "etap3-A3a"  # do ``skany.wersja_programu``, dopoki paczka wydania (A11) nie poda numeru wydania
 PLIK_ZADAN = "zadania_niezakonczone.json"  # obok bazy: zadania przerwane zamknieciem programu (do zlecenia po starcie)
 PLIK_PULI = "stanowisko_pula.json"  # obok bazy: folder puli i wspolczynnik wpisane przez technika (poziom 1 planu)
-WSPOLCZYNNIK_MIN, WSPOLCZYNNIK_MAX = 0.9, 1.5  # zakres wspolczynnika skurczu przyjmowany z okna (poranna 1,0; wieczorna ok. 1,2-1,25)
+WSPOLCZYNNIK_MIN, WSPOLCZYNNIK_MAX = K.WSPOLCZYNNIK_MIN, K.WSPOLCZYNNIK_MAX  # walidacja wspolna z atrapa (KontrolerSesji._sprawdz_pule)
 PROBY_STARTU_SILNIKA = 1  # ile razy zadanie jest zlecane ponownie, gdy proces silnika nie umie wystartowac
 OKRES_KONTROLI_S = 1.0  # co ile ``przetworz`` sprawdza stan obserwatora (folder dostepny, pliki zajete) i ponawia zapis do zajetej bazy
 PLIK_LOGU = "stanowisko.log"
@@ -241,6 +241,7 @@ class Aplikacja(K.KontrolerSesji):
         self._pula_nr += 1
         if self._pula_folder is None:
             self._pula_stan, self._pula_liczba = "nieustawiona", None
+            self._komunikat_puli("nieustawiona", len(self._wstrzymane))
             return
         if not (ciche and self._pula_stan == "gotowa"):
             self._pula_stan = "liczenie"
@@ -263,25 +264,17 @@ class Aplikacja(K.KontrolerSesji):
         if self._pula_stan == "gotowa":
             self._usun_komunikat("pula")
             self._zwolnij_wstrzymane()
-        elif self._wstrzymane:
-            self._komunikat_puli()
-
-    def _komunikat_puli(self) -> None:
-        if self._pula_stan in ("pusta", "brak_folderu", "nieustawiona"):
-            self._komunikat("pula_pusta" if self._pula_stan == "pusta" else "pula_brak_folderu", id_="pula", czas=self._teraz(),
-                            czeka=len(self._wstrzymane))
+        else:
+            self._komunikat_puli(self._pula_stan, len(self._wstrzymane))
 
     def ustaw_pule(self, folder: str | None, wspolczynnik: float | None = None) -> K.Odpowiedz:
-        """Folder projektow i wspolczynnik skurczu wpisane recznie (None = domyslny dla rozpoznanego typu plytki)."""
-        if self._zamkniety:
-            return K.Odpowiedz(False, ST.tekst_komunikatu("program_zamkniety")[2], "program_zamkniety")
-        if wspolczynnik is not None:
-            try:
-                wspolczynnik = float(wspolczynnik)
-            except (TypeError, ValueError):
-                wspolczynnik = float("nan")
-            if not WSPOLCZYNNIK_MIN <= wspolczynnik <= WSPOLCZYNNIK_MAX:
-                return self._odmowa("zly_wspolczynnik", od=f"{WSPOLCZYNNIK_MIN:g}", do=f"{WSPOLCZYNNIK_MAX:g}")
+        """Folder projektow i wspolczynnik skurczu wpisane recznie (None = domyslny dla rozpoznanego typu plytki). Walidacja
+        wspolna z atrapa (``_sprawdz_pule``): ``zly_wspolczynnik``, ``zle_argumenty``; folder None = pula ``nieustawiona``.
+        ``dane`` = stan puli po poleceniu (``liczenie`` / ``nieustawiona``)."""
+        wynik = self._sprawdz_pule(folder, wspolczynnik)
+        if isinstance(wynik, K.Odpowiedz):
+            return wynik
+        folder, wspolczynnik = wynik
         self._pula_folder = Path(folder) if folder else None
         self._pula_wspolczynnik = wspolczynnik
         try:
@@ -290,18 +283,19 @@ class Aplikacja(K.KontrolerSesji):
                                                                     "wspolczynnik": wspolczynnik}, ensure_ascii=False), encoding="utf-8")
         except OSError as e:
             LOG.warning("stanowisko: ustawien puli nie da sie zapisac (%s)", type(e).__name__)
-        self.sesja.baza.zdarzenie("pula", "pula_ustawiona", {"wspolczynnik": wspolczynnik, "folder_ustawiony": self._pula_folder is not None},
-                                  czas=self._teraz())
+        self.sesja.baza.zdarzenie("pula", "pula_ustawiona", {"wspolczynnik": wspolczynnik, "folder_ustawiony": self._pula_folder is not None,
+                                                            "operator": self.sesja.operator}, czas=self._teraz())  # D8: kto zmienil
         return self.odswiez_pule()
 
     def odswiez_pule(self) -> K.Odpowiedz:
-        """Liczy pule od nowa (w tle); po policzeniu skany wstrzymane z braku projektow ida do analizy."""
+        """Liczy pule od nowa (w tle); po policzeniu skany wstrzymane z braku projektow ida do analizy. ``dane`` = stan puli
+        po poleceniu (``liczenie``, a bez folderu ``nieustawiona``)."""
         if self._zamkniety:
-            return K.Odpowiedz(False, ST.tekst_komunikatu("program_zamkniety")[2], "program_zamkniety")
+            return self._zamkniety_odp()
         self._usun_komunikat("odmowa:zly_wspolczynnik")
         self._policz_pule()
         self._odswiez()
-        return K.Odpowiedz(True)
+        return K.Odpowiedz(True, dane=self._pula_stan)
 
     def _opis_puli(self) -> SI.OpisPuli:
         return SI.OpisPuli(foldery=(str(self._pula_folder),), wspolczynnik=self._pula_wspolczynnik)
@@ -336,8 +330,10 @@ class Aplikacja(K.KontrolerSesji):
         self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany}, czas=self._ostatni_start_skanu)
         if not udany:
             return self._odmowa("start_skanu_nieudany")
-        self._usun_komunikat("odmowa:start_skanu_nieudany")
-        self._odswiez_zywe()
+        if self._usun_komunikat("odmowa:start_skanu_nieudany"):
+            self._odswiez()  # stara odmowa znika z komunikatow
+        else:
+            self._odswiez_zywe()
         return K.Odpowiedz(True)
 
     # --- zdarzenia z watkow ---------------------------------------------------------------------------
@@ -452,7 +448,7 @@ class Aplikacja(K.KontrolerSesji):
         if self._zamykanie or self._silnik_nie_startuje or self._pula_stan != "gotowa":
             self._wstrzymane.append(z)
             if not self._zamykanie:
-                self._komunikat_puli()
+                self._komunikat_puli(self._pula_stan, len(self._wstrzymane))
             return
         try:
             nr = self.silnik.zlec(SI.ZadanieAnalizy(skan=Path(z.plik), pula=self._opis_puli(), tryb=z.tryb, numer=z.numer, skan_sha16=z.sha16,
