@@ -34,6 +34,7 @@ if str(STANOWISKO) not in sys.path:
 
 from ramka import czcionka, kalibracja, obraz, protokol, sprzet_rpi, test_led  # noqa: E402
 from ramka import program as program_ramki  # noqa: E402
+from ramka import serwer as serwer_ramki  # noqa: E402
 from ramka.logika import LogikaRamki  # noqa: E402
 from ramka.program import Konfiguracja, ProgramRamki  # noqa: E402
 from ramka.sprzet import BladSprzetu, Odbijanie  # noqa: E402
@@ -269,7 +270,12 @@ class Laptop:
         while self.odpytaj(0.0):
             pass
 
-    def wyslij_plan(self, plan):
+    def wyslij_plan(self, plan, dobierz=True):
+        """PUT /plan jak laptop zgodny z protokolem (runda 3): najpierw odbiera wszystkie zdarzenia, bo
+        ramka przyjmuje plan tylko z `zdarzenia_do` = numer jej ostatniego zdarzenia. dobierz=False -
+        plan ze starym kursorem (scenariusze spoznionych planow)."""
+        if dobierz and self.start_id is not None:
+            self.dobierz()
         plan = dict(plan)
         plan["start_id"] = self.start_id
         plan["zdarzenia_do"] = self.od
@@ -554,6 +560,7 @@ def test_k3_przez_siec_z_atrapa_klawiatury(kal, ramka_p):
     lap.dobierz()
     st, odp = lap.wyslij_plan(plan_rano(kal))
     assert st == 200, odp
+    lap.dobierz()  # runda 3: zdarzenie plan_przyjety odebrane przed klawiszami
     start = lap.od
     for k in ["enter", "enter", "enter", "backspace", "3", "9", "9", "9", "enter"]:
         atrapa.nacisnij(k)
@@ -667,6 +674,7 @@ def test_zgas_delete_i_blokada_skanu_nic_nie_swieci(kal, ramka_w):
     lap.stan()
     lap.dobierz()
     atrapa.poloz_plytke(2)
+    assert czekaj_na(lambda: prog.logika.plytka == 2)  # runda 3: plan dopiero po zdarzeniu plytka
     assert lap.wyslij_plan(plan_wieczor(kal))[0] == 200
     assert atrapa.czekaj(lambda a: a.klatka is not None and len(piksele_plytki(a.klatka)) > 0, 2.0)
     # skan zablokowany (plytka niezgodna z trybem): laptop wysyla stan "blad" -> zero gniazd,
@@ -756,6 +764,7 @@ def test_k5_utrata_sieci_5_potwierdzen_100_powtorzen(kal, ramka_p):
             lap.dobierz()
             st, odp = lap.wyslij_plan(plan_k5(kal, rep + 1))
             assert st == 200, odp
+            lap.dobierz()  # runda 3: wlasne zdarzenie plan_przyjety odebrane przed proba
             proxy.awaria = True
             n0 = prog.logika.nr
             for _ in range(5):
@@ -848,7 +857,7 @@ def test_restart_programu_nowy_start_id_i_zdarzenia_od_poczatku(kal):
         prog, _, _ = uruchom("P", port=port, sprzet=atrapa)
         assert czekaj_na(lambda: prog.logika.plytka == 4)
         # plan z poprzedniego startu -> 409 inny_start; plan po restarcie jest pusty (RAM)
-        st, odp = lap.wyslij_plan(plan_rano(kal, wersja=2))
+        st, odp = lap.wyslij_plan(plan_rano(kal, wersja=2), dobierz=False)
         assert st == 409 and odp["blad"]["kod"] == "inny_start"
         assert lap.zadanie("GET", "/stan")[1]["plan_id"] is None
         # odpytanie ze starym start_id -> zdarzenia od poczatku nowego startu
@@ -1060,6 +1069,7 @@ def test_wygasniecie_przez_siec_z_atrapa(kal, ramka_w):
     lap.stan()
     lap.dobierz()
     atrapa.poloz_plytke(2)
+    assert czekaj_na(lambda: prog.logika.plytka == 2)  # runda 3: plan dopiero po zdarzeniu plytka
     assert lap.wyslij_plan(plan_wieczor(kal, wazny_s=1.0))[0] == 200
     assert atrapa.czekaj(lambda a: a.klatka is not None and len(piksele_plytki(a.klatka)) > 0, 2.0)
     assert atrapa.czekaj(lambda a: piksele_plytki(a.klatka) == {}, 3.0)
@@ -1087,6 +1097,8 @@ def test_powtorzony_spozniony_i_nieaktualny_plan(kal):
     with pytest.raises(protokol.BladProtokolu) as e:
         log.przyjmij_plan(p2, LAPTOP, 1.2)
     assert (e.value.status, e.value.kod) == (409, "zdarzenia_nieodebrane")
+    # runda 3: to odrzucenie od wlasciciela tez gasi (zdarzenie zgaszono, pole zgaszono w odpowiedzi)
+    assert e.value.zgaszono is True and log.plan is None and piksele_plytki(log.obraz(1.25)) == {}
     # nowa wersja z potwierdzeniem odebranym -> przyjeta
     p3 = plan_rano(kal, log, wersja=2, potwierdzone=[[4, "3263"]])
     assert log.przyjmij_plan(p3, LAPTOP, 1.3)["wynik"] == "przyjety"
@@ -1160,6 +1172,7 @@ def test_zdarzenia_klawiatury_bez_gubienia_i_powtorek_dwa_klienty_rownolegle(kal
     assert czekaj_na(lambda: prog.logika.plytka == 4)
     lap.dobierz()
     assert lap.wyslij_plan(plan_rano(kal))[0] == 200
+    lap.dobierz()  # runda 3: zdarzenie plan_przyjety odebrane przed klawiszami
     start = lap.od
     N = 300
     koniec = threading.Event()
@@ -1652,6 +1665,7 @@ def test_p1_przez_siec_wolny_put_przed_delete_odrzucony(kal, ramka_w):
     lap.dobierz()
     atrapa.poloz_plytke(2)
     assert czekaj_na(lambda: prog.logika.plytka == 2)
+    lap.dobierz()  # runda 3: plan aktualny (zdarzenia_do = nr) - odrzuca go tylko spoznienie wzgledem DELETE
     plan = plan_wieczor(kal)
     plan["start_id"], plan["zdarzenia_do"] = lap.start_id, lap.od
     tresc = json.dumps(plan).encode("ascii")
@@ -1773,6 +1787,9 @@ def test_p4_wyjatek_sprzetu_gasi_matryce_od_razu_i_zglasza_blad(kal):
     assert typy(log, n0).count("blad_sprzetu") == 1
     sp.awaria_odczytu = False
     kroki(2)
+    # runda 3 (D-N7): sprzet_dziala dopiero po 3 s udanych obiegow (w rundzie 2 po pierwszym)
+    assert "sprzet_dziala" not in typy(log, n0) and prog.stan(LAPTOP)["blad_sprzetu"] is True
+    kroki(310)
     assert "sprzet_dziala" in typy(log, n0) and prog.stan(LAPTOP)["blad_sprzetu"] is False
     assert gniazda_na_matrycy(sp) == {}  # plan nie wraca sam
     assert prog.plan(LAPTOP, plan_wieczor(kal, log, wersja=2))["wynik"] == "przyjety"
@@ -1826,13 +1843,15 @@ def test_p5_odrzucony_plan_wlasciciela_gasi_poprzedni_obraz(kal):
     assert odrzucenie(log.przyjmij_plan, zly, "lap-obcy", 1.3) == (400, "px_poza_plytka")
     assert odrzucenie(log.ustaw_tryb, TRYB["wynik"], "lap-obcy", 1.4) == (400, "zly_stan")
     assert kolory_plytki(log.obraz(1.5)) and log.plan.wersja == 3
-    # rano: zdarzenia_nieodebrane nie gasi (laptop odpytuje i wysyla nowa wersje)
+    # runda 3: zdarzenia_nieodebrane od wlasciciela tez GASI (w rundzie 2 nie gasilo): plan sprzed
+    # zdarzenia sie nie zapala i stary obraz nie zostaje; odpowiedz mowi to wprost (zgaszono)
     logp = logika_z_planem(kal)
     logp.klawisz("enter", 1.0)
     pp = plan_rano(kal, logp, wersja=2)
     pp["zdarzenia_do"] = logp.nr - 1
-    assert odrzucenie(logp.przyjmij_plan, pp, LAPTOP, 1.1) == (409, "zdarzenia_nieodebrane")
-    assert logp.plan is not None and kolory_plytki(logp.obraz(1.2))
+    b = blad(logp.przyjmij_plan, pp, LAPTOP, 1.1)
+    assert (b.status, b.kod, b.zgaszono) == (409, "zdarzenia_nieodebrane", True)
+    assert logp.plan is None and kolory_plytki(logp.obraz(1.2)) == {}
 
 
 def test_p5_przez_siec_zla_tresc_od_wlasciciela_gasi_od_innego_nie(kal, ramka_w):
@@ -1843,6 +1862,7 @@ def test_p5_przez_siec_zla_tresc_od_wlasciciela_gasi_od_innego_nie(kal, ramka_w)
     lap.stan()
     lap.dobierz()
     atrapa.poloz_plytke(2)
+    assert czekaj_na(lambda: prog.logika.plytka == 2)  # runda 3: plan dopiero po zdarzeniu plytka
 
     def swieci(a):
         return a.klatka is not None and len(piksele_plytki(a.klatka)) > 0
@@ -2009,7 +2029,8 @@ def test_decyzja_wazny_s_przycinany_do_granicy_roli(kal):
 
 def test_decyzja_zamknij_piec_gwiazdka_potem_enter_w_5_s(kal):
     """"Zamknij piec": `*` pokazuje pytanie "PIEC?", Enter w ciagu 5 s = zdarzenie zamknij_piec;
-    bez planu nic; inny klawisz albo uplyw 5 s anuluje (klawisz anulujacy nie dziala jak zwykly)."""
+    bez planu nic; inny klawisz albo uplyw 5 s anuluje (klawisz anulujacy nie dziala jak zwykly; runda 3:
+    po uplywie 5 s pierwszy klawisz tylko kasuje stan `*`)."""
     assert protokol.CZAS_POTWIERDZENIA_ZAMKNIECIA_S == 5.0
 
     def ref(t):
@@ -2041,7 +2062,10 @@ def test_decyzja_zamknij_piec_gwiazdka_potem_enter_w_5_s(kal):
     log.klawisz("zamknij_piec", 10.0)
     log.tick(15.1)
     assert tekst_przod(log.obraz(15.1)) == ref("3263 3")
-    log.klawisz("enter", 15.2)  # po czasie: zwykly Enter
+    # runda 3 (D-N5): pierwszy klawisz po uplywie 5 s tylko kasuje stan `*` - nie zamyka i nie potwierdza
+    log.klawisz("enter", 15.2)
+    assert log.nr == n
+    log.klawisz("enter", 15.3)  # dopiero nastepny Enter jest zwykly
     assert [(z["typ"], z.get("kuweta")) for z in log.zdarzenia_od(n)[0]] == [("potwierdzenie", "3263")]
 
 
@@ -2049,11 +2073,14 @@ def test_decyzja_zamknij_piec_gwiazdka_potem_enter_w_5_s(kal):
 
 def test_d1_uplyw_czasu_przed_kontaktem_plan_po_terminie_nie_ozywa(kal):
     """D1 (S12): zadanie wlasciciela po terminie waznosci: najpierw wygasniecie (plan_wygasl), potem
-    kontakt - ten sam plan jest przyjmowany od nowa, nie "powtorzony"."""
+    kontakt - ten sam plan NIE jest "powtorzony". Runda 3: plan zbudowany przed odczytem plan_wygasl =
+    409 zdarzenia_nieodebrane (gasi, wersja zamknieta); po odczycie zdarzen plan (wyzsza wersja) przyjety."""
     log = logika_z_planem(kal, plan_wieczor, rola="W", plytka=2, wazny_s=30.0)
-    odp = log.przyjmij_plan(plan_wieczor(kal, log, wazny_s=30.0), LAPTOP, 100.0)
+    p1 = plan_wieczor(kal, log, wazny_s=30.0)  # ta sama wersja i tresc, co plan w pamieci
+    assert odrzucenie(log.przyjmij_plan, p1, LAPTOP, 100.0) == (409, "zdarzenia_nieodebrane")
+    assert typy(log).count("plan_wygasl") == 1 and log.plan is None
+    odp = log.przyjmij_plan(plan_wieczor(kal, log, wersja=2, wazny_s=30.0), LAPTOP, 100.1)
     assert odp["wynik"] == "przyjety"
-    assert typy(log).count("plan_wygasl") == 1
 
 
 def test_d2_przepelnienie_dziennika_jawny_zakres_i_stan_potwierdzen(kal):
@@ -2120,6 +2147,572 @@ def test_d9_zdarzenia_wymagaja_start_id(ramka_p):
     prog, atrapa, port = ramka_p
     st, odp = Laptop(port).zadanie("GET", "/zdarzenia?od=0")
     assert (st, odp["blad"]["kod"]) == (400, "zly_parametr")
+
+
+# ============================================================================= runda 3 (recenzja PR #19, runda 2)
+# P-N1, P-N2, znana luka P1 i uwagi D wg rozstrzygniecia koordynatora: kazde zdarzenie, ktore gasi albo
+# uniewaznia obraz (zdjecie / zmiana plytki, DELETE, PUT /tryb, odrzucenie od wlasciciela, wygasniecie,
+# awaria, restart, przyjecie planu), ma numer w dzienniku ramki, a plan jest przyjmowany TYLKO
+# z `zdarzenia_do` rownym numerowi ostatniego zdarzenia ramki. Scenariusze N1-N15 z raportu recenzenta
+# rundy 2 (`Ramki/recenzja/raport_recenzenta_PR19_runda2.md`) na logice albo petli programu z czasem
+# sztucznym; przez siec tylko to, co dotyczy serwera.
+
+def plan_w1(log, *, wersja=1, plan_id="p", kolor="zielony", zdarzenia_do=None):
+    """Plan ramki W ze scenariuszy recenzenta: plytka 1, gniazdo 1 (kolor) i 2 (czerwone), po 9 px."""
+    d = plan_r2(log, "wieczor", {"1": wpis([gn(1, 20, 20, kolor), gn(2, 30, 20, "czerwony")])},
+                wersja=wersja, plan_id=plan_id)
+    if zdarzenia_do is not None:
+        d["zdarzenia_do"] = zdarzenia_do
+    return d
+
+
+def blad(f, *a, **kw):
+    """Wyjatek BladProtokolu zgloszony przez f (status, kod, zgaszono, pola dodatkowe)."""
+    with pytest.raises(protokol.BladProtokolu) as e:
+        f(*a, **kw)
+    return e.value
+
+
+def _surowa_odpowiedz(s, timeout=3.0):
+    """(status, tresc) odpowiedzi HTTP z gniazda - do konca tresci wg Content-Length, bez czekania
+    na zamkniecie polaczenia."""
+    s.settimeout(timeout)
+    dane = b""
+    while b"\r\n\r\n" not in dane:
+        b = s.recv(65536)
+        if not b:
+            break
+        dane += b
+    glowa, _, tresc = dane.partition(b"\r\n\r\n")
+    dl = 0
+    for linia in glowa.split(b"\r\n")[1:]:
+        k, _, v = linia.partition(b":")
+        if k.strip().lower() == b"content-length":
+            dl = int(v.strip())
+    while len(tresc) < dl:
+        b = s.recv(65536)
+        if not b:
+            break
+        tresc += b
+    return int(glowa.split()[1]), tresc
+
+
+SWIECI_W1 = {ZIELONY: 9, CZERWONY: 9}
+ZOLTY = obraz.KOLORY["zolty"]
+
+
+# ----------------------------------------------------------------------------- P-N1, P-N2, znana luka P1
+
+def test_r3_n1_ramka_w_wynik_zdjetej_plytki_nie_wraca_po_przerwie():
+    """P-N1 (N1): ramka W, plan v1 plytki 1 wygasl (laptop milczal 31 s); w czasie bez planu plytke zdjeto
+    i polozono z nowymi pracami. Plan zbudowany przed zdjeciem (ponowne wyslanie v1, nowa wersja ze starym
+    `zdarzenia_do`) = 409 zdarzenia_nieodebrane i ciemno; plan przechodzi dopiero z `zdarzenia_do` rownym
+    numerowi ostatniego zdarzenia (laptop potwierdza, ze widzial zdjecie - README: wtedy tylko wynik
+    NOWEGO skanu). To samo po restarcie ramki i po awarii sprzetu."""
+    log = LogikaRamki("W", teraz=0.0)
+    p1 = plan_w1(log)
+    assert log.przyjmij_plan(dict(p1), LAPTOP, 1.0)["wynik"] == "przyjety"
+    log.ustaw_plytke(1, 1.1)
+    assert kolory_plytki(log.obraz(1.2)) == SWIECI_W1
+    log.tick(32.0)
+    assert log.plan is None and typy(log)[-1] == "plan_wygasl"
+    log.ustaw_plytke(0, 35.0)
+    nr_zdjecia = log.nr
+    log.ustaw_plytke(1, 40.0)
+    b = blad(log.przyjmij_plan, dict(p1), LAPTOP, 45.0, t_odbioru=45.0)
+    assert (b.status, b.kod) == (409, "zdarzenia_nieodebrane")
+    assert kolory_plytki(log.obraz(45.1)) == {} and log.plan is None
+    for zd in (nr_zdjecia - 1, nr_zdjecia):  # sprzed zdjecia; po zdjeciu, ale bez polozenia i zgaszenia
+        q = plan_w1(log, wersja=2, zdarzenia_do=zd)
+        assert odrzucenie(log.przyjmij_plan, q, LAPTOP, 46.0, t_odbioru=46.0) == \
+            (409, "zdarzenia_nieodebrane"), zd
+        assert kolory_plytki(log.obraz(46.1)) == {}
+    # laptop odczytal wszystkie zdarzenia (takze zgaszenia po swoich odrzuconych planach): wynik nowego skanu
+    nowy = plan_w1(log, wersja=3, kolor="zolty")
+    assert log.przyjmij_plan(nowy, LAPTOP, 47.0, t_odbioru=47.0)["wynik"] == "przyjety"
+    assert kolory_plytki(log.obraz(47.1)) == {ZOLTY: 9, CZERWONY: 9}
+    # restart ramki: plan poprzedniego startu = inny_start; plan nowego startu sprzed polozenia plytki = 409
+    log2 = LogikaRamki("W", teraz=0.0)
+    log2.ustaw_plytke(1, 0.5)
+    assert odrzucenie(log2.przyjmij_plan, dict(p1), LAPTOP, 1.0) == (409, "inny_start")
+    assert odrzucenie(log2.przyjmij_plan, plan_w1(log2, zdarzenia_do=1), LAPTOP, 1.1) == \
+        (409, "zdarzenia_nieodebrane")
+    assert kolory_plytki(log2.obraz(1.2)) == {}
+    # awaria sprzetu: plan zbudowany przed awaria nie przechodzi po sprzet_dziala
+    log3 = LogikaRamki("W", teraz=0.0)
+    p3 = plan_w1(log3)
+    log3.przyjmij_plan(dict(p3), LAPTOP, 1.0)
+    log3.ustaw_plytke(1, 1.1)
+    przed_awaria = plan_w1(log3, wersja=2)
+    log3.awaria_sprzetu(2.0)
+    log3.koniec_awarii(5.0)
+    log3.ustaw_plytke(1, 5.1)
+    assert odrzucenie(log3.przyjmij_plan, przed_awaria, LAPTOP, 6.0) == (409, "zdarzenia_nieodebrane")
+    assert odrzucenie(log3.przyjmij_plan, dict(p3, zdarzenia_do=log3.nr), LAPTOP, 6.1) == (409, "plan_zgaszony")
+    assert kolory_plytki(log3.obraz(6.2)) == {}
+
+
+def test_r3_n2_plan_zbudowany_przed_zdjeciem_plytki_odrzucony():
+    """P-N1 (N2): plan w pamieci, plytke 1 zdjeto i polozono z nowymi pracami (wynik skasowany); nowa
+    wersja zbudowana PRZED zdarzeniem zdjecia = 409 zdarzenia_nieodebrane; odrzucenie od wlasciciela gasi
+    (`zgaszono` w odpowiedzi, zdarzenie w dzienniku)."""
+    log = LogikaRamki("W", teraz=0.0)
+    log.przyjmij_plan(plan_w1(log), LAPTOP, 1.0)
+    log.ustaw_plytke(1, 1.1)
+    zd_przed = log.nr
+    log.ustaw_plytke(0, 3.0)
+    log.ustaw_plytke(1, 4.0)
+    assert kolory_plytki(log.obraz(4.1)) == {} and log.stan(4.1)["plytki_planu"] == []
+    b = blad(log.przyjmij_plan, plan_w1(log, wersja=2, zdarzenia_do=zd_przed), LAPTOP, 5.0, t_odbioru=5.0)
+    assert (b.status, b.kod, b.zgaszono) == (409, "zdarzenia_nieodebrane", True)
+    assert b.jako_json()["blad"]["zgaszono"] is True
+    assert kolory_plytki(log.obraz(5.1)) == {} and log.plan is None
+    assert typy(log, zd_przed) == ["plytka", "plytka", "zgaszono"]
+
+
+def test_r3_n3_zgaszenie_po_wygasnieciu_zamyka_wersje_planu():
+    """P-N2 (N3): plan wygasl, potem DELETE / PUT /tryb / DELETE ?plan_id= - wersja ostatnio przyjetego
+    planu zostaje zamknieta mimo braku planu w pamieci: ta sama wersja (nawet z aktualnym zdarzenia_do)
+    = 409 plan_zgaszony z wersja ramki w odpowiedzi; nic nie swieci."""
+    for gaszace in ("DELETE", "skanowanie", "DELETE?plan_id"):
+        log = LogikaRamki("W", teraz=0.0)
+        p1 = plan_w1(log)
+        log.przyjmij_plan(dict(p1), LAPTOP, 1.0)
+        log.ustaw_plytke(1, 1.1)
+        log.tick(32.0)
+        assert log.plan is None
+        if gaszace == "DELETE":
+            log.usun_plan(LAPTOP, 40.0)
+        elif gaszace == "DELETE?plan_id":
+            log.usun_plan(LAPTOP, 40.0, plan_id="p")
+        else:
+            log.ustaw_tryb(TRYB["skanowanie"], LAPTOP, 40.0)
+        b = blad(log.przyjmij_plan, dict(p1, zdarzenia_do=log.nr), LAPTOP, 41.0, t_odbioru=41.0)
+        assert (b.status, b.kod, b.pola.get("wersja_ramki")) == (409, "plan_zgaszony", 1), gaszace
+        assert kolory_plytki(log.obraz(41.1)) == {} and log.tryb != "wynik", gaszace
+
+
+def test_r3_n4_znana_luka_plan_sprzed_gaszenia_z_nowego_polaczenia_odrzucony():
+    """Znana luka P1 (N4): wersja nigdy nieprzyjeta, wyslana ponownie NOWYM polaczeniem po zgaszeniu
+    (kolejka ponowien laptopa, automatyczne ponowienie biblioteki HTTP) = 409 zdarzenia_nieodebrane, ciemno,
+    stan ramki bez zmiany; "409 plan_zgaszony -> wersja + 1" z ta sama trescia tez nie przechodzi.
+    Nowa decyzja laptopa (po odczycie zdarzen) przechodzi."""
+    log = LogikaRamki("W", teraz=0.0)
+    log.przyjmij_plan(plan_w1(log), LAPTOP, 1.0)
+    log.ustaw_plytke(1, 1.1)
+    v2 = plan_w1(log, wersja=2)  # pierwsza proba v2 zginela w sieci
+    log.ustaw_tryb(TRYB["skanowanie"], LAPTOP, 5.0)  # Spacja
+    b = blad(log.przyjmij_plan, dict(v2), LAPTOP, 6.0, t_odbioru=6.0)
+    assert (b.status, b.kod) == (409, "zdarzenia_nieodebrane")
+    assert log.tryb == "skanowanie" and log.plan is None and kolory_plytki(log.obraz(6.1)) == {}
+    log2 = LogikaRamki("W", teraz=0.0)
+    p1 = plan_w1(log2)
+    log2.przyjmij_plan(dict(p1), LAPTOP, 1.0)
+    log2.ustaw_plytke(1, 1.1)
+    log2.usun_plan(LAPTOP, 2.0)
+    assert odrzucenie(log2.przyjmij_plan, dict(p1), LAPTOP, 3.0, t_odbioru=3.0) == (409, "plan_zgaszony")
+    assert odrzucenie(log2.przyjmij_plan, dict(p1, wersja=2), LAPTOP, 3.5, t_odbioru=3.5) == \
+        (409, "zdarzenia_nieodebrane")
+    assert kolory_plytki(log2.obraz(3.6)) == {}
+    assert log2.przyjmij_plan(plan_w1(log2, wersja=3), LAPTOP, 4.0, t_odbioru=4.0)["wynik"] == "przyjety"
+    assert kolory_plytki(log2.obraz(4.1)) == SWIECI_W1
+
+
+def test_r3_d_n2_spozniony_plan_innego_plan_id_nie_zastepuje_nowszego():
+    """D-N2 (N15): spozniony PUT innego `plan_id` (polaczenie przyjete przed nowszym planem, bez gaszenia
+    pomiedzy) nie zastepuje nowszego planu: przyjecie planu jest zdarzeniem (plan_przyjety), wiec plan
+    zbudowany przed nim ma za male `zdarzenia_do` - 409, nic ze starego planu nie swieci."""
+    log = LogikaRamki("W", teraz=0.0)
+    log.ustaw_plytke(1, 0.5)
+    s1 = plan_w1(log, plan_id="skan-1", kolor="zielony")
+    s2 = plan_w1(log, plan_id="skan-2", kolor="zolty")
+    assert log.przyjmij_plan(s2, LAPTOP, 2.0, t_odbioru=1.9)["wynik"] == "przyjety"
+    assert typy(log)[-1] == "plan_przyjety"
+    assert odrzucenie(log.przyjmij_plan, s1, LAPTOP, 3.0, t_odbioru=1.0) == (409, "zdarzenia_nieodebrane")
+    assert ZIELONY not in kolory_plytki(log.obraz(3.1)) and log.plan is None
+    # laptop odczytuje zdarzenia (plan_przyjety, zgaszono) i wysyla biezaca decyzje jako nowa wersje
+    s2b = plan_w1(log, plan_id="skan-2", kolor="zolty", wersja=2)
+    assert log.przyjmij_plan(s2b, LAPTOP, 3.2)["wynik"] == "przyjety"
+    assert kolory_plytki(log.obraz(3.3)) == {ZOLTY: 9, CZERWONY: 9}
+
+
+def test_r3_kazde_zgaszenie_i_przyjecie_planu_ma_numer_w_dzienniku(kal):
+    """Rozstrzygniecie pkt 1: DELETE, PUT /tryb, odrzucenie od wlasciciela (zawsze, takze bez planu
+    w pamieci) = zdarzenie zgaszono; przyjecie planu = plan_przyjety; `nr_zdarzenia` w odpowiedzi = numer
+    zdarzenia tego polecenia. Odrzucenia bez zmiany obrazu i plan powtorzony nie dodaja zdarzen."""
+    log = LogikaRamki("P", teraz=0.0)
+    log.ustaw_plytke(4, 0.1)
+    n0 = log.nr
+    odp = [log.przyjmij_plan(plan_rano(kal, log), LAPTOP, 1.0)]
+    odp.append(log.przyjmij_plan(plan_rano(kal, log), LAPTOP, 1.1))  # powtorzony
+    odp.append(log.ustaw_tryb(TRYB["skanowanie"], LAPTOP, 2.0))
+    odp.append(log.usun_plan(LAPTOP, 3.0))
+    odp.append(log.ustaw_tryb(TRYB["gotowa"], LAPTOP, 3.5))
+    assert [o["wynik"] for o in odp] == ["przyjety", "powtorzony", "przyjety", "brak_planu", "przyjety"]
+    assert [o["nr_zdarzenia"] for o in odp] == [n0 + 1, n0 + 1, n0 + 2, n0 + 3, n0 + 4]
+    assert odrzucenie(log.ustaw_tryb, TRYB["wynik"], LAPTOP, 4.0) == (400, "zly_stan")
+    assert odrzucenie(log.przyjmij_plan, plan_rano(kal, log, wersja=0), LAPTOP, 4.1) == (409, "plan_starszy")
+    log.kontakt("lap-obcy", 4.2)
+    assert odrzucenie(log.usun_plan, "lap-obcy", 4.2) == (409, "inny_laptop")
+    zd = log.zdarzenia_od(n0)[0]
+    assert [(z["typ"], z.get("przyczyna"), z.get("stan") or z.get("kod"), z.get("plan_id")) for z in zd] == [
+        ("plan_przyjety", None, None, "2026-11-17-p1"),
+        ("zgaszono", "tryb", "skanowanie", "2026-11-17-p1"),
+        ("zgaszono", "usuniecie", None, None),
+        ("zgaszono", "tryb", "gotowa", None),
+        ("zgaszono", "odrzucenie", "zly_stan", None)]
+    assert zd[0]["wersja"] == 1
+
+
+def test_r3_przez_siec_plan_sprzed_spacji_z_nowego_polaczenia_409_i_zgaszono(kal, ramka_w):
+    """Znana luka P1 przez siec: plan zbudowany przed Spacja (PUT /tryb skanowanie), wyslany po niej NOWYM
+    polaczeniem (ponowienie z kolejki albo biblioteki HTTP) = 409 zdarzenia_nieodebrane z `zgaszono`
+    w odpowiedzi; `nr_zdarzenia` w odpowiedzi PUT /tryb = numer jego zdarzenia; laptop po odczycie zdarzen
+    wysyla nowa wersje - przyjeta."""
+    prog, atrapa, port = ramka_w
+    lap = Laptop(port)
+    lap.stan()
+    atrapa.poloz_plytke(2)
+    assert czekaj_na(lambda: prog.logika.plytka == 2)
+    assert lap.wyslij_plan(plan_wieczor(kal))[0] == 200
+    lap.dobierz()
+    stary = plan_wieczor(kal, wersja=2)
+    stary["start_id"], stary["zdarzenia_do"] = lap.start_id, lap.od
+    st, odp = lap.zadanie("PUT", "/tryb", TRYB["skanowanie"])
+    assert st == 200 and odp["nr_zdarzenia"] == lap.od + 1
+    st, odp = lap.zadanie("PUT", "/plan", stary)
+    assert (st, odp["blad"]["kod"], odp["blad"]["zgaszono"]) == (409, "zdarzenia_nieodebrane", True)
+    s = lap.stan()
+    assert (s["tryb"], s["plan_id"]) == ("skanowanie", None)
+    assert atrapa.czekaj(lambda a: piksele_plytki(a.klatka) == {}, 1.0)
+    lap.dobierz()
+    assert [(z["typ"], z.get("przyczyna")) for z in lap.zdarzenia[-2:]] == \
+        [("zgaszono", "tryb"), ("zgaszono", "odrzucenie")]
+    assert lap.wyslij_plan(plan_wieczor(kal, wersja=3))[0] == 200
+    assert atrapa.czekaj(lambda a: len(piksele_plytki(a.klatka)) > 0, 2.0)
+
+
+# ----------------------------------------------------------------------------- zbieznosc (brak zakleszczenia)
+
+def test_r3_zbieznosc_normalny_przeplyw_najwyzej_2_proby(kal):
+    """Normalny przeplyw bez martwego stanu (petla programu, czas sztuczny): laptop odczytuje zdarzenia,
+    buduje plan z aktualnym `zdarzenia_do` - przyjety w 1. probie; gdy miedzy odczytem a PUT zaszlo jedno
+    zdarzenie (Enter technika, zmiana plytki, zdjecie plytki) - 409, laptop odczytuje i wysyla ponownie:
+    przyjety w 2. probie."""
+    prog, sp, zegar, kroki = program_sztuczny("P")
+    log = prog.logika
+    sp.poloz_plytke(4)
+    kroki(5)
+    stan = {"od": 0, "wersja": 0}
+
+    def do_przyjecia(zaklocenie=None, max_prob=5):
+        for n in range(1, max_prob + 1):
+            odp = prog.zdarzenia(LAPTOP, stan["od"], 0.0, 500, log.start_id)
+            if odp["zdarzenia"]:
+                stan["od"] = odp["zdarzenia"][-1]["nr"]
+            stan["wersja"] += 1
+            plan = plan_rano(kal, wersja=stan["wersja"], start_id=log.start_id, zdarzenia_do=stan["od"])
+            kroki(2)  # budowa planu i siec
+            if zaklocenie is not None and n == 1:
+                zaklocenie()
+                kroki(5)  # petla sprzetu obsluguje klawisz / czujniki (odbijanie 30 ms)
+            try:
+                if prog.plan(LAPTOP, plan)["wynik"] == "przyjety":
+                    return n
+            except protokol.BladProtokolu as b:
+                assert b.kod == "zdarzenia_nieodebrane", b.kod
+        return None
+
+    proby = [do_przyjecia(), do_przyjecia(lambda: sp.nacisnij("enter")),
+             do_przyjecia(lambda: sp.poloz_plytke(5)), do_przyjecia(lambda: sp.poloz_plytke(0))]
+    print(f"POMIAR R3 zbieznosc: proby do przyjecia planu {proby} (bez zdarzenia, Enter, zmiana, zdjecie)")
+    assert proby == [1, 2, 2, 2]
+
+
+def test_r3_drgajacy_czujnik_nie_blokuje_przyjecia_planu(kal):
+    """Brak zakleszczenia przy serii zdarzen: czujnik drga 4 / 0 co 50 ms - wolniej niz odbijanie 30 ms,
+    wiec bez ograniczenia ok. 20 zdarzen `plytka` na sekunde i plan z `zdarzenia_do` = nr nie mialby
+    szans. Ramka przyjmuje powrot do POPRZEDNIEGO numeru plytki najwyzej raz na `odstep_drgan_s` (3 s):
+    najwyzej 1 para zdarzen na 3 s, gniazda ciemne przy kazdym odczycie 0, laptop (odczyt -> 100 ms ->
+    PUT) dostaje przyjecie planu w kilku probach. Dla porownania bez ograniczenia (odstep 0) - zadna z 20."""
+    def przebieg(**konf):
+        prog, sp, zegar, kroki = program_sztuczny("P", **konf)
+        log = prog.logika
+
+        def drgania(n):
+            for _ in range(n):
+                sp.poloz_plytke(4 if int(round(zegar.t * 1000)) // 50 % 2 == 0 else 0)
+                kroki(1)
+                if sp.plytka == 0:
+                    assert gniazda_na_matrycy(sp) == {}, zegar.t
+
+        n0 = log.nr
+        drgania(1000)  # 10 s
+        zdarzen = sum(1 for z in log.zdarzenia_od(n0)[0] if z["typ"] == "plytka")
+        od, proby, przyjety = 0, 0, False
+        while not przyjety and proby < 20:
+            proby += 1
+            odp = prog.zdarzenia(LAPTOP, od, 0.0, 500, log.start_id)
+            od = odp["zdarzenia"][-1]["nr"] if odp["zdarzenia"] else od
+            plan = plan_rano(kal, wersja=proby, start_id=log.start_id, zdarzenia_do=od)
+            drgania(10)  # 100 ms: siec i budowa planu
+            try:
+                przyjety = prog.plan(LAPTOP, plan)["wynik"] == "przyjety"
+            except protokol.BladProtokolu as b:
+                assert b.kod == "zdarzenia_nieodebrane", b.kod
+        drgania(500)  # drgania trwaja przy przyjetym planie: dalej ciemno przy kazdym odczycie 0
+        return zdarzen, proby, przyjety, prog
+
+    zdarzen, proby, przyjety, prog = przebieg()
+    print(f"POMIAR R3 drgania: {zdarzen} zdarzen plytka w 10 s, plan przyjety: {przyjety} w probie {proby}")
+    assert zdarzen <= 8, zdarzen  # pierwsze polozenie + najwyzej 1 para na 3 s
+    assert przyjety and proby <= 3, proby
+    assert prog.konf.odstep_drgan_s == 3.0
+    zdarzen0, _, przyjety0, _ = przebieg(odstep_drgan_s=0.0)
+    print(f"POMIAR R3 drgania bez ograniczenia: {zdarzen0} zdarzen plytka w 10 s, plan przyjety: {przyjety0}")
+    assert zdarzen0 > 100 and not przyjety0
+
+
+class SprzetPrzerywany(SprzetAtrapa):
+    """Atrapa z awaria przerywana: co drugi odczyt czujnikow konczy sie wyjatkiem (N12)."""
+
+    def __init__(self, zegar):
+        super().__init__(zegar=zegar)
+        self.przerywana = True
+        self.odczyty = 0
+
+    def odczytaj_plytke(self):
+        self.odczyty += 1
+        if self.przerywana and self.odczyty % 2 == 0:
+            raise OSError("czujnik")
+        return super().odczytaj_plytke()
+
+
+def test_r3_d_n7_przerywana_awaria_najwyzej_para_zdarzen_na_3_s(kal):
+    """D-N7 (N12): awaria przerywana (co drugi obieg wyjatek) przez ok. 60 s: jedno blad_sprzetu, zadnego
+    sprzet_dziala (w rundzie 2 ok. 60 par); gniazda ciemne, plany 409 blad_sprzetu; sprzet_dziala dopiero
+    po 3 s udanych obiegow, potem plan z aktualnym `zdarzenia_do` przyjety."""
+    prog, sp, zegar, kroki = program_sztuczny("W", SprzetPrzerywany)
+    log = prog.logika
+    assert prog.plan(LAPTOP, plan_wieczor(kal, log))["wynik"] == "przyjety"
+    sp.poloz_plytke(2)
+    n0 = log.nr
+    for _ in range(120):  # jak N12: obieg nieudany + 0,5 s przerwy (petla programu), obieg udany
+        zegar.t += 0.01
+        if not prog.krok():
+            zegar.t += 0.5
+        assert gniazda_na_matrycy(sp) == {}
+    t = typy(log, n0)
+    print(f"POMIAR R3 awaria przerywana: {t.count('blad_sprzetu')} x blad_sprzetu, "
+          f"{t.count('sprzet_dziala')} x sprzet_dziala w {zegar.t:.0f} s")
+    assert t.count("blad_sprzetu") == 1 and t.count("sprzet_dziala") == 0
+    assert odrzucenie(prog.plan, LAPTOP, plan_wieczor(kal, log, wersja=2)) == (409, "blad_sprzetu")
+    sp.przerywana = False
+    kroki(200)
+    assert "sprzet_dziala" not in typy(log, n0)
+    kroki(150)
+    assert typy(log, n0).count("sprzet_dziala") == 1
+    assert prog.plan(LAPTOP, plan_wieczor(kal, log, wersja=2))["wynik"] == "przyjety"
+    kroki(5)
+    assert gniazda_na_matrycy(sp)
+    assert prog.konf.powrot_sprzetu_s == 3.0
+
+
+# ----------------------------------------------------------------------------- uwagi D rundy 2
+
+def test_r3_d_n1_czas_odbioru_polaczenia_brany_przy_accept(monkeypatch):
+    """D-N1: chwila przyjecia polaczenia (ochrona przed spoznionym PUT) brana w watku serwera przy
+    accept(), nie w watku obslugi - watek obslugi uruchomiony pozniej nie dostaje pozniejszego czasu."""
+    zegar = ZegarSztuczny(10.0)
+    prog = ProgramRamki(Konfiguracja(rola="W", host="127.0.0.1", port=0), sprzet=SprzetAtrapa(zegar=zegar),
+                        zegar=zegar)
+    w_setup, zwolnij, czasy = threading.Event(), threading.Event(), []
+    oryg = serwer_ramki.ObslugaRamki.setup
+
+    def setup(self):
+        w_setup.set()
+        zwolnij.wait(5)
+        oryg(self)
+        czasy.append(self.t_odbioru)
+
+    monkeypatch.setattr(serwer_ramki.ObslugaRamki, "setup", setup)
+    _, port = prog.uruchom()
+    try:
+        wynik = {}
+        w = threading.Thread(target=lambda: wynik.update(odp=Laptop(port).zadanie("GET", "/stan")), daemon=True)
+        w.start()
+        assert w_setup.wait(5)  # polaczenie przyjete przy zegarze 10,0; watek obslugi czeka
+        zegar.t = 20.0
+        zwolnij.set()
+        w.join(10)
+        assert wynik["odp"][0] == 200 and czasy == [10.0]
+    finally:
+        zwolnij.set()
+        prog.zatrzymaj()
+
+
+def test_r3_d_n3_po_wygasnieciu_planu_stan_gotowa():
+    """D-N3 (N8): po plan_wygasl ramka wraca do stanu spoczynkowego (gotowa), nie zostaje `wynik` bez planu."""
+    log = LogikaRamki("W", teraz=0.0)
+    log.przyjmij_plan(plan_w1(log), LAPTOP, 1.0)
+    log.ustaw_plytke(1, 1.1)
+    log.tick(40.0)
+    st = log.stan(40.0)
+    assert (st["tryb"], st["plan_id"]) == ("gotowa", None) and typy(log)[-1] == "plan_wygasl"
+
+
+def test_r3_d_n4_brak_lacznosci_liczy_tylko_kontakt_wlasciciela():
+    """D-N4 (N7): rano wlasciciel planu milczy 300 s, inny laptop odpytuje - pierscien i ikona pokazuja
+    brak lacznosci (`lacznosc` false): liczy sie tylko kontakt laptopa-wlasciciela (zadanie bez zgodnego
+    klucza nie jest kontaktem - test D-N10). Bez wlasciciela liczy sie kazdy laptop."""
+    log = LogikaRamki("P", teraz=0.0)
+    log.przyjmij_plan(plan_r2(log, "rano", {"4": wpis([gn(1, 20, 20, "czerwony")])}, wazny_s=600), LAPTOP, 0.0)
+    log.ustaw_plytke(4, 0.1)
+    for t in range(5, 300, 5):
+        log.kontakt("lap-obcy", float(t))
+    st = log.stan(300.0)
+    assert st["plan_id"] is not None and st["lacznosc"] is False
+    brak = obraz.KOLORY_STANU["brak_lacznosci"]
+    assert {log.obraz(300.0).piksel(32, 0), log.obraz(300.5).piksel(32, 0)} == {brak, CZARNY}
+    assert log.obraz(300.0).piksel(obraz.IKONA[0], obraz.IKONA[1]) == brak
+    assert kolory_plytki(log.obraz(300.0)) == {CZERWONY: 9}  # rano plan dziala dalej bez sieci (I1)
+    log.kontakt(LAPTOP, 301.0)
+    assert log.stan(301.0)["lacznosc"] is True
+    log2 = LogikaRamki("P", teraz=0.0)
+    log2.kontakt("lap-obcy", 1.0)
+    assert log2.stan(1.0)["lacznosc"] is True
+
+
+def test_r3_d_n5_zamknij_piec_bez_plytki_i_enter_po_czasie_bez_zdarzen():
+    """D-N5 (N9): "Zamknij piec" bez plytki nic nie daje (README); Enter 5,01 s po `*` (pytanie juz
+    zniknelo) nie zamyka pieca i nie potwierdza kuwety - pierwszy klawisz po uplywie czasu tylko kasuje
+    stan `*`, nastepny Enter dziala zwykle; zmiana plytki tez kasuje stan `*`."""
+    log = LogikaRamki("P", teraz=0.0)
+    kuw = [{"kuweta": "3263", "plytki": [4]}, {"kuweta": "3301", "plytki": [4]}]
+    g4 = [gn(1, 20, 20, "zielony", "3263"), gn(2, 30, 20, "zielony", "3301")]
+    log.przyjmij_plan(plan_r2(log, "rano", {"4": wpis(g4)}, wazny_s=600, kuwety=kuw), LAPTOP, 0.0)
+    n0 = log.nr
+    log.klawisz("zamknij_piec", 1.0)
+    log.klawisz("enter", 1.5)
+    assert typy(log, n0) == []
+    log.ustaw_plytke(4, 2.0)
+    n0 = log.nr
+    log.klawisz("zamknij_piec", 3.0)
+    log.klawisz("enter", 8.01)
+    assert typy(log, n0) == [] and log.biezaca_kuweta() == "3263"
+    log.klawisz("enter", 8.5)
+    assert [(z["typ"], z.get("kuweta")) for z in log.zdarzenia_od(n0)[0]] == [("potwierdzenie", "3263")]
+    log.klawisz("zamknij_piec", 9.0)
+    log.tick(14.5)
+    log.ustaw_plytke(0, 15.0)
+    log.ustaw_plytke(4, 15.5)
+    n1 = log.nr
+    log.klawisz("enter", 16.0)
+    assert [(z["typ"], z.get("kuweta")) for z in log.zdarzenia_od(n1)[0]] == [("potwierdzenie", "3301")]
+
+
+def test_r3_d_n6_zly_parametr_405_i_500_od_wlasciciela_gasza(kal, ramka_w, monkeypatch):
+    """D-N6 (N11): odrzucone polecenie od wlasciciela poza lista "bez zmiany obrazu" gasi takze, gdy blad
+    wykryl serwer przed logika: 400 zly_parametr (PUT /plan?x=1, zly plan_id w DELETE), 405 (POST /plan),
+    500 (nieoczekiwany wyjatek przy przyjmowaniu planu); odpowiedz ma `zgaszono: true`."""
+    prog, atrapa, port = ramka_w
+    lap = Laptop(port)
+    lap.stan()
+    atrapa.poloz_plytke(2)
+    assert czekaj_na(lambda: prog.logika.plytka == 2)
+
+    def swieci(a):
+        return a.klatka is not None and len(piksele_plytki(a.klatka)) > 0
+
+    def ciemno(a):
+        return a.klatka is not None and piksele_plytki(a.klatka) == {}
+
+    def awaria(*a, **kw):
+        raise RuntimeError("test: nieoczekiwany blad")
+
+    przypadki = [("PUT", "/plan?x=1", True, (400, "zly_parametr")),
+                 ("POST", "/plan", True, (405, "zla_metoda")),
+                 ("DELETE", "/plan?plan_id=" + "x" * 41, False, (400, "zly_parametr")),
+                 ("PUT", "/plan", True, (500, "blad_wewnetrzny"))]
+    for n, (metoda, sciezka, z_trescia, kod) in enumerate(przypadki):
+        assert lap.wyslij_plan(plan_wieczor(kal, wersja=10 + 2 * n))[0] == 200
+        assert atrapa.czekaj(swieci, 2.0)
+        tresc = None
+        if z_trescia:
+            tresc = plan_wieczor(kal, wersja=11 + 2 * n)
+            tresc["start_id"], tresc["zdarzenia_do"] = lap.start_id, lap.od
+        if kod[0] == 500:
+            monkeypatch.setattr(prog.logika, "przyjmij_plan", awaria)
+        st, odp = lap.zadanie(metoda, sciezka, tresc)
+        monkeypatch.undo()
+        assert (st, odp["blad"]["kod"], odp["blad"]["zgaszono"]) == kod + (True,), (metoda, sciezka)
+        assert atrapa.czekaj(ciemno, 2.0), (metoda, sciezka)
+        assert lap.stan()["plan_id"] is None
+
+
+def test_r3_d_n8_wersja_ramki_w_odpowiedzi_409_po_restarcie_laptopa():
+    """D-N8 (N13): laptop po restarcie z tym samym `plan_id` zaczyna od wersji 1, a ramka zna wersje 7
+    (zgaszona): odpowiedz 409 plan_starszy podaje `wersja_ramki`, laptop wysyla wersje 8 - przyjeta."""
+    log = LogikaRamki("W", teraz=0.0)
+    log.przyjmij_plan(plan_w1(log, wersja=7), LAPTOP, 1.0)
+    log.usun_plan(LAPTOP, 2.0)
+    b = blad(log.przyjmij_plan, plan_w1(log, wersja=1), LAPTOP, 3.0, t_odbioru=3.0)
+    assert (b.status, b.kod, b.pola.get("wersja_ramki")) == (409, "plan_starszy", 7)
+    assert b.jako_json()["blad"]["wersja_ramki"] == 7
+    assert log.przyjmij_plan(plan_w1(log, wersja=8), LAPTOP, 4.0, t_odbioru=4.0)["wynik"] == "przyjety"
+
+
+def test_r3_d_n9_wzorce_caly_napis_koncowa_nowa_linia_odrzucona(kal):
+    """D-N9 (N10): wzorce dopasowuja caly napis (fullmatch) - koncowe "\\n" w plan_id, kuwecie, start_id,
+    brakach, kluczu z pliku, X-Laptop-Id i nazwie ukladu kalibracji jest odrzucane."""
+    log = LogikaRamki("P", teraz=0.0)
+
+    def gniazdo_3263(p):
+        return next(g for g in p["plytki"]["4"]["gniazda"] if g.get("kuweta") == "3263")
+
+    zmiany = [("plan_id", lambda p: p.update(plan_id="abc\n"), (400, "zle_pole")),
+              ("kuweta na liscie", lambda p: p["kuwety"][0].update(kuweta="3263\n"), (400, "zla_kuweta")),
+              ("kuweta gniazda", lambda p: gniazdo_3263(p).update(kuweta="3263\n"), (400, "zla_kuweta")),
+              ("start_id", lambda p: p.update(start_id=log.start_id + "\n"), (400, "zle_pole")),
+              ("braki", lambda p: p.update(braki=["5120\n"]), (400, "zla_kuweta"))]
+    for nazwa, zmien, kod in zmiany:
+        p = plan_rano(kal, log)
+        zmien(p)
+        assert odrzucenie(log.przyjmij_plan, p, LAPTOP, 1.0) == kod, nazwa
+    with pytest.raises(ValueError):
+        protokol.sprawdz_klucz("a" * 16 + "\n")
+    with pytest.raises(protokol.BladProtokolu):
+        protokol.sprawdz_id_laptopa("lap-1\n")
+    kal2 = json.loads(json.dumps(kal))
+    kal2["ramki"]["P"]["poranna\n"] = kal2["ramki"]["P"].pop("poranna")
+    with pytest.raises(kalibracja.BladKalibracji):
+        kalibracja.sprawdz(kal2)
+
+
+def test_r3_d_n10_klucz_sprawdzany_przed_trescia_401_od_razu():
+    """D-N10 (b): ramka z kluczem sprawdza X-Ramka-Klucz przed odczytem tresci - zadanie bez klucza
+    z dluga (niedoslana) trescia dostaje 401 od razu, a nie po czasie odczytu tresci (15 s); takie zadanie
+    nie jest kontaktem laptopa (D-N4)."""
+    klucz = secrets.token_hex(16)
+    prog = ProgramRamki(Konfiguracja(rola="W", host="127.0.0.1", port=0, klucz=klucz), sprzet=SprzetAtrapa())
+    _, port = prog.uruchom()
+    try:
+        for dlugosc in (60000, 5000000):
+            s = socket.create_connection(("127.0.0.1", port), timeout=3)
+            try:
+                t0 = time.perf_counter()
+                s.sendall(b"PUT /plan HTTP/1.0\r\nX-Laptop-Id: lap-obcy\r\nContent-Length: "
+                          + str(dlugosc).encode("ascii") + b"\r\n\r\n" + b"{" * 10)
+                st, tresc = _surowa_odpowiedz(s, 3.0)
+                dt = time.perf_counter() - t0
+            finally:
+                s.close()
+            assert (st, tresc) == (401, b""), dlugosc
+            assert dt < 1.5, (dlugosc, dt)
+        assert "lap-obcy" not in prog.logika.kontakty
+        assert Laptop(port, klucz=klucz).stan()["wlasciciel"] is False
+    finally:
+        prog.zatrzymaj()
 
 
 def test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow(kal):
