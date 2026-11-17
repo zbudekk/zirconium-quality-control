@@ -1,0 +1,8 @@
+czas;skan;gniazdo;projekt;zeby;decyzja;status_programu;ubytkow
+2026-11-10T18:01:02;skan_test_a.stl;2;a15b5b27bcd59f33;14;ukruszona;czerwony;1
+2026-11-10T18:01:40;skan_test_a.stl;3;8304817b190df8a8;36;ok;czerwony;2
+2026-11-10T18:02:05;skan_test_a.stl;3;8304817b190df8a8;36;ukruszona;czerwony;2
+2026-11-10T18:10:00;skan_test_b.stl;4;e6bef048218bd432;16;ok;czerwony;1
+2026-11-10T18:10:30;skan_test_b.stl;7;;;ok;szary;0
+2026-11-11T09:00:00;skan_test_a.stl;2;a15b5b27bcd59f33;14;ukruszona;czerwony;1
+2026-11-11T09:00:00;skan_test_a.stl;2;a15b5b27bcd59f33;14;ukruszona;czerwony;1

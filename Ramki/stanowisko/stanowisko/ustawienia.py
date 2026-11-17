@@ -9,6 +9,7 @@ więc literówka albo brakujący klucz kończy się błędem z nazwą pliku i kl
 """
 from __future__ import annotations
 
+import copy
 import functools
 import math
 import tomllib
@@ -26,8 +27,9 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "folder_cyrkon": (str, PRZYSZLY),
         "folder_prywatne": (str, PRZYSZLY),
         "folder_millbox": (str, PRZYSZLY),
-        "baza": (str, PRZYSZLY),
+        "baza": (str, "baza"),
         "log_excel": (str, PRZYSZLY),
+        "wyniki": (str, "session"),  # E3-A1, opcjonalny (DOMYSLNE_NOWYCH)
     },
     # dowolne nazwy układów płytek → katalog modeli: wieczorna, poranna, okragla_wieczorna, okragla_poranna (układ R59)
     # oraz wieczorna_r54, poranna_r54, okragla_wieczorna_r54, okragla_poranna_r54 (poprzedni układ R54, stare płytki);
@@ -91,6 +93,14 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "wieczorna_host": (str, PRZYSZLY),
         "poranna_host": (str, PRZYSZLY),
     },
+    # E3-A1 (etap 3): sekcja w całości opcjonalna — wszystkie klucze mają wartość w DOMYSLNE_NOWYCH, plik sprzed etapu 3 jej nie ma
+    "sesja": {
+        "operatorzy": (list, "session"),
+        "przechowuj_skany_dni": (int, PRZYSZLY),
+        "granica_doby_godz": (int, "session"),
+        "zmiany_start_godz": (list, "session"),
+        "ponowny_skan_okno_min": (int, "session"),
+    },
 }
 
 
@@ -110,18 +120,34 @@ DOMYSLNE_NOWYCH = {
               "korekta_skali_pas_brzegu_mm": 2.0},
     "inspect": {"pas_brzegu_od": "linia_i_plaszczyzna", "brzeg_min_sprawdzony": 0.9, "brzeg_max_przerwa_mm": 1.5},
     "synth": {"odstep_ubytku_mm": 0.05, "krawedz_rozmiar_min_mm": 0.08, "krawedz_rozmiar_max_mm": 0.40},
+    # Etap 3 (E3-A1, 17.11.2026; plan etapu 3 sekcja 3.7): nowe klucze są wyłącznie opcjonalne — tu wartości domyślne.
+    # [sesja] operatorzy: lista osób do wyboru na początku zmiany (DW3; lista jest wymagana do decyzji — przy pustej plik się
+    # wczytuje, ale session odrzuca „Ukruszona” / „OK”); przechowuj_skany_dni: po ilu dniach wolno usuwać pliki skanów
+    # (DW4; 0 = nie usuwać — tryb cienia); granica_doby_godz: początek doby roboczej (6 = zmiany 1, 2, 3 jednego dnia);
+    # zmiany_start_godz: początki zmian; ponowny_skan_okno_min: do ilu minut ta sama płytka to „ponowny skan”, a nie nowy wsad.
+    "sciezki": {"wyniki": "dane/wyniki"},
+    "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22],
+              "ponowny_skan_okno_min": 60},
 }
+
+# Sekcje, których może nie być w pliku: każdy ich klucz ma wartość domyślną (dziś: [sesja]).
+SEKCJE_OPCJONALNE = tuple(s for s, klucze in SCHEMAT.items() if klucze and set(klucze) <= set(DOMYSLNE_NOWYCH.get(s, {})))
 
 
 def uzupelnij_domyslne(d: dict) -> list[str]:
-    """Dopisuje brakujące klucze z ``DOMYSLNE_NOWYCH`` (tylko w istniejących sekcjach); zwraca ``[sekcja] klucz`` dopisanych."""
+    """Dopisuje brakujące klucze z ``DOMYSLNE_NOWYCH`` i brakujące sekcje opcjonalne; zwraca ``[sekcja] klucz`` dopisanych.
+
+    Sekcja wymagana, której nie ma w pliku, nie jest zakładana (walidacja zgłosi „brak sekcji”).
+    """
     dopisane = []
     for sekcja, klucze in DOMYSLNE_NOWYCH.items():
+        if sekcja not in d and sekcja in SEKCJE_OPCJONALNE:
+            d[sekcja] = {}
         if not isinstance(d.get(sekcja), dict):
             continue
         for k, v in klucze.items():
             if k not in d[sekcja]:
-                d[sekcja][k] = v
+                d[sekcja][k] = copy.deepcopy(v)  # lista domyślna nie może być wspólna między wczytaniami
                 dopisane.append(f"[{sekcja}] {k}")
     return dopisane
 
@@ -209,6 +235,17 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(1 <= d["ramki"]["port"] <= 65535, "ramki", "port", "port 1…65535")
     rgb = d["excel"]["kolor_rgb"]
     warunek(len(rgb) == 3 and all(_typ_zgodny(c, int) and 0 <= c <= 255 for c in rgb), "excel", "kolor_rgb", "trzy liczby 0…255")
+    osoby = d["sesja"]["operatorzy"]
+    warunek(all(isinstance(o, str) and o.strip() for o in osoby) and len(set(osoby)) == len(osoby), "sesja", "operatorzy",
+            "lista niepustych, różnych nazw osób (może być pusta)")
+    warunek(d["sesja"]["przechowuj_skany_dni"] >= 0, "sesja", "przechowuj_skany_dni", "musi być >= 0 (0 = nie usuwać skanów)")
+    warunek(0 <= d["sesja"]["granica_doby_godz"] <= 23, "sesja", "granica_doby_godz", "godzina 0…23")
+    zmiany = d["sesja"]["zmiany_start_godz"]
+    warunek(bool(zmiany) and all(_typ_zgodny(g, int) and 0 <= g <= 23 for g in zmiany) and zmiany == sorted(set(zmiany)),
+            "sesja", "zmiany_start_godz", "niepusta lista rosnących godzin 0…23")
+    warunek(zmiany[0] == d["sesja"]["granica_doby_godz"], "sesja", "zmiany_start_godz",
+            f"pierwsza zmiana musi zaczynać się o granicy doby (granica_doby_godz = {d['sesja']['granica_doby_godz']})")
+    warunek(d["sesja"]["ponowny_skan_okno_min"] > 0, "sesja", "ponowny_skan_okno_min", "musi być > 0 (minuty)")
     return d
 
 
@@ -225,6 +262,9 @@ def wczytaj_ustawienia(plik: Path | None = None) -> dict:
     except tomllib.TOMLDecodeError as e:
         raise BladUstawien(f"{plik.name}: błąd składni TOML: {e}") from e
     uzupelnij_domyslne(d)
+    osoby = d.get("sesja", {}).get("operatorzy") if isinstance(d.get("sesja"), dict) else None
+    if isinstance(osoby, list):  # nazwy osób bez białych znaków na końcach (inaczej osoby z listy nie da się wybrać)
+        d["sesja"]["operatorzy"] = [o.strip() if isinstance(o, str) else o for o in osoby]
     d = _waliduj(d, plik)
     uzupelnij_uklady_wbudowane(d)
     return d
