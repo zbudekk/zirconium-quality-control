@@ -71,6 +71,18 @@ def analiza_probna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, *r
 # ----------------------------------------------------------------------------
 # narzedzia testow
 # ----------------------------------------------------------------------------
+@pytest.fixture(scope="module", autouse=True)
+def _qt_przed_silnikiem():
+    """Qt ladowane w procesie testow PRZED pierwszym uzyciem silnika - w tej kolejnosci pracuje aplikacja (okno startuje
+    pierwsze). Powod: na PC wlasciciela 17.11.2026 pierwszy import PySide6 dopiero PO wykonaniu prawdziwych analiz przez
+    silnik (przebieg samych wariantow ``-k odniesienia``) konczyl sie bledem "DLL load failed while importing Shiboken"
+    w 3 z 3 prob; z Qt zaladowanym wczesniej albo po imporcie Open3D w procesie testow - 0 bledow. Przyczyny nie ustalono
+    (prostsze proby odtworzenia poza ta sciezka: 0 z 12); opis w raporcie paczki. Proces roboczy silnika tej funkcji nie
+    wykonuje."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    import PySide6.QtCore  # noqa: F401
+
+
 class Odbior:
     """Zbiera zdarzenia silnika (wywolywany w watku nadzorcy)."""
 
