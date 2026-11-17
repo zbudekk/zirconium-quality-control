@@ -354,7 +354,9 @@ starego wyniku jako nowego.
    NOWY wsad pieca (nowa sesja pieca, takze na tych samych plytkach i bez "Zamknij piec") = najpierw
    `DELETE /plan` przy otwarciu sesji - inaczej ramka pokaze kuwety poprzedniego wsadu (ramka tego nie
    odrozni); `utracone` > 0 -> `GET /stan` (`potwierdzone`, `wybrane`); po `sprzet_dziala` nowa wersja
-   z `potwierdzone` / `wybrane` z WLASNEGO stanu laptopa.
+   z `potwierdzone` / `wybrane` z WLASNEGO stanu laptopa. Potwierdzenia z klawiatury ramka stosuje sama -
+   laptop NIE wysyla nowej wersji po kazdym zdarzeniu klawiatury (tylko przy wlasnej zmianie: nowa sesja,
+   braki, awaria, utracone zdarzenia); inaczej wyscig z kolejnym klawiszem = 409 i chwila ciemnosci.
 10. Restart ramki (`restart: true`, inny `start_id`): kursor od zera; rano plan ponownie (nowy
     `start_id`, `zdarzenia_do` nowego startu); wieczorem pkt 7.
 11. Do sprawdzenia na `indicate`: K6 (z zastrzezeniem pkt 7 dla W), K8 na calym ruchu, kolejka polecen
