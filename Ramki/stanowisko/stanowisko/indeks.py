@@ -11,6 +11,12 @@ Nowe wzgledem H: cechy (``cechy_stl``) kluczowane skrotem pliku - ten sam plik w
 plik bez skrotu albo bez cech (zablokowany, uszkodzony) jest probowany przy kazdym przebiegu; siatka wczytywana z bajtow
 (skrot i cechy z tej samej tresci; biblioteki nie widza nazwy pliku); zapis kazdego folderu w krotkiej transakcji
 (cechy liczone przed nia - baza nie jest blokowana na czas liczenia).
+Runda 2 recenzji PR #18: (D2) gdy naraz znika wiecej niz polowa biezacych folderow zrodla (``PROG_ZNIKNIECIA``, co najmniej
+``PROG_ZNIKNIECIA_MIN``) - np. katalog jest, ale pusty, bo OneDrive sie synchronizuje - nic nie jest oznaczane jako usuniete,
+a raport ma ostrzezenie; folder stary oznaczony wczesniej jako usuniety, ktory jest znow na dysku, wraca do indeksu;
+(D3) folder stary z plikiem o nazwie z ``wymagane`` (wiersz frezowania z okna puli) jest indeksowany mimo wieku;
+(D4) sciezka z folderem, ktory nie jest folderem zlecenia (np. ``C:\\MillBox\\Jobs\\plik.stl``), jest dopasowywana po
+samej nazwie pliku (``Dopasowanie.po_nazwie``); (P1) licznik ``kuweta_niejednoznaczna``.
 
 DANE OSOBOWE (DW2 po decyzji z 17.11.2026): nazwa folderu trafia tylko do ``zlecenia.folder`` / ``folder_norm`` (doslownie,
 takze w postaci NFD - inaczej nie dalo sie zbudowac sciezki), nazwa pliku do ``projekty.plik``. Raport, dziennik
@@ -37,6 +43,8 @@ KLUCZE_ZRODEL = {"cyrkon": "folder_cyrkon", "prywatne": "folder_prywatne"}  # [s
 WERSJA_CECH = 1  # podniesienie = cechy liczone od nowa dla kazdego pliku przy nastepnym przebiegu
 USUN_PO_DNIACH = 10  # [match] usun_z_puli_po_dniach
 MINIATURA_PX = 64
+PROG_ZNIKNIECIA = 0.5  # D2: znika wiecej niz ta czesc biezacych folderow zrodla = nic nie oznaczac jako usuniete
+PROG_ZNIKNIECIA_MIN = 2  # ... ale tylko gdy znika co najmniej tyle folderow (jeden usuniety folder zawsze jest oznaczany)
 _KOLUMNY_CECH = ("trojkaty", "szczelny", "objetosc_mm3", "hull_mm3", "pole_mm2", "obrys_a_mm", "obrys_b_mm", "wysokosc_mm")
 
 
@@ -44,11 +52,15 @@ _KOLUMNY_CECH = ("trojkaty", "szczelny", "objetosc_mm3", "hull_mm3", "pole_mm2",
 class RaportIndeksu:
     """Wynik przebiegu indeksu - same liczby i identyfikatory wierszy (bez nazw)."""
     zrodla: dict = field(default_factory=dict)  # zrodlo -> "ok" / "brak katalogu" / "blad odczytu"
-    zlecen: int = 0  # foldery zlecen przejrzane w tym przebiegu (bez starych)
+    zlecen: int = 0  # foldery zlecen przejrzane w tym przebiegu (bez pominietych starych)
     zlecenia_nowe: int = 0
     zlecenia_usuniete: int = 0
     bez_kuwety: int = 0
+    kuweta_niejednoznaczna: int = 0  # P1: foldery z kilkoma kandydatami na kuwete (zapisane jako "?a,b")
     pominiete_stare: int = 0  # foldery starsze niz usun_po_dniach (nie czytane, nie usuwane)
+    stare_doindeksowane: int = 0  # foldery stare czytane mimo wieku: przywrocone po oznaczeniu jako usuniete (D2) albo wymagane (D3)
+    wstrzymane_usuniecia: int = 0  # D2: foldery, ktorych znikniecia NIE oznaczono (znika naraz wiecej niz polowa)
+    ostrzezenia: list = field(default_factory=list)  # teksty dla czlowieka, bez nazw
     nowe: int = 0
     zmienione: int = 0
     usuniete: int = 0
@@ -163,19 +175,24 @@ def _wpisy_folderu(sciezka: str) -> tuple[list[tuple[str, int, int]], int]:
 
 
 def indeksuj(baza: B.Baza, zrodla: dict[str, str | Path | None], teraz: dt.datetime | None = None, *,
-             usun_po_dniach: int = USUN_PO_DNIACH, licz_cechy: bool = True, miniatury: bool = True) -> RaportIndeksu:
+             usun_po_dniach: int = USUN_PO_DNIACH, licz_cechy: bool = True, miniatury: bool = True,
+             wymagane=None) -> RaportIndeksu:
     """Synchronizuje tabele indeksu z folderami ``zrodla`` (zrodlo -> katalog, np. ``zrodla_z_ustawien(ust)``).
 
     ``teraz`` (czas zapisu i granica wieku folderow, domyslnie teraz); ``usun_po_dniach``: folder, w ktorym od tylu dni nic
-    sie nie zmienilo (folder i pliki STL), nie jest czytany ani oznaczany jako usuniety; ``licz_cechy=False``: same skroty
-    (cechy policzy nastepny przebieg z ``licz_cechy=True``). Trwa: cechy nowego pliku to ok. 0,1-1 s - w programie wolac
-    w watku roboczym z wlasnym polaczeniem z baza. Wpis w dzienniku: ``pula / indeks`` z liczbami.
+    sie nie zmienilo (folder i pliki STL), nie jest czytany ani oznaczany jako usuniety - chyba ze byl oznaczony jako usuniety
+    i jest znow na dysku (wraca) albo ma plik o nazwie z ``wymagane`` (nazwy plikow albo sciezki z wierszy frezowania z okna
+    puli, D3), a nie ma go jeszcze w indeksie; ``licz_cechy=False``: same skroty (cechy policzy nastepny przebieg
+    z ``licz_cechy=True``). Gdy naraz znika wiecej niz polowa biezacych folderow zrodla (``PROG_ZNIKNIECIA``), znikniecia
+    nie sa oznaczane (``wstrzymane_usuniecia``, ``ostrzezenia``). Trwa: cechy nowego pliku to ok. 0,1-1 s - w programie
+    wolac w watku roboczym z wlasnym polaczeniem z baza. Wpis w dzienniku: ``pula / indeks`` z liczbami.
     """
     teraz = teraz or dt.datetime.now()
     t0 = time.perf_counter()
     r = RaportIndeksu()
     granica = teraz.timestamp() - usun_po_dniach * 86400
     czas = teraz.replace(microsecond=0).isoformat()
+    wym = {N.klucz_pliku(x).rsplit("/", 1)[-1] for x in (wymagane or ())}  # DANE OSOBOWE: tylko w pamieci
     cechy_znane = {w["sha16"]: w["wersja_cech"] or 0 for w in baza.wiersze("SELECT sha16, wersja_cech FROM cechy_stl")}
     for zrodlo, katalog in zrodla.items():
         if katalog is None or not Path(katalog).is_dir():
@@ -191,6 +208,7 @@ def indeksuj(baza: B.Baza, zrodla: dict[str, str | Path | None], teraz: dt.datet
         r.zrodla[zrodlo] = "ok"
         znane = {w["folder"]: w for w in baza.wiersze("SELECT * FROM zlecenia WHERE zrodlo = ?", (zrodlo,))}
         widziane = set()
+        biezace = 0  # foldery biezace (nie starsze niz usun_po_dniach) widziane w tym przebiegu - do progu znikniec (D2)
         for e in foldery:
             widziane.add(e.name)  # takze folder nieczytelny i stary: nie jest usuniety
             try:
@@ -199,18 +217,31 @@ def indeksuj(baza: B.Baza, zrodla: dict[str, str | Path | None], teraz: dt.datet
             except OSError:
                 r.bledy += 1
                 continue
+            zl = znane.get(e.name)
             if zmieniono < granica:
-                r.pominiete_stare += 1
-                continue
+                przywracany = zl is not None and bool(zl["usuniety"])  # D2: wrocil po oznaczeniu jako usuniety
+                wymagany = zl is None and bool(wym) and any(N.klucz_pliku(p) in wym for p, _, _ in pliki)  # D3
+                if not (przywracany or wymagany):
+                    r.pominiete_stare += 1
+                    continue
+                r.stare_doindeksowane += 1
+            else:
+                biezace += 1
             r.zlecen += 1
             r.pominiete_podfoldery += w_podfolderach
-            _folder(baza, r, zrodlo, Path(e.path), e.name, znane.get(e.name), pliki, zmieniono, czas, cechy_znane, licz_cechy, miniatury)
-        for folder, w in znane.items():
-            if folder not in widziane and not w["usuniety"]:
-                with baza.transakcja():
-                    r.usuniete += baza.wykonaj("UPDATE projekty SET usuniety = 1 WHERE zlecenie_id = ? AND usuniety = 0", (w["id"],)).rowcount
-                    baza.wykonaj("UPDATE zlecenia SET usuniety = 1 WHERE id = ?", (w["id"],))
-                r.zlecenia_usuniete += 1
+            _folder(baza, r, zrodlo, Path(e.path), e.name, zl, pliki, zmieniono, czas, cechy_znane, licz_cechy, miniatury)
+        znikniete = [w for folder, w in znane.items() if folder not in widziane and not w["usuniety"]]
+        znikniete_biezace = sum(w["mtime"] is not None and w["mtime"] >= granica for w in znikniete)
+        if znikniete_biezace >= PROG_ZNIKNIECIA_MIN and znikniete_biezace > PROG_ZNIKNIECIA * (biezace + znikniete_biezace):
+            r.wstrzymane_usuniecia += len(znikniete)
+            r.ostrzezenia.append(f"{zrodlo}: naraz znika {znikniete_biezace} z {biezace + znikniete_biezace} biezacych folderow - "
+                                 "nic nie oznaczono jako usuniete (sprawdz synchronizacje OneDrive i odswiez pozniej)")
+            continue
+        for w in znikniete:
+            with baza.transakcja():
+                r.usuniete += baza.wykonaj("UPDATE projekty SET usuniety = 1 WHERE zlecenie_id = ? AND usuniety = 0", (w["id"],)).rowcount
+                baza.wykonaj("UPDATE zlecenia SET usuniety = 1 WHERE id = ?", (w["id"],))
+            r.zlecenia_usuniete += 1
     r.czas_s = round(time.perf_counter() - t0, 2)
     baza.zdarzenie("pula", "indeks", r.do_slownika())
     return r
@@ -222,6 +253,7 @@ def _folder(baza: B.Baza, r: RaportIndeksu, zrodlo: str, sciezka: Path, nazwa: s
     info = N.rozbierz(nazwa)
     if info.kuweta is None:
         r.bez_kuwety += 1
+    r.kuweta_niejednoznaczna += info.niejednoznaczna
     znane = {w["plik"]: w for w in baza.wiersze("SELECT * FROM projekty WHERE zlecenie_id = ?", (zl["id"],))} if zl else {}
     do_zapisu = []  # (plik, mtime_ns, rozmiar, stary, sha16, cechy, blad)
     for plik, mtime_ns, rozmiar in pliki:
@@ -293,14 +325,24 @@ def _folder(baza: B.Baza, r: RaportIndeksu, zrodlo: str, sciezka: Path, nazwa: s
         r.usuniete += len(znikniete)
 
 
+@dataclass(frozen=True)
+class Dopasowanie:
+    """Wynik ``IndeksPlikow.dopasuj``: wiersz (z nazwami - nie do logow), liczba kandydatow, czy po samej nazwie (D4)."""
+    wiersz: dict | None
+    kandydatow: int
+    po_nazwie: bool = False
+
+
 class IndeksPlikow:
     """Pliki indeksu w pamieci do laczenia nazw z raportow i CSV z punktami pracy (projekty i zlecenia nieusuniete).
 
-    ``znajdz(plik, data)`` -> (wiersz albo None, liczba kandydatow). Nazwa z folderem ("Folder/plik.stl", takze z ``\\``
-    i z dluzsza sciezka) = dopasowanie konca sciezki ``folder/plik``; sama nazwa pliku = wszystkie pliki o tej nazwie.
-    Porownanie bez wielkosci liter, w postaci NFC. Kilku kandydatow: plik o dacie modyfikacji najblizszej ``data``
-    (potem nowszy) - jak w H (``pula_wieczor``); wywolujacy liczy to jako "niejednoznaczne". Wiersz zawiera nazwy (pola
-    ``plik``, ``folder``) - nie do logow ani wynikow.
+    ``dopasuj(plik, data)`` -> ``Dopasowanie`` (``znajdz`` -> (wiersz albo None, liczba kandydatow)). Nazwa z folderem
+    ("Folder/plik.stl", takze z ``\\`` i z dluzsza sciezka) = dopasowanie konca sciezki ``folder/plik``; gdy nic nie pasuje,
+    a folder ze sciezki nie jest folderem zlecenia w indeksie (np. ``C:\\MillBox\\Jobs\\plik.stl``, folder po zmianie nazwy),
+    proba po samej nazwie (``po_nazwie``, D4) - folder zlecenia, w ktorym pliku nie ma, nie jest zgadywany. Sama nazwa pliku =
+    wszystkie pliki o tej nazwie. Porownanie bez wielkosci liter, w postaci NFC. Kilku kandydatow: plik o dacie modyfikacji
+    najblizszej ``data`` (potem nowszy) - jak w H (``pula_wieczor``); wywolujacy liczy to jako "niejednoznaczne". Wiersz
+    zawiera nazwy (pola ``plik``, ``folder``) - nie do logow ani wynikow.
     """
 
     def __init__(self, baza: B.Baza):
@@ -310,6 +352,18 @@ class IndeksPlikow:
                               "FROM projekty p JOIN zlecenia z ON z.id = p.zlecenie_id WHERE p.usuniety = 0 AND z.usuniety = 0 ORDER BY p.id"):
             self.po_id[w["id"]] = w
             self.po_nazwie[N.klucz_pliku(w["plik"])].append(w)
+        self.foldery = {N.klucz_pliku(w["folder"]) for w in baza.wiersze("SELECT folder FROM zlecenia WHERE usuniety = 0")}
+
+    def dopasuj(self, plik: str, data: dt.date | None = None) -> Dopasowanie:
+        k = N.klucz_pliku(plik)
+        kandydaci = self.kandydaci(plik)
+        po_nazwie = False
+        if not kandydaci and "/" in k:
+            folder, nazwa = k.rsplit("/", 2)[-2:]
+            if folder not in self.foldery:
+                kandydaci = list(self.po_nazwie.get(nazwa, ()))
+                po_nazwie = bool(kandydaci)
+        return Dopasowanie(self._wybierz(kandydaci, data), len(kandydaci), po_nazwie)
 
     def kandydaci(self, plik: str) -> list[dict]:
         k = N.klucz_pliku(plik)
@@ -324,14 +378,18 @@ class IndeksPlikow:
         return wynik
 
     def znajdz(self, plik: str, data: dt.date | None = None) -> tuple[dict | None, int]:
-        kandydaci = self.kandydaci(plik)
+        d = self.dopasuj(plik, data)
+        return d.wiersz, d.kandydatow
+
+    @staticmethod
+    def _wybierz(kandydaci: list[dict], data: dt.date | None) -> dict | None:
         if not kandydaci:
-            return None, 0
+            return None
         if len(kandydaci) == 1 or data is None:
-            return (kandydaci[0] if len(kandydaci) == 1 else max(kandydaci, key=lambda w: (w["mtime_ns"] or 0, w["id"]))), len(kandydaci)
+            return kandydaci[0] if len(kandydaci) == 1 else max(kandydaci, key=lambda w: (w["mtime_ns"] or 0, w["id"]))
 
         def odleglosc(w: dict) -> tuple:
             dzien = dt.datetime.fromtimestamp((w["mtime_ns"] or 0) / 1e9).date()
             return abs((dzien - data).days), -(w["mtime_ns"] or 0), w["id"]
 
-        return min(kandydaci, key=odleglosc), len(kandydaci)
+        return min(kandydaci, key=odleglosc)
