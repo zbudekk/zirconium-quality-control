@@ -384,7 +384,7 @@ def probka_od_linii(pr: M.Projekt, pas: float, brzeg: BrzegProjektu) -> tuple[np
     if cache is None:
         puste = (np.zeros((0, 3)), np.zeros((0, 3)), np.zeros(0, dtype=np.int64), np.zeros(0), np.zeros(0))
         cache = puste
-        if brzeg.drzewo is not None:
+        if brzeg.drzewo is not None and brzeg.drzewo_O is not None:
             m = pr.siatka
             blisko = np.isfinite(brzeg.drzewo.query(m.vertices, distance_upper_bound=pas + 0.3)[0])
             sel = np.flatnonzero(blisko[m.faces].any(axis=1))
@@ -498,8 +498,8 @@ def _linia_brzegu(P_pula: np.ndarray, N_pula: np.ndarray, pr: M.Projekt, ust_i: 
             else:
                 rodzaj = "wciecie"
             c = Q.mean(0)
-            odl_brzegu, filar = float(max(0.0, -c[2])), 0
-            if brzeg is not None:
+            odl_brzegu, filar = float(max(0.0, -c[2])), 0  # bez linii (pas od płaszczyzny albo projekt bez linii w trybie sumy): od z = 0, filar nieznany
+            if brzeg is not None and brzeg.drzewo is not None:
                 odl_brzegu, j = brzeg.drzewo.query(c)
                 filar = int(brzeg.linie.filary[brzeg.filar[j]].nr)
             wciecia.append(Wciecie(float(c[0]), float(c[1]), float(c[2]), round(szer, 3), round(float(odl[idx].max()), 4), int(len(idx)), round(udz, 3), rodzaj,

@@ -4,6 +4,7 @@ from __future__ import annotations
 import math
 import shutil
 import warnings
+from dataclasses import asdict
 
 import numpy as np
 import pytest
@@ -480,6 +481,36 @@ def test_linia_projektu_niepewna_albo_brak_linii_to_nie_sprawdzono(tmp_path, ust
     wi = I.sprawdz(P, N, pr2, pr2.T0, 0.99, ust, 3)
     assert wi.status == "nie_sprawdzono" and wi.brzeg["stan_linii"] == "brak" and wi.brzeg["filary"] == [] and "nie wyznaczono" in wi.brzeg["opis"]
     assert wi.linia_brzegu["punktow_linii"] == 0
+
+
+def test_projekt_bez_linii_z_wcieciem_w_trybie_sumy_dziala_jak_przed_p2(tmp_path, ust):
+    """B1 (recenzja PR #13): projekt bez żadnej linii brzegu (bryła bez wnęki, ``brzeg.drzewo is None``) i skupisko wcięć
+    metody B w trybie domyślnym ``linia_i_plaszczyzna`` — wynik taki sam jak przy pasie od płaszczyzny (sposób sprzed P2),
+    bez wyjątku. Scenariusz recenzenta: pudełko 8 × 6 × 5 mm, wgłębienie 0,3 mm o płaskim dnie na ścianie bocznej 0,7 mm
+    pod wierzchem (r 0,6) i na wierzchu (r 0,8)."""
+    pr = _projekt(tmp_path, "bez_wneki_b1", [trimesh.creation.box([8.0, 6.0, 5.0])])
+    brzeg = I.brzeg_projektu(pr)
+    assert brzeg.linie.filary == [] and brzeg.drzewo is None and brzeg.drzewo_O is None
+    P0, N0 = _skan(pr.siatka, seed=4)
+    statusy = []
+    for srodek, r0 in (((4.0, 0.0, -0.7), 0.6), ((1.0, 0.5, 0.0), 0.8)):
+        P = P0.copy()
+        w = np.linalg.norm(P - np.array(srodek), axis=1) < r0
+        P[w] = P[w] - N0[w] * 0.3
+        plaszcz = I.sprawdz(P, N0, pr, pr.T0, 0.99, _ust(ust, pas_brzegu_od="plaszczyzna"), 1)
+        assert any(v.rodzaj == "wciecie" for v in plaszcz.wciecia), plaszcz.wciecia  # metoda B ma skupisko wcięć
+        # przed poprawką: AttributeError: 'NoneType' object has no attribute 'query' (inspect._linia_brzegu)
+        suma = I.sprawdz(P, N0, pr, pr.T0, 0.99, _ust(ust, pas_brzegu_od="linia_i_plaszczyzna"), 1)
+        assert suma.status == plaszcz.status
+        assert [asdict(u) for u in suma.ubytki] == [asdict(u) for u in plaszcz.ubytki]
+        assert [asdict(v) for v in suma.wciecia] == [asdict(v) for v in plaszcz.wciecia]
+        assert [asdict(p) for p in suma.plamy] == [asdict(p) for p in plaszcz.plamy]
+        assert suma.linia_brzegu == plaszcz.linia_brzegu and all(v.filar == 0 for v in suma.wciecia)
+        assert suma.brzeg["stan_linii"] == "brak" and suma.brzeg["sprawdzony"] and "nie wyznaczono" in suma.brzeg["uwagi_linii"]
+        # tryb samej linii: projekt bez linii = „nie sprawdzono” (bez zmiany)
+        assert I.sprawdz(P, N0, pr, pr.T0, 0.99, _ust(ust, pas_brzegu_od="linia"), 1).status == "nie_sprawdzono"
+        statusy.append((plaszcz.status, sorted({(u.metoda, u.kolor) for u in plaszcz.ubytki})))
+    assert statusy == [("ubytek", [("A+B", "czerwony")]), ("sprawdz", [("B", "zolty")])], statusy  # jak na ``main``: czerwony ubytek / żółte „sprawdź”
 
 
 def test_prace_bokiem_i_czesciowe_nie_sa_zielone_bez_sprawdzonego_brzegu(korony, pula, ust):
