@@ -55,6 +55,7 @@ TRYB_WIECZOR = SE.TRYB_WIECZOR
 LIMIT_PRZETWARZANIA_S = 0.05  # najdluzej tyle trwa jedno ``przetworz()``, gdy czeka wiele zdarzen (petla okna: przerwy < 200 ms)
 OKRES_LACZNIKA_MS = 30
 PAMIEC_ODRZUCEN_DNI = 2  # z ilu dni wstecz czytane sa odrzucone propozycje ponownego skanu
+LIMIT_KOMUNIKATOW = 50  # tyle komunikatow ulotnych naraz w stanie (starsze znikaja same)
 NUMERY_PLYTEK_ZAPASOWE = tuple(range(1, 10))  # cyfry do wyboru, gdy ukladu plytki nie da sie wczytac
 
 # polecenia okna do kontrolera (nazwy metod); ``Praca.dozwolone`` / ``Plytka.dozwolone`` podaja, ktore maja teraz sens
@@ -892,7 +893,10 @@ class KontrolerSesji(Kontroler):
             self._nr_komunikatu += 1
             id_ = f"k{self._nr_komunikatu}:{rodzaj}"
         k = self._nowy_komunikat(id_, rodzaj, skan_id=skan_id, **pola)
+        self._komunikaty.pop(id_, None)
         self._komunikaty[id_] = k
+        while len(self._komunikaty) > LIMIT_KOMUNIKATOW:  # okno, ktore nie zamyka komunikatow, nie zapycha pamieci: znikaja najstarsze
+            self._komunikaty.pop(next(iter(self._komunikaty)))
         self._ogloszone.discard(id_)
         self._ukryte.discard(id_)
         return k

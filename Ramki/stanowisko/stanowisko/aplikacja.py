@@ -582,27 +582,34 @@ class Aplikacja(K.KontrolerSesji):
         niezakonczone: list[Zlecenie] = []
         if self._uruchomiony:
             self._zamykanie = True
-            self.scanner.stop()
+            try:
+                self.scanner.stop()
+            except Exception:  # noqa: BLE001 - zamkniecie musi dojsc do konca (zapis zadan, zamkniecie bazy)
+                LOG.exception("stanowisko: blad zatrzymania obserwatora folderu")
             while True:  # skany zgloszone przed zatrzymaniem obserwatora, jeszcze nieobsluzone: do zadan niezakonczonych
                 try:
                     rodzaj, dane = self._skrzynka.get_nowait()
                 except queue.Empty:
                     break
                 if rodzaj == "skan":
-                    self._zdarzenie_skrzynki(rodzaj, dane)
-            z_silnika = self.silnik.stop()
+                    self._bezpiecznie(self._zdarzenie_skrzynki, rodzaj, dane)
+            try:
+                z_silnika = self.silnik.stop()
+            except Exception:  # noqa: BLE001
+                LOG.exception("stanowisko: blad zatrzymania silnika")
+                z_silnika = []
             while True:  # wyniki i bledy, ktore silnik oddal przed zatrzymaniem (kazde zadanie: wynik albo lista stop(), nigdy oba)
                 try:
                     e = self.silnik.zdarzenia.get_nowait()
                 except queue.Empty:
                     break
                 if e.typ in ("wynik", "blad"):
-                    self._zdarzenie_silnika(e)
+                    self._bezpiecznie(self._zdarzenie_silnika, e)
             czekajace, self._nieprzyjete = self._nieprzyjete, []
             for z, e in czekajace:  # ostatnia proba zapisu wynikow, ktore czekaly na zajeta baze
-                self._przyjmij_wynik(z, e)
+                self._bezpiecznie(self._przyjmij_wynik, z, e)
             if {x.zadanie_id for x in z_silnika} != set(self._zlecone):
-                LOG.warning("stanowisko: lista zadan z silnika (%d) rozni sie od listy kontrolera (%d) - zapisuje obie",
+                LOG.warning("stanowisko: lista zadan z silnika (%d) rozni sie od listy kontrolera (%d) - zapisuje liste kontrolera",
                             len(z_silnika), len(self._zlecone))
             niezakonczone = [self._zlecone[nr] for nr in sorted(self._zlecone)] + [n[0] for n in self._nieprzyjete] + self._wstrzymane
             try:
@@ -613,8 +620,9 @@ class Aplikacja(K.KontrolerSesji):
         try:
             self.sesja.baza.zdarzenie("system", "program_stop", {"niezakonczone": len(niezakonczone)}, czas=self._teraz())
             stan = dataclasses.replace(self._zbuduj(), zamkniety=True, analiza=None)
-        except B.BladBazy:
-            stan = dataclasses.replace(self.stan(), zamkniety=True, analiza=None)
+        except Exception:  # noqa: BLE001 - np. baza zajeta: zostaje ostatni znany stan
+            LOG.exception("stanowisko: stanu koncowego nie da sie odczytac z bazy")
+            stan = dataclasses.replace(self._stan, zamkniety=True, analiza=None) if self._stan is not None else K.StanAplikacji(zamkniety=True)
         self._zamkniety = True
         self._stan = stan
         self.sesja.baza.zamknij()
