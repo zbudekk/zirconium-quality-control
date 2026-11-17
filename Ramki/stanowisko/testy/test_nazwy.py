@@ -27,7 +27,7 @@ from stanowisko import nazwy as N
     ("Testowski_88_zs", "88", False),
     ("  Testowski   0912  ", "912", False),
     ("Nowak-Testowa 7", "7", False),
-    ("Testowski 12 zs 4567", "12", False),        # pierwszy numer
+    ("Testowski 12 zs 4567", "?12,4567", False),  # runda 2 (P1): dwa numery = niejednoznaczna (wczesniej "pierwszy numer")
     ("Testowski 12345 3263", "3263", False),      # liczba 5-cyfrowa to nie kuweta
     ("Testowski 3263 ZS1", "3263", False),
     ("PG1784 Testowski", None, False),            # litery przed cyframi: to nie numer kuwety
@@ -46,6 +46,51 @@ def test_kuweta_z_nazwy_folderu(folder, kuweta, prywatne):
     assert z.kuweta == kuweta
     assert z.prywatne is prywatne
     assert N.kuweta(folder) == kuweta
+
+
+# --- runda 2, P1: daty sprawdzane zakresami, zeby po numerze kuwety, kilku kandydatow = "niejednoznaczna" ---------------
+@pytest.mark.parametrize("folder, kuweta", [
+    ("Testowski 3263_16_11_2026", "3263"),        # (a) data sklejona z numerem nie zjada kuwety (wczesniej "2026")
+    ("Testowski 88_16_11_2026", "88"),            # wczesniej "2026"
+    ("Testowski 3263-24-25", "3263"),             # numer kuwety + zeby 24-25 (wczesniej brak kuwety)
+    ("Testowski_3263_24_25", "3263"),             # wczesniej brak kuwety
+    ("Testowski 3263 24-25-26", "3263"),          # most zapisany po numerze
+    ("Testowski 24-25", None),                    # same zeby: brak kuwety (licznik), nie zgadujemy
+    ("Testowski 3263 2026-13-01", "?3263,2026,13,1"),  # miesiac 13: to nie data
+    ("Testowski 3263 32.11.2026", "?3263,32,11,2026"),  # dzien 32: to nie data
+    ("Testowski 3263 1899-11-16", "?3263,1899"),  # rok spoza 19xx / 20xx: to nie data, tylko numer + zeby 11-16
+    ("Testowski 3263 16-11-26", "3263"),          # data DD-MM-RR
+    ("Testowski 0412 412", "412"),                # ten sam numer dwa razy (zera wiodace bez znaczenia, decyzja 1)
+    ("Testowski 00412", "412"),
+])
+def test_p1_data_z_zakresami_i_zeby_nie_zjadaja_kuwety(folder, kuweta):
+    assert N.kuweta(folder) == kuweta
+    assert N.rozbierz(folder).kuweta == kuweta
+
+
+@pytest.mark.parametrize("folder, kandydaci", [
+    ("Testowski 16.11 3263", ("16", "11", "3263")),     # (b) przyklady recenzenta: wczesniej po cichu pierwszy kandydat
+    ("Testowski 14.30 3263", ("14", "30", "3263")),
+    ("Testowski 2 korony 3263", ("2", "3263")),
+    ("Testowski 46 3263", ("46", "3263")),
+    ("Testowski 3M2 3263", ("3", "3263")),
+    ("2026 Testowski 3263", ("2026", "3263")),
+    ("Testowski 3263 #2", ("3263", "#2")),              # "#" = prywatne tylko, gdy nie ma drugiego numeru
+    ("#1234 Testowski 3263", ("#1234", "3263")),
+])
+def test_p1_kilku_kandydatow_daje_kuwete_niejednoznaczna(folder, kandydaci):
+    z = N.rozbierz(folder)
+    assert z.kandydaci == kandydaci
+    assert z.niejednoznaczna and not z.prywatne
+    assert z.kuweta == "?" + ",".join(kandydaci) == N.kuweta(folder)
+    assert N.czy_niejednoznaczna(z.kuweta) and N.kandydaci_kuwety(z.kuweta) == kandydaci
+
+
+def test_p1_jeden_kandydat_bez_oznaczenia():
+    for folder, k in (("Testowski 3263 zs", "3263"), ("#1234 Testowski", "#1234"), ("Testowski", None)):
+        z = N.rozbierz(folder)
+        assert z.kuweta == k and not z.niejednoznaczna and z.kandydaci == ((k,) if k else ())
+        assert not N.czy_niejednoznaczna(z.kuweta)
 
 
 def test_kryterium1_kuweta_w_40_z_40_wzorow_drzewa():

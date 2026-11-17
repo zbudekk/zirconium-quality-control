@@ -8,6 +8,7 @@ pliki STL = male atrapy koron (`narzedzia/drzewo_syntetyczne.py`).
 from __future__ import annotations
 
 import datetime as dt
+import json
 import shutil
 
 import numpy as np
@@ -285,6 +286,73 @@ def test_zrodla_z_ustawien_sciezki_wzgledne_od_katalogu_programu():
     z = I.zrodla_z_ustawien(ust)
     assert z["cyrkon"].as_posix() == "C:/OneDrive/Cyrkon"
     assert z["prywatne"] == UST.KORZEN / "dane" / "Prywatne"
+
+
+# --- runda 2 recenzji PR #18 ------------------------------------------------------------------------------------------
+def test_p1_niejednoznaczna_kuweta_w_indeksie_i_licznikach(baza, tmp_path):
+    from stanowisko import pula as P
+    cel = tmp_path / "d"
+    rng = np.random.default_rng(11)
+    D.zapisz_stl(D.atrapa(rng), cel / "Cyrkon" / "Testowski 46 3263" / "zab 11.stl", WCZORAJ)  # dwa numery
+    D.zapisz_stl(D.atrapa(rng), cel / "Cyrkon" / "Probna 3263_16_11_2026" / "zab 12.stl", WCZORAJ)  # numer + data
+    D.zapisz_stl(D.atrapa(rng), cel / "Cyrkon" / "Fikcyjny bez numeru" / "zab 14.stl", WCZORAJ)
+    r = I.indeksuj(baza, {"cyrkon": cel / "Cyrkon"}, TERAZ, licz_cechy=False)
+    assert (r.kuweta_niejednoznaczna, r.bez_kuwety) == (1, 1)
+    assert sorted(w["kuweta"] or "-" for w in baza.wiersze("SELECT kuweta FROM zlecenia")) == ["-", "3263", "?46,3263"]
+    p = P.pula_poranna(baza, TERAZ)
+    assert (p.liczniki["kuweta_niejednoznaczna"], p.liczniki["bez_kuwety"]) == (1, 1)
+    assert "Testowski" not in json.dumps(r.do_slownika()) + json.dumps(p.do_slownika())
+
+
+def test_d2_pusty_katalog_zrodla_bez_oznaczania_usuniec_i_ostrzezenie(baza, drzewo, tmp_path):
+    cel, prawda = drzewo
+    I.indeksuj(baza, zrodla(cel), TERAZ)
+    cyrkon = [z for z in prawda if z.zrodlo == "cyrkon"]
+    schowek = tmp_path / "schowek"
+    shutil.move(str(cel / "Cyrkon"), str(schowek))
+    (cel / "Cyrkon").mkdir()  # katalog jest, ale pusty (OneDrive w trakcie synchronizacji)
+    r = I.indeksuj(baza, zrodla(cel), TERAZ)
+    assert r.zrodla["cyrkon"] == "ok" and (r.zlecenia_usuniete, r.usuniete) == (0, 0)
+    assert r.wstrzymane_usuniecia == len(cyrkon) and len(r.ostrzezenia) == 1 and "cyrkon" in r.ostrzezenia[0]
+    assert liczba(baza, "zlecenia", "usuniety = 1") == 0
+    assert all(z.folder not in json.dumps(r.do_slownika()) for z in prawda)
+    # wiecej niz polowa folderow naraz: tez nic; jeden z wielu: oznaczony
+    (cel / "Cyrkon").rmdir()
+    shutil.move(str(schowek), str(cel / "Cyrkon"))
+    for z in cyrkon[: len(cyrkon) // 2 + 1]:
+        shutil.move(str(cel / "Cyrkon" / z.folder), str(tmp_path / z.folder))
+    r = I.indeksuj(baza, zrodla(cel), TERAZ)
+    assert r.zlecenia_usuniete == 0 and r.wstrzymane_usuniecia == len(cyrkon) // 2 + 1
+    for z in cyrkon[: len(cyrkon) // 2 + 1]:
+        shutil.move(str(tmp_path / z.folder), str(cel / "Cyrkon" / z.folder))
+    shutil.rmtree(cel / "Cyrkon" / cyrkon[0].folder)
+    r = I.indeksuj(baza, zrodla(cel), TERAZ)
+    assert (r.zlecenia_usuniete, r.wstrzymane_usuniecia, r.ostrzezenia) == (1, 0, [])
+
+
+def test_d2_stary_folder_oznaczony_jako_usuniety_wraca_do_indeksu(baza, tmp_path):
+    cel = tmp_path / "d"
+    rng = np.random.default_rng(12)
+    D.zapisz_stl(D.atrapa(rng), cel / "Cyrkon" / "Testowski 501" / "zab 11.stl", WCZORAJ)
+    D.zapisz_stl(D.atrapa(rng), cel / "Cyrkon" / "Testowski 502" / "zab 12.stl", WCZORAJ)
+    I.indeksuj(baza, {"cyrkon": cel / "Cyrkon"}, TERAZ)
+    shutil.move(str(cel / "Cyrkon" / "Testowski 502"), str(tmp_path / "502"))
+    r = I.indeksuj(baza, {"cyrkon": cel / "Cyrkon"}, TERAZ)
+    assert (r.zlecenia_usuniete, r.usuniete) == (1, 1)
+    shutil.move(str(tmp_path / "502"), str(cel / "Cyrkon" / "Testowski 502"))  # wraca po 2 tygodniach (folder ma juz > 10 dni)
+    r = I.indeksuj(baza, {"cyrkon": cel / "Cyrkon"}, TERAZ + dt.timedelta(days=14))
+    assert (r.stare_doindeksowane, r.zlecenia_nowe, r.pominiete_stare) == (1, 1, 1)
+    assert liczba(baza, "zlecenia", "usuniety = 1") == 0 and liczba(baza, "projekty", "usuniety = 1") == 0
+
+
+def test_d3_stary_folder_z_wymaganym_plikiem_doindeksowany(baza, tmp_path):
+    cel = tmp_path / "d"
+    rng = np.random.default_rng(13)
+    D.zapisz_stl(D.atrapa(rng), cel / "Cyrkon" / "Testowski 601 stary" / "Zab 21.STL", TERAZ - dt.timedelta(days=20))
+    D.zapisz_stl(D.atrapa(rng), cel / "Cyrkon" / "Testowski 602 stary" / "zab 22.stl", TERAZ - dt.timedelta(days=20))
+    r = I.indeksuj(baza, {"cyrkon": cel / "Cyrkon"}, TERAZ, wymagane={"zab 21.stl"})
+    assert (r.nowe, r.stare_doindeksowane, r.pominiete_stare) == (1, 1, 1)
+    assert [w["kuweta"] for w in baza.wiersze("SELECT kuweta FROM zlecenia")] == ["601"]
 
 
 def test_siatka_z_bajtow_jak_wczytaj_projekt(drzewo):
