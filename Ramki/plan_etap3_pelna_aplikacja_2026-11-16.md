@@ -1,6 +1,6 @@
 # Plan etapu 3: pelna aplikacja stanowiska kontroli cyrkonii
 
-Data: 2026-11-16 (rozpoznanie 15.11.2026). Autor: planista sesji qc. Stan: PROJEKT - czeka na bramke G0 (sekcja 6).
+Data: 2026-11-16 (rozpoznanie 15.11.2026). Autor: planista sesji qc. Stan: ZATWIERDZONY na bramce G0 17.11.2026 (odpowiedzi doslownie: `00_NADZOR_STAN.md`, sekcja "Etap 3").
 Adresaci: wlasciciel (sekcje 1, 5, 6, 8, 13) i koordynatorzy paczek etapu 3 (sekcje 3, 4, 9, 11).
 Podstawa: decyzja wlasciciela z 15.11.2026 - planowanie pelnej aplikacji stanowiska zaczynamy teraz.
 W projekcie nie zmieniono nic poza tym plikiem; zadnego kodu ani testow nie uruchamiano (liczby pochodza z raportow).
