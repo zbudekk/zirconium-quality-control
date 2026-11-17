@@ -44,6 +44,11 @@ z kontroli): pas brzegu = suma pasa od linii każdego filaru i pasa sprzed P2 (z
 mniejszy niż przed P2, a głęboki brzeg filarów dochodzi. „Nie sprawdzono” daje wtedy tylko brak danych SKANU przy linii
 brzegu; niepewna linia projektu (nasze ograniczenie, nie skanu) trafia do uwag, a tam działa pas od płaszczyzny.
 Projekt bez wyznaczonej linii = pas sprzed P2.
+
+Poprawki po recenzji PR #13 (17.11.2026): projekt bez żadnej linii w trybie sumy liczy też wcięcia metody B jak przed P2
+(odległość od z = 0, filar 0 — wcześniej wyjątek); filar z przyjętą niecką, ale bez wyznaczonej linii nie znika po cichu
+(``ocena_brzegu``: sama linia → ``nie_sprawdzono``, suma → pas od płaszczyzny z uwagą); wyjątek inspekcji jednego gniazda
+łapie ``porownaj`` (gniazdo żółte „nie sprawdzono” z uwagą „błąd inspekcji”, reszta płytki policzona).
 """
 from __future__ import annotations
 
@@ -384,7 +389,7 @@ def probka_od_linii(pr: M.Projekt, pas: float, brzeg: BrzegProjektu) -> tuple[np
     if cache is None:
         puste = (np.zeros((0, 3)), np.zeros((0, 3)), np.zeros(0, dtype=np.int64), np.zeros(0), np.zeros(0))
         cache = puste
-        if brzeg.drzewo is not None:
+        if brzeg.drzewo is not None and brzeg.drzewo_O is not None:
             m = pr.siatka
             blisko = np.isfinite(brzeg.drzewo.query(m.vertices, distance_upper_bound=pas + 0.3)[0])
             sel = np.flatnonzero(blisko[m.faces].any(axis=1))
@@ -498,8 +503,8 @@ def _linia_brzegu(P_pula: np.ndarray, N_pula: np.ndarray, pr: M.Projekt, ust_i: 
             else:
                 rodzaj = "wciecie"
             c = Q.mean(0)
-            odl_brzegu, filar = float(max(0.0, -c[2])), 0
-            if brzeg is not None:
+            odl_brzegu, filar = float(max(0.0, -c[2])), 0  # bez linii (pas od płaszczyzny albo projekt bez linii w trybie sumy): od z = 0, filar nieznany
+            if brzeg is not None and brzeg.drzewo is not None:
                 odl_brzegu, j = brzeg.drzewo.query(c)
                 filar = int(brzeg.linie.filary[brzeg.filar[j]].nr)
             wciecia.append(Wciecie(float(c[0]), float(c[1]), float(c[2]), round(szer, 3), round(float(odl[idx].max()), 4), int(len(idx)), round(udz, 3), rodzaj,
@@ -562,7 +567,13 @@ def ocena_brzegu(brzeg: BrzegProjektu, st_O: np.ndarray | None, odl_O: np.ndarra
     (linia pewna / z danymi / sprawdzona), najdłuższa przerwa, powody (``linia`` / ``dane``), odcinki bez sprawdzenia.
 
     ``tylko_dane`` (tryb ``linia_i_plaszczyzna``): stacja jest sprawdzona, gdy ma dane skanu — niepewna linia projektu nie
-    blokuje (tam działa też pas od płaszczyzny) i trafia do ``uwagi_linii``; projekt bez linii = sprawdzony pasem sprzed P2.
+    blokuje i trafia do ``uwagi_linii`` (pas od płaszczyzny obejmuje taki brzeg tylko wtedy, gdy leży on do ``pas_brzegu_mm``
+    poniżej najwyższego punktu pracy); projekt bez linii = sprawdzony pasem sprzed P2.
+
+    Filar z przyjętą niecką, ale bez wyznaczonej linii (``linie.filary_bez_linii``): wynik ma pole ``filary_bez_linii``
+    (numery; pola nie ma, gdy takich filarów nie ma). Tryb ``linia``: filar liczy się jako nie sprawdzony — numer w
+    ``nie_sprawdzono``, wpis w ``filary`` z ``werdykt_linii`` = ``brak`` i powodem ``linia``; tryb ``linia_i_plaszczyzna``:
+    brzeg tego filaru sprawdza tylko pas od płaszczyzny, co jest zapisane w ``uwagi_linii`` (bez wpisu w ``filary``).
     """
     linie = brzeg.linie
     if not linie.filary:
@@ -589,9 +600,11 @@ def ocena_brzegu(brzeg: BrzegProjektu, st_O: np.ndarray | None, odl_O: np.ndarra
         ok_dane, udzial_danych, _ = _kryterium_brzegu(dn, krok, ust_i)
         if tylko_dane:
             powody = [] if ok else ["dane"]
-            if not ok_linia:
+            if not ok_linia:  # D5 (recenzja PR #13): pas od płaszczyzny NIE obejmuje brzegu leżącego głębiej niż pas — uwaga mówi to wprost
                 uwagi_linii.append(f"filar {f.nr}: linia projektu niepewna (pewne {udzial_linii:.0%} długości, najdłuższy odcinek "
-                                   f"niepewny {przerwa_linii:.1f} mm) — tam pas brzegu także od płaszczyzny")
+                                   f"niepewny {przerwa_linii:.1f} mm) — w tym trybie nie blokuje wyniku; pas od płaszczyzny obejmuje ten brzeg "
+                                   f"tylko do {ust_i['pas_brzegu_mm']:g} mm poniżej najwyższego punktu pracy, głębiej brzeg jest sprawdzany "
+                                   "wyłącznie przy tej niepewnej linii")
         else:
             powody = [] if ok else ([p for p, dobrze in (("linia", ok_linia), ("dane", ok_dane)) if not dobrze] or ["linia", "dane"])
         filary.append({"nr": f.nr, "sprawdzony": ok, "dlugosc_mm": round(f.dlugosc, 2), "werdykt_linii": f.werdykt,
@@ -604,9 +617,26 @@ def ocena_brzegu(brzeg: BrzegProjektu, st_O: np.ndarray | None, odl_O: np.ndarra
                   "dane": f"brak danych skanu przy linii (dane na {udzial_danych:.0%} długości)"}
             opisy.append(f"filar {f.nr}: sprawdzono {udzial:.0%} linii brzegu, najdłuższy odcinek bez sprawdzenia {przerwa:.1f} mm — "
                          + "; ".join(co[p] for p in powody))
+    # P1 (recenzja PR #13): filar z przyjętą niecką, dla którego ``krawedz`` nie wyznaczył linii, nie ma wpisu w ``linie.filary`` —
+    # pas od linii go nie obejmuje. Nie może zniknąć po cichu: sama linia → „nie sprawdzono”, suma pasów → pas od płaszczyzny + uwaga.
+    bez_linii = linie.filary_bez_linii
+    for nr in bez_linii:
+        if tylko_dane:
+            uwagi_linii.append(f"filar {nr}: linii brzegu nie wyznaczono — brzeg tego filaru sprawdza tylko pas od płaszczyzny (jak przed P2: do "
+                               f"{ust_i['pas_brzegu_mm']:g} mm poniżej najwyższego punktu pracy); brzeg leżący głębiej nie jest sprawdzany")
+        else:
+            filary.append({"nr": nr, "sprawdzony": False, "dlugosc_mm": 0.0, "werdykt_linii": "brak", "udzial_linii_pewnej": 0.0, "udzial_z_danymi": 0.0,
+                           "udzial_sprawdzony": 0.0, "najdl_przerwa_mm": 0.0, "najdl_przerwa_linii_mm": 0.0, "powody": ["linia"], "odcinki": []})
+            zle.append(nr)
+            opisy.append(f"filar {nr}: linii brzegu nie wyznaczono — brzeg tego filaru nie został sprawdzony")
+    if bez_linii and not tylko_dane:
+        filary.sort(key=lambda d: d["nr"])
+        zle.sort()
     wynik = {"sprawdzony": not zle, "stan_linii": linie.stan, "filarow": len(filary), "nie_sprawdzono": zle, "filary": filary, "opis": "; ".join(opisy)}
     if tylko_dane:
         wynik["uwagi_linii"] = "; ".join(uwagi_linii)
+    if bez_linii:  # pole tylko wtedy, gdy jest co zgłosić — wynik dla projektów z kompletem linii bez zmian
+        wynik["filary_bez_linii"] = bez_linii
     return wynik
 
 
