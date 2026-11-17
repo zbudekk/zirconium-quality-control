@@ -17,6 +17,6 @@ Mapa płytki (`MapaPlytki`, QPainter z `uklad`): gniazda w kolorach statusu gnia
 **Założenia i granice.**
 - Jedno porównanie naraz; „Porównaj” w trakcie pracy jest zablokowane. Czas na płytkę: pula 3–4 s (pierwszy raz) + wczytanie 2 s + plate 2–3 s + match 5 s + inspect 1 s (17 projektów, skan 45–55 MB).
 - Brak obserwacji folderu skanera, Excela, SharePointa, ramek, trybu porannego „kuweta po kuwecie”, spacji — moduły `scanner`, `excel`, `session`, `indicate`, pełne `ui` (plan v2).
-- Decyzje technika trafiają do CSV lokalnie; `session` (SQLite) przejmie to później. Klucz pracy = id projektu SHA‑16 + gniazdo + plik skanu.
+- Decyzje technika z okna testowego trafiają do CSV lokalnie (`dane/decyzje.csv`). Od E3‑A1 (17.11.2026) decyzje docelowej aplikacji zapisuje `session` w bazie SQLite (`session.md`, `baza.md`); stary plik CSV przenosi do bazy `narzedzia/import_decyzji.py` (operator „import”, bez wpływu na listy). Okno testowe nadal pisze tylko CSV. Klucz pracy = id projektu SHA‑16 + gniazdo + plik skanu.
 - Okno nie czyta raportów MillBox — współczynnik wpisuje technik (katalog, P3+).
 - Obraz odchyłek to rzut z góry: ubytek na ścianie bocznej pod brzegiem jest widoczny jako punkt na obrysie; do obejrzenia ściany służy „Podgląd 3D”.

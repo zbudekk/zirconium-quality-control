@@ -17,6 +17,9 @@ Zasady (plan: Z3, Z4, DW3; decyzje wlasciciela i koordynatora z 17.11.2026 po re
 - skan ma status ``przyjety``, ``do_powtorzenia`` (drgniecie, dwie prace w gniezdzie, praca poza gniazdem - zadna praca
   takiego skanu nie liczy sie jako zielona), ``niezgodny_uklad``, ``zastapiony`` albo ``blad``; decyzje przyjmuje tylko
   praca skanu ``przyjety``;
+- plytka nie z tego trybu (poranna skanowana w trybie ``wieczor`` albo wieczorna w trybie ``rano``) = status
+  ``plytka_nie_z_trybu``: skan nieaktywny jak ``niezgodny_uklad`` (0 zielonych, bez decyzji, poza listami, nie zastepuje
+  i nie jest zastepowany), dopoki operator swiadomie go nie dopusci (``dopusc_plytke``; cofa ``cofnij_dopuszczenie``);
 - decyzja technika zmienia kolor pracy w stanie wieczoru: "Ukruszona" = czerwony, "OK" = ``zatwierdzona_ok``; status
   z analizy zostaje w bazie bez zmian;
 - ponowny skan: gdy ostatni niezastapiony skan tej samej plytki (numer i rodzina ukladu) przyjeto najwyzej
