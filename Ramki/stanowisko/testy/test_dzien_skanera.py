@@ -910,6 +910,26 @@ def test_pliki_bak_tmp_czesc_ze_skanera_sa_w_paczce_a_pliki_robocze_programu_nie
     assert not any("urwana_kopia" in x or "k0001.json.tmp" in x for _, linie in wyniki for x in linie)  # robocze nie sa tez "plikami spoza listy sum"
 
 
+def test_plik_roboczy_programu_i_usuwanie_nazw_projektow_z_tekstu():
+    """P3 / P5: reguly wprost - co jest wlasnym plikiem roboczym programu i jak znikaja nazwy projektow exocad z tekstu (log, stan obserwatora)."""
+    for rel in ("sesja.json.bak", "sesja.json.tmp", "obserwator.json.bak", "SHA256SUMS.txt.tmp", "kontrole/k0001.json.tmp", "kroki/k01_start/pliki/A/x.stl.czesc"):
+        assert R.plik_roboczy_programu(rel), rel
+    for rel in ("kroki/k01_start/pliki/A/baza.db.bak", "kroki/k01_start/reczne/stan.tmp", "ustawienia.bak", "pomiary/k0001_x_pomiar/wynik.tmp", "log.txt"):
+        assert not R.plik_roboczy_programu(rel), rel
+    assert not R.plik_roboczy_programu("kroki/k01_start/pliki/A/eksport.czesc", frozenset({"kroki/k01_start/pliki/A/eksport.czesc"}))  # plik skanera z manifestu
+    for wpis, projekt in (({"cel": "kroki/k/pliki/A/X_cad.stl"}, True), ({"cel": "kroki/k/pliki/A/X_cad__zmiana2.stl"}, True), ({"cel": "kroki/k/reczne/X_CAD__2.STL"}, True),
+                          ({"cel": "kroki/k/pliki/A/inna_nazwa.stl", "zrodlo": "~/Scandata/X_cad.stl"}, True), ({"cel": "kroki/k/pliki/A/skan_cad_plytki.stl"}, False),
+                          ({"cel": "kroki/k/pliki/A/X_cad.stl.txt", "zrodlo": None, "wzgledna": None}, False)):
+        assert R.czy_projekt_exocad(wpis) is projekt, wpis
+    tekst = ('{"znane": {"A": {"zlecenie/Jan Zmyslony-11_cad.stl": [1, 2], "skan.stl": [3, 4]}}}\n'
+             "2026-11-17T10:00:00 nie skopiowano D:\\Scan\\Ewa Wymyslna-21_cad__zmiana2.stl: PermissionError\n"
+             "2026-11-17T10:00:01 kontrola pliku 7 (znany_cad.stl): zielony\n")
+    czysty = R.bez_nazw_projektow(tekst, {"znany_cad.stl": "projekt_pominiety_0123"})
+    assert "Zmyslony" not in czysty and "Wymyslna" not in czysty and "_cad" not in czysty and czysty.count(R.ZNACZNIK_PROJEKTU) == 3
+    assert '"zlecenie/projekt_pominiety": [1, 2], "skan.stl": [3, 4]' in czysty and "D:\\Scan\\projekt_pominiety: PermissionError" in czysty
+    assert "kontrola pliku 7 (projekt_pominiety_0123): zielony" in czysty and R.bez_nazw_projektow("zwykly tekst, skan.stl") == "zwykly tekst, skan.stl"
+
+
 def test_nieudane_pakowanie_nie_oznacza_sesji_i_zostawia_stara_paczke(tmp_path, monkeypatch):
     """P4: znaczniki "zakonczono / spakowano" i wymiana archiwow dopiero PO udanym zbudowaniu nowej paczki."""
     sesja, zb, _ = sesja_z_plikami(tmp_path)

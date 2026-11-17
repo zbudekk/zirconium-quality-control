@@ -1842,12 +1842,6 @@ class Zbieracz:
         def postep(zrobione: int, razem: int, co: str) -> None:
             self.zdarzenia.put({"typ": "postep", "plik": co, "zrobione": zrobione, "razem": razem})
 
-        t0 = time.monotonic()
-        while self.kontrola_w_toku() and not self._stop.is_set() and time.monotonic() - t0 < CZEKAJ_NA_KONTROLE_PRZED_PAKOWANIEM_S:
-            self._obsluz_kontrole()  # raport ma miec oceny skanow; w trakcie pakowania wyniki kontroli nie sa dopisywane (ten sam watek)
-            if self._raz(("czekam_na_kontrole",), 5.0):
-                self._zdarzenie("info", tekst="Przed pakowaniem czekam na koniec sprawdzania skanów…")
-            time.sleep(0.2)
         # pliki "w drodze": plik, ktory pojawil sie tuz przed kliknieciem, ma trafic do paczki, a nie obok niej (przeglad, potem krotkie czekanie
         # na pliki jeszcze nieskopiowane; plik, ktory w tym czasie sie nie ustabilizuje, zostanie skopiowany po pakowaniu = "spakuj ponownie")
         t0 = time.monotonic()
@@ -1858,6 +1852,12 @@ class Zbieracz:
             if self._raz(("czekam_na_pliki",), 5.0):
                 self._zdarzenie("info", tekst="Przed pakowaniem czekam na pliki, które właśnie pojawiły się w folderze skanera…")
             time.sleep(OKRES_ODPYTYWANIA_S)
+        t0 = time.monotonic()
+        while self.kontrola_w_toku() and not self._stop.is_set() and time.monotonic() - t0 < CZEKAJ_NA_KONTROLE_PRZED_PAKOWANIEM_S:
+            self._obsluz_kontrole()  # raport ma miec oceny skanow; w trakcie pakowania wyniki kontroli nie sa dopisywane (ten sam watek)
+            if self._raz(("czekam_na_kontrole",), 5.0):
+                self._zdarzenie("info", tekst="Przed pakowaniem czekam na koniec sprawdzania skanów…")
+            time.sleep(0.2)
         try:
             wynik = spakuj(self.sesja, postep=postep, wolne=self.wolne, przerwij=self._stop.is_set)
         except Przerwano:

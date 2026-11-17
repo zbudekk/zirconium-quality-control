@@ -106,7 +106,7 @@ pominiecia z powodem), ekran (zrzuty). Uruchomienie: `uruchom_dzien_skanera.bat`
    obserwowanego nie jest kopiowany do siebie; gdy `ustawienia.toml` jest zly albo go nie ma, okno dziala (zbieranie bez
    kontroli skanow).
 
-**Kryterium "dziala".** `testy/test_dzien_skanera.py` (70 testow; 17 dodanych 17.11 po recenzji PR #13 - awaria
+**Kryterium "dziala".** `testy/test_dzien_skanera.py` (71 testow; 18 dodanych 17.11 po recenzji PR #13 - awaria
 miedzy kopia a manifestem, zrodlo zmienione w trakcie kopii, wznowienie z `.tmp`, pliki `.bak` / `.tmp` skanera
 w paczce, nieudane i przerwane pakowanie, zamkniecie okna w trakcie pakowania, kolejne wersje i duplikaty projektu
 exocad, przerwana i wznowiona kopia calego folderu, plik sprzed 1980, sesja zapisana starsza wersja): manifest na dysku po kazdej akcji i wznowienie
