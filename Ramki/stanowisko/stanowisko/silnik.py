@@ -222,7 +222,7 @@ def _wykonaj(zadanie: ZadanieAnalizy, funkcja, ust: dict, pamiec: PamiecPul, lac
     return wynik, pliki
 
 
-def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamieci: int, plik_logu) -> None:
+def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamieci: int, plik_logu, pamiec_linii=None) -> None:
     """Cialo procesu roboczego: laduje ustawienia i funkcje analizy, potem wykonuje zadania z lacza, jedno naraz."""
     if plik_logu is not None:
         try:  # wszystko, co biblioteki wypisuja (takze z C++), trafia do pliku; bez pliku zostaje wyjscie odziedziczone
@@ -241,6 +241,11 @@ def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamiec
             from . import ustawienia as UST
 
             ust = UST.wczytaj_ustawienia(Path(plik_ustawien) if plik_ustawien is not None else None)
+        if pamiec_linii is not None:  # linie brzegu projektow (P2) takze na dysku: przezywaja restart procesu i programu
+            from . import krawedz as KR
+
+            Path(pamiec_linii).mkdir(parents=True, exist_ok=True)
+            KR.ustaw_katalog_pamieci(pamiec_linii)
         pamiec = PamiecPul(pul_w_pamieci)
     except BaseException as e:  # noqa: BLE001 - brak pakietu, zly plik ustawien: nadzorca dostaje komunikat
         try:
@@ -281,13 +286,17 @@ class Silnik:
     ``ust`` - slownik ustawien przekazany do procesu; None = proces sam wczyta ``plik_ustawien`` (None = ``ustawienia.toml``
     programu, jak wiersz polecen). ``funkcja`` - ``"modul:funkcja"`` analizy (domyslnie ``porownaj.porownaj``).
     ``limit_zadania_s`` - najdluzszy czas jednej analizy. ``plik_logu`` - dokad proces roboczy wypisuje to, co biblioteki
-    drukuja na ekran. ``na_zdarzenie`` - funkcja wolana z kazdym ``ZdarzenieSilnika`` w watku nadzorcy.
+    drukuja na ekran. ``pamiec_linii`` - katalog pamieci podrecznej linii brzegu projektow (``krawedz.ustaw_katalog_pamieci``;
+    None = tylko pamiec procesu, na dysk nic nie trafia). ``na_zdarzenie`` - funkcja wolana z kazdym ``ZdarzenieSilnika``
+    w watku nadzorcy.
     """
 
     def __init__(self, ust: dict | None = None, plik_ustawien=None, *, funkcja: str = FUNKCJA_ANALIZY, limit_zadania_s: float = LIMIT_ZADANIA_S,
-                 limit_startu_s: float = LIMIT_STARTU_S, pul_w_pamieci: int = PUL_W_PAMIECI, plik_logu=None, na_zdarzenie=None):
+                 limit_startu_s: float = LIMIT_STARTU_S, pul_w_pamieci: int = PUL_W_PAMIECI, plik_logu=None, pamiec_linii=None,
+                 na_zdarzenie=None):
         self.ust, self.plik_ustawien, self.funkcja = ust, plik_ustawien, funkcja
         self.limit_zadania_s, self.limit_startu_s, self.pul_w_pamieci, self.plik_logu = limit_zadania_s, limit_startu_s, pul_w_pamieci, plik_logu
+        self.pamiec_linii = str(pamiec_linii) if pamiec_linii is not None else None
         self.na_zdarzenie = na_zdarzenie
         self.zdarzenia: queue.Queue = queue.Queue()  # ZdarzenieSilnika, gdy nie podano ``na_zdarzenie``
         self._ctx = multiprocessing.get_context("spawn")
@@ -407,7 +416,7 @@ class Silnik:
     def _uruchom_proces(self) -> None:
         rodzic, dziecko = self._ctx.Pipe()
         p = self._ctx.Process(target=_robotnik, name="silnik-analiza", daemon=True,
-                              args=(dziecko, self.ust, self.plik_ustawien, self.funkcja, self.pul_w_pamieci, self.plik_logu))
+                              args=(dziecko, self.ust, self.plik_ustawien, self.funkcja, self.pul_w_pamieci, self.plik_logu, self.pamiec_linii))
         p.start()
         dziecko.close()  # koniec lacza po stronie procesu roboczego zostaje tylko u niego: jego smierc = koniec danych
         self._proces, self._lacze, self._gotowy, self._start_procesu = p, rodzic, False, time.monotonic()

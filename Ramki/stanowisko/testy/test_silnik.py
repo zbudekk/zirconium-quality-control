@@ -582,6 +582,27 @@ def test_brak_projektow_w_puli_to_blad_a_nie_koniec_procesu(plytki, tmp_path):
     assert (w["plytka"], w["plytka_wybor"], w["numer"], w["inspekcja"]) == ("poranna", "reczny", nr, False)
 
 
+def test_pamiec_linii_na_dysku(plytki, wyniki_atrap, tmp_path):
+    """``pamiec_linii``: linie brzegu projektow trafiaja do katalogu, nowy proces silnika czyta je zamiast liczyc; wynik bez zmian."""
+    from stanowisko import silnik as SI
+
+    pliki, proj = plytki
+    _, sil, _, _ = wyniki_atrap
+    katalog = tmp_path / "pula_cache"
+    koncowe, stany = [], []
+    for _ in range(2):  # dwa osobne procesy: pierwszy wypelnia katalog, drugi z niego czyta
+        odb = Odbior()
+        with SI.Silnik(na_zdarzenie=odb, pamiec_linii=katalog) as s:
+            nr = s.zlec(SI.ZadanieAnalizy(skan=pliki["okragla_wieczorna"], pula=SI.OpisPuli(foldery=(str(proj),))))
+            koncowe.append(odb.czekaj_na_koncowe(1, 600.0)[0])
+        stany.append({p.name: p.stat().st_mtime_ns for p in katalog.glob("*.npz")})
+        assert koncowe[-1].typ == "wynik", koncowe[-1].blad
+        _rowne("pamiec linii na dysku", bez_czasow(koncowe[-1].wynik), bez_czasow({**sil["okragla_wieczorna"], "zadanie_id": nr}))
+    assert stany[0] and stany[0] == stany[1]  # pliki linii powstaly raz; drugi proces ich nie liczyl ani nie zapisywal od nowa
+    linie = [sum(g["inspekcja"]["czas_linii_s"] for g in z.wynik["gniazda"] if g["inspekcja"]) for z in koncowe]
+    print(f"\n[pamiec linii] czas wyznaczania linii brzegu: pierwszy proces {linie[0]:.2f} s, drugi (z dysku) {linie[1]:.2f} s; plikow {len(stany[0])}")
+
+
 # ----------------------------------------------------------------------------
 # kryterium 6: silnik z aplikacji Qt (offscreen)
 # ----------------------------------------------------------------------------
