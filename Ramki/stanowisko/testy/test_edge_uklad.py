@@ -2,6 +2,8 @@
 
 Przeniesione z sesje_2026-10-31/kod_a_stanowisko/testy_edge/test_edge_uklad.py (xfail zdjęty
 po naprawie P1 2026-11-02; numery gniazd dopasowane do układu R54) + nowe przypadki.
+R59 (14.11.2026): testy z liczbami układu R54 (20 gniazd, ø9, dwie rynienki, 3 dołki kodu) działają na
+``wieczorna_r54`` / ``poranna_r54`` bez zmiany oczekiwań; układ R59: testy/test_uklad_r59.py.
 """
 import json
 import math
@@ -81,20 +83,20 @@ def test_dodatkowe_pole_w_znaczniku_tolerowane(uklad_tmp):
 
 
 def test_shape_domyslnie_kwadrat_i_okragla_z_d(uklad_tmp):
-    uklad_tmp("wieczorna")
+    uklad_tmp("wieczorna", zrodlo="wieczorna_r54")  # plik R54 nie ma pola shape (plik R59 ma "square")
     uk = U.wczytaj("wieczorna")
     assert uk.shape == "square" and uk.d is None
-    uklad_tmp("okragla", zmien=lambda d: {**{k: v for k, v in d.items() if k != "size"}, "shape": "round", "d": 100.0})
+    uklad_tmp("okragla", zmien=lambda d: {**{k: v for k, v in d.items() if k != "size"}, "shape": "round", "d": 100.0}, zrodlo="wieczorna_r54")
     uk = U.wczytaj("okragla")
     assert uk.shape == "round" and uk.d == 100.0 and len(uk.sockets) == 20
-    uklad_tmp("zla", zmien=lambda d: {**d, "shape": "hex"})
+    uklad_tmp("zla", zmien=lambda d: {**d, "shape": "hex"}, zrodlo="wieczorna_r54")
     with pytest.raises(U.BladUkladu, match="shape"):
         U.wczytaj("zla")
 
 
 def test_okragla_plytka_gniazdo_poza_kolem_odrzucone(uklad_tmp):
     # rynienka 60 × 15 przy y = ±31,5 ma narożniki w odległości ~45 mm od środka: koło ø80 jej nie mieści
-    uklad_tmp("okragla", zmien=lambda d: {**d, "shape": "round", "d": 80.0})
+    uklad_tmp("okragla", zmien=lambda d: {**d, "shape": "round", "d": 80.0}, zrodlo="wieczorna_r54")
     with pytest.raises(U.BladUkladu, match="poza obrys"):
         U.wczytaj("okragla")
 
@@ -103,14 +105,14 @@ def test_bit_d_kodu_opcjonalny(uklad_tmp):
     def zmien(d):
         d["code_dimples"].append({"bit": "D", "x": -45.0, "y": -27, "d": 2, "depth": 1})
 
-    uklad_tmp("wieczorna", zmien=zmien, pliki=("plytka_n1.stl", "plytka_n9.stl"))
+    uklad_tmp("wieczorna", zmien=zmien, pliki=("plytka_n1.stl", "plytka_n9.stl"), zrodlo="wieczorna_r54")  # plik R54: 3 dołki
     uk = U.wczytaj("wieczorna")
     assert uk.liczba_bitow == 4 and uk.numery == [1, 9]
     assert uk.bity_z_numeru(9, uk.liczba_bitow) == (True, False, False, True)
 
 
 def test_numer_plytki_za_duzy_na_3_dolki(uklad_tmp):
-    uklad_tmp("wieczorna", pliki=("plytka_n1.stl", "plytka_n9.stl"))
+    uklad_tmp("wieczorna", pliki=("plytka_n1.stl", "plytka_n9.stl"), zrodlo="wieczorna_r54")
     with pytest.raises(U.BladUkladu, match="plytka_n9.stl"):
         U.wczytaj("wieczorna")
 
@@ -136,9 +138,10 @@ def test_numer_poza_zakresem_3_bitow_odrzucony():
 
 
 # --- najblizsze_gniazdo (B2) ----------------------------------------------------------
-def test_najblizsze_gniazdo_punkt_w_rynience():
+@pytest.mark.parametrize("nazwa", ["wieczorna", "wieczorna_r54"])
+def test_najblizsze_gniazdo_punkt_w_rynience(nazwa):
     """Punkt przy końcu rynienki jest bliżej środka gniazda okrągłego niż środka rynienki — wygrywa rynienka."""
-    uk = U.wczytaj("wieczorna")
+    uk = U.wczytaj(nazwa)
     r = uk.rynienki()[0]
     x, y = r.x + r.l / 2 - 1.0, r.y + 0.5 * (1 if r.y < 0 else -1)  # w półokrągłym końcu stadionu
     assert r.zawiera(x, y)
@@ -147,14 +150,15 @@ def test_najblizsze_gniazdo_punkt_w_rynience():
     assert uk.najblizsze_gniazdo(x, y).id == r.id
 
 
-def test_najblizsze_gniazdo_poza_plytka():
-    uk = U.wczytaj("wieczorna")
+@pytest.mark.parametrize("nazwa", ["wieczorna", "wieczorna_r54"])
+def test_najblizsze_gniazdo_poza_plytka(nazwa):
+    uk = U.wczytaj(nazwa)
     assert uk.najblizsze_gniazdo(100, 100) is None
     assert uk.najblizsze_gniazdo(100, 100, margines=5) is None
 
 
 def test_najblizsze_gniazdo_na_scianie_miedzy_gniazdami():
-    uk = U.wczytaj("wieczorna")
+    uk = U.wczytaj("wieczorna_r54")
     g = next(g for g in uk.gniazda_okragle() if g.d_top == 9)
     x, y = g.x + g.d_top / 2 + 1.0, g.y  # 1 mm za obrysem, w ściance ≥ 3 mm
     assert uk.najblizsze_gniazdo(x, y) is None
@@ -173,11 +177,11 @@ def test_odleglosc_do_obrysu():
 
 # --- geometria (przeniesione bez zmian / dopasowane do R54) -----------------------------
 def test_zawiera_margines_ujemny():
-    g = next(g for g in U.wczytaj("wieczorna").gniazda_okragle() if g.d_top == 9)
+    g = next(g for g in U.wczytaj("wieczorna_r54").gniazda_okragle() if g.d_top == 9)
     assert g.zawiera(g.x + 3.4, g.y, margines=-1.0) and not g.zawiera(g.x + 3.6, g.y, margines=-1.0)
 
 
-@pytest.mark.parametrize("nazwa", ["wieczorna", "poranna"])
+@pytest.mark.parametrize("nazwa", ["wieczorna_r54", "poranna_r54"])
 def test_scianki_3mm_takze_okragle_vs_rynienki_i_poranna(nazwa):
     uk = U.wczytaj(nazwa)
     okr, ryn = uk.gniazda_okragle(), uk.rynienki()
@@ -212,8 +216,8 @@ def test_uklad_json_zgodny_z_parametry_json():
 
 
 def test_modele_plytek_bez_zmian_w_kodzie():
-    """Kod czytający nie wymaga pól shape / bitu D: obecne pliki ich nie mają i wczytują się."""
-    for n in ("wieczorna", "poranna"):
+    """Kod czytający nie wymaga pól shape / bitu D: pliki układu R54 ich nie mają i wczytują się."""
+    for n in ("wieczorna_r54", "poranna_r54"):
         d = json.loads((STANOWISKO / "modele_plytek" / n / "uklad.json").read_text(encoding="utf-8"))
         assert "shape" not in d and [c["bit"] for c in d["code_dimples"]] == ["A", "B", "C"]
         assert U.wczytaj(n).shape == "square"

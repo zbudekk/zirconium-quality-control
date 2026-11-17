@@ -3,10 +3,13 @@
 Użycie (z katalogu stanowisko/):
     py -3.12 narzedzia/katalog_projektow.py --projekty C:/Users/.../Prace_test [--wyjscie dane/katalog.json]
         [--mapa dane/mapa_sciezek.json] [--orientacja auto|brzeg_dol|brzeg_gora] [--bez-gniazd]
+        [--plytki wieczorna poranna wieczorna_r54 poranna_r54]
 
 Do ``dane/katalog.json`` trafiają tylko identyfikatory (16 znaków SHA‑256 pliku), numery zębów,
 typ, objętość, wymiary, liczba trójkątów, szczelność, strona brzegu i gniazdo, w które projekt
-wchodzi na każdej płytce (wieczorna ×1,22, poranna ×1,0 — ta sama procedura co generator).
+wchodzi na każdej płytce (wieczorna ×1,22, poranna ×1,0 — ta sama procedura co generator). Domyślnie płytki
+kwadratowe z ``[plytki]``: układ R59 (``wieczorna``, ``poranna``) i poprzedni R54 (``wieczorna_r54``, ``poranna_r54``);
+okrągłe mają te same gniazda co kwadrat tego typu.
 Mapowanie id → ścieżka pliku zapisuje osobno do ``dane/mapa_sciezek.json`` (poza repozytorium).
 Na stdout: tabela bez nazw.
 """
@@ -33,6 +36,7 @@ def main() -> None:
     ap.add_argument("--orientacja", choices=S.ORIENTACJE, default="auto")
     ap.add_argument("--wspolczynnik", type=float, default=WSPOLCZYNNIK_WIECZORNA, help="skurcz dla płytek wieczornych")
     ap.add_argument("--bez-gniazd", action="store_true", help="nie sprawdzaj, w jakie gniazdo projekt wchodzi (szybciej)")
+    ap.add_argument("--plytki", nargs="+", default=None, help="układy płytek z [plytki] (domyślnie kwadratowe: wieczorna, poranna i ich …_r54)")
     a = ap.parse_args()
     if not a.projekty.is_dir():
         raise SystemExit(f"brak folderu projektów: {a.projekty}")
@@ -40,8 +44,9 @@ def main() -> None:
     if not a.bez_gniazd:
         ust = UST.wczytaj_ustawienia()
         plytki = {}
-        for nazwa in ("wieczorna", "poranna"):
-            plytki[nazwa] = (U.wczytaj(nazwa, UST.katalog_plytki(ust, nazwa)), a.wspolczynnik if nazwa == "wieczorna" else S.WSPOLCZYNNIK_PORANNA[0])
+        nazwy = a.plytki if a.plytki is not None else [n for n in ust["plytki"] if not n.startswith("okragla_")]
+        for nazwa in nazwy:
+            plytki[nazwa] = (U.wczytaj(nazwa, UST.katalog_plytki(ust, nazwa)), S.WSPOLCZYNNIK_PORANNA[0] if S.poranna(nazwa) else a.wspolczynnik)
     katalog, mapa = K.zbuduj(a.projekty, plytki, a.orientacja)
     if not katalog["projekty"]:
         raise SystemExit(f"brak plików STL w {a.projekty}")

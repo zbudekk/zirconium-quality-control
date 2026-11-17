@@ -1,0 +1,18 @@
+{
+ "chrome": "Chrome/157.0.8103.78",
+ "model_gotowe": false,
+ "komunikat": "Blad budowy modelu: Error creating WebGL context.",
+ "zadania_lacznie": 1,
+ "zadania_poza_plikiem": 0,
+ "konsola_error": 2,
+ "konsola_warning": 0,
+ "wyjatki": 0,
+ "stl_wczytane": null,
+ "stl_sha_przegladarka_zgodne": null,
+ "stl_sha_node": null,
+ "sondy_W": {},
+ "sondy_P": {},
+ "animacja_zadania_poza_plikiem": null,
+ "animacja_konsola_error": null,
+ "zrzuty": 0
+}

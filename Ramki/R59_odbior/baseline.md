@@ -66,7 +66,8 @@ Polecenia (katalog programu, `run.cmd` jak w planie pkt 2.4):
 | okragla_wieczorna n8 | z dolkow | 0,0014 | 9 | 9/9 | 9/9 | 2 / 2 / 5 |
 | okragla_poranna n9 | z dolkow | 0,0015 | 8 | 8/8 | 8/8 | 2 / 3 / 3 |
 
-- `synth` bez `--numer` wylosowal na kwadratach n3 i n6; w T8 podac `--numer 3` / `--numer 6` jawnie.
+- `synth` bez `--numer` wylosowal na kwadratach n3 i n6. W T8 skan generowac tak samo, BEZ `--numer` (podanie numeru w `synth`
+  usuwa jedno losowanie i daje inny skan - cecha generatora sprzed R59), a `--numer 3` / `--numer 6` podac tylko w `porownaj`.
 - Mapa gniazdo -> projekt (skrot) -> status: `baseline/t8_mapa_seed7001.json`. Pelne `_wynik.json` i skany:
   PC `baseline\t8\`.
 

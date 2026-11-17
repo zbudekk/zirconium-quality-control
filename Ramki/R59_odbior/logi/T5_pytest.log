@@ -1,0 +1,11 @@
+START niedz. 15.11.2026 15:45:27,06 
+........................................................................ [ 28%]
+....................................s................................... [ 56%]
+.......................................ss............................... [ 85%]
+.....................................                                    [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] testy\test_katalog.py:133: brak folderu projektow z pulpitu
+SKIPPED [1] testy\test_ui.py:67: P3a: okno jest szkicem - watek silnika (QThread -> plate z Open3D) nie konczy sie pod offscreen; naprawa w P3a-2 (raporty/P3a_postep.md)
+SKIPPED [1] testy\test_ui.py:126: brak dane/syntetyczne_P2 albo projektow z pulpitu
+250 passed, 3 skipped in 152.38s (0:02:32)
+KONIEC niedz. 15.11.2026 15:48:02,17 kod=0 

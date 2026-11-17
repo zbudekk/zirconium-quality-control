@@ -58,9 +58,9 @@ def test_szum_ma_zadane_odchylenie(projekty):
     assert 0.025 < d.std() < 0.035 and abs(d.mean()) < 0.002
 
 
-@pytest.mark.parametrize("nazwa", ["wieczorna", "poranna"])
+@pytest.mark.parametrize("nazwa", ["wieczorna", "poranna", "wieczorna_r54", "poranna_r54"])
 def test_osadzenie_w_gniezdzie_trzyma_sie_stozka(projekty, nazwa):
-    """T4: wiele seedów i wszystkie rozmiary gniazd obu płytek (pełna siatka: test_edge_synth.py)."""
+    """T4: wiele seedów i wszystkie rozmiary gniazd obu płytek (pełna siatka: test_edge_synth.py); układ R59 i R54."""
     uk = U.wczytaj(nazwa)
     m = trimesh.load(projekty[1])
     m.apply_transform(synth.orientacja_brzegiem_do_gory(m) @ trimesh.transformations.scale_matrix(1.22))
@@ -84,13 +84,13 @@ def test_osadzenie_w_gniezdzie_trzyma_sie_stozka(projekty, nazwa):
 
 def test_za_male_gniazdo_odrzuca():
     """T1: walec ø10 z płaskim spodem nie wejdzie w gniazdo ø9 (dno ø6,86)."""
-    g = next(g for g in U.wczytaj("wieczorna").gniazda_okragle() if g.d_top == 9)
+    g = next(g for g in U.wczytaj("wieczorna_r54").gniazda_okragle() if g.d_top == 9)
     walec = trimesh.creation.cylinder(radius=5.0, height=6.0)
     assert synth.osadz_w_gniezdzie(walec, g, np.random.default_rng(0)) is None
 
 
 def test_generuj_plytke_i_prawda(projekty, tmp_path):
-    uk = U.wczytaj("wieczorna")
+    uk = U.wczytaj("wieczorna_r54")
     rng = np.random.default_rng(5)
     op = synth.Opcje(ubytki_na_prace=(1, 1), prace_na_plytce=3, p_drgniecia=1.0)
     skan, prawda = synth.generuj_plytke(uk, 1, projekty, rng, op, seed=5)
@@ -116,3 +116,11 @@ def test_okragla_poranna_ma_skale_1():
     assert synth.poranna("okragla_poranna") and synth.poranna("poranna") and not synth.poranna("okragla_wieczorna")
     assert synth.Opcje.z_toml(plytka="okragla_poranna").wspolczynnik == (1.0, 1.0)
     assert synth.Opcje.z_toml(plytka="okragla_wieczorna").wspolczynnik[0] >= 1.2
+
+
+def test_uklad_r54_ma_te_sama_skale_co_typ_plytki():
+    """R59: nazwa układu z przyrostkiem ``_r54`` nie zmienia tego, czy płytka jest poranna (skala 1,0)."""
+    assert synth.poranna("poranna_r54") and synth.poranna("okragla_poranna_r54")
+    assert not synth.poranna("wieczorna_r54") and not synth.poranna("okragla_wieczorna_r54")
+    for n in ("poranna", "okragla_poranna", "wieczorna", "okragla_wieczorna"):
+        assert synth.Opcje.z_toml(plytka=n + "_r54").wspolczynnik == synth.Opcje.z_toml(plytka=n).wspolczynnik

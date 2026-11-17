@@ -1,9 +1,10 @@
 """Rzut z góry skanu płytki jako PNG (mapa wysokości), do szybkiej kontroli wzrokowej.
 
 Użycie (z katalogu stanowisko/):
-    py -3.12 narzedzia/rzut_z_gory.py dane/syntetyczne/skan_wieczorna_n2_s0001.stl [--px 0.1] [--prawda]
+    py -3.12 narzedzia/rzut_z_gory.py dane/syntetyczne/skan_wieczorna_n2_s0001.stl [--px 0.1] [--prawda] [--plytka wieczorna_r54]
 Z opcją --prawda nanosi numery zajętych gniazd (w środku gniazda z uklad.json płytki)
-i krzyżyki w miejscach ubytków z JSON obok STL.
+i krzyżyki w miejscach ubytków z JSON obok STL. Układ płytki bierze z pola ``plytka`` prawdy; skany wygenerowane
+przed R59 mają tam ``wieczorna`` / ``poranna`` (wtedy układ R54) — podaj ``--plytka wieczorna_r54``.
 """
 from __future__ import annotations
 
@@ -39,7 +40,7 @@ def mapa_wysokosci(m: trimesh.Trimesh, px: float) -> tuple[np.ndarray, np.ndarra
     return Z, xy0
 
 
-def render(p_stl: Path, px: float, prawda: bool) -> Path:
+def render(p_stl: Path, px: float, prawda: bool, plytka: str | None = None) -> Path:
     if not (math.isfinite(px) and px > 0):
         raise ValueError(f"px (mm na piksel) musi być > 0, jest {px}")
     m = trimesh.load(p_stl, force="mesh")
@@ -59,7 +60,7 @@ def render(p_stl: Path, px: float, prawda: bool) -> Path:
     p_json = p_stl.with_suffix(".json")
     if prawda and p_json.exists():
         pr = json.loads(p_json.read_text(encoding="utf-8"))
-        uk = U.wczytaj(pr["plytka"])
+        uk = U.wczytaj(plytka or pr["plytka"])
         for w in pr["prace"]:
             for u in w["ubytki"]:
                 x, y = pix(u["x"], u["y"])
@@ -89,9 +90,10 @@ def main() -> None:
     ap.add_argument("stl", type=Path, nargs="+")
     ap.add_argument("--px", type=_dodatnia, default=0.1, help="mm na piksel (> 0)")
     ap.add_argument("--prawda", action="store_true")
+    ap.add_argument("--plytka", default=None, help="układ płytki zamiast pola „plytka” z prawdy (np. wieczorna_r54 dla skanów sprzed R59)")
     a = ap.parse_args()
     for p in a.stl:
-        print(render(p, a.px, a.prawda))
+        print(render(p, a.px, a.prawda, a.plytka))
 
 
 if __name__ == "__main__":

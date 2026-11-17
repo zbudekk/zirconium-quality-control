@@ -18,8 +18,10 @@ rem  Nazwy dokumentow zawieraja pauze i polskie znaki. Ten plik jest w ASCII,
 rem  wiec ich nie wpisuje: znajduje dokumenty wzorcem z gwiazdka.
 rem
 rem  Przed budowa sprawdza, czy w folderze sa pliki po R59: trzy dokumenty ze
-rem  znacznikiem [R59], pliki ukladu gniazd z jedna rynienka i skrypt PDF
-rem  z aktualnymi podpisami rysunkow. Gdy czegos brakuje - pisze czego i konczy.
+rem  znacznikiem [R59], pliki ukladu gniazd z jedna rynienka i skrypt PDF po
+rem  R59, ktory liczy podpisy rysunkow 4 i 5 z plikow ukladu gniazd. Starsza
+rem  wersja skryptu ma te liczby wpisane na stale. Gdy czegos brakuje - pisze
+rem  czego i konczy.
 rem
 rem  Jak sprawdzic wynik:
 rem   1. Trzy linie  OK: nazwa.pdf, stron: N  - okolo 20 s na dokument.
@@ -59,8 +61,10 @@ findstr /C:"\"d_top\": 9," "wyniki_v2\json\uklad_gniazd_wieczorna.json" >nul
 if not errorlevel 1 goto stary_json
 findstr /C:"\"d_top\": 7.5," "wyniki_v2\json\uklad_gniazd_poranna.json" >nul
 if not errorlevel 1 goto stary_json
-findstr /C:"18 gniazd i 2 rynienki" /C:"31 gniazd i 2 rynienki" "narzedzia\buduj_plan_wdrozenia.py" >nul
-if not errorlevel 1 goto stare_podpisy
+findstr /C:"opis_gniazd(jw)" "narzedzia\buduj_plan_wdrozenia.py" >nul
+if errorlevel 1 goto stare_podpisy
+findstr /C:"opis_gniazd(jp)" "narzedzia\buduj_plan_wdrozenia.py" >nul
+if errorlevel 1 goto stare_podpisy
 
 rem --- czy interpreter ma pakiety
 %PYTHON_PDF% -c "import markdown_it, bs4, playwright, pdfplumber, reportlab, pypdf"
@@ -112,9 +116,9 @@ echo Skopiuj oba pliki z repo - stan po R59.
 goto koniec
 
 :stare_podpisy
-echo BLAD: narzedzia\buduj_plan_wdrozenia.py ma stare podpisy rysunkow 4 i 5,
-echo na przyklad: 18 gniazd i 2 rynienki. PDF mialby nowy rysunek ze starym
-echo podpisem. Skopiuj skrypt z repo po poprawce podpisow R59 i uruchom ponownie.
+echo BLAD: narzedzia\buduj_plan_wdrozenia.py to wersja sprzed R59. Podpisy
+echo rysunkow 4 i 5 maja w niej liczby gniazd wpisane na stale, wiec PDF mialby
+echo nowy rysunek ze starym podpisem. Skopiuj skrypt z repo - stan po R59.
 goto koniec
 
 :brak_pakietow

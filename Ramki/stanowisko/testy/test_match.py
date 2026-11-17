@@ -32,10 +32,14 @@ def pula(korony, tmp_path_factory):
     return p
 
 
-@pytest.fixture(scope="module")
-def fragmenty(korony):
-    """Fragmenty z plate na sztucznym skanie (okrągła wieczorna, 3 atrapy × 1,22, bez drgnięcia) + prawda."""
-    uk = U.wczytaj("okragla_wieczorna")
+@pytest.fixture(scope="module", params=["okragla_wieczorna_r54", "okragla_wieczorna"])
+def fragmenty(korony, request):
+    """Fragmenty z plate na sztucznym skanie (okrągła wieczorna, 3 atrapy × 1,22, bez drgnięcia) + prawda.
+
+    R59: układ poprzedni (``_r54``, na nim dobrano seed 22) i układ R59 (te same 3 atrapy, inne gniazda:
+    trzonowiec × 1,22 ląduje w rynience).
+    """
+    uk = U.wczytaj(request.param)
     rng = np.random.default_rng(22)  # seed 21 (i 27, 29): atrapa siekacza dopasowana odwrotnie (180°, pokrycie 0,52 → szary) — słabość match do P3a-2, patrz raporty/P3a_przekazanie.md
     op = synth.Opcje.z_toml(plytka=uk.nazwa, prace_na_plytce=3, p_drgniecia=0.0, wspolczynnik=(1.22, 1.22), poza_uklad=True)
     with warnings.catch_warnings():
@@ -84,7 +88,12 @@ def test_filtr_wymiarow(pula, fragmenty, ust):
     assert all(k.filtr_ok for k in r.kandydaci) and r.kandydaci[0].zeby == ["11"] and r.kandydaci[1].pokrycie < 0.6
 
 
+@pytest.mark.parametrize("fragmenty", ["okragla_wieczorna_r54"], indirect=True)
 def test_zgrubne_obroty_i_ocena(pula, fragmenty, ust):
+    """Tylko układ ``_r54``: ostatnia asercja sprawdza sam RANSAC (seed 0) na pierwszym fragmencie, a ta ścieżka jest
+    krucha niezależnie od układu (R59, zmierzone 14.11.2026, seed skanu 22: ``_r54`` fragment 0 — RANSAC seed 0 / 1 / 2
+    → pokrycie 0,90 / 0,53 / 0,90; układ R59 fragment 0 — 0,27 / 0,89 / 0,89). Pełne ``dopasuj`` (obroty + RANSAC,
+    wygrywa lepsze) przechodzi na obu układach w ``test_dopasowanie_top1_i_transformacja``."""
     w, prawda = fragmenty
     mapa = {p.gniazdo: p for p in prawda.prace}
     f = w.fragmenty[0]

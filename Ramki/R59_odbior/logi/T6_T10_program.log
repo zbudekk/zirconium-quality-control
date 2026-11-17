@@ -1,0 +1,66 @@
+T6   skan_wieczorna_n1_s9001                        OK    wyrownanie 0.0048 mm; prac 9, fragment w swoim gniezdzie 9/9, top-1 9/9, puste True, numer 1 vs 1 (podany), uklad_zgodny True
+T6   skan_wieczorna_n2_s9002                        OK    wyrownanie 0.0154 mm; prac 9, fragment w swoim gniezdzie 9/9, top-1 9/9, puste True, numer 2 vs 2 (podany), uklad_zgodny True
+T6   skan_wieczorna_n3_s9003                        OK    wyrownanie 0.0065 mm; prac 8, fragment w swoim gniezdzie 8/8, top-1 8/8, puste True, numer 3 vs 3 (podany), uklad_zgodny True
+T6   skan_poranna_n4_s9001                          OK    wyrownanie 0.0052 mm; prac 12, fragment w swoim gniezdzie 12/12, top-1 12/12, puste True, numer 4 vs 4 (podany), uklad_zgodny True
+T6   skan_poranna_n5_s9002                          OK    wyrownanie 0.0056 mm; prac 10, fragment w swoim gniezdzie 10/10, top-1 10/10, puste True, numer 5 vs 5 (podany), uklad_zgodny True
+T6   skan_poranna_n6_s9003                          OK    wyrownanie 0.0105 mm; prac 12, fragment w swoim gniezdzie 12/12, top-1 12/12, puste True, numer 6 vs 6 (podany), uklad_zgodny True
+T6   skan_okragla_wieczorna_n8_s9001                OK    wyrownanie 0.0014 mm; prac 8, fragment w swoim gniezdzie 8/8, top-1 8/8, puste True, numer 8 vs 8 (dolki), uklad_zgodny True
+T6   skan_okragla_wieczorna_n8_s9002                OK    wyrownanie 0.0013 mm; prac 9, fragment w swoim gniezdzie 9/9, top-1 9/9, puste True, numer 8 vs 8 (dolki), uklad_zgodny True
+T6   skan_okragla_wieczorna_n8_s9003                OK    wyrownanie 0.0013 mm; prac 11, fragment w swoim gniezdzie 11/11, top-1 11/11, puste True, numer 8 vs 8 (dolki), uklad_zgodny True
+T6   skan_okragla_poranna_n9_s9001                  OK    wyrownanie 0.0023 mm; prac 12, fragment w swoim gniezdzie 12/12, top-1 12/12, puste True, numer 9 vs 9 (dolki), uklad_zgodny True
+T6   skan_okragla_poranna_n9_s9002                  OK    wyrownanie 0.0009 mm; prac 12, fragment w swoim gniezdzie 12/12, top-1 12/12, puste True, numer 9 vs 9 (dolki), uklad_zgodny True
+T6   skan_okragla_poranna_n9_s9003                  OK    wyrownanie 0.0011 mm; prac 12, fragment w swoim gniezdzie 12/12, top-1 12/12, puste True, numer 9 vs 9 (dolki), uklad_zgodny True
+T8a  skan_wieczorna_r54_n3_s7001                    OK    gniazd z praca 9 (wzor 9), rozne gniazda [], puste zgodne True, statusy True
+T8a  skan_poranna_r54_n6_s7001                      OK    gniazd z praca 9 (wzor 9), rozne gniazda [], puste zgodne True, statusy True
+T8a  skan_okragla_wieczorna_r54_n8_s7001            OK    gniazd z praca 9 (wzor 9), rozne gniazda [], puste zgodne True, statusy True
+T8a  skan_okragla_poranna_r54_n9_s7001              OK    gniazd z praca 8 (wzor 8), rozne gniazda [], puste zgodne True, statusy True
+T8b  skan_wieczorna_n1_s9001 jako wieczorna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna', 'okragla_wieczorna']
+T8b  skan_wieczorna_n2_s9002 jako wieczorna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna', 'okragla_wieczorna']
+T8b  skan_wieczorna_n3_s9003 jako wieczorna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna', 'okragla_wieczorna']
+T8b  skan_poranna_n4_s9001 jako poranna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna', 'okragla_poranna']
+T8b  skan_poranna_n5_s9002 jako poranna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna', 'okragla_poranna']
+T8b  skan_poranna_n6_s9003 jako poranna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna', 'okragla_poranna']
+T8b  skan_okragla_wieczorna_n8_s9001 jako okragla_wieczorna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna', 'okragla_wieczorna']
+T8b  skan_okragla_wieczorna_n8_s9002 jako okragla_wieczorna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna', 'okragla_wieczorna']
+T8b  skan_okragla_wieczorna_n8_s9003 jako okragla_wieczorna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna', 'okragla_wieczorna']
+T8b  skan_okragla_poranna_n9_s9001 jako okragla_poranna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna', 'okragla_poranna']
+T8b  skan_okragla_poranna_n9_s9002 jako okragla_poranna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna', 'okragla_poranna']
+T8b  skan_okragla_poranna_n9_s9003 jako okragla_poranna_r54 (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna', 'okragla_poranna']
+T8b  skan_wieczorna_r54_n3_s7001 jako wieczorna (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna_r54', 'okragla_wieczorna_r54']
+T8b  skan_poranna_r54_n6_s7001 jako poranna (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna_r54', 'okragla_poranna_r54']
+T8b  skan_okragla_wieczorna_r54_n8_s7001 jako okragla_wieczorna (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna_r54', 'okragla_wieczorna_r54']
+T8b  skan_okragla_poranna_r54_n9_s7001 jako okragla_poranna (z pracami) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna_r54', 'okragla_poranna_r54']
+T8b  skan_wieczorna_n2_s9050 jako wieczorna_r54 (pusta) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna', 'okragla_wieczorna']
+T8b  skan_poranna_n5_s9050 jako poranna_r54 (pusta) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna', 'okragla_poranna']
+T8b  skan_okragla_wieczorna_n8_s9050 jako okragla_wieczorna_r54 (pusta) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna', 'okragla_wieczorna']
+T8b  skan_okragla_poranna_n9_s9050 jako okragla_poranna_r54 (pusta) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna', 'okragla_poranna']
+T8b  skan_wieczorna_r54_n2_s9050 jako wieczorna (pusta) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna_r54', 'okragla_wieczorna_r54']
+T8b  skan_poranna_r54_n5_s9050 jako poranna (pusta) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna_r54', 'okragla_poranna_r54']
+T8b  skan_okragla_wieczorna_r54_n8_s9050 jako okragla_wieczorna (pusta) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['wieczorna_r54', 'okragla_wieczorna_r54']
+T8b  skan_okragla_poranna_r54_n9_s9050 jako okragla_poranna (pusta) OK    uklad_zgodny False, zielone 0, gniazd w wyniku 0, pasujace ['poranna_r54', 'okragla_poranna_r54']
+T8b  skan_wieczorna_n2_s9050 jako wieczorna (pusta, zgodna) OK    uklad_zgodny True, fragmentow 0
+T8b  skan_poranna_n5_s9050 jako poranna (pusta, zgodna) OK    uklad_zgodny True, fragmentow 0
+T8b  skan_okragla_wieczorna_n8_s9050 jako okragla_wieczorna (pusta, zgodna) OK    uklad_zgodny True, fragmentow 0
+T8b  skan_okragla_poranna_n9_s9050 jako okragla_poranna (pusta, zgodna) OK    uklad_zgodny True, fragmentow 0
+T8b  skan_wieczorna_r54_n2_s9050 jako wieczorna_r54 (pusta, zgodna) OK    uklad_zgodny True, fragmentow 0
+T8b  skan_poranna_r54_n5_s9050 jako poranna_r54 (pusta, zgodna) OK    uklad_zgodny True, fragmentow 0
+T8b  skan_okragla_wieczorna_r54_n8_s9050 jako okragla_wieczorna_r54 (pusta, zgodna) OK    uklad_zgodny True, fragmentow 0
+T8b  skan_okragla_poranna_r54_n9_s9050 jako okragla_poranna_r54 (pusta, zgodna) OK    uklad_zgodny True, fragmentow 0
+T9   poranna: gniazdo d_top == 15                   OK    gniazd fi 15: 3
+T9   okragla_poranna: gniazdo d_top == 15           OK    gniazd fi 15: 3
+T9   katalog.gniazdo_dla, 17 projektow, skala 1,0   OK    najmniejsze pasujace gniazdo: {'fi12.5': 9, 'fi15': 2, 'trough': 6}; do fi 15: ['066fcc6858e01759', 'a4d10c94db53a1a1']
+T9   projekt 066fcc6858e01759 w fi 15 (poranna, seed 9101) FAIL  gniazdo 20 fi12.5, przenikanie 3.00e+01 mm, rozpoznana (top-1 i zielony match) True, wyrownanie 0.0068 mm
+T9   projekt a4d10c94db53a1a1 w fi 15 (poranna, seed 9101) FAIL  gniazdo 17 fi15, przenikanie 1.93e+01 mm, rozpoznana (top-1 i zielony match) True, wyrownanie 0.0072 mm
+T10  atrapa mostu 0 (seed 101)                      OK    szerokosc 37.5 mm > prog 20
+T10  atrapa mostu 1 (seed 102)                      OK    szerokosc 38.2 mm > prog 20
+T10  2 mosty na plytce wieczorna                    OK    rynienek 1 (id 1); osadzone w gniazdach [1]; pominiete 1; podwojne []; fragmentow w wyniku 1
+T10  2 mosty na plytce poranna                      OK    rynienek 1 (id 1); osadzone w gniazdach [1]; pominiete 1; podwojne []; fragmentow w wyniku 1
+T10  2 mosty na plytce okragla_wieczorna            OK    rynienek 1 (id 1); osadzone w gniazdach [1]; pominiete 1; podwojne []; fragmentow w wyniku 1
+T10  2 mosty na plytce okragla_poranna              OK    rynienek 1 (id 1); osadzone w gniazdach [1]; pominiete 1; podwojne []; fragmentow w wyniku 1
+mapy skrot -> nazwa usuniete: 1
+RAZEM T6   12/12 OK
+RAZEM T8a  4/4 OK
+RAZEM T8b  32/32 OK
+RAZEM T9   3/5 OK
+RAZEM T10  6/6 OK
+FAIL: 2

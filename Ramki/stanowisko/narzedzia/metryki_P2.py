@@ -2,7 +2,10 @@
 
 Użycie (z katalogu stanowisko/):
     py -3.12 narzedzia/metryki_P2.py --skany dane/syntetyczne_P2 --projekty C:/Users/.../Prace_test
-        [--dodatkowe dane/stl] [--wyjscie dane/wyniki_P2] [--wspolczynniki 1.20 1.25]
+        [--dodatkowe dane/stl] [--wyjscie dane/wyniki_P2] [--wspolczynniki 1.20 1.25] [--sufiks-ukladu _r54]
+
+``--sufiks-ukladu _r54``: zestaw wygenerowany przed R59 (prawda mówi ``wieczorna``, a to był układ gniazd R54) jest
+liczony na układach ``*_r54``; skan, który nie pasuje do układu (strażnik układu w plate), jest pomijany z komunikatem.
 
 Dla każdego skanu: plate raz, potem match w wariantach: pula podstawowa (z filtrem i bez),
 pula rozszerzona o ``--dodatkowe`` (z filtrem i bez), a dla płytek wieczornych dodatkowo
@@ -93,6 +96,7 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None, help="tylko pierwsze N skanów (próba)")
     ap.add_argument("--wzorzec", default="skan_*.stl", help="wzorzec nazw skanów (np. skan_*wieczorna*.stl)")
     ap.add_argument("--nazwa", default="metryki_P2.json", help="nazwa pliku wyniku w --wyjscie")
+    ap.add_argument("--sufiks-ukladu", default="", help="przyrostek układu dopisywany do nazwy płytki z prawdy, np. _r54 dla zestawów sprzed R59")
     a = ap.parse_args()
     ust = UST.wczytaj_ustawienia()
     skany = sorted(a.skany.glob(a.wzorzec))[: a.limit]
@@ -111,14 +115,19 @@ def main() -> None:
     t_start = time.time()
     for p in skany:
         prawda = S.wczytaj_prawde(p.with_suffix(".json"))
-        uk = U.wczytaj(prawda.plytka, UST.katalog_plytki(ust, prawda.plytka))
+        plytka = prawda.plytka if prawda.plytka.endswith(a.sufiks_ukladu) else prawda.plytka + a.sufiks_ukladu
+        uk = U.wczytaj(plytka, UST.katalog_plytki(ust, plytka))
         w_prawdy = float(np.mean([x.wspolczynnik for x in prawda.prace])) if prawda.prace else 1.0
         t0 = time.time()
         m = trimesh.load(p, force="mesh")
         t1 = time.time()
-        with warnings.catch_warnings(record=True) as ostrz:
-            warnings.simplefilter("always")
-            wyr = PL.wyrownaj(m, uk)  # bez --numer: kwadrat → nieznany (dołki poza polem)
+        try:
+            with warnings.catch_warnings(record=True) as ostrz:
+                warnings.simplefilter("always")
+                wyr = PL.wyrownaj(m, uk)  # bez --numer: kwadrat → nieznany (dołki poza polem)
+        except PL.NiezgodnyUklad as e:  # strażnik układu: skan nie pasuje do układu — bez metryk
+            print(f"{p.name:40s} POMINIĘTY: {e}", flush=True)
+            continue
         t2 = time.time()
         bl = PL.blad_wyrownania(wyr.macierz, prawda.poza_skanu)
         baza = {"skan": p.name, "plytka": prawda.plytka, "numer": wyr.numer, "numer_zrodlo": wyr.numer_zrodlo, "bity": wyr.bity, "numer_z_dolkow": wyr.numer_z_dolkow,
@@ -153,6 +162,8 @@ def main() -> None:
               f"gniazda {rek['fragment_w_swoim_gniezdzie']}/{rek['prac_prawda']} puste {'OK' if rek['puste_ok'] else 'ZLE'}  "
               f"top1 {v['top1']}/{v['prac_prawda']} top2 {v['top2']}/{v['prac_prawda']}  plate {rek['czas_s']['plate']} s  match {v['czas_match_s']} s", flush=True)
 
+    if not wyniki:
+        raise SystemExit(f"żaden z {len(skany)} skanów nie pasuje do układu — zestaw sprzed R59? (--sufiks-ukladu _r54)")
     klucze = list(wyniki[0]["warianty"]) if wyniki else []
     for k in list(dict.fromkeys(kk for w in wyniki for kk in w["warianty"])):
         if k not in klucze:
