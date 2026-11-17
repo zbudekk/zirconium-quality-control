@@ -453,18 +453,15 @@ def plytki(korony, tmp_path_factory):
 
 
 def _uruchom_cli(zadania: dict, folder_puli: Path, wyjscie: Path) -> dict:
-    """``porownaj`` z wiersza polecen (osobne procesy, wszystkie naraz): {klucz: slownik z <skan>_wynik.json}."""
+    """``porownaj`` z wiersza polecen, kazdy skan w osobnym procesie, PO KOLEI (wspolny komputer: jeden proces liczacy
+    naraz): {klucz: slownik z <skan>_wynik.json}."""
     wyjscie.mkdir(parents=True, exist_ok=True)
     env = {**os.environ, "PYTHONUTF8": "1", "PYTHONPATH": os.pathsep.join(sys.path)}
-    procesy = {}
-    for klucz, skan in zadania.items():
-        log = open(wyjscie / f"{klucz}_cli.log", "wb")
-        procesy[klucz] = (subprocess.Popen([sys.executable, "-m", "stanowisko.porownaj", "--skan", str(skan), "--projekty", str(folder_puli), "--wyjscie",
-                                            str(wyjscie), "--bez-png"], cwd=str(STANOWISKO), stdout=log, stderr=subprocess.STDOUT, env=env), log, skan)
     wyniki = {}
-    for klucz, (p, log, skan) in procesy.items():
-        kod = p.wait(timeout=1200)
-        log.close()
+    for klucz, skan in zadania.items():
+        with open(wyjscie / f"{klucz}_cli.log", "wb") as log:
+            kod = subprocess.run([sys.executable, "-m", "stanowisko.porownaj", "--skan", str(skan), "--projekty", str(folder_puli), "--wyjscie",
+                                  str(wyjscie), "--bez-png"], cwd=str(STANOWISKO), stdout=log, stderr=subprocess.STDOUT, env=env, timeout=1800).returncode
         assert kod == 0, (wyjscie / f"{klucz}_cli.log").read_text(encoding="utf-8", errors="replace")[-2000:]
         wyniki[klucz] = json.loads((wyjscie / f"{Path(skan).stem}_wynik.json").read_text(encoding="utf-8"))
     return wyniki
@@ -684,7 +681,7 @@ def wyniki_ref(tmp_path_factory):
     cli = _uruchom_cli(skany, Path(PROJEKTY_REF), d / "cli")
     t1 = time.time()
     sil, zdarzenia = _uruchom_silnik(skany, Path(PROJEKTY_REF))
-    print(f"\n[kryterium 5, skany odniesienia] {', '.join(p.name for p in skany.values())}: wiersz polecen (4 procesy naraz) {t1 - t0:.0f} s, "
+    print(f"\n[kryterium 5, skany odniesienia] {', '.join(p.name for p in skany.values())}: wiersz polecen (4 procesy po kolei) {t1 - t0:.0f} s, "
           f"silnik (po kolei) {time.time() - t1:.0f} s; czas plytki w silniku: "
           + ", ".join(f"{t} {w['czas_s']['razem']} s" for t, w in sil.items()))
     return cli, sil
