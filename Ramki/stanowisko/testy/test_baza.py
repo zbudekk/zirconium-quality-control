@@ -92,16 +92,31 @@ def test_indeksy_i_unikaty_z_sekcji_3_4(baza):
     baza.wstaw("zlecenia", zrodlo="prywatne", folder="3263 Testowa Anna", usuniety=0)  # inne zrodlo: osobne zlecenie
 
 
-def test_k8_nazwa_folderu_tylko_w_zlecenia_i_excel_zapisy(baza):
-    """Kryterium 8: kolumny z nazwa folderu zlecenia (dane osobowe) ma tylko `zlecenia` i `excel_zapisy`."""
-    assert set(B.TABELE_Z_NAZWA_FOLDERU) == {"zlecenia", "excel_zapisy"}
+def test_k8_nazwy_folderow_i_plikow_zlecen_tylko_w_czterech_tabelach(baza):
+    """Kryterium 8 po decyzji wlasciciela 4 (17.11): nazwy folderow i plikow zlecen (dane osobowe) wolno trzymac w czterech
+    tabelach; jedna stala `KOLUMNY_Z_NAZWAMI` dla testow i przyszlej kopii bazy bez nazw (D12)."""
+    assert B.KOLUMNY_Z_NAZWAMI == {"zlecenia": ("folder", "folder_norm"), "projekty": ("plik",),
+                                   "frezowania": ("plik_w_raporcie", "raport_plik"), "excel_zapisy": ("folder",)}
+    assert B.TABELE_Z_NAZWAMI == ("zlecenia", "projekty", "frezowania", "excel_zapisy")
+    for tabela, kolumny in B.KOLUMNY_Z_NAZWAMI.items():
+        assert set(kolumny) <= set(_kolumny(baza.polaczenie, tabela)), tabela
     z_folderem = {t for t in B.TABELE if any("folder" in k for k in _kolumny(baza.polaczenie, t))}
     assert z_folderem == {"zlecenia", "excel_zapisy"}
-    assert [k for k in _kolumny(baza.polaczenie, "zlecenia") if "folder" in k] == ["folder", "folder_norm"]
-    assert [k for k in _kolumny(baza.polaczenie, "excel_zapisy") if "folder" in k] == ["folder"]
-    # zadna inna tabela nie ma kolumny, ktora z nazwy mialaby trzymac nazwe zlecenia / pacjenta
-    for t in set(B.TABELE) - {"zlecenia", "excel_zapisy"}:
-        assert not [k for k in _kolumny(baza.polaczenie, t) if k in ("nazwa", "nazwisko", "pacjent", "zlecenie", "sciezka")], t
+    # poza czterema tabelami: zadnej kolumny na nazwe zlecenia / pacjenta; jedyny "plik" to plik skanu ze skanera (`skany.plik`)
+    for t in set(B.TABELE) - set(B.TABELE_Z_NAZWAMI):
+        kolumny = _kolumny(baza.polaczenie, t)
+        assert not [k for k in kolumny if k in ("nazwa", "nazwisko", "pacjent", "zlecenie", "sciezka")], t
+        assert [k for k in kolumny if "plik" in k] == (["plik", "czas_pliku"] if t == "skany" else []), t
+    # zrzut bez nazw: kolumny z nazwami puste, reszta bez zmian
+    z, p = _zlecenie_i_projekt(baza)
+    baza.wstaw("frezowania", projekt_id=p, plik_w_raporcie="2026-11-16_testowa_anna-11-crown_cad.stl", krazek="K-1101", data="2026-11-17",
+               raport_plik="raport_testowa.html")
+    baza.wstaw("excel_zapisy", zlecenie_id=z, kuweta="3263", folder="3263 Testowa Anna", wynik="tylko_log")
+    pelny, bez = baza.zrzut(), baza.zrzut(bez_nazw=True)
+    assert pelny["zlecenia"][0]["folder"] == "3263 Testowa Anna" and pelny["projekty"][0]["plik"].startswith("2026-11-16_testowa")
+    assert "testowa" not in repr(bez).lower() and "anna" not in repr(bez).lower()
+    assert (bez["zlecenia"][0]["folder"], bez["zlecenia"][0]["kuweta"], bez["projekty"][0]["sha16"], bez["frezowania"][0]["krazek"],
+            bez["excel_zapisy"][0]["kuweta"]) == (None, "3263", "24b22d4d000947e0", "K-1101", "3263")
 
 
 def test_statusy_sa_tekstem_bez_listy_zamknietej(baza):
@@ -316,4 +331,99 @@ def test_modul_bazy_tylko_biblioteka_standardowa():
     drzewo = ast.parse(Path(B.__file__).read_text(encoding="utf-8"))
     importy = {a.name.split(".")[0] for w in ast.walk(drzewo) if isinstance(w, ast.Import) for a in w.names}
     importy |= {w.module.split(".")[0] for w in ast.walk(drzewo) if isinstance(w, ast.ImportFrom) and w.level == 0 and w.module}
-    assert importy <= {"__future__", "contextlib", "datetime", "json", "pathlib", "shutil", "sqlite3", "typing"}, importy
+    assert importy <= {"__future__", "contextlib", "datetime", "filecmp", "json", "pathlib", "re", "shutil", "sqlite3", "typing"}, importy
+
+
+# --- runda 2 (recenzja PR #16): P1 - schemat a sekcja 3.4 ------------------------------------------
+# Ograniczenia, ktorych sekcja 3.4 planu nie podaje, a schemat je ma (kazde z uzasadnieniem w `baza.OGRANICZENIA_PONAD_3_4`
+# i w `opisy_modulow/baza.md`). Dopisanie nowego wymaga zmiany tej listy - czyli swiadomej decyzji.
+NOT_NULL_PONAD_3_4 = {
+    "zlecenia": ["zrodlo", "folder", "usuniety"],
+    "projekty": ["zlecenie_id", "plik", "usuniety"],
+    "skany": ["status"],
+    "prace": ["skan_id", "nr_fragmentu"],
+    "decyzje": ["rodzaj", "czas"],
+    "stan_punktow": ["stan"],
+    "zdarzenia": ["czas", "zrodlo", "typ"],
+}
+DOMYSLNE_PONAD_3_4 = {("zlecenia", "usuniety"): "0", ("projekty", "usuniety"): "0"}
+
+
+def test_p1_ograniczenia_ponad_sekcje_3_4_to_dokladnie_lista_z_opisu(baza):
+    not_null, domyslne = {}, {}
+    for tabela in B.TABELE:
+        for _, kolumna, _typ, wymagana, domyslna, _pk in baza.polaczenie.execute(f"PRAGMA table_info({tabela})"):
+            if wymagana:
+                not_null.setdefault(tabela, []).append(kolumna)
+            if domyslna is not None:
+                domyslne[(tabela, kolumna)] = domyslna
+    assert not_null == NOT_NULL_PONAD_3_4 and sum(len(k) for k in not_null.values()) == 15
+    assert domyslne == DOMYSLNE_PONAD_3_4
+    assert "frezowania" not in not_null and "sha16" not in not_null["projekty"]  # nic, co blokowaloby zapis przewidziany planem (K7, A4)
+    opisane = {f"{t}.{k}" for t, kolumny in NOT_NULL_PONAD_3_4.items() for k in kolumny}
+    assert set(B.OGRANICZENIA_PONAD_3_4) == opisane and all(len(u) > 20 for u in B.OGRANICZENIA_PONAD_3_4.values())  # kazde z uzasadnieniem
+    wyzwalacze = [w[0] for w in baza.polaczenie.execute("SELECT name FROM sqlite_master WHERE type = 'trigger' ORDER BY name")]
+    assert wyzwalacze == ["decyzje_bez_usuwania", "decyzje_bez_zmiany", "zdarzenia_bez_usuwania", "zdarzenia_bez_zmiany"]
+
+
+def test_p1_wpis_reczny_wspolczynnika_na_krazek_bez_pliku_i_daty(baza):
+    """K7: wspolczynnik wpisany recznie raz na krazek to wiersz `frezowania` bez pliku STL (i bez daty); `zrodlo` = reczny."""
+    f = baza.wstaw("frezowania", krazek="K-2001", wspolczynnik=1.2244, zrodlo="reczny", wczytano="2026-11-17T15:00:00")
+    w = baza.wiersz("SELECT * FROM frezowania WHERE id = ?", (f,))
+    assert (w["projekt_id"], w["plik_w_raporcie"], w["data"], w["raport_plik"], w["krazek"], w["zrodlo"]) == (None, None, None, None, "K-2001", "reczny")
+    baza.wstaw("frezowania", krazek="K-2001", wspolczynnik=1.2244, data="2026-11-17", zrodlo="reczny")  # z data, bez pliku
+    baza.wstaw("frezowania", wspolczynnik=1.22, zrodlo="reczny")  # nawet bez krazka (raport bez identyfikatora krazka)
+    # unikat (plik_w_raporcie, krazek, data) dziala tylko dla wierszy z wszystkimi trzema wartosciami: w SQLite pusta wartosc
+    # (NULL) jest rozna od kazdej innej, wiec drugi identyczny wpis reczny NIE jest odrzucany - pilnuje tego piszacy (A4)
+    baza.wstaw("frezowania", krazek="K-2001", wspolczynnik=1.2250, zrodlo="reczny")
+    assert baza.wiersz("SELECT count(*) AS n FROM frezowania WHERE krazek = 'K-2001' AND plik_w_raporcie IS NULL AND data IS NULL")["n"] == 2
+    baza.wstaw("frezowania", plik_w_raporcie="a-11-crown_cad.stl", krazek="K-2001", data="2026-11-17")
+    with pytest.raises(sqlite3.IntegrityError):
+        baza.wstaw("frezowania", plik_w_raporcie="a-11-crown_cad.stl", krazek="K-2001", data="2026-11-17")
+    # punkt pracy zaindeksowany, zanim dalo sie policzyc skrot pliku (plik chwilowo niedostepny): bez sha16
+    z = baza.wstaw("zlecenia", zrodlo="cyrkon", folder="3301 Przykladowy Jan")
+    p = baza.wstaw("projekty", zlecenie_id=z, plik="2026-11-16_przykladowy_jan-36-crown_cad.stl")
+    assert baza.wiersz("SELECT sha16, usuniety FROM projekty WHERE id = ?", (p,)) == {"sha16": None, "usuniety": 0}
+
+
+# --- runda 2: uwagi drobne D1, D2 -------------------------------------------------------------------
+def test_d1_baza_zajeta_przez_inny_proces_daje_czytelny_komunikat(tmp_path):
+    plik = tmp_path / "stanowisko.sqlite"
+    b = B.otworz(plik, czekaj_ms=150)
+    obcy = sqlite3.connect(plik, isolation_level=None)  # drugi program trzyma blokade zapisu
+    try:
+        obcy.execute("BEGIN IMMEDIATE")
+        with pytest.raises(B.BladBazy, match=r"stanowisko\.sqlite.*zajeta przez inny program.*niczego nie zapisano"):
+            with b.transakcja():
+                b.wstaw("skany", plik="skan_x.stl", status="przyjety")
+        assert not b.polaczenie.in_transaction
+        with pytest.raises(B.BladBazy, match="zajeta przez inny program"):
+            b.wstaw("skany", plik="skan_x.stl", status="przyjety")  # takze pojedynczy zapis poza transakcja
+        assert b.wiersz("SELECT count(*) AS n FROM skany")["n"] == 0  # odczyt w czasie cudzej transakcji dziala
+        obcy.execute("ROLLBACK")
+        with b.transakcja():  # po zwolnieniu blokady ta sama operacja przechodzi
+            b.wstaw("skany", plik="skan_x.stl", status="przyjety")
+        assert b.wiersz("SELECT count(*) AS n FROM skany")["n"] == 1
+    finally:
+        obcy.close()
+        b.zamknij()
+
+
+def test_d2_kolejne_nieudane_migracje_nie_mnoza_kopii_pliku(tmp_path, monkeypatch):
+    plik = tmp_path / "stanowisko.sqlite"
+    b = B.otworz(plik)
+    b.wstaw("skany", plik="skan_x.stl", status="przyjety")
+    b.zamknij()
+    monkeypatch.setitem(B.MIGRACJE, 2, ("CREATE TABLE probna_tabela (a INTEGER)", "TO NIE JEST POLECENIE SQL"))
+    for _ in range(3):  # trzy uruchomienia programu z migracja, ktora sie nie udaje
+        with pytest.raises(B.BladBazy, match="migracja do wersji 2 nie powiodla sie"):
+            B.otworz(plik)
+    kopie = list(tmp_path.glob("*kopia_v1*"))
+    assert len(kopie) == 1 and kopie[0].read_bytes() == plik.read_bytes() and _wersja_pliku(plik) == 1
+    pol = sqlite3.connect(plik)  # baza zmienila sie miedzy probami: nowa kopia (stara zostaje)
+    pol.execute("INSERT INTO skany (plik, status) VALUES ('skan_y.stl', 'przyjety')")
+    pol.commit()
+    pol.close()
+    with pytest.raises(B.BladBazy):
+        B.otworz(plik)
+    assert len(list(tmp_path.glob("*kopia_v1*"))) == 2

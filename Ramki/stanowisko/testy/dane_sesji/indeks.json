@@ -246,16 +246,6 @@
    "wczytano": "2026-11-17T15:00:00"
   },
   {
-   "sha16": "a15b5b27bcd59f33",
-   "plik_w_raporcie": "2026-11-16_testowa_anna-14-crown_cad.stl",
-   "krazek": "K-1099",
-   "wspolczynnik": 1.2302,
-   "data": "2026-11-16",
-   "zrodlo": "csv",
-   "raport_plik": null,
-   "wczytano": "2026-11-16T15:00:00"
-  },
-  {
    "sha16": "8304817b190df8a8",
    "plik_w_raporcie": "2026-11-16_przykladowy_jan-36-crown_cad.stl",
    "krazek": "K-1101",
@@ -284,6 +274,16 @@
    "zrodlo": "csv",
    "raport_plik": null,
    "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "db84b5ab47627052",
+   "plik_w_raporcie": "2026-11-16_przykladowy_jan-24-crown_cad.stl",
+   "krazek": "K-1099",
+   "wspolczynnik": 1.2302,
+   "data": "2026-11-16",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-16T15:00:00"
   },
   {
    "sha16": "e6bef048218bd432",
