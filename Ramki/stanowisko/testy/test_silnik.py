@@ -169,24 +169,28 @@ TOL_DECYZJI = 2e-3  # poziom 2: 0,002 mm (albo wzglednie) - 25 razy ponizej najm
 
 
 def _licznik_punktow(sciezka: str) -> str | None:
-    """``iteracje`` albo ``punkty`` dla pol-licznikow algorytmow iteracyjnych (po nazwie pola), None dla pozostalych pol."""
+    """``iteracje`` albo ``punkty`` dla pol-licznikow probek (po nazwie pola), None dla pozostalych pol. Licznik probek =
+    ile punktow albo komorek spelnilo warunek odleglosci: w wyniku ``porownaj`` to pola z ``punkt`` w nazwie (``punkty``,
+    ``punktow_w_pasie_brzegu``, ``pierscien_punkty``, ``icp_punkty`` ...), ``komorek`` i ``brak_danych``. Pola decyzji i
+    tozsamosci (``gniazdo``, ``numer``, ``nr``, ``filar``, ``filarow``, ``wciec``, ``ubytki``, ``projekty``, ``statusy_gniazd``,
+    ``bity`` ...) NIE sa licznikami - musza byc rowne."""
     nazwa = sciezka.rsplit(".", 1)[-1].split("[", 1)[0]
     if nazwa == "iteracje":
         return "iteracje"
-    return "punkty" if nazwa == "punkty" or nazwa.startswith("punktow") else None
+    return "punkty" if "punkt" in nazwa or nazwa in ("komorek", "brak_danych") else None
 
 
 def roznice(a, b, sciezka="", tol: float = TOL_SZUMU, liczniki_z_tolerancja: bool = False) -> list[str]:
     """Lista pol, ktorymi roznia sie dwie struktury JSON. Wszystko porownywane dokladnie, poza liczbami zmiennoprzecinkowymi:
     te moga sie roznic o ``tol`` (wzglednie albo bezwzglednie). ``liczniki_z_tolerancja``: pola ``iteracje`` sa pomijane,
-    a liczniki punktow (``punkty``, ``punktow...``) moga sie roznic o 2 albo 1 %.
+    a liczniki probek (``_licznik_punktow``) moga sie roznic o 2 albo 1 %.
 
     Dlaczego nie rownosc bit w bit: ``porownaj`` nie jest powtarzalne - DWA URUCHOMIENIA Z WIERSZA POLECEN na tym samym
     skanie roznia sie (pomiary 17.11.2026 na PC: 2 x 6 przebiegow na plytkach z atrap, 3 przebiegi na skanie odniesienia):
     (1) zawsze szumem rzedu 1e-15 w 31-224 polach (ICP Open3D liczy wielowatkowo; ta sama uwaga i tolerancja 1e-9 jest
     w test_auto_uklad.py), (2) czasem (2 z 12 i 1 z 3 przebiegow) inna galezia ICP korekty skali jednego gniazda:
-    ``skala.iteracje`` 20 albo 41, liczniki punktow o 1, transformacja o ok. 1e-5, a za tym pokrycie o 1e-4, szerokosc
-    wciecia o 0,001 mm. Poziom 1 (``TOL_SZUMU``) przepuszcza tylko (1); poziom 2 (``TOL_DECYZJI`` + ``liczniki_z_tolerancja``)
+    ``skala.iteracje`` 20 albo 41, liczniki punktow i komorek o 1, transformacja o ok. 1e-5, a za tym pokrycie o 1e-4,
+    szerokosc wciecia o 0,001 mm. Poziom 1 (``TOL_SZUMU``) przepuszcza tylko (1); poziom 2 (``TOL_DECYZJI`` + ``liczniki_z_tolerancja``)
     jest odporny takze na (2) i nadal wymaga rownych statusow, identyfikatorow, numerow, liczby gniazd / kandydatow /
     ubytkow i tekstow."""
     licznik = _licznik_punktow(sciezka) if liczniki_z_tolerancja else None
