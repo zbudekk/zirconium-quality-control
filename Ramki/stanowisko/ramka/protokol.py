@@ -1,8 +1,9 @@
-"""Protokol ramka <-> laptop, wersja 1: stale, limity i walidacja tresci zadan.
+"""Protokol ramka <-> laptop, wersja 1 (stan po rundzie 3): stale, limity i walidacja tresci zadan.
 
 Specyfikacja (kontrakt dla strony laptopa) jest w README.md, rozdzial "Protokol v1".
 Zasada danych osobowych (I7): walidacja jest scisla - nieznane pola sa odrzucane, a numery
 kuwet musza byc cyframi (opcjonalnie z "#"), wiec nazwa folderu ani nazwisko nie przejda.
+Wzorce dopasowuja CALY napis (fullmatch) - koncowy znak nowej linii tez jest odrzucany (D-N9).
 Komunikaty bledow nigdy nie powtarzaja wartosci z zadania (tylko sciezke pola).
 """
 from __future__ import annotations
@@ -40,11 +41,18 @@ TRYB_ROLI = {"W": "wieczor", "P": "rano"}
 RODZINY = {"W": (1, 2, 3), "P": (4, 5, 6)}  # numery plytek ramki (plan_ramki_v2 D11)
 KLAWISZE = ("enter", "backspace", "zamknij_piec") + tuple("0123456789")
 POLA_TYLKO_RANO = ("kuwety", "potwierdzone", "wybrane", "braki")  # plus "kuweta" przy gniezdzie
-# Odrzucenia, ktore NIE gasza obrazu: polecenie starsze niz obraz, nie od wlasciciela albo nie
-# do tej ramki / tego startu. Kazde inne odrzucenie PUT /plan i PUT /tryb od wlasciciela gasi (P5).
+# Odrzucenia, ktore NIE gasza obrazu: polecenie starsze niz obraz tego samego planu (plan_starszy,
+# plan_zgaszony), nie od wlasciciela albo nie do tej ramki / tego startu, albo w czasie awarii (obraz juz
+# zgaszony). Kazde inne odrzucenie polecenia (PUT, POST, DELETE) od wlasciciela gasi (P5, D-N6) - takze
+# 409 zdarzenia_nieodebrane (runda 3) i 500.
 KODY_BEZ_ZMIANY_OBRAZU = frozenset({
-    "inny_laptop", "inny_start", "plan_starszy", "plan_zgaszony", "zdarzenia_nieodebrane",
+    "inny_laptop", "inny_start", "plan_starszy", "plan_zgaszony", "inny_plan",
     "blad_sprzetu", "brak_laptopa", "zly_laptop"})
+# Zdarzenia dziennika, ktore gasza albo uniewazniaja obraz (runda 3): plan jest przyjmowany tylko
+# z `zdarzenia_do` rownym numerowi ostatniego zdarzenia ramki, wiec laptop musi je odebrac przed planem.
+# `start` (restart), `plytka`, `plan_wygasl`, `blad_sprzetu`, `zgaszono` (DELETE, PUT /tryb, odrzucenie
+# od wlasciciela), `plan_przyjety` (nowy obraz zastepuje poprzedni).
+ZDARZENIA_GASZACE = ("start", "plytka", "plan_wygasl", "blad_sprzetu", "zgaszono", "plan_przyjety")
 
 MAX_TRESC = 65536            # bajtow w tresci zadania
 MAX_TRESC_ODCZYT = 1048576   # tyle najwyzej czytamy i wyrzucamy przy zbyt duzej tresci
@@ -60,10 +68,11 @@ MIN_WAZNY_S = 1.0
 CZEKAJ_MAX_S = 25.0
 LIMIT_ZDARZEN_MAX = 500
 
-WZOR_KUWETY = re.compile(r"^#?[0-9]{1,6}$")
-WZOR_ID = re.compile(r"^[A-Za-z0-9._-]{1,40}$")
-WZOR_START = re.compile(r"^[0-9a-f]{4,32}$")
-WZOR_KLUCZA = re.compile(r"^[\x21-\x7e]{16,256}$")  # wspolny klucz (P6): drukowalne ASCII bez odstepu
+# Uzywane WYLACZNIE przez fullmatch (D-N9: `$` z re.match przepuszczal koncowe "\n").
+WZOR_KUWETY = re.compile(r"#?[0-9]{1,6}")
+WZOR_ID = re.compile(r"[A-Za-z0-9._-]{1,40}")
+WZOR_START = re.compile(r"[0-9a-f]{4,32}")
+WZOR_KLUCZA = re.compile(r"[\x21-\x7e]{16,256}")  # wspolny klucz (P6): drukowalne ASCII bez odstepu
 
 
 def cyfry(tekst) -> bool:
@@ -72,16 +81,25 @@ def cyfry(tekst) -> bool:
 
 
 class BladProtokolu(Exception):
-    """Blad zadania: status HTTP, kod (staly napis) i opis bez danych z zadania."""
+    """Blad zadania: status HTTP, kod (staly napis) i opis bez danych z zadania.
 
-    def __init__(self, status: int, kod: str, opis: str = ""):
+    `zgaszono` - czy to odrzucenie zgasilo obraz (plan usuniety, zdarzenie zgaszono; D-N6, w odpowiedzi
+    jawnie); `obsluzony` - logika juz rozpatrzyla gaszenie (serwer nie gasi drugi raz); `pola` - dodatkowe
+    liczby w odpowiedzi (np. `wersja_ramki` przy plan_starszy - D-N8), nigdy wartosci z zadania."""
+
+    def __init__(self, status: int, kod: str, opis: str = "", **pola):
         super().__init__(f"{status} {kod}: {opis}")
         self.status = status
         self.kod = kod
         self.opis = opis
+        self.pola = pola
+        self.zgaszono = False
+        self.obsluzony = False
 
     def jako_json(self) -> dict:
-        return {"protokol": PROTOKOL, "blad": {"kod": self.kod, "opis": self.opis}}
+        blad = {"kod": self.kod, "opis": self.opis, "zgaszono": self.zgaszono}
+        blad.update(self.pola)
+        return {"protokol": PROTOKOL, "blad": blad}
 
 
 @dataclass
@@ -149,7 +167,7 @@ def _liczba(v, sciezka: str, lo: float, hi: float) -> float:
 
 
 def _napis(v, sciezka: str, wzor, kod: str = "zle_pole") -> str:
-    if not isinstance(v, str) or not wzor.match(v):
+    if not isinstance(v, str) or not wzor.fullmatch(v):
         _blad(kod, f"{sciezka}: niedozwolony napis")
     return v
 
@@ -333,12 +351,12 @@ def sprawdz_tryb(d) -> str:
 
 def sprawdz_klucz(klucz) -> str:
     """Wspolny klucz z konfiguracji ramki (P6): pusty = bez klucza."""
-    if not isinstance(klucz, str) or (klucz and not WZOR_KLUCZA.match(klucz)):
+    if not isinstance(klucz, str) or (klucz and not WZOR_KLUCZA.fullmatch(klucz)):
         raise ValueError("konfiguracja: klucz = 16-256 drukowalnych znakow ASCII bez odstepu")
     return klucz
 
 
 def sprawdz_id_laptopa(wartosc) -> str:
-    if not isinstance(wartosc, str) or not WZOR_ID.match(wartosc):
+    if not isinstance(wartosc, str) or not WZOR_ID.fullmatch(wartosc):
         _blad("zly_laptop", "naglowek X-Laptop-Id: 1-40 znakow [A-Za-z0-9._-]")
     return wartosc

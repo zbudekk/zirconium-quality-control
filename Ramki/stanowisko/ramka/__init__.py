@@ -8,5 +8,5 @@ Zgodnosc: kod w tym pakiecie nie uzywa skladni ani modulow nowszych niz Python 3
 (Raspberry Pi OS). Poza `sprzet_rpi.py` importuje tylko biblioteke standardowa.
 """
 
-WERSJA = "0.1.0"
+WERSJA = "0.1.3"  # 0.1.3 = po rundzie 3 recenzji PR #19 (regula zdarzenia_do)
 PROTOKOL = 1
