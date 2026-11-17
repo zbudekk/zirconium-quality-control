@@ -6,18 +6,18 @@ Wygenerowany przez `ramka_generator.py`. Wszystkie wartości zmierzone promienia
 
 | Plik STL | Gabaryt X × Y × Z [mm] | Objętość [cm³] |
 |---|---|---|
-| `ramka_plytka_wieczorna_v2.stl` | 96,000 × 96,000 × 8,000 | 59,30 |
-| `ramka_plytka_wieczorna_n1_v2.stl` | 96,000 × 96,000 × 8,600 | 59,31 |
-| `ramka_plytka_wieczorna_n2_v2.stl` | 96,000 × 96,000 × 8,600 | 59,31 |
-| `ramka_plytka_wieczorna_n3_v2.stl` | 96,000 × 96,000 × 8,600 | 59,31 |
-| `ramka_plytka_poranna_v2.stl` | 96,000 × 96,000 × 8,000 | 60,86 |
-| `ramka_plytka_poranna_n4_v2.stl` | 96,000 × 96,000 × 8,600 | 60,87 |
-| `ramka_plytka_poranna_n5_v2.stl` | 96,000 × 96,000 × 8,600 | 60,87 |
-| `ramka_plytka_poranna_n6_v2.stl` | 96,000 × 96,000 × 8,600 | 60,87 |
-| `ramka_plytka_okragla_wieczorna_v2.stl` | 100,000 × 100,000 × 8,000 | 48,99 |
-| `ramka_plytka_okragla_wieczorna_n8_v2.stl` | 100,000 × 100,000 × 8,600 | 49,01 |
-| `ramka_plytka_okragla_poranna_v2.stl` | 100,000 × 100,000 × 8,000 | 50,55 |
-| `ramka_plytka_okragla_poranna_n9_v2.stl` | 100,000 × 100,000 × 8,600 | 50,56 |
+| `ramka_plytka_wieczorna_v2.stl` | 96,000 × 96,000 × 8,000 | 59,64 |
+| `ramka_plytka_wieczorna_n1_v2.stl` | 96,000 × 96,000 × 8,600 | 59,66 |
+| `ramka_plytka_wieczorna_n2_v2.stl` | 96,000 × 96,000 × 8,600 | 59,66 |
+| `ramka_plytka_wieczorna_n3_v2.stl` | 96,000 × 96,000 × 8,600 | 59,66 |
+| `ramka_plytka_poranna_v2.stl` | 96,000 × 96,000 × 8,000 | 59,93 |
+| `ramka_plytka_poranna_n4_v2.stl` | 96,000 × 96,000 × 8,600 | 59,95 |
+| `ramka_plytka_poranna_n5_v2.stl` | 96,000 × 96,000 × 8,600 | 59,95 |
+| `ramka_plytka_poranna_n6_v2.stl` | 96,000 × 96,000 × 8,600 | 59,94 |
+| `ramka_plytka_okragla_wieczorna_v2.stl` | 100,000 × 100,000 × 8,000 | 49,34 |
+| `ramka_plytka_okragla_wieczorna_n8_v2.stl` | 100,000 × 100,000 × 8,600 | 49,36 |
+| `ramka_plytka_okragla_poranna_v2.stl` | 100,000 × 100,000 × 8,000 | 49,63 |
+| `ramka_plytka_okragla_poranna_n9_v2.stl` | 100,000 × 100,000 × 8,600 | 49,64 |
 | `ramka_pokrywka_v2.stl` | 99,600 × 99,600 × 20,000 | 30,06 |
 | `ramka_wkladka_v2.stl` | 130,000 × 148,400 × 11,000 | 12,41 |
 | `ramka_blat_v2.stl` | 200,000 × 200,000 × 14,000 | 72,52 |
@@ -37,9 +37,9 @@ Wygenerowany przez `ramka_generator.py`. Wszystkie wartości zmierzone promienia
 | bok X | zewn. (0, 20, -4) X | 96,000 | 96,000 | 0,000 ✓ |
 | bok Y | zewn. (20, 0, -4) Y | 96,000 | 96,000 | 0,000 ✓ |
 | grubość | zewn. (0, -46.5, -4) Z | 8,000 | 8,000 | 0,000 ✓ |
-| gniazdo id 2: ø na Z −2 (d − 2·2·tan 15°) | cięciwa (37.5, -15, -2) X | 10,929 | 10,928 | 0,001 ✓ |
-| gniazdo id 2: otwór w dnie ø | cięciwa (37.5, -15, -6) X | 3,000 | 3,000 | 0,000 ✓ |
-| gniazdo id 2: dno (Z) | trafienie (39.5, -15, 1) -Z | -4,000 | -4,000 | 0,000 ✓ |
+| gniazdo id 2: ø na Z −2 (d − 2·2·tan 15°) | cięciwa (37.5, -13.7, -2) X | 10,929 | 10,928 | 0,001 ✓ |
+| gniazdo id 2: otwór w dnie ø | cięciwa (37.5, -13.7, -6) X | 3,000 | 3,000 | 0,000 ✓ |
+| gniazdo id 2: dno (Z) | trafienie (39.5, -13.7, 1) -Z | -4,000 | -4,000 | 0,000 ✓ |
 | dołek kodu A ø | cięciwa (-45, -36, -0.5) X | 2,000 | 2,000 | 0,000 ✓ |
 | kieszeń magnesu A ø | cięciwa (-42, -42, -7) X | 5,200 | 5,200 | 0,000 ✓ |
 | kieszeń magnesu A: sufit (Z) | trafienie (-42, -42, -7) Z | -5,800 | -5,800 | 0,000 ✓ |
@@ -53,14 +53,14 @@ Wygenerowany przez `ramka_generator.py`. Wszystkie wartości zmierzone promienia
 | bok X | zewn. (0, 20, -4) X | 96,000 | 96,000 | 0,000 ✓ |
 | bok Y | zewn. (20, 0, -4) Y | 96,000 | 96,000 | 0,000 ✓ |
 | grubość | zewn. (0, -46.5, -4) Z | 8,000 | 8,000 | 0,000 ✓ |
-| gniazdo id 1: ø na Z −2 (d − 2·2·tan 15°) | cięciwa (10.5, -41.25, -2) X | 6,428 | 6,428 | 0,000 ✓ |
-| gniazdo id 1: otwór w dnie ø | cięciwa (10.5, -41.25, -6) X | 3,000 | 3,000 | 0,000 ✓ |
-| gniazdo id 1: dno (Z) | trafienie (12.5, -41.25, 1) -Z | -4,000 | -4,000 | 0,000 ✓ |
+| gniazdo id 2: ø na Z −2 (d − 2·2·tan 15°) | cięciwa (31, -19.55, -2) X | 11,430 | 11,428 | 0,002 ✓ |
+| gniazdo id 2: otwór w dnie ø | cięciwa (31, -19.55, -6) X | 3,000 | 3,000 | 0,000 ✓ |
+| gniazdo id 2: dno (Z) | trafienie (33, -19.55, 1) -Z | -4,000 | -4,000 | 0,000 ✓ |
 | dołek kodu C ø | cięciwa (-45, -30, -0.5) X | 2,000 | 2,000 | 0,000 ✓ |
 | kieszeń magnesu A ø | cięciwa (-42, -42, -7) X | 5,200 | 5,200 | 0,000 ✓ |
 | kieszeń magnesu A: sufit (Z) | trafienie (-42, -42, -7) Z | -5,800 | -5,800 | 0,000 ✓ |
 | rowek pokrywki: dno (x) | trafienie (60, 20, -2) -X | 47,200 | 47,200 | 0,000 ✓ |
-| stożek znacznika A (-34.5, -28) ø na wierzchu (R54) | cięciwa (-34.5, -28, -0.05) X | 4,914 | 4,917 | -0,003 ✓ |
+| stożek znacznika A (-30.5, -32) ø na wierzchu (R54) | cięciwa (-30.5, -32, -0.05) X | 4,914 | 4,917 | -0,003 ✓ |
 
 ### `ramka_plytka_okragla_wieczorna_n8_v2.stl`
 
@@ -70,9 +70,9 @@ Wygenerowany przez `ramka_generator.py`. Wszystkie wartości zmierzone promienia
 | cięciwa zewn. na x = −20 | zewn. (-20, 0, -4) Y | 91,646 | 91,652 | -0,006 ✓ |
 | grubość | zewn. (0, -46.5, -4) Z | 8,000 | 8,000 | 0,000 ✓ |
 | ścięcie (K‑61 mierzy promieniowo; tu: grubość przy ścięciu, punkt 49.1 od środka na -45°) | zewn. (34.6878, -34.6878, -4) Z | 8,000 | 8,000 | 0,000 ✓ |
-| gniazdo id 2: ø na Z −2 (d − 2·2·tan 15°) | cięciwa (37.5, -15, -2) X | 10,929 | 10,928 | 0,001 ✓ |
-| gniazdo id 2: otwór w dnie ø | cięciwa (37.5, -15, -6) X | 3,000 | 3,000 | 0,000 ✓ |
-| gniazdo id 2: dno (Z) | trafienie (39.5, -15, 1) -Z | -4,000 | -4,000 | 0,000 ✓ |
+| gniazdo id 2: ø na Z −2 (d − 2·2·tan 15°) | cięciwa (37.5, -13.7, -2) X | 10,929 | 10,928 | 0,001 ✓ |
+| gniazdo id 2: otwór w dnie ø | cięciwa (37.5, -13.7, -6) X | 3,000 | 3,000 | 0,000 ✓ |
+| gniazdo id 2: dno (Z) | trafienie (39.5, -13.7, 1) -Z | -4,000 | -4,000 | 0,000 ✓ |
 | dołek kodu D ø | cięciwa (4.5, -43.5, -0.5) X | 2,000 | 2,000 | 0,000 ✓ |
 | stożek znacznika A (-35.5, -26.5) ø na wierzchu (R54) | cięciwa (-35.5, -26.5, -0.05) X | 4,914 | 4,917 | -0,003 ✓ |
 
@@ -84,11 +84,11 @@ Wygenerowany przez `ramka_generator.py`. Wszystkie wartości zmierzone promienia
 | cięciwa zewn. na x = −20 | zewn. (-20, 0, -4) Y | 91,646 | 91,652 | -0,006 ✓ |
 | grubość | zewn. (0, -46.5, -4) Z | 8,000 | 8,000 | 0,000 ✓ |
 | ścięcie (K‑61 mierzy promieniowo; tu: grubość przy ścięciu, punkt 49.1 od środka na -45°) | zewn. (34.6878, -34.6878, -4) Z | 8,000 | 8,000 | 0,000 ✓ |
-| gniazdo id 1: ø na Z −2 (d − 2·2·tan 15°) | cięciwa (10.5, -41.25, -2) X | 6,428 | 6,428 | 0,000 ✓ |
-| gniazdo id 1: otwór w dnie ø | cięciwa (10.5, -41.25, -6) X | 3,000 | 3,000 | 0,000 ✓ |
-| gniazdo id 1: dno (Z) | trafienie (12.5, -41.25, 1) -Z | -4,000 | -4,000 | 0,000 ✓ |
-| dołek kodu A ø | cięciwa (30.5, -31, -0.5) X | 2,000 | 2,000 | 0,000 ✓ |
-| stożek znacznika A (-34.5, -28) ø na wierzchu (R54) | cięciwa (-34.5, -28, -0.05) X | 4,914 | 4,917 | -0,003 ✓ |
+| gniazdo id 2: ø na Z −2 (d − 2·2·tan 15°) | cięciwa (31, -19.55, -2) X | 11,430 | 11,428 | 0,002 ✓ |
+| gniazdo id 2: otwór w dnie ø | cięciwa (31, -19.55, -6) X | 3,000 | 3,000 | 0,000 ✓ |
+| gniazdo id 2: dno (Z) | trafienie (33, -19.55, 1) -Z | -4,000 | -4,000 | 0,000 ✓ |
+| dołek kodu A ø | cięciwa (36.5, 18.5, -0.5) X | 2,000 | 2,000 | 0,000 ✓ |
+| stożek znacznika A (-30.5, -32) ø na wierzchu (R54) | cięciwa (-30.5, -32, -0.05) X | 4,914 | 4,917 | -0,003 ✓ |
 
 ### `ramka_pokrywka_v2.stl`
 
@@ -250,7 +250,7 @@ Luz dodatni = szczelina; ujemny = zahaczenie zatrzasku; 0 = styk. Pomiar: pierws
 
 ## 6. Pełny zrzut `parametry.json` użytego w tym przebiegu
 
-SHA‑256: `b7b52942b71c88caa58b9b4c06d23040398f4848d5c8343ea06b8ec6b07ca82a`
+SHA‑256: `8434aafe1584bdd5e8cb88776566e5c697fd48dac8bc02685b02b3d70d32f3b2`
 
 ```json
 {
@@ -277,14 +277,14 @@ SHA‑256: `b7b52942b71c88caa58b9b4c06d23040398f4848d5c8343ea06b8ec6b07ca82a`
     "socket_depth":          {"value": 4,     "status": "SPEC",   "opis": "głębokość gniazd i rynienek"},
     "socket_wall_angle":     {"value": 15,    "status": "SPEC",   "opis": "kąt ścianki stożka od pionu [deg]"},
     "socket_hole_d":         {"value": 3,     "status": "SPEC",   "opis": "otwór przelotowy w dnie gniazda"},
-    "trough_hole_count":     {"value": 4,     "status": "ZALOZENIE", "zrodlo": "Z24", "opis": "otwory w dnie rynienki"},
+    "trough_hole_count":     {"value": 4,     "status": "ZALOZENIE", "zrodlo": "Z24", "opis": "otwory w dnie rynienki; od R59 na płytce jest jedna rynienka (przednia), liczba i rozstaw otworów bez zmian (D3‑a)"},
     "ev_trough_hole_pitch":  {"value": 12,    "status": "ZALOZENIE", "zrodlo": "Z24"},
     "mo_trough_hole_pitch":  {"value": 10,    "status": "ZALOZENIE", "zrodlo": "Z24"},
     "marker_cone_d":         {"value": 5,     "status": "SPEC"},
     "marker_cone_depth":     {"value": 3,     "status": "SPEC"},
     "marker_offset":         {"value": 6,     "status": "ZALOZENIE", "zrodlo": "Z4/R54", "opis": "oś KIESZENI MAGNESU od obu krawędzi rogu → A(-42,-42) B(-42,42) C(42,42); od R54 stożki znaczników leżą osobno (ev_marker_pos / mo_marker_pos), Z4 uchylone"},
-    "ev_marker_pos":         {"value": {"A": [-35.5, -26.5], "B": [-35.5, 26.5], "C": [35.5, 26.5]}, "status": "ZALOZENIE", "zrodlo": "R54/D6", "opis": "środki stożków znaczników płytki wieczornej; promień 44,30 ≤ socket_zone_r − 2,5; ścianka do gniazd ≥ 3 (3,17 / 3,01 / 3,01)"},
-    "mo_marker_pos":         {"value": {"A": [-34.5, -28], "B": [-30, 32.5], "C": [30, 32.5]}, "status": "ZALOZENIE", "zrodlo": "R54/D6", "opis": "środki stożków znaczników płytki porannej; promień 44,43 / 44,23 ≤ 44,5; ścianka do gniazd ≥ 3 (7,00 / 3,01 / 3,01)"},
+    "ev_marker_pos":         {"value": {"A": [-35.5, -26.5], "B": [-31, 31.5], "C": [42, 14.5]}, "status": "ZALOZENIE", "zrodlo": "R59/D6", "opis": "R59 (wariant W‑b, decyzja właściciela G0 14.11.2026): środki stożków znaczników płytki wieczornej; A bez zmian, B i C przeniesione (dawniej R54: B (−35,5; 26,5), C (35,5; 26,5)); promień środka 44,30 / 44,20 / 44,43 ≤ socket_zone_r − 2,5 = 44,5; ścianka do gniazd ≥ 3 (3,52 / 3,23 / 3,19); boki trójkąta AB 58,17, BC 74,95, AC 87,68 (różne o ≥ 5: jednoznaczne przypisanie A/B/C w programie); pozycje z narzedzia/uklad_kolo_R59.js"},
+    "mo_marker_pos":         {"value": {"A": [-30.5, -32], "B": [-37.5, 23.5], "C": [41.5, 16]}, "status": "ZALOZENIE", "zrodlo": "R59/D6", "opis": "R59 (wariant P‑e, decyzja właściciela G0 14.11.2026): środki stożków znaczników płytki porannej, wszystkie trzy przeniesione (dawniej R54: A (−34,5; −28), B (−30; 32,5), C (30; 32,5)); promień środka 44,21 / 44,25 / 44,48 ≤ socket_zone_r − 2,5 = 44,5; ścianka do gniazd ≥ 3 (3,45 / 3,02 / 3,48); boki trójkąta AB 55,94, BC 79,36, AC 86,53 (różne o ≥ 5: jednoznaczne przypisanie A/B/C w programie); pozycje z narzedzia/uklad_kolo_R59.js"},
     "notch_size":            {"value": 5,     "status": "SPEC",   "opis": "wycięcie przelotowe w rogu D: x 43..48, y -48..-43"},
     "code_dimple_d":         {"value": 2,     "status": "SPEC"},
     "code_dimple_depth":     {"value": 1,     "status": "SPEC"},
@@ -302,43 +302,44 @@ SHA‑256: `b7b52942b71c88caa58b9b4c06d23040398f4848d5c8343ea06b8ec6b07ca82a`
     "cover_groove_w":        {"value": 1.0,   "status": "ZALOZENIE", "zrodlo": "D8", "opis": "wysokość rowka na bokach płytki"},
     "cover_groove_depth":    {"value": 0.8,   "status": "ZALOZENIE", "zrodlo": "D8"},
     "cover_groove_z":        {"value": 2,     "status": "ZALOZENIE", "zrodlo": "D8", "opis": "środek rowka poniżej wierzchu"},
-    "ev_socket_d_s":         {"value": 9,     "status": "SPEC"},
-    "ev_socket_d_m":         {"value": 12,    "status": "SPEC"},
-    "ev_socket_d_l":         {"value": 15,    "status": "SPEC"},
+    "ev_socket_d_s":         {"value": 9,     "status": "SPEC", "opis": "wieczorna, mała; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w ev_rows), klucz zostaje na liście walidatora R14; od R59 w układzie nie ma gniazd ø9 (dawniej R54: 7)"},
+    "ev_socket_d_m":         {"value": 12,    "status": "SPEC", "opis": "wieczorna, średnia; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w ev_rows), klucz zostaje na liście walidatora R14; układ R59: 6 gniazd ø12"},
+    "ev_socket_d_l":         {"value": 15,    "status": "SPEC", "opis": "wieczorna, duża; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w ev_rows), klucz zostaje na liście walidatora R14; układ R59: 12 gniazd ø15 (dawniej R54: 5)"},
     "ev_trough_l":           {"value": 60,    "status": "SPEC"},
     "ev_trough_w":           {"value": 15,    "status": "SPEC"},
-    "mo_socket_d_s":         {"value": 7.5,   "status": "SPEC"},
-    "mo_socket_d_m":         {"value": 10,    "status": "SPEC"},
-    "mo_socket_d_l":         {"value": 12.5,  "status": "SPEC"},
+    "mo_socket_d_s":         {"value": 7.5,   "status": "SPEC", "opis": "poranna, mała; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w mo_rows), klucz zostaje na liście walidatora R14; od R59 w układzie nie ma gniazd ø7,5 (dawniej R54: 18)"},
+    "mo_socket_d_m":         {"value": 10,    "status": "SPEC", "opis": "poranna, średnia; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w mo_rows), klucz zostaje na liście walidatora R14; od R59 w układzie nie ma gniazd ø10 (dawniej R54: 7)"},
+    "mo_socket_d_l":         {"value": 12.5,  "status": "SPEC", "opis": "poranna, duża; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w mo_rows), klucz zostaje na liście walidatora R14; układ R59: 20 gniazd ø12,5 (dawniej R54: 6) oraz 3 gniazda ø15 zapisane tylko w mo_rows (bez osobnego klucza)"},
     "mo_trough_l":           {"value": 50,    "status": "SPEC"},
     "mo_trough_w":           {"value": 13,    "status": "SPEC"},
     "ev_rows": {"value": [
-        {"y": -31.5, "type": "trough", "l": 60, "w": 15, "x": [0]},
-        {"y": -15,   "type": "round", "d": 12, "x": [-37.5, -22.5, -7.5, 7.5, 22.5, 37.5]},
-        {"y": -1.5,  "type": "round", "d": 9,  "x": [-36, -24, -12, 0, 12, 24, 36]},
-        {"y": 13.5,  "type": "round", "d": 15, "x": [-36, -18, 0, 18, 36]},
-        {"y": 31.5,  "type": "trough", "l": 60, "w": 15, "x": [0]}
-      ], "status": "ZALOZENIE", "zrodlo": "D6/R54", "opis": "R54: rzędy od przodu przycięte do koła socket_zone_r 47, rynienki z przodu i z tyłu; 18 gniazd + 2 rynienki; używane TYLKO do wygenerowania uklad_gniazd_wieczorna.json, gdy go nie ma (stary plik z układu 24 + 2 usunąć, R54)"},
+        {"y": -30.2, "type": "trough", "l": 60, "w": 15, "x": [0]},
+        {"y": -13.7, "type": "round", "d": 12, "x": [-37.5, -22.5, -7.5, 7.5, 22.5, 37.5]},
+        {"y": 2.75, "type": "round", "d": 15, "x": [-36, -18, 0, 18, 36]},
+        {"y": 18.35, "type": "round", "d": 15, "x": [-27, -9, 9, 27]},
+        {"y": 33.95, "type": "round", "d": 15, "x": [-18, 0, 18]}
+      ], "status": "ZALOZENIE", "zrodlo": "D6/R59", "opis": "R59 (wariant W‑b, decyzja właściciela G0 14.11.2026): rzędy od przodu w kole socket_zone_r 47: rynienka 60 × 15 (y −30,2) | ø12 × 6 (y −13,7) | ø15 × 5 (y 2,75) | ø15 × 4 (y 18,35) | ø15 × 3 (y 33,95) = 18 gniazd (6 × ø12, 12 × ø15) + 1 rynienka (przednia); max promień obrysu 45,927 (ø15 tylne), min ścianka 3,000; pozycje policzone narzedzia/uklad_kolo_R59.js i sprawdzone narzedzia/weryfikuj_uklad_R59.js — nie zmieniać ręcznie (brak zapasu ścianki); dawniej R54: 18 + 2 rynienki (7 × ø9, 6 × ø12, 5 × ø15; rynienki y −31,5 i 31,5), kopia: archiwum/parametry_przed_R59_2026-11-14.json; używane TYLKO do wygenerowania uklad_gniazd_wieczorna.json, gdy go nie ma (plik ze starego układu przenieść do archiwum przed przebiegiem)"},
     "mo_rows": {"value": [
-        {"y": -41.25, "type": "round", "d": 7.5,  "x": [-10.5, 0, 10.5]},
-        {"y": -28,    "type": "trough", "l": 50, "w": 13, "x": [0]},
-        {"y": -13.5,  "type": "round", "d": 10,   "x": [-39, -26, -13, 0, 13, 26, 39]},
-        {"y": 0.75,   "type": "round", "d": 12.5, "x": [-38.75, -23.25, -7.75, 7.75, 23.25, 38.75]},
-        {"y": 13.6,   "type": "round", "d": 7.5,  "x": [-36.75, -26.25, -15.75, -5.25, 5.25, 15.75, 26.25, 36.75]},
-        {"y": 22.7,   "type": "round", "d": 7.5,  "x": [-31.5, -21, -10.5, 0, 10.5, 21, 31.5]},
-        {"y": 35.95,  "type": "trough", "l": 50, "w": 13, "x": [0]}
-      ], "status": "ZALOZENIE", "zrodlo": "D6/R54", "opis": "R54: 31 gniazd + 2 rynienki; rzędy y 0,75 → 13,6 → 22,7 w szachownicę (ścianka 3 po przekątnej: 13,00 i 10,51 między osiami); stary plik uklad_gniazd_poranna.json (35 + 2) usunąć"},
+        {"y": -35.3, "type": "trough", "l": 50, "w": 13, "x": [0]},
+        {"y": -19.55, "type": "round", "d": 12.5, "x": [-31, -15.5, 0, 15.5, 31]},
+        {"y": -6.1, "type": "round", "d": 12.5, "x": [-38.75, -23.25, -7.75, 7.75, 23.25, 38.75]},
+        {"y": 8, "type": "round", "d": 12.5, "x": [-32.25, -16.75, 16.75, 32.25]},
+        {"y": 8.75, "type": "round", "d": 15, "x": [0]},
+        {"y": 22.85, "type": "round", "d": 15, "x": [-24.5, 24.5]},
+        {"y": 23.6, "type": "round", "d": 12.5, "x": [-7.75, 7.75]},
+        {"y": 37.05, "type": "round", "d": 12.5, "x": [-15.5, 0, 15.5]}
+      ], "status": "ZALOZENIE", "zrodlo": "D6/R59", "opis": "R59 (wariant P‑e wg szkicu właściciela, decyzja G0 14.11.2026): rzędy od przodu: rynienka 50 × 13 (y −35,3) | ø12,5 × 5 (y −19,55) | ø12,5 × 6 (y −6,1) | rząd mieszany: ø12,5 × 4 (y 8) i ø15 × 1 (y 8,75) | rząd mieszany: ø15 × 2 (y 22,85) i ø12,5 × 2 (y 23,6) | ø12,5 × 3 (y 37,05) = 23 gniazda (20 × ø12,5, 3 × ø15) + 1 rynienka (przednia); bez ø7,5 i ø10; rząd mieszany = dwa wpisy o różnym y (id gniazd idą po y, w jednym y od prawej); max promień obrysu 46,412 (ø12,5 tylne), min ścianka 3,000, rząd ø12,5 × 6 sięga granicy strefy ±45; pozycje policzone narzedzia/uklad_kolo_R59.js i sprawdzone narzedzia/weryfikuj_uklad_R59.js — nie zmieniać ręcznie; dawniej R54: 31 + 2 rynienki (18 × ø7,5, 7 × ø10, 6 × ø12,5; rynienki y −28 i 35,95), kopia: archiwum/parametry_przed_R59_2026-11-14.json; używane TYLKO do wygenerowania uklad_gniazd_poranna.json, gdy go nie ma (plik ze starego układu przenieść do archiwum przed przebiegiem)"},
     "plate_numbers_ev":      {"value": [1, 2, 3], "status": "ZALOZENIE", "zrodlo": "D11"},
     "plate_numbers_mo":      {"value": [4, 5, 6], "status": "ZALOZENIE", "zrodlo": "D11"},
     "code_bit_d_pos":        {"value": [-45.0, -27], "status": "ZALOZENIE", "zrodlo": "R57/D11", "opis": "4. bit D kodu (n = A + 2B + 4C + 8D) na płytce KWADRATOWEJ: w linii dawnych dołków (y0 + 3·pitch); na n1–n6 bit D = 0, więc dołek nie występuje (pliki n1–n6 bez zmian); wycinany tylko w plikach bazowych"},
-    "plate_round_d":         {"value": 100,   "status": "ZALOZENIE", "zrodlo": "R57", "opis": "średnica płytki okrągłej = granica pola skanowania scan_field_d (walec × plate_thickness, faza wierzchu plate_top_chamfer, bez promienia krawędzi pionowych); gniazda jak R54 w kole socket_zone_r 47; wariant tylko do skanera (bez kieszeni magnesów, rowka pokrywki i wycięcia D). Decyzja nadzoru 2.11 (do zatwierdzenia przez właściciela): 100, nie 96 (ścianka rynienka tylna porannej/stożki–krawędź 1,07 < 1,5) ani 98 (1,57–2,07); przy 100 ścianka do krawędzi 2,57 (rynienka tylna porannej), 3,07 (stożki porannej), 3,61 / 3,20 (wieczorna); kwadrat ma rogi na promieniu 67,9, więc ø100 mieści się w skanerze wszędzie tam, gdzie kwadrat"},
-    "round_flat_w":          {"value": 16,    "status": "ZALOZENIE", "zrodlo": "R57", "opis": "cięciwa ścięcia orientacyjnego płytki okrągłej (pionowe, na całej grubości); odległość płaszczyzny od środka = √(R² − (w/2)²) = 49,356 przy ø100 (głębokość 0,644 ≥ round_flat_depth_min); decyzja nadzoru 2.11: 16 pod warunkiem ścianki ≥ socket_wall_min 3 od płaszczyzny ścięcia do każdego obrysu gniazda, rynienki, dołka i stożka obu typów (wieczorna 3,68 — rynienka przednia; poranna 4,87 — dołek A); K‑61"},
+    "plate_round_d":         {"value": 100,   "status": "ZALOZENIE", "zrodlo": "R57", "opis": "średnica płytki okrągłej = granica pola skanowania scan_field_d (walec × plate_thickness, faza wierzchu plate_top_chamfer, bez promienia krawędzi pionowych); gniazda jak na płytce kwadratowej tego typu w kole socket_zone_r 47; wariant tylko do skanera (bez kieszeni magnesów, rowka pokrywki i wycięcia D). Decyzja nadzoru 2.11 (liczby dla układu R54): 100, nie 96 (ścianka rynienka tylna porannej/stożki–krawędź 1,07 < 1,5) ani 98 (1,57–2,07); przy 100 ścianka do krawędzi 2,57 (rynienka tylna porannej), 3,07 (stożki porannej), 3,61 / 3,20 (wieczorna); po R59 (układ W‑b / P‑e) ścianka do krawędzi: gniazda 4,07 (wieczorna, ø15 tylne) / 3,59 (poranna, ø12,5 tylne), stożki 3,07 / 3,02; kwadrat ma rogi na promieniu 67,9, więc ø100 mieści się w skanerze wszędzie tam, gdzie kwadrat"},
+    "round_flat_w":          {"value": 16,    "status": "ZALOZENIE", "zrodlo": "R57", "opis": "cięciwa ścięcia orientacyjnego płytki okrągłej (pionowe, na całej grubości); odległość płaszczyzny od środka = √(R² − (w/2)²) = 49,356 przy ø100 (głębokość 0,644 ≥ round_flat_depth_min); decyzja nadzoru 2.11: 16 pod warunkiem ścianki ≥ socket_wall_min 3 od płaszczyzny ścięcia do każdego obrysu gniazda, rynienki, dołka i stożka obu typów (R54: wieczorna 3,68 — rynienka przednia; poranna 4,87 — dołek A; po R59: wieczorna 4,59 i poranna 4,81 — rynienka przednia); K‑61"},
     "round_flat_depth_min":  {"value": 0.6,   "status": "ZALOZENIE", "zrodlo": "R57", "opis": "najmniejsza głębokość ścięcia (R − odległość płaszczyzny), żeby było widoczne po druku (> faza 0,5 i tolerancja ±0,3); K‑61"},
     "round_flat_angle":      {"value": -45,   "status": "ZALOZENIE", "zrodlo": "R57", "opis": "kierunek normalnej ścięcia od +X [deg]: −45 = przód‑prawo, jak dawny narożnik D z wycięciem"},
     "code_dimples_round":    {"value": {"wieczorna": {"A": [-4.5, -43.5], "B": [-1.5, -43.5], "C": [1.5, -43.5], "D": [4.5, -43.5]},
-                                        "poranna":   {"A": [30.5, -31],   "B": [30.5, -28],   "C": [30.5, -25],  "D": [30.5, -22]}},
-                              "status": "ZALOZENIE", "zrodlo": "R57", "opis": "środki dołków kodu A/B/C/D płytek okrągłych (per typ, bo wspólna linia 4 dołków w kole r 44 nie mieści się przy obu układach gniazd): promień ≤ socket_zone_r − 3 = 44, ścianka do gniazd ≥ 3, do stożków ≥ 1,5, rozstaw 3 (ścianka 1 między dołkami); wieczorna: rząd przed rynienką przednią (promień 43,73, ścianka 3,5); poranna: kolumna przód‑prawo (promień 43,49, ścianka 3,62); K‑62"},
-    "number_pos_round":      {"value": {"wieczorna": [35, -26.5], "poranna": [36.5, -24.5]}, "status": "ZALOZENIE", "zrodlo": "R57", "opis": "środek cyfry reliefu (number_text_h, number_relief_h) na płytkach okrągłych, per typ; null = cyfra pominięta; obrys cyfry 5 × 3,6 w kole 47, odstęp od gniazd ≥ 3,0 / 3,5, od dołków ≥ 3,2; K‑13"},
+                                        "poranna":   {"A": [36.5, 18.5], "B": [36.5, 21.5], "C": [43, 6], "D": [43, 9]}},
+                              "status": "ZALOZENIE", "zrodlo": "R57/R59", "opis": "środki dołków kodu A/B/C/D płytek okrągłych (per typ): promień ≤ socket_zone_r − 3 = 44, ścianka do gniazd ≥ 3, do stożków ≥ 1,5, do krawędzi ≥ 1,5, ścianka 1 między dołkami (rozstaw 3); wieczorna (pozycje bez zmian od R57): rząd y −43,5 przed rynienką przednią (promień 43,73; po R59 do rynienki 4,80); poranna [R59, wariant P‑e]: rynienka dosunięta do przodu (y −35,3), rząd przed nią się nie mieści, więc dwie pary z prawej strony: A (36,5; 18,5), B (36,5; 21,5), C (43; 6), D (43; 9) (promień 40,92…43,93; do gniazd 3,55…4,08; do stożka C 2,09…6,61; do krawędzi 5,07…8,08); dawniej R57: kolumna x 30,5, y −31…−22; K‑62"},
+    "number_pos_round":      {"value": {"wieczorna": [35, -26.5], "poranna": [-44, 5.5]}, "status": "ZALOZENIE", "zrodlo": "R57/R59", "opis": "środek cyfry reliefu (number_text_h, number_relief_h) na płytkach okrągłych, per typ; null = cyfra pominięta; obrys cyfry 5 × 3,6 w kole 47, odstęp od gniazd ≥ 3; wieczorna (35; −26,5) bez zmian od R57 (po R59: do rynienki 3,27, promień narożnika obrysu 46,85); poranna [R59, wariant P‑e]: (−44; 5,5) z lewej strony (promień narożnika obrysu 46,49, do gniazda 3,48, do stożka 13,70); dawniej R57: (36,5; −24,5); K‑13"},
     "plate_numbers_round":   {"value": {"wieczorna": [8], "poranna": [9]}, "status": "ZALOZENIE", "zrodlo": "R57/D11", "opis": "numery płytek okrągłych: n8 = tylko D (wieczorna), n9 = A + D (poranna); kod 4‑bitowy zgodny wstecz z n1–n6"}
   },
 

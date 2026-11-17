@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Ramka 3D v3 R54</title>
+<title>Ramka 3D v3 R59</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -168,8 +168,8 @@ input[type=range],input[type=checkbox],input[type=radio]{accent-color:var(--acce
 <div class="app">
   <header class="top">
     <div class="ttl">
-      <h1>Ramka świetlna · model 3D v3 (po R54, 1.11.2026)</h1>
-      <p>Części drukowane z plików STL (płytki po R54: gniazda i znaczniki w kole r 47; korpus, blat, wkładka po R53), elektronika jako bryły zastępcze z parametry.json · obudowa 200 × 200 × 63,6 mm</p>
+      <h1>Ramka świetlna · model 3D v3 (po R59, 14.11.2026)</h1>
+      <p>Części drukowane z plików STL (płytki po R59: nowy układ gniazd, jedna rynienka z przodu, gniazda i znaczniki w kole r 47; korpus, blat, wkładka po R53), elektronika jako bryły zastępcze z parametry.json · obudowa 200 × 200 × 63,6 mm</p>
     </div>
     <div class="seg" id="varSeg" aria-label="Ramka">
       <button data-var="W" aria-pressed="true"><span class="long">Wieczorna W</span><span class="short">W</span></button><button data-var="P" aria-pressed="false"><span class="long">Poranna P</span><span class="short">P</span></button>
@@ -323,14 +323,14 @@ input[type=range],input[type=checkbox],input[type=radio]{accent-color:var(--acce
     "socket_depth":          {"value": 4,     "status": "SPEC",   "opis": "głębokość gniazd i rynienek"},
     "socket_wall_angle":     {"value": 15,    "status": "SPEC",   "opis": "kąt ścianki stożka od pionu [deg]"},
     "socket_hole_d":         {"value": 3,     "status": "SPEC",   "opis": "otwór przelotowy w dnie gniazda"},
-    "trough_hole_count":     {"value": 4,     "status": "ZALOZENIE", "zrodlo": "Z24", "opis": "otwory w dnie rynienki"},
+    "trough_hole_count":     {"value": 4,     "status": "ZALOZENIE", "zrodlo": "Z24", "opis": "otwory w dnie rynienki; od R59 na płytce jest jedna rynienka (przednia), liczba i rozstaw otworów bez zmian (D3‑a)"},
     "ev_trough_hole_pitch":  {"value": 12,    "status": "ZALOZENIE", "zrodlo": "Z24"},
     "mo_trough_hole_pitch":  {"value": 10,    "status": "ZALOZENIE", "zrodlo": "Z24"},
     "marker_cone_d":         {"value": 5,     "status": "SPEC"},
     "marker_cone_depth":     {"value": 3,     "status": "SPEC"},
     "marker_offset":         {"value": 6,     "status": "ZALOZENIE", "zrodlo": "Z4/R54", "opis": "oś KIESZENI MAGNESU od obu krawędzi rogu → A(-42,-42) B(-42,42) C(42,42); od R54 stożki znaczników leżą osobno (ev_marker_pos / mo_marker_pos), Z4 uchylone"},
-    "ev_marker_pos":         {"value": {"A": [-35.5, -26.5], "B": [-35.5, 26.5], "C": [35.5, 26.5]}, "status": "ZALOZENIE", "zrodlo": "R54/D6", "opis": "środki stożków znaczników płytki wieczornej; promień 44,30 ≤ socket_zone_r − 2,5; ścianka do gniazd ≥ 3 (3,17 / 3,01 / 3,01)"},
-    "mo_marker_pos":         {"value": {"A": [-34.5, -28], "B": [-30, 32.5], "C": [30, 32.5]}, "status": "ZALOZENIE", "zrodlo": "R54/D6", "opis": "środki stożków znaczników płytki porannej; promień 44,43 / 44,23 ≤ 44,5; ścianka do gniazd ≥ 3 (7,00 / 3,01 / 3,01)"},
+    "ev_marker_pos":         {"value": {"A": [-35.5, -26.5], "B": [-31, 31.5], "C": [42, 14.5]}, "status": "ZALOZENIE", "zrodlo": "R59/D6", "opis": "R59 (wariant W‑b, decyzja właściciela G0 14.11.2026): środki stożków znaczników płytki wieczornej; A bez zmian, B i C przeniesione (dawniej R54: B (−35,5; 26,5), C (35,5; 26,5)); promień środka 44,30 / 44,20 / 44,43 ≤ socket_zone_r − 2,5 = 44,5; ścianka do gniazd ≥ 3 (3,52 / 3,23 / 3,19); boki trójkąta AB 58,17, BC 74,95, AC 87,68 (różne o ≥ 5: jednoznaczne przypisanie A/B/C w programie); pozycje z narzedzia/uklad_kolo_R59.js"},
+    "mo_marker_pos":         {"value": {"A": [-30.5, -32], "B": [-37.5, 23.5], "C": [41.5, 16]}, "status": "ZALOZENIE", "zrodlo": "R59/D6", "opis": "R59 (wariant P‑e, decyzja właściciela G0 14.11.2026): środki stożków znaczników płytki porannej, wszystkie trzy przeniesione (dawniej R54: A (−34,5; −28), B (−30; 32,5), C (30; 32,5)); promień środka 44,21 / 44,25 / 44,48 ≤ socket_zone_r − 2,5 = 44,5; ścianka do gniazd ≥ 3 (3,45 / 3,02 / 3,48); boki trójkąta AB 55,94, BC 79,36, AC 86,53 (różne o ≥ 5: jednoznaczne przypisanie A/B/C w programie); pozycje z narzedzia/uklad_kolo_R59.js"},
     "notch_size":            {"value": 5,     "status": "SPEC",   "opis": "wycięcie przelotowe w rogu D: x 43..48, y -48..-43"},
     "code_dimple_d":         {"value": 2,     "status": "SPEC"},
     "code_dimple_depth":     {"value": 1,     "status": "SPEC"},
@@ -348,34 +348,45 @@ input[type=range],input[type=checkbox],input[type=radio]{accent-color:var(--acce
     "cover_groove_w":        {"value": 1.0,   "status": "ZALOZENIE", "zrodlo": "D8", "opis": "wysokość rowka na bokach płytki"},
     "cover_groove_depth":    {"value": 0.8,   "status": "ZALOZENIE", "zrodlo": "D8"},
     "cover_groove_z":        {"value": 2,     "status": "ZALOZENIE", "zrodlo": "D8", "opis": "środek rowka poniżej wierzchu"},
-    "ev_socket_d_s":         {"value": 9,     "status": "SPEC"},
-    "ev_socket_d_m":         {"value": 12,    "status": "SPEC"},
-    "ev_socket_d_l":         {"value": 15,    "status": "SPEC"},
+    "ev_socket_d_s":         {"value": 9,     "status": "SPEC", "opis": "wieczorna, mała; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w ev_rows), klucz zostaje na liście walidatora R14; od R59 w układzie nie ma gniazd ø9 (dawniej R54: 7)"},
+    "ev_socket_d_m":         {"value": 12,    "status": "SPEC", "opis": "wieczorna, średnia; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w ev_rows), klucz zostaje na liście walidatora R14; układ R59: 6 gniazd ø12"},
+    "ev_socket_d_l":         {"value": 15,    "status": "SPEC", "opis": "wieczorna, duża; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w ev_rows), klucz zostaje na liście walidatora R14; układ R59: 12 gniazd ø15 (dawniej R54: 5)"},
     "ev_trough_l":           {"value": 60,    "status": "SPEC"},
     "ev_trough_w":           {"value": 15,    "status": "SPEC"},
-    "mo_socket_d_s":         {"value": 7.5,   "status": "SPEC"},
-    "mo_socket_d_m":         {"value": 10,    "status": "SPEC"},
-    "mo_socket_d_l":         {"value": 12.5,  "status": "SPEC"},
+    "mo_socket_d_s":         {"value": 7.5,   "status": "SPEC", "opis": "poranna, mała; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w mo_rows), klucz zostaje na liście walidatora R14; od R59 w układzie nie ma gniazd ø7,5 (dawniej R54: 18)"},
+    "mo_socket_d_m":         {"value": 10,    "status": "SPEC", "opis": "poranna, średnia; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w mo_rows), klucz zostaje na liście walidatora R14; od R59 w układzie nie ma gniazd ø10 (dawniej R54: 7)"},
+    "mo_socket_d_l":         {"value": 12.5,  "status": "SPEC", "opis": "poranna, duża; typoszereg średnic ze specyfikacji; generator nie czyta tego klucza (średnica gniazda pochodzi z pola d rzędu w mo_rows), klucz zostaje na liście walidatora R14; układ R59: 20 gniazd ø12,5 (dawniej R54: 6) oraz 3 gniazda ø15 zapisane tylko w mo_rows (bez osobnego klucza)"},
     "mo_trough_l":           {"value": 50,    "status": "SPEC"},
     "mo_trough_w":           {"value": 13,    "status": "SPEC"},
     "ev_rows": {"value": [
-        {"y": -31.5, "type": "trough", "l": 60, "w": 15, "x": [0]},
-        {"y": -15,   "type": "round", "d": 12, "x": [-37.5, -22.5, -7.5, 7.5, 22.5, 37.5]},
-        {"y": -1.5,  "type": "round", "d": 9,  "x": [-36, -24, -12, 0, 12, 24, 36]},
-        {"y": 13.5,  "type": "round", "d": 15, "x": [-36, -18, 0, 18, 36]},
-        {"y": 31.5,  "type": "trough", "l": 60, "w": 15, "x": [0]}
-      ], "status": "ZALOZENIE", "zrodlo": "D6/R54", "opis": "R54: rzędy od przodu przycięte do koła socket_zone_r 47, rynienki z przodu i z tyłu; 18 gniazd + 2 rynienki; używane TYLKO do wygenerowania uklad_gniazd_wieczorna.json, gdy go nie ma (stary plik z układu 24 + 2 usunąć, R54)"},
+        {"y": -30.2, "type": "trough", "l": 60, "w": 15, "x": [0]},
+        {"y": -13.7, "type": "round", "d": 12, "x": [-37.5, -22.5, -7.5, 7.5, 22.5, 37.5]},
+        {"y": 2.75, "type": "round", "d": 15, "x": [-36, -18, 0, 18, 36]},
+        {"y": 18.35, "type": "round", "d": 15, "x": [-27, -9, 9, 27]},
+        {"y": 33.95, "type": "round", "d": 15, "x": [-18, 0, 18]}
+      ], "status": "ZALOZENIE", "zrodlo": "D6/R59", "opis": "R59 (wariant W‑b, decyzja właściciela G0 14.11.2026): rzędy od przodu w kole socket_zone_r 47: rynienka 60 × 15 (y −30,2) | ø12 × 6 (y −13,7) | ø15 × 5 (y 2,75) | ø15 × 4 (y 18,35) | ø15 × 3 (y 33,95) = 18 gniazd (6 × ø12, 12 × ø15) + 1 rynienka (przednia); max promień obrysu 45,927 (ø15 tylne), min ścianka 3,000; pozycje policzone narzedzia/uklad_kolo_R59.js i sprawdzone narzedzia/weryfikuj_uklad_R59.js — nie zmieniać ręcznie (brak zapasu ścianki); dawniej R54: 18 + 2 rynienki (7 × ø9, 6 × ø12, 5 × ø15; rynienki y −31,5 i 31,5), kopia: archiwum/parametry_przed_R59_2026-11-14.json; używane TYLKO do wygenerowania uklad_gniazd_wieczorna.json, gdy go nie ma (plik ze starego układu przenieść do archiwum przed przebiegiem)"},
     "mo_rows": {"value": [
-        {"y": -41.25, "type": "round", "d": 7.5,  "x": [-10.5, 0, 10.5]},
-        {"y": -28,    "type": "trough", "l": 50, "w": 13, "x": [0]},
-        {"y": -13.5,  "type": "round", "d": 10,   "x": [-39, -26, -13, 0, 13, 26, 39]},
-        {"y": 0.75,   "type": "round", "d": 12.5, "x": [-38.75, -23.25, -7.75, 7.75, 23.25, 38.75]},
-        {"y": 13.6,   "type": "round", "d": 7.5,  "x": [-36.75, -26.25, -15.75, -5.25, 5.25, 15.75, 26.25, 36.75]},
-        {"y": 22.7,   "type": "round", "d": 7.5,  "x": [-31.5, -21, -10.5, 0, 10.5, 21, 31.5]},
-        {"y": 35.95,  "type": "trough", "l": 50, "w": 13, "x": [0]}
-      ], "status": "ZALOZENIE", "zrodlo": "D6/R54", "opis": "R54: 31 gniazd + 2 rynienki; rzędy y 0,75 → 13,6 → 22,7 w szachownicę (ścianka 3 po przekątnej: 13,00 i 10,51 między osiami); stary plik uklad_gniazd_poranna.json (35 + 2) usunąć"},
+        {"y": -35.3, "type": "trough", "l": 50, "w": 13, "x": [0]},
+        {"y": -19.55, "type": "round", "d": 12.5, "x": [-31, -15.5, 0, 15.5, 31]},
+        {"y": -6.1, "type": "round", "d": 12.5, "x": [-38.75, -23.25, -7.75, 7.75, 23.25, 38.75]},
+        {"y": 8, "type": "round", "d": 12.5, "x": [-32.25, -16.75, 16.75, 32.25]},
+        {"y": 8.75, "type": "round", "d": 15, "x": [0]},
+        {"y": 22.85, "type": "round", "d": 15, "x": [-24.5, 24.5]},
+        {"y": 23.6, "type": "round", "d": 12.5, "x": [-7.75, 7.75]},
+        {"y": 37.05, "type": "round", "d": 12.5, "x": [-15.5, 0, 15.5]}
+      ], "status": "ZALOZENIE", "zrodlo": "D6/R59", "opis": "R59 (wariant P‑e wg szkicu właściciela, decyzja G0 14.11.2026): rzędy od przodu: rynienka 50 × 13 (y −35,3) | ø12,5 × 5 (y −19,55) | ø12,5 × 6 (y −6,1) | rząd mieszany: ø12,5 × 4 (y 8) i ø15 × 1 (y 8,75) | rząd mieszany: ø15 × 2 (y 22,85) i ø12,5 × 2 (y 23,6) | ø12,5 × 3 (y 37,05) = 23 gniazda (20 × ø12,5, 3 × ø15) + 1 rynienka (przednia); bez ø7,5 i ø10; rząd mieszany = dwa wpisy o różnym y (id gniazd idą po y, w jednym y od prawej); max promień obrysu 46,412 (ø12,5 tylne), min ścianka 3,000, rząd ø12,5 × 6 sięga granicy strefy ±45; pozycje policzone narzedzia/uklad_kolo_R59.js i sprawdzone narzedzia/weryfikuj_uklad_R59.js — nie zmieniać ręcznie; dawniej R54: 31 + 2 rynienki (18 × ø7,5, 7 × ø10, 6 × ø12,5; rynienki y −28 i 35,95), kopia: archiwum/parametry_przed_R59_2026-11-14.json; używane TYLKO do wygenerowania uklad_gniazd_poranna.json, gdy go nie ma (plik ze starego układu przenieść do archiwum przed przebiegiem)"},
     "plate_numbers_ev":      {"value": [1, 2, 3], "status": "ZALOZENIE", "zrodlo": "D11"},
-    "plate_numbers_mo":      {"value": [4, 5, 6], "status": "ZALOZENIE", "zrodlo": "D11"}
+    "plate_numbers_mo":      {"value": [4, 5, 6], "status": "ZALOZENIE", "zrodlo": "D11"},
+    "code_bit_d_pos":        {"value": [-45.0, -27], "status": "ZALOZENIE", "zrodlo": "R57/D11", "opis": "4. bit D kodu (n = A + 2B + 4C + 8D) na płytce KWADRATOWEJ: w linii dawnych dołków (y0 + 3·pitch); na n1–n6 bit D = 0, więc dołek nie występuje (pliki n1–n6 bez zmian); wycinany tylko w plikach bazowych"},
+    "plate_round_d":         {"value": 100,   "status": "ZALOZENIE", "zrodlo": "R57", "opis": "średnica płytki okrągłej = granica pola skanowania scan_field_d (walec × plate_thickness, faza wierzchu plate_top_chamfer, bez promienia krawędzi pionowych); gniazda jak na płytce kwadratowej tego typu w kole socket_zone_r 47; wariant tylko do skanera (bez kieszeni magnesów, rowka pokrywki i wycięcia D). Decyzja nadzoru 2.11 (liczby dla układu R54): 100, nie 96 (ścianka rynienka tylna porannej/stożki–krawędź 1,07 < 1,5) ani 98 (1,57–2,07); przy 100 ścianka do krawędzi 2,57 (rynienka tylna porannej), 3,07 (stożki porannej), 3,61 / 3,20 (wieczorna); po R59 (układ W‑b / P‑e) ścianka do krawędzi: gniazda 4,07 (wieczorna, ø15 tylne) / 3,59 (poranna, ø12,5 tylne), stożki 3,07 / 3,02; kwadrat ma rogi na promieniu 67,9, więc ø100 mieści się w skanerze wszędzie tam, gdzie kwadrat"},
+    "round_flat_w":          {"value": 16,    "status": "ZALOZENIE", "zrodlo": "R57", "opis": "cięciwa ścięcia orientacyjnego płytki okrągłej (pionowe, na całej grubości); odległość płaszczyzny od środka = √(R² − (w/2)²) = 49,356 przy ø100 (głębokość 0,644 ≥ round_flat_depth_min); decyzja nadzoru 2.11: 16 pod warunkiem ścianki ≥ socket_wall_min 3 od płaszczyzny ścięcia do każdego obrysu gniazda, rynienki, dołka i stożka obu typów (R54: wieczorna 3,68 — rynienka przednia; poranna 4,87 — dołek A; po R59: wieczorna 4,59 i poranna 4,81 — rynienka przednia); K‑61"},
+    "round_flat_depth_min":  {"value": 0.6,   "status": "ZALOZENIE", "zrodlo": "R57", "opis": "najmniejsza głębokość ścięcia (R − odległość płaszczyzny), żeby było widoczne po druku (> faza 0,5 i tolerancja ±0,3); K‑61"},
+    "round_flat_angle":      {"value": -45,   "status": "ZALOZENIE", "zrodlo": "R57", "opis": "kierunek normalnej ścięcia od +X [deg]: −45 = przód‑prawo, jak dawny narożnik D z wycięciem"},
+    "code_dimples_round":    {"value": {"wieczorna": {"A": [-4.5, -43.5], "B": [-1.5, -43.5], "C": [1.5, -43.5], "D": [4.5, -43.5]},
+                                        "poranna":   {"A": [36.5, 18.5], "B": [36.5, 21.5], "C": [43, 6], "D": [43, 9]}},
+                              "status": "ZALOZENIE", "zrodlo": "R57/R59", "opis": "środki dołków kodu A/B/C/D płytek okrągłych (per typ): promień ≤ socket_zone_r − 3 = 44, ścianka do gniazd ≥ 3, do stożków ≥ 1,5, do krawędzi ≥ 1,5, ścianka 1 między dołkami (rozstaw 3); wieczorna (pozycje bez zmian od R57): rząd y −43,5 przed rynienką przednią (promień 43,73; po R59 do rynienki 4,80); poranna [R59, wariant P‑e]: rynienka dosunięta do przodu (y −35,3), rząd przed nią się nie mieści, więc dwie pary z prawej strony: A (36,5; 18,5), B (36,5; 21,5), C (43; 6), D (43; 9) (promień 40,92…43,93; do gniazd 3,55…4,08; do stożka C 2,09…6,61; do krawędzi 5,07…8,08); dawniej R57: kolumna x 30,5, y −31…−22; K‑62"},
+    "number_pos_round":      {"value": {"wieczorna": [35, -26.5], "poranna": [-44, 5.5]}, "status": "ZALOZENIE", "zrodlo": "R57/R59", "opis": "środek cyfry reliefu (number_text_h, number_relief_h) na płytkach okrągłych, per typ; null = cyfra pominięta; obrys cyfry 5 × 3,6 w kole 47, odstęp od gniazd ≥ 3; wieczorna (35; −26,5) bez zmian od R57 (po R59: do rynienki 3,27, promień narożnika obrysu 46,85); poranna [R59, wariant P‑e]: (−44; 5,5) z lewej strony (promień narożnika obrysu 46,49, do gniazda 3,48, do stożka 13,70); dawniej R57: (36,5; −24,5); K‑13"},
+    "plate_numbers_round":   {"value": {"wieczorna": [8], "poranna": [9]}, "status": "ZALOZENIE", "zrodlo": "R57/D11", "opis": "numery płytek okrągłych: n8 = tylko D (wieczorna), n9 = A + D (poranna); kod 4‑bitowy zgodny wstecz z n1–n6"}
   },
 
   "pokrywka": {
@@ -627,13 +638,13 @@ input[type=range],input[type=checkbox],input[type=radio]{accent-color:var(--acce
         "ramka_podkladka_panelu_05": 8, "ramka_podkladka_panelu_1": 8, "ramka_podkladka_panelu_2": 8
       }, "status": "ZALOZENIE", "zrodlo": "R36/Z28/R50-U1/R50-U8/R50-3/R50-8", "opis": "rama dyfuzora i uchwyt kabli usunięte; tulejka i podkładki to druk własny (poza arkuszem drukarni)"},
     "materials": {"value": {
-        "ramka_plytka_wieczorna_n1": "PA12 drukarnia (alt. żywica firma)", "ramka_plytka_wieczorna_n2": "PA12 drukarnia (alt. żywica firma)", "ramka_plytka_wieczorna_n3": "PA12 drukarnia (alt. żywica firma)",
+        "ramka_plytka_wieczorna_n1": "PA12 drukarnia", "ramka_plytka_wieczorna_n2": "PA12 drukarnia", "ramka_plytka_wieczorna_n3": "PA12 drukarnia",
         "ramka_plytka_poranna_n4": "PA12 drukarnia", "ramka_plytka_poranna_n5": "PA12 drukarnia", "ramka_plytka_poranna_n6": "PA12 drukarnia",
         "ramka_pokrywka": "PETG FDM (własny)", "ramka_korpus_W": "PA12 drukarnia", "ramka_korpus_P": "PA12 drukarnia", "ramka_blat": "PA12 drukarnia",
         "ramka_wkladka": "PA12 drukarnia",
-        "ramka_tulejka_dc": "żywica firma / PETG",
-        "ramka_podkladka_panelu_05": "żywica firma / PETG", "ramka_podkladka_panelu_1": "żywica firma / PETG", "ramka_podkladka_panelu_2": "żywica firma / PETG"
-      }, "status": "ZALOZENIE", "zrodlo": "Z19/D2/R50", "opis": "kolory: korpus, blat grafit; wkładka, płytki, pokrywka naturalny biały (jak Z19); K-57 liczy koszt tylko dla pozycji 'PA12 drukarnia'"}
+        "ramka_tulejka_dc": "PETG FDM (własny)",
+        "ramka_podkladka_panelu_05": "PETG FDM (własny)", "ramka_podkladka_panelu_1": "PETG FDM (własny)", "ramka_podkladka_panelu_2": "PETG FDM (własny)"
+      }, "status": "ZALOZENIE", "zrodlo": "Z19/D2/R50/R55", "opis": "R55: bez żywicy, druk własny = PETG FDM u kolegi; kolory: korpus, blat grafit; wkładka, płytki, pokrywka naturalny biały (jak Z19); K-57 liczy koszt tylko dla pozycji 'PA12 drukarnia'"}
   }
 }
 </script>
@@ -762,6 +773,9 @@ const WIREKINDS=new Set(['wR','wK','wY','wG','wB','ribbon','cable']);
 const parts={},ORDER=[];
 const STL_DIR='stl/';
 // meta: nazwa, źródło, materiał, opis, kolor techniczny, rozbiórka (stage, off), składanie (asm)
+// R59: liczby gniazd i rynienek w opisie płytki liczone z ev_rows / mo_rows, np. „18 + 1 (6 × ø12, 12 × ø15; rynienka 60 × 15 z przodu)”
+function rowsTxt(rows){const by={},tr=[];let n=0;rows.forEach(r=>{if(r.type==='round'){by[r.d]=(by[r.d]||0)+r.x.length;n+=r.x.length;}else r.x.forEach(()=>tr.push(f(r.l)+' × '+f(r.w)+(r.y<0?' z przodu':' z tyłu')));});
+  return n+' + '+tr.length+' ('+Object.keys(by).map(Number).sort((a,b)=>a-b).map(d=>by[d]+' × ø'+f(d)).join(', ')+(tr.length?'; '+(tr.length===1?'rynienka ':'rynienki ')+tr.join(', '):'')+')';}
 const META={
  korpus:{n:'Korpus',src:'STL',file:{W:'ramka_korpus_W_v2',P:'ramka_korpus_P_v2'},mat:'PA12 grafit (drukarnia)',tech:'#8b939c',sw:v('color_graphite'),stage:-1,off:[0,0,0],asm:1,
   d:'Dno, ściany 2,5 i kieszeń DC z tyłu; W i P różnią się tylko napisem. Na dnie stadiony panelu z rowkami 110…130, 4 bossy Pi, wloty 30 × 4; szczeliny 12 × 3 bez daszków.'},
@@ -790,7 +804,7 @@ const META={
  wkladka:{n:'Wkładka',src:'STL',file:'ramka_wkladka_v2',mat:'PA12 biały (drukarnia)',tech:'#e6d6a2',sw:v('color_white'),stage:2,off:[0,0,105],asm:8,
   d:'Rama '+f(v('insert_opening')+2*v('insert_wall_w'))+' × '+f(v('insert_h'))+' na dyfuzorze, otwór '+f(v('insert_opening'))+' (spód Z '+f(H.blat)+'), półki do Z '+f(H.shelf)+', uszy z kołkami ø3 i magnesami. Bryły zastępcze: czujniki Halla w półkach A, B, C, magnesy w uszach, przewody w rowkach.'},
  plytka:{n:'Płytka',src:'STL',file:{W:'ramka_plytka_wieczorna_n1_v2',P:'ramka_plytka_poranna_n4_v2'},mat:'PA12 biały (drukarnia)',tech:'#f0efe9',sw:'#f7f6f0',stage:1,off:[0,0,145],asm:9,
-  d:'W: wieczorna nr 1 (magnes w A), P: poranna nr 4 (magnes w C). [R54] Gniazda, rynienki i stożki znaczników w kole o promieniu '+f(v('socket_zone_r'))+' wokół środka (pole skanowania przy obrocie = koło ø'+f(v('scan_field_d'))+'): wieczorna 18 + 2, poranna 31 + 2; kieszenie magnesów nadal w rogach. Leży na półkach (Z '+f(H.shelf)+'), wierzch Z '+f(H.plate)+', cyfra +0,6.'},
+  d:'W: wieczorna nr 1 (magnes w A), P: poranna nr 4 (magnes w C). [R59] Układ gniazd: wieczorna '+rowsTxt(v('ev_rows'))+'; poranna '+rowsTxt(v('mo_rows'))+' (rynienka = gniazdo na most). [R54] Gniazda, rynienka i stożki znaczników w kole o promieniu '+f(v('socket_zone_r'))+' wokół środka (pole skanowania przy obrocie = koło ø'+f(v('scan_field_d'))+'); kieszenie magnesów nadal w rogach. Leży na półkach (Z '+f(H.shelf)+'), wierzch Z '+f(H.plate)+', cyfra +0,6.'},
  pokrywka:{n:'Pokrywka',src:'STL',file:'ramka_pokrywka_v2',mat:'PETG biały mat (druk własny)',tech:'#cfe0f2',sw:'#f4f3ee',stage:0,off:[0,0,190],asm:10,
   d:'Osłona prac do przenoszenia: Z '+f(H.cover0)+'…'+f(H.cover)+', 4 garby w rowku płytki. Domyślnie zdjęta, żeby było widać płytkę i świecenie.'}
 };
@@ -991,9 +1005,15 @@ function placeParts(){ORDER.forEach(id=>{const p=parts[id];let k=0;
 
 /* ---- świecenie diod: wieczorna — zielone pod gniazdami z pracą + 2 czerwone; poranna — cyfry na marginesie ---- */
 const plateGlow=[];
-const EV_WORK=['','101001','0110100','10101'],EV_RED=[[1,2],[2,3]]; // R54: indeksy rzędów ev_rows (0 = rynienka przednia, 4 = tylna)
-function evSockets(){const out=[];v('ev_rows').forEach((r,ri)=>{if(r.type==='round')r.x.forEach((x,i)=>{const w=(EV_WORK[ri]||'')[i]==='1';out.push({x,y:r.y,d:r.d,w,red:EV_RED.some(([a,b])=>a===ri&&b===i)});});
-  else r.x.forEach(x=>{const pitch=v('ev_trough_hole_pitch');[-1.5,-.5,.5,1.5].forEach(k=>out.push({x:x+k*pitch,y:r.y,d:4,w:ri===4,red:false,trough:true}));});});return out;}
+// R59: maski wg wpisów ev_rows (0 = rynienka przednia 60 × 15, 1 = ø12 × 6, 2 = ø15 × 5, 3 = ø15 × 4, 4 = ø15 × 3); znak = gniazdo w kolejności x.
+// '1' = gniazdo z pracą (zielone); rynienka ma jeden znak ('1' = most, świecą 4 otwory). EV_RED = [wpis, gniazdo] na czerwono — tylko gniazda z pracą.
+const EV_WORK=['1','101001','10101','0110','010'],EV_RED=[[1,2],[3,2]];
+{const rows=v('ev_rows'),bad=[];if(EV_WORK.length!==rows.length)bad.push('wpisów '+EV_WORK.length+' ≠ '+rows.length);
+ rows.forEach((r,ri)=>{if((EV_WORK[ri]||'').length!==r.x.length)bad.push('wpis '+ri+': maska '+(EV_WORK[ri]||'').length+' ≠ '+r.x.length);});
+ EV_RED.forEach(([a,b])=>{if(!rows[a]||rows[a].type!=='round'||(EV_WORK[a]||'')[b]!=='1')bad.push('czerwone ['+a+', '+b+'] bez pracy');});
+ if(bad.length)console.warn('[ramka3d] maski EV_WORK / EV_RED nie pasują do ev_rows:',bad.join('; '));}
+function evSockets(){const out=[];v('ev_rows').forEach((r,ri)=>{const mk=EV_WORK[ri]||'';if(r.type==='round')r.x.forEach((x,i)=>{const w=mk[i]==='1';out.push({x,y:r.y,d:r.d,w,red:EV_RED.some(([a,b])=>a===ri&&b===i)});});
+  else r.x.forEach((x,i)=>{const pitch=v('ev_trough_hole_pitch');[-1.5,-.5,.5,1.5].forEach(k=>out.push({x:x+k*pitch,y:r.y,d:4,w:mk[i]==='1',red:false,trough:true}));});});return out;}
 const F57={'K':['10001','10010','10100','11000','10100','10010','10001'],'1':['00100','01100','00100','00100','00100','00100','01110'],
  '2':['01110','10001','00001','00010','00100','01000','11111'],'7':['11111','00001','00010','00100','01000','01000','01000']};
 function scenario(){const lit=new Map(),o=LED.o,pt=LED.pitch,GREEN=0x2bff5e,RED=0xff2a1a;
@@ -1115,11 +1135,11 @@ const DG=[
    D.p([42.3,-42.3,H.shelf],'półka '+f(v('insert_shelf'))+' × '+f(v('insert_shelf'))+' × '+f(v('insert_shelf_h')),'insert_shelf × insert_shelf_h','r');
    D.l([-48,48,H.shelf],[-48,48,H.plate],[-8,8,0],f(v('plate_thickness')),'plate_thickness');
    D.p([45.6,-45.6,H.post],'kołek D '+f(v('orient_post'))+' × '+f(v('orient_post_h')),'orient_post × orient_post_h','l');}},
- {id:'kolo',n:'Płytka: koło gniazd i znaczniki (R54)',eye:[40,-150,260],tg:[0,0,H.plate],hide:['pokrywka'],ghost:['korpus','blat','wkladka','dyfuzor'],ghostOp:.2,make(D){
+ {id:'kolo',n:'Płytka: koło gniazd (R54) i znaczniki (R59)',eye:[40,-150,260],tg:[0,0,H.plate],hide:['pokrywka'],ghost:['korpus','blat','wkladka','dyfuzor'],ghostOp:.2,make(D){
    const z=H.plate+.4,r=v('socket_zone_r');D.ring([0,0,z],r,'koło gniazd r '+f(r)+' (ø'+f(v('scan_field_d'))+'/2 − '+f(v('scan_center_tol'))+' − '+f(v('work_overhang'))+')','socket_zone_r (R54, Z29)');
    const ev=v('ev_marker_pos'),mo=v('mo_marker_pos');['A','B','C'].forEach(k=>{D.p([ev[k][0],ev[k][1],z],'W '+k+' ('+f(ev[k][0])+'; '+f(ev[k][1])+')','ev_marker_pos '+k+' (stożek ø'+f(v('marker_cone_d'))+')',ev[k][0]<0?'r':'l');});
    ['A','B','C'].forEach(k=>{D.p([mo[k][0],mo[k][1],z],'P '+k+' ('+f(mo[k][0])+'; '+f(mo[k][1])+')','mo_marker_pos '+k+' (stożek ø'+f(v('marker_cone_d'))+')',mo[k][0]<0?'r':'l');});
-   D.p([-42,-42,H.shelf-.2],'magnes A (−42; −42)','marker_offset 6 od krawędzi; kieszenie magnesów bez zmian (R54)','r');}}
+   D.p([-42,-42,H.shelf-.2],'magnes A (−42; −42)','marker_offset 6 od krawędzi; kieszenie magnesów bez zmian (R54, R59)','r');}}
 ];
 DG.forEach(g=>{const D=DimSet();g.make(D);Object.assign(g,D.build());if(g.L.length>8)console.warn('[ramka3d] grupa wymiarów',g.id,'ma',g.L.length,'etykiet');});
 
@@ -1420,7 +1440,7 @@ Promise.all(first.map(j=>j.run())).then(()=>{
   partBoxes();bbCheck();
   themeSync();applyLook();applySection();renderLists();syncExplodeUI();
   fit(worldBox(true),VIEWS.iso,1,1.0);ready=true;$('loading').hidden=true;requestAnimationFrame(loop);
-  window.__ramka={parts,state,H,P,MEAS,DG,bbRows,setMeasure,setDims,setVariant,setLook,setAsm,camera,controls,renderer,
+  window.__ramka={parts,state,H,P,MEAS,DG,bbRows,evSockets,setMeasure,setDims,setVariant,setLook,setAsm,camera,controls,renderer,
     setExplode(t){state.asm=null;clearCtx();state.ex=state.exT=t;applyLook();syncExplodeUI();fit(finalPose(),VIEWS.iso,1,1.0);},
     setSection(on,ax,pos,flip){Object.assign(state.sec,{on,ax:ax||state.sec.ax,pos:pos==null?state.sec.pos:pos,flip:!!flip});$('optSection').checked=on;applySection();},
     view(n){fit(worldBox(true),VIEWS[n],1,1.0);}};
