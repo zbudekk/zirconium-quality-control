@@ -82,15 +82,15 @@ def plan_rano(kal_, logika_or_none=None, *, plan_id="2026-11-17-p1", wersja=1, s
         zdarzenia_do = logika_or_none.nr
     return {
         "protokol": 1, "plan_id": plan_id, "wersja": wersja, "start_id": start_id,
-        "zdarzenia_do": zdarzenia_do, "wazny_s": wazny_s, "tryb": "rano", "kolejnosc": "liczba",
-        "plytki": {"4": {"uklad": "poranna", "gniazda": gniazda(kal_, "P", "poranna", p4)},
-                   "5": {"uklad": "poranna", "gniazda": gniazda(kal_, "P", "poranna", p5)}},
-        "kuwety": [{"kuweta": "3263", "prac": 5, "plytki": [4, 5]},
-                   {"kuweta": "3301", "prac": 2, "plytki": [4]},
-                   {"kuweta": "0412", "prac": 1, "plytki": [4]},
-                   {"kuweta": "#1234", "prac": 1, "plytki": [4]},
-                   {"kuweta": "3999", "prac": 1, "plytki": [4]},
-                   {"kuweta": "4100", "prac": 1, "plytki": [5]}],
+        "zdarzenia_do": zdarzenia_do, "wazny_s": wazny_s, "tryb": "rano",
+        "plytki": {"4": {"gniazda": gniazda(kal_, "P", "poranna", p4)},
+                   "5": {"gniazda": gniazda(kal_, "P", "poranna", p5)}},
+        "kuwety": [{"kuweta": "3263", "plytki": [4, 5]},
+                   {"kuweta": "3301", "plytki": [4]},
+                   {"kuweta": "0412", "plytki": [4]},
+                   {"kuweta": "#1234", "plytki": [4]},
+                   {"kuweta": "3999", "plytki": [4]},
+                   {"kuweta": "4100", "plytki": [5]}],
         "potwierdzone": list(potwierdzone or []),
         "braki": list(braki),
     }
@@ -107,7 +107,7 @@ def plan_wieczor(kal_, logika_or_none=None, *, plytka=2, plan_id="2026-11-17-w",
         zdarzenia_do = logika_or_none.nr
     return {"protokol": 1, "plan_id": plan_id, "wersja": wersja, "start_id": start_id,
             "zdarzenia_do": zdarzenia_do, "wazny_s": wazny_s, "tryb": "wieczor",
-            "plytki": {str(plytka): {"uklad": uklad, "gniazda": gniazda(kal_, "W", uklad, przyp)}}}
+            "plytki": {str(plytka): {"gniazda": gniazda(kal_, "W", uklad, przyp)}}}
 
 
 def oczekiwane_piksele(plan, plytka, swiecace_ids):
@@ -385,10 +385,10 @@ def test_k1_plan_porannej_24_gniazda_piksel_po_pikselu(kal):
     log.kontakt(LAPTOP, 0.0)
     plan = {"protokol": 1, "plan_id": "k1", "wersja": 1, "start_id": log.start_id, "zdarzenia_do": log.nr,
             "wazny_s": 600, "tryb": "rano",
-            "plytki": {"4": {"uklad": "poranna", "gniazda": gniazda(kal, "P", "poranna", przyp)}},
-            "kuwety": [{"kuweta": "3263", "prac": 5, "plytki": [4]},
-                       {"kuweta": "3301", "prac": 9, "plytki": [4]},
-                       {"kuweta": "3302", "prac": 8, "plytki": [4]}]}
+            "plytki": {"4": {"gniazda": gniazda(kal, "P", "poranna", przyp)}},
+            "kuwety": [{"kuweta": "3263", "plytki": [4]},
+                       {"kuweta": "3301", "plytki": [4]},
+                       {"kuweta": "3302", "plytki": [4]}]}
     assert log.przyjmij_plan(plan, LAPTOP, 0.0)["wynik"] == "przyjety"
     log.ustaw_plytke(4, 0.1)
     k = log.obraz(0.2)
@@ -573,8 +573,8 @@ P5_K4 = {i: ("czerwony", None) for i in range(13, 25)}
 def plan_k4(kal_, logika=None):
     """Plytka 4: gniazda 1-12 zielone, plytka 5: gniazda 13-24 czerwone (bez kuwet)."""
     plan = {"protokol": 1, "plan_id": "k4", "wersja": 1, "wazny_s": 600, "tryb": "rano",
-            "plytki": {"4": {"uklad": "poranna", "gniazda": gniazda(kal_, "P", "poranna", P4_K4)},
-                       "5": {"uklad": "poranna", "gniazda": gniazda(kal_, "P", "poranna", P5_K4)}}}
+            "plytki": {"4": {"gniazda": gniazda(kal_, "P", "poranna", P4_K4)},
+                       "5": {"gniazda": gniazda(kal_, "P", "poranna", P5_K4)}}}
     if logika is not None:
         plan["start_id"], plan["zdarzenia_do"] = logika.start_id, logika.nr
     return plan
@@ -737,8 +737,8 @@ def plan_k5(kal_, wersja):
     kuw = ["5001", "5002", "5003", "5004", "5005", "5006"]
     przyp = {2 + n: ("zielony", k) for n, k in enumerate(kuw)}
     return {"protokol": 1, "plan_id": "k5", "wersja": wersja, "wazny_s": 3600, "tryb": "rano",
-            "plytki": {"4": {"uklad": "poranna", "gniazda": gniazda(kal_, "P", "poranna", przyp)}},
-            "kuwety": [{"kuweta": k, "prac": 1, "plytki": [4]} for k in kuw]}
+            "plytki": {"4": {"gniazda": gniazda(kal_, "P", "poranna", przyp)}},
+            "kuwety": [{"kuweta": k, "plytki": [4]} for k in kuw]}
 
 
 def test_k5_utrata_sieci_5_potwierdzen_100_powtorzen(kal, ramka_p):
@@ -1491,8 +1491,8 @@ def gn(i, x, y, kolor="zielony", kuweta=None):
 
 
 def wpis(gniazda_):
-    """Wpis plytki w planie."""
-    return {"uklad": "wieczorna", "gniazda": gniazda_}
+    """Wpis plytki w planie (runda 2, D11: bez pola uklad)."""
+    return {"gniazda": gniazda_}
 
 
 def plan_r2(log, tryb, plytki, *, wersja=1, plan_id="r2", wazny_s=30, **pola):
@@ -2103,6 +2103,16 @@ def test_d4_cyfry_spoza_ascii_odrzucone_400(ramka_p):
     lap.stan()
     st, odp = lap.zadanie("GET", f"/zdarzenia?od=%D9%A4&start_id={lap.start_id}")
     assert (st, odp["blad"]["kod"]) == (400, "zly_parametr")
+
+
+def test_d11_pola_nieuzywane_usuniete_z_protokolu(kal):
+    """D11: kolejnosc, kuwety[].prac i plytki[].uklad nie istnieja w protokole (ramka ich nie uzywala)."""
+    log = LogikaRamki("P", teraz=0.0)
+    for zmien in (lambda p: p.update(kolejnosc="liczba"), lambda p: p["kuwety"][0].update(prac=5),
+                  lambda p: p["plytki"]["4"].update(uklad="poranna")):
+        p = plan_rano(kal, log)
+        zmien(p)
+        assert odrzucenie(log.przyjmij_plan, p, LAPTOP, 1.0) == (400, "nieznane_pole")
 
 
 def test_d9_zdarzenia_wymagaja_start_id(ramka_p):
