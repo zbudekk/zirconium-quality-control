@@ -607,6 +607,8 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     print(f"POMIAR K4: {len(s)} przelaczen, mediana {mediana * 1000:.0f} ms, maks {s[-1] * 1000:.0f} ms")
     assert mediana < 0.100, f"mediana przelaczenia {mediana * 1000:.0f} ms"
     assert max(czasy) < 0.250, f"najdluzsze przelaczenie {max(czasy) * 1000:.0f} ms"
+    # runda 2 (P7): obraz gasnie od razu, a zdarzenie "plytka 0" przychodzi po ustaleniu odczytu (30 ms)
+    assert czekaj_na(lambda: prog.logika.plytka == 0)
     zd, _ = prog.logika.zdarzenia_od(n0)
     assert [z["plytka"] for z in zd if z["typ"] == "plytka"] == [4, 0, 5, 0] * 10
     # stary plan nie swieci pod nowa plytka: ZADNA klatka wyslana po polozeniu plytki 5 (do nastepnej

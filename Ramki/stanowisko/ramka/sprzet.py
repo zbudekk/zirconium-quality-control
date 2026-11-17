@@ -6,6 +6,7 @@ Program ramki rozmawia ze sprzetem tylko przez te metody.
 """
 from __future__ import annotations
 
+from .obraz import Klatka
 from .protokol import KLAWISZE  # noqa: F401  (logiczne nazwy klawiszy - te same w calym pakiecie)
 
 
@@ -32,38 +33,60 @@ class Sprzet:
         """Temperatura procesora w stopniach C albo None."""
         return None
 
+    def wygas(self) -> None:
+        """Awaryjne wygaszenie calej matrycy (P4) - wolane, gdy nie udalo sie pokazac klatki."""
+        self.pokaz(Klatka())
+
     def zamknij(self) -> None:
         """Gasi matryce i zwalnia zasoby."""
 
 
 class Odbijanie:
-    """Numer plytki uznany dopiero, gdy surowy odczyt jest staly przez `stabilnosc_s`.
+    """Odbijanie odczytu czujnikow Halla, NIESYMETRYCZNE (P7): gaszenie od razu, zapalanie po ustaleniu.
 
     Przy zdejmowaniu i kladzeniu plytki magnesy mijaja czujniki w roznych chwilach, wiec przez
-    kilka milisekund odczyt bywa przypadkowy (np. 5 -> 1 -> 0). Zaklocenie krotsze niz
-    `stabilnosc_s` nie daje zdarzenia. Wymaganie I5: zmiana ponizej 100 ms - domyslnie 30 ms.
+    kilka milisekund odczyt bywa przypadkowy (np. 5 -> 1 -> 0).
+    - `stabilna` - ustalony numer plytki (zdarzenia `plytka`); `pewna` - czy gniazda moga swiecic.
+    - Pierwszy surowy odczyt inny niz `stabilna` (takze 0 i odczyt drgajacy): `pewna` = False od razu.
+    - Nowy numer ustala sie, gdy surowy odczyt jest staly przez `stabilnosc_s` (wtedy od razu pewny).
+    - Powrot do `stabilna` po zakloceniu: `pewna` dopiero po `stabilnosc_s` stalego odczytu.
+    - Odczyt rozny od `stabilna` dluzej niz `stabilnosc_s`, ale nieustalony (drgania): plytka uznana
+      za zdjeta (`stabilna` = 0) - gniazda ciemne przez caly czas drgan.
+    Wymaganie I5: zmiana ponizej 100 ms - domyslnie 30 ms.
     """
 
     def __init__(self, stabilnosc_s: float = 0.03, poczatkowa: int = 0):
         self.stabilnosc_s = float(stabilnosc_s)
         self.stabilna = poczatkowa
-        self._kandydat = poczatkowa
-        self._od = None
+        self.pewna = False
+        self._ostatnia = None      # ostatni surowy odczyt
+        self._ostatnia_od = None   # od kiedy surowy odczyt jest staly
+        self._inna_od = None       # od kiedy surowy odczyt jest (bez przerwy) rozny od stabilna
+
+    def _uplynelo(self, od, teraz: float) -> bool:
+        return od is not None and teraz - od >= self.stabilnosc_s - 1e-9
 
     def podaj(self, surowa: int, teraz: float):
-        """Zwraca nowy ustalony numer albo None (bez zmiany)."""
-        if surowa != self._kandydat:
-            self._kandydat = surowa
-            self._od = teraz
-            return None
+        """Zwraca nowy ustalony numer albo None (bez zmiany); `pewna` po kazdym odczycie."""
+        if surowa != self._ostatnia:
+            self._ostatnia = surowa
+            self._ostatnia_od = teraz
+        staly = self._uplynelo(self._ostatnia_od, teraz)
         if surowa == self.stabilna:
-            self._od = None
+            self._inna_od = None
+            self.pewna = staly
             return None
-        if self._od is None:
-            self._od = teraz
-            return None
-        if teraz - self._od >= self.stabilnosc_s - 1e-9:
+        self.pewna = False
+        if self._inna_od is None:
+            self._inna_od = teraz
+        if staly:
             self.stabilna = surowa
-            self._od = None
+            self.pewna = True
+            self._inna_od = None
             return surowa
+        if self.stabilna != 0 and self._uplynelo(self._inna_od, teraz):
+            # plytka odeszla, a odczyt sie nie ustalil: jak brak plytki (ciemno do ustalenia odczytu)
+            self.stabilna = 0
+            self._inna_od = None if surowa == 0 else teraz
+            return 0
         return None

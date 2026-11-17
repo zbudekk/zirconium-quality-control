@@ -14,10 +14,13 @@ nie byloby dostepu do /dev/input (klawiatura) ani GPIO.
 """
 from __future__ import annotations
 
+import logging
 import queue
 import threading
 
 from .sprzet import BladSprzetu, Sprzet
+
+log = logging.getLogger("ramka.sprzet_rpi")
 
 MAPA_KLAWISZY = {
     "KEY_KPENTER": "enter", "KEY_ENTER": "enter",
@@ -145,7 +148,14 @@ class SprzetRpi(Sprzet):
 
             import evdev
         except ImportError:
-            return  # brak evdev: ramka dziala bez klawiatury (blad widac w logu programu)
+            log.error("brak biblioteki evdev (python3-evdev) - ramka dziala bez klawiatury")
+            return
+        try:
+            self._czytaj_klawiature(select, evdev)
+        except Exception:  # noqa: BLE001 - watek klawiatury nie konczy sie po cichu (D7 b)
+            log.exception("watek klawiatury zakonczony bledem - ramka dziala bez klawiatury")
+
+    def _czytaj_klawiature(self, select, evdev) -> None:
         while not self._stop.is_set():
             d = self._znajdz_klawiature()
             if d is None:
@@ -163,7 +173,8 @@ class SprzetRpi(Sprzet):
                             if k is not None:
                                 self._kolejka.put(k)
             except OSError:
-                pass  # odbiornik wyjety - szukamy ponownie
+                log.warning("klawiatura niedostepna (odbiornik wyjety albo zajety) - ponowna proba za 2 s")
+                self._stop.wait(2.0)  # D7 a: bez petli 100 % procesora, gdy grab() stale zawodzi
             finally:
                 try:
                     d.close()
@@ -188,6 +199,10 @@ class SprzetRpi(Sprzet):
                 px, py = przeksztalc(x, y, self.obrot, self.lustro, klatka.szerokosc, klatka.wysokosc)
                 p.SetPixel(px, py, r, g, b)
         self._plotno = self._matryca.SwapOnVSync(p)
+
+    def wygas(self) -> None:
+        """Awaryjne wygaszenie (P4): bez rysowania klatki, bezposrednio przez biblioteke matrycy."""
+        self._matryca.Clear()
 
     def temperatura(self):
         self._temp_licznik -= 1

@@ -2,10 +2,12 @@
 
 Uruchomienie (szczegoly w README.md):
   python -m ramka --rola P --sprzet atrapa                 # bez elektroniki, 127.0.0.1:8765
-  python -m ramka --rola W --sprzet rpi --konfiguracja /etc/ramka/ramka.json   # Raspberry Pi
-Petla co `okres_s` (10 ms): odczyt czujnikow z odbijaniem, klawisze, uplyw czasu (waznosc
-planu), nowa klatka na matryce tylko przy zmianie. Zadanie HTTP zmieniajace stan budzi petle
-od razu (stan ramki po Spacji na laptopie ponizej 1 s - I6).
+  python -m ramka --sprzet rpi --konfiguracja /etc/ramka/ramka.json   # Raspberry Pi (host i klucz z pliku)
+Petla co `okres_s` (10 ms): odczyt czujnikow z odbijaniem (gaszenie od razu, zapalanie po
+ustaleniu - P7), klawisze, uplyw czasu (waznosc planu), nowa klatka na matryce tylko przy zmianie.
+Zadanie HTTP zmieniajace stan budzi petle od razu (stan ramki po Spacji na laptopie ponizej 1 s - I6).
+Kazdy wyjatek w obiegu petli (czujniki, klawiatura, matryca, logika) = awaria sprzetu: matryca od
+razu bez gniazd, plan usuniety, zdarzenie blad_sprzetu (P4).
 """
 from __future__ import annotations
 
@@ -18,7 +20,7 @@ import time
 from dataclasses import dataclass, fields
 from pathlib import Path
 
-from . import WERSJA, protokol
+from . import WERSJA, obraz, protokol
 from .logika import LogikaRamki
 from .protokol import BladProtokolu
 from .sprzet import BladSprzetu, Odbijanie
@@ -29,8 +31,9 @@ log = logging.getLogger("ramka.program")
 @dataclass
 class Konfiguracja:
     rola: str = "P"                      # W = ramka wieczorna, P = ramka poranna (klawiatura)
-    host: str = "127.0.0.1"              # na Raspberry Pi: 0.0.0.0 (siec lokalna)
+    host: str = "127.0.0.1"              # adres nasluchu; inny (np. adres ramki w sieci) TYLKO z konfiguracji
     port: int = 8765                     # [ramki] port w ustawieniach stanowiska
+    klucz: str = ""                      # wspolny klucz X-Ramka-Klucz (P6) - tylko w pliku lokalnym, nie w repo
     sprzet: str = "atrapa"               # atrapa albo rpi
     okres_s: float = 0.01                # okres petli sprzetu
     stabilnosc_s: float = 0.03           # odbijanie czujnikow Halla
@@ -58,6 +61,8 @@ def wczytaj_konfiguracje(sciezka) -> Konfiguracja:
     for k in ("rodzina", "piny_halla"):
         if k in dane:
             dane[k] = tuple(dane[k])
+    if "klucz" in dane:
+        protokol.sprawdz_klucz(dane["klucz"])
     return Konfiguracja(**dane)
 
 
@@ -79,6 +84,7 @@ class ProgramRamki:
             raise ValueError("rola: W albo P")
         if konf.sterowanie_atrapy and konf.sprzet != "atrapa" and sprzet is None:
             raise ValueError("sterowanie atrapy tylko z atrapa sprzetu")
+        protokol.sprawdz_klucz(konf.klucz)
         self.konf = konf
         self.zegar = zegar
         self.sprzet = sprzet if sprzet is not None else utworz_sprzet(konf)
@@ -99,18 +105,35 @@ class ProgramRamki:
 
     # ------------------------------------------------------------ petla sprzetu
 
-    def krok(self, teraz=None) -> None:
-        """Jedna iteracja petli: czujniki, klawisze, czas, obraz."""
+    def krok(self, teraz=None) -> bool:
+        """Jedna iteracja petli: czujniki, klawisze, czas, obraz. False = awaria sprzetu (P4):
+        wyjatek nie wychodzi z krok(), matryca gasnie od razu, plan usuniety, zdarzenie blad_sprzetu."""
         teraz = self.zegar() if teraz is None else teraz
+        try:
+            self._krok(teraz)
+        except Exception:  # noqa: BLE001 - kazdy wyjatek obiegu = awaria, ramka ciemna
+            log.exception("blad w petli sprzetu - matryca wygaszona")
+            self._awaria(teraz)
+            return False
+        if self.logika.awaria:
+            # pierwszy caly udany obieg (odczyt, logika, matryca) po awarii
+            with self.warunek:
+                self.logika.koniec_awarii(teraz)
+                self.warunek.notify_all()
+            log.warning("sprzet ramki znow dziala (plan trzeba wyslac ponownie)")
+        return True
+
+    def _krok(self, teraz) -> None:
         surowa = self.sprzet.odczytaj_plytke()
         klawisze = self.sprzet.pobierz_klawisze()
         temp = self.sprzet.temperatura()
         klatka = None
         with self.warunek:
             nr_przed = self.logika.nr
-            stabilna = self.odbijanie.podaj(surowa, teraz)
-            if stabilna is not None:
-                self.logika.ustaw_plytke(stabilna, teraz)
+            zmiana = self.odbijanie.podaj(surowa, teraz)
+            if zmiana is not None:
+                self.logika.ustaw_plytke(zmiana, teraz)
+            self.logika.ustaw_pewnosc(self.odbijanie.pewna, teraz)
             for k in klawisze:
                 self.logika.klawisz(k, teraz)
             self.logika.tick(teraz)
@@ -122,16 +145,43 @@ class ProgramRamki:
             if self.logika.nr != nr_przed:
                 self.warunek.notify_all()
         if klatka is not None and klatka != self._pokazana:
+            self._pokazana = None  # gdy pokaz() sie nie uda, nastepny obieg wysle klatke ponownie
             self.sprzet.pokaz(klatka)
             self._pokazana = klatka
+
+    def _awaria(self, teraz) -> None:
+        """Awaria w petli: stan logiki jak po DELETE + blad_sprzetu, klatka awaryjna (bez gniazd),
+        a gdy matryca tez zawodzi - wygaszenie calej matrycy. Brak "ostatniej klatki"."""
+        klatka = obraz.Klatka()
+        with self.warunek:
+            try:
+                self.logika.awaria_sprzetu(teraz)
+                klatka = self.logika.obraz(teraz)
+            except Exception:  # noqa: BLE001
+                log.exception("blad logiki przy awarii - matryca czarna")
+            self.odbijanie = Odbijanie(self.konf.stabilnosc_s)  # plytka od nowa po powrocie sprzetu
+            self._zmiana_pokazana = -1
+            self._ostatni_obraz = float("-inf")
+            self.warunek.notify_all()
+        self._pokazana = None
+        try:
+            self.sprzet.pokaz(klatka)
+            self._pokazana = klatka
+        except Exception:  # noqa: BLE001
+            log.exception("matryca nie przyjela klatki awaryjnej - wygaszenie")
+            try:
+                self.sprzet.wygas()
+            except Exception:  # noqa: BLE001
+                log.exception("wygaszenie matrycy nie powiodlo sie")
 
     def _petla(self) -> None:
         while not self._stop.is_set():
             try:
-                self.krok()
-            except Exception:  # noqa: BLE001 - petla ma dzialac dalej
+                if not self.krok():
+                    self._stop.wait(0.5)
+            except Exception:  # noqa: BLE001 - ostatnia ochrona petli
                 log.exception("blad w petli sprzetu")
-                time.sleep(0.5)
+                self._stop.wait(0.5)
             self._budzik.wait(self.konf.okres_s)
             self._budzik.clear()
 
@@ -145,8 +195,8 @@ class ProgramRamki:
         with self.warunek:
             teraz = self.zegar()
             nr = self.logika.nr
+            self.logika.tick(teraz)  # D1: uplyw czasu przed kontaktem
             self.logika.kontakt(laptop, teraz)
-            self.logika.tick(teraz)
             if self.logika.nr != nr:
                 self._po_zmianie()
             return self.logika.stan(teraz)
@@ -154,7 +204,13 @@ class ProgramRamki:
     def zdarzenia(self, laptop, od: int, czekaj: float, limit: int, start_id) -> dict:
         with self.warunek:
             teraz = self.zegar()
+            nr = self.logika.nr
+            self.logika.tick(teraz)
+            # D1: kontakt tylko na poczatku zadania (klient, ktory zniknal w trakcie czekania, nie
+            # przedluza waznosci planu)
             self.logika.kontakt(laptop, teraz)
+            if self.logika.nr != nr:
+                self._po_zmianie()
             restart = start_id is not None and start_id != self.logika.start_id
             if restart:
                 od = 0
@@ -166,17 +222,25 @@ class ProgramRamki:
                 if pozostalo <= 0:
                     break
                 self.warunek.wait(pozostalo)
-            teraz = self.zegar()
-            self.logika.kontakt(laptop, teraz)
             zd, utracone = self.logika.zdarzenia_od(od, limit)
+            # D2: jawny zakres numerow wypchnietych z dziennika (zamiast cichej luki)
             return {"protokol": protokol.PROTOKOL, "start_id": self.logika.start_id, "restart": restart,
                     "od": od, "zdarzenia": zd, "nr_zdarzenia": self.logika.nr,
-                    "najstarsze_zdarzenie": self.logika.najstarsze_zdarzenie(), "utracone": utracone}
+                    "najstarsze_zdarzenie": self.logika.najstarsze_zdarzenie(), "utracone": utracone,
+                    "utracone_od": od + 1 if utracone else None, "utracone_do": od + utracone if utracone else None}
 
-    def plan(self, laptop, dane) -> dict:
+    def plan(self, laptop, dane, t_odbioru=None) -> dict:
         with self.warunek:
             try:
-                return self.logika.przyjmij_plan(dane, laptop, self.zegar())
+                return self.logika.przyjmij_plan(dane, laptop, self.zegar(), t_odbioru=t_odbioru)
+            finally:
+                self._po_zmianie()
+
+    def odrzucenie(self, laptop, blad) -> None:
+        """Serwer odrzucil PUT /plan albo PUT /tryb przed logika (zly JSON, 411, 413) - P5."""
+        with self.warunek:
+            try:
+                self.logika.odrzucenie(laptop, blad, self.zegar())
             finally:
                 self._po_zmianie()
 
@@ -255,17 +319,18 @@ def parsuj_argumenty(argv=None):
     p = argparse.ArgumentParser(prog="python -m ramka", description="Program ramki swietlnej (W albo P).")
     p.add_argument("--rola", choices=("W", "P"), help="W = wieczorna, P = poranna")
     p.add_argument("--sprzet", choices=("atrapa", "rpi"), help="domyslnie atrapa")
-    p.add_argument("--host", help="adres nasluchu (atrapa: 127.0.0.1, rpi: 0.0.0.0)")
+    p.add_argument("--host", help="adres nasluchu (domyslnie 127.0.0.1; adres w sieci - w pliku konfiguracji)")
     p.add_argument("--port", type=int, help="port (domyslnie 8765)")
-    p.add_argument("--konfiguracja", help="plik JSON z ustawieniami ramki")
+    p.add_argument("--konfiguracja", help="lokalny plik JSON z ustawieniami ramki (host, klucz) - poza repo")
     p.add_argument("--sterowanie-atrapy", action="store_true", help="zasoby /atrapa/* (tylko atrapa)")
     p.add_argument("--gadatliwie", action="store_true", help="logi DEBUG")
     return p.parse_args(argv)
 
 
 def konfiguracja_z_argumentow(a) -> Konfiguracja:
+    """Konfiguracja z pliku i wiersza polecen. Adres nasluchu: --host, potem "host" z pliku, inaczej
+    127.0.0.1 (takze dla sprzetu rpi - P6: ramka nie slucha w sieci, jesli konfiguracja tego nie mowi)."""
     konf = wczytaj_konfiguracje(a.konfiguracja) if a.konfiguracja else Konfiguracja()
-    host_z_pliku = bool(a.konfiguracja) and "host" in json.loads(Path(a.konfiguracja).read_text(encoding="utf-8"))
     if a.rola:
         konf.rola = a.rola
     if a.sprzet:
@@ -274,8 +339,6 @@ def konfiguracja_z_argumentow(a) -> Konfiguracja:
         konf.port = a.port
     if a.host:
         konf.host = a.host
-    elif not host_z_pliku:
-        konf.host = "0.0.0.0" if konf.sprzet == "rpi" else "127.0.0.1"
     if a.sterowanie_atrapy:
         if konf.sprzet != "atrapa":
             raise SystemExit("--sterowanie-atrapy tylko z --sprzet atrapa")
@@ -288,6 +351,10 @@ def main(argv=None) -> int:
     logging.basicConfig(level=logging.DEBUG if a.gadatliwie else logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     konf = konfiguracja_z_argumentow(a)
+    if konf.sprzet == "rpi" and konf.host in ("127.0.0.1", "localhost"):
+        log.warning("ramka slucha tylko na %s - adres w sieci ustaw jako \"host\" w pliku konfiguracji", konf.host)
+    if not konf.klucz and konf.host not in ("127.0.0.1", "localhost"):
+        log.warning("brak klucza (X-Ramka-Klucz): uzywac tylko w sieci, w ktorej sa wylacznie laptop i ramki")
     try:
         program = ProgramRamki(konf)
     except BladSprzetu as e:
