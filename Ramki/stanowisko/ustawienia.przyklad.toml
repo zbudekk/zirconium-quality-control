@@ -82,5 +82,8 @@ wieczorna_host = "ramka-w.local"
 poranna_host = "ramka-p.local"
 
 [sesja]    # opcjonalna (etap 3): plik ustawień sprzed etapu 3 nie ma tej sekcji i działa — brakujące klucze dostają wartości jak poniżej
-operatorzy = []                     # osoby do wyboru na początku zmiany, np. ["Technik A", "Technik B"]; wybrana osoba trafia do kolumny „operator” przy każdej decyzji; pusta lista = osoba nie jest zapisywana
+operatorzy = []                     # WPISZ osoby do wyboru na początku zmiany, np. ["Technik A", "Technik B"]; wybrana osoba trafia do kolumny „operator” przy każdej decyzji; przy pustej liście program działa i przyjmuje skany, ale decyzji „Ukruszona” / „OK” nie zapisuje
 przechowuj_skany_dni = 0            # po ilu dniach wolno usuwać pliki skanów; 0 = nie usuwać (tryb cienia: trzymamy wszystko), po trybie cienia 30; wyniki i baza zostają bezterminowo
+granica_doby_godz = 6               # początek doby roboczej: skany przyjęte od 6:00 do 6:00 następnego dnia (zmiany 1, 2 i 3) należą do jednej doby, nazwanej datą początku
+zmiany_start_godz = [6, 14, 22]     # początki zmian 1, 2, 3 (numer zmiany przy skanie i na liście „do dofrezowania”)
+ponowny_skan_okno_min = 60          # ta sama płytka przyjęta do tylu minut po poprzednim skanie = pytanie „to ponowny skan?”; później = nowy wsad (0 = nigdy nie pytać)
