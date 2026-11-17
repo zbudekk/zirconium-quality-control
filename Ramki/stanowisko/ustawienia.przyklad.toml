@@ -102,5 +102,5 @@ obserwator = "watchdog"             # "watchdog" albo "odpytywanie" (sam przegl�
 [silnik]   # opcjonalna (etap 3): analiza skanu w osobnym procesie; wartości jak poniżej = domyślne modułu silnik
 limit_zadania_s = 600.0             # analiza jednej płytki dłuższa niż tyle sekund jest przerywana (błąd „analiza trwała za długo”)
 czekaj_na_plik_s = 60.0             # jak długo ponawiać kopiowanie pliku skanu, który trzyma inny program
-pamiec_linii = true                 # czy trzymać linie brzegu projektów na dysku ([sciezki] pula_cache)
+pamiec_linii = false                # czy trzymać linie brzegu projektów na dysku ([sciezki] pula_cache); true = szybsza pierwsza plytka po starcie
 ponow_plik_niedostepny = 3          # ile razy program sam ponawia analizę skanu, którego pliku nie dało się odczytać, zanim zgłosi błąd

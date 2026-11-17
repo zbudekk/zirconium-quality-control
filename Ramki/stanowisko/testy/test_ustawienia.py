@@ -256,7 +256,7 @@ def test_nowe_klucze_zla_wartosc_nadal_jest_bledem(tmp_path, dopisek, komunikat)
 NOWE_E3_A3A = {
     "sciezki": {"podglady": "dane/podglady", "pula_cache": "dane/pula_cache", "logi": "dane/logi"},
     "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True, "obserwator": "watchdog"},
-    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": True, "ponow_plik_niedostepny": 3},
+    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": False, "ponow_plik_niedostepny": 3},
 }
 
 
@@ -289,6 +289,11 @@ def test_e3_a3a_nowe_klucze_sa_opcjonalne_i_rowne_stalym_modulow(tmp_path):
     assert (d["scanner"]["stabilizacja_ms"], d["scanner"]["min_rozmiar_mb"], d["scanner"]["min_trojkatow"], d["scanner"]["wzorzec_pliku"]) == (
         SC.STABILIZACJA_MS, SC.MIN_ROZMIAR_MB, SC.MIN_TROJKATOW, SC.WZORZEC_PLIKU)
     assert (d["silnik"]["limit_zadania_s"], d["silnik"]["czekaj_na_plik_s"]) == (SI.LIMIT_ZADANIA_S, SI.CZEKAJ_NA_PLIK_S)
+    import inspect  # D11 (recenzja PR #20): pamiec linii domyslnie jak w silnik (Silnik(pamiec_linii=None) = wylaczona)
+    assert d["silnik"]["pamiec_linii"] is (inspect.signature(SI.Silnik).parameters["pamiec_linii"].default is not None)
+    parametry_scannera = inspect.signature(SC.Scanner).parameters  # pozostale 2 wartosci (wczesniej 6 z 10 porownanych z modulami)
+    assert (d["scanner"]["rekurencyjnie"], d["scanner"]["obserwator"]) == (parametry_scannera["rekurencyjnie"].default, parametry_scannera["obserwator"].default)
+    assert d["silnik"]["ponow_plik_niedostepny"] >= 0  # regula aplikacji (nie ma odpowiednika w silnik)
     ust = UST.wczytaj_ustawienia(_plik_sprzed_etapu_3(tmp_path))
     assert ust == UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)  # wzor ma nowe klucze wpisane z wartosciami domyslnymi
     assert ust["scanner"] == NOWE_E3_A3A["scanner"] and ust["silnik"] == NOWE_E3_A3A["silnik"]
