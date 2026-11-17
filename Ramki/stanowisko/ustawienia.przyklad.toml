@@ -7,8 +7,9 @@ folder_eksportu_skanera = "C:/Aidite/Scandata"       # obserwowany przez moduł 
 folder_cyrkon = "C:/sciezka/do/OneDrive/Cyrkon"     # projekty STL (SharePoint zsynchronizowany lokalnie)
 folder_prywatne = "C:/sciezka/do/OneDrive/Prywatne"
 folder_millbox = "C:/MillBox/raporty"
-baza = "dane/stanowisko.sqlite"
+baza = "dane/stanowisko.sqlite"                     # plik bazy (SQLite): skany, prace, decyzje; ścieżka względna = od katalogu programu; poza OneDrive
 log_excel = "dane/log_excel.csv"
+wyniki = "dane/wyniki"                              # opcjonalny (etap 3): pliki wyników skanów <skan>_wynik.json zapisywane przez moduł session
 
 [plytki]   # katalogi z uklad.json i plytka_n*.stl, względem katalogu programu (nie cwd)
 wieczorna = "modele_plytek/wieczorna"
@@ -79,3 +80,7 @@ tryb_pytaj_przed_zapisem = true
 port = 8765
 wieczorna_host = "ramka-w.local"
 poranna_host = "ramka-p.local"
+
+[sesja]    # opcjonalna (etap 3): plik ustawień sprzed etapu 3 nie ma tej sekcji i działa — brakujące klucze dostają wartości jak poniżej
+operatorzy = []                     # osoby do wyboru na początku zmiany, np. ["Technik A", "Technik B"]; wybrana osoba trafia do kolumny „operator” przy każdej decyzji; pusta lista = osoba nie jest zapisywana
+przechowuj_skany_dni = 0            # po ilu dniach wolno usuwać pliki skanów; 0 = nie usuwać (tryb cienia: trzymamy wszystko), po trybie cienia 30; wyniki i baza zostają bezterminowo
