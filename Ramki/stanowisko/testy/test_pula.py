@@ -602,11 +602,15 @@ def test_p2_powiazanie_przeliczane_gdy_wlasciwy_plik_pozniej_w_indeksie(tmp_path
     kat.odswiez(TERAZ)
     assert baza.wiersz("SELECT projekt_id FROM frezowania")["projekt_id"] == id_projektu(baza, "Atrapowicz 512 Jan")
     zbuduj_foldery(cel, {("Cyrkon", "Fikcyjny 0412"): {"zab 46.stl": dt.datetime(2026, 11, 16, 12)}}, seed=1)
+    csv.rename(csv.with_suffix(".bak"))  # bez pliku CSV w tym odswiezeniu: powiazanie przelicza samo odswiezenie
     o = kat.odswiez(TERAZ)
+    csv.with_suffix(".bak").rename(csv)
+    assert (o["csv_plik"], o["powiazanie"]["zmienione"]) == ("brak", 1)
     p = kat.pula_wieczorna(TERAZ)
     assert [w.sha16 for w in p.wpisy] == [sha(cel, "Cyrkon", "Fikcyjny 0412", "zab 46.stl")]
     assert baza.wiersz("SELECT projekt_id FROM frezowania")["projekt_id"] == id_projektu(baza, "Fikcyjny 0412")
-    assert o["powiazanie"]["zmienione"] == 1
+    kat.odswiez(TERAZ)  # z plikiem CSV: wynik ten sam
+    assert klucze(kat.pula_wieczorna(TERAZ)) == klucze(p)
     b2 = B.otworz(tmp_path / "dane2" / "swieza.sqlite")  # swieza baza, ten sam stan folderow i pliku CSV
     try:
         k2 = P.KatalogPul(b2, zrodla(cel), plik_csv=csv, licz_cechy=False)
