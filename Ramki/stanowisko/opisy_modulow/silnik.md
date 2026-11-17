@@ -61,8 +61,8 @@ W oknie Qt: `lacznik = lacznik_qt(silnik)` - obiekt z sygnalami `gotowy()`, `sta
 - Wynik silnika a wiersz polecen: te same pola i te same decyzje, ale NIE rownosc bit w bit - `porownaj` nie jest
   powtarzalne nawet miedzy dwoma uruchomieniami wiersza polecen na tym samym skanie (zawsze szum rzedu 1e-15 z
   wielowatkowego ICP Open3D; czasem inna galaz ICP korekty skali jednego gniazda: `skala.iteracje` 20 albo 41,
-  transformacja o ok. 1e-5). Testy porownuja pole po polu z tolerancja 1e-3 dla liczb zmiennoprzecinkowych
-  (bez 4 licznikow ICP korekty skali); szczegoly w `testy/test_silnik.py` (`roznice`, `_rowne`) i w raporcie paczki.
+  transformacja o ok. 1e-5). Testy porownuja pole po polu z tolerancja 2e-3 dla liczb zmiennoprzecinkowych
+  (liczniki punktow o 2 albo 1 %, bez liczby iteracji); szczegoly w `testy/test_silnik.py` (`roznice`, `_rowne`) i w raporcie paczki.
 - Czas plytki to czas `porownaj`; silnik dodaje start procesu (jednorazowo, 3-4 s) i oszczedza budowe puli oraz linii
   brzegu od drugiej plytki. Pierwsza plytka po starcie procesu (takze po awarii) placi za pule i linie brzegu
   dopasowanych projektow - stad `pamiec_linii` i miejsce na "rozgrzewke" puli w A3 / A5.
