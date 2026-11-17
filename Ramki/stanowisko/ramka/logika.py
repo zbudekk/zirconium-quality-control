@@ -10,11 +10,16 @@ Reguly "co swieci" (I1-I13; szczegoly w README.md, "Zasady bezpieczenstwa wskaza
 - ramka wieczorna swieci WSZYSTKIE gniazda planu plytki; ramka poranna: gniazdo przypisane do
   kuwety swieci tylko, gdy to biezaca kuweta i nie jest potwierdzona na tej plytce, gniazdo bez
   kuwety (nieznana praca, "sprawdz") swieci zawsze;
-- zgaszenie jest ostateczne: DELETE /plan, kazdy PUT /tryb, odrzucony plan od wlasciciela i awaria
-  sprzetu usuwaja plan z pamieci i zamykaja jego wersje (ten sam albo starszy plan = 409);
+- zgaszenie jest ostateczne: DELETE /plan, kazdy PUT /tryb, odrzucone polecenie od wlasciciela i awaria
+  sprzetu usuwaja plan z pamieci i zamykaja wersje ostatnio przyjetego planu, takze juz wygaslego
+  (ten sam albo starszy plan = 409);
 - plan traci waznosc, gdy laptop-wlasciciel planu nie odezwie sie przez `wazny_s` sekund (najwyzej
-  granica roli): plan jest usuwany (zdarzenie plan_wygasl) i nic nie swieci;
-- ramka wieczorna kasuje wynik plytki, gdy plytke zdjeto (ta sama plytka moze wrocic z nowymi pracami).
+  granica roli): plan jest usuwany (zdarzenie plan_wygasl), stan wraca do `gotowa`, nic nie swieci;
+- ramka wieczorna kasuje wynik plytki, gdy plytke zdjeto (ta sama plytka moze wrocic z nowymi pracami);
+- runda 3: kazde zdarzenie, ktore gasi albo uniewaznia obraz, ma numer w dzienniku (plytka, plan_wygasl,
+  blad_sprzetu, start, zgaszono - DELETE / PUT /tryb / odrzucenie od wlasciciela, plan_przyjety), a plan
+  jest przyjmowany TYLKO z `zdarzenia_do` rownym numerowi ostatniego zdarzenia ramki - laptop potwierdza,
+  ze odebral wszystko, co ramka zglosila (inaczej 409 zdarzenia_nieodebrane, ciemno).
 """
 from __future__ import annotations
 
@@ -25,7 +30,6 @@ from itertools import islice
 from . import WERSJA, obraz, protokol
 from .protokol import BladProtokolu
 
-TYPY_STANU_PLANU = ("potwierdzenie", "cofniecie", "kuweta_wybrana")
 MAX_KONTAKTOW = 16
 MAX_WERSJI = 64
 MAX_WPISYWANYCH = 6
@@ -52,6 +56,7 @@ class LogikaRamki:
         self.plan_laptop = None
         self.plan_czas = teraz
         self.plan_wazny_s = None    # wazny_s planu przyciete do granicy roli
+        self.ostatni_plan_id = None  # ostatnio przyjety plan - zgaszenie zamyka jego wersje takze po wygasnieciu
         self.zgaszenie = float("-inf")  # czas ostatniego polecenia gaszacego (P1)
         self.awaria = False         # wyjatek w petli sprzetu, do pierwszego udanego obiegu (P4)
         self.potwierdzone = set()
@@ -62,10 +67,10 @@ class LogikaRamki:
         self.komunikat = ""
         self.komunikat_do = 0.0
         self.pytanie_do = None      # "Zamknij piec": czeka na Enter do tej chwili
+        self.pytanie_wygaslo = False  # D-N5: pytanie minelo bez Entera - pierwszy klawisz tylko to kasuje
         self.wlasciciel = None
         self.kontakty = {}
         self.wersje = {}
-        self.ostatnie_stanu_planu = {}
         self.zdarzenia = deque(maxlen=max_zdarzen)
         self.nr = 0
         self.zmiana = 0
@@ -79,8 +84,6 @@ class LogikaRamki:
         z = {"nr": self.nr, "typ": typ, "czas_s": round(teraz - self.t0, 3)}
         z.update(pola)
         self.zdarzenia.append(z)
-        if typ in TYPY_STANU_PLANU:
-            self.ostatnie_stanu_planu[pola.get("plan_id")] = self.nr
         self.zmiana += 1
         return z
 
@@ -107,7 +110,13 @@ class LogikaRamki:
         self.kontakty[laptop_id] = teraz
 
     def lacznosc(self, teraz: float) -> bool:
-        return any(teraz - t <= self.limit_lacznosci_s for t in self.kontakty.values())
+        """D-N4: kontakt laptopa-wlasciciela (planu, a bez planu - ostatniego polecenia) w limicie lacznosci;
+        bez wlasciciela - kontakt dowolnego laptopa. Kontakt zapisuja tylko zadania z poprawnym kluczem
+        (serwer odpowiada 401 przed czymkolwiek)."""
+        wl = self.plan_laptop if self.plan is not None else self.wlasciciel
+        if wl is None:
+            return any(teraz - t <= self.limit_lacznosci_s for t in self.kontakty.values())
+        return self._aktywny(wl, teraz)
 
     def _aktywny(self, laptop_id, teraz: float) -> bool:
         t = self.kontakty.get(laptop_id)
@@ -145,13 +154,17 @@ class LogikaRamki:
         self.wpisywane = ""
         self.komunikat = ""
         self.pytanie_do = None
+        self.pytanie_wygaslo = False
 
     def tick(self, teraz: float) -> None:
-        """Uplyw czasu: wygasniecie planu po utracie lacznosci z laptopem, koniec test_led,
-        koniec pytania "Zamknij piec", wygasniecie wpisywanych cyfr."""
+        """Uplyw czasu: wygasniecie planu po utracie lacznosci z laptopem (stan wraca do gotowa - D-N3),
+        koniec test_led, koniec pytania "Zamknij piec", wygasniecie wpisywanych cyfr."""
         if self.plan is not None and not self._plan_wazny(teraz):
             plan_id = self.plan.plan_id
             self._wyczysc_stan_planu()
+            if self.tryb == "wynik":
+                self.tryb = "gotowa"
+                self.tryb_od = teraz
             self._dodaj("plan_wygasl", teraz, plan_id=plan_id)
         if self.tryb == "test_led" and teraz - self.tryb_od >= CZAS_TEST_LED_S:
             self.tryb = "gotowa"
@@ -159,6 +172,7 @@ class LogikaRamki:
             self.zmiana += 1
         if self.pytanie_do is not None and teraz >= self.pytanie_do:
             self.pytanie_do = None
+            self.pytanie_wygaslo = True
             self.zmiana += 1
         if self.wpisywane and teraz - self.wpisywane_od >= protokol.CZAS_WPISYWANIA_S:
             self.wpisywane = ""
@@ -176,30 +190,44 @@ class LogikaRamki:
         if w is not None:
             w["zamknieta"] = True
 
-    def _zgas(self, teraz: float, tryb: str = "gotowa") -> None:
-        """Wspolne zgaszenie (DELETE, PUT /tryb, odrzucony plan wlasciciela, awaria sprzetu): plan usuniety
-        z pamieci, jego wersja zamknieta, PUT /plan odebrany przed ta chwila bedzie odrzucony (P1)."""
-        if self.plan is not None:
-            self._zamknij_wersje(self.plan.plan_id)
+    def _zgas(self, teraz: float, tryb=None, przyczyna=None, **pola) -> None:
+        """Wspolne zgaszenie (DELETE, PUT /tryb, odrzucone polecenie wlasciciela, awaria sprzetu): plan
+        usuniety z pamieci, wersja OSTATNIO PRZYJETEGO planu zamknieta takze wtedy, gdy plan juz wygasl
+        (P-N2), PUT /plan odebrany przed ta chwila odrzucany (P1). `tryb` None = stan bez zmian, tylko
+        `wynik` -> `gotowa`. `przyczyna` = zdarzenie zgaszono w dzienniku (runda 3: plan zbudowany przed
+        nim ma za male zdarzenia_do); awaria ma wlasne zdarzenie blad_sprzetu."""
+        plan_id = self._plan_id()
+        if self.ostatni_plan_id is not None:
+            self._zamknij_wersje(self.ostatni_plan_id)
         self._wyczysc_stan_planu()
         self.zgaszenie = teraz
+        if tryb is None:
+            tryb = "gotowa" if self.tryb == "wynik" else self.tryb
         if tryb != self.tryb:
             self.tryb_od = teraz
         self.tryb = tryb
         self.zmiana += 1
+        if przyczyna is not None:
+            self._dodaj("zgaszono", teraz, przyczyna=przyczyna, plan_id=plan_id, **pola)
 
     def _po_odrzuceniu(self, laptop_id, blad: BladProtokolu, teraz: float) -> None:
-        """P5: odrzucone polecenie od wlasciciela (albo laptopa, ktory moglby nim zostac) gasi obraz -
-        poza odrzuceniami polecen starszych niz obraz, nie od wlasciciela albo nie do tej ramki."""
+        """P5, D-N6: odrzucone polecenie od wlasciciela (albo laptopa, ktory moglby nim zostac) gasi obraz -
+        poza odrzuceniami polecen starszych niz obraz tego samego planu, nie od wlasciciela albo nie do tej
+        ramki. Zgaszenie = zdarzenie zgaszono (przyczyna odrzucenie, kod) i `blad.zgaszono` w odpowiedzi.
+        Kazdy blad rozpatrywany raz (`obsluzony`: serwer nie gasi drugi raz po logice)."""
+        if blad.obsluzony:
+            return
+        blad.obsluzony = True
         if not laptop_id or blad.kod in protokol.KODY_BEZ_ZMIANY_OBRAZU:
             return
         wl = self.wlasciciel
         if wl is not None and wl != laptop_id and self._aktywny(wl, teraz):
             return
-        self._zgas(teraz)
+        self._zgas(teraz, None, "odrzucenie", kod=blad.kod)
+        blad.zgaszono = True
 
     def odrzucenie(self, laptop_id, blad: BladProtokolu, teraz: float) -> None:
-        """Odrzucenie PUT /plan albo PUT /tryb przez serwer przed logika (zly JSON, 411, 413)."""
+        """Odrzucenie polecenia przez serwer poza logika (zly JSON, 411, 413, zly parametr, 404 / 405, 500)."""
         self.tick(teraz)
         self._po_odrzuceniu(laptop_id, blad, teraz)
 
@@ -225,23 +253,30 @@ class LogikaRamki:
         self._sprawdz_wlasciciela(laptop_id, teraz)
         if self.awaria:
             raise BladProtokolu(409, "blad_sprzetu", "awaria sprzetu ramki - czekaj na zdarzenie sprzet_dziala")
-        if t_odbioru is not None and t_odbioru < self.zgaszenie:
-            raise BladProtokolu(409, "plan_zgaszony", "plan odebrany przed poleceniem zgaszenia - wyslij nowa wersje")
         poprzednia = self.wersje.get(plan.plan_id)
+        # D-N8: najwyzsza wersja tego planu znana ramce (laptop po restarcie wie, od czego zaczac)
+        znana = {"wersja_ramki": poprzednia["wersja"]} if poprzednia is not None else {}
+        if t_odbioru is not None and t_odbioru < self.zgaszenie:
+            raise BladProtokolu(409, "plan_zgaszony", "plan odebrany przed poleceniem zgaszenia - tej tresci nie "
+                                "wysylac ponownie", **znana)
         if poprzednia is not None:
             if plan.wersja < poprzednia["wersja"]:
-                raise BladProtokolu(409, "plan_starszy", "ramka ma nowsza wersje tego planu")
+                raise BladProtokolu(409, "plan_starszy", "ramka ma nowsza wersje tego planu", **znana)
             if plan.wersja == poprzednia["wersja"]:
                 if plan.odcisk != poprzednia["odcisk"]:
-                    raise BladProtokolu(409, "konflikt_wersji", "ta sama wersja planu z inna trescia")
+                    raise BladProtokolu(409, "konflikt_wersji", "ta sama wersja planu z inna trescia", **znana)
                 if poprzednia["zamknieta"]:
-                    raise BladProtokolu(409, "plan_zgaszony", "ta wersja planu zostala zgaszona - wyslij nowa wersje")
+                    raise BladProtokolu(409, "plan_zgaszony", "ta wersja planu zostala zgaszona - tej tresci nie "
+                                        "wysylac ponownie", **znana)
                 if self.plan is not None and self.plan.plan_id == plan.plan_id:
                     self.wlasciciel = laptop_id
                     return self._odpowiedz_planu("powtorzony")
-        if plan.zdarzenia_do < self.ostatnie_stanu_planu.get(plan.plan_id, 0):
+        if plan.zdarzenia_do != self.nr:
+            # runda 3: laptop nie odebral wszystkich zdarzen ramki (zdjecie plytki, zgaszenie, wygasniecie,
+            # restart, przyjecie innego planu ...) - plan zbudowany na starszym stanie nie zapali sie
             raise BladProtokolu(409, "zdarzenia_nieodebrane",
-                                "ramka ma zdarzenia tego planu, ktorych laptop nie odebral - odpytaj /zdarzenia")
+                                "ramka ma zdarzenia, ktorych laptop nie odebral - odpytaj /zdarzenia, plan z "
+                                "zdarzenia_do = numer ostatniego odebranego zdarzenia")
         self._wyczysc_stan_planu()
         self.plan = plan
         self.plan_laptop = laptop_id
@@ -252,11 +287,15 @@ class LogikaRamki:
             self.stos.setdefault(p, []).append(k)
         self.wybrane = dict(plan.wybrane)
         self._zapamietaj_wersje(plan)
+        self.ostatni_plan_id = plan.plan_id
         self.wlasciciel = laptop_id
         if self.tryb != "wynik":
             self.tryb_od = teraz
         self.tryb = "wynik"
         self.zmiana += 1
+        # nowy obraz zastepuje poprzedni: plan zbudowany przed tym przyjeciem (np. spozniony PUT innego
+        # plan_id - D-N2) ma za male zdarzenia_do
+        self._dodaj("plan_przyjety", teraz, plan_id=plan.plan_id, wersja=plan.wersja)
         return self._odpowiedz_planu("przyjety")
 
     def _odpowiedz_planu(self, wynik: str) -> dict:
@@ -265,7 +304,8 @@ class LogikaRamki:
                 "nr_zdarzenia": self.nr}
 
     def usun_plan(self, laptop_id, teraz: float, plan_id=None) -> dict:
-        """DELETE /plan = zgas: brak planu, stan gotowa, wersja planu zamknieta."""
+        """DELETE /plan = zgas: brak planu, stan gotowa, wersja planu zamknieta, zdarzenie zgaszono
+        (zawsze, takze bez planu w pamieci; `nr_zdarzenia` w odpowiedzi = jego numer)."""
         self.tick(teraz)
         self.kontakt(laptop_id, teraz)
         self._sprawdz_wlasciciela(laptop_id, teraz)
@@ -274,12 +314,13 @@ class LogikaRamki:
         wynik = "usuniety" if self.plan is not None else "brak_planu"
         if plan_id is not None:
             self._zamknij_wersje(plan_id)
-        self._zgas(teraz)
+        self._zgas(teraz, "gotowa", "usuniecie")
         self.wlasciciel = laptop_id
         return {"protokol": protokol.PROTOKOL, "wynik": wynik, "start_id": self.start_id, "nr_zdarzenia": self.nr}
 
     def ustaw_tryb(self, dane, laptop_id, teraz: float) -> dict:
-        """PUT /tryb: gotowa / skanowanie / analiza / blad / test_led. Kazdy usuwa plan (P2)."""
+        """PUT /tryb: gotowa / skanowanie / analiza / blad / test_led. Kazdy usuwa plan (P2) i daje zdarzenie
+        zgaszono (przyczyna tryb, stan); `nr_zdarzenia` w odpowiedzi = jego numer."""
         self.tick(teraz)
         self.kontakt(laptop_id, teraz)
         try:
@@ -288,7 +329,7 @@ class LogikaRamki:
         except BladProtokolu as b:
             self._po_odrzuceniu(laptop_id, b, teraz)
             raise
-        self._zgas(teraz, stan)
+        self._zgas(teraz, stan, "tryb", stan=stan)
         self.wlasciciel = laptop_id
         return {"protokol": protokol.PROTOKOL, "wynik": "przyjety", "stan": stan, "start_id": self.start_id,
                 "nr_zdarzenia": self.nr}
@@ -297,11 +338,12 @@ class LogikaRamki:
 
     def awaria_sprzetu(self, teraz: float) -> None:
         """P4: wyjatek w petli sprzetu - zgaszenie jak po DELETE, plytka nieznana, zdarzenie blad_sprzetu
-        (raz na awarie). Plany sa odrzucane (409 blad_sprzetu) do pierwszego udanego obiegu petli."""
+        (raz na awarie). Plany sa odrzucane (409 blad_sprzetu) do koniec_awarii (program: po
+        `powrot_sprzetu_s` obiegow bez wyjatku - D-N7)."""
         if self.awaria:
             return
         self.awaria = True
-        self._zgas(teraz)
+        self._zgas(teraz, "gotowa")
         self._dodaj("blad_sprzetu", teraz)
         self.ustaw_plytke(0, teraz)
 
@@ -328,6 +370,7 @@ class LogikaRamki:
             self._zamknij_wersje(self.plan.plan_id)  # ponowny PUT tej wersji nie przywroci wpisu
         self.wpisywane = ""
         self.komunikat = ""
+        self.pytanie_wygaslo = False
         self._dodaj("plytka", teraz, plytka=n, poprzednia=stara)
 
     def ustaw_pewnosc(self, pewna: bool, teraz: float) -> None:
@@ -391,22 +434,28 @@ class LogikaRamki:
         self.tick(teraz)
         if self.rola != "P" or k not in protokol.KLAWISZE:
             return
+        if self.pytanie_wygaslo:
+            # D-N5: pytanie "PIEC?" minelo bez Entera - pierwszy klawisz po uplywie czasu tylko kasuje stan `*`
+            # (Enter spozniony o chwile nie zamyka pieca i nie potwierdza biezacej kuwety)
+            self.pytanie_wygaslo = False
+            self.zmiana += 1
+            return
+        p = self._plytka_widoczna()
         if self.pytanie_do is not None:
             # "Zamknij piec", krok 2: Enter potwierdza; kazdy inny klawisz tylko anuluje pytanie
             self.pytanie_do = None
             self.zmiana += 1
-            if k == "enter" and self._plan_aktywny(teraz):
-                self._dodaj("zamknij_piec", teraz, plan_id=self._plan_id(), plytka=self._plytka_widoczna())
+            if k == "enter" and self._plan_aktywny(teraz) and p != 0:
+                self._dodaj("zamknij_piec", teraz, plan_id=self._plan_id(), plytka=p)
             return
         if k == "zamknij_piec":
-            # krok 1: pytanie na marginesie; bez planu klawisz nic nie robi
-            if self._plan_aktywny(teraz):
+            # krok 1: pytanie na marginesie; bez planu i bez (pewnej) plytki klawisz nic nie robi (D-N5)
+            if self._plan_aktywny(teraz) and p != 0:
                 self.wpisywane = ""
                 self.komunikat = ""
                 self.pytanie_do = teraz + protokol.CZAS_POTWIERDZENIA_ZAMKNIECIA_S
                 self.zmiana += 1
             return
-        p = self._plytka_widoczna()
         if not self._plan_aktywny(teraz) or p not in self.plan.plytki:
             return
         if k.isdigit():
