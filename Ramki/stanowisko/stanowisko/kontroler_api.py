@@ -9,8 +9,9 @@ Kontroler spina ``scanner`` -> ``silnik`` -> ``session`` / ``baza`` i wystawia o
    zajety - "czeka na zwolnienie", ``plik_niedostepny`` / ``plik_zmieniony``, blad inspekcji gniazda, odmowy), postep
    analizy, kolejka, pula projektow (liczba STL), skaner, operator, doba i zmiana.
 2. POLECENIA - metody kontrolera wolane przez okno (lista: ``POLECENIA``); kazda zwraca ``Odpowiedz`` (``ok`` + tekst dla
-   technika) i NIGDY nie rzuca wyjatku z powodu zlego stanu (brak operatora, skan nieprzyjety) - odmowa jest odpowiedzia
-   i komunikatem w stanie. ``kontroler.wykonaj(nazwa, *argumenty)`` wola polecenie po nazwie (przyciski z ``Pytanie``).
+   technika) i NIGDY nie rzuca wyjatku - ani z powodu zlego stanu (brak operatora, skan nieprzyjety), ani zlych argumentow
+   (zly typ, zla liczba: ``kod="zle_argumenty"``, D1) - odmowa jest odpowiedzia i komunikatem w stanie.
+   ``kontroler.wykonaj(nazwa, *argumenty)`` wola polecenie po nazwie (przyciski z ``Pytanie``).
 3. SYGNALY - ``kontroler.subskrybuj(funkcja)``: funkcja dostaje ``ZdarzenieKontrolera`` (``stan`` / ``postep`` /
    ``komunikat`` / ``pytanie`` / ``zamkniety``). W oknie Qt: ``lacznik_qt(kontroler)`` - obiekt z sygnalami Qt
    ``stan_zmieniony(object)``, ``postep(object)``, ``komunikat(object)``, ``pytanie(object)``, ``zamkniety()`` i zegarem,
@@ -21,9 +22,15 @@ z baza jest do niego przywiazane). Zdarzenia z watkow ``scanner`` i ``silnik`` c
 oproznia (najwyzej ``limit_s`` na wywolanie), zapisuje w sesji i powiadamia subskrybentow - dlatego okno musi je wolac
 regularnie (``lacznik_qt`` robi to zegarem), a test bez okna wola je sam.
 
-CZEGO OKNU NIE WOLNO: siegac do ``session`` / ``baza`` / ``scanner`` / ``silnik`` z pominieciem kontrolera, trzymac wlasnych
-kolorow i napisow statusow (tylko ``statusy``), pokazywac sciezek i nazw plikow (stan ich nie zawiera - poza folderem puli
-i folderem skanera, ktore sa ustawieniami), zmieniac obiektow stanu (sa zamrozone), wolac kontrolera z innego watku.
+CZEGO OKNU NIE WOLNO: siegac do ``session`` / ``baza`` / ``scanner`` / ``silnik`` z pominieciem kontrolera (obraz odchylek:
+``kontroler_api.wczytaj_podglad``, D12), trzymac wlasnych kolorow i napisow statusow (tylko ``statusy``), pokazywac sciezek
+i nazw plikow (stan ich nie zawiera - poza folderem puli i folderem skanera, ktore sa ustawieniami), zmieniac obiektow stanu
+(sa zamrozone, takze slowniki: ``ZamrozonySlownik``, D2), wolac kontrolera z innego watku.
+
+PYTANIA I KOMUNIKATY (D6): okienka do pokazania = ``stan.pytania`` / ``stan.komunikaty`` (otwarte); ``Plytka.pytania`` /
+``Plytka.komunikaty`` to pelny stan plytki (historia) - pozycje zamkniete przez technika maja tam ``ukryte=True``.
+
+Zmiany kontraktu po rundzie 2 recenzji (wersja 2, wszystkie addytywne): opis w ``opisy_modulow/aplikacja.md``.
 
 Plik zawiera tez ``KontrolerSesji`` (wspolna czesc prawdziwego kontrolera i atrapy: stan z ``session``, polecenia
 o decyzjach) oraz ``AtrapaKontrolera`` - kontroler na danych sztucznych, bez skanera i silnika, do budowy i testow okna.
@@ -35,9 +42,14 @@ import collections
 import dataclasses
 import datetime as dt
 import hashlib
+import inspect
 import json
 import logging
+import math
+import os
+import re
 import shutil
+import sqlite3
 import tempfile
 import time
 import warnings
@@ -50,21 +62,74 @@ from . import statusy as ST
 
 LOG = logging.getLogger(__name__)
 
-WERSJA_KONTRAKTU = 1
+WERSJA_KONTRAKTU = 2  # 2: zmiany addytywne po rundzie 2 recenzji PR #20 (okno zbudowane na wersji 1 dziala bez zmian)
 TRYB_WIECZOR = SE.TRYB_WIECZOR
 LIMIT_PRZETWARZANIA_S = 0.05  # najdluzej tyle trwa jedno ``przetworz()``, gdy czeka wiele zdarzen (petla okna: przerwy < 200 ms)
 OKRES_LACZNIKA_MS = 30
 PAMIEC_ODRZUCEN_DNI = 2  # z ilu dni wstecz czytane sa odrzucone propozycje ponownego skanu
 LIMIT_KOMUNIKATOW = 50  # tyle komunikatow ulotnych naraz w stanie (starsze znikaja same)
 NUMERY_PLYTEK_ZAPASOWE = tuple(range(1, 10))  # cyfry do wyboru, gdy ukladu plytki nie da sie wczytac
+WSPOLCZYNNIK_MIN, WSPOLCZYNNIK_MAX = 0.9, 1.5  # zakres wspolczynnika skurczu przyjmowany z okna (poranna 1,0; wieczorna ok. 1,2-1,25)
+STANY_PULI = ("nieustawiona", "liczenie", "gotowa", "pusta", "brak_folderu")
+KOD_ZLE_ARGUMENTY = "zle_argumenty"  # D1: zly typ albo zla liczba argumentow polecenia (blad okna, nie technika)
+ID_BLAD_ZAPISU = "blad_zapisu"  # P1: staly id komunikatu trwalego o bledzie zapisu wynikow (jeden na program)
+PLIK_LISTY = "do_dofrezowania_biezaca.csv"  # P7: plik listy biezacej w folderze bazy (nazwa jak w session.zapisz_do_dofrezowania)
+_LICZBA_MIN, _LICZBA_MAX = -(2 ** 63), 2 ** 63 - 1  # zakres liczby calkowitej SQLite (id, numer plytki)
+_WZOR_DOBY = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 # polecenia okna do kontrolera (nazwy metod); ``Praca.dozwolone`` / ``Plytka.dozwolone`` podaja, ktore maja teraz sens
 POLECENIA = ("wybierz_operatora", "ukruszona", "ok", "cofnij", "potwierdz_ponowny_skan", "odrzuc_ponowny_skan", "cofnij_zastapienie",
              "dopusc_plytke", "cofnij_dopuszczenie", "podaj_numer_plytki", "zamknij_pytanie", "zamknij_komunikat", "start_skanu",
-             "ustaw_pule", "odswiez_pule", "zamknij")
+             "ustaw_pule", "odswiez_pule", "zamknij",
+             "zapisz_liste", "ponow_zapis")  # 17., 18.: runda 2 recenzji (P7, P1)
 # sygnaly kontrolera do okna (``ZdarzenieKontrolera.typ``; w ``lacznik_qt``: stan_zmieniony, postep, komunikat, pytanie, zamkniety)
 SYGNALY = ("stan", "postep", "komunikat", "pytanie", "zamkniety")
 RODZAJE_PYTAN = ("ponowny_skan", "plytka_nie_z_trybu", "brak_numeru_plytki")
+
+
+# ----------------------------------------------------------------------------
+# slowniki tylko do odczytu w stanie (D2)
+# ----------------------------------------------------------------------------
+class ZamrozonySlownik(dict):
+    """Slownik w stanie kontrolera (``liczniki``, ``konflikty``, ubytki i kandydaci w ``SzczegolyPracy``): czyta sie go jak
+    zwykly ``dict`` (``[]``, ``get``, ``items``, porownanie z ``dict``, JSON, ``dataclasses.asdict``), a kazda proba zmiany
+    konczy sie ``TypeError`` - okno nie zmieni stanu trzymanego przez kontroler (ten sam obiekt dostaja wszyscy odbiorcy
+    sygnalu). Ma ``hash``, wiec caly ``StanAplikacji`` tez."""
+
+    __slots__ = ()
+
+    def _tylko_odczyt(self, *argumenty: Any, **nazwane: Any) -> None:
+        raise TypeError("stan kontrolera jest tylko do odczytu - slownika nie wolno zmieniac")
+
+    __setitem__ = __delitem__ = clear = pop = popitem = setdefault = update = __ior__ = _tylko_odczyt
+
+    def __hash__(self) -> int:  # type: ignore[override]
+        return hash(frozenset(self.items()))
+
+    def __reduce__(self):
+        return (type(self), (dict(self),))
+
+    def __copy__(self) -> "ZamrozonySlownik":
+        return self
+
+    def __deepcopy__(self, pamiec: dict) -> "ZamrozonySlownik":
+        return self
+
+
+def zamroz(obiekt: Any) -> Any:
+    """Kopia danych tylko do odczytu: slownik -> ``ZamrozonySlownik``, lista / krotka -> krotka, zbior -> ``frozenset``."""
+    if isinstance(obiekt, dict):
+        return ZamrozonySlownik({k: zamroz(v) for k, v in obiekt.items()})
+    if isinstance(obiekt, (list, tuple)):
+        return tuple(zamroz(v) for v in obiekt)
+    if isinstance(obiekt, (set, frozenset)):
+        return frozenset(zamroz(v) for v in obiekt)
+    return obiekt
+
+
+def _jest_liczba(x: Any) -> bool:
+    """Liczba calkowita mieszczaca sie w SQLite (id pracy / skanu); ``bool`` to nie liczba."""
+    return isinstance(x, int) and not isinstance(x, bool) and _LICZBA_MIN <= x <= _LICZBA_MAX
 
 
 # ----------------------------------------------------------------------------
@@ -73,7 +138,9 @@ RODZAJE_PYTAN = ("ponowny_skan", "plytka_nie_z_trybu", "brak_numeru_plytki")
 @dataclasses.dataclass(frozen=True)
 class Odpowiedz:
     """Odpowiedz kontrolera na polecenie okna. ``ok`` False = odmowa: ``tekst`` to powod i rada dla technika, ``kod`` -
-    rodzaj odmowy (klucz ``statusy.KOMUNIKATY``, np. ``brak_operatora``). ``dane`` - wynik polecenia (np. id decyzji)."""
+    rodzaj odmowy (klucz ``statusy.KOMUNIKATY``, np. ``brak_operatora``, ``zle_argumenty``). ``dane`` - wynik polecenia
+    (np. id decyzji, stan puli, nazwa pliku listy). Przy ``ok`` True ``kod`` jest zwykle pusty; wyjatek: ``wylogowano``
+    (``wybierz_operatora(None)``)."""
 
     ok: bool
     tekst: str = ""
@@ -160,7 +227,9 @@ class Gniazdo:
 @dataclasses.dataclass(frozen=True)
 class Komunikat:
     """Informacja dla technika. ``rodzaj`` = klucz ``statusy.KOMUNIKATY``; ``poziom``: info / ostrzezenie / blad.
-    ``trwaly`` True = wynika ze stanu skanu (wraca po restarcie, znika, gdy skan przestaje tego wymagac)."""
+    ``trwaly`` True = zostaje na ekranie, dopoki trwa przyczyna (stan skanu - wraca po restarcie; ``blad_zapisu`` - do
+    udanego zapisu) albo technik go nie zamknie; False = informacja ulotna. ``ukryte`` True = zamkniety przez technika
+    (tylko w ``Plytka.komunikaty`` - historia plytki; w ``stan.komunikaty`` sa tylko otwarte)."""
 
     id: str
     rodzaj: str
@@ -171,13 +240,15 @@ class Komunikat:
     skan_id: int | None = None
     gniazda: tuple = ()
     trwaly: bool = False
+    ukryte: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
 class Pytanie:
     """Pytanie, na ktore technik odpowiada przyciskiem z ``odpowiedzi``. ``rodzaj``: ``RODZAJE_PYTAN``.
     Ponowny skan: ``liczba_decyzji`` / ``liczba_ukruszonych`` = ile decyzji poprzedniego skanu przestanie obowiazywac.
-    Brak numeru plytki: ``numery`` = numery plytek tego ukladu (okno pokazuje cyfry; ``podaj_numer_plytki(skan_id, n)``)."""
+    Brak numeru plytki: ``numery`` = numery plytek tego ukladu (okno pokazuje cyfry; ``podaj_numer_plytki(skan_id, n)``).
+    ``ukryte`` True = technik kliknal "Pozniej" (tylko w ``Plytka.pytania``; okienka pokazuje sie z ``stan.pytania``)."""
 
     id: str
     rodzaj: str
@@ -191,6 +262,7 @@ class Pytanie:
     liczba_decyzji: int = 0
     liczba_ukruszonych: int = 0
     numery: tuple = ()
+    ukryte: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -214,7 +286,7 @@ class Plytka:
     sha16: str | None = None  # skrot pliku skanu
     gniazda: tuple = ()
     poza_gniazdem: tuple = ()
-    liczniki: dict = dataclasses.field(default_factory=dict)  # klasa koloru -> liczba prac
+    liczniki: dict = dataclasses.field(default_factory=ZamrozonySlownik)  # klasa koloru -> liczba prac (tylko do odczytu)
     zielonych: int = 0
     zastepuje_id: int | None = None
     moze_zastapic: int | None = None
@@ -267,12 +339,14 @@ class Postep:
 @dataclasses.dataclass(frozen=True)
 class Kolejka:
     """Skany czekajace na analize: ``w_toku`` (0 / 1), ``czeka`` (w kolejce silnika), ``wstrzymane`` (czekaja na pule
-    projektow albo na silnik), ``razem``."""
+    projektow, na silnik albo na zapis wyniku), ``razem``. ``niezapisane`` (czesc ``wstrzymane``) = wyniki i bledy analizy,
+    ktorych nie udalo sie jeszcze zapisac w bazie (lista: ``StanAplikacji.niezapisane``)."""
 
     w_toku: int = 0
     czeka: int = 0
     wstrzymane: int = 0
     silnik_gotowy: bool = False
+    niezapisane: int = 0
 
     @property
     def razem(self) -> int:
@@ -282,7 +356,9 @@ class Kolejka:
 @dataclasses.dataclass(frozen=True)
 class Pula:
     """Pula projektow na poziomie 1 planu: folder + wspolczynnik wpisany recznie (None = domyslny dla typu plytki).
-    ``stan``: nieustawiona / liczenie / gotowa / pusta / brak_folderu; ``liczba_stl`` None = jeszcze nie policzono."""
+    ``stan`` (``STANY_PULI``): nieustawiona / liczenie / gotowa / pusta / brak_folderu; ``liczba_stl`` None = jeszcze nie
+    policzono. Pula jest liczona od nowa (w tle) po kazdym nowym skanie i wyniku; gdy folder oprozniono albo zniknal, stan
+    przechodzi na ``pusta`` / ``brak_folderu``, a skany czekaja (``kolejka.wstrzymane``) zamiast dostac blad analizy (P3)."""
 
     folder: str | None = None
     wspolczynnik: float | None = None
@@ -304,10 +380,31 @@ class Skaner:
 
 
 @dataclasses.dataclass(frozen=True)
+class Niezapisany:
+    """Skan, ktorego wynik (albo blad) analizy jest policzony, ale NIE zapisany w bazie (P1, P8): skan nie przepadl - czeka
+    w pamieci, program ponawia zapis sam (z rosnacym odstepem) i na polecenie ``ponow_zapis``. Okno pokazuje go jako
+    pozycje "nie zapisano" (``napis``) obok plytek. ``przyczyna``: ``blad_zapisu`` (dysk pelny, blad wejscia / wyjscia,
+    dysk odlaczony - komunikat trwaly ``blad_zapisu``) albo ``baza_zajeta`` (inny program trzyma baze - komunikat
+    ``baza_zajeta``). ``rodzaj``: ``wynik`` / ``blad``. ``numer``, ``uklad``, ``prac`` - z wyniku analizy (None dla bledu)."""
+
+    sha16: str
+    rodzaj: str
+    przyczyna: str
+    napis: str
+    od: str = ""
+    proby: int = 0
+    numer: int | None = None
+    uklad: str | None = None
+    prac: int | None = None
+
+
+@dataclasses.dataclass(frozen=True)
 class StanAplikacji:
     """Caly stan ekranu wieczornego. ``wersja`` rosnie przy kazdej zmianie. ``plytki`` - skany biezacej doby roboczej
     w kolejnosci przyjecia; ``biezaca_plytka`` - skan_id ostatniej plytki. ``komunikaty`` i ``pytania`` - wszystko, co
-    wymaga uwagi technika teraz (takze przypiete do plytek)."""
+    wymaga uwagi technika teraz (takze przypiete do plytek; zamkniete przez technika - nie). ``niezapisane`` - skany
+    policzone, ale jeszcze niezapisane w bazie (``Niezapisany``). ``lista_zapisana`` - kiedy kontroler ostatnio zapisal
+    plik listy "do dofrezowania" (zapis samoczynny po kazdej zmianie listy; ``zapisz_liste``)."""
 
     wersja: int = 0
     czas: str = ""
@@ -319,18 +416,20 @@ class StanAplikacji:
     wymaga_operatora: bool = True
     plytki: tuple = ()
     biezaca_plytka: int | None = None
-    liczniki: dict = dataclasses.field(default_factory=dict)
+    liczniki: dict = dataclasses.field(default_factory=ZamrozonySlownik)  # tylko do odczytu (D2)
     prac: int = 0
     do_dofrezowania: tuple = ()  # pozycje tej doby
     do_dofrezowania_biezaca: tuple = ()  # wszystkie otwarte, takze z poprzednich dob
     pytania: tuple = ()
     komunikaty: tuple = ()
-    konflikty: tuple = ()
+    konflikty: tuple = ()  # slowniki tylko do odczytu (``ZamrozonySlownik``; ``miejsca`` - krotka)
     analiza: Postep | None = None
     kolejka: Kolejka = Kolejka()
     pula: Pula = Pula()
     skaner: Skaner = Skaner()
     zamkniety: bool = False
+    niezapisane: tuple = ()
+    lista_zapisana: str | None = None
 
     def plytka(self, skan_id: int) -> Plytka | None:
         return next((p for p in self.plytki if p.skan_id == skan_id), None)
@@ -342,8 +441,9 @@ class StanAplikacji:
 @dataclasses.dataclass(frozen=True)
 class SzczegolyPracy:
     """Widok pracy po kliknieciu gniazda: ``ubytki`` (slowniki z pliku wyniku: x, y, z, srednica_mm, glebokosc_mm, metoda,
-    kolor, na_krawedzi), ``uwagi`` programu, ``kandydaci`` (sha16, zeby, typ, pokrycie) oraz ``plik_podgladu`` - plik
-    ``*_podglad.npz`` (``silnik.wczytaj_podglad``: gniazdo -> punkty i odchylki do obrazu odchylek) albo None."""
+    kolor, na_krawedzi; slowniki tylko do odczytu), ``uwagi`` programu, ``kandydaci`` (sha16, zeby, typ, pokrycie) oraz
+    ``plik_podgladu`` - plik ``*_podglad.npz`` (``kontroler_api.wczytaj_podglad``: gniazdo -> punkty i odchylki do obrazu
+    odchylek) albo None."""
 
     praca: Praca
     ubytki: tuple = ()
@@ -436,11 +536,40 @@ class Kontroler:
     def zamknij(self) -> Odpowiedz:
         raise NotImplementedError
 
+    def zapisz_liste(self, doba: str | None = None) -> Odpowiedz:
+        """17. polecenie (P7, Z6): lista "do dofrezowania" do pliku w folderze danych programu (bez nazw zlecen); bez ``doba``
+        lista biezaca (``do_dofrezowania_biezaca.csv`` - ten sam plik, ktory kontroler zapisuje sam po kazdej zmianie listy),
+        z ``doba`` (``RRRR-MM-DD``) pozycje tej doby. ``dane`` = nazwa pliku (bez sciezki)."""
+        raise NotImplementedError
+
+    def ponow_zapis(self) -> Odpowiedz:
+        """18. polecenie (P1): od razu ponawia zapis wynikow, ktorych nie udalo sie zapisac (``stan.niezapisane``).
+        ``ok`` True = nic juz nie czeka; ``dane`` = ile pozycji czeka nadal."""
+        raise NotImplementedError
+
     def wykonaj(self, polecenie: str, *argumenty: Any) -> Odpowiedz:
-        """Polecenie po nazwie (``POLECENIA``) - dla przyciskow z ``Pytanie.odpowiedzi``."""
-        if polecenie not in POLECENIA:
+        """Polecenie po nazwie (``POLECENIA``) - dla przyciskow z ``Pytanie.odpowiedzi``. Nieznana nazwa = odmowa ``odmowa``,
+        zla liczba argumentow = odmowa ``zle_argumenty`` - nigdy wyjatek (D1)."""
+        if not isinstance(polecenie, str) or polecenie not in POLECENIA:
             return Odpowiedz(False, f"nieznane polecenie {polecenie!r}", "odmowa")
-        return getattr(self, polecenie)(*argumenty)
+        funkcja = getattr(self, polecenie)
+        try:
+            inspect.signature(funkcja).bind(*argumenty)
+        except TypeError:
+            return self._zle_argumenty(polecenie)
+        return funkcja(*argumenty)
+
+    def _zle_argumenty(self, polecenie: str) -> Odpowiedz:
+        return Odpowiedz(False, ST.tekst_komunikatu(KOD_ZLE_ARGUMENTY, polecenie=polecenie)[2], KOD_ZLE_ARGUMENTY)
+
+
+def wczytaj_podglad(plik) -> dict:
+    """Obraz odchylek dla okna (D12): plik ``SzczegolyPracy.plik_podgladu`` -> {numer gniazda: (punkty N x 3 w ukladzie
+    plytki, odchylka kazdego punktu w mm)}. Cienka nakladka na ``silnik.wczytaj_podglad`` - okno nie importuje ``silnik``;
+    numpy jest ladowane dopiero tutaj (kontrakt nie laduje go przy imporcie)."""
+    from . import silnik as SI  # noqa: PLC0415 - modul silnika sam laduje tylko biblioteke standardowa
+
+    return SI.wczytaj_podglad(plik)
 
 
 def lacznik_qt(kontroler: Kontroler, okres_ms: int = OKRES_LACZNIKA_MS, rodzic=None):
@@ -499,9 +628,12 @@ class KontrolerSesji(Kontroler):
 
     Reguly ponad ``session`` (opis: ``opisy_modulow/aplikacja.md``):
     * operator jest wybierany na ZMIANE: po zmianie numeru zmiany wybor wygasa i trzeba wskazac osobe ponownie (DW3);
+      ``wybierz_operatora(None)`` = nikt nie jest wybrany (D7);
     * "Ukruszona" na pracy, ktorej program nie oznaczyl na czerwono, zapisuje sie jako ``ukruszona_niewykryta`` (SE9);
     * plytka bez numeru: prace zielone maja status ``czeka_na_numer`` (nic zielonego) do podania numeru;
-    * odrzucenie propozycji ponownego skanu ("to nowy wsad") jest zapisywane w dzienniku i nie wraca po restarcie.
+    * praca zielona tylko przy inspekcji "ok" i znanym dopasowaniu (P4, ``statusy.status_pracy`` / ``kolor_pracy``);
+    * odrzucenie propozycji ponownego skanu ("to nowy wsad") jest zapisywane w dzienniku i nie wraca po restarcie;
+    * lista "do dofrezowania" jest zapisywana do pliku w folderze bazy po kazdej zmianie listy (P7, Z6).
     """
 
     def __init__(self, sesja: SE.Sesja, ust: dict | None = None, *, tryb: str = TRYB_WIECZOR, zegar: Callable[[], dt.datetime] | None = None):
@@ -522,6 +654,9 @@ class KontrolerSesji(Kontroler):
         self._szczegoly: dict[int, dict] = {}  # skan_id -> tresc pliku wyniku (pamiec podreczna)
         self._zmiana_operatora: tuple | None = None  # (doba, zmiana), na ktora wybrano operatora
         self._ostatnia_zmiana: tuple | None = None
+        self._lista_zapisana: tuple | None = None  # pozycje listy biezacej z ostatniego udanego zapisu pliku (P7)
+        self._lista_czas: str | None = None
+        self._lista_blad = False
         self._odrzucone = self._wczytaj_odrzucone()
 
     # --- sygnaly ---------------------------------------------------------------------------------
@@ -557,8 +692,11 @@ class KontrolerSesji(Kontroler):
             return self.stan()
         try:
             self._stan = stan = self._zbuduj()
-        except B.BladBazy:  # baza zajeta przez inny program: zostaje poprzedni stan, nastepne odswiezenie go nadrobi
-            LOG.warning("kontroler: baza zajeta - stan nie zostal odswiezony")
+        except Exception as e:  # noqa: BLE001 - baza zajeta, blad dysku: zostaje poprzedni stan, nastepne odswiezenie go nadrobi
+            if isinstance(e, B.BladBazy):
+                LOG.warning("kontroler: baza zajeta - stan nie zostal odswiezony")
+            else:
+                LOG.exception("kontroler: stanu nie da sie odczytac z bazy - zostaje poprzedni")
             if self._stan is None:
                 raise
             return self._stan
@@ -659,16 +797,20 @@ class KontrolerSesji(Kontroler):
         self._wersja += 1
         self._ostatnia_zmiana = (sw["data"], sw["zmiana"])
         biezaca = sw["do_dofrezowania_biezaca"]
+        lista_biezaca = tuple(self._pozycja(x) for x in biezaca)
+        self._zapisz_liste_po_zmianie(lista_biezaca)  # P7: plik listy po kazdej zmianie listy (przed zebraniem komunikatow)
         po_projekcie = {x["projekt_id"]: x for x in biezaca if x["projekt_id"] is not None}
         po_pracy = {x["praca_id"]: x for x in biezaca}
         propozycje = {p["skan_id"]: p for p in sw["do_potwierdzenia"]}
         czasy = {s["id"]: s["czas_analizy"] for s in sw["skany"]}
+        for skan_id in set(self._szczegoly) - set(czasy):  # D10: tresc plikow wynikow tylko dla plytek biezacej doby
+            del self._szczegoly[skan_id]
         plytki, pytania, trwale = [], [], []
         for s in sw["skany"]:
             plytka = self._plytka(s, po_projekcie, po_pracy, propozycje.get(s["id"]), czasy)
             plytki.append(plytka)
-            pytania += [p for p in plytka.pytania if p.id not in self._ukryte]
-            trwale += [k for k in plytka.komunikaty if k.id not in self._ukryte]
+            pytania += [p for p in plytka.pytania if not p.ukryte]
+            trwale += [k for k in plytka.komunikaty if not k.ukryte]
         if sw["konflikty"]:
             for k in sw["konflikty"]:
                 id_ = f"konflikt_projektu:{k['sha16']}"
@@ -684,11 +826,33 @@ class KontrolerSesji(Kontroler):
         return StanAplikacji(
             wersja=self._wersja, czas=self._teraz(), tryb=self.tryb, doba=sw["data"], zmiana=sw["zmiana"] or self.sesja.zmiana(),
             operator=self.sesja.operator, operatorzy=tuple(self.sesja.operatorzy), wymaga_operatora=self.sesja.operator is None,
-            plytki=tuple(plytki), biezaca_plytka=aktywne[-1] if aktywne else None, liczniki=liczniki, prac=sw["prac"],
+            plytki=tuple(plytki), biezaca_plytka=aktywne[-1] if aktywne else None, liczniki=zamroz(liczniki), prac=sw["prac"],
             do_dofrezowania=tuple(self._pozycja(x) for x in sw["do_dofrezowania"]),
-            do_dofrezowania_biezaca=tuple(self._pozycja(x) for x in biezaca),
-            pytania=tuple(pytania), komunikaty=tuple(komunikaty), konflikty=tuple(sw["konflikty"]), zamkniety=self._zamkniety,
-            **self._stan_zywy())
+            do_dofrezowania_biezaca=lista_biezaca,
+            pytania=tuple(pytania), komunikaty=tuple(komunikaty), konflikty=zamroz(sw["konflikty"]), zamkniety=self._zamkniety,
+            lista_zapisana=self._lista_czas, **self._stan_zywy())
+
+    # --- lista "do dofrezowania" w pliku (P7, zalozenie Z6) ----------------------------------------
+    def _katalog_listy(self) -> Path | None:
+        """Folder pliku listy; None = folder bazy (``dane/``), jak ``session.zapisz_do_dofrezowania``."""
+        return None
+
+    def _zapisz_liste_po_zmianie(self, pozycje: tuple) -> None:
+        """Zapis samoczynny: plik ``do_dofrezowania_biezaca.csv`` (kuweta, zeby, krazek, plytka, gniazdo, skrot projektu, doba,
+        zmiana - bez nazw zlecen), gdy lista rozni sie od ostatnio zapisanej. Blad dysku: komunikat ``lista_nie_zapisana``
+        (raz na serie bledow); kolejna proba przy nastepnej zmianie listy albo na polecenie ``zapisz_liste``."""
+        if pozycje == self._lista_zapisana or self._zamkniety:
+            return
+        try:
+            self.sesja.zapisz_do_dofrezowania(None, katalog=self._katalog_listy())
+        except (OSError, sqlite3.Error, B.BladBazy) as e:
+            LOG.warning("kontroler: listy do dofrezowania nie da sie zapisac do pliku (%s)", type(e).__name__)
+            if not self._lista_blad:
+                self._lista_blad = True
+                self._komunikat("lista_nie_zapisana", id_="lista_nie_zapisana")
+            return
+        self._lista_zapisana, self._lista_czas, self._lista_blad = pozycje, self._teraz(), False
+        self._usun_komunikat("lista_nie_zapisana")
 
     @staticmethod
     def _pozycja(x: dict) -> PozycjaListy:
@@ -703,9 +867,10 @@ class KontrolerSesji(Kontroler):
             wpis = inspekcje.get((p["gniazdo"], p["nr_fragmentu"])) or {}
             blad = bool((wpis.get("inspekcja") or {}).get("blad"))
         klucz = ST.status_pracy(p["kolor"], status_skanu=s["status"], status_gniazda=p["status_gniazda"], status_inspekcji=p["status_inspekcji"],
-                                decyzja=p["decyzja"], blad_inspekcji=blad, numer_znany=numer_znany)
+                                decyzja=p["decyzja"], blad_inspekcji=blad, numer_znany=numer_znany,
+                                status_match=p["status_match"] if p["status_match"] is not None else "brak")
         st = ST.status(klucz)
-        kolor = p["kolor"] if klucz != "czeka_na_numer" else None  # plytka bez numeru: nic zielonego
+        kolor = ST.kolor_pracy(p["kolor"], klucz)  # P4: zielony tylko przy statusie zielonym; plytka bez numeru: nic zielonego
         pozycja = po_projekcie.get(p["projekt_id"]) if p["projekt_id"] is not None else po_pracy.get(p["id"])
         na_liscie = None
         if pozycja is not None and s["aktywny"]:
@@ -770,12 +935,13 @@ class KontrolerSesji(Kontroler):
             dozwolone.append("dopusc_plytke")
         if dopuszczona:
             dozwolone.append("cofnij_dopuszczenie")
-        komunikaty = self._komunikaty_plytki(s, prace)
-        pytania = self._pytania_plytki(s, propozycja, czasy, typ, numery_plytek)
+        komunikaty = [dataclasses.replace(k, ukryte=True) if k.id in self._ukryte else k for k in self._komunikaty_plytki(s, prace)]
+        pytania = [dataclasses.replace(q, ukryte=True) if q.id in self._ukryte else q
+                   for q in self._pytania_plytki(s, propozycja, czasy, typ, numery_plytek)]
         return Plytka(
             skan_id=s["id"], status=s["status"], aktywna=s["aktywny"], napis=ST.napis_plytki(s["status"]), numer=s["numer_plytki"],
             numer_zrodlo=s["numer_zrodlo"], uklad=s["uklad"], typ=typ, czas=s["czas_analizy"], zmiana=s["zmiana"], czas_s=s["czas_s"],
-            sha16=s["sha16"], gniazda=tuple(gniazda), poza_gniazdem=tuple(poza), liczniki=liczniki,
+            sha16=s["sha16"], gniazda=tuple(gniazda), poza_gniazdem=tuple(poza), liczniki=zamroz(liczniki),
             zielonych=liczniki.get(ST.KOLOR_ZIELONY, 0), zastepuje_id=s["zastepuje_id"], moze_zastapic=s["moze_zastapic"],
             dopuszczona=dopuszczona, dozwolone=tuple(dozwolone), komunikaty=tuple(komunikaty), pytania=tuple(pytania))
 
@@ -896,7 +1062,10 @@ class KontrolerSesji(Kontroler):
         self._komunikaty.pop(id_, None)
         self._komunikaty[id_] = k
         while len(self._komunikaty) > LIMIT_KOMUNIKATOW:  # okno, ktore nie zamyka komunikatow, nie zapycha pamieci: znikaja najstarsze
-            self._komunikaty.pop(next(iter(self._komunikaty)))
+            stary = next((i for i, x in self._komunikaty.items() if not x.trwaly), None)  # trwale (blad zapisu) zostaja
+            if stary is None:
+                break
+            self._komunikaty.pop(stary)
         self._ogloszone.discard(id_)
         self._ukryte.discard(id_)
         return k
@@ -904,11 +1073,46 @@ class KontrolerSesji(Kontroler):
     def _usun_komunikat(self, id_: str) -> bool:
         return self._komunikaty.pop(id_, None) is not None
 
+    def _ustaw_komunikat(self, rodzaj: str, id_: str, pokaz: bool, *, wroc: bool = True, **pola: Any) -> bool:
+        """Komunikat o stalym ``id_``: ``pokaz`` False - usuwa; True - dodaje albo podmienia, gdy zmienil sie tekst (bez
+        ponownego sygnalu, gdy tekst ten sam). ``wroc`` False - nie przywraca komunikatu zamknietego przez technika. Zwraca
+        True, gdy cos sie zmienilo."""
+        if not pokaz:
+            return self._usun_komunikat(id_)
+        stary = self._komunikaty.get(id_)
+        if stary is None and not wroc:
+            return False
+        if stary is not None and stary.tekst == ST.tekst_komunikatu(rodzaj, **pola)[2]:
+            return False
+        self._komunikat(rodzaj, id_=id_, **pola)
+        return True
+
+    def _komunikaty_zapisu(self, niezapisane: list, nowy: bool) -> bool:
+        """P1 / P8: komunikat TRWALY ``blad_zapisu`` (staly id ``ID_BLAD_ZAPISU``) dla wynikow, ktorych nie da sie zapisac
+        z powodu dysku, i ``baza_zajeta`` (id ``baza_zajeta:wyniki``) dla czekajacych na zajeta baze; oba znikaja same, gdy nic
+        nie czeka. Zamkniety przez technika wraca tylko z nowa pozycja (``nowy``) - nie przy kazdej nieudanej probie."""
+        dysk = sum(1 for n in niezapisane if n.przyczyna == "blad_zapisu")
+        zajeta = sum(1 for n in niezapisane if n.przyczyna == "baza_zajeta")
+        a = self._ustaw_komunikat("blad_zapisu", ID_BLAD_ZAPISU, dysk > 0, wroc=nowy, trwaly=True, ile=dysk)
+        b = self._ustaw_komunikat("baza_zajeta", "baza_zajeta:wyniki", zajeta > 0, wroc=nowy)
+        return a or b
+
     def _odmowa(self, kod: str, **pola: Any) -> Odpowiedz:
         """Odmowa wykonania polecenia: komunikat w stanie (jeden na rodzaj odmowy) + odpowiedz z tym samym tekstem."""
         k = self._komunikat(kod if kod in ST.KOMUNIKATY else "odmowa", id_=f"odmowa:{kod}", **pola)
-        self._odswiez()
+        try:
+            self._odswiez()
+        except Exception:  # noqa: BLE001 - odmowa nigdy nie konczy sie wyjatkiem (stan zostaje poprzedni)
+            LOG.exception("kontroler: stanu nie da sie odswiezyc po odmowie %s", kod)
         return Odpowiedz(False, k.tekst, kod)
+
+    def _zle_argumenty(self, polecenie: str) -> Odpowiedz:
+        """D1: zly typ / zla liczba argumentow polecenia = odmowa ``zle_argumenty`` (komunikat w stanie), nigdy wyjatek."""
+        LOG.warning("kontroler: polecenie %s ze zlymi argumentami (blad okna)", polecenie)
+        return self._odmowa(KOD_ZLE_ARGUMENTY, polecenie=polecenie)
+
+    def _zamkniety_odp(self) -> Odpowiedz:
+        return Odpowiedz(False, ST.tekst_komunikatu("program_zamkniety")[2], "program_zamkniety")
 
     def _bez_operatora(self) -> Odpowiedz | None:
         self._sprawdz_zmiane()
@@ -918,10 +1122,13 @@ class KontrolerSesji(Kontroler):
             return self._odmowa("brak_operatora")
         return None
 
-    def _polecenie(self, funkcja: Callable[[], Any], *, operator: bool = True) -> Odpowiedz:
-        """Wspolna obsluga polecenia: zamkniety program, brak operatora, odmowa ``session``, baza zajeta; potem nowy stan."""
+    def _polecenie(self, funkcja: Callable[[], Any], *, operator: bool = True, nazwa: str = "", liczby: tuple = ()) -> Odpowiedz:
+        """Wspolna obsluga polecenia: zamkniety program, zle argumenty (``liczby`` - identyfikatory, ktore musza byc liczbami
+        calkowitymi; D1), brak operatora, odmowa ``session``, baza zajeta, inny blad (``blad_polecenia``); potem nowy stan."""
         if self._zamkniety:
-            return Odpowiedz(False, ST.tekst_komunikatu("program_zamkniety")[2], "program_zamkniety")
+            return self._zamkniety_odp()
+        if not all(_jest_liczba(x) for x in liczby):
+            return self._zle_argumenty(nazwa)
         if operator:
             odmowa = self._bez_operatora()
             if odmowa is not None:
@@ -932,15 +1139,27 @@ class KontrolerSesji(Kontroler):
             return self._odmowa("odmowa", powod=str(e))
         except B.BladBazy:
             return self._odmowa("baza_zajeta")
-        for kod in ("brak_operatora", "pusta_lista_operatorow", "odmowa", "baza_zajeta", "osoba_spoza_listy"):
+        except Exception:  # noqa: BLE001 - D1: polecenie okna nigdy nie konczy sie wyjatkiem w slocie Qt
+            LOG.exception("kontroler: polecenie %s nie powiodlo sie", nazwa)
+            return self._odmowa("blad_polecenia")
+        for kod in ("brak_operatora", "pusta_lista_operatorow", "odmowa", "baza_zajeta", "osoba_spoza_listy", KOD_ZLE_ARGUMENTY, "blad_polecenia"):
             self._usun_komunikat(f"odmowa:{kod}")  # polecenie przeszlo: stare odmowy nieaktualne
         self._odswiez()
         return Odpowiedz(True, dane=dane)
 
     # --- polecenia -------------------------------------------------------------------------------
-    def wybierz_operatora(self, nazwa: str) -> Odpowiedz:
+    def wybierz_operatora(self, nazwa: str | None) -> Odpowiedz:
+        """Osoba, ktora pracuje (na zmiane - DW3). ``None`` = nikt (technik odchodzi od stanowiska, D7): decyzje niedostepne
+        do ponownego wyboru osoby; odpowiedz ``ok`` z kodem ``wylogowano``."""
         if self._zamkniety:
-            return Odpowiedz(False, ST.tekst_komunikatu("program_zamkniety")[2], "program_zamkniety")
+            return self._zamkniety_odp()
+        if nazwa is None:
+            self.sesja.operator = None
+            self._zmiana_operatora = None
+            self._odswiez()
+            return Odpowiedz(True, ST.tekst_komunikatu("wylogowano")[2], "wylogowano")
+        if not isinstance(nazwa, str):
+            return self._zle_argumenty("wybierz_operatora")
         if not self.sesja.operatorzy:
             return self._odmowa("pusta_lista_operatorow")
         try:
@@ -948,7 +1167,7 @@ class KontrolerSesji(Kontroler):
         except SE.BladSesji:
             return self._odmowa("osoba_spoza_listy")
         self._zmiana_operatora = (self.sesja.doba(), self.sesja.zmiana())
-        for kod in ("brak_operatora", "osoba_spoza_listy"):
+        for kod in ("brak_operatora", "osoba_spoza_listy", KOD_ZLE_ARGUMENTY):
             self._usun_komunikat(f"odmowa:{kod}")
         for id_ in [i for i, k in self._komunikaty.items() if k.rodzaj == "nowa_zmiana"]:
             self._usun_komunikat(id_)
@@ -961,16 +1180,16 @@ class KontrolerSesji(Kontroler):
             wykryta = w is None or w["status_gniazda"] == ST.KOLOR_CZERWONY  # nieznana praca: blad zglosi session
             return self.sesja.decyzja(praca_id, "ukruszona" if wykryta else "ukruszona_niewykryta")
 
-        return self._polecenie(wykonaj)
+        return self._polecenie(wykonaj, nazwa="ukruszona", liczby=(praca_id,))
 
     def ok(self, praca_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self.sesja.ok(praca_id))
+        return self._polecenie(lambda: self.sesja.ok(praca_id), nazwa="ok", liczby=(praca_id,))
 
     def cofnij(self, praca_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self.sesja.cofnij(praca_id))
+        return self._polecenie(lambda: self.sesja.cofnij(praca_id), nazwa="cofnij", liczby=(praca_id,))
 
     def potwierdz_ponowny_skan(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self.sesja.zastap_skan(skan_id))
+        return self._polecenie(lambda: self.sesja.zastap_skan(skan_id), nazwa="potwierdz_ponowny_skan", liczby=(skan_id,))
 
     def odrzuc_ponowny_skan(self, skan_id: int) -> Odpowiedz:
         def wykonaj() -> int:
@@ -982,33 +1201,113 @@ class KontrolerSesji(Kontroler):
             self._odrzucone.add((skan_id, plytka.moze_zastapic))
             return plytka.moze_zastapic
 
-        return self._polecenie(wykonaj)
+        return self._polecenie(wykonaj, nazwa="odrzuc_ponowny_skan", liczby=(skan_id,))
 
     def cofnij_zastapienie(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self.sesja.cofnij_zastapienie(skan_id))
+        return self._polecenie(lambda: self.sesja.cofnij_zastapienie(skan_id), nazwa="cofnij_zastapienie", liczby=(skan_id,))
 
     def dopusc_plytke(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self.sesja.dopusc_plytke(skan_id))
+        return self._polecenie(lambda: self.sesja.dopusc_plytke(skan_id), nazwa="dopusc_plytke", liczby=(skan_id,))
 
     def cofnij_dopuszczenie(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self.sesja.cofnij_dopuszczenie(skan_id))
+        return self._polecenie(lambda: self.sesja.cofnij_dopuszczenie(skan_id), nazwa="cofnij_dopuszczenie", liczby=(skan_id,))
 
     def podaj_numer_plytki(self, skan_id: int, numer: int) -> Odpowiedz:
-        return self._polecenie(lambda: self.sesja.podaj_numer_plytki(skan_id, numer))
+        n = numer
+        if isinstance(numer, str):  # cyfry z pola tekstowego; nie-liczbe odrzuci session (odmowa z rada)
+            try:
+                n = int(numer.strip())
+            except ValueError:
+                n = 0
+        return self._polecenie(lambda: self.sesja.podaj_numer_plytki(skan_id, n), nazwa="podaj_numer_plytki", liczby=(skan_id, n))
 
     def zamknij_pytanie(self, pytanie_id: str) -> Odpowiedz:
-        """"Pozniej": pytanie znika z listy do konca pracy programu (wraca po restarcie); niczego nie rozstrzyga."""
-        self._ukryte.add(str(pytanie_id))
+        """"Pozniej": pytanie znika z ``stan.pytania`` do konca pracy programu (wraca po restarcie; przy plytce zostaje
+        z ``ukryte=True``); niczego nie rozstrzyga."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not isinstance(pytanie_id, str):
+            return self._zle_argumenty("zamknij_pytanie")
+        self._ukryte.add(pytanie_id)
         self._odswiez()
         return Odpowiedz(True)
 
     def zamknij_komunikat(self, komunikat_id: str) -> Odpowiedz:
-        if not self._usun_komunikat(str(komunikat_id)):
-            self._ukryte.add(str(komunikat_id))  # trwaly: ukryty do konca pracy programu, zostaje przy plytce
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not isinstance(komunikat_id, str):
+            return self._zle_argumenty("zamknij_komunikat")
+        if not self._usun_komunikat(komunikat_id):
+            self._ukryte.add(komunikat_id)  # trwaly: ukryty do konca pracy programu, zostaje przy plytce (``ukryte=True``)
         self._odswiez()
         return Odpowiedz(True)
 
+    def zapisz_liste(self, doba: str | None = None) -> Odpowiedz:
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if doba is not None and not (isinstance(doba, str) and _WZOR_DOBY.fullmatch(doba)):
+            return self._zle_argumenty("zapisz_liste")
+        self._usun_komunikat("odmowa:lista_nie_zapisana")
+        if doba is None:  # plik listy biezacej - ten sam, ktory kontroler zapisuje sam; tu zapis wymuszony
+            self._lista_zapisana, self._lista_blad = None, False
+            self._odswiez()
+            if self._lista_zapisana is None:
+                return self._odmowa("lista_nie_zapisana")
+            nazwa = PLIK_LISTY
+        else:
+            try:
+                nazwa = self.sesja.zapisz_do_dofrezowania(doba, katalog=self._katalog_listy()).name
+            except (OSError, sqlite3.Error, B.BladBazy) as e:
+                LOG.warning("kontroler: listy doby nie da sie zapisac do pliku (%s)", type(e).__name__)
+                return self._odmowa("lista_nie_zapisana")
+            self._odswiez()
+        return Odpowiedz(True, ST.tekst_komunikatu("lista_zapisana", plik=nazwa)[2], dane=nazwa)
+
+    def ponow_zapis(self) -> Odpowiedz:
+        """Wspolna czesc: nic nie czeka na zapis (prawdziwy kontroler i atrapa nadpisuja)."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        return Odpowiedz(True, dane=0)
+
+    # --- pula projektow: wspolna walidacja (prawdziwy kontroler i atrapa: te same odmowy i kody, P6) -----------------
+    def _sprawdz_pule(self, folder: Any, wspolczynnik: Any) -> tuple | Odpowiedz:
+        """Argumenty ``ustaw_pule`` -> (folder albo None, wspolczynnik albo None) albo odmowa: ``program_zamkniety``,
+        ``zle_argumenty`` (folder nie jest napisem / sciezka), ``zly_wspolczynnik`` (nie liczba albo poza
+        ``WSPOLCZYNNIK_MIN``-``WSPOLCZYNNIK_MAX``; przecinek dziesietny dozwolony). Pusty folder = None (pula nieustawiona)."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if folder is not None and not isinstance(folder, (str, os.PathLike)):
+            return self._zle_argumenty("ustaw_pule")
+        folder = os.fspath(folder).strip() if folder is not None else ""
+        if "\0" in folder:
+            return self._zle_argumenty("ustaw_pule")
+        if wspolczynnik is not None:
+            try:
+                if isinstance(wspolczynnik, bool):
+                    raise TypeError("bool")
+                w = float(wspolczynnik.replace(",", ".") if isinstance(wspolczynnik, str) else wspolczynnik)
+            except (TypeError, ValueError, AttributeError):
+                w = float("nan")
+            if not (math.isfinite(w) and WSPOLCZYNNIK_MIN <= w <= WSPOLCZYNNIK_MAX):
+                return self._odmowa("zly_wspolczynnik", od=f"{WSPOLCZYNNIK_MIN:g}", do=f"{WSPOLCZYNNIK_MAX:g}")
+            wspolczynnik = w
+        self._usun_komunikat("odmowa:zly_wspolczynnik")
+        self._usun_komunikat(f"odmowa:{KOD_ZLE_ARGUMENTY}")
+        return (folder or None, wspolczynnik)
+
+    def _komunikat_puli(self, stan_puli: str, czeka: int) -> bool:
+        """Komunikat ``pula_pusta`` / ``pula_brak_folderu`` (id ``pula``), gdy skany czekaja na pule; znika, gdy pula gotowa
+        albo nic nie czeka. Zwraca True, gdy cos sie zmienilo."""
+        if czeka and stan_puli in ("pusta", "brak_folderu", "nieustawiona"):
+            self._komunikat("pula_pusta" if stan_puli == "pusta" else "pula_brak_folderu", id_="pula", czeka=czeka)
+            return True
+        if stan_puli == "gotowa" or not czeka:
+            return self._usun_komunikat("pula")
+        return False
+
     def szczegoly_pracy(self, praca_id: int) -> SzczegolyPracy | None:
+        if not _jest_liczba(praca_id):
+            return None
         praca = self.stan().praca(praca_id)
         if praca is None or self._zamkniety:
             return None
@@ -1019,7 +1318,8 @@ class KontrolerSesji(Kontroler):
         uwagi = tuple(str(u) for u in (wpis.get("uwagi") or []) + (inspekcja.get("uwagi") or []))
         kandydaci = tuple({"sha16": k.get("id"), "zeby": k.get("zeby"), "typ": k.get("typ"), "pokrycie": k.get("pokrycie")}
                           for k in wpis.get("kandydaci") or [])
-        return SzczegolyPracy(praca=praca, ubytki=ubytki, uwagi=uwagi, kandydaci=kandydaci, plik_podgladu=self._plik_podgladu(praca.skan_id))
+        return SzczegolyPracy(praca=praca, ubytki=zamroz(ubytki), uwagi=uwagi, kandydaci=zamroz(kandydaci),
+                              plik_podgladu=self._plik_podgladu(praca.skan_id))
 
     def _plik_podgladu(self, skan_id: int) -> Path | None:
         """Plik ``*_podglad.npz`` skanu: nazwa z dziennika (wpis ``podglad`` kontrolera), katalog podaje klasa pochodna."""
@@ -1057,6 +1357,12 @@ _RODZAJE_PRAC = {
     "blad_inspekcji": ("zielony", "nie_sprawdzono", "zolty"),
     "pomaranczowy": ("zielony", "poprawka", "pomaranczowy"),
     "szary": ("szary", None, "szary"),
+    # P4: kolor gniazda "zielony" bez inspekcji "ok" albo przy nieznanym dopasowaniu (porownaj tak dzis nie liczy, ale nowa
+    # wersja analizy moze) - program NIE moze pokazac takiej pracy jako zielonej
+    "zielony_bez_inspekcji": ("zielony", None, "zielony"),
+    "zielony_pominieto": ("zielony", "pominieto", "zielony"),
+    "zielony_nowa_inspekcja": ("zielony", "nowy_status_inspect", "zielony"),
+    "zielony_nowe_dopasowanie": ("nowy_status_match", "ok", "zielony"),
 }
 RODZAJE_PRAC = tuple(_RODZAJE_PRAC) + ("podwojny",)
 
@@ -1125,7 +1431,8 @@ def kolory_oczekiwane(wynik: dict, decyzje: dict | None = None, status_skanu: st
 
     ``decyzje``: (gniazdo, nr fragmentu) -> ``ukruszona`` / ``ok``. Reguly jak w ``session``: decyzja "Ukruszona" =
     czerwony, "OK" = zatwierdzona_ok; skan do powtorzenia nie ma zielonych (zielony -> zolty); skan nieaktywny - brak koloru;
-    plytka bez numeru (``numer_znany`` False) nie ma zielonych (zielony -> brak koloru, status ``czeka_na_numer``).
+    P4: zielony tylko przy inspekcji "ok" i dopasowaniu zielonym / zoltym (inaczej zolty); plytka bez numeru
+    (``numer_znany`` False) nie ma zielonych (zielony -> brak koloru, status ``czeka_na_numer``).
     """
     decyzje = decyzje or {}
     wynik_kolory, licznik = {}, {}
@@ -1133,6 +1440,7 @@ def kolory_oczekiwane(wynik: dict, decyzje: dict | None = None, status_skanu: st
         licznik[g.get("gniazdo")] = licznik.get(g.get("gniazdo"), 0) + 1
         klucz = (g.get("gniazdo"), licznik[g.get("gniazdo")])
         kolor = g.get("status_gniazda")
+        sprawdzona = (g.get("inspekcja") or {}).get("status") == ST.INSPEKCJA_ZIELONA and g.get("status") in ST.DOPASOWANIA_ZIELONE
         if status_skanu not in SE.STATUSY_AKTYWNE:
             kolor = None
         elif decyzje.get(klucz) in ST.DECYZJE_UKRUSZENIA:
@@ -1140,6 +1448,8 @@ def kolory_oczekiwane(wynik: dict, decyzje: dict | None = None, status_skanu: st
         elif decyzje.get(klucz) == "ok":
             kolor = ST.KOLOR_ZATWIERDZONA_OK
         elif status_skanu == SE.STATUS_DO_POWTORZENIA and kolor == ST.KOLOR_ZIELONY:
+            kolor = ST.KOLOR_ZOLTY
+        elif kolor == ST.KOLOR_ZIELONY and not sprawdzona:
             kolor = ST.KOLOR_ZOLTY
         elif kolor == ST.KOLOR_ZIELONY and not numer_znany and not ST.ZIELONE_BEZ_NUMERU_PLYTKI:
             kolor = None
@@ -1174,6 +1484,13 @@ class AtrapaKontrolera(KontrolerSesji):
     jak w prawdziwym kontrolerze (te same reguly ``session``). ``start_skanu`` niczego nie klika - zapisuje wywolanie
     w ``starty_skanu``. ``zamknij()`` usuwa katalog tymczasowy. Fikcyjne zlecenia w indeksie (``indeks_sztuczny``: kuwety
     9001-9030, krazek ``K-1``) daja kuwete, zeby i krazek na liscie "do dofrezowania".
+
+    Czesc "zywa" jak w prawdziwym kontrolerze (P6, te same odmowy i kody - test zgodnosci w ``test_kontroler_api``):
+    ``ustaw_pule`` - ta sama walidacja (``zly_wspolczynnik``, ``zle_argumenty``; ``None`` = pula ``nieustawiona``);
+    ``odswiez_pule`` przechodzi przez stan ``liczenie``, a wynik liczenia przychodzi w nastepnym ``przetworz()``; nieudany
+    ``start_skanu`` = odmowa ``start_skanu_nieudany``. Stany do pokazania oknu: ``symuluj_pule(stan, liczba)`` (nieustawiona /
+    liczenie / gotowa / pusta / brak_folderu), ``symuluj_kolejke(czeka, wstrzymane, silnik_gotowy)``,
+    ``symuluj_skaner(dostepny, zajete, start_udany)``, ``symuluj_blad_zapisu(ile, przyczyna)`` (pozycje "nie zapisano").
     """
 
     def __init__(self, katalog: str | Path | None = None, *, operatorzy: tuple = OPERATORZY_ATRAPY, zegar: Callable[[], dt.datetime] | None = None,
@@ -1189,41 +1506,172 @@ class AtrapaKontrolera(KontrolerSesji):
         self._nr_skanu = 0
         self._analiza: Postep | None = None
         self._czeka = 0
-        self._pula = Pula(folder="(atrapa)", wspolczynnik=None, liczba_stl=liczba_stl, stan="gotowa",
-                          napis=ST.STANY_PULI["gotowa"].format(n=liczba_stl), odswiezono=self._teraz())
-        self._liczba_stl = liczba_stl
+        self._wstrzymane = 0
+        self._silnik_gotowy = True
+        # pula: "prawda" sztucznego folderu (co znajdzie liczenie) i stan pokazany oknu
+        self._pula_folder: str | None = "(atrapa)"
+        self._pula_wspolczynnik: float | None = None
+        self._pula_prawda: tuple = ("gotowa", liczba_stl) if liczba_stl > 0 else ("pusta", 0)
+        self._pula_stan, self._pula_liczba = self._pula_prawda
+        self._pula_czas: str | None = self._teraz()
+        self._pula_do_policzenia = False
+        # skaner i zapis
+        self._skaner_dostepny = True
+        self._zajete = 0
+        self._start_udany = True
+        self._niezapisane: list[Niezapisany] = []
+        self._blad_zapisu_trwa = False
         indeks_sztuczny(baza, self._teraz())
 
     # --- czesc zywa
     def _stan_zywy(self) -> dict:
-        return {"analiza": self._analiza, "kolejka": Kolejka(w_toku=1 if self._analiza else 0, czeka=self._czeka, silnik_gotowy=True),
-                "pula": self._pula,
-                "skaner": Skaner(folder="(atrapa)", dostepny=True, dziala=not self._zamkniety, startow_skanu=len(self.starty_skanu),
-                                 ostatni_start_skanu=self.starty_skanu[-1] if self.starty_skanu else None,
-                                 czeka_na_skan=self._czeka_na_skan)}
+        niezapisane = tuple(self._niezapisane)
+        return {"analiza": self._analiza,
+                "kolejka": Kolejka(w_toku=1 if self._analiza else 0, czeka=self._czeka, wstrzymane=self._wstrzymane + len(niezapisane),
+                                   silnik_gotowy=self._silnik_gotowy, niezapisane=len(niezapisane)),
+                "pula": Pula(folder=self._pula_folder, wspolczynnik=self._pula_wspolczynnik, liczba_stl=self._pula_liczba, stan=self._pula_stan,
+                             napis=ST.STANY_PULI.get(self._pula_stan, "").format(n=self._pula_liczba), odswiezono=self._pula_czas),
+                "skaner": Skaner(folder="(atrapa)", dostepny=self._skaner_dostepny, dziala=not self._zamkniety, zajete=self._zajete,
+                                 startow_skanu=len(self.starty_skanu), ostatni_start_skanu=self.starty_skanu[-1] if self.starty_skanu else None,
+                                 czeka_na_skan=self._czeka_na_skan),
+                "niezapisane": niezapisane}
 
     def _katalog_podgladow(self) -> Path | None:
         return self.katalog / "podglady"
 
+    def przetworz(self, limit_s: float = LIMIT_PRZETWARZANIA_S) -> int:
+        """Jak w prawdziwym kontrolerze: zmiana zmiany, wynik liczenia puli (po ``odswiez_pule``), zapis niezapisanych
+        wynikow, gdy przyczyna ustapila (``symuluj_blad_zapisu(0)``)."""
+        if self._zamkniety:
+            return 0
+        n = super().przetworz(limit_s)
+        if self._pula_do_policzenia:
+            self._pula_do_policzenia = False
+            self._pula_policzona(*self._pula_prawda)
+            n += 1
+        if self._niezapisane and not self._blad_zapisu_trwa:
+            self.ponow_zapis()
+            n += 1
+        return n
+
     # --- polecenia zywe
     def start_skanu(self) -> Odpowiedz:
         if self._zamkniety:
-            return Odpowiedz(False, ST.tekst_komunikatu("program_zamkniety")[2], "program_zamkniety")
+            return self._zamkniety_odp()
         self.starty_skanu.append(self._teraz())
-        self._czeka_na_skan = True
-        self._odswiez_zywe()
+        udany = self._start_udany
+        self._czeka_na_skan = udany
+        self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany}, czas=self.starty_skanu[-1])
+        if not udany:
+            return self._odmowa("start_skanu_nieudany")
+        if self._usun_komunikat("odmowa:start_skanu_nieudany"):
+            self._odswiez()  # stara odmowa znika z komunikatow
+        else:
+            self._odswiez_zywe()
         return Odpowiedz(True)
 
     def ustaw_pule(self, folder: str | None, wspolczynnik: float | None = None) -> Odpowiedz:
-        self._pula = dataclasses.replace(self._pula, folder=folder, wspolczynnik=wspolczynnik)
+        wynik = self._sprawdz_pule(folder, wspolczynnik)
+        if isinstance(wynik, Odpowiedz):
+            return wynik
+        self._pula_folder, self._pula_wspolczynnik = wynik
+        self.sesja.baza.zdarzenie("pula", "pula_ustawiona", {"wspolczynnik": self._pula_wspolczynnik, "folder_ustawiony": self._pula_folder is not None,
+                                                            "operator": self.sesja.operator}, czas=self._teraz())
         return self.odswiez_pule()
 
     def odswiez_pule(self) -> Odpowiedz:
-        self._pula = dataclasses.replace(self._pula, liczba_stl=self._liczba_stl, stan="gotowa" if self._liczba_stl else "pusta",
-                                         napis=ST.STANY_PULI["gotowa" if self._liczba_stl else "pusta"].format(n=self._liczba_stl),
-                                         odswiezono=self._teraz())
-        self._odswiez_zywe()
-        return Odpowiedz(True, dane=self._liczba_stl)
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        self._usun_komunikat("odmowa:zly_wspolczynnik")
+        if self._pula_folder is None:
+            self._pula_stan, self._pula_liczba, self._pula_do_policzenia = "nieustawiona", None, False
+            self._komunikat_puli("nieustawiona", self._wstrzymane)
+        else:
+            self._pula_stan, self._pula_do_policzenia = "liczenie", True  # wynik w nastepnym przetworz(), jak watek liczenia
+        self._odswiez()
+        return Odpowiedz(True, dane=self._pula_stan)
+
+    def _pula_policzona(self, stan: str, liczba: int | None) -> None:
+        self._pula_stan, self._pula_liczba, self._pula_czas = stan, liczba, self._teraz()
+        if stan == "gotowa" and self._wstrzymane:  # jak w prawdziwym kontrolerze: skany czekajace na pule ida do analizy
+            self._czeka, self._wstrzymane = self._czeka + self._wstrzymane, 0
+        self._komunikat_puli(stan, self._wstrzymane)
+        self._odswiez()
+
+    def ponow_zapis(self) -> Odpowiedz:
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not self._niezapisane:
+            return Odpowiedz(True, dane=0)
+        if self._blad_zapisu_trwa:  # przyczyna trwa: kolejna nieudana proba
+            self._niezapisane = [dataclasses.replace(n, proby=n.proby + 1) for n in self._niezapisane]
+            self._komunikaty_zapisu(self._niezapisane, nowy=False)
+            self._odswiez()
+            przyczyna = self._niezapisane[-1].przyczyna
+            return Odpowiedz(False, ST.tekst_komunikatu(przyczyna, ile=len(self._niezapisane))[2], przyczyna, dane=len(self._niezapisane))
+        zapisane, self._niezapisane = self._niezapisane, []
+        for n in zapisane:  # przyczyna ustapila: skany trafiaja do sesji jak zwykle wyniki (kazdy z innymi projektami)
+            self.symuluj_skan("czysta", numer=n.numer if n.numer is not None else 1, projekty={g: 1000 + 10 * self._nr_skanu + g for g in range(1, 5)})
+        self._komunikaty_zapisu([], nowy=False)
+        self._odswiez()
+        return Odpowiedz(True, dane=0)
+
+    # --- stany do pokazania oknu (P6)
+    def symuluj_pule(self, stan: str, liczba: int | None = None) -> None:
+        """Stan puli jak w prawdziwym kontrolerze: ``nieustawiona`` (bez folderu), ``liczenie`` (do ``odswiez_pule`` +
+        ``przetworz``), ``gotowa`` / ``pusta`` / ``brak_folderu`` (wynik liczenia; kolejne liczenia daja to samo)."""
+        if stan not in STANY_PULI:
+            raise ValueError(f"nieznany stan puli {stan!r} (znane: {', '.join(STANY_PULI)})")
+        self._pula_do_policzenia = False
+        if stan == "nieustawiona":
+            self._pula_folder, self._pula_stan, self._pula_liczba = None, "nieustawiona", None
+            self._komunikat_puli("nieustawiona", self._wstrzymane)
+            self._odswiez()
+        elif stan == "liczenie":
+            self._pula_stan = "liczenie"
+            self._odswiez_zywe()
+        else:
+            if liczba is None:
+                liczba = {"gotowa": 16, "pusta": 0}.get(stan)
+            self._pula_prawda = (stan, liczba)
+            self._pula_folder = self._pula_folder or "(atrapa)"
+            self._pula_policzona(stan, liczba)
+
+    def symuluj_kolejke(self, czeka: int = 0, wstrzymane: int = 0, silnik_gotowy: bool = True) -> None:
+        """Licznik kolejki: ``czeka`` (w kolejce silnika), ``wstrzymane`` (czekaja na pule albo silnik - przy puli innej niz
+        ``gotowa`` z komunikatem ``pula_pusta`` / ``pula_brak_folderu``), ``silnik_gotowy`` False = komunikat
+        ``silnik_nie_startuje`` (jak prawdziwy, gdy proces analizy nie umie wystartowac)."""
+        self._czeka, self._wstrzymane, self._silnik_gotowy = int(czeka), int(wstrzymane), bool(silnik_gotowy)
+        self._ustaw_komunikat("silnik_nie_startuje", "silnik", not self._silnik_gotowy)
+        self._komunikat_puli(self._pula_stan, self._wstrzymane)
+        self._odswiez()
+
+    def symuluj_skaner(self, dostepny: bool = True, zajete: int = 0, start_udany: bool = True) -> None:
+        """Skaner: ``dostepny`` False = brak folderu skanera (komunikat ``folder_skanera_niedostepny``), ``zajete`` = pliki
+        czekajace na zwolnienie (komunikat ``plik_zajety``), ``start_udany`` False = kolejne ``start_skanu`` odmawia
+        (``start_skanu_nieudany``)."""
+        self._skaner_dostepny, self._zajete, self._start_udany = bool(dostepny), int(zajete), bool(start_udany)
+        self._ustaw_komunikat("folder_skanera_niedostepny", "folder_skanera", not self._skaner_dostepny)
+        self._ustaw_komunikat("plik_zajety", "plik_zajety:skaner", self._zajete > 0, od_s=12)
+        self._odswiez()
+
+    def symuluj_blad_zapisu(self, ile: int = 1, przyczyna: str = "blad_zapisu") -> None:
+        """Skany policzone, ale niezapisane (P1 / P8): ``ile`` nowych pozycji ``stan.niezapisane`` i komunikat (``blad_zapisu``
+        trwaly albo ``baza_zajeta``). Przyczyna trwa do ``symuluj_blad_zapisu(0)`` - potem ``ponow_zapis()`` / ``przetworz()``
+        zapisuje je jak zwykle wyniki (plytki "czysta")."""
+        if przyczyna not in ST.NAPISY_NIEZAPISANE:
+            raise ValueError(f"nieznana przyczyna {przyczyna!r} (znane: {', '.join(ST.NAPISY_NIEZAPISANE)})")
+        if ile <= 0:
+            self._blad_zapisu_trwa = False
+            return
+        self._blad_zapisu_trwa = True
+        for _ in range(int(ile)):
+            self._nr_skanu += 1
+            self._niezapisane.append(Niezapisany(sha16=skrot_sztuczny(f"niezapisany {self._nr_skanu} {time.time_ns()}"), rodzaj="wynik",
+                                                 przyczyna=przyczyna, napis=ST.NAPISY_NIEZAPISANE[przyczyna], od=self._teraz(), proby=1,
+                                                 numer=1, uklad="wieczorna", prac=4))
+        self._komunikaty_zapisu(self._niezapisane, nowy=True)
+        self._odswiez()
 
     def zamknij(self) -> Odpowiedz:
         if self._zamkniety:

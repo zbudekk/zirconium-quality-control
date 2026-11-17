@@ -92,6 +92,12 @@ STATUSY_ZIELONE = tuple(k for k, w in STATUSY.items() if w.kolor == KOLOR_ZIELON
 # status inspekcji (``prace.status_inspekcji``) -> dokladny status zoltego gniazda
 ZOLTE_WG_INSPEKCJI = {"sprawdz": "zolty", "sprawdz_ulozenie": "sprawdz_ulozenie", "popraw_ulozenie": "popraw_ulozenie",
                       "skan_ponownie": "skan_ponownie", "nie_sprawdzono": "nie_sprawdzono"}
+# P4 (recenzja PR #20): praca jest zielona TYLKO, gdy kolor z sesji jest zielony ORAZ inspekcja dala "ok" ORAZ dopasowanie ma
+# znany status; kazdy inny albo nieznany status inspekcji / dopasowania = "do sprawdzenia" (zolty), nigdy zielony
+INSPEKCJA_ZIELONA = "ok"
+INSPEKCJE_NIESPRAWDZONE = (None, "pominieto", "nie_sprawdzono")  # inspekcji nie bylo, pominieta albo bez danych -> "nie sprawdzono"
+DOPASOWANIA_ZIELONE = ("zielony", "zolty")  # match.STATUSY bez "szary": tylko przy takim dopasowaniu kolor moze byc zielony
+STATUSY_SKANU_AKTYWNE = ("przyjety", "do_powtorzenia")  # jak session.STATUSY_AKTYWNE (modul bez importu session)
 # klasa koloru z session -> status, gdy nic dokladniejszego nie wiadomo
 STATUS_WG_KOLORU = {KOLOR_ZIELONY: "zielony", KOLOR_CZERWONY: "czerwony", KOLOR_ZOLTY: "zolty", KOLOR_SZARY: "szary",
                     KOLOR_POMARANCZOWY: "pomaranczowy", KOLOR_ZATWIERDZONA_OK: "zatwierdzona_ok"}
@@ -108,21 +114,32 @@ def status(klucz: str | None) -> Status:
 
 
 def status_pracy(kolor: str | None, *, status_skanu: str, status_gniazda: str | None = None, status_inspekcji: str | None = None,
-                 decyzja: str | None = None, blad_inspekcji: bool = False, numer_znany: bool = True) -> str:
+                 decyzja: str | None = None, blad_inspekcji: bool = False, numer_znany: bool = True, status_match: str | None = None) -> str:
     """Klucz ``STATUSY`` dla jednej pracy.
 
     ``kolor`` - pole ``kolor`` pracy z ``session.stan_wieczoru`` (stan PO decyzjach technika; None dla skanu nieaktywnego),
-    ``status_skanu`` - status skanu z bazy, ``status_gniazda`` - ocena programu, ``decyzja`` - obowiazujaca decyzja.
+    ``status_skanu`` - status skanu z bazy, ``status_gniazda`` - ocena programu, ``decyzja`` - obowiazujaca decyzja,
+    ``status_match`` - status dopasowania (None = nie sprawdzac; kontroler podaje zawsze).
+
+    P4: status zielony TYLKO przy kolorze zielonym, ``status_inspekcji == "ok"`` i znanym dopasowaniu (``DOPASOWANIA_ZIELONE``);
+    inspekcji brak / pominieta -> ``nie_sprawdzono``, status inspekcji albo dopasowania nieznany tej wersji -> ``nieznany``
+    (oba zolte). D3: skan aktywny bez koloru pracy (wynik bez pola) -> ``nieznany``, nie "skan nieaktualny". Nigdy wyjatek.
     """
     if status_skanu == "plytka_nie_z_trybu":
         return "plytka_nie_z_trybu"
     if kolor is None:
-        return "nieaktywny"
+        return "nieznany" if status_skanu in STATUSY_SKANU_AKTYWNE else "nieaktywny"
     if decyzja in DECYZJE_UKRUSZENIA:
         return "ukruszona"
     if kolor == KOLOR_ZATWIERDZONA_OK:
         return "zatwierdzona_ok"
     if kolor == KOLOR_ZIELONY:
+        if status_inspekcji != INSPEKCJA_ZIELONA:
+            if status_inspekcji == "nie_sprawdzono" and blad_inspekcji:
+                return "blad_inspekcji"
+            return "nie_sprawdzono" if status_inspekcji in INSPEKCJE_NIESPRAWDZONE else "nieznany"
+        if status_match is not None and status_match not in DOPASOWANIA_ZIELONE:
+            return "nieznany"
         return "zielony" if numer_znany or ZIELONE_BEZ_NUMERU_PLYTKI else "czeka_na_numer"
     if kolor == KOLOR_ZOLTY:
         if status_inspekcji == "nie_sprawdzono":
@@ -133,6 +150,21 @@ def status_pracy(kolor: str | None, *, status_skanu: str, status_gniazda: str | 
             return "skan_do_powtorzenia"
         return "zolty"
     return STATUS_WG_KOLORU.get(kolor, "nieznany")
+
+
+def kolor_pracy(kolor: str | None, klucz: str) -> str | None:
+    """Klasa koloru pracy do pokazania (``Praca.kolor``, liczniki) dla statusu ``klucz`` z ``status_pracy``: zielona TYLKO dla
+    statusu z ``STATUSY_ZIELONE`` (P4 - zielony z sesji przy innym statusie dostaje klase koloru tego statusu, czyli zolta);
+    ``czeka_na_numer`` - brak koloru (plytka bez numeru: nic zielonego); klasa nieznana tej wersji albo brak koloru przy
+    statusie ``nieznany`` - zolta."""
+    if klucz == "czeka_na_numer":
+        return None
+    wiersz = status(klucz)
+    if kolor == KOLOR_ZIELONY and klucz not in STATUSY_ZIELONE:
+        return wiersz.kolor
+    if klucz == "nieznany" and (kolor is None or kolor not in KOLORY_PRACY):
+        return wiersz.kolor
+    return kolor
 
 
 # --- statusy skanu (plytki) ------------------------------------------------------------------------------------------
@@ -167,8 +199,11 @@ PRZYCISKI = {
     "odswiez_pule": "Odśwież pulę",
     "wybierz_operatora": "Wybierz osobę",
     "zamknij": "Zamknij program",
+    "zapisz_liste": "Zapisz listę do pliku",
+    "ponow_zapis": "Ponów zapis",
 }
 PRZYCISK_ZESKANUJE_WLASCIWA = "Zeskanuję właściwą płytkę"  # odpowiedz "nie dopuszczam" na pytanie o plytke nie z trybu
+PRZYCISK_WYLOGUJ = "Odchodzę od stanowiska"  # wybierz_operatora(None): nikt nie jest wybrany, decyzje niedostepne (D7)
 
 
 def odmiana(n: int, jedna: str, dwie: str, piec: str) -> str:
@@ -244,7 +279,22 @@ KOMUNIKATY: dict[str, Wzor] = {
                       "Po ponownym uruchomieniu program dokańcza zaległe skany: {ile}."),
     "konflikt_projektu": Wzor(POZIOM_OSTRZEZENIE, "Ten sam projekt w dwóch gniazdach",
                               "Program dopasował ten sam projekt do prac w {miejsc} miejscach — sprawdź, która praca jest która."),
+    # runda 2 recenzji PR #20 (zmiany kontraktu addytywne)
+    "blad_zapisu": Wzor(POZIOM_BLAD, "Nie można zapisać wyniku skanu",
+                        "Programu nie udało się zapisać wyników skanów ({ile}) — sprawdź dysk (wolne miejsce, podłączenie dysku). "
+                        "Skany nie przepadną: program ponawia zapis sam, możesz też kliknąć „Ponów zapis”."),
+    "zle_argumenty": Wzor(POZIOM_OSTRZEZENIE, "Nie można tego zrobić",
+                          "Okno podało złe dane do polecenia „{polecenie}” — nic nie zostało zapisane. Zgłoś to jako błąd programu."),
+    "blad_polecenia": Wzor(POZIOM_BLAD, "Polecenie nie zostało wykonane",
+                           "Błąd programu albo dysku — nic nie zostało zapisane. Spróbuj ponownie; jeśli to się powtarza, zgłoś awarię."),
+    "lista_nie_zapisana": Wzor(POZIOM_OSTRZEZENIE, "Lista nie została zapisana do pliku",
+                               "Nie udało się zapisać listy „do dofrezowania” do pliku — sprawdź dysk. Lista na ekranie jest aktualna; "
+                               "program spróbuje ponownie przy następnej zmianie listy (albo kliknij „Zapisz listę do pliku”)."),
+    "lista_zapisana": Wzor(POZIOM_INFO, "Lista zapisana", "Lista „do dofrezowania” zapisana do pliku {plik} w folderze danych programu."),
+    "wylogowano": Wzor(POZIOM_INFO, "Nikt nie jest wybrany", "Osoba odeszła od stanowiska — wybierz osobę, żeby zapisywać decyzje."),
 }
+# napis pozycji "nie zapisano" (``StanAplikacji.niezapisane``) wg przyczyny
+NAPISY_NIEZAPISANE = {"blad_zapisu": "nie zapisano — błąd zapisu", "baza_zajeta": "nie zapisano — baza zajęta"}
 
 PYTANIA: dict[str, Wzor] = {
     "ponowny_skan": Wzor(POZIOM_OSTRZEZENIE, "Ponowny skan tej samej płytki?",
