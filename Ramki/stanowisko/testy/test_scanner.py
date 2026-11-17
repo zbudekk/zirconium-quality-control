@@ -695,18 +695,127 @@ def test_stop_nie_gubi_watku_liczacego(tmp_path, monkeypatch):
     monkeypatch.setattr(SC, "skrot16_pliku", lambda plik: (wolny.wait(5.0), prawdziwy(plik))[1])
     zb = Zbior()
     sc = SC.Scanner(folder, na_skan=zb.skan, **SZYBKO)
+    inne = {t for t in threading.enumerate() if t.name == "scanner"}  # D-N7: watki innych testow (stop() z przekroczonym czasem) sie nie licza
     sc.start()
     try:
         SY.zapisz_jak_skaner(SY.sztuczny_stl(100, seed=1), folder / "a.stl", czas_s=0.1, kawalki=2)
         time.sleep(1.0)  # watek stoi w liczeniu skrotu
+        pierwszy = sc._watek
         sc.stop(czekaj_s=0.2)
         assert sc.dziala()  # watek jeszcze zyje - stop() tego nie ukrywa
         sc.start()
-        assert sum(1 for t in threading.enumerate() if t.name == "scanner") == 1
+        assert sc._watek is pierwszy and len({t for t in threading.enumerate() if t.name == "scanner"} - inne) == 1
     finally:
         wolny.set()
         sc.stop()
     assert not sc.dziala()
+
+
+# ----------------------------------------------------------------------------
+# runda 3 recenzji PR #17: D-N1 (nowy skan w folderze poznym), D-N2 (kontrakt funkcji znane)
+# ----------------------------------------------------------------------------
+def test_dn1_nowy_skan_w_folderze_ktory_pojawil_sie_po_starcie(tmp_path, obserwator):
+    """D-N1, proba S4 recenzenta: folderu eksportu nie ma przy starcie (program skanera zaklada go przy pierwszym eksporcie),
+    pojawia sie i od razu dostaje NOWY skan. Bez nadrabiania to jest zdarzenie z ``zastany=False``, bo czas pliku jest
+    pozniejszy niz start obserwatora (przed poprawka: plik "zastany" - 0 zdarzen, 0 odrzucen, nic w ``stan()``)."""
+    folder = tmp_path / "eksport"
+    sc, zb, _ = obserwator(folder, utworz=False)
+    time.sleep(1.0)
+    folder.mkdir()
+    dane = SY.sztuczny_stl(300, seed=4)
+    (folder / "nowy.stl").write_bytes(dane)
+    assert zb.czekaj(lambda: len(zb.skany) >= 1, 10.0), (zb.skany, zb.odrzucone, sc.stan())
+    time.sleep(0.8)
+    assert [(Path(z.plik).name, z.zastany, z.sha16) for z in zb.skany] == [("nowy.stl", False, SY.skrot16(dane))] and zb.odrzucone == []
+
+
+def test_dn1_nowy_skan_w_podfolderze_niedostepnym_przy_starcie(tmp_path, monkeypatch):
+    """D-N1: podfolderu nie dalo sie odczytac przy starcie; w tym czasie trafil do niego nowy skan. Przy pierwszym udanym
+    odczycie stary plik jest zastany, a nowy (czas pliku po starcie obserwatora) daje zdarzenie bez nadrabiania."""
+    folder = tmp_path / "eksport"
+    (folder / "zlec1").mkdir(parents=True)
+    (folder / "zlec1" / "stary.stl").write_bytes(SY.sztuczny_stl(100, seed=1))
+    time.sleep(0.1)
+    prawdziwa = SC.pliki_w_folderze
+
+    def bez_podfolderu(korzen, pomijaj=(), niedostepne=None):
+        if niedostepne is not None:
+            niedostepne.append(str(Path(korzen) / "zlec1"))
+        return (w for w in prawdziwa(korzen, pomijaj) if not w[0].startswith("zlec1/"))
+
+    monkeypatch.setattr(SC, "pliki_w_folderze", bez_podfolderu)
+    zegar = [100.0]
+    sc, zb = _reczny(folder, zegar)
+    _obiegi(sc, zegar, 5)
+    time.sleep(0.05)
+    (folder / "zlec1" / "nowy.stl").write_bytes(SY.sztuczny_stl(120, seed=2))
+    _obiegi(sc, zegar, 3)  # podfolder nadal niedostepny
+    monkeypatch.setattr(SC, "pliki_w_folderze", prawdziwa)
+    _obiegi(sc, zegar, 10)
+    assert [(Path(z.plik).name, z.zastany) for z in zb.skany] == [("nowy.stl", False)] and zb.odrzucone == []
+
+
+def _stary(p: Path, dane: bytes, wiek_s: float = 100.0) -> None:
+    p.write_bytes(dane)
+    t = time.time() - wiek_s
+    os.utime(p, (t, t))
+
+
+def test_dn2_znane_wolane_tylko_w_watku_obserwatora(tmp_path, obserwator):
+    """D-N2: funkcja ``znane`` jest wolana wylacznie w watku obserwatora (``scanner``) - przy starcie i dla folderu, ktory
+    pojawil sie pozniej (przed poprawka: przy starcie w watku wolajacym ``start()``, czyli w watku okna Qt; polaczenie
+    ``sqlite3`` z watku okna rzucaloby wtedy ``ProgrammingError`` w drugim przypadku)."""
+    folder = tmp_path / "eksport"
+    folder.mkdir()
+    _stary(folder / "a.stl", SY.sztuczny_stl(100, seed=1))
+    stare = tmp_path / "stare"
+    stare.mkdir()
+    _stary(stare / "b.stl", SY.sztuczny_stl(110, seed=2))
+    watki = []
+
+    def znane(sciezka, rozmiar, mtime_ns) -> bool:
+        watki.append((Path(sciezka).name, threading.current_thread().name))
+        return False
+
+    sc, zb, _ = obserwator(folder, znane=znane)
+    assert zb.czekaj(lambda: len(zb.skany) >= 1)
+    pozny = tmp_path / "eksport_pozny"
+    sc2, zb2, _ = obserwator(pozny, utworz=False, znane=znane)
+    time.sleep(0.6)
+    os.rename(stare, pozny)
+    assert zb2.czekaj(lambda: len(zb2.skany) >= 1)
+    assert watki == [("a.stl", "scanner"), ("b.stl", "scanner")]
+    assert [(Path(z.plik).name, z.zastany) for z in zb.skany + zb2.skany] == [("a.stl", True), ("b.stl", True)]
+
+
+def test_dn2_znane_pliki_jak_w_bazie_a1(tmp_path, obserwator):
+    """D-N2: ``ZnanePliki`` - gotowa funkcja ``znane`` z rekordow bazy A1 (``skany.plik``, ``rozmiar``, ``czas_pliku`` = czas
+    LOKALNY ISO uciety do sekund, jak ``session._czas_iso``), wczytanych przed ``start()``. Plik z bazy nie jest zglaszany
+    (takze gdy sciezka w bazie jest zapisana inaczej - ``..``), plik o innym rozmiarze albo z innej sekundy jest."""
+    import datetime as dt
+
+    def czas_a1(czas_pliku: float) -> str:  # jak session._czas_iso w paczce A1 (float z ZdarzenieSkanu.czas_pliku)
+        return dt.datetime.fromtimestamp(czas_pliku).replace(microsecond=0, tzinfo=None).isoformat()
+
+    folder = tmp_path / "eksport"
+    (folder / "zlec").mkdir(parents=True)
+    pliki = {n: folder / n for n in ("a.stl", "b.stl", "c.stl", "d.stl")}
+    for i, p in enumerate(pliki.values()):
+        _stary(p, SY.sztuczny_stl(100 + i, seed=i), wiek_s=500.0 - 7.3 * i)
+    st = {n: p.stat() for n, p in pliki.items()}
+    wiersze = [(str(pliki["a.stl"]), st["a.stl"].st_size, czas_a1(st["a.stl"].st_mtime_ns / 1e9)),
+               (str(pliki["b.stl"]), st["b.stl"].st_size + 50, czas_a1(st["b.stl"].st_mtime_ns / 1e9)),  # inny rozmiar
+               (str(folder / "zlec" / ".." / "c.stl"), st["c.stl"].st_size, czas_a1(st["c.stl"].st_mtime_ns / 1e9)),
+               (str(pliki["d.stl"]), st["d.stl"].st_size, czas_a1(st["d.stl"].st_mtime_ns / 1e9 - 1.0)),  # inna sekunda
+               (str(folder / "brak.stl"), 123, None)]  # wiersz bez czasu pliku (A1 dopuszcza) - pomijany
+    for n, p in pliki.items():
+        assert SC.czas_pliku_iso(st[n].st_mtime_ns) == czas_a1(st[n].st_mtime_ns / 1e9)
+    znane = SC.ZnanePliki(wiersze)
+    assert znane(pliki["a.stl"], st["a.stl"].st_size, st["a.stl"].st_mtime_ns) is True and len(znane) == 4
+    sc, zb, _ = obserwator(folder, znane=znane)
+    assert zb.czekaj(lambda: len(zb.skany) >= 2)
+    time.sleep(0.8)
+    assert sorted((Path(z.plik).name, z.zastany) for z in zb.skany) == [("b.stl", True), ("d.stl", True)]
 
 
 # ----------------------------------------------------------------------------
