@@ -558,7 +558,7 @@ Zalozenia przyjete bez pytania (wlasciciel moze je zmienic na G0):
 
 | Id | Zalozenie |
 |---|---|
-| Z1 | Tryb "Wieczor" / "Poranek" wybiera czlowiek; typ plytki niezgodny z trybem = ostrzezenie, nie samoczynna zmiana trybu |
+| Z1 | Tryb "Wieczor" / "Poranek" wybiera czlowiek; typ plytki niezgodny z trybem = BLOKADA (zmiana wlasciciela 17.11.2026): skan ma status `plytka_nie_z_trybu`, nic zielonego, bez decyzji i list; swiadome dopuszczenie tylko decyzja operatora; tryb nie zmienia sie samoczynnie |
 | Z2 | Uklad plytki z automatycznego rozpoznania: GOTOWE 15.11 w PR #13 (`plate.rozpoznaj_uklad`, `porownaj(..., plytka="auto")`, 80/80 na skanach syntetycznych); silnik wola `porownaj` z `plytka="auto"`, wybor reczny tylko jako zapas |
 | Z3 | Numer plytki z dolkow, gdy sa widoczne; inaczej jedno nacisniecie cyfry na ekranie (rano obowiazkowe przed "Zamknij piec"; wieczorem numer moze tez przyjsc z ramki wieczornej, gdy technik polozy na niej plytke) |
 | Z4 | Skan plytki o tym samym numerze w tej samej sesji zastepuje poprzedni po potwierdzeniu jednym przyciskiem; decyzje poprzedniego skanu nie przechodza |
