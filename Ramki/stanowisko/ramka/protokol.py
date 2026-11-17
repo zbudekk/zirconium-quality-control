@@ -17,13 +17,35 @@ from . import obraz
 
 PROTOKOL = 1
 
-STANY = ("gotowa", "skanowanie", "analiza", "wynik", "blad", "test_led")
+# ---------------------------------------------------------------- DECYZJE ROBOCZE (17.11.2026)
+# Wartosci przyjete przez koordynatora do decyzji wlasciciela - zmieniac TYLKO tutaj (opis: README,
+# "Decyzje robocze"). Ramka trzyma plan bez kontaktu z laptopem najwyzej tyle sekund (twarda granica
+# ramki; wieksze `wazny_s` z planu jest przycinane).
+MAX_WAZNY_S_ROLI = {"W": 30.0, "P": 600.0}
+# "Zamknij piec" w dwoch krokach: klawisz, potem Enter w ciagu tylu sekund.
+CZAS_POTWIERDZENIA_ZAMKNIECIA_S = 5.0
+# Wynik plytki kasowany przy jej zdjeciu z ramki (wieczor: zawsze; rano: plytki wracaja na ramke).
+KASUJ_PO_ZDJECIU_ROLI = {"W": True, "P": False}
+# Wpisywane cyfry (wybor kuwety) kasowane po tylu sekundach od ostatniego klawisza (D3).
+CZAS_WPISYWANIA_S = 10.0
+# Wyglad marginesu (napisy "3263 3", "PIEC?", prawy margines) - roboczy, ocena na zlozonej ramce (G2).
+# ----------------------------------------------------------------
+
+STANY = ("gotowa", "skanowanie", "analiza", "wynik", "blad", "test_led")  # stany ramki w GET /stan
+# Stany ustawiane przez PUT /tryb - bez "wynik": stan wynik ustawia wylacznie przyjety plan (P2).
+STANY_TRYBU = ("gotowa", "skanowanie", "analiza", "blad", "test_led")
 KOLORY_GNIAZD = tuple(obraz.KOLORY)
 TRYBY_PLANU = ("rano", "wieczor")
 TRYB_ROLI = {"W": "wieczor", "P": "rano"}
 RODZINY = {"W": (1, 2, 3), "P": (4, 5, 6)}  # numery plytek ramki (plan_ramki_v2 D11)
 KOLEJNOSCI = ("liczba", "numer", "reczna")
-KLAWISZE = ("enter", "backspace", "zamknij_piec") + tuple("0123456789")
+KLAWISZE =("enter", "backspace", "zamknij_piec") + tuple("0123456789")
+POLA_TYLKO_RANO = ("kuwety", "potwierdzone", "wybrane", "braki")  # plus "kuweta" przy gniezdzie
+# Odrzucenia, ktore NIE gasza obrazu: polecenie starsze niz obraz, nie od wlasciciela albo nie
+# do tej ramki / tego startu. Kazde inne odrzucenie PUT /plan i PUT /tryb od wlasciciela gasi (P5).
+KODY_BEZ_ZMIANY_OBRAZU = frozenset({
+    "inny_laptop", "inny_start", "plan_starszy", "plan_zgaszony", "zdarzenia_nieodebrane",
+    "blad_sprzetu", "brak_laptopa", "zly_laptop"})
 
 MAX_TRESC = 65536            # bajtow w tresci zadania
 MAX_TRESC_ODCZYT = 1048576   # tyle najwyzej czytamy i wyrzucamy przy zbyt duzej tresci
@@ -43,6 +65,12 @@ WZOR_KUWETY = re.compile(r"^#?[0-9]{1,6}$")
 WZOR_ID = re.compile(r"^[A-Za-z0-9._-]{1,40}$")
 WZOR_START = re.compile(r"^[0-9a-f]{4,32}$")
 WZOR_UKLADU = re.compile(r"^[a-z0-9_]{1,40}$")
+WZOR_KLUCZA = re.compile(r"^[\x21-\x7e]{16,256}$")  # wspolny klucz (P6): drukowalne ASCII bez odstepu
+
+
+def cyfry(tekst) -> bool:
+    """Napis z samych cyfr ASCII (isdigit() przyjmuje tez np. cyfre arabska 4 - D4)."""
+    return isinstance(tekst, str) and tekst.isascii() and tekst.isdigit()
 
 
 class BladProtokolu(Exception):
@@ -70,7 +98,6 @@ class Gniazdo:
 class PlanPlytki:
     uklad: str
     gniazda: list
-    usun_po_zdjeciu: bool = False
 
 
 @dataclass
@@ -141,7 +168,7 @@ def _lista(v, sciezka: str, maks: int, kod_dlugosci: str = "zle_pole") -> list:
 
 
 def _numer_plytki(klucz, sciezka: str) -> int:
-    if isinstance(klucz, str) and klucz.isdigit() and len(klucz) <= 2:
+    if cyfry(klucz) and len(klucz) <= 2:
         n = int(klucz)
     elif isinstance(klucz, int) and not isinstance(klucz, bool):
         n = klucz
@@ -158,7 +185,7 @@ def odcisk_planu(d: dict) -> str:
     return hashlib.sha256(json.dumps(tresc, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
-def _sprawdz_gniazda(lista, sciezka: str) -> list:
+def _sprawdz_gniazda(lista, sciezka: str, rano: bool = True) -> list:
     _lista(lista, sciezka, MAX_GNIAZD_PLYTKI, "za_duzo_gniazd")
     wynik = []
     ids = set()
@@ -183,6 +210,10 @@ def _sprawdz_gniazda(lista, sciezka: str) -> list:
         if not isinstance(g["kolor"], str) or g["kolor"] not in obraz.KOLORY:
             _blad("zly_kolor", f"{sg}.kolor: nieznany kolor")
         kuw = g.get("kuweta")
+        if kuw is not None and not rano:
+            # B1: regula "swieci tylko biezaca kuweta" jest wylacznie poranna - plan wieczorny z kuweta
+            # przy gniezdzie to blad laptopa, odrzucany (i gaszacy obraz), nie cicho pomijany
+            _blad("pole_tylko_rano", f"{sg}.kuweta: kuweta przy gniezdzie tylko w planie rano")
         if kuw is not None:
             _napis(kuw, sg + ".kuweta", WZOR_KUWETY, "zla_kuweta")
         pikseli += w * h
@@ -214,6 +245,11 @@ def sprawdz_plan(d, rola: str, rodzina=None) -> Plan:
         _blad("zle_pole", "plan.tryb: rano albo wieczor")
     if tryb != TRYB_ROLI[rola]:
         _blad("plan_innej_ramki", f"plan.tryb: ta ramka przyjmuje plany '{TRYB_ROLI[rola]}'", 409)
+    rano = tryb == "rano"
+    if not rano:
+        for pole in POLA_TYLKO_RANO:
+            if pole in d:
+                _blad("pole_tylko_rano", f"plan.{pole}: pole tylko w planie rano")
     kolejnosc = d.get("kolejnosc")
     if kolejnosc is not None and kolejnosc not in KOLEJNOSCI:
         _blad("zle_pole", "plan.kolejnosc: liczba, numer albo reczna")
@@ -232,12 +268,9 @@ def sprawdz_plan(d, rola: str, rodzina=None) -> Plan:
             _blad("zla_plytka", f"{sp}: plytka spoza rodziny tej ramki {list(rodzina)}")
         if n in plytki:
             _blad("zla_plytka", f"{sp}: powtorzona plytka")
-        _obiekt(wpis, sp, ("uklad", "gniazda"), ("usun_po_zdjeciu",))
+        _obiekt(wpis, sp, ("uklad", "gniazda"))
         uklad = _napis(wpis["uklad"], sp + ".uklad", WZOR_UKLADU)
-        usun = wpis.get("usun_po_zdjeciu", False)
-        if not isinstance(usun, bool):
-            _blad("zle_pole", f"{sp}.usun_po_zdjeciu: true albo false")
-        plytki[n] = PlanPlytki(uklad, _sprawdz_gniazda(wpis["gniazda"], sp + ".gniazda"), usun)
+        plytki[n] = PlanPlytki(uklad, _sprawdz_gniazda(wpis["gniazda"], sp + ".gniazda", rano))
 
     kuwety = []
     znane = {}
@@ -297,15 +330,22 @@ def sprawdz_plan(d, rola: str, rodzina=None) -> Plan:
 
 
 def sprawdz_tryb(d) -> str:
-    """Tresc PUT /tryb: {"protokol": 1, "stan": "..."}."""
+    """Tresc PUT /tryb: {"protokol": 1, "stan": "..."}; stan "wynik" nie istnieje w PUT /tryb (P2)."""
     if not isinstance(d, dict):
         _blad("zly_json", "tresc nie jest obiektem JSON")
     _obiekt(d, "tryb", ("protokol", "stan"))
     if d["protokol"] != PROTOKOL or isinstance(d["protokol"], bool):
         _blad("zly_protokol", f"tryb.protokol: obslugiwana wersja {PROTOKOL}")
-    if d["stan"] not in STANY:
-        _blad("zly_stan", "tryb.stan: " + ", ".join(STANY))
+    if not isinstance(d["stan"], str) or d["stan"] not in STANY_TRYBU:
+        _blad("zly_stan", "tryb.stan: " + ", ".join(STANY_TRYBU) + " (stan wynik ustawia tylko przyjety plan)")
     return d["stan"]
+
+
+def sprawdz_klucz(klucz) -> str:
+    """Wspolny klucz z konfiguracji ramki (P6): pusty = bez klucza."""
+    if not isinstance(klucz, str) or (klucz and not WZOR_KLUCZA.match(klucz)):
+        raise ValueError("konfiguracja: klucz = 16-256 drukowalnych znakow ASCII bez odstepu")
+    return klucz
 
 
 def sprawdz_id_laptopa(wartosc) -> str:
