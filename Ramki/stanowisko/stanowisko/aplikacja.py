@@ -175,6 +175,8 @@ class Aplikacja(K.KontrolerSesji):
             "plik_logu": self.katalog_logow / PLIK_LOGU_SILNIKA, **s})
         self.silnik.start()
         self._uruchomiony = True
+        for nazwa in ust.get("plytki") or {}:  # uklady plytek (i numpy) wczytane teraz, a nie w petli okna przy pierwszej plytce
+            self._uklad(nazwa)
         self._policz_pule()
         wznowione = self._wczytaj_zadania()
         self._wznowione = len(wznowione)
@@ -507,8 +509,11 @@ class Aplikacja(K.KontrolerSesji):
         return self._blad_analizy(z, e)
 
     def _przyjmij_wynik(self, z: Zlecenie, e: Any) -> str:
+        pliki = e.pliki or {}
         try:
-            skan_id = self.sesja.przyjmij_wynik(z.zdarzenie(), e.wynik, z.tryb)
+            with self.sesja.baza.transakcja():  # skan, prace i wpis o pliku podgladu: jeden zapis na dysk (krotsza przerwa petli okna)
+                skan_id = self.sesja.przyjmij_wynik(z.zdarzenie(), e.wynik, z.tryb)
+                self._zapisz_podglad(skan_id, pliki.get("podglad"))
         except B.BladBazy:  # baza zajeta przez inny program: wynik czeka w pamieci i jest zapisywany ponownie
             self._nieprzyjete.append((z, e))
             self._komunikat("baza_zajeta", id_="baza_zajeta:wyniki")
@@ -518,8 +523,6 @@ class Aplikacja(K.KontrolerSesji):
             return self._zapisz_blad(z, "analiza", f"wyniku nie da sie zapisac: {type(blad).__name__}")
         self._usun_komunikat("baza_zajeta:wyniki")
         self._usun_komunikat(f"plik_niedostepny:{z.sha16}")
-        pliki = e.pliki or {}
-        self._zapisz_podglad(skan_id, pliki.get("podglad"))
         if pliki.get("wynik"):  # kopia wyniku z silnika zawiera folder puli; obowiazuje plik zapisany przez sesje (bez sciezek)
             try:
                 Path(pliki["wynik"]).unlink(missing_ok=True)

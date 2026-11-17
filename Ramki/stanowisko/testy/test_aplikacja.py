@@ -13,7 +13,8 @@ Kryteria odbioru paczki (lista w raporcie ``raporty/E3-A3a_2026-11-17.md``):
 Kryteria (b), (c), (d), (h), (j) sprawdza wspolny test kontraktu ``test_kontroler_api`` (wariant ``aplikacja``).
 
 Analize w procesie silnika zastepuje ``test_kontroler_api.analiza_sztuczna`` (opis plytki zapisany w pliku "skanu");
-tylko test (a) uzywa ``porownaj``. Prog przerwy petli Qt: 200 ms (kryterium); E3A3_LUZNE=1 podnosi go do 1 s na komputerze
+tylko test (a) uzywa ``porownaj`` (oraz wariant na duzych skanach odniesienia, wlaczany zmiennymi E3A3_DANE_REF
+i E3A3_PROJEKTY - bez nich pomijany z opisem). Prog przerwy petli Qt: 200 ms (kryterium); E3A3_LUZNE=1 podnosi go do 1 s na komputerze
 obciazonym przez inne sesje - wartosc zmierzona jest wypisywana (pytest -s).
 """
 from __future__ import annotations
@@ -37,6 +38,9 @@ import test_kontroler_api as TK
 from test_kontroler_api import FOLDER_ZLECENIA, STANOWISKO, StanowiskoAplikacji, kolory
 
 PROG_PRZERWY_S = 1.0 if os.environ.get("E3A3_LUZNE") == "1" else 0.2  # kryterium (f): 200 ms
+DANE_REF = os.environ.get("E3A3_DANE_REF")
+PROJEKTY_REF = os.environ.get("E3A3_PROJEKTY")
+BRAK_DANYCH_REF = "wariant na duzych skanach odniesienia: ustaw E3A3_DANE_REF (folder skan_<typ>_n*.stl) i E3A3_PROJEKTY (folder puli)"
 WINDOWS = pytest.mark.skipif(os.name != "nt", reason="plik otwarty bez zgody na wspoldzielenie istnieje tylko na Windows")
 
 
@@ -68,6 +72,31 @@ def skany_w_bazie(st) -> list[dict]:
 
 def czekaj_na_pusta_kolejke(st, limit_s: float = 90.0) -> None:
     st.czekaj(lambda: st.stan().kolejka.razem == 0 and st.stan().analiza is None and st.k._skrzynka.empty(), limit_s, "pusta kolejka")
+
+
+def mierz_kroki(k) -> dict:
+    """Pomiar czasu krokow wykonywanych w watku okna (do szukania przyczyny przerw petli Qt): nazwa kroku -> lista czasow [s]."""
+    czasy: dict = {}
+
+    def owin(obiekt, nazwa: str, etykieta: str) -> None:
+        prawdziwa = getattr(obiekt, nazwa)
+        czasy[etykieta] = []
+
+        def mierzona(*a, **kw):
+            t0 = time.perf_counter()
+            try:
+                return prawdziwa(*a, **kw)
+            finally:
+                czasy[etykieta].append(time.perf_counter() - t0)
+
+        setattr(obiekt, nazwa, mierzona)
+
+    owin(k, "przetworz", "przetworz")
+    owin(k, "_zbuduj", "stan z bazy")
+    owin(k.sesja, "przyjmij_wynik", "przyjecie wyniku")
+    owin(k, "_zapisz_podglad", "wpis podgladu")
+    owin(k.sesja, "stan_wieczoru", "stan_wieczoru")
+    return czasy
 
 
 def obraz_plytek(stan) -> list:
@@ -720,3 +749,82 @@ def test_main_uruchamia_program_i_zamyka_go_czysto(tmp_path):
     w = subprocess.run([sys.executable, "-m", "stanowisko.aplikacja", "--ustawienia", str(zly), "--zamknij-po", "1"], cwd=STANOWISKO,
                        capture_output=True, text=True, timeout=180, env=srodowisko)
     assert w.returncode == 2 and "BLAD: zle.toml" in w.stderr and "Traceback" not in w.stderr  # komunikat dla czlowieka, nie slad wyjatku
+
+# ----------------------------------------------------------------------------
+# wariant na duzych skanach odniesienia (wlaczany zmiennymi srodowiskowymi; liczby do raportu paczki)
+# ----------------------------------------------------------------------------
+@pytest.mark.skipif(not (DANE_REF and PROJEKTY_REF), reason=BRAK_DANYCH_REF)
+def test_skany_odniesienia_przez_cala_aplikacje_w_petli_qt(tmp_path):
+    """Trzy duze sztuczne skany (45-55 MB: okragla wieczorna, kwadratowa wieczorna, okragla poranna) i pula prawdziwych
+    projektow przez CALA aplikacje w petli Qt: symulator zapisuje pliki w kawalkach, ``scanner`` liczy skroty, ``silnik`` wykonuje
+    ``porownaj``, wynik trafia do sesji. Stan = wynik analizy w 100 % gniazd; plytka poranna zablokowana; przerwa petli okna."""
+    import symulator_skanera as SY
+    from PySide6.QtCore import QEventLoop, QTimer
+    from PySide6.QtWidgets import QApplication
+
+    from stanowisko import aplikacja as AP
+    from stanowisko import kontroler_api as K
+
+    skany = [sorted(Path(DANE_REF).glob(f"skan_{typ}_n*.stl"))[0] for typ in ("okragla_wieczorna", "wieczorna", "okragla_poranna")]
+    ust = TK.ustawienia_probne(tmp_path)
+    ust["sciezki"]["folder_cyrkon"] = Path(PROJEKTY_REF).as_posix()
+    ust["scanner"]["stabilizacja_ms"] = 300  # jak w programie
+    (tmp_path / "eksport").mkdir()
+    app = QApplication.instance() or QApplication([])
+    assert app.platformName() == "offscreen"
+    k = AP.Aplikacja(ust)
+    try:
+        k.start()
+        kroki = mierz_kroki(k)
+        lacznik = K.lacznik_qt(k)
+        petla = QEventLoop()
+        pomiar = {"ostatni": 0.0, "przerwa": 0.0, "tykniec": 0, "czasy": {}}
+
+        def tyk():
+            teraz = time.perf_counter()
+            pomiar["przerwa"] = max(pomiar["przerwa"], teraz - pomiar["ostatni"])
+            pomiar["ostatni"] = teraz
+            pomiar["tykniec"] += 1
+            s = k.stan()
+            for p in s.plytki:
+                pomiar["czasy"].setdefault(p.skan_id, teraz)
+            if len(s.plytki) == len(skany) and s.kolejka.razem == 0:
+                petla.quit()
+
+        zegar = QTimer()
+        zegar.setInterval(10)
+        zegar.timeout.connect(tyk)
+        QTimer.singleShot(1_500_000, petla.quit)
+
+        def zapisuj():  # jak skaner: kolejne pliki zapisywane w kawalkach przez 2 s, w podfolderze "zlecenia"
+            for i, skan in enumerate(skany):
+                SY.zapisz_jak_skaner(skan, tmp_path / "eksport" / FOLDER_ZLECENIA / f"eksport_{i}.stl", czas_s=2.0, kawalki=10)
+
+        pisarz = threading.Thread(target=zapisuj, daemon=True)
+        t0 = pomiar["ostatni"] = time.perf_counter()
+        zegar.start()
+        pisarz.start()
+        petla.exec()
+        zegar.stop()
+        lacznik.zatrzymaj()
+        pisarz.join(60.0)
+        s = k.stan()
+        assert len(s.plytki) == 3, [x.tekst for x in s.komunikaty]
+        opis = []
+        for p in s.plytki:
+            wynik = json.loads(k.sesja.sciezka_wyniku(p.skan_id).read_text(encoding="utf-8"))
+            assert kolory(p) == K.kolory_oczekiwane(wynik, status_skanu=p.status, numer_znany=p.numer is not None)  # 100 % gniazd
+            opis.append(f"{p.uklad} nr {p.numer}: {p.status}, prac {len(p.prace)}, kolory {dict(sorted(p.liczniki.items()))}, "
+                        f"analiza {p.czas_s:.1f} s, w stanie po {pomiar['czasy'][p.skan_id] - t0:.1f} s")
+        print("\n[skany odniesienia przez aplikacje] " + "; ".join(opis) + f"; pula {s.pula.liczba_stl} STL; najdluzsza przerwa petli Qt "
+              f"{pomiar['przerwa'] * 1000:.0f} ms (prog {PROG_PRZERWY_S * 1000:.0f} ms), tykniec {pomiar['tykniec']}; pytania: {[q.rodzaj for q in s.pytania]}; "
+              f"komunikaty: {[x.rodzaj for x in s.komunikaty]}; najdluzsze kroki w watku okna [ms]: "
+              + ", ".join(f"{nazwa} {max(czasy) * 1000:.0f} (x{len(czasy)})" for nazwa, czasy in sorted(kroki.items()) if czasy))
+        # status dwoch plytek wieczornych zalezy od danych (zestaw ma skany z drgnieciem = do powtorzenia); poranna jest zawsze zablokowana
+        assert [p.status for p in s.plytki][2] == "plytka_nie_z_trybu" and s.plytki[2].zielonych == 0
+        assert all(p.status in ("przyjety", "do_powtorzenia") and (p.status == "przyjety" or p.zielonych == 0) for p in s.plytki[:2])
+        assert [q.rodzaj for q in s.pytania if q.rodzaj == "plytka_nie_z_trybu"] == ["plytka_nie_z_trybu"]
+        assert all(len(p.prace) >= 5 for p in s.plytki)
+        assert pomiar["przerwa"] <= PROG_PRZERWY_S
+    finally:
+        k.zamknij()
