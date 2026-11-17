@@ -52,19 +52,33 @@ class Odbijanie:
     - Powrot do `stabilna` po zakloceniu: `pewna` dopiero po `stabilnosc_s` stalego odczytu.
     - Odczyt rozny od `stabilna` dluzej niz `stabilnosc_s`, ale nieustalony (drgania): plytka uznana
       za zdjeta (`stabilna` = 0) - gniazda ciemne przez caly czas drgan.
+    - Runda 3 (drgania wolniejsze niz `stabilnosc_s`): POWROT do numeru sprzed ostatniej zmiany (A -> 0 -> A,
+      A -> B -> A) ustala sie najwczesniej `odstep_powrotu_s` po tej zmianie - najwyzej 1 para zdarzen na
+      odstep, gniazda ciemne do tego czasu. Zdjecie plytki (zmiana na 0) i zmiana na INNY numer (4 -> 0 -> 5)
+      bez opoznienia. Bez tego drgajacy czujnik dawalby ok. 20 zdarzen na sekunde, a plan (przyjmowany
+      tylko z `zdarzenia_do` = numer ostatniego zdarzenia) nie mialby szans.
     Wymaganie I5: zmiana ponizej 100 ms - domyslnie 30 ms.
     """
 
-    def __init__(self, stabilnosc_s: float = 0.03, poczatkowa: int = 0):
+    def __init__(self, stabilnosc_s: float = 0.03, poczatkowa: int = 0, odstep_powrotu_s: float = 0.0):
         self.stabilnosc_s = float(stabilnosc_s)
+        self.odstep_powrotu_s = float(odstep_powrotu_s)
         self.stabilna = poczatkowa
         self.pewna = False
         self._ostatnia = None      # ostatni surowy odczyt
         self._ostatnia_od = None   # od kiedy surowy odczyt jest staly
         self._inna_od = None       # od kiedy surowy odczyt jest (bez przerwy) rozny od stabilna
+        self._poprzednia = None    # ustalony numer sprzed ostatniej zmiany
+        self._zmiana_t = float("-inf")  # chwila ostatniej zmiany ustalonego numeru
 
     def _uplynelo(self, od, teraz: float) -> bool:
         return od is not None and teraz - od >= self.stabilnosc_s - 1e-9
+
+    def _zmien(self, n: int, teraz: float) -> int:
+        self._poprzednia = self.stabilna
+        self.stabilna = n
+        self._zmiana_t = teraz
+        return n
 
     def podaj(self, surowa: int, teraz: float):
         """Zwraca nowy ustalony numer albo None (bez zmiany); `pewna` po kazdym odczycie."""
@@ -80,13 +94,13 @@ class Odbijanie:
         if self._inna_od is None:
             self._inna_od = teraz
         if staly:
-            self.stabilna = surowa
+            if surowa != 0 and surowa == self._poprzednia and teraz - self._zmiana_t < self.odstep_powrotu_s:
+                return None  # drgania: powrot do poprzedniego numeru wstrzymany (gniazda ciemne)
             self.pewna = True
             self._inna_od = None
-            return surowa
+            return self._zmien(surowa, teraz)
         if self.stabilna != 0 and self._uplynelo(self._inna_od, teraz):
             # plytka odeszla, a odczyt sie nie ustalil: jak brak plytki (ciemno do ustalenia odczytu)
-            self.stabilna = 0
             self._inna_od = None if surowa == 0 else teraz
-            return 0
+            return self._zmien(0, teraz)
         return None
