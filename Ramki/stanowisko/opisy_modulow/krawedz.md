@@ -13,7 +13,10 @@ T9 (06.11.2026) przeniesiony bez zmiany konstrukcji i stalych.
 `skala` = ile razy siatka jest wieksza od pliku projektu (wspolczynnik skurczu), `klucz` = skrot SHA-256 pliku projektu.
 
 **Wyjscie.** `LinieProjektu`: `filary` (lista `Filar`), `niecki` (opis znalezionych wnek), `uwagi`, `stan`
-(`wiarygodne` = kazdy filar wiarygodny | `czesciowe` | `brak` = zadnego filaru z linia), `opis()` (liczniki do JSON).
+(`wiarygodne` = kazdy filar ma linie i jest wiarygodny | `czesciowe` | `brak` = zadnego filaru z linia),
+`filary_bez_linii` (numery filarow, ktorych niecka zostala przyjeta, ale zaden wariant nie dal linii - w `uwagi` jest
+wtedy "filar N: ... linii nie wyznaczono", filaru nie ma na liscie `filary`, a `stan` to najwyzej `czesciowe`; liczone z
+`niecki`, wiec dziala takze dla linii z pamieci na dysku), `opis()` (liczniki do JSON, w tym `filary_bez_linii`).
 `Filar`: `nr`, `srodek` (os przekrojow), linie `O` (naroznik zewnetrzny plaskiej krawedzi), `I` (naroznik wewnetrzny) i
 `S` (srodek plaskiej krawedzi zrzutowany NA powierzchnie projektu) jako zamkniete lamane ze stacjami co ok. 0,05 mm
 (`Linia.X`, `zweryf` na stacji, `dlugosc`); to samo na przekroj (`O`, `I`, `S`, `udany`, `zweryf` - 720 przekrojow co
@@ -50,16 +53,22 @@ i przesuniecia to przeliczenie wspolrzednych. `ustaw_katalog_pamieci(katalog)` w
 `<klucz>_v<WERSJA>.npz` na projekt, wspolna dla procesow) - domyslnie wylaczona, modul sam nic nie pisze na dysk.
 Zmiana konstrukcji albo stalych = nowy `WERSJA`.
 
-**Kryterium "dziala".** `testy/test_krawedz.py` (14): korona-atrapa = 1 petla na zewnetrznym obwodzie brzegu, I nizej i
+**Kryterium "dziala".** `testy/test_krawedz.py` (15): korona-atrapa = 1 petla na zewnetrznym obwodzie brzegu, I nizej i
 blizej osi, S na powierzchni; most-atrapa = 4 petle (jedna na wneke); tuleja z kanalem na wylot = obwod powierzchni
 przylegania; krawedz szersza niz kryterium na czesci obwodu = odcinek oznaczony jako niezweryfikowany; bryla bez wneki =
-jawny brak linii; niezaleznosc od skali i przesuniecia; pamiec w module i na dysku (takze uszkodzony plik); funkcje
+jawny brak linii; filar z przyjeta niecka bez linii = numer w `filary_bez_linii` i `stan` `czesciowe` (poprawka P1 po
+recenzji PR #13); niezaleznosc od skali i przesuniecia; pamiec w module i na dysku (takze uszkodzony plik); funkcje
 pomocnicze. Na 17 prawdziwych projektach (`narzedzia/metryki_krawedz.py linie`): 23 petle, 14 wiarygodnych, 9
 czesciowych, 0 niepewnych; liczba petli, wariant i liczba zweryfikowanych przekrojow kazdego filaru = T9 (23 z 23).
 
 **Zalozenia i granice.**
 - Dane wejsciowe: os z = os wprowadzenia, wneka kazdego filaru otwarta do gory i bez podciec (eksport exocad). Praca
-  w innej orientacji albo bez wneki / kanalu = `stan` `brak` (inspect: "nie sprawdzono").
+  w innej orientacji albo bez wneki / kanalu = `stan` `brak` (inspect: w trybie `linia` "nie sprawdzono", w trybie
+  domyslnym `linia_i_plaszczyzna` pas brzegu sprzed P2 z uwaga w wyniku).
+- Filar z przyjeta niecka, dla ktorego zaden wariant nie dal linii (za malo udanych przekrojow), nie dostaje petli:
+  jest tylko w `niecki`, `uwagi` i `filary_bez_linii`. `inspect` liczy go w trybie `linia` jako "nie sprawdzono", a w
+  trybie domyslnym sprawdza jego brzeg samym pasem od plaszczyzny i zapisuje uwage. W puli 17 projektow przypadek nie
+  wystapil (23 petle z 23); test wywoluje go sztucznie.
 - Przy lacznikach mostow powierzchnia za brzegiem czesto wznosi sie zamiast opadac - brzeg nie jest tam grzbietem,
   warianty startu rozjezdzaja sie, linia potrafi "uciec" po laczniku. Te odcinki sa niezweryfikowane (srednio 16 %
   obwodu filarow prac wieloczlonowych w puli testowej; 7 z 17 projektow ma petle `czesciowa`).
