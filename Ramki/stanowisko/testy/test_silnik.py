@@ -5,7 +5,7 @@ Kryteria odbioru z planu etapu 3 (sekcja 4.1, E3-A2), ktore sprawdza ten plik:
   5. wynik silnika dla sztucznego skanu kazdego z 4 typow plytek = wynik ``porownaj`` z wiersza polecen (pole po polu, poza
      czasami). UWAGA - odstepstwo opisane w ``roznice`` i ``_rowne``: ``porownaj`` nie jest powtarzalne nawet miedzy dwoma
      uruchomieniami wiersza polecen, wiec rownosc bit w bit jest nieosiagalna; test wymaga rownosci wszystkich pol
-     z tolerancja 1e-3 dla liczb zmiennoprzecinkowych (bez 3 licznikow ICP korekty skali), a liczbe pol roznych przy
+     z tolerancja 1e-3 dla liczb zmiennoprzecinkowych (bez 4 licznikow ICP korekty skali), a liczbe pol roznych przy
      tolerancji 1e-9 wypisuje (wymagana tylko z E3A2_SCISLE=1),
   6. silnik wywolany z aplikacji Qt (offscreen) konczy plytke w czasie do 60 s, petla okna bez przerw dluzszych niz 200 ms,
   7. awaria analizy (zly plik, zabity proces) = komunikat i podjecie nastepnego zadania.
@@ -154,12 +154,12 @@ def bez_czasow(o):
 
 TOL_SZUMU = 1e-9  # poziom 1: szum numeryczny
 TOL_DECYZJI = 1e-3  # poziom 2: 0,001 mm (albo wzglednie) - 50 razy ponizej najmniejszego progu decyzji (0,05 mm)
-LICZNIKI_ICP_SKALI = ("iteracje", "punktow", "punktow_w_obszarach")  # liczniki korekty skali w ``match`` (pola ``skala``)
+LICZNIKI_ICP_SKALI = ("iteracje", "punktow", "punktow_w_pasie_brzegu", "punktow_w_obszarach")  # liczniki ``match.KorektaSkali``
 
 
 def roznice(a, b, sciezka="", tol: float = TOL_SZUMU, bez_licznikow_skali: bool = False) -> list[str]:
     """Lista pol, ktorymi roznia sie dwie struktury JSON. Wszystko porownywane dokladnie, poza liczbami zmiennoprzecinkowymi:
-    te moga sie roznic o ``tol`` (wzglednie albo bezwzglednie); ``bez_licznikow_skali`` pomija trzy liczniki ICP korekty skali.
+    te moga sie roznic o ``tol`` (wzglednie albo bezwzglednie); ``bez_licznikow_skali`` pomija cztery liczniki ICP korekty skali.
 
     Dlaczego nie rownosc bit w bit: ``porownaj`` nie jest powtarzalne - DWA URUCHOMIENIA Z WIERSZA POLECEN na tym samym
     skanie roznia sie (pomiar 17.11.2026 na PC, 2 x 6 przebiegow na plytkach z atrap): (1) zawsze szumem rzedu 1e-15 w 31-52
