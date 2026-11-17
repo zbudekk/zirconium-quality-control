@@ -209,10 +209,7 @@ KOMUNIKATY: dict[str, Wzor] = {
     "plik_zajety": Wzor(POZIOM_INFO, "Czeka na zwolnienie pliku",
                         "Plik skanu jest jeszcze zajęty przez inny program (od {od_s} s) — analiza ruszy sama, gdy plik zostanie zwolniony."),
     "plik_niedostepny": Wzor(POZIOM_BLAD, "Nie można odczytać pliku skanu",
-                             "Pliku skanu nie udało się odczytać (inny program trzyma go zamkniętego). Próba {proba} z {prob}."),
-    "plik_niedostepny_koniec": Wzor(POZIOM_BLAD, "Nie można odczytać pliku skanu",
-                                    "Pliku skanu nie udało się odczytać mimo {prob} prób. Zamknij podgląd w programie skanera "
-                                    "i zeskanuj płytkę ponownie."),
+                             "Pliku skanu nie udało się odczytać — inny program trzyma go zamkniętego. {dalej}"),
     "plik_zmieniony": Wzor(POZIOM_INFO, "Skan zapisany ponownie",
                            "Plik skanu został zapisany jeszcze raz, zanim ruszyła analiza — program analizuje nową wersję."),
     "plik_odrzucony": Wzor(POZIOM_OSTRZEZENIE, "Plik nie jest skanem",
@@ -229,6 +226,8 @@ KOMUNIKATY: dict[str, Wzor] = {
                        "W folderze projektów nie ma plików STL — skany czekają ({czeka}). Wskaż właściwy folder i kliknij „Odśwież pulę”."),
     "pula_brak_folderu": Wzor(POZIOM_BLAD, "Brak folderu projektów",
                               "Program nie widzi folderu projektów — skany czekają ({czeka}). Wskaż folder i kliknij „Odśwież pulę”."),
+    "zly_wspolczynnik": Wzor(POZIOM_OSTRZEZENIE, "Zły współczynnik skurczu",
+                             "Współczynnik skurczu musi być liczbą od {od} do {do} (zostaw puste pole, żeby program dobrał go sam)."),
     # operator i odmowy
     "brak_operatora": Wzor(POZIOM_OSTRZEZENIE, "Wybierz osobę",
                            "Nie wybrano osoby, która pracuje — wybierz ją z listy. Bez tego decyzje nie są zapisywane."),
@@ -257,6 +256,8 @@ PYTANIA: dict[str, Wzor] = {
                                "Program nie odczytał numeru płytki ze skanu. Podaj numer wybity na płytce — do tego czasu "
                                "żadna praca na niej nie jest pokazana jako zielona."),
 }
+PLIK_NIEDOSTEPNY_PONOWIENIE = "Program próbuje ponownie (próba {proba} z {prob})."
+PLIK_NIEDOSTEPNY_KONIEC = "Zamknij podgląd w programie skanera i zeskanuj płytkę ponownie."
 SKUTEK_BEZ_DECYZJI = "Poprzedni skan nie ma jeszcze żadnych decyzji."
 SKUTEK_Z_DECYZJAMI = ("Po potwierdzeniu przestanie obowiązywać {n} {decyzji} z poprzedniego skanu (w tym „Ukruszona”: {u}) — "
                       "trzeba je będzie zaznaczyć od nowa.")

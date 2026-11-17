@@ -31,6 +31,7 @@ Modul uzywa tylko biblioteki standardowej; PySide6 jest importowane dopiero w ``
 """
 from __future__ import annotations
 
+import collections
 import dataclasses
 import datetime as dt
 import hashlib
@@ -508,6 +509,7 @@ class KontrolerSesji(Kontroler):
         self.tryb = SE.sprawdz_tryb(tryb)
         self._zegar = zegar or dt.datetime.now
         self._subskrybenci: list = []
+        self._do_wyslania: collections.deque = collections.deque()
         self._stan: StanAplikacji | None = None
         self._wersja = 0
         self._zamkniety = False
@@ -531,12 +533,16 @@ class KontrolerSesji(Kontroler):
             self._subskrybenci.remove(funkcja)
 
     def _powiadom(self, typ: str, **pola: Any) -> None:
-        z = ZdarzenieKontrolera(typ=typ, **pola)
-        for f in list(self._subskrybenci):
-            try:
-                f(z)
-            except Exception:  # noqa: BLE001 - blad okna nie moze zatrzymac kontrolera
-                LOG.exception("kontroler: blad odbiorcy sygnalu %s", typ)
+        """Sygnal do subskrybentow. Sygnaly ida przez jedna kolejke w kolejnosci powstania - takze gdy odbiorca w trakcie
+        obslugi sygnalu wywola polecenie albo ``przetworz`` (zagniezdzona petla okna): nowsze sygnaly nie wyprzedzaja starszych."""
+        self._do_wyslania.append(ZdarzenieKontrolera(typ=typ, **pola))
+        while self._do_wyslania:
+            z = self._do_wyslania.popleft()
+            for f in list(self._subskrybenci):
+                try:
+                    f(z)
+                except Exception:  # noqa: BLE001 - blad okna nie moze zatrzymac kontrolera
+                    LOG.exception("kontroler: blad odbiorcy sygnalu %s", z.typ)
 
     # --- stan ------------------------------------------------------------------------------------
     def stan(self) -> StanAplikacji:
@@ -779,8 +785,13 @@ class KontrolerSesji(Kontroler):
         if s["status"] == SE.STATUS_NIEZGODNY_UKLAD:
             wynik.append(self._nowy_komunikat(f"niezgodny_uklad:{skan_id}", "niezgodny_uklad", trwaly=True, czas=czas, skan_id=skan_id))
         elif s["status"] == SE.STATUS_BLAD:
-            wynik.append(self._nowy_komunikat(f"blad_analizy:{skan_id}", "blad_analizy", trwaly=True, czas=czas, skan_id=skan_id,
-                                              powod=self._powod_bledu(skan_id)))
+            rodzaj = self._rodzaj_bledu(skan_id)
+            if rodzaj == "plik_niedostepny":  # pliku nie dalo sie odczytac mimo ponowien: osobny komunikat z rada
+                wynik.append(self._nowy_komunikat(f"plik_niedostepny:{skan_id}", "plik_niedostepny", trwaly=True, czas=czas, skan_id=skan_id,
+                                                  dalej=ST.PLIK_NIEDOSTEPNY_KONIEC))
+            else:
+                wynik.append(self._nowy_komunikat(f"blad_analizy:{skan_id}", "blad_analizy", trwaly=True, czas=czas, skan_id=skan_id,
+                                                  powod=ST.POWODY_BLEDU_ANALIZY.get(rodzaj, ST.POWODY_BLEDU_ANALIZY["analiza"])))
         elif s["status"] == SE.STATUS_DO_POWTORZENIA:
             powody, gniazda = [], []
             for klucz, pole, wartosc in (("skan_ponownie", "status_inspekcji", "skan_ponownie"), ("popraw_ulozenie", "status_inspekcji", "popraw_ulozenie")):
@@ -808,16 +819,15 @@ class KontrolerSesji(Kontroler):
                                                   gniazda=tuple(bledne), nr=", ".join(map(str, bledne))))
         return wynik
 
-    def _powod_bledu(self, skan_id: int) -> str:
-        """Powod bledu analizy z dziennika (rodzaj bledu silnika zapisany przez kontroler) jako tekst dla technika."""
+    def _rodzaj_bledu(self, skan_id: int) -> str | None:
+        """Rodzaj bledu silnika (``silnik.RODZAJE_BLEDU``) zapisany przez kontroler w dzienniku przy skanie ``blad``."""
         w = self.sesja.baza.wiersz("SELECT dane FROM zdarzenia WHERE skan_id = ? AND typ = 'blad_analizy_rodzaj' ORDER BY id DESC LIMIT 1", (skan_id,))
-        rodzaj = None
         if w and w["dane"]:
             try:
-                rodzaj = json.loads(w["dane"]).get("rodzaj")
+                return json.loads(w["dane"]).get("rodzaj")
             except ValueError:
-                rodzaj = None
-        return ST.POWODY_BLEDU_ANALIZY.get(rodzaj, ST.POWODY_BLEDU_ANALIZY["analiza"])
+                return None
+        return None
 
     def _pytania_plytki(self, s: dict, propozycja: dict | None, czasy: dict, typ: str | None, numery_plytek: tuple) -> list:
         wynik = []
@@ -990,7 +1000,7 @@ class KontrolerSesji(Kontroler):
 
     def szczegoly_pracy(self, praca_id: int) -> SzczegolyPracy | None:
         praca = self.stan().praca(praca_id)
-        if praca is None:
+        if praca is None or self._zamkniety:
             return None
         wpis = self._inspekcje(praca.skan_id).get((praca.gniazdo, praca.nr_fragmentu)) or {}
         inspekcja = wpis.get("inspekcja") or {}
@@ -1226,7 +1236,8 @@ class AtrapaKontrolera(KontrolerSesji):
 
     def symuluj_komunikat(self, rodzaj: str, **pola: Any) -> Komunikat:
         """Komunikat ulotny dowolnego rodzaju z ``statusy.KOMUNIKATY`` (np. ``plik_zajety``, ``plik_niedostepny``, ``plik_zmieniony``)."""
-        pola = {"od_s": 12, "proba": 1, "prob": 3, "powod": ST.POWODY_BLEDU_ANALIZY["analiza"], "czeka": 1, "ile": 1, **pola}
+        pola = {"od_s": 12, "dalej": ST.PLIK_NIEDOSTEPNY_PONOWIENIE.format(proba=1, prob=3), "powod": ST.POWODY_BLEDU_ANALIZY["analiza"],
+                "czeka": 1, "ile": 1, **pola}
         k = self._komunikat(rodzaj, **pola)
         self._odswiez()
         return k
