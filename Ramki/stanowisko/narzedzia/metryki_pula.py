@@ -438,6 +438,8 @@ def _skan_r59(arg) -> dict:
     w = float(np.mean([x.wspolczynnik for x in prawda.prace])) if prawda.prace else 1.0  # jak metryki_P3a
     wpisy = wpisy_r59(projekty, w, rozpraszacze, bez_wariantow)
     pula = M.Pula.z_wpisow(wpisy, None, pamiec=pam)
+    skrot = {str(q): S.skrot_pliku(q) for d in projekty for q in S.pliki_projektow(d)}  # projekty R59 = prawda
+    fid_prawdy = {skrot[x["plik"]]: x["frezowanie_id"] for x in wpisy if x["plik"] in skrot and abs(x["wspolczynnik"] - w) < 1e-9}
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         wynik = PO.porownaj(p, [], prawda.plytka, ust, w, None, "auto", False, pula)
@@ -452,13 +454,19 @@ def _skan_r59(arg) -> dict:
            "prace_cale": mi["razem"]["prac_calych"], "prace_cale_z_czerwonym": mi["razem"]["prace_cale_z_czerwonym"],
            "prace_cale_z_alarmem": mi["razem"]["prace_cale_z_alarmem"], "ubytkow": mi["razem"]["ubytkow"], "wykryte_dowolny": mi["razem"]["wykryte"]["dowolny"],
            "statusy_gniazd": wynik["statusy_gniazd"], "statusy_match": mt["statusy"], "czas_s": wynik["czas_s"], "wpisow": len(wpisy),
+           "ratunek": wynik.get("ratunek"),
            "scenariusze": {s: {"top1_bledny": v["top1_bledny"], "prace_cale_z_czerwonym": v["prace_cale_z_czerwonym"]} for s, v in mi["scenariusze"].items()},
            "gniazda": [{"gniazdo": g["gniazdo"], "status": g["status"], "status_gniazda": g["status_gniazda"],
                         "projekt": (g["kandydaci"][0]["id"] if g["kandydaci"] else None),
+                        "pokrycie": (g["kandydaci"][0]["pokrycie"] if g["kandydaci"] else None), "pewnosc": g["pewnosc"],
+                        "frezowanie_id": (g["kandydaci"][0]["frezowanie_id"] if g["kandydaci"] else None),
+                        "metoda": (g["kandydaci"][0]["metoda"] if g["kandydaci"] else None), "ratunek": any("ratunek: pelne" in u for u in g["uwagi"]),
                         "projekt_prawda": next((x.projekt for x in prawda.prace if x.gniazdo == g["gniazdo"]), None),
                         "scenariusz": next((PO.scenariusz(x) for x in prawda.prace if x.gniazdo == g["gniazdo"]), None)} for g in wynik["gniazda"]]}
-    for g in rek["gniazda"]:
-        g["zielony_zly"] = g["status"] == "zielony" and g["projekt_prawda"] is not None and g["projekt"] != g["projekt_prawda"]
+    for g in rek["gniazda"]:  # D3: zielony ze zlym WPISEM (projekt albo frezowanie_id prawdy); zolty ze zlym projektem
+        zly_wpis = g["projekt"] != g["projekt_prawda"] or (g["frezowanie_id"] is not None and g["frezowanie_id"] != fid_prawdy.get(g["projekt_prawda"]))
+        g["zielony_zly"] = g["status"] == "zielony" and g["projekt_prawda"] is not None and zly_wpis
+        g["zolty_zly"] = g["status"] == "zolty" and g["projekt_prawda"] is not None and g["projekt"] != g["projekt_prawda"]
     rek["linia"] = (f"{p.name}: wpisow {len(wpisy)} wyr {rek['wyrownanie_mm']:.4f} top1 {rek['top1']}/{rek['prac']} dobrze bledne {rek['top1_bledny_dobrze']}/{prac_dobrze} "
                     f"cale z czerwonym {rek['prace_cale_z_czerwonym']}/{rek['prace_cale']} {wynik['czas_s']['razem']} s")
     return rek
@@ -483,12 +491,13 @@ def r59(a) -> None:
           "statusy_match": {s: sum(r["statusy_match"][s] for r in ok) for s in M.STATUSY}, "czas_calosci_s": round(time.time() - t0, 1)}
     zb["top1_dobrze"] = zb["prac_dobrze"] - zb["top1_bledny_dobrze"]
     zb["wpisow_srednio"] = round(float(np.mean([r["wpisow"] for r in ok])), 1)
-    zb["zielony_ze_zlym_projektem"] = sum(1 for r in ok for g in r["gniazda"] if g["zielony_zly"])
+    zb["zielony_ze_zlym_wpisem"] = sum(1 for r in ok for g in r["gniazda"] if g["zielony_zly"])
+    zb["zolty_ze_zlym_projektem"] = sum(1 for r in ok for g in r["gniazda"] if g["zolty_zly"])
     zb["per_scenariusz"] = {}
     for s_ in PO.SCENARIUSZE:
         gn = [g for r in ok for g in r["gniazda"] if g["scenariusz"] == s_]
         zb["per_scenariusz"][s_] = {"prac": len(gn), "top1_bledny": sum(r["scenariusze"][s_]["top1_bledny"] for r in ok),
-                                    "zielony_ze_zlym": sum(1 for g in gn if g["zielony_zly"]),
+                                    "zielony_ze_zlym": sum(1 for g in gn if g["zielony_zly"]), "zolty_ze_zlym": sum(1 for g in gn if g["zolty_zly"]),
                                     "statusy_gniazd": {k: sum(1 for g in gn if g["status_gniazda"] == k) for k in PO.STATUSY_GNIAZDA}}
     if a.wzor is not None:  # porownanie gniazdo po gniezdzie z przebiegiem metryki_P3a (np. baza na main)
         wz = {r["skan"]: r for r in json.loads(a.wzor.read_text(encoding="utf-8"))["skany"]}
@@ -500,6 +509,10 @@ def r59(a) -> None:
                     rozne.append({"skan": r["skan"], "gniazdo": g["gniazdo"], "scenariusz": g["scenariusz"], "wzor": gw and [gw["status"], gw["status_gniazda"], gw["projekt"] == gw["projekt_prawda"]],
                                   "teraz": [g["status"], g["status_gniazda"], g["projekt"] == g["projekt_prawda"]]})
         zb["rozne_od_wzoru"] = len(rozne)
+        zb["wzor_zolty_ze_zlym_projektem"] = sum(1 for r in wz.values() for g in r["gniazda"] if g["status"] == "zolty" and g.get("projekt_prawda")
+                                                 and g["projekt"] != g["projekt_prawda"])
+        zb["wzor_zielony_ze_zlym_projektem"] = sum(1 for r in wz.values() for g in r["gniazda"] if g["status"] == "zielony" and g.get("projekt_prawda")
+                                                   and g["projekt"] != g["projekt_prawda"])
         zb["rozne_od_wzoru_lista"] = rozne
     a.wyjscie.mkdir(parents=True, exist_ok=True)
     (a.wyjscie / f"{a.nazwa}.json").write_text(json.dumps({"skany": wyniki, "zbiorczo": zb}, ensure_ascii=False, indent=1), encoding="utf-8")

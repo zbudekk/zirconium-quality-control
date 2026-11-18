@@ -164,7 +164,7 @@ def opis_ukladu(nazwa: str, uk: U.UkladPlytki | None = None) -> str:
 
 
 def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filtru: bool = False, inspekcja: bool = True,
-                      podglad: dict | None = None) -> list[dict]:
+                      podglad: dict | None = None, start: float | None = None, statystyka: dict | None = None) -> list[dict]:
     """match (+ inspect) dla każdego fragmentu (bez drobnych); wpisy JSON z 5 najlepszymi kandydatami.
 
     ``podglad`` (dict) dostaje ``WynikInspekcji`` każdego gniazda (punkty i odchyłki do podglądu 3D w oknie).
@@ -179,14 +179,24 @@ def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filt
     ``powod`` (dlaczego nie), ``wspolczynnik_puli``, ``wspolczynnik_ze_skanu``, pokrycie przed / po.
     Na płytce porannej (prace spieczone, współczynnik 1,0) poprawka jest tylko mierzona.
     Po zastosowanej korekcie transformacja kandydata jest podobieństwem i inspekcja liczy odchyłki w skali skorygowanej.
+
+    Pula per praca (E3-A5, runda 3): najpierw zwykle dopasowanie WSZYSTKICH fragmentow, potem ratunek fragmentow
+    nierozpoznanych albo niepewnych (``match.ratuj_plytke``: ranking niezalezny od obrotu pracy, budzet czasu od ``start`` -
+    poczatku analizy plytki wg ``time.monotonic()``; budzet = liczba dopasowan, zegar tylko awaryjnie), na koncu inspekcja; ``statystyka`` (dict) dostaje liczby ratunku. Pula z folderu - jak dotad.
     """
     ust_m = ustawienia_bez_filtru(ust) if bez_filtru else ust
     bez_korekty = "płytka poranna: prace spieczone (współczynnik 1,0) — poprawka skali tylko mierzona" if S.poranna(wyr.plytka) else ""
     gniazda = []
-    for f in wyr.fragmenty:
-        if f.status == "drobny":
-            continue
-        r = M.dopasuj(f.punkty, f.normalne, pula, ust_m, f.gniazdo, bez_korekty=bez_korekty)
+    fragmenty = [f for f in wyr.fragmenty if f.status != "drobny"]
+    wyniki = None
+    if getattr(pula, "per_praca", False):
+        start = time.monotonic() if start is None else start
+        wyniki = [M.dopasuj(f.punkty, f.normalne, pula, ust_m, f.gniazdo, bez_korekty=bez_korekty) for f in fragmenty]
+        st = M.ratuj_plytke([f.punkty for f in fragmenty], wyniki, pula, ust_m, start)
+        if statystyka is not None:
+            statystyka.update(st)
+    for nr, f in enumerate(fragmenty):
+        r = wyniki[nr] if wyniki is not None else M.dopasuj(f.punkty, f.normalne, pula, ust_m, f.gniazdo, bez_korekty=bez_korekty)
         wpis = {
             "gniazdo": f.gniazdo, "status_fragmentu": f.status, "punkty": f.liczba, "srodek": [round(v, 3) for v in f.srodek],
             "status": r.status, "pewnosc": round(r.pewnosc, 4), "czas_s": r.czas_s, "uwagi": r.uwagi,
@@ -231,6 +241,7 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
     i pole ``uklad_podpowiedz`` mówią, że trzeba dopisać 4 wiersze ``*_r54`` z ``ustawienia.przyklad.toml``.
     """
     t0 = time.time()
+    t0m = time.monotonic()  # poczatek analizy plytki dla awaryjnego limitu ratunku (zegar monotoniczny)
 
     def krok(etap: str, udzial: float) -> None:
         if postep is not None:
@@ -306,13 +317,14 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
         kontekst.update(uk=uk, pula=pula)
     t2b = time.time()
     krok("identyfikacja i inspekcja gniazd (match + inspect)", 0.55)
-    gniazda = dopasuj_fragmenty(wyr, pula, ust, bez_filtru, inspekcja, podglad)
+    ratunek: dict = {}
+    gniazda = dopasuj_fragmenty(wyr, pula, ust, bez_filtru, inspekcja, podglad, start=t0m, statystyka=ratunek)
     t3 = time.time()
     krok("wynik", 0.95)
     wynik = {
         "skan": Path(skan).name, "plytka": plytka, "plytka_wybor": "auto" if auto else "reczny", "uklad_auto": info_auto,
         "uklad_zgodny": wyr.jakosc.get("uklad_zgodny"),  # None = strażnik wyłączony
-        **({"pula_wpisy": pula.opis()} if getattr(pula, "per_praca", False) else {}),  # E3-A5: pula per praca - wspolczynnik ma kazdy wpis (kandydaci, skala)
+        **({"pula_wpisy": pula.opis(), "ratunek": ratunek} if getattr(pula, "per_praca", False) else {}),  # E3-A5: pula per praca - wspolczynnik ma kazdy wpis; ratunek (runda 3)
         "wspolczynnik": None if getattr(pula, "per_praca", False) else w, "projekty": len(pula), "foldery_projektow": [str(f) for f in foldery],
         "numer": wyr.numer, "numer_zrodlo": wyr.numer_zrodlo, "bity": wyr.bity, "numer_z_dolkow": wyr.numer_z_dolkow,
         "macierz_skan_do_plytki": wyr.macierz.tolist(), "jakosc_wyrownania": wyr.jakosc,
