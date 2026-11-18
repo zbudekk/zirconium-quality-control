@@ -35,6 +35,7 @@ ZAB_KROTKO = "z. {zab}"
 # --- prawa kolumna: przelacznik stron ---------------------------------------------------------------
 STRONA_ROZKLADANIE = "Rozkładanie kuwet"
 STRONA_WYNIK = "Kompletne i braki"
+STRONA_OSTATNI = "Ostatni zamknięty piec"  # recenzja PR #26, P1: lista do Excela po otwarciu nastepnego pieca
 
 # --- rozkladanie kuwet -----------------------------------------------------------------------------
 KUWETY_TYTUL = "Kuwety do rozłożenia: {n}"
@@ -70,6 +71,9 @@ PRZYPISANIE_AUTO = "Przypisanie: program (dopasowanie pewne)."
 KONFLIKT_Z = "Ten sam projekt jest też w: {miejsca}."
 KONFLIKT_MIEJSCE = "{plytka}, gniazdo {gniazdo}"
 POPRAWKA_INFO = "Ząb dofrezowany do zlecenia, które było już odhaczone — tylko wpis w logu, Excel bez zmian."
+# Z9 / A6 D2: ten sam bursztyn, inne znaczenie - zlecenie NIE jest odhaczone (recenzja PR #26, P5)
+JUZ_ROZPOZNANY_INFO = ("Ten ząb wyszedł już z wcześniejszego pieca, a zlecenie wciąż ma braki — sprawdź, czy to nie pomyłka "
+                       "(tylko wpis w logu).")
 DOMYKA_DOFREZOWANIE = "Ten ząb był na liście „do dofrezowania” — po „Zamknij piec” zniknie z listy."
 KUWETA_DO_SPRAWDZENIA = "Kuweta tego zlecenia jest niejednoznaczna — sprawdź numer na folderze zlecenia."
 KANDYDACI_TYTUL = "Który to projekt?"
@@ -96,6 +100,9 @@ KOMPLETNE_TYTUL = "Zlecenia kompletne — do odhaczenia w Excelu: {n}"
 BRAKI_TYTUL = "Braki w tym piecu: {n}"
 BRAKI_BIEZACE_TYTUL = "Lista braków (wszystkie piece): {n}"
 POPRAWKI_TYTUL = "Ząb dofrezowany do zlecenia odhaczonego (tylko log): {lista}"
+JUZ_ROZPOZNANE_TYTUL = "Ząb już rozpoznany we wcześniejszym piecu, zlecenie z brakami — sprawdź (tylko log): {lista}"
+WYNIK_TYTUL_OSTATNI = "Ostatni zamknięty piec: piec {nr} · doba {doba} · zamknięty o {godzina} ({osoba})"
+KUWETA_COFNIETA = "Cofnięto rozłożenie kuwety {kuweta} — znowu jest bieżąca."
 NIEROZSTRZYGNIETE = "Nierozstrzygnięte (nie liczą się): wybierz {dwuznaczne}, nieznane {nieznane}"
 KOLUMNY_KOMPLETNE = ("Kuweta", "Punkty", "Uwagi")
 KOLUMNY_BRAKI = ("Kuweta", "Brakuje", "Stan")

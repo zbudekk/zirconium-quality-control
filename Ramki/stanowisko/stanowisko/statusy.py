@@ -253,7 +253,14 @@ PRZYCISKI = {
     "zamknij_brak_recznie": "Zamknij brak ręcznie",
     "cofnij_zamkniecie_reczne": "Cofnij zamknięcie ręczne",
     "otworz_piec_ponownie": "Otwórz piec ponownie",
+    # poranek - runda 4 sesji porannej (A6): zapomniany "Zamknij piec"
+    "zamknij_piec_i_przenies": "Tak, zamknij piec i przenieś nowe skany",
+    "cofnij_przeniesienie": "Cofnij przeniesienie",
 }
+PRZYCISK_NUMER_MIMO = "Zmień numer na {numer} mimo to"  # A6 runda 4: zmiana numeru plytki przy nowym wsadzie - tylko swiadomie
+PRZYCISK_NUMER_BEZ_ZMIANY = "Nie zmieniaj"
+ZLECENIA_ODMIANA = ("zlecenie", "zlecenia", "zleceń")
+I_INNYCH = " i {n} innych"
 # powod recznego zamkniecia braku (kody ``session_rano.POWODY_ZAMKNIECIA``) -> napis przycisku
 POWODY_ZAMKNIECIA = {"nie_praca_z_cyrkonu": "to nie praca z cyrkonu", "zaginiona": "praca zaginęła", "wydana_bez_skanu": "wydana bez skanu",
                      "inny": "inny powód", "nie_bedzie_dofrezowany": "nie będzie dofrezowany"}
@@ -369,7 +376,8 @@ KOMUNIKATY: dict[str, Wzor] = {
                               "Program działa bez ramki — rozkładaj prace według ekranu: kuweta po kuwecie (Enter = rozłożona, "
                               "Backspace = cofnij, cyfry i Enter = wybór kuwety)."),
     "excel_niedostepny": Wzor(POZIOM_OSTRZEZENIE, "Excel nie jest podłączony",
-                              "Program nie zapisuje jeszcze do Excela — odhacz w Excelu zlecenia kompletne z listy na ekranie ({ile})."),
+                              "Program nie zapisuje jeszcze do Excela — odhacz w Excelu zlecenia kompletne pieca nr {nr} z {doba} "
+                              "(zamknięty {godzina}; {ile}): {kuwety}. Lista jest też w zakładce „Ostatni zamknięty piec”."),
     "kuweta_spoza_pieca": Wzor(POZIOM_OSTRZEZENIE, "Nie ma takiej kuwety w piecu", "Kuwety {kuweta} nie ma na płytkach tego pieca."),
     "kuwety_rozlozone": Wzor(POZIOM_INFO, "Wszystko rozłożone", "Wszystkie kuwety tego pieca są już rozłożone."),
     "brak_kuwety_do_cofniecia": Wzor(POZIOM_INFO, "Nic do cofnięcia", "Nie ma rozłożonej kuwety do cofnięcia."),
@@ -377,6 +385,14 @@ KOMUNIKATY: dict[str, Wzor] = {
                        "Nie ma otwartego pieca — piec otwiera pierwszy skan płytki porannej."),
     "analiza_trwa": Wzor(POZIOM_INFO, "Trwa analiza skanu",
                          "Trwa analiza skanu płytki — poczekaj na wynik, potem zamknij piec (wynik po zamknięciu otworzyłby nowy piec)."),
+    "skanowanie_trwa": Wzor(POZIOM_INFO, "Trwa skanowanie",
+                            "Trwa skanowanie płytki — poczekaj, aż skan trafi do programu, potem zamknij piec (skan po zamknięciu "
+                            "otworzyłby nowy piec)."),
+    "kuweta_zmienila_sie": Wzor(POZIOM_OSTRZEZENIE, "Bieżąca kuweta jest inna",
+                                "Bieżąca kuweta to teraz {kuweta}, a nie {podana} — sprawdź ekran; nic nie zapisano."),
+    "rano_niedostepny": Wzor(POZIOM_BLAD, "Stanu pieca nie da się odczytać",
+                             "Część poranna ekranu pokazuje ostatni odczytany stan. Spróbuj ponownie za chwilę; jeśli to się powtarza, "
+                             "zgłoś awarię."),
 }
 # napis pozycji "nie zapisano" (``StanAplikacji.niezapisane``) wg przyczyny
 NAPISY_NIEZAPISANE = {"blad_zapisu": "nie zapisano — błąd zapisu", "baza_zajeta": "nie zapisano — baza zajęta"}
@@ -390,6 +406,13 @@ PYTANIA: dict[str, Wzor] = {
     "brak_numeru_plytki": Wzor(POZIOM_OSTRZEZENIE, "Podaj numer płytki",
                                "Program nie odczytał numeru płytki ze skanu. Podaj numer wybity na płytce — do tego czasu "
                                "żadna praca na niej nie jest pokazana jako zielona."),
+    # poranek (A6 runda 4): nastepny wsad przy niezamknietym piecu
+    "nowy_wsad": Wzor(POZIOM_OSTRZEZENIE, "Poprzedni piec nie został zamknięty",
+                      "Poprzedni piec nie został zamknięty. Zamknąć go i przenieść nowe skany (płytki {plytki}; skanów: {skanow}) "
+                      "do nowego pieca?"),
+    "numer_nowy_wsad": Wzor(POZIOM_OSTRZEZENIE, "Zmienić numer płytki mimo to?",
+                            "Płytka {stary} ma drugi skan z innymi pracami — to chyba nowy wsad przy niezamkniętym piecu: lepiej "
+                            "zamknąć poprzedni piec i przenieść nowe skany. Zmień numer na {numer} tylko wtedy, gdy na pewno jest zły."),
 }
 PLIK_NIEDOSTEPNY_PONOWIENIE = "Program próbuje ponownie (próba {proba} z {prob})."
 PLIK_NIEDOSTEPNY_KONIEC = "Zamknij podgląd w programie skanera i zeskanuj płytkę ponownie."
@@ -437,6 +460,12 @@ SKAN_Z_GODZINY = "skan z {godzina}"
 BLOKADA_KONFLIKT = ("Rozstrzygnij konflikty ({n}): ten sam projekt w kilku gniazdach — dla jednej z prac wybierz inny projekt "
                     "albo „Bez projektu”.")
 BLOKADA_DWA_SKANY = "Płytka {numer}: dwa skany z tym samym numerem — potwierdź ponowny skan, popraw numer albo pomiń jeden skan."
+BLOKADA_NOWY_WSAD = ("Płytka {numer}: drugi skan z innymi pracami — to chyba nowy wsad: poprzedni piec nie został zamknięty. "
+                     "Zamknij go i przenieś nowe skany (pytanie nad płytkami).")
+# podstawa propozycji ponownego skanu (``session.PODSTAWA_*``, A6 runda 4: ``do_potwierdzenia[].podstawa``)
+PODSTAWY_PONOWNEGO_SKANU = {"ten_sam_plik": "Ten sam plik skanu.", "te_same_prace": "Na obu skanach są te same prace.",
+                            "za_malo_rozpoznanych": "Za mało rozpoznanych prac, żeby porównać skany.",
+                            "regula_wylaczona": "Porównanie prac wyłączone w ustawieniach."}
 PLYTKA_W_BLOKADZIE = "płytka {numer}"
 PLYTKA_BEZ_NUMERU_W_BLOKADZIE = "płytka bez numeru"
 

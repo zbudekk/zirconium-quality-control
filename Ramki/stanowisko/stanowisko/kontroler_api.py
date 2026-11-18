@@ -78,6 +78,7 @@ KOLEJNOSCI_KUWET = SR.KOLEJNOSCI  # "liczba" (od najliczniejszej) / "numer"; trz
 ID_RAMKA_PORANNA = "ramka_poranna"  # staly id komunikatu "ramka poranna nie jest podlaczona" (do A12)
 ID_EXCEL = "excel"  # staly id komunikatu "Excel nie jest podlaczony" po "Zamknij piec" (do A12)
 MAX_PROJEKTOW_KUWETY = 60  # najwyzej tyle projektow zwraca ``projekty_kuwety``
+MAX_KUWET_KOMUNIKATU = 40  # tyle numerow kuwet w komunikacie "Excel nie jest podlaczony" (reszta: "i N innych")
 LIMIT_PRZETWARZANIA_S = 0.05  # najdluzej tyle trwa jedno ``przetworz()``, gdy czeka wiele zdarzen (petla okna: przerwy < 200 ms)
 OKRES_LACZNIKA_MS = 30
 PAMIEC_ODRZUCEN_DNI = 2  # z ilu dni wstecz czytane sa odrzucone propozycje ponownego skanu
@@ -100,11 +101,19 @@ POLECENIA = ("wybierz_operatora", "ukruszona", "ok", "cofnij", "potwierdz_ponown
 POLECENIA_RANO = ("przelacz_tryb", "wybierz_kandydata", "przypisz_recznie", "cofnij_przypisanie", "zamknij_piec", "ustaw_kolejnosc",
                   "wybierz_kuwete", "potwierdz_kuwete", "cofnij_kuwete",
                   # runda 2 A6: pominiecie skanu, reczne zamkniecie braku, ponowne otwarcie pieca
-                  "pomin_skan", "cofnij_pominiecie", "zamknij_brak_recznie", "cofnij_zamkniecie_reczne", "otworz_piec_ponownie")
+                  "pomin_skan", "cofnij_pominiecie", "zamknij_brak_recznie", "cofnij_zamkniecie_reczne", "otworz_piec_ponownie",
+                  # runda 4/5 A6: zapomniany "Zamknij piec" - zamkniecie i przeniesienie skanow nowego wsadu do nowego pieca i cofniecie
+                  "zamknij_piec_i_przenies", "cofnij_przeniesienie")
 POLECENIA = POLECENIA + POLECENIA_RANO
 # sygnaly kontrolera do okna (``ZdarzenieKontrolera.typ``; w ``lacznik_qt``: stan_zmieniony, postep, komunikat, pytanie, zamkniety)
 SYGNALY = ("stan", "postep", "komunikat", "pytanie", "zamkniety")
-RODZAJE_PYTAN = ("ponowny_skan", "plytka_nie_z_trybu", "brak_numeru_plytki")
+RODZAJE_PYTAN = ("ponowny_skan", "plytka_nie_z_trybu", "brak_numeru_plytki",
+                 "nowy_wsad", "numer_nowy_wsad")  # rano (A6 runda 4): zamknac poprzedni piec i przeniesc skany? / zmienic numer mimo to?
+LIMIT_SKANOWANIA_S = 180  # "start skanu" bez pliku dluzej niz tyle = skan przerwany: "Zamknij piec" znow dostepne (recenzja PR #26, P3)
+# polecenia, po ktorych stan punktow zlecen (lista brakow) na pewno sie nie zmienil - bez ponownego liczenia ``braki()`` (P2);
+# kazde inne udane polecenie uniewaznia pamiec brakow (polecenia plytki - tylko dla skanu wieczornego)
+NIE_RUSZA_PUNKTOW = frozenset(("przelacz_tryb", "ustaw_kolejnosc", "wybierz_kuwete", "potwierdz_kuwete", "cofnij_kuwete", "wybierz_kandydata",
+                               "przypisz_recznie", "cofnij_przypisanie", "pomin_skan", "cofnij_pominiecie", "odrzuc_ponowny_skan"))
 
 
 # ----------------------------------------------------------------------------
@@ -490,7 +499,8 @@ class PracaRano:
 class KuwetaRano:
     """Kuweta do rozlozenia (z prac rozpoznanych pieca - jak plan ramki porannej): ``prac`` na plytkach ``plytki``;
     ``potwierdzona`` = osoba potwierdzila rozlozenie (Enter), ``biezaca`` = te kuwete rozklada sie teraz (jej gniazda sa
-    wyroznione na mapach), ``braki`` = zlecenie niekompletne w tym piecu (ramka pokazuje te numery osobno)."""
+    wyroznione na mapach), ``braki`` = zlecenie niekompletne w tym piecu (ramka pokazuje te numery osobno). ``gniazda`` -
+    ((skan_id, nr gniazda), ...) prac liczonych do ``prac`` (ta sama regula; okno obwodzi dokladnie te gniazda - P4)."""
 
     kuweta: str
     prac: int
@@ -498,6 +508,16 @@ class KuwetaRano:
     potwierdzona: bool = False
     biezaca: bool = False
     braki: bool = False
+    gniazda: tuple = ()
+
+
+@dataclasses.dataclass(frozen=True)
+class NowyWsad:
+    """Skany nastepnego wsadu przy niezamknietym piecu (A6 runda 4, ``stan_pieca()["nowy_wsad"]``): numery plytek ze skanami
+    o innych pracach i skany do przeniesienia poleceniem ``zamknij_piec_i_przenies``."""
+
+    plytki: tuple = ()
+    skany: tuple = ()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -558,13 +578,17 @@ class ProjektPuli:
 
 @dataclasses.dataclass(frozen=True)
 class StanRano:
-    """Stan ekranu porannego: piec otwarty (albo ostatni zamkniety piec biezacej doby; ``sesja_pieca_id`` None = dzis jeszcze
-    nie bylo pieca). ``plytki`` - skany pieca (``Plytka``; gniazda ``Gniazdo`` z ``prace`` = ``PracaRano``; ``podpis`` gniazda =
-    numer kuwety albo napis statusu; ``liczniki`` plytki - po klasie pracy porannej). ``kompletne`` / ``braki`` - zlecenia
-    dotkniete w piecu (w otwartym piecu PROWIZORYCZNE, w zamknietym z zapisu "Zamknij piec"); ``braki_biezace`` - trwala lista
-    brakow ze wszystkich piecow; ``blokady`` - dlaczego "Zamknij piec" teraz odmowi; ``dozwolone`` - ("zamknij_piec",), gdy
-    mozna zamknac; ``kuwety`` w kolejnosci ``kolejnosc`` z ``kuweta_biezaca``; ``wynik`` - wynik "Zamknij piec" (piec
-    zamkniety) albo None. ``ramka`` / ``excel`` - czy podlaczone (do A12: False, program dziala wedlug ekranu)."""
+    """Stan ekranu porannego: piec biezacy otwarty, a bez niego - ostatnio zamkniety piec (z jawnym ``sesja_pieca_id``, takze
+    z poprzedniej doby; None = nie bylo jeszcze pieca). ``plytki`` - skany pieca (``Plytka``; gniazda ``Gniazdo`` z ``prace`` =
+    ``PracaRano``; ``podpis`` gniazda = numer kuwety albo napis statusu; ``liczniki`` plytki - po klasie pracy porannej).
+    ``kompletne`` / ``braki`` - zlecenia dotkniete w piecu (w otwartym piecu PROWIZORYCZNE, w zamknietym z zapisu "Zamknij piec");
+    ``braki_biezace`` - trwala lista brakow ze wszystkich piecow; ``blokady`` - dlaczego "Zamknij piec" teraz odmowi (takze
+    ``zajety``: "analiza_trwa" / "skanowanie_trwa" - recenzja PR #26 P3, D1); ``dozwolone`` - "zamknij_piec" /
+    "zamknij_piec_i_przenies" / "otworz_piec_ponownie", gdy maja sens; ``kuwety`` w kolejnosci ``kolejnosc`` z ``kuweta_biezaca``
+    (stala - zmienia ja tylko osoba: Enter, Backspace, numer, kolejnosc - B1) i ``kuweta_do_cofniecia`` (ostatnia potwierdzona);
+    ``wynik`` - wynik "Zamknij piec" (piec zamkniety) albo None; ``nowy_wsad`` - ``NowyWsad`` albo None; ``ostatni_zamkniety`` -
+    przy otwartym piecu: ostatnio zamkniety piec (``StanRano`` bez plytek, lista do Excela - P1) albo None. ``ramka`` / ``excel`` -
+    czy podlaczone (do A12: False, program dziala wedlug ekranu)."""
 
     sesja_pieca_id: int | None = None
     plan_id: str | None = None
@@ -594,9 +618,18 @@ class StanRano:
     inne_otwarte_piece: tuple = ()  # plan_id innych otwartych piecow
     ramka: bool = False
     excel: bool = False
+    zajety: str | None = None
+    kuweta_do_cofniecia: str | None = None
+    nowy_wsad: NowyWsad | None = None
+    ostatni_zamkniety: "StanRano | None" = None
 
     def plytka(self, skan_id: int) -> Plytka | None:
         return next((p for p in self.plytki if p.skan_id == skan_id), None)
+
+    def obwodka(self, skan_id: int) -> frozenset:
+        """Numery gniazd plytki ``skan_id`` z pracami biezacej kuwety (``KuwetaRano.gniazda``) - okno tylko je rysuje."""
+        k = next((x for x in self.kuwety if x.biezaca), None)
+        return frozenset(nr for s, nr in (k.gniazda if k is not None else ()) if s == skan_id)
 
     def praca(self, praca_id: int) -> PracaRano | None:
         return next((x for p in self.plytki for x in p.prace if x.praca_id == praca_id), None)
@@ -720,7 +753,9 @@ class Kontroler:
     def cofnij_dopuszczenie(self, skan_id: int) -> Odpowiedz:
         raise NotImplementedError
 
-    def podaj_numer_plytki(self, skan_id: int, numer: int) -> Odpowiedz:
+    def podaj_numer_plytki(self, skan_id: int, numer: int, mimo_nowego_wsadu: bool = False) -> Odpowiedz:
+        """Numer plytki podany recznie. Rano (A6 runda 4): zmiana numeru plytki ze skanami innego wsadu jest odrzucana - kontroler
+        pyta (``Pytanie`` ``numer_nowy_wsad``); ``mimo_nowego_wsadu`` True tylko po jawnym potwierdzeniu osoby."""
         raise NotImplementedError
 
     def zamknij_pytanie(self, pytanie_id: str) -> Odpowiedz:
@@ -773,8 +808,20 @@ class Kontroler:
         raise NotImplementedError
 
     def zamknij_piec(self, sesja_pieca_id: int | None = None) -> Odpowiedz:
-        """"Zamknij piec" pokazanego pieca (``StanRano.sesja_pieca_id``; None = najnowszy otwarty): ``dane`` = wynik (zlecenia
-        kompletne, braki, poprawki - jak ``session_rano.zamknij_piec``). Odmowa, dopoki trwa analiza skanu (``analiza_trwa``)."""
+        """"Zamknij piec" pokazanego pieca (``StanRano.sesja_pieca_id``; None = piec biezacy): ``dane`` = wynik (zlecenia
+        kompletne, braki, poprawki - jak ``session_rano.zamknij_piec``). Odmowa, dopoki trwa analiza skanu (``analiza_trwa``)
+        albo skanowanie (``skanowanie_trwa``: od "start skanu" do przyjecia pliku, najwyzej ``LIMIT_SKANOWANIA_S``)."""
+        raise NotImplementedError
+
+    def zamknij_piec_i_przenies(self, sesja_pieca_id: int, skany: tuple) -> Odpowiedz:
+        """Zapomniany "Zamknij piec" (A6 runda 4): skany nastepnego wsadu (``StanRano.nowy_wsad.skany``) wychodza z pieca, piec
+        jest zamykany bez nich, skany trafiaja do nowego pieca. Te same odmowy co ``zamknij_piec`` i odmowy A6 (tylko ogon nowszych
+        skanow, cala para zastapienia, piec biezacy otwarty) - jako komunikat."""
+        raise NotImplementedError
+
+    def cofnij_przeniesienie(self, sesja_pieca_id: int) -> Odpowiedz:
+        """Cofa ``zamknij_piec_i_przenies`` (A6 runda 5): piec ``sesja_pieca_id`` powstal z przeniesienia (``StanRano.dozwolone``
+        zawiera "cofnij_przeniesienie") - skany wracaja do poprzedniego pieca, ktory znow jest otwarty."""
         raise NotImplementedError
 
     def otworz_piec_ponownie(self, sesja_pieca_id: int) -> Odpowiedz:
@@ -803,12 +850,14 @@ class Kontroler:
         """Kuweta wpisana recznie (U7, trzeci sposob) staje sie biezaca - musi lezec na plytkach pieca."""
         raise NotImplementedError
 
-    def potwierdz_kuwete(self) -> Odpowiedz:
-        """Enter: biezaca kuweta rozlozona (wpis w dzienniku), biezaca staje sie nastepna nierozlozona."""
+    def potwierdz_kuwete(self, kuweta: str) -> Odpowiedz:
+        """Enter: kuweta ``kuweta`` (biezaca POKAZANA na ekranie - ``StanRano.kuweta_biezaca``) rozlozona - wpis w dzienniku,
+        biezaca staje sie nastepna nierozlozona. Odmowa ``kuweta_zmienila_sie`` (bez wpisu), gdy biezaca jest juz inna (B1)."""
         raise NotImplementedError
 
-    def cofnij_kuwete(self) -> Odpowiedz:
-        """Backspace: cofa ostatnie potwierdzenie rozlozenia - ta kuweta znow jest biezaca."""
+    def cofnij_kuwete(self, kuweta: str) -> Odpowiedz:
+        """Backspace: cofa potwierdzenie kuwety ``kuweta`` (``StanRano.kuweta_do_cofniecia`` - ostatnia potwierdzona) - ta kuweta
+        znow jest biezaca. Odmowa ``kuweta_zmienila_sie``, gdy ostatnia potwierdzona jest inna."""
         raise NotImplementedError
 
     def projekty_kuwety(self, kuweta: str) -> tuple:
@@ -912,7 +961,11 @@ class KontrolerSesji(Kontroler):
         self.rano = SR.SesjaRano(sesja, prog_kandydata=prog)  # sesja poranna (A6) na tej samej bazie
         self._kolejnosc = SR.KOLEJNOSCI[0]
         self._kuwety_rozlozone: dict[str, list] = {}  # plan_id pieca -> kuwety potwierdzone (stos; dziennik: kuweta_potwierdzona / cofnieta)
-        self._kuweta_wybrana: tuple | None = None  # (plan_id, kuweta) wpisana recznie albo cofnieta
+        self._kuweta_biezaca: dict[str, str | None] = {}  # plan_id -> kuweta biezaca (stala; zmienia ja osoba - recenzja PR #26, B1)
+        self._wersja_punktow = 0  # licznik zdarzen, ktore moga zmienic stan punktow (pamiec ``braki()`` - P2)
+        self._pamiec_brakow: tuple | None = None
+        self._pamiec_zamknietych: dict = {}  # sesja_pieca_id -> (klucz, stan_pieca, wynik_pieca) pieca zamknietego
+        self._numer_mimo: tuple | None = None  # (skan_id, numer) czekajacy na potwierdzenie "zmien numer mimo nowego wsadu"
         self._zegar = zegar or dt.datetime.now
         self._subskrybenci: list = []
         self._do_wyslania: collections.deque = collections.deque()
@@ -985,11 +1038,16 @@ class KontrolerSesji(Kontroler):
         return stan
 
     def _odswiez_zywe(self, sygnal: str = "stan") -> None:
-        """Podmienia w stanie tylko czesc "zywa" (postep, kolejka, pula, skaner) - bez czytania bazy."""
+        """Podmienia w stanie tylko czesc "zywa" (postep, kolejka, pula, skaner) - bez czytania bazy. Rano: gdy zmienila sie
+        blokada "Zamknij piec" (analiza / skanowanie - ``StanRano.zajety``), caly stan od nowa (jedno zrodlo blokady - P3, D1)."""
         if self._stan is None or self._zamkniety:
             return
+        zywe = self._stan_zywy()
+        if self._stan.rano is not None and self._zajety(zywe) != self._stan.rano.zajety:
+            self._odswiez()
+            return
         self._wersja += 1
-        self._stan = dataclasses.replace(self._stan, wersja=self._wersja, **self._stan_zywy())
+        self._stan = dataclasses.replace(self._stan, wersja=self._wersja, **zywe)
         if sygnal == "postep":
             self._powiadom("postep", postep=self._stan.analiza, stan=self._stan)
         else:
@@ -1019,7 +1077,7 @@ class KontrolerSesji(Kontroler):
         if self._sprawdz_zmiane():
             self._odswiez()
             return 1
-        return 0
+        return 1 if self._sprawdz_zajetosc() else 0
 
     def _uklad(self, nazwa: str | None) -> tuple:
         """(numery gniazd, numery plytek) ukladu ``nazwa``; ((), ()) gdy ukladu nie da sie wczytac."""
@@ -1093,10 +1151,19 @@ class KontrolerSesji(Kontroler):
                     trwale.append(self._nowy_komunikat(id_, "konflikt_projektu", trwaly=True, czas=sw["data"], miejsc=len(k["miejsca"])))
         rano = None
         if self.tryb == TRYB_RANO:  # E3-A7: stan pieca; pytania i komunikaty plytek porannych w tych samych listach co wieczorne
-            rano = self._stan_rano()
+            try:
+                rano = self._stan_rano()
+            except B.BladBazy:
+                raise  # baza zajeta: caly stan zostaje poprzedni (jak wieczorem)
+            except Exception:  # noqa: BLE001 - recenzja PR #26, D13: blad sesji porannej nie zatrzymuje odswiezania wieczornej czesci
+                LOG.exception("kontroler: stanu pieca nie da sie odczytac - zostaje poprzedni")
+                rano = self._stan.rano if self._stan is not None and self._stan.rano is not None else StanRano(kolejnosc=self._kolejnosc)
+                rano = dataclasses.replace(rano, zajety=self._zajety())  # bez ponawiania przy kazdym tyknieciu (``_sprawdz_zajetosc``)
+                trwale.append(self._nowy_komunikat("rano_niedostepny", "rano_niedostepny", trwaly=True, czas=sw["data"]))
             for plytka in rano.plytki:
                 pytania += [p for p in plytka.pytania if not p.ukryte]
                 trwale += [k for k in plytka.komunikaty if not k.ukryte]
+            pytania += [q for q in self._pytania_rano(rano) if not q.ukryte]
             if not rano.ramka and ID_RAMKA_PORANNA not in self._ukryte:
                 trwale.append(self._nowy_komunikat(ID_RAMKA_PORANNA, "ramka_niedostepna", czas=sw["data"]))
         komunikaty = sorted(list(self._komunikaty.values()) + trwale, key=lambda k: (k.czas, k.id))
@@ -1151,6 +1218,31 @@ class KontrolerSesji(Kontroler):
         return len(miejsca) > 1 and len(numery) == 1 and None not in numery and all(len(g) == 1 for g in miejsca.values())
 
     # --- poranek (E3-A7): stan pieca dla ekranu porannego ---------------------------------------
+    def _pytania_rano(self, rano: StanRano) -> list:
+        """Pytania pieca (A6 runda 4): "Poprzedni piec nie zostal zamkniety - zamknac i przeniesc nowe skany?" (``nowy_wsad``) i
+        "Zmienic numer plytki mimo to?" (``numer_nowy_wsad`` - po odrzuconej zmianie numeru plytki ze skanem innego wsadu)."""
+        wynik = []
+        if self._numer_mimo is not None:
+            skan_id, numer = self._numer_mimo
+            p = rano.plytka(skan_id)
+            if p is None or not rano.otwarty or p.numer == numer or "podaj_numer_plytki" not in p.dozwolone:
+                self._numer_mimo = None
+            else:
+                id_ = f"numer_nowy_wsad:{skan_id}:{numer}"
+                poziom, tytul, tekst = ST.tekst_pytania("numer_nowy_wsad", stary=p.numer, numer=numer)
+                wynik.append(Pytanie(id=id_, rodzaj="numer_nowy_wsad", skan_id=skan_id, poziom=poziom, tytul=tytul, tekst=tekst, numer_plytki=p.numer,
+                                     ukryte=id_ in self._ukryte,
+                                     odpowiedzi=(Przycisk("podaj_numer_plytki", ST.PRZYCISK_NUMER_MIMO.format(numer=numer), (skan_id, numer, True)),
+                                                 Przycisk("zamknij_pytanie", ST.PRZYCISK_NUMER_BEZ_ZMIANY, (id_,)))))
+        nw = rano.nowy_wsad
+        if rano.otwarty and nw is not None and nw.skany:
+            id_ = f"nowy_wsad:{rano.sesja_pieca_id}:{','.join(map(str, nw.skany))}"
+            poziom, tytul, tekst = ST.tekst_pytania("nowy_wsad", plytki=", ".join(map(str, nw.plytki)), skanow=len(nw.skany))
+            wynik.append(Pytanie(id=id_, rodzaj="nowy_wsad", skan_id=nw.skany[0], poziom=poziom, tytul=tytul, tekst=tekst, ukryte=id_ in self._ukryte,
+                                 odpowiedzi=(Przycisk("zamknij_piec_i_przenies", ST.PRZYCISKI["zamknij_piec_i_przenies"], (rano.sesja_pieca_id, tuple(nw.skany))),
+                                             Przycisk("zamknij_pytanie", ST.PRZYCISKI["zamknij_pytanie"], (id_,)))))
+        return wynik
+
     def _wczytaj_tryb(self) -> str:
         """Ostatni tryb wybrany przez czlowieka (dziennik: ``tryb_zmieniony``, zrodlo ``ui``); bez wpisu - ``wieczor``. Tryb nie
         zmienia sie sam (Z1), wiec po restarcie programu wraca ten, ktory byl."""
@@ -1204,13 +1296,18 @@ class KontrolerSesji(Kontroler):
     def _kuwety_pieca(self, st: dict) -> tuple:
         """Kuwety do rozlozenia w kolejnosci ``self._kolejnosc`` - te same reguly co plan ramki (``session_rano.plan_plytek``):
         najnowszy aktywny skan kazdego numeru plytki, prace rozpoznane z kuweta zgodna z protokolem ramki, gniazdo z jedna praca.
-        Zwraca (lista kuwet: (kuweta, prac, plytki), kuweta biezaca)."""
+        Zwraca (lista kuwet: (kuweta, prac, plytki, gniazda), kuweta biezaca, kuweta do cofniecia).
+
+        Biezaca jest STALA (recenzja PR #26, B1): zostaje, dopoki lezy na plytkach pieca - nowy skan albo decyzja zmieniajaca
+        liczebnosc kuwet jej nie przejmuje; zmienia ja tylko osoba (Enter, Backspace, numer kuwety, kolejnosc). Bez biezacej -
+        pierwsza nierozlozona w kolejnosci."""
         po_numerze: dict = {}
         for s in st["skany"]:
-            if s["aktywny"] and s["numer_plytki"] is not None:
+            if s["aktywny"] and s["numer_plytki"] is not None and not s.get("pominiety"):
                 po_numerze.setdefault(s["numer_plytki"], []).append(s)
         liczba: dict = {}
         plytki: dict = {}
+        gniazda: dict = {}
         zdublowane = set(st.get("zdublowane_plytki") or ())
         for n, lista in po_numerze.items():
             if n in zdublowane or len(lista) > 1:  # dwa skany z jednym numerem: blokada (A6) - plytka czeka na rozstrzygniecie
@@ -1225,16 +1322,20 @@ class KontrolerSesji(Kontroler):
                 if len(prace) == 1 and p["klasa"] in SR.KLASY_Z_KUWETA and p["kuweta"] and SR.WZOR_KUWETY_RAMKI.fullmatch(p["kuweta"]):
                     liczba[p["kuweta"]] = liczba.get(p["kuweta"], 0) + 1
                     plytki.setdefault(p["kuweta"], set()).add(n)
+                    gniazda.setdefault(p["kuweta"], []).append((s["id"], p["gniazdo"]))
         if self._kolejnosc == "liczba":
             porzadek = sorted(liczba, key=lambda k: (-liczba[k], SR._klucz_kuwety(k)))
         else:
             porzadek = sorted(liczba, key=SR._klucz_kuwety)
-        biezaca = None
+        biezaca = do_cofniecia = None
         if st["otwarty"]:
             stos = self._rozlozone(st["plan_id"])
-            wybrana = self._kuweta_wybrana[1] if self._kuweta_wybrana and self._kuweta_wybrana[0] == st["plan_id"] else None
-            biezaca = wybrana if wybrana in liczba else next((k for k in porzadek if k not in stos), None)
-        return tuple((k, liczba[k], tuple(sorted(plytki[k]))) for k in porzadek), biezaca
+            do_cofniecia = stos[-1] if stos else None
+            biezaca = self._kuweta_biezaca.get(st["plan_id"])
+            if biezaca not in liczba:  # pierwsza albo poprzednia zniknela z plytek (np. prace przypisane gdzie indziej)
+                biezaca = next((k for k in porzadek if k not in stos), None)
+                self._kuweta_biezaca[st["plan_id"]] = biezaca
+        return tuple((k, liczba[k], tuple(sorted(plytki[k])), tuple(sorted(gniazda[k]))) for k in porzadek), biezaca, do_cofniecia
 
     @staticmethod
     def _zlecenie_rano(z: dict) -> ZlecenieRano:
@@ -1256,9 +1357,14 @@ class KontrolerSesji(Kontroler):
         for k in p["kandydaci"]:
             projekty = k.get("projekty") or []
             pierwszy = projekty[0] if projekty else {}
+
+            def wspolne(pole: str):  # plik w kilku zleceniach: kuweta / zab tylko, gdy taka sama we wszystkich (recenzja PR #26, D10)
+                wartosci = {x.get(pole) for x in projekty}
+                return wartosci.pop() if len(wartosci) == 1 else None
+
             kandydaci.append(Kandydat(sha16=k["sha16"], pokrycie=k.get("pokrycie"), projekt_id=pierwszy.get("projekt_id") if len(projekty) == 1 else None,
-                                      zlecenie_id=pierwszy.get("zlecenie_id") if len(projekty) == 1 else None, kuweta=pierwszy.get("kuweta"),
-                                      zeby=pierwszy.get("zeby"), typ=pierwszy.get("typ"), zrodlo=pierwszy.get("zrodlo"), zlecen=len(projekty),
+                                      zlecenie_id=pierwszy.get("zlecenie_id") if len(projekty) == 1 else None, kuweta=wspolne("kuweta"),
+                                      zeby=wspolne("zeby"), typ=wspolne("typ"), zrodlo=wspolne("zrodlo"), zlecen=len(projekty),
                                       miniatura=mini.get(k["sha16"])))
         if klasa in ST.KLASY_RANO_Z_KUWETA and p["kuweta"]:
             podpis = p["kuweta"]
@@ -1348,11 +1454,15 @@ class KontrolerSesji(Kontroler):
             zastepuje_id=s["zastepuje_id"], moze_zastapic=moze_zastapic, dopuszczona=dopuszczona, dozwolone=tuple(dozwolone),
             komunikaty=tuple(komunikaty), pytania=tuple(pytania), pominieta=pominieta, na_ramce=bool(s.get("na_ramce", True)))
 
-    def _blokady_rano(self, st: dict) -> tuple:
-        """Dlaczego "Zamknij piec" teraz odmowi - napisy dla osoby z blokad ``session_rano`` (brak numeru plytki, konflikt i dwa
-        skany z jednym numerem - wlasnym napisem; pozostale - tekst A6 z numerem skanu zamienionym na plytke i godzine skanu)."""
-        if not st["otwarty"] or not st["blokady"]:
+    def _blokady_rano(self, st: dict, zajety: str | None = None) -> tuple:
+        """Dlaczego "Zamknij piec" teraz odmowi - napisy dla osoby: najpierw ``zajety`` (analiza albo skanowanie trwa - recenzja
+        PR #26, P3 / D1), potem blokady ``session_rano`` (brak numeru plytki, konflikt, dwa skany z jednym numerem - ponowny skan
+        albo nowy wsad (A6 runda 4) - wlasnym napisem; pozostale - tekst A6 z numerem skanu zamienionym na plytke i godzine)."""
+        if not st["otwarty"]:
             return ()
+        wynik = [ST.tekst_komunikatu(zajety)[2]] if zajety else []
+        if not st["blokady"]:
+            return tuple(wynik)
         skany = {s["id"]: s for s in st["skany"]}
 
         def skan_po_ludzku(m: re.Match) -> str:
@@ -1362,12 +1472,12 @@ class KontrolerSesji(Kontroler):
             plytka = ST.PLYTKA_W_BLOKADZIE.format(numer=s["numer_plytki"]) if s["numer_plytki"] is not None else ST.PLYTKA_BEZ_NUMERU_W_BLOKADZIE
             return f"{plytka} ({ST.SKAN_Z_GODZINY.format(godzina=(s['czas_analizy'] or '')[11:16])})"
 
-        wynik = []
         if st["bez_numeru"]:
             wynik.append(ST.BLOKADA_BEZ_NUMERU.format(skany=", ".join(ST.SKAN_Z_GODZINY.format(godzina=(skany[i]["czas_analizy"] or "")[11:16])
                                                                        for i in st["bez_numeru"] if i in skany)))
+        nowe = set((st.get("nowy_wsad") or {}).get("plytki") or ())
         for n in st.get("zdublowane_plytki") or ():
-            wynik.append(ST.BLOKADA_DWA_SKANY.format(numer=n))
+            wynik.append((ST.BLOKADA_NOWY_WSAD if n in nowe else ST.BLOKADA_DWA_SKANY).format(numer=n))
         if st["konflikty"]:
             wynik.append(ST.BLOKADA_KONFLIKT.format(n=len(st["konflikty"])))
         znane = re.compile(r"(podaj numer plytki|rozstrzygnij konflikty|plytka \d+: dwa skany)")
@@ -1376,16 +1486,133 @@ class KontrolerSesji(Kontroler):
                 wynik.append(re.sub(r"skan (\d+)", skan_po_ludzku, tekst))
         return tuple(wynik)
 
+    # --- pamiec podreczna poranka (recenzja PR #26, P2) --------------------------------------------
+    def _klucz_punktow(self) -> tuple:
+        """Wersja stanu punktow zlecen: licznik zdarzen kontrolera, ktore moga go zmienic (polecenia spoza ``NIE_RUSZA_PUNKTOW``,
+        skan wieczorny), doba robocza i ``PRAGMA data_version`` (zapis innego polaczenia do bazy - np. indeks, drugi program)."""
+        try:
+            wersja_bazy = (self.sesja.baza.wiersz("PRAGMA data_version") or {}).get("data_version")
+        except (sqlite3.Error, B.BladBazy):
+            wersja_bazy = None
+        return self._wersja_punktow, self.sesja.doba(), wersja_bazy
+
+    def _uniewaznij_punkty(self) -> None:
+        self._wersja_punktow += 1
+
+    def _po_skanie(self, tryb: str | None) -> None:
+        """Wynik skanu zapisany: skan wieczorny moze zmienic stan punktow (``session`` - dofrezowania), poranny nie (punkty
+        zmienia dopiero "Zamknij piec")."""
+        if tryb != TRYB_RANO:
+            self._uniewaznij_punkty()
+
+    def _braki_biezace(self) -> tuple:
+        """Lista brakow ze wszystkich piecow (``session_rano.braki()`` czyta cala historie zlecen) - liczona od nowa tylko po
+        zmianie ``_klucz_punktow``, nie przy kazdym odswiezeniu stanu."""
+        klucz = self._klucz_punktow()
+        if self._pamiec_brakow is None or self._pamiec_brakow[0] != klucz:
+            self._pamiec_brakow = (klucz, tuple(self._zlecenie_rano(z) for z in self.rano.braki()))
+        return self._pamiec_brakow[1]
+
+    def _piec_zamkniety(self, sesja_pieca_id: int) -> tuple:
+        """(stan_pieca, wynik_pieca) pieca zamknietego z pamieci: piec zamkniety jest zamrozony, a ``wynik_pieca`` A6 czyta wszystkie
+        zapisy "Zamknij piec" z dziennika. Klucz: zamkniecie pieca (``zamknieto``) i ``_klucz_punktow``; pamiec - dwa ostatnie piece."""
+        w = self.sesja.baza.wiersz("SELECT zamknieto FROM sesje_pieca WHERE id = ?", (sesja_pieca_id,))
+        klucz = (w["zamknieto"] if w else None, self._klucz_punktow())
+        jest = self._pamiec_zamknietych.get(sesja_pieca_id)
+        if jest is None or jest[0] != klucz:
+            jest = (klucz, self.rano.stan_pieca(sesja_pieca_id), self.rano.wynik_pieca(sesja_pieca_id))
+            self._pamiec_zamknietych = {k: v for k, v in list(self._pamiec_zamknietych.items())[-1:] if k != sesja_pieca_id}
+            self._pamiec_zamknietych[sesja_pieca_id] = jest
+        return jest[1], jest[2]
+
+    def _z_przeniesienia(self, sesja_pieca_id: int) -> bool:
+        """Piec powstal z ``zamknij_piec_i_przenies`` (obowiazujaca decyzja ``przenies_skany`` z ``do_pieca`` = ten piec)."""
+        wiersze = self.sesja.baza.wiersze("SELECT id, rodzaj, wartosc FROM decyzje WHERE praca_id IS NULL AND skan_id IS NULL AND rodzaj IN (?, ?) "
+                                          "ORDER BY id", (SR.RODZAJ_PRZENIES, SE.RODZAJ_COFNIECIE))
+        cofniete = {w["wartosc"] for w in wiersze if w["rodzaj"] == SE.RODZAJ_COFNIECIE}
+        for w in wiersze:
+            if w["rodzaj"] == SR.RODZAJ_PRZENIES and str(w["id"]) not in cofniete:
+                try:
+                    if json.loads(w["wartosc"]).get("do_pieca") == sesja_pieca_id:
+                        return True
+                except (TypeError, ValueError, AttributeError):
+                    continue
+        return False
+
+    def _ostatni_zamkniety_id(self) -> int | None:
+        """Ostatnio zamkniety piec (dowolnej doby) - jego wynik (lista do Excela) zostaje na ekranie z jawnym id (P1)."""
+        w = self.sesja.baza.wiersz("SELECT id FROM sesje_pieca WHERE zamknieto IS NOT NULL ORDER BY zamknieto DESC, id DESC LIMIT 1")
+        return w["id"] if w else None
+
+    def _zajety(self, zywe: dict | None = None) -> str | None:
+        """"analiza_trwa" (skan w analizie, w kolejce albo wynik czeka na zapis), "skanowanie_trwa" (od "start skanu" do pierwszego
+        nowego pliku, najwyzej ``LIMIT_SKANOWANIA_S``, albo plik skanera w zapisie) albo None - wtedy "Zamknij piec" mozliwe.
+        Wynik, ktory dojdzie po zamknieciu, otworzylby nowy piec (recenzja PR #26, P3; A6 runda 2, D11)."""
+        zywe = self._stan_zywy() if zywe is None else zywe
+        kolejka, skaner = zywe.get("kolejka"), zywe.get("skaner")
+        if kolejka is not None and kolejka.razem > 0:
+            return "analiza_trwa"
+        if skaner is not None and (skaner.zajete > 0 or (skaner.czeka_na_skan and self._swiezy_start(skaner.ostatni_start_skanu))):
+            return "skanowanie_trwa"
+        return None
+
+    def _swiezy_start(self, czas: str | None) -> bool:
+        if not czas:
+            return False
+        try:
+            return (self._zegar() - dt.datetime.fromisoformat(czas)).total_seconds() <= LIMIT_SKANOWANIA_S
+        except (TypeError, ValueError):
+            return False
+
+    def _sprawdz_zajetosc(self) -> bool:
+        """Blokada "Zamknij piec" w stanie nieaktualna (koniec analizy, start albo limit skanowania): stan od nowa. True = odswiezono."""
+        if self._stan is None or self._stan.rano is None or self._zamkniety:
+            return False
+        if self._zajety() != self._stan.rano.zajety:
+            self._odswiez()
+            return True
+        return False
+
+    # --- stan ekranu porannego --------------------------------------------------------------------
     def _stan_rano(self) -> StanRano:
-        """Stan ekranu porannego z ``session_rano``: piec otwarty, a gdy go nie ma - ostatni piec biezacej doby (z wynikiem)."""
+        """Stan ekranu porannego z ``session_rano``: piec biezacy otwarty, a bez niego ostatnio zamkniety piec - z jawnym id,
+        takze z poprzedniej doby (recenzja PR #26, P1); przy otwartym piecu ``ostatni_zamkniety`` (lista do Excela nadal dostepna)."""
         piece = self.rano.piece()
-        st = self.rano.stan_pieca()
-        if st is None and piece:
-            st = self.rano.stan_pieca(piece[-1]["id"])
-        braki_biezace = tuple(self._zlecenie_rano(z) for z in self.rano.braki())
+        braki_biezace = self._braki_biezace()
         piece_t = zamroz([{k: p.get(k) for k in ("id", "nr_w_dniu", "plan_id", "otwarty", "skanow", "otwarto", "zamknieto")} for p in piece])
-        if st is None:
-            return StanRano(kolejnosc=self._kolejnosc, braki_biezace=braki_biezace, piece=piece_t)
+        biezacy = self.rano.otwarty_piec()
+        ostatni_id = self._ostatni_zamkniety_id()
+        zajety = self._zajety()
+        if biezacy is not None:
+            st, wynik = self.rano.stan_pieca(biezacy["id"]), None
+        elif ostatni_id is not None:
+            st, wynik = self._piec_zamkniety(ostatni_id)
+        else:
+            return StanRano(kolejnosc=self._kolejnosc, braki_biezace=braki_biezace, piece=piece_t, ramka=self._ramka_poranna_dostepna(),
+                            excel=self._excel_dostepny(), zajety=zajety)
+        ostatni = None
+        if biezacy is not None and ostatni_id is not None:
+            st_z, wynik_z = self._piec_zamkniety(ostatni_id)
+            ostatni = self._stan_rano_pieca(st_z, wynik_z, plytki=False)
+        return self._stan_rano_pieca(st, wynik, braki_biezace=braki_biezace, piece=piece_t, ostatni=ostatni, zajety=zajety)
+
+    def _stan_rano_pieca(self, st: dict, wynik: dict | None, *, plytki: bool = True, braki_biezace: tuple = (), piece: tuple = (),
+                         ostatni: StanRano | None = None, zajety: str | None = None) -> StanRano:
+        """``StanRano`` jednego pieca ze ``stan_pieca`` A6; ``plytki`` False = bez plytek i kuwet (ostatni zamkniety piec obok
+        otwartego - tylko wynik)."""
+        zlecenie = self._zlecenie_rano
+        poprawki = tuple(PoprawkaRano(praca_id=x["praca_id"], skan_id=x["skan_id"], numer_plytki=x["numer_plytki"], gniazdo=x["gniazdo"],
+                                      kuweta=x.get("kuweta"), zeby=x.get("zeby"), zlecenie_odhaczone=bool(x.get("zlecenie_odhaczone")))
+                         for x in st["poprawki"])
+        wspolne = dict(
+            sesja_pieca_id=st["sesja_pieca_id"], plan_id=st["plan_id"], data=st["data"], nr_w_dniu=st["nr_w_dniu"], otwarto=st["otwarto"],
+            zamknieto=st["zamknieto"], zamknal=st["zamknal"], otwarty=st["otwarty"], z_poprzedniej_doby=st["otwarty_z_poprzedniej_doby"],
+            liczniki=zamroz(st["liczniki"]), nierozstrzygniete=zamroz(st["nierozstrzygniete"]),
+            kompletne=tuple(zlecenie(z) for z in st["kompletne"]), braki=tuple(zlecenie(z) for z in st["braki"]), poprawki=poprawki,
+            kolejnosc=self._kolejnosc, wynik=zamroz(wynik) if wynik is not None else None, ramka=self._ramka_poranna_dostepna(),
+            excel=self._excel_dostepny())
+        if not plytki:
+            return StanRano(**wspolne)
         surowe: dict = {}
         skany_ids = [s["id"] for s in st["skany"]]
         if skany_ids and st["otwarty"]:
@@ -1395,39 +1622,38 @@ class KontrolerSesji(Kontroler):
         shas = [p["sha16"] for s in st["skany"] for p in s["prace"]] + [k["sha16"] for s in st["skany"] for p in s["prace"] for k in p["kandydaci"]]
         mini = self._miniatury(shas)
         konflikty = {k["projekt_id"]: k["miejsca"] for k in st["konflikty"]}
-        propozycje = {p["skan_id"]: p for p in st["do_potwierdzenia"] if (p["skan_id"], p["poprzedni_id"]) not in self._odrzucone}
+        propozycje = {p["skan_id"]: dict(p) for p in st["do_potwierdzenia"] if (p["skan_id"], p["poprzedni_id"]) not in self._odrzucone}
         decyzji = {s["id"]: sum(1 for p in s["prace"] if p["decyzja"] is not None) for s in st["skany"]}
         for p in propozycje.values():
             p.update(liczba_decyzji=decyzji.get(p["poprzedni_id"], 0), liczba_ukruszonych=0)
         czasy = {s["id"]: s["czas_analizy"] for s in st["skany"]}
-        plytki = tuple(self._plytka_rano(s, st, mini, konflikty, surowe, propozycje.get(s["id"]), czasy) for s in st["skany"])
-        kuwety, biezaca = self._kuwety_pieca(st)
+        plytki_t = tuple(self._plytka_rano(s, st, mini, konflikty, surowe, propozycje.get(s["id"]), czasy) for s in st["skany"])
+        kuwety, biezaca, do_cofniecia = self._kuwety_pieca(st)
         rozlozone = set(self._rozlozone(st["plan_id"])) if st["otwarty"] else set()
         z_brakami = {z["kuweta"] for z in st["braki"]}
-        blokady = self._blokady_rano(st)
-        wynik = self.rano.wynik_pieca(st["sesja_pieca_id"]) if not st["otwarty"] else None
-        dozwolone: tuple = ()
-        if st["otwarty"] and not st["blokady"]:
-            dozwolone = ("zamknij_piec",)
+        nowy = st.get("nowy_wsad") if st["otwarty"] else None
+        nowy_wsad = NowyWsad(plytki=tuple(nowy.get("plytki") or ()), skany=tuple(nowy.get("skany") or ())) if nowy else None
+        dozwolone: list = []
+        if st["otwarty"] and zajety is None:
+            if not st["blokady"]:
+                dozwolone.append("zamknij_piec")
+            if nowy_wsad is not None and nowy_wsad.skany:
+                dozwolone.append("zamknij_piec_i_przenies")
+        if st["otwarty"] and self._z_przeniesienia(st["sesja_pieca_id"]):  # A6 runda 5: pomylke "zamknij i przenies" cofa osoba
+            dozwolone.append("cofnij_przeniesienie")
         elif not st["otwarty"] and not self.rano.otwarte_piece():  # A6 runda 2: pomylke cofa ponowne otwarcie (tylko ostatni piec)
-            ostatni = self.sesja.baza.wiersz("SELECT max(id) AS id FROM sesje_pieca")["id"]
-            dozwolone = ("otworz_piec_ponownie",) if ostatni == st["sesja_pieca_id"] else ()
+            ostatni_id = self.sesja.baza.wiersz("SELECT max(id) AS id FROM sesje_pieca")["id"]
+            if ostatni_id == st["sesja_pieca_id"]:
+                dozwolone.append("otworz_piec_ponownie")
         ostrzezenia = tuple(re.sub(r"skan (\d+)", lambda m: ST.SKAN_Z_GODZINY.format(godzina=(czasy.get(int(m[1])) or "")[11:16]), t)
                             for t in st.get("ostrzezenia") or ())
         return StanRano(
-            sesja_pieca_id=st["sesja_pieca_id"], plan_id=st["plan_id"], data=st["data"], nr_w_dniu=st["nr_w_dniu"], otwarto=st["otwarto"],
-            zamknieto=st["zamknieto"], zamknal=st["zamknal"], otwarty=st["otwarty"], z_poprzedniej_doby=st["otwarty_z_poprzedniej_doby"],
-            plytki=plytki, liczniki=zamroz(st["liczniki"]), nierozstrzygniete=zamroz(st["nierozstrzygniete"]),
-            kompletne=tuple(self._zlecenie_rano(z) for z in st["kompletne"]), braki=tuple(self._zlecenie_rano(z) for z in st["braki"]),
-            poprawki=tuple(PoprawkaRano(praca_id=x["praca_id"], skan_id=x["skan_id"], numer_plytki=x["numer_plytki"], gniazdo=x["gniazdo"],
-                                        kuweta=x.get("kuweta"), zeby=x.get("zeby"), zlecenie_odhaczone=bool(x.get("zlecenie_odhaczone")))
-                           for x in st["poprawki"]),
-            konflikty=zamroz(st["konflikty"]), blokady=blokady, dozwolone=dozwolone, ostrzezenia=ostrzezenia,
-            inne_otwarte_piece=tuple(st.get("inne_otwarte_piece") or ()), kolejnosc=self._kolejnosc,
-            kuwety=tuple(KuwetaRano(kuweta=k, prac=n, plytki=pl, potwierdzona=k in rozlozone, biezaca=k == biezaca, braki=k in z_brakami)
-                         for k, n, pl in kuwety),
-            kuweta_biezaca=biezaca, braki_biezace=braki_biezace, piece=piece_t, wynik=zamroz(wynik) if wynik is not None else None,
-            ramka=self._ramka_poranna_dostepna(), excel=self._excel_dostepny())
+            **wspolne, plytki=plytki_t, konflikty=zamroz(st["konflikty"]), blokady=self._blokady_rano(st, zajety), dozwolone=tuple(dozwolone),
+            ostrzezenia=ostrzezenia, inne_otwarte_piece=tuple(st.get("inne_otwarte_piece") or ()),
+            kuwety=tuple(KuwetaRano(kuweta=k, prac=n, plytki=pl, potwierdzona=k in rozlozone, biezaca=k == biezaca, braki=k in z_brakami, gniazda=g)
+                         for k, n, pl, g in kuwety),
+            kuweta_biezaca=biezaca, kuweta_do_cofniecia=do_cofniecia, braki_biezace=braki_biezace, piece=piece,
+            zajety=zajety, nowy_wsad=nowy_wsad, ostatni_zamkniety=ostatni)
 
     def _ramka_poranna_dostepna(self) -> bool:
         """Czy ramka poranna jest podlaczona - do A12 (``indicate``) zawsze False: program dziala wedlug ekranu."""
@@ -1614,6 +1840,9 @@ class KontrolerSesji(Kontroler):
             n, u = propozycja["liczba_decyzji"], propozycja["liczba_ukruszonych"]
             wzor = ST.SKUTEK_Z_DECYZJAMI_RANO if rano else ST.SKUTEK_Z_DECYZJAMI  # rano: decyzje poranne (wybor, przypisanie)
             skutek = ST.SKUTEK_BEZ_DECYZJI if n == 0 else wzor.format(n=n, u=u, decyzji=ST.odmiana(n, "decyzja", "decyzje", "decyzji"))
+            podstawa = ST.PODSTAWY_PONOWNEGO_SKANU.get(propozycja.get("podstawa")) if rano else None  # A6 runda 4: dlaczego to ponowny skan
+            if podstawa:
+                skutek = f"{podstawa} {skutek}"
             poziom, tytul, tekst = ST.tekst_pytania("ponowny_skan", numer=s["numer_plytki"] if s["numer_plytki"] is not None else "?",
                                                     minut=self._minut_od(propozycja["poprzedni_id"], s["czas_analizy"], czasy), skutek=skutek)
             wynik.append(Pytanie(
@@ -1729,9 +1958,11 @@ class KontrolerSesji(Kontroler):
             return self._odmowa("brak_operatora")
         return None
 
-    def _polecenie(self, funkcja: Callable[[], Any], *, operator: bool = True, nazwa: str = "", liczby: tuple = ()) -> Odpowiedz:
+    def _polecenie(self, funkcja: Callable[[], Any], *, operator: bool = True, nazwa: str = "", liczby: tuple = (),
+                   punkty: bool | None = None) -> Odpowiedz:
         """Wspolna obsluga polecenia: zamkniety program, zle argumenty (``liczby`` - identyfikatory, ktore musza byc liczbami
-        calkowitymi; D1), brak operatora, odmowa ``session``, baza zajeta, inny blad (``blad_polecenia``); potem nowy stan."""
+        calkowitymi; D1), brak operatora, odmowa ``session``, baza zajeta, inny blad (``blad_polecenia``); potem nowy stan.
+        ``punkty`` - czy udane polecenie moze zmienic stan punktow zlecen (pamiec listy brakow, P2); None = wg ``NIE_RUSZA_PUNKTOW``."""
         if self._zamkniety:
             return self._zamkniety_odp()
         if not all(_jest_liczba(x) for x in liczby):
@@ -1749,8 +1980,11 @@ class KontrolerSesji(Kontroler):
         except Exception:  # noqa: BLE001 - D1: polecenie okna nigdy nie konczy sie wyjatkiem w slocie Qt
             LOG.exception("kontroler: polecenie %s nie powiodlo sie", nazwa)
             return self._odmowa("blad_polecenia")
-        for kod in ("brak_operatora", "pusta_lista_operatorow", "odmowa", "baza_zajeta", "osoba_spoza_listy", KOD_ZLE_ARGUMENTY, "blad_polecenia"):
+        for kod in ("brak_operatora", "pusta_lista_operatorow", "odmowa", "baza_zajeta", "osoba_spoza_listy", KOD_ZLE_ARGUMENTY, "blad_polecenia",
+                    "kuweta_zmienila_sie", "analiza_trwa", "skanowanie_trwa"):
             self._usun_komunikat(f"odmowa:{kod}")  # polecenie przeszlo: stare odmowy nieaktualne
+        if punkty if punkty is not None else nazwa not in NIE_RUSZA_PUNKTOW:
+            self._uniewaznij_punkty()
         self._odswiez()
         return Odpowiedz(True, dane=dane)
 
@@ -1808,8 +2042,13 @@ class KontrolerSesji(Kontroler):
             plytka = stan.rano.plytka(skan_id)
         return plytka
 
+    def _wieczorny(self, skan_id: int) -> bool:
+        """Polecenie plytki dla skanu wieczornego (moze zmienic stan punktow - P2); skan poranny punktow nie rusza."""
+        return self._sesja_skanu(skan_id) is self.sesja
+
     def potwierdz_ponowny_skan(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).zastap_skan(skan_id), nazwa="potwierdz_ponowny_skan", liczby=(skan_id,))
+        return self._polecenie(lambda: self._sesja_skanu(skan_id).zastap_skan(skan_id), nazwa="potwierdz_ponowny_skan", liczby=(skan_id,),
+                               punkty=_jest_liczba(skan_id) and self._wieczorny(skan_id))
 
     def odrzuc_ponowny_skan(self, skan_id: int) -> Odpowiedz:
         def wykonaj() -> int:
@@ -1824,27 +2063,60 @@ class KontrolerSesji(Kontroler):
         return self._polecenie(wykonaj, nazwa="odrzuc_ponowny_skan", liczby=(skan_id,))
 
     def cofnij_zastapienie(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).cofnij_zastapienie(skan_id), nazwa="cofnij_zastapienie", liczby=(skan_id,))
+        return self._polecenie(lambda: self._sesja_skanu(skan_id).cofnij_zastapienie(skan_id), nazwa="cofnij_zastapienie", liczby=(skan_id,),
+                               punkty=_jest_liczba(skan_id) and self._wieczorny(skan_id))
 
     def dopusc_plytke(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).dopusc_plytke(skan_id), nazwa="dopusc_plytke", liczby=(skan_id,))
+        return self._polecenie(lambda: self._sesja_skanu(skan_id).dopusc_plytke(skan_id), nazwa="dopusc_plytke", liczby=(skan_id,),
+                               punkty=_jest_liczba(skan_id) and self._wieczorny(skan_id))
 
     def cofnij_dopuszczenie(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).cofnij_dopuszczenie(skan_id), nazwa="cofnij_dopuszczenie", liczby=(skan_id,))
+        return self._polecenie(lambda: self._sesja_skanu(skan_id).cofnij_dopuszczenie(skan_id), nazwa="cofnij_dopuszczenie", liczby=(skan_id,),
+                               punkty=_jest_liczba(skan_id) and self._wieczorny(skan_id))
 
-    def podaj_numer_plytki(self, skan_id: int, numer: int) -> Odpowiedz:
+    def podaj_numer_plytki(self, skan_id: int, numer: int, mimo_nowego_wsadu: bool = False) -> Odpowiedz:
+        """Numer plytki podany recznie. Skan poranny (A6 runda 4): zmiana numeru plytki, ktora ma drugi skan innego wsadu
+        (``StanRano.nowy_wsad``), bez ``mimo_nowego_wsadu`` nie idzie do sesji - kontroler pyta osobe (``Pytanie``
+        ``numer_nowy_wsad``: "Zmien numer mimo to" = to samo polecenie z ``mimo_nowego_wsadu`` True / "Nie zmieniaj")."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not isinstance(mimo_nowego_wsadu, bool):
+            return self._zle_argumenty("podaj_numer_plytki")
         n = numer
         if isinstance(numer, str):  # cyfry z pola tekstowego; nie-liczbe odrzuci session (odmowa z rada)
             try:
                 n = int(numer.strip())
             except ValueError:
                 n = 0
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).podaj_numer_plytki(skan_id, n), nazwa="podaj_numer_plytki", liczby=(skan_id, n))
+        if not (_jest_liczba(skan_id) and _jest_liczba(n)):
+            return self._zle_argumenty("podaj_numer_plytki")
+        sesja = self._sesja_skanu(skan_id)
+        if sesja is self.rano and not mimo_nowego_wsadu and self.sesja.operator is not None:
+            rano = self.stan().rano
+            p = rano.plytka(skan_id) if rano is not None else None
+            if (p is not None and rano.nowy_wsad is not None and p.numer is not None and p.numer in rano.nowy_wsad.plytki and n != p.numer
+                    and n in (SR.numery_plytki(p.uklad) or ())):
+                self._numer_mimo = (skan_id, n)
+                self._odswiez()
+                q = next((q for q in self.stan().pytania if q.rodzaj == "numer_nowy_wsad" and q.skan_id == skan_id), None)
+                return Odpowiedz(False, q.tekst if q is not None else ST.tekst_pytania("numer_nowy_wsad", stary=p.numer, numer=n)[2], "numer_nowy_wsad")
+
+        def wykonaj() -> int:
+            if sesja is self.rano:
+                wynik = self.rano.podaj_numer_plytki(skan_id, n, mimo_nowego_wsadu=mimo_nowego_wsadu)
+            else:
+                wynik = self.sesja.podaj_numer_plytki(skan_id, n)
+            if self._numer_mimo is not None and self._numer_mimo[0] == skan_id:
+                self._numer_mimo = None
+            return wynik
+
+        return self._polecenie(wykonaj, nazwa="podaj_numer_plytki", liczby=(skan_id, n), punkty=sesja is self.sesja)
 
     # --- polecenia poranne (E3-A7) ----------------------------------------------------------------
     def przelacz_tryb(self, tryb: str) -> Odpowiedz:
-        """Wieczor / Poranek (Z1: wybiera czlowiek, bez osoby). Wybor trafia do dziennika (``tryb_zmieniony``) - po restarcie
-        program wraca do tego trybu. Skany juz zauwazone zostaja w trybie, w ktorym je zauwazono."""
+        """Wieczor / Poranek (Z1: wybiera czlowiek, bez osoby). Wybor trafia do dziennika (``tryb_zmieniony``; bez nazwiska -
+        jak dziennik sesji porannej, recenzja PR #26 D4) - po restarcie program wraca do tego trybu. Skany juz zauwazone zostaja
+        w trybie, w ktorym je zauwazono."""
         if self._zamkniety:
             return self._zamkniety_odp()
         if not isinstance(tryb, str) or tryb not in TRYBY:
@@ -1852,7 +2124,7 @@ class KontrolerSesji(Kontroler):
 
         def wykonaj() -> str:
             if tryb != self.tryb:
-                self.sesja.baza.zdarzenie("ui", "tryb_zmieniony", {"tryb": tryb, "z": self.tryb, "operator": self.sesja.operator}, czas=self._teraz())
+                self.sesja.baza.zdarzenie("ui", "tryb_zmieniony", {"tryb": tryb, "z": self.tryb}, czas=self._teraz())
                 self.tryb = tryb
             return tryb
 
@@ -1875,22 +2147,60 @@ class KontrolerSesji(Kontroler):
 
     def _analiza_trwa(self) -> bool:
         """Skan w analizie albo w kolejce (czesc "zywa" stanu): wynik, ktory dojdzie po "Zamknij piec", otworzylby nowy piec."""
-        kolejka = self._stan_zywy().get("kolejka")
-        return kolejka is not None and kolejka.razem > 0
+        return self._zajety() == "analiza_trwa"
+
+    def _komunikat_excela(self, wynik: dict) -> None:
+        """Bez Excela (do A12): komunikat z WLASNA lista kuwet zamknietego pieca (P1 - ekran moze juz pokazywac nastepny piec)."""
+        kompletne = wynik.get("kompletne") or []
+        if not kompletne or self._excel_dostepny():
+            return
+        kuwety = [z.get("kuweta") or "?" for z in kompletne]
+        lista = ", ".join(kuwety[:MAX_KUWET_KOMUNIKATU]) + (ST.I_INNYCH.format(n=len(kuwety) - MAX_KUWET_KOMUNIKATU)
+                                                          if len(kuwety) > MAX_KUWET_KOMUNIKATU else "")
+        data = wynik.get("data") or ""
+        self._komunikat("excel_niedostepny", id_=ID_EXCEL, ile=f"{len(kuwety)} {ST.odmiana(len(kuwety), *ST.ZLECENIA_ODMIANA)}",
+                        nr=wynik.get("nr_w_dniu") or "?", doba=f"{data[8:10]}.{data[5:7]}" if len(data) >= 10 else "?",
+                        godzina=(wynik.get("zamknieto") or "")[11:16] or "?", kuwety=lista)
 
     def zamknij_piec(self, sesja_pieca_id: int | None = None) -> Odpowiedz:
         """"Zamknij piec" pokazanego pieca (``session_rano.zamknij_piec(sesja_pieca_id=...)`` - spoznione klikniecie nie zamknie
-        nastepnego pieca); odmowa, dopoki trwa analiza skanu (A6 runda 2, D11). Bez Excela (do A12) komunikat: zlecenia
-        kompletne odhaczyc recznie."""
+        nastepnego pieca); odmowa ``analiza_trwa`` / ``skanowanie_trwa``, dopoki trwa analiza albo skanowanie (A6 runda 2 D11,
+        recenzja PR #26 P3). Bez Excela (do A12) komunikat z lista kuwet do odhaczenia recznie."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        zajety = self._zajety()
+        if zajety is not None:
+            return self._odmowa(zajety)
+
         def wykonaj() -> ZamrozonySlownik:
-            if self._analiza_trwa():
-                raise SE.BladSesji(ST.tekst_komunikatu("analiza_trwa")[2])
             wynik = self.rano.zamknij_piec(sesja_pieca_id=sesja_pieca_id)
-            if wynik.get("kompletne") and not self._excel_dostepny():
-                self._komunikat("excel_niedostepny", id_=ID_EXCEL, ile=len(wynik["kompletne"]))
+            self._komunikat_excela(wynik)
             return zamroz(wynik)
 
         return self._polecenie(wykonaj, nazwa="zamknij_piec", liczby=() if sesja_pieca_id is None else (sesja_pieca_id,))
+
+    def zamknij_piec_i_przenies(self, sesja_pieca_id: int, skany: tuple) -> Odpowiedz:
+        """Zapomniany "Zamknij piec" (A6 runda 4, ``session_rano.zamknij_piec_i_przenies``): odpowiedz "Tak" na pytanie
+        ``nowy_wsad``. Te same odmowy co ``zamknij_piec``; ``dane`` = {"zamkniety": wynik, "nowy_piec": ...}."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not isinstance(skany, (tuple, list)) or not skany or not all(_jest_liczba(x) for x in skany):
+            return self._zle_argumenty("zamknij_piec_i_przenies")
+        zajety = self._zajety()
+        if zajety is not None:
+            return self._odmowa(zajety)
+
+        def wykonaj() -> ZamrozonySlownik:
+            wynik = self.rano.zamknij_piec_i_przenies(list(skany), sesja_pieca_id=sesja_pieca_id)
+            self._komunikat_excela(wynik.get("zamkniety") or {})
+            return zamroz(wynik)
+
+        return self._polecenie(wykonaj, nazwa="zamknij_piec_i_przenies", liczby=(sesja_pieca_id,))
+
+    def cofnij_przeniesienie(self, sesja_pieca_id: int) -> Odpowiedz:
+        """Cofa "zamknij piec i przenies" (``session_rano.cofnij_przeniesienie``, A6 runda 5): skany wracaja do poprzedniego pieca,
+        ktory znow jest otwarty; odmowa A6 (np. do nowego pieca doszly inne skany) - komunikat."""
+        return self._polecenie(lambda: zamroz(self.rano.cofnij_przeniesienie(sesja_pieca_id)), nazwa="cofnij_przeniesienie", liczby=(sesja_pieca_id,))
 
     def otworz_piec_ponownie(self, sesja_pieca_id: int) -> Odpowiedz:
         """Cofa "Zamknij piec" ostatniego pieca (``session_rano.otworz_piec_ponownie``; odhaczen w Excelu program nie zdejmuje)."""
@@ -1913,21 +2223,25 @@ class KontrolerSesji(Kontroler):
         return self._polecenie(lambda: self.rano.cofnij_zamkniecie_reczne(projekt_id), nazwa="cofnij_zamkniecie_reczne", liczby=(projekt_id,))
 
     def ustaw_kolejnosc(self, kolejnosc: str) -> Odpowiedz:
-        """Kolejnosc kuwet (U7): ``liczba`` / ``numer``; wybor ekranu (bez osoby i bez wpisu w bazie)."""
+        """Kolejnosc kuwet (U7): ``liczba`` / ``numer``; wybor ekranu (bez osoby i bez wpisu w bazie). Biezaca kuweta = pierwsza
+        nierozlozona w nowej kolejnosci (zmiana kolejnosci to wybor osoby - B1)."""
         if self._zamkniety:
             return self._zamkniety_odp()
         if not isinstance(kolejnosc, str) or kolejnosc not in KOLEJNOSCI_KUWET:
             return self._zle_argumenty("ustaw_kolejnosc")
 
         def wykonaj() -> str:
-            self._kolejnosc = kolejnosc
+            if kolejnosc != self._kolejnosc:
+                self._kolejnosc = kolejnosc
+                self._kuweta_biezaca.clear()
             return kolejnosc
 
         return self._polecenie(wykonaj, operator=False, nazwa="ustaw_kolejnosc")
 
     def _piec_do_rozkladania(self) -> StanRano:
-        r = self._stan_rano()
-        if r.sesja_pieca_id is None or not r.otwarty:
+        """Pokazany stan pieca (juz zbudowany - P2: bez drugiego liczenia stanu na kazdy Enter); odmowa bez otwartego pieca."""
+        r = self.stan().rano
+        if r is None or r.sesja_pieca_id is None or not r.otwarty:
             raise SE.BladSesji(ST.tekst_komunikatu("brak_pieca")[2])
         return r
 
@@ -1943,36 +2257,66 @@ class KontrolerSesji(Kontroler):
             r = self._piec_do_rozkladania()
             if k not in {x.kuweta for x in r.kuwety}:
                 raise SE.BladSesji(ST.tekst_komunikatu("kuweta_spoza_pieca", kuweta=k or "?")[2])
-            self._kuweta_wybrana = (r.plan_id, k)
+            self._kuweta_biezaca[r.plan_id] = k
             return k
 
         return self._polecenie(wykonaj, operator=False, nazwa="wybierz_kuwete")
 
-    def potwierdz_kuwete(self) -> Odpowiedz:
-        """Enter: biezaca kuweta rozlozona - wpis ``kuweta_potwierdzona`` w dzienniku (z osoba); biezaca = nastepna nierozlozona."""
+    def _kuweta_inna(self, podana: str, obecna: str | None) -> Odpowiedz | None:
+        """B1: polecenie niesie kuwete widoczna na ekranie - gdy w kontrolerze jest juz inna, odmowa bez zapisu."""
+        if self._norm_kuweta(podana) == obecna:
+            return None
+        if obecna is None:
+            return None  # odmowe "wszystko rozlozone" / "nic do cofniecia" da polecenie
+        return self._odmowa("kuweta_zmienila_sie", kuweta=obecna, podana=self._norm_kuweta(podana) or "?")
+
+    def potwierdz_kuwete(self, kuweta: str) -> Odpowiedz:
+        """Enter: kuweta ``kuweta`` (biezaca pokazana na ekranie) rozlozona - wpis ``kuweta_potwierdzona`` w dzienniku (bez nazwiska,
+        jak dziennik sesji porannej - D4; operator wymagany); biezaca = nastepna nierozlozona. Odmowa ``kuweta_zmienila_sie``, gdy
+        biezaca w kontrolerze jest inna niz pokazana (recenzja PR #26, B1)."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not isinstance(kuweta, str):
+            return self._zle_argumenty("potwierdz_kuwete")
+        if self.sesja.operator is not None:
+            r = self.stan().rano
+            odmowa = self._kuweta_inna(kuweta, r.kuweta_biezaca if r is not None and r.otwarty else None)
+            if odmowa is not None:
+                return odmowa
+
         def wykonaj() -> str:
             r = self._piec_do_rozkladania()
             if r.kuweta_biezaca is None:
                 raise SE.BladSesji(ST.tekst_komunikatu("kuwety_rozlozone")[2])
-            self.sesja.baza.zdarzenie("ui", "kuweta_potwierdzona", {"plan_id": r.plan_id, "kuweta": r.kuweta_biezaca, "operator": self.sesja.operator},
-                                      czas=self._teraz())
+            self.sesja.baza.zdarzenie("ui", "kuweta_potwierdzona", {"plan_id": r.plan_id, "kuweta": r.kuweta_biezaca}, czas=self._teraz())
             self._rozlozone(r.plan_id).append(r.kuweta_biezaca)
-            self._kuweta_wybrana = None
+            self._kuweta_biezaca.pop(r.plan_id, None)
             return r.kuweta_biezaca
 
         return self._polecenie(wykonaj, nazwa="potwierdz_kuwete")
 
-    def cofnij_kuwete(self) -> Odpowiedz:
-        """Backspace: cofa ostatnie potwierdzenie (wpis ``kuweta_cofnieta``) - ta kuweta znow jest biezaca."""
+    def cofnij_kuwete(self, kuweta: str) -> Odpowiedz:
+        """Backspace: cofa potwierdzenie kuwety ``kuweta`` (ostatnia potwierdzona pokazana na ekranie - ``kuweta_do_cofniecia``),
+        wpis ``kuweta_cofnieta``; ta kuweta znow jest biezaca. Odmowa ``kuweta_zmienila_sie``, gdy ostatnia jest inna (B1)."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not isinstance(kuweta, str):
+            return self._zle_argumenty("cofnij_kuwete")
+        if self.sesja.operator is not None:
+            r = self.stan().rano
+            odmowa = self._kuweta_inna(kuweta, r.kuweta_do_cofniecia if r is not None and r.otwarty else None)
+            if odmowa is not None:
+                return odmowa
+
         def wykonaj() -> str:
             r = self._piec_do_rozkladania()
             stos = self._rozlozone(r.plan_id)
             if not stos:
                 raise SE.BladSesji(ST.tekst_komunikatu("brak_kuwety_do_cofniecia")[2])
             k = stos[-1]
-            self.sesja.baza.zdarzenie("ui", "kuweta_cofnieta", {"plan_id": r.plan_id, "kuweta": k, "operator": self.sesja.operator}, czas=self._teraz())
+            self.sesja.baza.zdarzenie("ui", "kuweta_cofnieta", {"plan_id": r.plan_id, "kuweta": k}, czas=self._teraz())
             stos.pop()
-            self._kuweta_wybrana = (r.plan_id, k)
+            self._kuweta_biezaca[r.plan_id] = k
             return k
 
         return self._polecenie(wykonaj, nazwa="cofnij_kuwete")
@@ -2648,6 +2992,7 @@ class AtrapaKontrolera(KontrolerSesji):
             skan_id = self.rano.przyjmij_wynik(zdarzenie, wynik)
         else:
             skan_id = self.sesja.przyjmij_wynik(zdarzenie, wynik, self.tryb)
+        self._po_skanie(self.tryb)
         self._zapisz_podglad(skan_id, self._sztuczny_podglad(zdarzenie["sha16"], wynik))
         self._odswiez()
         return skan_id

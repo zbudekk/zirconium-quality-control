@@ -25,6 +25,16 @@ def nazwa_plytki(numer) -> str:
     return NR.PLYTKA_NR.format(numer=numer) if numer is not None else NR.PLYTKA_BEZ_NUMERU
 
 
+class PoleKuwety(QLineEdit):
+    """Pole numeru kuwety do przypisania recznego: Enter jest JAWNIE przyjety przez pole (``returnPressed`` = szukaj) i nie
+    dochodzi do okna, gdzie oznaczalby "kuweta rozlozona" (recenzja PR #26, D2 - nie zalezy od przebudowy widoku)."""
+
+    def keyPressEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+        super().keyPressEvent(zdarzenie)
+        if zdarzenie.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            zdarzenie.accept()
+
+
 class Miniatura(QLabel):
     """Miniatura projektu (PNG z indeksu) w ramce ``MINIATURA_PX``; bez miniatury - napis."""
 
@@ -102,6 +112,7 @@ class WidokPracyRano(QFrame):
         self._r = styl.ZWYKLE
         self._sygnatura = None
         self._przypisanie = False
+        self._fokus = False
         self._kuweta_szukana: str | None = None
         self._wyniki: tuple = ()
         self._stos = QStackedLayout(self)
@@ -200,8 +211,9 @@ class WidokPracyRano(QFrame):
         if praca.konflikt_z:
             miejsca = ", ".join(NR.KONFLIKT_MIEJSCE.format(plytka=nazwa_plytki(n), gniazdo=g if g is not None else NR.BRAK_DANYCH) for n, g in praca.konflikt_z)
             u.addWidget(etykieta(NR.KONFLIKT_Z.format(miejsca=miejsca), "uwaga", "praca_rano_konflikt", zawijaj=True))
-        if praca.klasa == "poprawka":
-            u.addWidget(etykieta(NR.POPRAWKA_INFO, "informacja", "praca_rano_poprawka", zawijaj=True))
+        if praca.klasa == "poprawka":  # Z9 / A6 D2: "zlecenie juz odhaczone" tylko, gdy naprawde odhaczone (P5)
+            u.addWidget(etykieta(NR.POPRAWKA_INFO if praca.zlecenie_odhaczone else NR.JUZ_ROZPOZNANY_INFO, "informacja", "praca_rano_poprawka",
+                                 zawijaj=True))
         if praca.domyka_dofrezowanie:
             u.addWidget(etykieta(NR.DOMYKA_DOFREZOWANIE, "informacja", "praca_rano_dofrezowanie", zawijaj=True))
         if praca.kuweta_do_sprawdzenia:
@@ -251,16 +263,19 @@ class WidokPracyRano(QFrame):
         r = self._r
         self._u.addWidget(etykieta(NR.PRZYPISZ_TYTUL, "naglowek", zawijaj=True))
         wiersz = QHBoxLayout()
-        pole = QLineEdit()
+        pole = PoleKuwety()
         pole.setObjectName("praca_rano_przypisz_kuweta")
         pole.setMaxLength(8)
         pole.setText(self._kuweta_szukana or "")
         pole.setMinimumHeight(r.wysokosc_przycisku)
-        pole.returnPressed.connect(lambda: self._szukaj(pole.text()))
+        pole.returnPressed.connect(lambda: self._szukaj(pole.text(), fokus=True))
         wiersz.addWidget(pole, 1)
         wiersz.addWidget(przycisk(NR.PRZYPISZ_POKAZ, "praca_rano_przypisz_pokaz", None, lambda: self._szukaj(pole.text()), r.wysokosc_przycisku))
         self._u.addLayout(wiersz)
         self._pole = pole
+        if self._fokus:  # Enter w polu: po przebudowie fokus w nowym polu (poprawiany numer nie trafia do numeru kuwety ekranu)
+            self._fokus = False
+            pole.setFocus(Qt.FocusReason.OtherFocusReason)
         if self._kuweta_szukana is not None and not self._wyniki:
             self._u.addWidget(etykieta(NR.PRZYPISZ_BRAK.format(kuweta=self._kuweta_szukana), "slaby", "praca_rano_przypisz_brak", zawijaj=True))
         for projekt in self._wyniki:
@@ -282,7 +297,8 @@ class WidokPracyRano(QFrame):
         self._sygnatura = None
         self.odswiez_sam()
 
-    def _szukaj(self, tekst: str) -> None:
+    def _szukaj(self, tekst: str, fokus: bool = False) -> None:
+        self._fokus = fokus
         tekst = (tekst or "").strip()
         self._kuweta_szukana = tekst or None
         self._wyniki = tuple(self._projekty(tekst)) if tekst else ()

@@ -2,7 +2,7 @@
 
 ``MapaRano`` to ``mapa.MapaPlytki`` z innym wnetrzem gniazda: numer kuwety (``Gniazdo.podpis`` - kontroler podaje kuwete albo
 napis statusu, np. "wybierz" / "nieznana"), zab i miniatura przypisanego projektu (``PracaRano.zeby`` / ``miniatura``) oraz
-obwodka gniazd biezacej kuwety (rozkladanie wedlug ekranu). Co sie miesci w gniezdzie, zalezy od jego wielkosci na ekranie:
+obwodka gniazd biezacej kuwety (rozkladanie wedlug ekranu; gniazda podaje kontroler - ``StanRano.obwodka``, recenzja PR #26 P4). Co sie miesci w gniezdzie, zalezy od jego wielkosci na ekranie:
 od promienia ``PROG_MINIATURY_PX`` - numer gniazda, miniatura, kuweta i zab; od ``PROG_ZEBA_PX`` - kuweta i zab; mniejsze -
 sama kuweta (albo numer gniazda, gdy i ona sie nie miesci; kolor i legenda mowia reszte). Do testow: ``rysowane()``
 (numer gniazda -> co jest narysowane: kuweta, zab, ``sha16`` miniatury), ``punkt_probny`` (piksel tla gniazda poza napisami).
@@ -20,7 +20,6 @@ from .mapa import MapaPlytki
 PROG_MINIATURY_PX = 25.0  # promien gniazda (px), od ktorego w gniezdzie jest miniatura i numer gniazda
 PROG_ZEBA_PX = 16.0  # od tego promienia - kuweta i zab
 KOLOR_BIEZACEJ = styl.AKCENT  # obwodka gniazd biezacej kuwety
-KLASY_OBWODKI = ("pewna", "przypisana", "poprawka")  # = session_rano.KLASY_Z_KUWETA (gniazda z kuweta w planie ramki)
 
 
 def _czcionka(px: float, pogrubiona: bool = True) -> QFont:
@@ -31,20 +30,22 @@ def _czcionka(px: float, pogrubiona: bool = True) -> QFont:
 
 
 class MapaRano(MapaPlytki):
-    """Mapa jednej plytki porannej. ``ustaw_rano(plytka, geometria, wybrane, biezaca, obrazy)``: ``biezaca`` - numer biezacej
-    kuwety (jej gniazda dostaja obwodke), ``obrazy`` - ``sha16`` -> ``QImage`` miniatury (zdekodowane przez ekran raz)."""
+    """Mapa jednej plytki porannej. ``ustaw_rano(plytka, geometria, wybrane, obwodka, obrazy)``: ``obwodka`` - numery gniazd
+    biezacej kuwety z kontrolera (``StanRano.obwodka(skan_id)`` - mapa niczego nie liczy), ``obrazy`` - ``sha16`` -> ``QImage``
+    miniatury (zdekodowane przez ekran raz)."""
 
     def __init__(self, skan_id: int, rodzic=None):
         super().__init__(rodzic)
         self.skan_id = skan_id
         self.setObjectName(f"mapa_rano_{skan_id}")
         self.setMinimumSize(150, 140)
-        self._biezaca: str | None = None
+        self._obwodka: frozenset = frozenset()
         self._obrazy: dict = {}
 
-    def ustaw_rano(self, plytka, geometria, wybrane: int | None, biezaca: str | None, obrazy: dict) -> None:
-        zmiana = biezaca != self._biezaca or obrazy is not self._obrazy
-        self._biezaca, self._obrazy = biezaca, obrazy
+    def ustaw_rano(self, plytka, geometria, wybrane: int | None, obwodka: frozenset, obrazy: dict) -> None:
+        obwodka = frozenset(obwodka)
+        zmiana = obwodka != self._obwodka or obrazy is not self._obrazy
+        self._obwodka, self._obrazy = obwodka, obrazy
         self.ustaw(plytka, geometria, wybrane)
         if zmiana:
             self.update()
@@ -173,11 +174,9 @@ class MapaRano(MapaPlytki):
         return [g.nr for g in self._gniazda if self._biezacej(g)]
 
     def _biezacej(self, g) -> bool:
-        """Gniazdo biezacej kuwety: praca rozpoznana z ta kuweta (jak gniazdo z kuweta w planie ramki: pewna / przypisana /
-        poprawka; konflikt - nie, dopoki nie rozstrzygniety)."""
-        praca = self._praca(g)
-        return (self._biezaca is not None and praca is not None and praca.kuweta == self._biezaca
-                and praca.klasa in KLASY_OBWODKI)
+        """Gniazdo biezacej kuwety - wg kontrolera (ta sama regula co lista kuwet: plytka z numerem jedynym w piecu, praca
+        rozpoznana z kuweta zgodna z protokolem ramki)."""
+        return g.nr in self._obwodka
 
     def teksty_rysowane(self) -> list:
         if self._napis:

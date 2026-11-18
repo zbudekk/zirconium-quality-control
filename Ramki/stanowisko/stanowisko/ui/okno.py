@@ -294,12 +294,9 @@ class OknoWieczor(QWidget):
         if self._stan is None or stan.wersja >= self._stan.wersja:
             if self._stan is not None and stan.plytki is not self._stan.plytki:
                 self.pokaz_stan(stan)
-            else:
-                zmiana_kolejki = self._stan is not None and (stan.kolejka.razem > 0) != (self._stan.kolejka.razem > 0)
+            else:  # rano: zmiane blokady "Zamknij piec" (analiza / skanowanie) kontroler podaje pelnym stanem (recenzja PR #26, D1)
                 self._stan = stan
                 self.pasek.ustaw(stan)
-                if zmiana_kolejki and self.rano():  # E3-A7: analiza trwa / skonczona - "Zamknij piec" niedostepne w trakcie (A6 D11)
-                    self.ekran_rano.pokaz(stan)
 
     def _na_zamkniety(self) -> None:
         self.setEnabled(False)
@@ -495,10 +492,12 @@ class OknoWieczor(QWidget):
             odpowiedz = self.k.wykonaj(nazwa, *argumenty)  # kontrakt: polecenia nie rzucaja wyjatkow (zle dane = odmowa ``zle_argumenty``)
             stan = self.k.stan()
             tekst = odpowiedz.tekst if not odpowiedz.ok else ""
-            self._odmowa = tekst if tekst and all(k.tekst != tekst for k in otwarte(stan.komunikaty)) else ""
+            # odmowa, ktora jest juz w stanie jako komunikat albo pytanie (rano: "zmienic numer mimo to?"), nie jest powtarzana
+            w_stanie = any(k.tekst == tekst for k in otwarte(stan.komunikaty)) or any(q.tekst == tekst for q in stan.pytania)
+            self._odmowa = tekst if tekst and not w_stanie else ""
             self._informacja = ""
-            if odpowiedz.ok and nazwa == "podaj_numer_plytki":
-                self._podaj_numer = False
+            if nazwa == "podaj_numer_plytki" and (odpowiedz.ok or odpowiedz.kod == "numer_nowy_wsad"):
+                self._podaj_numer = False  # rano "numer_nowy_wsad": panel numeru ustepuje pytaniu "zmienic numer mimo to?" (A6 runda 4)
                 self.ekran_rano.numer_podany()
             if stan.wersja == self._stan.wersja:
                 if not self._wstrzymaj:
