@@ -414,6 +414,17 @@ def test_d3_x4_zapis_tylko_dla_pozycji_z_zamknietego_pieca(zestaw, tmp_path):
     assert _zapisy(ark) == []
 
 
+def test_r3_d2_zaloguj_juz_odhaczone_odmawia_przy_do_sprawdzenia(tmp_path):
+    """Runda 3, D2 (proba R7): zlecenie niewpisane, najnowszy wiersz kuwety sprzed 30 dni z pustym H i zielonym B = "juz
+    odhaczone" z ``do_sprawdzenia`` - bez pytania nie wolno tego zalogowac; czlowiek zatwierdza ``zatwierdz``."""
+    ex = _excel(_maly([(_d("2026-10-19"), 1.0, 3263.0, "")], ((2, ZIELONY),)), tmp_path)
+    poz = ex.pozycja("3263", T, sesja_pieca_id=SESJA)
+    assert (poz.dopasowanie.klasa, poz.dopasowanie.do_sprawdzenia) == (Z, True)
+    with pytest.raises(EX.BladExcela, match="do sprawdzenia"):
+        ex.zaloguj_juz_odhaczone(poz, OSOBA)
+    assert not poz.zalatwiona and ex.zatwierdz(poz, OSOBA)["wynik"] == EX.WYNIK_JUZ_ODHACZONE
+
+
 def test_odswiezanie_odczytu_co_kilka_minut(tmp_path):
     chwila = [TERAZ]
     ark = _maly([(_d("2026-11-16"), 51001.0, 3263.0, "Testowski 3263 zs")])
@@ -514,6 +525,9 @@ PRZYPADKI = [
     ("P3 prywatne: B zwyklego zlecenia z 2019", [(_d("2019-01-15"), 1234.0, 3263.0, "Probny 3263 kor")], (), "#1234", "#1234", W, None, 5, ()),
     ("P3 prywatne: B zwyklego zlecenia biezacego", [(D3, 1234.0, 3263.0, "Probny 3263 kor")], (), "#1234", "#1234", W, None, 5, ()),
     ("P3 prywatne: wiersz prywatny ponad limit", [(STARA, 1234.0, None, "Testowski")], (), "#1234", "#1234", W, None, 5, (2,)),
+    # runda 3, D4 (proba R6): numer karteczki wraca - stary wiersz prywatny ponad limit + swiezy = swiezy (do_sprawdzenia - test nizej)
+    ("D4 prywatne: wiersz ponad limit i swiezy", [(STARA, 1234.0, None, "Probny"), (D3, 1234.0, None, "Testowski")], (), "#1234", "#1234", J, 3,
+     2, (3, 2)),
 ]
 
 
@@ -537,6 +551,9 @@ def test_p3_limit_wieku_wylaczony_i_do_sprawdzenia(tmp_path):
     assert (d.klasa, d.wiersz, d.do_sprawdzenia) == (Z, 2, True)
     ex = _excel(_maly([(D3, 1.0, 3263.0, T), (D3, 1234.0, None, "Probny")]), tmp_path)
     assert ex.dopasuj("3263", T).do_sprawdzenia is False and ex.dopasuj("#1234", "#1234").do_sprawdzenia is True
+    ex = _excel(_maly([(STARA, 1234.0, None, "Probny"), (D3, 1234.0, None, "Testowski")]), tmp_path)  # D4 (runda 3)
+    d = ex.dopasuj("#1234", "#1234")
+    assert (d.klasa, d.wiersz, d.do_sprawdzenia) == (J, 3, True)
 
 
 # --- normalizacja ----------------------------------------------------------------------------------------------------
@@ -641,6 +658,35 @@ def test_propozycje_z_wyniku_pieca_i_tabela_excel_zapisy(tmp_path):
     baza.zamknij()
 
 
+def test_a6_wynik_zamknij_piec_z_sesji_rano_do_propozycji_i_zapisu(tmp_path):
+    """Zgodnosc z obecnym API ``session_rano`` (A6 runda 5): prawdziwy ``SesjaRano`` (harness testow A6) - skan poranny obu prac
+    zlecenia Y (kuweta 3301), "Zamknij piec" -> ``propozycje`` -> jeden wiersz. ``otworz_piec_ponownie`` przed zatwierdzeniem =
+    odmowa X4 (piec znow otwarty); po ponownym zamknieciu ``wynik_pieca`` -> propozycja -> zapis i ``excel_zapisy`` z sesja pieca."""
+    import test_session_rano as TSR
+
+    st = TSR.Stanowisko(tmp_path)
+    TSR.wypelnij_indeks(st.sesja.baza)
+    st.skan(TSR.rano(4, "2026-11-18T07:00:00", [{"g": 2, "k": [["Y21", 0.95]]}, {"g": 3, "k": [["Y22", 0.95]]}]))
+    wynik = st.rano.zamknij_piec()
+    assert [z["kuweta"] for z in wynik["kompletne"]] == ["3301"] and wynik["zamknieto"]
+    ark = _maly([(D1, 51001.0, 3301.0, "Inna Osoba 3301 zs"), (D3, 51002.0, 3301.0, "Przykladowy Jan 3301 ZR")], ((2, ZIELONY),))
+    ex = EX.Excel(EX.Konfiguracja(log=tmp_path / "log_excel.csv"), ark, baza=st.sesja.baza, zegar=zegar, czekaj=bez_czekania)
+    (poz,) = ex.propozycje(wynik)
+    assert (poz.dopasowanie.klasa, poz.dopasowanie.wiersz, poz.sesja_pieca_id) == (J, 3, wynik["sesja_pieca_id"])
+    st.rano.otworz_piec_ponownie(wynik["sesja_pieca_id"])  # pomylka przy zamykaniu - piec znow otwarty
+    with pytest.raises(EX.BladExcela, match="X4"):
+        ex.zatwierdz(poz, OSOBA)
+    assert _zapisy(ark) == [] and ex.zaloguj_poprawki(wynik, OSOBA) == []
+    st.rano.zamknij_piec()
+    wynik2 = st.rano.wynik_pieca(wynik["sesja_pieca_id"])  # jak po restarcie programu
+    (poz2,) = ex.propozycje(wynik2)
+    wpis = ex.zatwierdz(poz2, OSOBA)
+    assert (wpis["wynik"], wpis["wiersz"]) == ("zapisano", 3) and _zapisy(ark) == [("ustaw_wypelnienie", 3, KOL_B, ZIELONY)]
+    z = st.sesja.baza.wiersz("SELECT * FROM excel_zapisy WHERE id = ?", (wpis["id"],))
+    assert (z["sesja_pieca_id"], z["kuweta"], z["wynik"], z["folder"]) == (wynik["sesja_pieca_id"], "3301", "zapisano", "Przykladowy Jan 3301 ZR")
+    st.sesja.baza.zamknij()
+
+
 def test_p1_propozycje_robia_swiezy_odczyt(tmp_path):
     baza, zl, piec = _baza_z_piecem(tmp_path)
     ark = _maly([(D1, 51001.0, 3263.0, "")])
@@ -687,6 +733,8 @@ class _Interior:
         object.__setattr__(self, "_k", komorka)
 
     def __getattr__(self, nazwa):
+        if self._k.arkusz.odczyt_koloru_pada and nazwa in ("ColorIndex", "Color"):
+            raise RuntimeError("polaczenie z Excelem zerwane (atrapa)")
         kolor = self._k.arkusz.kolory.get((self._k.row, self._k.column))
         if nazwa == "ColorIndex":
             return XC.XL_BRAK_WYPELNIENIA if kolor is None else 35
@@ -698,12 +746,20 @@ class _Interior:
         a, kl = self._k.arkusz, (self._k.row, self._k.column)
         if nazwa == "Color":
             a.proby.append(kl)
+            if a.przed_zapisem:  # wspoledytor zmienia arkusz miedzy kontrola a zapisem (to samo wywolanie)
+                zdarzenie, a.przed_zapisem = a.przed_zapisem, None
+                zdarzenie()
             if a.odrzuc_zapis > 0:  # Excel zajety (np. przyjmuje zmiany wspoledytora): RPC_E_CALL_REJECTED
                 a.odrzuc_zapis -= 1
                 if a.przy_odrzuceniu:
                     a.przy_odrzuceniu()
                 raise RuntimeError("Call was rejected by callee (atrapa)")
             a.kolory[kl] = wartosc
+            if a.zapisz_i_rzuc > 0:  # czesciowy sukces: kolor zapisany, wywolanie zwraca blad (runda 3, P1)
+                a.zapisz_i_rzuc -= 1
+                a.ustawienia.append((*kl, nazwa, wartosc))
+                a.odczyt_koloru_pada = a.potem_odczyt_pada
+                raise RuntimeError("polaczenie zerwane po zapisie (atrapa)")
         a.ustawienia.append((*kl, nazwa, wartosc))
         if nazwa == "Color" and a.po_zapisie:
             zdarzenie, a.po_zapisie = a.po_zapisie, None
@@ -742,6 +798,7 @@ class _ArkuszCom:
     def __init__(self, nazwa, dane):
         self.Name, self.dane, self.kolory, self.ustawienia, self.proby = nazwa, dane, {}, [], []
         self.odrzuc_zapis, self.przy_odrzuceniu, self.po_zapisie = 0, None, None
+        self.zapisz_i_rzuc, self.przed_zapisem, self.odczyt_koloru_pada, self.potem_odczyt_pada = 0, None, False, False
 
     @property
     def UsedRange(self):
@@ -892,6 +949,63 @@ def test_b1_wiersz_zmieniony_zaraz_po_zapisie_komunikat_i_blad(tmp_path):
     with pytest.raises(EX.BladExcela, match="zalatwiona"):
         ex.zatwierdz(poz, OSOBA)
     assert len(com.proby) == 1
+
+
+def test_r3_p1_czesciowy_sukces_zapisu_bez_falszywego_juz_odhaczone(tmp_path):
+    """Runda 3, P1 (proba R2 recenzenta): wywolanie zapisalo kolor i zwrocilo blad, arkusz bez zmian - program odczytuje kolor
+    komorki, widzi swoj zapis i po kontroli N-1..N+1 loguje "zapisano" (nie "juz_odhaczone"), bez drugiego wywolania."""
+    app = _aplikacja()
+    ex = _excel_com(tmp_path, app)
+    com = app.Workbooks[1].Worksheets("2026")
+    poz = ex.pozycja("3263", "Testowski 3263 zs", sesja_pieca_id=SESJA)
+    com.zapisz_i_rzuc = 1
+    wpis = ex.zatwierdz(poz, OSOBA)
+    assert (wpis["wynik"], wpis["regula"], wpis["wiersz"]) == (EX.WYNIK_ZAPISANO, 2, 2) and poz.zalatwiona
+    assert com.proby == [(2, 2)] and list(com.kolory) == [(2, 2)]
+    assert [w["wynik"] for w in _log(tmp_path)] == ["zapisano"]
+
+
+def test_r3_p1_czesciowy_sukces_przy_przesunietych_wierszach_wykryty(tmp_path):
+    """Runda 3, P1 (proba R3): wspoledytor wstawia wiersz miedzy kontrola a zapisem, kolor trafia w komorke B innego zlecenia,
+    wywolanie zwraca blad - program to wykrywa: "sprawdz recznie", wpis "blad", pozycja zalatwiona, nigdy "nic nie zapisano"."""
+    app = _aplikacja()
+    ex = _excel_com(tmp_path, app)
+    com = app.Workbooks[1].Worksheets("2026")
+    poz = ex.pozycja("3263", "Testowski 3263 zs", sesja_pieca_id=SESJA)
+    com.przed_zapisem = lambda: com.wstaw_wiersz(2, WIERSZ_INNY)
+    com.zapisz_i_rzuc = 1
+    with pytest.raises(EX.BladExcela, match="sprawdz recznie") as blad:
+        ex.zatwierdz(poz, OSOBA)
+    assert "nic nie zapisano" not in str(blad.value)
+    assert poz.zalatwiona and _log(tmp_path)[-1]["wynik"] == "blad" and com.proby == [(2, 2)]
+
+
+def test_r3_p1_blad_zapisu_i_odczytu_koloru_zapis_mogl_dojsc(tmp_path):
+    """Runda 3, P1: blad wywolania zapisu i nieudany odczyt koloru (Excel padl) = "zapis mogl dojsc - sprawdz recznie", wpis
+    "blad" w logu, pozycja zalatwiona (bez ponowienia), nigdy "nic nie zapisano"."""
+    app = _aplikacja()
+    ex = _excel_com(tmp_path, app)
+    com = app.Workbooks[1].Worksheets("2026")
+    poz = ex.pozycja("3263", "Testowski 3263 zs", sesja_pieca_id=SESJA)
+    com.zapisz_i_rzuc, com.potem_odczyt_pada = 1, True
+    with pytest.raises(EX.BladExcela, match="zapis mogl dojsc") as blad:
+        ex.zatwierdz(poz, OSOBA)
+    assert "nic nie zapisano" not in str(blad.value) and "sprawdz recznie" in str(blad.value)
+    assert poz.zalatwiona and com.proby == [(2, 2)] and _log(tmp_path)[-1]["wynik"] == "blad"
+
+
+def test_r3_d5_powod_odmowy_zachowany_gdy_log_zawiedzie(tmp_path, monkeypatch):
+    ark = _maly([(D3, 51001.0, 3263.0, T)], ((2, ZOLTY),))
+    ex = _excel(ark, tmp_path)
+    poz = ex.pozycja("3263", T, sesja_pieca_id=SESJA)
+
+    def zajety(_wpis):
+        raise PermissionError("plik zajety")
+
+    monkeypatch.setattr(ex, "_dopisz_csv", zajety)
+    with pytest.raises(EX.BladExcela, match="inne wypelnienie") as blad:
+        ex.zatwierdz(poz, OSOBA, wiersz=2)
+    assert "log" in str(blad.value) and _zapisy(ark) == []
 
 
 def test_d2_rozlacz_zwalnia_obiekty_com_i_laczy_ponownie(tmp_path):
