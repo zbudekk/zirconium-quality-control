@@ -38,9 +38,12 @@ Doba 2026-11-18:
   07:29 start_skanu; 07:30 R5 plytka 6 (piec F3, NIEZAMKNIETY): g1 P3 zielony
   18:58 start_skanu; 19:00 W8 plytka 2: g1 P6 czerwony, g2 P7 zielony; 19:03 "OK" g1 (falszywy alarm)
   19:09 start_skanu; 19:10 W9 plytka 3: g1 P8 "popraw ulozenie" -> do_powtorzenia (zostaje aktywny)
-  19:30 silnik_nie_startuje -> osobny licznik, NIE awaria (runda 2, D3: program umie wrocic sam)
+  19:30 silnik_nie_startuje, potem zaden skan przyjety -> awaria (runda 4, B-N1; doba 2026-11-18)
 
 Rachunek reczny (okres 2026-11-16 .. 2026-11-18, tryb oba) - w kolumnie "jak" tabeli ``OCZEKIWANE``.
+Runda 4 (recenzja PR #29 r2): ``silnik_nie_startuje`` jest awaria, chyba ze przed nastepnym startem albo zamknieciem programu
+przyszedl skan przyjety (program wrocil sam - osobny licznik); top-1 / top-2 licza tylko prace, dla ktorych program mial
+propozycje (praca bez kandydata jest tylko w "nieznanych" - D-N4), wiec R1 g4 wypada z mianownika top-1.
 Runda 2 (recenzja PR #29 r1) zmienila definicje, wartosci tabeli policzone od nowa: mianownik wieczoru = prace skanow
 przyjetych bez czekajacych na potwierdzenie ponownego skanu (P1); nieznana = brak kandydata, ta sama regula wieczorem i rano
 (P2); powtorzone rano = skany zamknietych piecow okresu (D2); dni bez awarii = seria biegnaca do konca okresu z calej historii,
@@ -52,7 +55,6 @@ import datetime as dt
 import hashlib
 import io
 import json
-import re
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -310,11 +312,12 @@ OCZEKIWANE = [
     ("R03", ("rano", "prace"), 11, "R1 6 + R2 3 + R4 2 (R3 blad - nieaktywny)"),
     ("R04", ("rano", "klasy"), {"pewna": 4, "przypisana": 3, "poprawka": 1, "dwuznaczna": 1, "nieznana": 2},
      "pewna R1 g1, g6, R2 g1, R4 g2; przypisana R1 g2, g3, g4; poprawka R4 g1; dwuznaczna R2 g2; nieznana R1 g5, R2 g3"),
-    ("R05", ("rano", "z_prawda"), 8, "pewna + przypisana + poprawka (projekt po decyzjach technika)"),
-    ("R06", ("rano", "top1"), 6, "projekt = 1. kandydat: 4 pewne, R1 g2, R4 g1 (R1 g3 = 2. kandydat, R1 g4 spoza kandydatow)"),
-    ("R07", ("rano", "top2"), 7, "top-1 + R1 g3"),
-    ("R08", ("rano", "udzial_top1"), 0.75, "6 / 8"),
-    ("R09", ("rano", "udzial_top2"), 0.875, "7 / 8"),
+    ("R05", ("rano", "z_prawda"), 7, "propozycja programu + werdykt technika: pewna 4, przypisana R1 g2, g3, poprawka R4 g1 "
+                                         "(R1 g4 bez kandydata - tylko w nieznanych, runda 4 D-N4)"),
+    ("R06", ("rano", "top1"), 6, "projekt = 1. kandydat: 4 pewne, R1 g2, R4 g1 (R1 g3 = 2. kandydat)"),
+    ("R07", ("rano", "top2"), 7, "top-1 + R1 g3 (P4 = 2. kandydat)"),
+    ("R08", ("rano", "udzial_top1"), 6 / 7, "6 / 7"),
+    ("R09", ("rano", "udzial_top2"), 1.0, "7 / 7"),
     ("R10", ("rano", "nieznane"), 3, "brak kandydata (P2): R1 g4 (potem przypisana recznie), R1 g5, R2 g3 (kandydat spoza indeksu)"),
     ("R11", ("rano", "udzial_nieznanych"), 3 / 11, "3 / 11"),
     ("R12", ("rano", "dwuznaczne"), 1, "R2 g2 nierozstrzygnieta do zamkniecia pieca"),
@@ -332,17 +335,19 @@ OCZEKIWANE = [
     ("R24", ("rano", "top2_projekt"), 7, "top-2 po projekcie (informacyjnie) - tu rowne top-2 po kuwecie"),
     # --- stabilnosc (z dziennika, niezaleznie od trybu)
     ("S01", ("stabilnosc", "dni_pracy"), 3, "doby z wpisami dziennika: 16, 17, 18.11"),
-    ("S02", ("stabilnosc", "dni_z_awaria"), 1, "17.11 (restart bez program_stop); silnik nie startuje 18.11 - nie awaria (D3)"),
-    ("S03", ("stabilnosc", "awarie"), 1, "jw."),
+    ("S02", ("stabilnosc", "dni_z_awaria"), 2, "17.11 (restart bez program_stop), 18.11 (silnik nie startuje, bez skanu po nim - B-N1)"),
+    ("S03", ("stabilnosc", "awarie"), 2, "jw."),
     ("S04", ("stabilnosc", "restart_bez_zamkniecia"), 1, "program_start 17.11 22:50 po starcie 06:50 bez program_stop"),
-    ("S05", ("stabilnosc", "silnik_nie_startuje"), 1, "18.11 19:30 - osobny licznik, nie przerywa serii"),
-    ("S06", ("stabilnosc", "najdluzsza_seria"), 1, "16.11 albo 18.11"),
-    ("S07", ("stabilnosc", "obecna_seria"), 1, "seria biegnaca do 18.11: 18.11 bez awarii, 17.11 z awaria"),
-    ("S08", ("stabilnosc", "doby_z_awaria"), ["2026-11-17"], "jw."),
+    ("S05", ("stabilnosc", "silnik_nie_startuje"), 1, "18.11 19:30 - po nim zaden skan przyjety: awaria"),
+    ("S06", ("stabilnosc", "najdluzsza_seria"), 1, "16.11"),
+    ("S07", ("stabilnosc", "obecna_seria"), 0, "18.11 z awaria"),
+    ("S08", ("stabilnosc", "doby_z_awaria"), ["2026-11-17", "2026-11-18"], "jw."),
+    ("S10", ("stabilnosc", "silnik_wrocil_sam"), 0, "zaden silnik_nie_startuje z pozniejszym skanem przyjetym"),
+    ("W29", ("wieczor", "ponowny_skan_odrzucony"), 0, "technik nie odrzucal propozycji ponownego skanu"),
     ("S09", ("stabilnosc", "uruchomiony_na_koniec"), True, "start 18.11 07:25 bez program_stop do konca okresu (dziala albo padl)"),
     # --- ocena wzgledem progow odbioru (PW "Testy odbiorcze i kryteria")
-    ("O01", ("ponizej_progu",), ["falszywe_alarmy", "top1", "top2", "nieznane_wieczor", "nieznane_rano", "powtorzone_wieczor",
-                                 "powtorzone_rano", "dni_bez_awarii"], "czas wieczor 11,3 min <= 20 - jedyna metryka w progu"),
+    ("O01", ("ponizej_progu",), ["falszywe_alarmy", "nieznane_wieczor", "nieznane_rano", "powtorzone_wieczor", "powtorzone_rano",
+                                 "dni_bez_awarii"], "w progu: top-1 6/7 = 85,7 % >= 85 %, top-2 100 %, czas 11,3 min <= 20"),
     ("O02", ("kod",), 3, "ponizej progu = kod 3"),
 ]
 
@@ -359,10 +364,10 @@ def test_oczekiwane(raport, sciezka, oczekiwane):
 def test_wiersze_metryk_maja_wartosci_tabeli(raport):
     """Wiersze strony (tabela metryk) = wartosci z tabeli oczekiwan; M2 = "wymaga zmiany schematu", bez wartosci."""
     wiersze = {m["klucz"]: m for m in raport["metryki"]}
-    oczekiwane = {"falszywe_alarmy": (3 / 14, 3, 14, "PONIZEJ"), "top1": (0.75, 6, 8, "PONIZEJ"), "top2": (0.875, 7, 8, "PONIZEJ"),
+    oczekiwane = {"falszywe_alarmy": (3 / 14, 3, 14, "PONIZEJ"), "top1": (6 / 7, 6, 7, "OK"), "top2": (1.0, 7, 7, "OK"),
                   "nieznane_wieczor": (2 / 14, 2, 14, "PONIZEJ"), "nieznane_rano": (3 / 11, 3, 11, "PONIZEJ"),
                   "czas_wieczor": (34 / 3, None, None, "OK"), "powtorzone_wieczor": (4 / 9, 4, 9, "PONIZEJ"),
-                  "powtorzone_rano": (0.25, 1, 4, "PONIZEJ"), "dni_bez_awarii": (1, None, None, "PONIZEJ")}
+                  "powtorzone_rano": (0.25, 1, 4, "PONIZEJ"), "dni_bez_awarii": (0, None, None, "PONIZEJ")}
     for klucz, (wartosc, licznik, mianownik, ocena) in oczekiwane.items():
         m = wiersze[klucz]
         assert m["wartosc"] == pytest.approx(wartosc), klucz
@@ -375,7 +380,7 @@ def test_strona_do_60_linii_z_liczbami_scenariusza(raport):
     linie = M.strona(raport)
     assert 0 < len(linie) <= 60
     tekst = "\n".join(linie)
-    for fragment in ("3/14", "6/8", "7/8", "2/14", "3/11", "4/9", "1/4", "21.4%", "75.0%", "87.5%", "25.0%", "11.3 min",
+    for fragment in ("3/14", "6/7", "7/7", "2/14", "3/11", "4/9", "1/4", "21.4%", "85.7%", "100.0%", "25.0%", "11.3 min",
                      "wymaga zmiany schematu", "2026-11-16 .. 2026-11-18", "kod 3"):
         assert fragment in tekst, fragment
     assert all(len(x) <= 140 for x in linie)
@@ -503,10 +508,10 @@ def test_raport_tylko_odczyt_i_schemat_bez_zmian(plik_bazy, raport):
         assert baza.wersja() == B.WERSJA_SCHEMATU
     for plik in (STANOWISKO / "stanowisko" / "metryki.py", STANOWISKO / "narzedzia" / "raport_metryk.py"):
         kod = plik.read_text(encoding="utf-8")
-        for slowo in ("CREATE ", "ALTER ", "INSERT ", "UPDATE ", "DELETE ", "DROP ", ".wstaw(", ".zdarzenie(", "MIGRACJE"):
+        for slowo in ("CREATE ", "ALTER ", "INSERT ", "UPDATE ", "DELETE ", "DROP ", ".wstaw(", ".wykonaj(", ".zdarzenie(", "MIGRACJE"):
             assert slowo not in kod, (plik.name, slowo)
-        # runda 2 (D6): jedyne polecenia przez Baza.wykonaj to otwarcie i zwolnienie transakcji odczytu
-        assert set(re.findall(r"\.wykonaj\(([^)]*)\)", kod)) <= {'"BEGIN"', '"ROLLBACK"'}, plik.name
+    # runda 3: zadnych plikow obok bazy (dziennik transakcji, WAL) - raport tylko kopiuje baze do pamieci
+    assert not [x.name for x in plik_bazy.parent.iterdir() if x.name.endswith(("-journal", "-wal", "-shm"))]
 
 
 UST_PRZYKLAD = ["--ustawienia", str(STANOWISKO / "ustawienia.przyklad.toml")]  # doba 6:00, zmiany 6/14/22, prog 0,6 - niezaleznie od ustawienia.toml
@@ -725,16 +730,38 @@ def test_d4_awaria_ostatniej_doby_po_ponownym_starcie(tmp_path):
     assert (st["dni_pracy"], st["dni_z_awaria"], st["obecna_seria"], st["uruchomiony_na_koniec"]) == (1, 0, 1, True)
 
 
-def test_d6_jedna_transakcja_odczytu(plik_bazy):
-    """D6: caly raport w jednej transakcji odczytu (spojny stan, gdy program w tym czasie pisze); po raporcie zadnej otwartej."""
+def test_d6_zapis_programu_w_trakcie_raportu_bez_blokady(plik_bazy, tmp_path, monkeypatch):
+    """D6 (runda 3): raport liczy sie na migawce w pamieci, wiec program moze zapisywac w trakcie liczenia: zapis z drugiego
+    polaczenia (czekanie na blokade tylko 50 ms) w polowie raportu przechodzi bez "baza zajeta", a raport pokazuje stan z chwili
+    kopii (silnik_nie_startuje 1, nie 2); nastepny raport widzi juz nowy wpis. Bez plikow -journal / -wal po raporcie."""
+    import shutil
+
+    kopia = tmp_path / "stanowisko.sqlite"
+    shutil.copy2(plik_bazy, kopia)
+    zapisy: list[int] = []
+    oryginal = M._SesjaOdczyt.stan_wieczoru
+
+    def z_zapisem(self, data=None):
+        if not zapisy:  # program stanowiska zapisuje w trakcie liczenia raportu
+            with B.otworz(kopia, czekaj_ms=50) as program:
+                zapisy.append(program.zdarzenie("silnik", "silnik_nie_startuje", {"opis": "test"}, czas="2026-11-18T20:30:00"))
+        return oryginal(self, data)
+
+    monkeypatch.setattr(M._SesjaOdczyt, "stan_wieczoru", z_zapisem)
+    assert policz(kopia)["stabilnosc"]["silnik_nie_startuje"] == 1 and len(zapisy) == 1
+    monkeypatch.undo()
+    assert policz(kopia)["stabilnosc"]["silnik_nie_startuje"] == 2
+    assert not [x.name for x in tmp_path.iterdir() if x.name.endswith(("-journal", "-wal", "-shm"))]
+
+
+def test_d6_raport_nie_pyta_pliku_bazy_po_kopii(plik_bazy):
+    """D6 (runda 3): na polaczeniu z plikiem bazy raport nie wykonuje zadnego zapytania - tylko kopia do pamieci (backup)."""
     with B.otworz(plik_bazy, tylko_odczyt=True) as baza:
         polecenia: list[str] = []
         baza.polaczenie.set_trace_callback(polecenia.append)
         M.policz(baza, OD, DO, teraz="2026-11-18T20:00:00")
         baza.polaczenie.set_trace_callback(None)
-        assert polecenia[0].strip().upper() == "BEGIN" and polecenia[-1].strip().upper() == "ROLLBACK"
-        assert sum(1 for x in polecenia if x.strip().upper() == "BEGIN") == 1
-        assert not baza.polaczenie.in_transaction
+        assert polecenia == [] and not baza.polaczenie.in_transaction
 
 
 def test_d7_uszkodzona_baza_kod_2(tmp_path):
@@ -744,3 +771,140 @@ def test_d7_uszkodzona_baza_kod_2(tmp_path):
     plik.write_bytes(plik.read_bytes()[:4096])
     kod, out, err = _uruchom(["--baza", str(plik), "--od", OD, "--do", DO])
     assert kod == 2 and err and not out and "Traceback" not in err
+
+
+# --- runda 4: recenzja PR #29 r2 (rachunek reczny w docstringach) -----------------------------------------------------
+def _stab(plik: Path, dni: list[str], silnik: dict | None = None) -> None:
+    """Dni programu (start 07:00, stop 15:00); ``silnik`` = {doba: (restart_recznie, )} - wpisy jak w aplikacji."""
+    with B.otworz(plik) as baza:
+        for d in dni:
+            baza.zdarzenie("system", "program_start", {"wersja": "test"}, czas=f"2026-11-{d}T07:00:00")
+            if silnik and d in silnik:
+                baza.zdarzenie("silnik", "silnik_nie_startuje", {"opis": "test"}, czas=f"2026-11-{d}T08:00:00")
+                baza.zdarzenie("system", "program_stop", {"niezakonczone": 1}, czas=f"2026-11-{d}T08:05:00")  # jak kaze komunikat
+                baza.zdarzenie("system", "program_start", {"wersja": "test"}, czas=f"2026-11-{d}T08:06:00")
+            baza.zdarzenie("system", "program_stop", {"niezakonczone": 0}, czas=f"2026-11-{d}T15:00:00")
+
+
+def test_bn1_silnik_nie_startuje_i_restart_to_awaria(tmp_path):
+    """B-N1 (proba 4): 6 dni, 04.11 silnik_nie_startuje 08:00, technik zamyka i uruchamia program (program_stop 08:05, start 08:06,
+    jak kaze komunikat). Awaria 04.11 (silnik, nie restart - zamkniecie bylo czyste); seria do 06.11 = 2 (05, 06) - PONIZEJ, kod 3."""
+    plik = tmp_path / "bn1.sqlite"
+    _stab(plik, ["01", "02", "03", "04", "05", "06"], silnik={"04": True})
+    w = policz(plik, "2026-11-01", "2026-11-06")
+    st = w["stabilnosc"]
+    assert (st["awarie"], st["silnik_nie_startuje"], st["restart_bez_zamkniecia"], st["silnik_wrocil_sam"]) == (1, 1, 0, 0)
+    assert (st["dni_z_awaria"], st["obecna_seria"], st["doby_z_awaria"]) == (1, 2, ["2026-11-04"])
+    assert {m["klucz"]: m["ocena"] for m in w["metryki"]}["dni_bez_awarii"] == "PONIZEJ" and w["kod"] == 3
+
+
+def test_bn1_silnik_wrocil_sam_to_nie_awaria(tmp_path):
+    """B-N1: silnik_nie_startuje 01.11 08:00, a 08:10 program sam przyjmuje skan (proces silnika jednak wystartowal) - przed
+    zamknieciem programu: to nie awaria, osobny licznik ``silnik_wrocil_sam``."""
+    b = Budowa(tmp_path, start="2026-11-01T06:30:00")
+    b.indeks()
+    b.zd("2026-11-01T07:00:00", "system", "program_start", {"wersja": "test"})
+    b.zd("2026-11-01T08:00:00", "silnik", "silnik_nie_startuje", {"opis": "test"})
+    b.wieczor("2026-11-01T08:10:00", "wieczorna", 1, [(1, [("P1", 0.95)], "ok")])
+    b.zd("2026-11-01T15:00:00", "system", "program_stop", {"niezakonczone": 0})
+    b.baza.zamknij()
+    st = policz(b.plik, "2026-11-01", "2026-11-01")["stabilnosc"]
+    assert (st["awarie"], st["silnik_nie_startuje"], st["silnik_wrocil_sam"], st["dni_z_awaria"], st["obecna_seria"]) == (0, 0, 1, 0, 1)
+
+
+def test_bn2_odrzucony_ponowny_skan_to_dwa_wsady(tmp_path):
+    """B-N2 (proba c1): plytka 1 - wsad A (P1, P2 czerwona -> "OK") 18:00, wsad B (P3 czerwona, P4) 18:30 na tej samej plytce;
+    program pyta "ponowny skan?" (za malo rozpoznanych), technik odrzuca (zdarzenie jak ``kontroler_api.odrzuc_ponowny_skan``),
+    "Ukruszona" na P3. Dwa wsady, 4 prace, 1 falszywy alarm = 1/4 (bylo 0/2)."""
+    b = Budowa(tmp_path)
+    b.indeks()
+    s1, a = b.wieczor("2026-11-16T18:00:00", "wieczorna", 1, [(1, [("P1", 0.95)], "ok"), (2, [("P2", 0.95)], "ubytek")])
+    b.o("2026-11-16T18:02:00"); b.sesja.ok(a[1])
+    s2, c = b.wieczor("2026-11-16T18:30:00", "wieczorna", 1, [(1, [("P3", 0.95)], "ubytek"), (2, [("P4", 0.95)], "ok")])
+    b.baza.zdarzenie("ui", "ponowny_skan_odrzucony", {"poprzedni_id": s1, "operator": OSOBY[0]}, skan_id=s2, czas="2026-11-16T18:31:00")
+    b.o("2026-11-16T18:32:00"); b.sesja.ukruszona(c[0])
+    b.baza.zamknij()
+    wi = policz(b.plik, "2026-11-16", "2026-11-16", "wieczor")["wieczor"]
+    assert (wi["falszywe_alarmy"], wi["prace"], wi["czerwone"], wi["czerwone_ukruszone"]) == (1, 4, 2, 1)
+    assert (wi["skany_do_potwierdzenia"], wi["ponowny_skan_odrzucony"], wi["skany_mianownik"]) == (0, 1, 2)
+    assert wi["udzial_falszywych"] == pytest.approx(0.25)
+
+
+def test_bn2_para_bez_odpowiedzi_liczy_skan_z_decyzjami(tmp_path):
+    """B-N2 (proba c2): ponowny skan bez odpowiedzi technika, "OK" na STARSZYM skanie (na ekranie obowiazuje), nowszy bez decyzji:
+    liczy sie skan z decyzjami - falszywe 1/4, czerwone bez decyzji 0 (bylo 0/4 i 1)."""
+    b = Budowa(tmp_path)
+    b.indeks()
+    gn = [(1, [("P1", 0.95)], "ok"), (2, [("P2", 0.95)], "ubytek"), (3, [("P3", 0.95)], "ok"), (4, [("P4", 0.95)], "ok")]
+    _, a = b.wieczor("2026-11-16T18:00:00", "wieczorna", 1, gn)
+    b.o("2026-11-16T18:02:00"); b.sesja.ok(a[1])
+    b.wieczor("2026-11-16T18:10:00", "wieczorna", 1, gn)
+    b.baza.zamknij()
+    wi = policz(b.plik, "2026-11-16", "2026-11-16", "wieczor")["wieczor"]
+    assert (wi["falszywe_alarmy"], wi["prace"], wi["czerwone_bez_decyzji"], wi["skany_do_potwierdzenia"]) == (1, 4, 0, 1)
+
+
+def test_dn1_okres_bez_aktywnosci_to_brak_danych(tmp_path):
+    """D-N1: baza z historia (01-05.11), okres 20-26.11 bez programu: dni bez awarii "brak danych" (nie ocena z historii), kod 4."""
+    plik = tmp_path / "dn1.sqlite"
+    _stab(plik, ["01", "02", "03", "04", "05"])
+    w = policz(plik, "2026-11-20", "2026-11-26")
+    assert w["stabilnosc"]["dni_pracy"] == 0
+    assert {m["klucz"]: m["ocena"] for m in w["metryki"]}["dni_bez_awarii"] == "brak danych" and w["kod"] == 4
+
+
+def test_dn2_podklasy_odczytu_licza_jak_ekran(plik_bazy):
+    """D-N2 (straznik): podklasy odczytu raportu daja te same skany, prace, propozycje ponownego skanu i klasy co klasy ekranu
+    (``Sesja`` / ``SesjaRano``) - pole po polu na scenariuszu (bez pol listy "do dofrezowania", ktorych raport nie liczy)."""
+    with B.otworz(plik_bazy, tylko_odczyt=True) as baza:
+        ekran, raport = SE.Sesja(baza), M._SesjaOdczyt(baza)
+        for d in ("2026-11-16", "2026-11-17", "2026-11-18"):
+            a, b = ekran.stan_wieczoru(d), raport.stan_wieczoru(d)
+            bez = [[{k: v for k, v in p.items() if k != "na_liscie"} for p in s["prace"]] for s in a["skany"]]
+            assert bez == [[{k: v for k, v in p.items() if k != "na_liscie"} for p in s["prace"]] for s in b["skany"]]
+            assert [{k: v for k, v in s.items() if k != "prace"} for s in a["skany"]] == [{k: v for k, v in s.items() if k != "prace"} for s in b["skany"]]
+            assert (a["do_potwierdzenia"], a["prac"], a["liczniki"], a["decyzje"]) == (b["do_potwierdzenia"], b["prac"], b["liczniki"], b["decyzje"])
+        r, ro = SR.SesjaRano(ekran), M._SesjaRanoOdczyt(raport)
+        for pid in [w["id"] for w in baza.wiersze("SELECT id FROM sesje_pieca ORDER BY id")]:
+            assert r.stan_pieca(pid)["skany"] == ro.stan_pieca(pid)["skany"], pid
+
+
+def test_dn3_pliki_zastane_i_podglad_programu_to_nie_aktywnosc(tmp_path):
+    """D-N3: przy starcie programu plik zastany (``nowy_skan`` z ``zastany: true``) i podglad zapisany przez program
+    (``system/podglad``) nie sa chwilami technika: zostaje samo przyjecie skanu - zmiana bez danych, 0 min (bylo 25 s)."""
+    b = Budowa(tmp_path)
+    b.indeks()
+    b.zd("2026-11-16T18:00:00", "system", "program_start", {"wersja": "test"})
+    b.zd("2026-11-16T18:00:05", "scanner", "nowy_skan", {"sha16": "x1", "rozmiar": 1, "trojkaty": 1, "zastany": True})
+    skan, _ = b.wieczor("2026-11-16T18:00:30", "wieczorna", 1, [(1, [("P1", 0.95)], "ok")])
+    b.baza.zdarzenie("system", "podglad", {"plik": "podglad.png"}, skan_id=skan, czas="2026-11-16T18:00:31")
+    b.baza.zamknij()
+    cz = policz(b.plik, "2026-11-16", "2026-11-16", "wieczor")["wieczor"]["czas"]
+    assert (cz["zmian"], cz["zmian_bez_danych"], cz["posiedzen"], cz["suma_min"]) == (1, 1, 1, 0)
+
+
+def test_dn4_kandydat_ponizej_progu_wybrany_przez_technika(tmp_path):
+    """D-N4 (jedna definicja): 1. kandydat P5 z pokryciem 0,5 (< progu 0,6 - program nie mial propozycji), technik wybiera go.
+    Praca jest nieznana (brak kandydata wg PW) i NIE wchodzi do top-1 / top-2 (ani jako trafienie, ani chybienie): metryki rozlaczne."""
+    b = Budowa(tmp_path)
+    b.indeks()
+    _, pr = b.rano_skan("2026-11-17T07:00:00", 4, [(1, [("P5", 0.50)], "ok"), (2, [("P1", 0.95)], "ok")])
+    b.o("2026-11-17T07:01:00"); b.rano.wybierz_kandydata(pr[0], sha16("P5"))
+    b.o("2026-11-17T07:05:00"); b.rano.zamknij_piec()
+    b.baza.zamknij()
+    ra = policz(b.plik, "2026-11-17", "2026-11-17", "rano")["rano"]
+    assert (ra["prace"], ra["nieznane"], ra["z_prawda"], ra["top1"], ra["klasy"]) == (2, 1, 1, 1, {"przypisana": 1, "pewna": 1})
+
+
+def test_dn5_migawka_tylko_do_odczytu(plik_bazy):
+    """D-N5: kopia w pamieci ma ``query_only`` - kazda proba zapisu konczy sie bledem (straznik "raport nic nie pisze")."""
+    import sqlite3
+
+    with B.otworz(plik_bazy, tylko_odczyt=True) as baza:
+        kopia = M.migawka(baza)
+        try:
+            assert kopia.wiersz("SELECT count(*) AS n FROM skany")["n"] > 0
+            with pytest.raises(sqlite3.OperationalError):
+                kopia.polaczenie.execute("INSERT INTO zdarzenia (czas, zrodlo, typ) VALUES ('2030-01-01T00:00:00', 'x', 'y')")
+        finally:
+            kopia.zamknij()

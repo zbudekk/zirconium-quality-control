@@ -13,8 +13,8 @@ domyslne 6:00, zmiany 6/14/22, prog 0,6).
 Na stdout strona do 60 linii (same liczby - bez nazw folderow, plikow i osob); --json: te same pola w pliku JSON.
 Kod wyjscia: 0 - kazda metryka z danymi w progu odbioru; 3 - co najmniej jedna ponizej progu; 4 - zadna metryka nie dala
 sie ocenic (brak danych w okresie - zla baza albo zly okres nie "przechodzi" odbioru); 2 - blad (argumenty, ustawienia, baza -
-takze uszkodzony plik). Raport czyta baze w jednej transakcji odczytu: na czas raportu program stanowiska czeka z zapisem
-(do 5 s, potem "baza zajeta" i ponowienie) - dlugi okres (rok) uruchamiac poza praca stanowiska. Definicje: opisy_modulow/metryki.md.
+takze uszkodzony plik). Raport kopiuje baze do pamieci (kopia SQLite: blokada odczytu pliku tylko na czas kopii, ms) i liczy na
+kopii - program stanowiska moze w tym czasie zapisywac bez czekania. Definicje: opisy_modulow/metryki.md.
 """
 from __future__ import annotations
 

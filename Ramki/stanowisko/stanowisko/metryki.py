@@ -1,12 +1,14 @@
-"""metryki - metryki odbiorcze stanowiska liczone z bazy programu (E3-A10; runda 2 po recenzji PR #29).
+"""metryki - metryki odbiorcze stanowiska liczone z bazy programu (E3-A10; rundy 2-4 po recenzjach PR #29).
 
 M1 (plan etapu 3, 3.3; PW "Testy odbiorcze i kryteria"): kazda metryke program liczy sam z wlasnego logu, raport = jedno
 polecenie i jedna strona (``narzedzia/raport_metryk.py``). Zrodla - wylacznie istniejace tabele schematu w wersji 1
 (``skany``, ``prace``, ``decyzje``, ``sesje_pieca``, ``zdarzenia``, indeks ``projekty``) czytane przez publiczne API sesji, zeby
 reguly byly te same co na ekranie: ``Sesja.stan_wieczoru`` (skany aktywne, decyzja obowiazujaca po cofnieciach i zastapieniach,
 propozycje ponownego skanu) i ``SesjaRano.stan_pieca`` (klasa pracy porannej, przypisanie po decyzjach technika, kandydaci
-z indeksem). Proste liczniki statusow i czasy aktywnosci - zapytania SELECT. Caly raport w JEDNEJ transakcji odczytu (spojny
-stan, gdy program w tym czasie pisze). Modul TYLKO CZYTA (baza otwarta ``tylko_odczyt`` wystarcza) i nie zmienia schematu:
+z indeksem). Proste liczniki statusow i czasy aktywnosci - zapytania SELECT. Raport liczy sie na MIGAWCE: najpierw kopia calej
+bazy do pamieci mechanizmem kopii SQLite (blokada odczytu pliku tylko na czas kopii - ms), potem wszystkie zapytania na kopii:
+liczby z jednego stanu bazy, a program stanowiska moze w tym czasie zapisywac bez czekania. Modul TYLKO CZYTA (baza otwarta
+``tylko_odczyt`` wystarcza; zadnych plikow obok bazy) i nie zmienia schematu:
 tabela testow wykrywalnosci (M2) wymaga zmiany schematu - wiersz M2 ma ocene "wymaga zmiany schematu" i nie ma wartosci.
 
 Dane osobowe: wynik (slownik / JSON) i strona maja tylko liczby, daty dob i nazwy metryk - zadnych nazw folderow, plikow,
@@ -17,20 +19,26 @@ Definicje (szczegoly i uzasadnienia: ``opisy_modulow/metryki.md``):
   w okresie (klasy, top-1/2, skany powtorzone);
 - praca nieznana (wieczor i rano ta sama regula) = program nie mial kandydata: brak 1. kandydata, 1. kandydat ponizej progu
   pracy dwuznacznej albo zaden z 2 kandydatow nie jest w indeksie;
-- falszywe alarmy = czerwone z obowiazujaca decyzja "OK" / prace skanow wieczornych PRZYJETYCH (tylko na nich technik decyduje),
-  bez skanu, ktory czeka na potwierdzenie ponownego skanu (te same prace nie licza sie dwa razy);
-- top-1 / top-2 = rozpoznanie programu wzgledem decyzji technika w zamknietym piecu: praca z projektem (pewna, przypisana,
-  poprawka) i praca, ktorej propozycje programu technik odrzucil ("bez projektu") - ta jest chybieniem; top-1 = projekt jest
+- falszywe alarmy = czerwone z obowiazujaca decyzja "OK" / prace skanow wieczornych PRZYJETYCH (tylko na nich technik decyduje);
+  z pary "ponowny skan?" bez odpowiedzi technika liczy sie jeden skan (z decyzjami, przy remisie nowszy), para odrzucona przez
+  technika ("to nowy wsad") to dwa wsady - oba sie licza;
+- top-1 / top-2 = rozpoznanie programu wzgledem decyzji technika w zamknietym piecu, tylko prace, dla ktorych program MIAL
+  propozycje (praca bez kandydata jest wylacznie w "nieznanych" - metryki rozlaczne): praca z projektem (pewna, przypisana,
+  poprawka) i praca, ktorej propozycje technik odrzucil ("bez projektu") - ta jest chybieniem; top-1 = projekt jest
   1. kandydatem, top-2 = wlasciwa kuweta (albo projekt) wsrod 2 kandydatow (PW);
-- czas przy stanowisku = suma posiedzen na zmiane (start skanu, wykrycie pliku, zdarzenie okna, przyjecie skanu, decyzja;
-  przerwa > ``przerwa_min`` konczy posiedzenie); zmiana bez mierzalnego czasu (same pojedyncze chwile) - poza srednia;
+- czas przy stanowisku = suma posiedzen na zmiane (start skanu, wykrycie pliku - bez plikow zastanych przy starcie, zdarzenie
+  okna, przyjecie skanu, decyzja; przerwa > ``przerwa_min`` konczy posiedzenie); zmiana bez mierzalnego czasu - poza srednia;
 - skany powtorzone = zastapione albo zakonczone statusem do powtorzenia / niezgodny uklad / plytka nie z trybu / blad;
-- dni bez awarii = seria kolejnych dob z wpisami dziennika (z calej historii) biegnaca do konca okresu; awaria wymagajaca
-  restartu = ``program_start`` bez wczesniejszego ``program_stop`` (``silnik_nie_startuje`` - osobny licznik, nie awaria).
+- dni bez awarii = seria kolejnych dob z wpisami dziennika (z calej historii) biegnaca do konca okresu, oceniana tylko, gdy
+  w okresie program dzialal; awaria wymagajaca restartu = ``program_start`` bez wczesniejszego ``program_stop`` albo
+  ``silnik_nie_startuje`` (komunikat kaze uruchomic program ponownie), chyba ze przed nastepnym zamknieciem / startem programu
+  przyszedl skan przyjety (program wrocil sam - osobny licznik).
 """
 from __future__ import annotations
 
 import datetime as dt
+import json
+import sqlite3
 import statistics
 from bisect import bisect_left
 from typing import Any
@@ -39,7 +47,7 @@ from . import baza as B
 from . import session as SE
 from . import session_rano as SR
 
-WERSJA = "etap3-A10r2"
+WERSJA = "etap3-A10r4"
 TRYB_WIECZOR, TRYB_RANO, TRYB_OBA = SE.TRYB_WIECZOR, SE.TRYB_RANO, "oba"
 TRYBY = (TRYB_WIECZOR, TRYB_RANO, TRYB_OBA)
 PRZERWA_MIN = 10  # [PROPOZYCJA] dluzsza przerwa w aktywnosci = technik odszedl od stanowiska (koniec posiedzenia)
@@ -50,8 +58,10 @@ KLASY_Z_PRAWDA = (SR.KLASA_PEWNA, SR.KLASA_PRZYPISANA, SR.KLASA_POPRAWKA)  # pra
 KOLOR_ALARMU = "czerwony"  # ocena programu "UBYTEK" (porownaj.INSPECT_NA_STATUS)
 TYP_START, TYP_STOP, TYP_SILNIK, TYP_START_SKANU = "program_start", "program_stop", "silnik_nie_startuje", "start_skanu"  # = aplikacja.py
 ZRODLO_OKNA = "ui"  # kazde zdarzenie okna (klikniecie) to chwila aktywnosci przy stanowisku
-TYPY_AKTYWNOSCI = ("nowy_skan", "podglad")  # wykrycie pliku skanu (koniec skanowania) i podglad 3D - tez aktywnosc
-AWARIA_RESTART, AWARIA_SILNIK = "restart_bez_zamkniecia", "silnik_nie_startuje"
+TYP_NOWY_SKAN = "nowy_skan"  # wykrycie pliku skanu (koniec skanowania) - aktywnosc, poza plikami zastanymi przy starcie programu
+TYP_SKAN_PRZYJETY = "skan_przyjety"  # session.przyjmij_wynik: silnik dziala (po silnik_nie_startuje = program wrocil sam)
+TYP_ODRZUCONY = "ponowny_skan_odrzucony"  # kontroler_api.odrzuc_ponowny_skan: technik "to nowy wsad" (skan_id, dane.poprzedni_id)
+AWARIA_RESTART, AWARIA_SILNIK, SILNIK_WROCIL = "restart_bez_zamkniecia", "silnik_nie_startuje", "silnik_wrocil_sam"
 
 # Progi odbioru z PW "Testy odbiorcze i kryteria" (kolumna "Prog odbioru", nie "Cel po 3 miesiacach"); wartosc rowna progowi zalicza.
 # Nie stroi sie ich pod wynik - zmiana tylko po zmianie planu wdrozenia.
@@ -161,6 +171,21 @@ class _SesjaRanoOdczyt(SR.SesjaRano):
         return None
 
 
+def migawka(baza: B.Baza) -> B.Baza:
+    """Kopia calej bazy w pamieci (``sqlite3.Connection.backup`` jednym krokiem): blokada odczytu pliku trwa tylko tyle co kopia
+    (baza "rok" 2 MB - ok. 1 ms; 200 MB - ok. 0,3 s, ponizej 5 s, ktore program czeka na zajeta baze), a raport liczy sie na
+    kopii bez zadnej blokady pliku i z jednego stanu (recenzja PR #29: D6, runda 3). Zrodlo moze byc otwarte tylko do odczytu."""
+    pamiec = sqlite3.connect(":memory:", isolation_level=None)
+    try:
+        baza.polaczenie.backup(pamiec)
+    except BaseException:
+        pamiec.close()
+        raise
+    pamiec.row_factory = sqlite3.Row
+    pamiec.execute("PRAGMA query_only = ON")  # straznik: raport niczego nie zapisuje, takze do kopii (recenzja PR #29 r2, D-N5)
+    return B.Baza(baza.plik, pamiec, dt.datetime.now)
+
+
 # --- czesci raportu ---------------------------------------------------------------------------------------------------
 def _powtorzone(wiersze: list[dict]) -> dict:
     """Z wierszy (status, n): skany (bez importu) i te, ktore trzeba bylo powtorzyc (``STATUSY_POWTORZONE``)."""
@@ -174,8 +199,9 @@ def _punkty_aktywnosci(baza: B.Baza, start: str, koniec: str, przerwa_min: float
     """Chwile aktywnosci przy stanowisku w okresie, osobno wieczor i rano, jako (czas, czy start skanu): przyjecie skanu, decyzja
     o pracy albo skanie danego trybu (decyzje bez pracy i skanu - zamkniecie reczne, ponowne otwarcie pieca, przeniesienie
     skanow - sa poranne), otwarcie i zamkniecie pieca (rano) oraz zdarzenia dziennika: kazde zdarzenie okna (``ui``, w tym
-    ``start_skanu``), wykrycie pliku skanu (``nowy_skan`` - koniec skanowania, gdy przycisk "Skanuj" nie jest uzywany) i podglad
-    3D. Zdarzenie ze skanem nalezy do trybu skanu; bez skanu - do trybu najblizszego w czasie skanu, o ile ten jest najwyzej
+    ``start_skanu``) i wykrycie pliku skanu (``nowy_skan`` - koniec skanowania, gdy przycisk "Skanuj" nie jest uzywany; bez plikow
+    ``zastany`` - nadrabianych przy starcie programu, bez technika). ``system/podglad`` zapisuje program sam przy zapisie wyniku -
+    to nie aktywnosc (r2, D-N3). Zdarzenie ze skanem nalezy do trybu skanu; bez skanu - do trybu najblizszego w czasie skanu, o ile ten jest najwyzej
     ``przerwa_min`` minut od niego (inaczej sie nie liczy)."""
     punkty: dict[str, list[tuple[str, bool]]] = {TRYB_WIECZOR: [], TRYB_RANO: []}
     for w in baza.wiersze("SELECT tryb, czas_analizy FROM skany WHERE tryb IN (?, ?) AND czas_analizy >= ? AND czas_analizy < ?",
@@ -197,9 +223,10 @@ def _punkty_aktywnosci(baza: B.Baza, start: str, koniec: str, przerwa_min: float
                                                        (dt.datetime.fromisoformat(koniec) + margines).isoformat()))
     czasy = [s["czas_analizy"] for s in skany]
     for w in baza.wiersze(
-            f"""SELECT z.czas, z.typ, s.tryb FROM zdarzenia z LEFT JOIN skany s ON s.id = z.skan_id
-                WHERE (z.zrodlo = ? OR z.typ IN ({', '.join('?' * len(TYPY_AKTYWNOSCI))})) AND z.czas >= ? AND z.czas < ?""",
-            (ZRODLO_OKNA, *TYPY_AKTYWNOSCI, start, koniec)):
+            """SELECT z.czas, z.typ, z.dane, s.tryb FROM zdarzenia z LEFT JOIN skany s ON s.id = z.skan_id
+               WHERE (z.zrodlo = ? OR z.typ = ?) AND z.czas >= ? AND z.czas < ?""", (ZRODLO_OKNA, TYP_NOWY_SKAN, start, koniec)):
+        if w["typ"] == TYP_NOWY_SKAN and (_dane(w["dane"]).get("zastany") is True):
+            continue  # plik zastany przy starcie programu (nadrabianie) - nie ma przy nim technika
         tryb = w["tryb"]
         if tryb is None:  # bez skanu: tryb najblizszego skanu w promieniu przerwy (remis - nastepny)
             i = bisect_left(czasy, w["czas"])
@@ -209,6 +236,14 @@ def _punkty_aktywnosci(baza: B.Baza, start: str, koniec: str, przerwa_min: float
         if tryb in punkty:
             punkty[tryb].append((w["czas"], w["typ"] == TYP_START_SKANU))
     return punkty
+
+
+def _dane(tekst: str | None) -> dict:
+    try:
+        d = json.loads(tekst) if tekst else {}
+    except ValueError:
+        return {}
+    return d if isinstance(d, dict) else {}
 
 
 def _czas(punkty: list[tuple[str, bool]], sesja: SE.Sesja, przerwa_min: float, prog_min: float | None = None) -> dict:
@@ -230,7 +265,21 @@ def _wieczor(baza: B.Baza, sesja: SE.Sesja, doby: list[str], start: str, koniec:
              prog_kandydata: float) -> dict:
     indeks = {w["sha16"] for w in baza.wiersze("SELECT DISTINCT sha16 FROM projekty WHERE usuniety = 0 AND sha16 IS NOT NULL")}
     stany = [sesja.stan_wieczoru(doba) for doba in doby]
-    czekajace = {x["poprzedni_id"] for st in stany for x in st["do_potwierdzenia"]}  # ponowny skan bez odpowiedzi: jak zastapiony
+    po_id = {sk["id"]: sk for st in stany for sk in st["skany"]}
+    odrzucone, odrzucony_poprzedni = set(), set()  # technik odrzucil "ponowny skan?" ("to nowy wsad"): dwa wsady, oba sie licza (B-N2)
+    for w in baza.wiersze("SELECT skan_id, dane FROM zdarzenia WHERE zrodlo = ? AND typ = ?", (ZRODLO_OKNA, TYP_ODRZUCONY)):
+        poprzedni = _dane(w["dane"]).get("poprzedni_id")
+        if isinstance(poprzedni, int):  # aplikacja zapisuje skan_id nowego skanu; wpis bez niego odrzuca kazda pare z tym poprzednim
+            (odrzucone.add((w["skan_id"], poprzedni)) if w["skan_id"] is not None else odrzucony_poprzedni.add(poprzedni))
+    pary = [(x["skan_id"], x["poprzedni_id"]) for st in stany for x in st["do_potwierdzenia"]]
+    czekajace = [para for para in pary if para not in odrzucone and para[1] not in odrzucony_poprzedni]
+
+    def ma_decyzje(skan_id: int) -> bool:
+        return any(p["decyzja"] for p in po_id[skan_id]["prace"]) if skan_id in po_id else False
+
+    pominiete = set()  # z pary bez odpowiedzi liczy sie jeden skan: ten z decyzjami (przy remisie nowszy) - jak zastapienie na ekranie
+    for nowy, poprzedni in czekajace:
+        pominiete.add(nowy if (ma_decyzje(poprzedni) and not ma_decyzje(nowy) and poprzedni in po_id) else poprzedni)
     aktywne = do_powtorzenia = w_mianowniku = 0
     prace = czerwone = falszywe = ukruszone = bez_decyzji = niewykryte = nieznane = dwuznaczne = 0
     for st in stany:
@@ -241,7 +290,7 @@ def _wieczor(baza: B.Baza, sesja: SE.Sesja, doby: list[str], start: str, koniec:
             if sk["status"] != SE.STATUS_PRZYJETY:  # do powtorzenia: decyzji na nim nie ma, plytka i tak bedzie skanowana ponownie
                 do_powtorzenia += 1
                 continue
-            if sk["id"] in czekajace:
+            if sk["id"] in pominiete:
                 continue
             w_mianowniku += 1
             for p in sk["prace"]:
@@ -267,7 +316,7 @@ def _wieczor(baza: B.Baza, sesja: SE.Sesja, doby: list[str], start: str, koniec:
                            (TRYB_WIECZOR, start, koniec))
     powt = _powtorzone(wiersze)
     return {"skany": powt["skany"], "skany_aktywne": aktywne, "skany_mianownik": w_mianowniku, "skany_do_powtorzenia": do_powtorzenia,
-            "skany_do_potwierdzenia": len(czekajace), "prace": prace, "czerwone": czerwone, "falszywe_alarmy": falszywe,
+            "skany_do_potwierdzenia": len(czekajace), "ponowny_skan_odrzucony": len(pary) - len(czekajace), "prace": prace, "czerwone": czerwone, "falszywe_alarmy": falszywe,
             "udzial_falszywych": _udzial(falszywe, prace), "czerwone_ukruszone": ukruszone, "czerwone_bez_decyzji": bez_decyzji,
             "niewykryte_cien": niewykryte, "wykrywalnosc_cien": _udzial(ukruszone, ukruszone + niewykryte), "nieznane": nieznane,
             "udzial_nieznanych": _udzial(nieznane, prace), "dwuznaczne": dwuznaczne, "powtorzone": powt,
@@ -291,6 +340,8 @@ def _rano(baza: B.Baza, rano: SR.SesjaRano, od: str, do: str, punkty: list, prze
                 kand = p["kandydaci"]
                 bez = bez_kandydata([(k["sha16"], k["pokrycie"], bool(k["projekty"])) for k in kand], rano.prog_kandydata)
                 nieznane += bez
+                if bez:  # program nie mial propozycji: praca tylko w "nieznanych", poza top-1 / top-2 (metryki rozlaczne; r2, D-N4)
+                    continue
                 if p["klasa"] in KLASY_Z_PRAWDA and p["sha16"]:
                     z_prawda += 1
                     shas = [k["sha16"] for k in kand[:2]]
@@ -298,7 +349,7 @@ def _rano(baza: B.Baza, rano: SR.SesjaRano, od: str, do: str, punkty: list, prze
                     top1 += shas[:1] == [p["sha16"]]
                     top2_projekt += p["sha16"] in shas
                     top2 += p["sha16"] in shas or (bool(p["kuweta"]) and p["kuweta"] in kuwety)
-                elif p["decyzja"] == SR.RODZAJ_PRZYPISANIE and p["projekt_id"] is None and not bez:
+                elif p["decyzja"] == SR.RODZAJ_PRZYPISANIE and p["projekt_id"] is None:
                     z_prawda += 1  # technik odrzucil propozycje programu ("bez projektu", takze rozstrzygniecie konfliktu): chybienie
                     odrzucone += 1
     czasy_piecow = [_minut(p["otwarto"], p["zamknieto"]) for p in zamkniete if p["otwarto"]]
@@ -321,36 +372,49 @@ def _rano(baza: B.Baza, rano: SR.SesjaRano, od: str, do: str, punkty: list, prze
 
 
 def _stabilnosc(baza: B.Baza, sesja: SE.Sesja, start: str, koniec: str) -> dict:
-    """Dni pracy (doby z wpisami dziennika) i awarie wymagajace restartu: ``program_start``, gdy od poprzedniego startu nie bylo
-    ``program_stop`` (program zabity albo padl - awaria w chwili ostatniego wpisu dziennika przed ponownym startem). Dziennik
-    czytany caly w kolejnosci dopisywania (id): start PO okresie domyka awarie z okresu, seria liczy sie z historii sprzed okresu.
-    ``silnik_nie_startuje`` - osobny licznik (program umie wrocic sam, gdy proces silnika jednak wystartuje)."""
+    """Dni pracy (doby z wpisami dziennika) i awarie wymagajace restartu. Awaria: (1) ``program_start``, gdy od poprzedniego startu
+    nie bylo ``program_stop`` (program zabity albo padl - chwila ostatniego wpisu dziennika przed ponownym startem); (2)
+    ``silnik_nie_startuje`` (komunikat programu kaze zamknac i uruchomic program ponownie; r2, B-N1), chyba ze przed nastepnym
+    ``program_stop`` / ``program_start`` przyszedl ``skan_przyjety`` - program wrocil sam, licznik ``silnik_wrocil_sam``. Ten sam
+    restart po ``silnik_nie_startuje`` bez ``program_stop`` to jedna awaria (silnik). Dziennik czytany caly w kolejnosci dopisywania
+    (id): start PO okresie domyka awarie z okresu, seria liczy sie z historii sprzed okresu."""
     wpisy = baza.wiersze("SELECT czas, typ FROM zdarzenia ORDER BY id")
-    awarie: list[str] = []
-    uruchomiony, poprzedni, na_koniec = False, None, False
+    awarie: list[tuple[str, str]] = []  # (czas, rodzaj)
+    wrocil: list[str] = []
+    uruchomiony, poprzedni, na_koniec, silnik = False, None, False, None
     for w in wpisy:
-        if w["typ"] == TYP_START:
-            if uruchomiony and poprzedni is not None:
-                awarie.append(poprzedni)
-            uruchomiony = True
-        elif w["typ"] == TYP_STOP:
-            uruchomiony = False
+        if w["typ"] == TYP_SILNIK:
+            if silnik is not None:
+                awarie.append((silnik, AWARIA_SILNIK))
+            silnik = w["czas"]
+        elif w["typ"] == TYP_SKAN_PRZYJETY and silnik is not None:
+            wrocil.append(silnik)
+            silnik = None
+        elif w["typ"] in (TYP_START, TYP_STOP):
+            if silnik is not None:
+                awarie.append((silnik, AWARIA_SILNIK))
+            elif w["typ"] == TYP_START and uruchomiony and poprzedni is not None:
+                awarie.append((poprzedni, AWARIA_RESTART))
+            silnik = None
+            uruchomiony = w["typ"] == TYP_START
         poprzedni = w["czas"]
         if w["czas"] < koniec:
             na_koniec = uruchomiony
+    if silnik is not None:  # program wciaz bez silnika (albo zamkniety bez wpisu) - awaria wymagajaca restartu
+        awarie.append((silnik, AWARIA_SILNIK))
     historia = sorted({sesja.doba(w["czas"]) for w in wpisy if w["czas"] < koniec})
-    z_awaria_hist = {sesja.doba(c) for c in awarie if c < koniec}
+    z_awaria_hist = {sesja.doba(c) for c, _ in awarie if c < koniec}
     seria = najdluzsza = 0
     for d in historia:
         seria = 0 if d in z_awaria_hist else seria + 1
         najdluzsza = max(najdluzsza, seria)
-    w_okresie = [c for c in awarie if start <= c < koniec]
+    w_okresie = [(c, r) for c, r in awarie if start <= c < koniec]
     dni_okresu = {sesja.doba(x["czas"]) for x in wpisy if start <= x["czas"] < koniec}
-    return {"dni_pracy": len(dni_okresu),
-            "dni_z_awaria": len({sesja.doba(c) for c in w_okresie}), "awarie": len(w_okresie), AWARIA_RESTART: len(w_okresie),
-            AWARIA_SILNIK: sum(1 for w in wpisy if w["typ"] == TYP_SILNIK and start <= w["czas"] < koniec),
-            "dni_historii": len(historia), "awarie_w_historii": len(z_awaria_hist), "najdluzsza_seria": najdluzsza, "obecna_seria": seria,
-            "doby_z_awaria": sorted({sesja.doba(c) for c in w_okresie}), "uruchomiony_na_koniec": na_koniec}
+    return {"dni_pracy": len(dni_okresu), "dni_z_awaria": len({sesja.doba(c) for c, _ in w_okresie}), "awarie": len(w_okresie),
+            AWARIA_RESTART: sum(1 for _, r in w_okresie if r == AWARIA_RESTART), AWARIA_SILNIK: sum(1 for _, r in w_okresie if r == AWARIA_SILNIK),
+            SILNIK_WROCIL: sum(1 for c in wrocil if start <= c < koniec), "dni_historii": len(historia), "awarie_w_historii": len(z_awaria_hist),
+            "najdluzsza_seria": najdluzsza, "obecna_seria": seria, "doby_z_awaria": sorted({sesja.doba(c) for c, _ in w_okresie}),
+            "uruchomiony_na_koniec": na_koniec}
 
 
 def _wiersz(klucz: str, nazwa: str, wartosc: float | None, licznik: int | None = None, mianownik: int | None = None,
@@ -380,7 +444,7 @@ def _wiersze(w: dict) -> list[dict]:
     if ra is not None:
         p = ra["powtorzone"]
         lista.append(_wiersz("powtorzone_rano", "skany powtorzone - rano", p["udzial"], p["powtorzone"], p["skany"]))
-    seria = st["obecna_seria"] if st["dni_historii"] else None
+    seria = st["obecna_seria"] if st["dni_pracy"] else None  # w okresie programu nie bylo: brak danych, nie ocena z historii (D-N1)
     prog = PROGI["dni_bez_awarii"][0]
     za_krotki = seria is not None and seria < prog and not st["awarie_w_historii"] and st["dni_historii"] < prog
     lista.append(_wiersz("dni_bez_awarii", "dni bez awarii (seria do konca okresu)", seria, jednostka="dni",
@@ -397,36 +461,34 @@ def policz(baza: B.Baza, od: str, do: str, tryb: str = TRYB_OBA, *, granica_doby
 
     Zwraca zwykle dane (JSON): ``okres``, ``parametry``, ``wieczor`` / ``rano`` (None dla trybu pominietego), ``stabilnosc``,
     ``m2``, ``metryki`` (wiersze strony z ocena wzgledem ``PROGI``), ``ponizej_progu``, ``bez_danych``, ``kod`` (0 / 3 / 4).
-    Baza tylko czytana, w jednej transakcji odczytu (otwarta tu, gdy wywolujacy nie ma swojej). Zly okres albo tryb: ``ValueError``.
+    Baza tylko czytana: liczy sie na migawce w pamieci (``migawka``), plik bazy nie jest blokowany w trakcie liczenia.
+    Zly okres albo tryb: ``ValueError``.
     """
     if tryb not in TRYBY:
         raise ValueError(f"tryb raportu: {', '.join(TRYBY)} (jest {tryb!r})")
     d_od, d_do = sprawdz_okres(od, do)
-    sesja = _SesjaOdczyt(baza, granica_doby_godz=granica_doby_godz, zmiany_start_godz=zmiany_start_godz)  # tylko odczyt (bez operatora)
-    rano = _SesjaRanoOdczyt(sesja, prog_kandydata=prog_kandydata)
     doby = [(d_od + dt.timedelta(days=i)).isoformat() for i in range((d_do - d_od).days + 1)]
     granica = dt.time(granica_doby_godz)  # te same granice co Sesja.doba / _przedzial_doby
     s_start = dt.datetime.combine(d_od, granica).isoformat()
     s_koniec = dt.datetime.combine(d_do + dt.timedelta(days=1), granica).isoformat()
-    wlasna = not baza.polaczenie.in_transaction
-    if wlasna:
-        baza.wykonaj("BEGIN")  # transakcja odczytu (dziala tez na polaczeniu tylko do odczytu): caly raport z jednego stanu bazy
+    kopia = migawka(baza)  # od tej chwili wszystko na kopii w pamieci: plik bazy wolny dla programu stanowiska
     try:
-        punkty = _punkty_aktywnosci(baza, s_start, s_koniec, przerwa_min)
+        sesja = _SesjaOdczyt(kopia, granica_doby_godz=granica_doby_godz, zmiany_start_godz=zmiany_start_godz)  # tylko odczyt (bez operatora)
+        rano = _SesjaRanoOdczyt(sesja, prog_kandydata=prog_kandydata)
+        punkty = _punkty_aktywnosci(kopia, s_start, s_koniec, przerwa_min)
         w: dict[str, Any] = {
-            "wersja": WERSJA, "wygenerowano": teraz or dt.datetime.now().replace(microsecond=0).isoformat(), "schemat_bazy": baza.wersja(),
+            "wersja": WERSJA, "wygenerowano": teraz or dt.datetime.now().replace(microsecond=0).isoformat(), "schemat_bazy": kopia.wersja(),
             "okres": {"od": d_od.isoformat(), "do": d_do.isoformat(), "tryb": tryb, "doby": len(doby)},
             "parametry": {"granica_doby_godz": granica_doby_godz, "zmiany_start_godz": list(zmiany_start_godz),
                           "prog_kandydata": prog_kandydata, "przerwa_min": przerwa_min},
-            "wieczor": (_wieczor(baza, sesja, doby, s_start, s_koniec, punkty[TRYB_WIECZOR], przerwa_min, prog_kandydata)
+            "wieczor": (_wieczor(kopia, sesja, doby, s_start, s_koniec, punkty[TRYB_WIECZOR], przerwa_min, prog_kandydata)
                         if tryb != TRYB_RANO else None),
-            "rano": _rano(baza, rano, d_od.isoformat(), d_do.isoformat(), punkty[TRYB_RANO], przerwa_min) if tryb != TRYB_WIECZOR else None,
-            "stabilnosc": _stabilnosc(baza, sesja, s_start, s_koniec),
+            "rano": _rano(kopia, rano, d_od.isoformat(), d_do.isoformat(), punkty[TRYB_RANO], przerwa_min) if tryb != TRYB_WIECZOR else None,
+            "stabilnosc": _stabilnosc(kopia, sesja, s_start, s_koniec),
             "m2": {"dostepne": False, "powod": POWOD_M2},
         }
     finally:
-        if wlasna and baza.polaczenie.in_transaction:
-            baza.wykonaj("ROLLBACK")  # nic nie bylo zapisywane - zwolnienie blokady odczytu
+        kopia.zamknij()
     w["metryki"] = _wiersze(w)
     w["ponizej_progu"] = [m["klucz"] for m in w["metryki"] if m["ocena"] == OCENA_PONIZEJ]
     w["bez_danych"] = [m["klucz"] for m in w["metryki"] if m["ocena"] in (OCENA_BRAK, OCENA_ZA_KROTKI)]
@@ -492,7 +554,8 @@ def strona(w: dict) -> list[str]:
     else:
         linie += [
             f"WIECZOR: skany {wi['skany']} (aktywne {wi['skany_aktywne']}), prace {wi['prace']} w skanach przyjetych ({wi['skany_mianownik']}); "
-            f"poza: do powtorzenia {wi['skany_do_powtorzenia']}, ponowny skan bez potwierdzenia {wi['skany_do_potwierdzenia']}",
+            f"poza: do powtorzenia {wi['skany_do_powtorzenia']}, ponowny skan bez odpowiedzi {wi['skany_do_potwierdzenia']} (odrzucone "
+            f"{wi['ponowny_skan_odrzucony']})",
             f"  czerwone {wi['czerwone']}: OK (falszywy alarm) {wi['falszywe_alarmy']}, Ukruszona {wi['czerwone_ukruszone']}, "
             f"bez decyzji {wi['czerwone_bez_decyzji']}",
             f"  tryb cienia: ukruszone, ktorych program nie wskazal {wi['niewykryte_cien']}; wykrywalnosc wzgledem technika "
@@ -510,8 +573,8 @@ def strona(w: dict) -> list[str]:
         linie += [
             f"RANO: piece zamkniete {ra['piece']} (niezamkniete {ra['piece_otwarte']} - poza metrykami), prace {ra['prace']}",
             f"  klasy: {klasy or '-'}",
-            f"  top-1 {ra['top1']} z {ra['z_prawda']}, top-2 {ra['top2']} z {ra['z_prawda']} (po projekcie {ra['top2_projekt']}); odrzucone przez "
-            f"technika ('bez projektu', chybione) {ra['odrzucone']}; dwuznaczne nierozstrzygniete {ra['dwuznaczne']}",
+            f"  top-1 {ra['top1']} z {ra['z_prawda']}, top-2 {ra['top2']} z {ra['z_prawda']} (po projekcie {ra['top2_projekt']}; tylko prace z "
+            f"propozycja programu); odrzucone ('bez projektu', chybione) {ra['odrzucone']}; dwuznaczne {ra['dwuznaczne']}",
             f"  skany powtorzone {ra['powtorzone']['powtorzone']} z {ra['powtorzone']['skany']}: {_statusy(ra['powtorzone'])}",
             f"  czas (informacyjnie): {_czas_linia(ra['czas'])}",
             f"  piec od otwarcia do zamkniecia (nie stoper z PW): mediana {_min(cp['mediana'])} min, najwiecej {_min(cp['max'])} min"]
@@ -520,7 +583,7 @@ def strona(w: dict) -> list[str]:
     lista = ", ".join(doby[:MAX_DOB_NA_STRONIE]) + (f" (+{len(doby) - MAX_DOB_NA_STRONIE})" if len(doby) > MAX_DOB_NA_STRONIE else "")
     linie += [
         f"STABILNOSC: dni pracy {st['dni_pracy']} (w historii {st['dni_historii']}), z awaria {st['dni_z_awaria']}, awarii {st['awarie']} "
-        f"(restart bez program_stop); silnik nie startuje {st[AWARIA_SILNIK]} (nie awaria)",
+        f"(restart bez program_stop {st[AWARIA_RESTART]}, silnik nie startuje {st[AWARIA_SILNIK]}); silnik wrocil sam {st[SILNIK_WROCIL]}",
         f"  seria bez awarii do konca okresu {st['obecna_seria']} dni, najdluzsza {st['najdluzsza_seria']}; doby z awaria: {lista or '-'}",
         f"  program uruchomiony bez program_stop na koniec okresu: {'tak (dziala albo padl - awaria liczy sie po ponownym starcie)' if st['uruchomiony_na_koniec'] else 'nie'}",
         "M2: tabela testow wykrywalnosci (5 prac tygodniowo ze znanymi ubytkami) - wymaga zmiany schematu:",
