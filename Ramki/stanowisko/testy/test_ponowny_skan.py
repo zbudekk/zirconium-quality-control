@@ -452,12 +452,97 @@ def test_zastapienie_wprost_i_cofniecie_bez_zmian_dla_nowego_wsadu(wieczor):
     w.zegar.przesun(15)
     b = w.skan(1, praca_po_pracy(200, SLOTY))
     assert w.propozycje() == {}
-    with pytest.raises(SE.BladSesji, match=r"nie ma skanu do zastapienia.*60 min.*z tymi samymi pracami"):
+    with pytest.raises(SE.BladSesji, match=r"nie ma skanu do zastapienia.*60 min.*z tymi samymi pracami") as odmowa:
         w.sesja.zastap_skan(b)
+    assert "wprost" not in str(odmowa.value)  # recenzja PR #22 D8: bez rady, ktorej okno nie umozliwia (odmowa trafia do technika)
     assert w.status(a) == SE.STATUS_PRZYJETY and len(w.sesja.do_dofrezowania()) == 1
     assert w.sesja.zastap_skan(b, a) == a and w.status(a) == SE.STATUS_ZASTAPIONY and w.sesja.do_dofrezowania() == []
     w.sesja.cofnij_zastapienie(b)
     assert w.status(a) == SE.STATUS_PRZYJETY and len(w.sesja.do_dofrezowania()) == 1 and w.propozycje() == {}
+
+
+def _skan_poranny(w: Wieczor, numer: int, nr: int, projekty: dict) -> int:
+    wynik = K.sztuczny_wynik("poranna", numer, {g: "zielony" for g in projekty}, projekty=projekty, skan=f"rano_{nr}.stl")
+    return w.sesja.przyjmij_wynik({"plik": f"C:/Skany/rano_{nr}.stl", "sha16": K.skrot_sztuczny(f"skan poranny {nr}"), "rozmiar": 1,
+                                   "czas_pliku": None}, wynik, tryb=SE.TRYB_RANO)
+
+
+def test_skany_poranne_bez_wpisu_konfliktu_w_dzienniku(wieczor):
+    """Recenzja PR #23 D6: konflikt projektu (SE8) to regula wieczoru - skany poranne z tym samym projektem (poprawka w piecu 2
+    tego samego projektu co w piecu 1) nie dopisuja ``konflikt_projektu`` do dziennika; wieczorem wpis jak dotad, a konflikt
+    wieczoru nie liczy skanow porannych."""
+    w = wieczor
+
+    def wpisy() -> int:
+        return w.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE typ = 'konflikt_projektu'")["n"]
+
+    _skan_poranny(w, 1, 1, {1: 901, 2: 902})
+    _skan_poranny(w, 2, 2, {1: 901, 3: 903})
+    assert wpisy() == 0
+    w.skan(1, {1: 901, 2: 904, 3: 905})  # wieczorem projekt 901 tylko raz: skany poranne sie nie licza
+    assert wpisy() == 0 and w.sesja.konflikty(DOBA) == []
+    w.skan(2, {5: 901})
+    assert wpisy() == 1 and [k["sha16"] for k in w.sesja.konflikty(DOBA)] == [K.projekt_sztuczny(901)]
+
+
+def test_piec_przez_granice_doby_zastapienie_w_tym_samym_piecu(tmp_path):
+    """Recenzja PR #23 D10: piec rozladowany przez 06:00 - skan plytki 05:00 i ponowny 06:30 (sesja poranna proponuje zastapienie
+    w obrebie pieca, bez okna czasu): ``zastap_skan`` wskazany wprost przyjmuje pare z tym samym ``sesja_pieca_id``. Skany bez
+    pieca albo z roznych piecow - przez granice doby i po oknie 60 min odmowa jak dotad."""
+    zegar = Zegar("2026-11-18T05:00:00")
+    w = Wieczor(tmp_path, zegar=zegar)
+    try:
+        with w.baza.transakcja():
+            piec_a = w.baza.wstaw("sesje_pieca", data="2026-11-17", nr_w_dniu=1, otwarto="2026-11-18T04:50:00")
+            piec_b = w.baza.wstaw("sesje_pieca", data="2026-11-17", nr_w_dniu=2, otwarto="2026-11-18T05:02:00")
+        projekty = {g: 950 + g for g in range(1, 5)}
+        stary = _skan_poranny(w, 4, 1, projekty)
+        zegar.przesun(5)
+        x = _skan_poranny(w, 5, 2, {g: 960 + g for g in range(1, 5)})
+        zegar.przesun(85)  # 06:30 - inna doba robocza, 90 min po pierwszym skanie
+        nowy = _skan_poranny(w, 4, 3, projekty)
+        zegar.przesun(10)
+        y = _skan_poranny(w, 5, 4, {g: 960 + g for g in range(1, 5)})
+        assert w.sesja.doba("2026-11-18T05:00:00") != w.sesja.doba("2026-11-18T06:30:00")
+        with pytest.raises(SE.BladSesji, match="musi byc wczesniejszy, aktywny"):
+            w.sesja.zastap_skan(nowy, stary)  # bez pieca: jak dotad
+        with w.baza.transakcja():  # przypisanie do pieca jak w sesji porannej (``skany.sesja_pieca_id``)
+            w.baza.wykonaj("UPDATE skany SET sesja_pieca_id = ? WHERE id IN (?, ?, ?)", (piec_a, stary, nowy, x))
+            w.baza.wykonaj("UPDATE skany SET sesja_pieca_id = ? WHERE id = ?", (piec_b, y))
+        with pytest.raises(SE.BladSesji, match="musi byc wczesniejszy, aktywny"):
+            w.sesja.zastap_skan(y, x)  # rozne piece, inna doba, 95 min
+        assert w.sesja.zastap_skan(nowy, stary) == stary and w.status(stary) == SE.STATUS_ZASTAPIONY
+        assert w.baza.wiersz("SELECT rodzaj, wartosc FROM decyzje WHERE skan_id = ? ORDER BY id DESC LIMIT 1", (nowy,)) == {
+            "rodzaj": "powtorz_skan", "wartosc": str(stary)}
+    finally:
+        w.baza.zamknij()
+
+
+def test_ten_sam_piec_najwyzej_12_h_miedzy_skanami(tmp_path):
+    """Recenzja PR #22 runda 2, P1: piec niezamkniety do nastepnego dnia (plytki 1-3 krazaja z tymi samymi numerami) - para
+    z tym samym ``sesja_pieca_id`` jest przyjmowana bez warunku doby i okna 60 min tylko, gdy skany dzieli najwyzej
+    ``PONOWNY_SKAN_PIEC_MAX_H`` (12) godzin: 1 dzien i 3 dni -> odmowa, 12 h 01 min -> odmowa, 12 h -> przyjete
+    (05:00 / 06:30 - ``test_piec_przez_granice_doby_*``)."""
+    assert SE.PONOWNY_SKAN_PIEC_MAX_H == 12
+    zegar = Zegar("2026-11-18T05:00:00")
+    w = Wieczor(tmp_path, zegar=zegar)
+    try:
+        with w.baza.transakcja():
+            piec = w.baza.wstaw("sesje_pieca", data="2026-11-17", nr_w_dniu=1, otwarto="2026-11-18T04:50:00")
+        skany = {}
+        for nazwa, chwila, od in (("a", "2026-11-18T05:00:00", 950), ("b", "2026-11-18T17:00:00", 960), ("f", "2026-11-18T17:01:00", 970),
+                                  ("c", "2026-11-19T05:00:00", 980), ("d", "2026-11-21T05:00:00", 990)):
+            zegar.t = dt.datetime.fromisoformat(chwila)
+            skany[nazwa] = _skan_poranny(w, 4, len(skany) + 1, {g: od + g for g in range(1, 5)})  # kazdy skan inny wsad
+        with w.baza.transakcja():
+            w.baza.wykonaj(f"UPDATE skany SET sesja_pieca_id = ? WHERE id IN ({', '.join('?' * len(skany))})", (piec, *skany.values()))
+        for nowy, stary in (("f", "a"), ("c", "a"), ("d", "a"), ("d", "c")):  # 12 h 01 min, 1 dzien, 3 dni, 2 dni
+            with pytest.raises(SE.BladSesji, match="musi byc wczesniejszy, aktywny"):
+                w.sesja.zastap_skan(skany[nowy], skany[stary])
+        assert {w.status(s) for s in skany.values()} == {SE.STATUS_PRZYJETY}
+        assert w.sesja.zastap_skan(skany["b"], skany["a"]) == skany["a"] and w.status(skany["a"]) == SE.STATUS_ZASTAPIONY  # 12 h
+    finally:
+        w.baza.zamknij()
 
 
 @pytest.mark.parametrize("prog", [-0.1, 1.01, 2, True, "0.5", None, math.nan, math.inf])
