@@ -63,8 +63,8 @@ _WIERSZE = (
     _s("zolty", KOLOR_ZOLTY, (240, 200, 40), "zolty", "sprawdź", "Program nie jest pewny. Obejrzyj pracę i wybierz „Ukruszona” albo „OK”."),
     _s("sprawdz_ulozenie", KOLOR_ZOLTY, (240, 200, 40), "zolty", "sprawdź ułożenie", "Praca może leżeć krzywo w gnieździe — obejrzyj ją."),
     _s("popraw_ulozenie", KOLOR_ZOLTY, (240, 200, 40), "zolty", "popraw ułożenie", "Popraw ułożenie pracy w gnieździe i zeskanuj płytkę ponownie."),
-    _s("skan_ponownie", KOLOR_ZOLTY, (240, 200, 40), "zolty", "skan ponownie", "Skan tej pracy jest poruszony — zeskanuj płytkę ponownie."),
-    _s("skan_do_powtorzenia", KOLOR_ZOLTY, (240, 200, 40), "zolty", "po ponownym skanie",
+    _s("skan_ponownie", KOLOR_ZOLTY, (240, 200, 40), "zolty", "skan poruszony", "Skan tej pracy jest poruszony — zeskanuj płytkę ponownie."),
+    _s("skan_do_powtorzenia", KOLOR_ZOLTY, (240, 200, 40), "zolty", "powtórz skan",
        "Ten skan trzeba powtórzyć — do tego czasu żadna praca na płytce nie jest potwierdzona."),
     _s("nie_sprawdzono", KOLOR_ZOLTY, (240, 200, 40), "zolty", "nie sprawdzono",
        "Program nie mógł sprawdzić brzegu tej pracy (brak danych na skanie) — obejrzyj ją sam."),
@@ -169,11 +169,11 @@ def kolor_pracy(kolor: str | None, klucz: str) -> str | None:
 
 # --- statusy skanu (plytki) ------------------------------------------------------------------------------------------
 STATUSY_PLYTKI = {
-    "przyjety": "sprawdzona",
+    "przyjety": "przeanalizowana",
     "do_powtorzenia": "do ponownego skanu",
     "zastapiony": "zastąpiona nowszym skanem",
     "niezgodny_uklad": "nie pasuje do żadnego układu płytek",
-    "plytka_nie_z_trybu": "zablokowana — płytka nie z tego trybu",
+    "plytka_nie_z_trybu": "zablokowana (płytka nie z tego trybu)",
     "blad": "analiza nie powiodła się",
 }
 
@@ -258,16 +258,18 @@ KOMUNIKATY: dict[str, Wzor] = {
                                        "Program nie widzi folderu, do którego zapisuje skaner. Sprawdź dysk i ustawienia."),
     # pula projektow
     "pula_pusta": Wzor(POZIOM_BLAD, "Brak projektów w puli",
-                       "W folderze projektów nie ma plików STL — skany czekają ({czeka}). Wskaż właściwy folder i kliknij „Odśwież pulę”."),
+                       "W folderze projektów nie ma plików projektów — skany czekają ({czeka}). Sprawdź, czy pliki projektów są w folderze "
+                       "projektów, i kliknij „Odśwież pulę”. Jeśli folder jest inny — zgłoś to."),
     "pula_brak_folderu": Wzor(POZIOM_BLAD, "Brak folderu projektów",
-                              "Program nie widzi folderu projektów — skany czekają ({czeka}). Wskaż folder i kliknij „Odśwież pulę”."),
+                              "Program nie widzi folderu projektów — skany czekają ({czeka}). Sprawdź, czy dysk z folderem "
+                              "projektów jest podłączony, i kliknij „Odśwież pulę”. Jeśli folder jest inny — zgłoś to."),
     "zly_wspolczynnik": Wzor(POZIOM_OSTRZEZENIE, "Zły współczynnik skurczu",
                              "Współczynnik skurczu musi być liczbą od {od} do {do} (zostaw puste pole, żeby program dobrał go sam)."),
     # operator i odmowy
     "brak_operatora": Wzor(POZIOM_OSTRZEZENIE, "Wybierz osobę",
-                           "Nie wybrano osoby, która pracuje — wybierz ją z listy. Bez tego decyzje nie są zapisywane."),
+                           "Nie wybrano osoby, która pracuje — wybierz ją z listy. Bez tego nie można zapisywać decyzji."),
     "pusta_lista_operatorow": Wzor(POZIOM_BLAD, "Brak listy osób",
-                                   "Lista osób jest pusta — decyzje nie są zapisywane. Poproś o dopisanie osób w ustawieniach programu."),
+                                   "Lista osób jest pusta — nie można zapisywać decyzji. Poproś o dopisanie osób w ustawieniach programu."),
     "osoba_spoza_listy": Wzor(POZIOM_OSTRZEZENIE, "Nie ma takiej osoby", "Wybranej osoby nie ma na liście."),
     "nowa_zmiana": Wzor(POZIOM_INFO, "Nowa zmiana", "Zaczęła się zmiana {zmiana} — wybierz osobę, która teraz pracuje."),
     "odmowa": Wzor(POZIOM_OSTRZEZENIE, "Nie można tego zrobić", "{powod}"),
@@ -278,13 +280,13 @@ KOMUNIKATY: dict[str, Wzor] = {
     "wznowiono": Wzor(POZIOM_INFO, "Program wznowił pracę",
                       "Po ponownym uruchomieniu program dokańcza zaległe skany: {ile}."),
     "konflikt_projektu": Wzor(POZIOM_OSTRZEZENIE, "Ten sam projekt w dwóch gniazdach",
-                              "Program dopasował ten sam projekt do prac w {miejsc} miejscach — sprawdź, która praca jest która."),
+                              "Ten sam projekt pasuje do {miejsc} prac — sprawdź, która praca jest która."),
     # runda 2 recenzji PR #20 (zmiany kontraktu addytywne)
     "blad_zapisu": Wzor(POZIOM_BLAD, "Nie można zapisać wyniku skanu",
-                        "Programu nie udało się zapisać wyników skanów ({ile}) — sprawdź dysk (wolne miejsce, podłączenie dysku). "
+                        "Program nie mógł zapisać wyników skanów ({ile}) — sprawdź dysk (wolne miejsce, podłączenie dysku). "
                         "Skany nie przepadną: program ponawia zapis sam, możesz też kliknąć „Ponów zapis”."),
     "zle_argumenty": Wzor(POZIOM_OSTRZEZENIE, "Nie można tego zrobić",
-                          "Okno podało złe dane do polecenia „{polecenie}” — nic nie zostało zapisane. Zgłoś to jako błąd programu."),
+                          "Błąd programu — nic nie zostało zapisane. Zgłoś to (polecenie „{polecenie}”)."),
     "blad_polecenia": Wzor(POZIOM_BLAD, "Polecenie nie zostało wykonane",
                            "Błąd programu albo dysku — nic nie zostało zapisane. Spróbuj ponownie; jeśli to się powtarza, zgłoś awarię."),
     "lista_nie_zapisana": Wzor(POZIOM_OSTRZEZENIE, "Lista nie została zapisana do pliku",
@@ -300,8 +302,8 @@ PYTANIA: dict[str, Wzor] = {
     "ponowny_skan": Wzor(POZIOM_OSTRZEZENIE, "Ponowny skan tej samej płytki?",
                          "Płytka nr {numer} była skanowana {minut} min temu. Czy to ponowny skan tych samych prac? {skutek}"),
     "plytka_nie_z_trybu": Wzor(POZIOM_BLAD, "Płytka nie z tego trybu",
-                               "To {jaka} — program pracuje w trybie „{tryb}”. Skan jest zablokowany: nic nie jest zielone "
-                               "i nie można podejmować decyzji. Zeskanuj właściwą płytkę albo świadomie dopuść ten skan."),
+                               "To {jaka}, a program pracuje w trybie „{tryb}”. Skan jest zablokowany: nic nie jest zielone "
+                               "i nie można zapisywać decyzji."),
     "brak_numeru_plytki": Wzor(POZIOM_OSTRZEZENIE, "Podaj numer płytki",
                                "Program nie odczytał numeru płytki ze skanu. Podaj numer wybity na płytce — do tego czasu "
                                "żadna praca na niej nie jest pokazana jako zielona."),
@@ -340,8 +342,8 @@ ZAB_JUZ_NA_LISCIE = "Ten ząb jest już na liście „do dofrezowania” (skan z
 STANY_PULI = {
     "nieustawiona": "nie wskazano folderu projektów",
     "liczenie": "liczę pliki projektów…",
-    "gotowa": "{n} STL w puli",
-    "pusta": "0 STL w puli",
+    "gotowa": "plików projektów: {n}",
+    "pusta": "brak plików projektów",
     "brak_folderu": "brak folderu projektów",
 }
 

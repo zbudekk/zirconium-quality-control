@@ -783,7 +783,9 @@ def test_p3_pula_oprozniona_po_policzeniu_skany_czekaja(stanowiska):
     st.zapisz({"gniazda": {1: "czerwony"}, "numer": 2, "projekty": {1: 12}})
     st.czekaj(lambda: st.stan().kolejka.wstrzymane == 2 and st.stan().pula.stan == "pusta" and st.stan().kolejka.razem == 2, 60.0, "skany czekaja")
     s = st.stan()
-    assert s.plytki == () and skany_w_bazie(st) == [] and s.pula.liczba_stl == 0 and "0" in s.pula.napis
+    from stanowisko import statusy as ST  # napis pustej puli bez liczby od E3-A3b runda 2 ("brak plikow projektow")
+
+    assert s.plytki == () and skany_w_bazie(st) == [] and s.pula.liczba_stl == 0 and s.pula.napis == ST.STANY_PULI["pusta"]
     k = [x for x in s.komunikaty if x.id == "pula"]
     assert [x.rodzaj for x in k] == ["pula_pusta"] and "2" in k[0].tekst and not [x for x in s.komunikaty if x.rodzaj == "blad_analizy"]
     TK.pula_probna(st.tmp)  # pliki wrocily

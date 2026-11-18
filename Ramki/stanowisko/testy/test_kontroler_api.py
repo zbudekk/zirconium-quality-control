@@ -774,7 +774,7 @@ def test_p6_atrapa_pokazuje_stany_zywe_prawdziwego_kontrolera(tmp_path):
     try:
         assert a.stan().pula.stan == "pusta" and a.stan().pula.liczba_stl == 0
         a.symuluj_pule("gotowa", 12)
-        assert (a.stan().pula.stan, a.stan().pula.liczba_stl, a.stan().pula.napis) == ("gotowa", 12, "12 STL w puli")
+        assert (a.stan().pula.stan, a.stan().pula.liczba_stl, a.stan().pula.napis) == ("gotowa", 12, "plik\u00f3w projekt\u00f3w: 12")  # napis statusy.STANY_PULI (E3-A3b runda 2)
         a.symuluj_pule("pusta")
         a.symuluj_kolejke(wstrzymane=2)
         s = a.stan()
