@@ -1085,11 +1085,11 @@ class KontrolerSesji(Kontroler):
             pytania += [p for p in plytka.pytania if not p.ukryte]
             trwale += [k for k in plytka.komunikaty if not k.ukryte]
         if sw["konflikty"]:
-            oczekujace = {frozenset((skan_id, p["poprzedni_id"])) for skan_id, p in propozycje.items()
-                          if (skan_id, p["poprzedni_id"]) not in self._odrzucone}  # skany czekajace na odpowiedz "to ponowny skan?"
+            skladowe = self._skladowe_oczekujacych([(skan_id, p["poprzedni_id"]) for skan_id, p in propozycje.items()
+                                                    if (skan_id, p["poprzedni_id"]) not in self._odrzucone])
             for k in sw["konflikty"]:
                 id_ = f"konflikt_projektu:{k['sha16']}"
-                if id_ not in self._ukryte and not self._konflikt_ponownego_skanu(k, oczekujace):
+                if id_ not in self._ukryte and not self._konflikt_ponownego_skanu(k, skladowe):
                     trwale.append(self._nowy_komunikat(id_, "konflikt_projektu", trwaly=True, czas=sw["data"], miejsc=len(k["miejsca"])))
         rano = None
         if self.tryb == TRYB_RANO:  # E3-A7: stan pieca; pytania i komunikaty plytek porannych w tych samych listach co wieczorne
@@ -1116,16 +1116,39 @@ class KontrolerSesji(Kontroler):
             lista_zapisana=self._lista_czas, rano=rano, **self._stan_zywy())
 
     @staticmethod
-    def _konflikt_ponownego_skanu(konflikt: dict, oczekujace: set) -> bool:
-        """Konflikt projektu TYLKO miedzy skanem, ktory czeka na odpowiedz "to ponowny skan?", a skanem, ktory proponuje zastapic
-        (po jednym miejscu w kazdym) - to ta sama praca zeskanowana drugi raz, nie dwa gniazda wieczoru: komunikat nie trafia na
-        pasek bledow (decyzja wlasciciela 18.11.2026, E3-A1p). Po "Nie, to nowy wsad" konflikt wraca, po "Tak" znika (skan
-        zastapiony); "Pozniej" to nie odpowiedz. Konflikt z innym skanem albo w obrebie jednego skanu - bez zmian (komunikat).
-        ``stan.konflikty`` podaje wszystkie konflikty jak dotad."""
+    def _skladowe_oczekujacych(pary: list) -> dict:
+        """skan_id -> numer spojnej skladowej grafu, ktorego krawedzie to pary (skan czekajacy na odpowiedz "to ponowny skan?",
+        skan, ktory proponuje zastapic). Ta sama plytka zeskanowana trzy razy bez odpowiedzi (A, B, C: pytania B -> A i C -> B)
+        to jedna skladowa (recenzja PR #22 P1)."""
+        sasiedzi: dict = {}
+        for a, b in pary:
+            sasiedzi.setdefault(a, set()).add(b)
+            sasiedzi.setdefault(b, set()).add(a)
+        skladowe: dict = {}
+        for start in sasiedzi:
+            if start in skladowe:
+                continue
+            stos = [start]
+            while stos:
+                skan = stos.pop()
+                if skan not in skladowe:
+                    skladowe[skan] = start
+                    stos.extend(sasiedzi[skan] - skladowe.keys())
+        return skladowe
+
+    @staticmethod
+    def _konflikt_ponownego_skanu(konflikt: dict, skladowe: dict) -> bool:
+        """Konflikt projektu TYLKO miedzy skanami jednej plytki czekajacymi na odpowiedz "to ponowny skan?" (wszystkie skany
+        konfliktu w jednej spojnej skladowej grafu par czekajacych - ``_skladowe_oczekujacych``, po jednym miejscu w kazdym) - to
+        ta sama praca zeskanowana drugi raz, nie dwa gniazda wieczoru: komunikat nie trafia na pasek bledow (decyzja wlasciciela
+        18.11.2026, E3-A1p; trzy skany i wiecej - recenzja PR #22 P1). Po "Nie, to nowy wsad" skan wypada ze skladowej i konflikt
+        wraca, po "Tak" znika (skan zastapiony); "Pozniej" to nie odpowiedz. Konflikt z innym skanem albo w obrebie jednego skanu -
+        bez zmian (komunikat). ``stan.konflikty`` podaje wszystkie konflikty jak dotad."""
         miejsca: dict = {}
         for m in konflikt["miejsca"]:
             miejsca.setdefault(m["skan_id"], set()).add(m["gniazdo"] if m["gniazdo"] is not None else f"poza-{m['praca_id']}")
-        return frozenset(miejsca) in oczekujace and all(len(g) == 1 for g in miejsca.values())
+        numery = {skladowe.get(skan_id) for skan_id in miejsca}
+        return len(miejsca) > 1 and len(numery) == 1 and None not in numery and all(len(g) == 1 for g in miejsca.values())
 
     # --- poranek (E3-A7): stan pieca dla ekranu porannego ---------------------------------------
     def _wczytaj_tryb(self) -> str:
