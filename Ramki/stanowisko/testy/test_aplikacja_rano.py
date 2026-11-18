@@ -497,6 +497,7 @@ def test_k2_enter_na_ramce_raz_w_zdarzeniach_po_restarcie_i_zamknij_piec_tylko_b
         czekaj(lambda: len(ramka_zdarzen(k.sesja.baza, typ="potwierdzenie")) == 1, 5.0, "potwierdzenie w zdarzeniach", pompa=k.przetworz)
         p = ramka_zdarzen(k.sesja.baza, typ="potwierdzenie")[0]
         assert (p["plan_id"], p["plytka"], p["kuweta"], p["z_historii"]) == (plan_id, 4, kuweta, False)
+        assert next(x for x in k.stan().rano.kuwety if x.kuweta == kuweta).potwierdzona  # Enter na ramce = kuweta rozlozona na ekranie
         assert p["klucz"] == f"{rp.start_id}:{p['nr']}"
     finally:
         k.zamknij()
@@ -513,6 +514,7 @@ def test_k2_enter_na_ramce_raz_w_zdarzeniach_po_restarcie_i_zamknij_piec_tylko_b
             assert len(klucze) == len(set(klucze)), f"proba {proba}: duplikaty kluczy"
             assert len([z for z in zd if z["typ"] == "potwierdzenie"]) == 1
             assert rp.stan()["potwierdzone"] == [[4, kuweta]]  # potwierdzenie z bazy wraca na ramke po zgaszeniu przy zamknieciu
+            assert next(x for x in k.stan().rano.kuwety if x.kuweta == kuweta).potwierdzona  # i rozlozenie na ekranie po restarcie
         finally:
             k.zamknij()
     # "Zamknij piec" na klawiaturze ramki (dwa kroki: klawisz + Enter) - zamyka biezacy piec; drugi raz (historia) nic nie robi
@@ -563,6 +565,8 @@ class KlientAtrapa:
         self.zdarzenia: list = []
         self.polecenia: list = []
         self.polaczona = True
+        self.potw: list = []  # lustro potwierdzen ramki (``potwierdzone()``)
+        self.wersja = 0
 
     def uruchom(self) -> None:
         self.polecenia.append(("uruchom",))
@@ -580,9 +584,13 @@ class KlientAtrapa:
 
     def stan(self) -> dict:
         return {"rola": self.rola, "polaczona": self.polaczona, "blad": None, "komunikat": None, "plytka": None, "tryb_ramki": None,
-                "plan_przyjety": False, "wstrzymane": False, "potwierdzone": [], "ostrzezenia": []}
+                "plan_przyjety": False, "wstrzymane": False, "potwierdzone": list(self.potw), "ostrzezenia": [], "wersja": self.wersja}
+
+    def potwierdzone(self) -> list:
+        return [list(x) for x in self.potw]
 
     def ustaw_plan_rano(self, plan_plytek, *, potwierdzone=None, wybrane=None) -> dict:
+        self.wersja += 1
         self.polecenia.append(("plan", plan_plytek["plan_id"], potwierdzone))
         return {}
 
@@ -726,8 +734,10 @@ def test_k3_excel_pytaj_propozycje_rowne_kompletnym_i_tylko_kolor_wlasciwych_kom
         przed = arkusz.zrzut()
         petla = Petla()
         e.klik("przycisk_zamknij_piec")
+        assert not e.jest("excel_panel") and k.stan().excel.w_toku == 1  # P1: Excel odroczony - najpierw ekran (i ramka)
+        e.czekaj(lambda: e.jest("excel_panel") and k.stan().excel.w_toku == 0, 10.0, "okno Excela po kolejnych obiegach petli")
         wynik = SR.SesjaRano(k.sesja).wynik_pieca(k.stan().rano.sesja_pieca_id)
-        assert wynik["kompletne"] and e.jest("excel_panel") and e.jest("excel_tabela")
+        assert wynik["kompletne"] and e.jest("excel_tabela") and not e.okno.ekran_rano.excel.wybrana() and not e.aktywny("excel_zatwierdz")
         stan_ex = k.stan().excel
         assert stan_ex.tryb == "pytaj" and stan_ex.sesja_pieca_id == wynik["sesja_pieca_id"]
         assert [p.kuweta for p in stan_ex.pozycje] == [z["kuweta"] for z in wynik["kompletne"]]  # dokladnie zlecenia kompletne A6
@@ -736,13 +746,13 @@ def test_k3_excel_pytaj_propozycje_rowne_kompletnym_i_tylko_kolor_wlasciwych_kom
         zatwierdzone, pominiete, sprawdz = {}, [], 0
         for i, poz in enumerate(stan_ex.pozycje):
             e.klik_wiersz("excel_tabela", i)
-            assert e.okno.ekran_rano.excel.pokazana() == poz.nr
-            if poz.do_sprawdzenia:
-                assert e.jest("excel_sprawdz")  # wybor bez zgodnej nazwy wyraznie oznaczony
-                sprawdz += 1
+            assert e.okno.ekran_rano.excel.pokazana() == (poz.sesja_pieca_id, poz.zlecenie_id) and e.okno.ekran_rano.excel.wybrana()
             cel = prawda.get(poz.kuweta)
-            if poz.klasa == EX.KLASA_WSKAZ_WIERSZ:
-                kandydaci = [x.wiersz for x in k.excel_szczegoly(poz.nr).kandydaci]
+            if poz.do_sprawdzenia:
+                assert e.jest("excel_sprawdz") and not e.aktywny("excel_zatwierdz")  # B1: wybor bez zgodnej nazwy - wskazanie wiersza
+                sprawdz += 1
+            if poz.klasa == EX.KLASA_WSKAZ_WIERSZ or poz.do_sprawdzenia:
+                kandydaci = [x.wiersz for x in k.excel_szczegoly(poz.sesja_pieca_id, poz.zlecenie_id).kandydaci]
                 if cel not in kandydaci:
                     e.klik("excel_pomin")
                     pominiete.append(poz.kuweta)
@@ -751,6 +761,7 @@ def test_k3_excel_pytaj_propozycje_rowne_kompletnym_i_tylko_kolor_wlasciwych_kom
             else:
                 assert poz.wiersz == cel, (poz.kuweta, poz.wiersz, cel)
             e.klik("excel_zatwierdz")
+            assert not e.aktywny("excel_zatwierdz")  # B1: nastepna pozycja dopiero po kliknieciu w liste
             zatwierdzone[poz.kuweta] = cel
         petla.stop()
         assert len(zatwierdzone) + len(pominiete) == len(wynik["kompletne"]) and "3214" in zatwierdzone and sprawdz >= 1
@@ -784,8 +795,11 @@ def test_k3_excel_cien_tylko_log_i_restart_okna_excela(tmp_path):
         k.podlacz_excel(EX.Excel.z_ustawien(ust_excela(tmp_path, "cien"), zrodlo=arkusz, baza=k.sesja.baza, zegar=lambda: RANO_START))
         k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "pewna", 5: "pewna"}, projekty={1: 301, 2: 302, 3: 303, 5: 304})
         przed = arkusz.zrzut()
+        odczyty = sum(1 for op in arkusz.operacje if op[0] == "odczytaj")
         odp = k.zamknij_piec(k.stan().rano.sesja_pieca_id)
-        assert odp and len(odp.dane["kompletne"]) == 2
+        assert odp and len(odp.dane["kompletne"]) == 2 and k.stan().excel.w_toku == 1
+        czekaj(lambda: k.stan().excel.w_toku == 0, 5.0, "krok Excela", pompa=k.przetworz)
+        assert sum(1 for op in arkusz.operacje if op[0] == "odczytaj") - odczyty == 1  # P1: jeden odczyt arkusza na caly piec
         assert arkusz.zrzut() == przed and not any(op[0] == "ustaw_wypelnienie" for op in arkusz.operacje)
         wpisy = k.sesja.baza.wiersze("SELECT tryb, wynik FROM excel_zapisy")
         assert len(wpisy) == 2 and all(w["tryb"] == "cien" for w in wpisy)
@@ -795,10 +809,11 @@ def test_k3_excel_cien_tylko_log_i_restart_okna_excela(tmp_path):
         k.podlacz_excel(EX.Excel.z_ustawien(ust_excela(tmp_path), zrodlo=arkusz, baza=k.sesja.baza, zegar=lambda: RANO_START))
         k.symuluj_skan_rano(5, {1: "pewna", 2: "pewna", 3: "pewna"}, projekty={1: 305, 2: 306, 3: 313})
         assert k.zamknij_piec(k.stan().rano.sesja_pieca_id)
+        czekaj(lambda: k.stan().excel.w_toku == 0, 5.0, "krok Excela", pompa=k.przetworz)
         piec2 = k.stan().rano.sesja_pieca_id
         poz = k.stan().excel.pozycje
         assert [p.kuweta for p in poz] == ["3214", "3235"] and k.stan().excel.widoczne
-        assert k.excel_zatwierdz(poz[1].nr) and k.stan().excel.pozycje[1].zalatwiona
+        assert k.excel_zatwierdz(poz[1].sesja_pieca_id, poz[1].zlecenie_id) and k.stan().excel.pozycje[1].zalatwiona
         assert k.excel_zamknij() and not k.stan().excel.widoczne
     finally:
         k.zamknij()
@@ -903,7 +918,8 @@ def test_k5_wylaczona_ramka_i_brak_excela_ostrzezenie_i_dalsza_praca(tmp_path, e
         e.odczekaj(400)
         s = k.stan()
         assert s.ramki is not None and not s.ramki.wieczorna.polaczona and not s.ramki.poranna.polaczona
-        assert e.jest("napis_ramki") and e.jest("przycisk_test_led") and e.jest("komunikat_ramka_wieczorna_niedostepna")
+        assert e.jest("napis_ramki") and e.jest("przycisk_test_led") and not e.jest("komunikat_ramka_wieczorna_niedostepna")  # D7: bez migania
+        e.czekaj(lambda: e.jest("komunikat_ramka_wieczorna_niedostepna"), 5.0, "komunikat po czasie na polaczenie")
         e.klawisz(Qt.Key.Key_Space)  # Spacja bez ramki: start skanu dziala
         assert len(k.starty_skanu) == 1
         skan = k.symuluj_skan("zwykla", numer=1)
@@ -914,7 +930,8 @@ def test_k5_wylaczona_ramka_i_brak_excela_ostrzezenie_i_dalsza_praca(tmp_path, e
         skany = {4: k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "pewna", 5: "pewna"}, projekty={1: 301, 2: 302, 3: 303, 5: 304})}
         e.klik("przycisk_zamknij_piec")
         assert not k.stan().rano.otwarty  # piec zamkniety mimo wylaczonej ramki i braku Excela
-        assert e.jest("komunikat_excel_blad") and not e.jest("excel_panel")
+        e.czekaj(lambda: e.jest("komunikat_excel_blad"), 5.0, "komunikat Excela")
+        assert not e.jest("excel_panel")
         assert k.stan().excel.blad and "3200" in next(x.tekst for x in k.stan().komunikaty if x.id == K.ID_EXCEL)
         excel_otwarty["tak"] = True  # czlowiek otworzyl plik w Excelu
         e.klik("przycisk_excel")
@@ -998,11 +1015,11 @@ def test_polecenia_a12_bez_ramek_i_excela_odmowa_bez_wyjatku(tmp_path):
         assert set(K.POLECENIA_A12) <= set(K.POLECENIA) and K.WERSJA_KONTRAKTU >= 4
         s = k.stan()
         assert s.ramki is None and s.excel is None
-        for nazwa, argumenty in (("test_led", ()), ("przejmij_ramke", ("P",)), ("excel_zatwierdz", (0,)), ("excel_pomin", (0,)),
+        for nazwa, argumenty in (("test_led", ()), ("przejmij_ramke", ("P",)), ("excel_zatwierdz", (1, 1)), ("excel_pomin", (1, 1)),
                                  ("excel_odswiez", ()), ("excel_pokaz", ()), ("excel_zamknij", ())):
             odp = k.wykonaj(nazwa, *argumenty)
             assert isinstance(odp, K.Odpowiedz) and not odp and odp.kod, (nazwa, odp)
-        assert k.excel_szczegoly(0) is None
+        assert k.excel_szczegoly(1, 1) is None
         assert not k.wykonaj("przejmij_ramke", "X") and k.wykonaj("przejmij_ramke", "X").kod == K.KOD_ZLE_ARGUMENTY
         ind = IndicateAtrapa()
         k.podlacz_ramki(ind)
@@ -1035,3 +1052,331 @@ def test_ramki_i_excel_z_ustawien_ostrzezenie_bez_awarii(tmp_path):
         assert ex is not None and ex.tryb == "pytaj" and ex.baza is baza and ex._zrodlo is None  # COM dopiero przy pierwszym odczycie
     finally:
         baza.zamknij()
+
+
+# ============================================================================
+# runda 2 (recenzja PR #30): B1, P2-P8, D2, D9, decyzja wlasciciela (Enter na ramce = kuweta rozlozona), A10 D-R2
+# ============================================================================
+def _excel_pytaj(k, tmp_path, arkusz=None):
+    from stanowisko import excel as EX
+
+    arkusz = arkusz if arkusz is not None else arkusz_zlecen(RANO_START.date())[0]
+    ex = EX.Excel.z_ustawien(ust_excela(tmp_path), zrodlo=arkusz, baza=k.sesja.baza, zegar=lambda: RANO_START)
+    k.podlacz_excel(ex)
+    return arkusz, ex
+
+
+def _zd(nr, typ, **pola):
+    return {"nr": nr, "typ": typ, "czas_s": 1.0, "rola": "P", "start_id": "s1", "z_historii": False, "nieaktualne": False, **pola}
+
+
+PLYTKA_4 = ({1: "pewna", 2: "pewna", 3: "pewna", 5: "pewna"}, {1: 301, 2: 302, 3: 303, 5: 304})  # zlecenia 3200 (3 z 3), 3207 (1 z 1)
+
+
+def test_b1_podwojne_klikniecie_zatwierdz_i_pomin_jeden_zapis(tmp_path, ekrany):
+    """B1: po zapisie nastepna pozycja NIE jest uzbrojona - podwojne klikniecie "Zatwierdz" / "Pomin" = jeden wpis; "Zatwierdz"
+    aktywne dopiero po kliknieciu pozycji na liscie."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from stanowisko import kontroler_api as K
+
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())
+    try:
+        k.przelacz_tryb("rano")
+        k.wybierz_operatora("Technik A")
+        arkusz, _ = _excel_pytaj(k, tmp_path)
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        e = ekrany(k)
+        e.klik("przycisk_zamknij_piec")
+        e.czekaj(lambda: e.jest("excel_panel") and k.stan().excel.w_toku == 0, 10.0, "okno Excela")
+        assert [p.kuweta for p in k.stan().excel.pozycje] == ["3200", "3207"] and not e.aktywny("excel_zatwierdz") and e.jest("excel_wybierz")
+        e.klik_wiersz("excel_tabela", 0)
+        assert e.aktywny("excel_zatwierdz")
+        b = e.w("excel_zatwierdz")
+        QTest.mouseClick(b, Qt.MouseButton.LeftButton)
+        QTest.mouseClick(b, Qt.MouseButton.LeftButton)  # drugie klikniecie (podwojne / Excel odpowiada powoli)
+        QTest.mouseDClick(b, Qt.MouseButton.LeftButton)
+        e.odczekaj(50)
+        zapisy = [op for op in arkusz.operacje if op[0] == "ustaw_wypelnienie"]
+        poz = k.stan().excel.pozycje
+        assert len(zapisy) == 1 and poz[0].zalatwiona and not poz[1].zalatwiona, (zapisy, poz)
+        assert e.okno.ekran_rano.excel.pokazana() == (poz[1].sesja_pieca_id, poz[1].zlecenie_id) and not e.okno.ekran_rano.excel.wybrana()
+        assert not e.aktywny("excel_zatwierdz") and not e.aktywny("excel_pomin")
+        e.klik_wiersz("excel_tabela", 1)
+        p = e.w("excel_pomin")
+        QTest.mouseClick(p, Qt.MouseButton.LeftButton)
+        QTest.mouseClick(p, Qt.MouseButton.LeftButton)
+        e.odczekaj(50)
+        wpisy = k.sesja.baza.wiersze("SELECT wynik FROM excel_zapisy ORDER BY id")
+        assert [w["wynik"] for w in wpisy] == ["zapisano", "pominieto"]
+        print(f"\n[B1] podwojne klikniecie: zapisow koloru {len(zapisy)}, wpisow logu {len(wpisy)} (zapisano, pominieto)")
+    finally:
+        k.zamknij()
+
+
+def test_p2_blad_planu_gasi_ramke_komunikat_i_ponowienie(tmp_path, monkeypatch):
+    from stanowisko import kontroler_api as K
+
+    monkeypatch.setattr(K, "OKRES_PONOWIENIA_PLANU_S", 0.05)
+    ind = IndicateAtrapa()
+    k = _poranek_kontroler(tmp_path / "k", ind)
+    try:
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        plany = [p for p in ind.poranna.polecenia if p[0] == "plan"]
+        assert len(plany) == 1
+        oryginal = k.rano.plan_plytek
+
+        def zepsuty(*a, **kw):
+            raise RuntimeError("blad odczytu bazy")
+
+        k.rano.plan_plytek = zepsuty
+        n = len(ind.poranna.polecenia)
+        assert k.ustaw_kolejnosc("numer")  # zmiana pieca na ekranie -> plan od nowa -> blad
+        assert ("zgas",) in ind.poranna.polecenia[n:]  # stary plan nie swieci
+        czekaj(lambda: any(x.rodzaj == "ramka_plan_blad" for x in k.stan().komunikaty), 3.0, "komunikat bledu planu", pompa=k.przetworz)
+        k.rano.plan_plytek = oryginal
+        czekaj(lambda: len([p for p in ind.poranna.polecenia if p[0] == "plan"]) == 2, 3.0, "ponowienie planu", pompa=k.przetworz)
+        czekaj(lambda: not any(x.rodzaj == "ramka_plan_blad" for x in k.stan().komunikaty), 3.0, "komunikat znika", pompa=k.przetworz)
+    finally:
+        k.zamknij()
+
+
+def test_p3_zamknij_piec_z_ramki_w_trybie_wieczor_gasi_ramke_p(tmp_path):
+    ind = IndicateAtrapa()
+    k = _poranek_kontroler(tmp_path / "k", ind)
+    try:
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        plan_id, sid = k.stan().rano.plan_id, k.stan().rano.sesja_pieca_id
+        assert k.przelacz_tryb("wieczor")
+        n = len(ind.poranna.polecenia)
+        ind.poranna.zdarzenia.append(_zd(1, "zamknij_piec", plan_id=plan_id, plytka=4))
+        k.przetworz()
+        assert k.sesja.baza.wiersz("SELECT zamknieto FROM sesje_pieca WHERE id = ?", (sid,))["zamknieto"]
+        assert ("zgas",) in ind.poranna.polecenia[n:] and k.stan().tryb == "wieczor"
+    finally:
+        k.zamknij()
+
+
+def test_p4_pozycje_excela_tozsamoscia_po_odswiezeniu(tmp_path):
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())
+    try:
+        k.przelacz_tryb("rano")
+        k.wybierz_operatora("Technik A")
+        _excel_pytaj(k, tmp_path)
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        assert k.zamknij_piec(k.stan().rano.sesja_pieca_id)
+        czekaj(lambda: k.stan().excel.w_toku == 0, 5.0, "propozycje", pompa=k.przetworz)
+        a, b = k.stan().excel.pozycje
+        assert (a.kuweta, a.nr, b.kuweta, b.nr) == ("3200", 0, "3207", 1)
+        assert k.excel_zatwierdz(a.sesja_pieca_id, a.zlecenie_id)
+        assert k.excel_odswiez()
+        (b2,) = k.stan().excel.pozycje
+        assert (b2.kuweta, b2.nr, b2.zlecenie_id) == ("3207", 0, b.zlecenie_id)  # numer na liscie sie przesunal, tozsamosc - nie
+        odp = k.excel_pomin(a.sesja_pieca_id, a.zlecenie_id)  # stary wybor (pozycja juz zalatwiona i zniknela z listy)
+        assert not odp and odp.tekst == ST.NAPIS_POZYCJA_EXCELA_INNA
+        assert not k.stan().excel.pozycje[0].zalatwiona  # 3207 nie zostal pominiety zamiast 3200
+        assert k.excel_pomin(b.sesja_pieca_id, b.zlecenie_id) and k.stan().excel.pozycje[0].zalatwiona
+    finally:
+        k.zamknij()
+
+
+def test_p5_nowy_piec_nie_zastepuje_po_cichu_niezalatwionych(tmp_path):
+    from stanowisko import kontroler_api as K
+
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())
+    try:
+        k.przelacz_tryb("rano")
+        k.wybierz_operatora("Technik A")
+        _excel_pytaj(k, tmp_path)
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        assert k.zamknij_piec(k.stan().rano.sesja_pieca_id)
+        czekaj(lambda: k.stan().excel.w_toku == 0, 5.0, "propozycje pieca 1", pompa=k.przetworz)
+        piec1 = k.stan().excel.sesja_pieca_id
+        assert k.excel_zamknij()  # "Pozniej"
+        k.symuluj_skan_rano(5, {1: "pewna", 2: "pewna"}, projekty={1: 305, 2: 306})
+        assert k.zamknij_piec(k.stan().rano.sesja_pieca_id)
+        czekaj(lambda: k.stan().excel.w_toku == 0, 5.0, "propozycje pieca 2", pompa=k.przetworz)
+        ex = k.stan().excel
+        piec2 = ex.sesja_pieca_id
+        assert piec2 != piec1 and [p.kuweta for p in ex.pozycje] == ["3214"]
+        assert [z[0] for z in ex.zalegle] == [piec1] and ex.zalegle[0][3] == 2  # piec 1 nie zniknal po cichu
+        assert any(x.id == f"excel_zalegle:{piec1}" for x in k.stan().komunikaty)
+        assert k.excel_pokaz(piec1)
+        ex = k.stan().excel
+        assert ex.sesja_pieca_id == piec1 and [p.kuweta for p in ex.pozycje] == ["3200", "3207"] and [z[0] for z in ex.zalegle] == [piec2]
+        assert not any(x.id == f"excel_zalegle:{piec1}" for x in k.stan().komunikaty)
+    finally:
+        k.zamknij()
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())  # restart: przypomnienie o obu piecach
+    try:
+        _excel_pytaj(k, tmp_path)
+        assert {z[0] for z in k.stan().excel.zalegle} == {piec1, piec2}
+        assert {x.id for x in k.stan().komunikaty} >= {f"excel_zalegle:{piec1}", f"excel_zalegle:{piec2}"}
+    finally:
+        k.zamknij()
+
+
+def test_p6_powtorzony_i_przemianowany_plik_nie_gasi_ramki_w_i_silnik_wrocil(tmp_path):
+    """P6 (Aplikacja bez startu silnika, klient ramek bez sieci): znacznik ramki W tylko dla skanu zleconego do analizy - plik
+    przemianowany / ta sama tresc w kolejce nie gasi wyniku. A10 D-R2: powrot silnika po awarii = wpis ``silnik_wrocil``."""
+    import types
+
+    from stanowisko import aplikacja as AP
+
+    k = AP.Aplikacja(TK.ustawienia_probne(tmp_path), zegar=lambda: TK.START)
+    try:
+        ind = IndicateAtrapa()
+        k.podlacz_ramki(ind)
+
+        def skan(plik, sha16):
+            return types.SimpleNamespace(plik=str(tmp_path / plik), sha16=sha16, rozmiar=1000, mtime_ns=1, trojkaty=10, zastany=False, ponowny=False,
+                                         duplikat=False)
+
+        def znaczniki():
+            return sum(1 for p in ind.wieczorna.polecenia if p == ("tryb", "skanowanie"))
+
+        k._zdarzenie_skrzynki("skan", skan("a.stl", "0123456789abcdef"))
+        assert znaczniki() == 1 and len(k._wstrzymane) == 1
+        k._zdarzenie_skrzynki("skan", skan("b.stl", "0123456789abcdef"))  # ta sama tresc pod inna nazwa (przemianowany / powtorka)
+        assert znaczniki() == 1 and len(k._wstrzymane) == 1
+        k._zdarzenie_skrzynki("skan", skan("c.stl", "fedcba9876543210"))  # nowy skan
+        assert znaczniki() == 2
+        k._silnik_nie_startuje = True
+        k._zdarzenie_silnika(types.SimpleNamespace(typ="gotowy"))
+        assert k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE zrodlo = 'silnik' AND typ = 'silnik_wrocil'")["n"] == 1
+    finally:
+        k.zamknij()
+
+
+def test_p7_stare_zamknij_piec_po_ponownym_otwarciu_nieaktualne(tmp_path):
+    ind = IndicateAtrapa()
+    k = _poranek_kontroler(tmp_path / "k", ind)
+    try:
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        plan_id, sid = k.stan().rano.plan_id, k.stan().rano.sesja_pieca_id
+        assert k.zamknij_piec(sid) and k.otworz_piec_ponownie(sid) and k.stan().rano.otwarty
+        assert ind.poranna.wersja == 2  # plan ponownie otwartego pieca wyslany (nowa wersja)
+        ind.poranna.zdarzenia.append(_zd(5, "zamknij_piec", plan_id=plan_id, plytka=4))  # klawisz sprzed zamkniecia (przerwa Wi-Fi)
+        k.przetworz()
+        assert k.stan().rano.otwarty and ramka_zdarzen(k.sesja.baza, typ="zamknij_piec")[-1]["skutek"] == "nieaktualne"
+        ind.poranna.zdarzenia += [_zd(6, "plan_przyjety", plan_id=plan_id, wersja=2), _zd(7, "zamknij_piec", plan_id=plan_id, plytka=4)]
+        k.przetworz()
+        assert not k.stan().rano.otwarty and ramka_zdarzen(k.sesja.baza, typ="zamknij_piec")[-1]["skutek"] == "zamknieto"
+    finally:
+        k.zamknij()
+
+
+def test_p8_nieoczekiwany_blad_excela_komunikat_z_lista_kuwet(tmp_path):
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())
+    try:
+        k.przelacz_tryb("rano")
+        k.wybierz_operatora("Technik A")
+        _, ex = _excel_pytaj(k, tmp_path)
+
+        def zepsute(*a, **kw):
+            raise TypeError("nieznany typ komorki")
+
+        ex.propozycje = zepsute
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        assert k.zamknij_piec(k.stan().rano.sesja_pieca_id)
+        czekaj(lambda: k.stan().excel.w_toku == 0, 5.0, "krok Excela", pompa=k.przetworz)
+        kom = next(x for x in k.stan().komunikaty if x.id == K.ID_EXCEL)
+        assert kom.rodzaj == "excel_blad" and "3200" in kom.tekst and "3207" in kom.tekst and k.stan().excel.blad == ST.NAPIS_EXCEL_BLAD_PROGRAMU
+    finally:
+        k.zamknij()
+
+
+def test_d2_baza_zajeta_zdarzenia_ramki_czekaja_i_wracaja(tmp_path):
+    from stanowisko import baza as B
+
+    ind = IndicateAtrapa()
+    k = _poranek_kontroler(tmp_path / "k", ind)
+    try:
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        plan_id = k.stan().rano.plan_id
+        oryginal = k.sesja.baza.zdarzenie
+        zajeta = {"tak": True}
+
+        def zdarzenie(zrodlo, *a, **kw):
+            if zrodlo.startswith("ramka") and zajeta["tak"]:
+                raise B.BladBazy("baza zajeta")
+            return oryginal(zrodlo, *a, **kw)
+
+        k.sesja.baza.zdarzenie = zdarzenie
+        ind.poranna.zdarzenia += [_zd(1, "plytka", plytka=4, poprzednia=0), _zd(2, "potwierdzenie", plan_id=plan_id, plytka=4, kuweta="3200"),
+                                  _zd(3, "zamknij_piec", plan_id=plan_id, plytka=4)]
+        k.przetworz()
+        k.przetworz()
+        assert ramka_zdarzen(k.sesja.baza) == [] and k.stan().rano.otwarty  # nic nie zapisane, nic nie zgubione
+        zajeta["tak"] = False
+        k.przetworz()
+        assert [(z["nr"], z["typ"]) for z in ramka_zdarzen(k.sesja.baza)] == [(1, "plytka"), (2, "potwierdzenie"), (3, "zamknij_piec")]
+        assert not k.stan().rano.otwarty
+        k.przetworz()
+        assert len(ramka_zdarzen(k.sesja.baza)) == 3
+    finally:
+        k.zamknij()
+
+
+def test_d9_poprzednia_proba_z_bledem_widoczna_przy_pozycji(tmp_path):
+    from stanowisko import kontroler_api as K
+
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())
+    try:
+        k.przelacz_tryb("rano")
+        k.wybierz_operatora("Technik A")
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        assert k.zamknij_piec(k.stan().rano.sesja_pieca_id)
+        sid = k.stan().rano.sesja_pieca_id
+        z3200 = k.sesja.baza.wiersz("SELECT id FROM zlecenia WHERE kuweta = '3200'")["id"]
+        k.sesja.baza.wstaw("excel_zapisy", czas=RANO_START.isoformat(), sesja_pieca_id=sid, zlecenie_id=z3200, kuweta="3200", wiersz=77, regula=2,
+                           wynik="blad", tryb="pytaj", operator="Technik A")
+        _excel_pytaj(k, tmp_path)
+        assert k.excel_pokaz(sid)
+        a, b = k.stan().excel.pozycje
+        assert (a.kuweta, a.poprzedni_blad, a.poprzedni_wiersz) == ("3200", True, 77) and not b.poprzedni_blad
+    finally:
+        k.zamknij()
+
+
+def test_enter_na_ramce_kuweta_rozlozona_na_ekranie_takze_po_restarcie(tmp_path):
+    """Decyzja (koordynator, runda 2): Enter na ramce porannej = kuweta rozlozona na ekranie - gdy potwierdzona na WSZYSTKICH
+    plytkach planu, na ktorych lezy; Backspace (cofniecie) na ramce - znow do rozlozenia i biezaca; po restarcie z dziennika."""
+    ind = IndicateAtrapa()
+    k = _poranek_kontroler(tmp_path / "k", ind)
+
+    def kuweta(k_, nr):
+        return next(x for x in k_.stan().rano.kuwety if x.kuweta == nr)
+
+    try:
+        k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "pewna", 5: "pewna"}, projekty={1: 301, 2: 302, 3: 303, 5: 305})
+        k.symuluj_skan_rano(5, {1: "pewna"}, projekty={1: 306})  # kuweta 3214 na plytkach 4 i 5
+        plan_id = k.stan().rano.plan_id
+        assert kuweta(k, "3214").plytki == (4, 5)
+        ind.poranna.potw = [[4, "3214"]]
+        ind.poranna.zdarzenia.append(_zd(1, "potwierdzenie", plan_id=plan_id, plytka=4, kuweta="3214"))
+        k.przetworz()
+        assert not kuweta(k, "3214").potwierdzona  # potwierdzona tylko na jednej z dwoch plytek
+        ind.poranna.potw = [[4, "3214"], [5, "3214"], [4, "3200"]]
+        ind.poranna.zdarzenia += [_zd(2, "potwierdzenie", plan_id=plan_id, plytka=5, kuweta="3214"),
+                                  _zd(3, "potwierdzenie", plan_id=plan_id, plytka=4, kuweta="3200")]
+        k.przetworz()
+        assert kuweta(k, "3214").potwierdzona and kuweta(k, "3200").potwierdzona
+        ind.poranna.potw = [[4, "3214"], [4, "3200"]]
+        ind.poranna.zdarzenia.append(_zd(4, "cofniecie", plan_id=plan_id, plytka=5, kuweta="3214"))
+        k.przetworz()
+        assert not kuweta(k, "3214").potwierdzona and kuweta(k, "3200").potwierdzona and k.stan().rano.kuweta_biezaca == "3214"
+    finally:
+        k.zamknij()
+    k = _poranek_kontroler(tmp_path / "k", IndicateAtrapa())
+    try:
+        assert not kuweta(k, "3214").potwierdzona and kuweta(k, "3200").potwierdzona
+    finally:
+        k.zamknij()
