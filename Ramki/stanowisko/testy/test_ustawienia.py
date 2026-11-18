@@ -70,6 +70,12 @@ def _zepsuj(tmp_path, stare, nowe):
     ("[ramki]", "[ramka]", r"\[ramka\]: nieznana sekcja"),
     ('wieczorna = "modele_plytek/wieczorna"', 'wieczorna = "modele_plytek\\\\wieczorna"', r"\[plytki\] wieczorna: ścieżka"),
     ("tryb_pytaj_przed_zapisem = true", "tryb_pytaj_przed_zapisem = 1", r"\[excel\] tryb_pytaj_przed_zapisem: oczekiwano bool"),
+    # [match]: filtr wysokości (P1) i korekta skali ze skanu (P3)
+    ("filtr_wysokosc_min_udzial = 0.5", "filtr_wysokosc_min_udzial = 1.5", r"\[match\] filtr_wysokosc_min_udzial: udział z \[0, 1\]"),
+    ("korekta_skali = true", "korekta_skali = 1", r"\[match\] korekta_skali: oczekiwano bool"),
+    ("korekta_skali_okno_proc = 1.0", "korekta_skali_okno_proc = 0", r"\[match\] korekta_skali_okno_proc: okno korekty skali"),
+    ("korekta_skali_ostrzezenie_proc = 0.3", "korekta_skali_ostrzezenie_proc = 1.5", r"\[match\] korekta_skali_ostrzezenie_proc: próg ostrzeżenia"),
+    ("korekta_skali_pas_brzegu_mm = 2.0", "korekta_skali_pas_brzegu_mm = -1.0", r"\[match\] korekta_skali_pas_brzegu_mm: musi być >= 0"),  # brak klucza: wartość ze wzoru (DOMYSLNE_NOWYCH)
 ])
 def test_zly_plik_ustawien_czytelny_blad(tmp_path, stare, nowe, komunikat):
     p = _zepsuj(tmp_path, stare, nowe)
@@ -119,3 +125,24 @@ def test_repo_nie_sledzi_danych_ani_ustawien_maszyny():
 def test_przyklad_bez_sciezek_konkretnej_maszyny():
     for v in UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)["sciezki"].values():
         assert "Users/" not in v
+
+
+def test_nowe_klucze_maja_domyslne_ze_wzoru(tmp_path):
+    """Klucze dodane po R59 (DOMYSLNE_NOWYCH) mogą nie istnieć w lokalnym ustawienia.toml - dostają wartość ze wzoru."""
+    with open(UST.PLIK_PRZYKLADU, "rb") as f:
+        wzor = tomllib.load(f)
+    for sekcja, klucze in UST.DOMYSLNE_NOWYCH.items():
+        for k, v in klucze.items():
+            assert k in UST.SCHEMAT[sekcja] and wzor[sekcja][k] == v, (sekcja, k)
+    nowe = {k for kl in UST.DOMYSLNE_NOWYCH.values() for k in kl}
+    stary = "\n".join(linia for linia in UST.PLIK_PRZYKLADU.read_text(encoding="utf-8").splitlines() if linia.split("=")[0].strip() not in nowe)
+    p = tmp_path / "ustawienia.toml"
+    p.write_text(stary, encoding="utf-8")
+    ust = UST.wczytaj_ustawienia(p)
+    assert ust["inspect"]["pas_brzegu_od"] == "linia_i_plaszczyzna" and ust["synth"]["krawedz_rozmiar_max_mm"] == 0.40
+    # wpis w pliku ma pierwszeństwo; zła wartość nadal jest błędem
+    p.write_text(stary.replace("\n[inspect]\n", '\n[inspect]\npas_brzegu_od = "linia"\n'), encoding="utf-8")
+    assert UST.wczytaj_ustawienia(p)["inspect"]["pas_brzegu_od"] == "linia"
+    p.write_text(stary.replace("\n[inspect]\n", '\n[inspect]\npas_brzegu_od = "obok"\n'), encoding="utf-8")
+    with pytest.raises(UST.BladUstawien, match="pas_brzegu_od"):
+        UST.wczytaj_ustawienia(p)

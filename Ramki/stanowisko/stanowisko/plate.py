@@ -21,6 +21,8 @@ Kroki:
    i po wyrównaniu mapa wysokości skanu z modelem STL w miejscach jednoznacznych (dno gniazda modelu, nad
    którym skan ma pełny wierzch; pełny wierzch modelu, w którym skan ma dziurę); niezgodność =
    ``NiezgodnyUklad`` z komunikatem „płytka nie pasuje do wybranego układu”, bez cięcia na gniazda,
+5b. układ nieznany z góry (``rozpoznaj_uklad``): kroki 1–3 raz, kroki 4–5a dla każdego układu o pasującym rozstawie
+   stożków; kwadrat / koło tej samej rodziny rozstrzyga numer płytki (podany albo z dołków) albo kształt brzegu,
 6. numer z dołków kodu (ø2 × 1: w promieniu 0,8 mm od środka dołka 5. percentyl z < z_top − 0,4),
    dołek bez punktów = niewidoczny → numer nieznany, chyba że podany (``numer``),
 7. cięcie: punkty, które nie leżą na modelu płytki (odległość do STL > 0,12 mm), grupowane DBSCAN
@@ -69,6 +71,12 @@ PROG_WIERZCHU_SKANU = 0.15  # mm: piksel skanu leży na wierzchu płytki, gdy je
 GLEBOKOSC_DZIURY_MIN = 1.5  # mm: piksel skanu jest dziurą, gdy jego najwyższy punkt leży tyle pod wierzchem (dołek kodu ma 1 mm)
 PROG_GNIAZDO_NAD_PELNYM_MM2 = 150.0  # mm²: tyle dna gniazd modelu nad płaskim wierzchem skanu = płytka nie pasuje (zmierzone: zgodne ≤ 48, niezgodne ≥ 410)
 PROG_DZIURA_W_PELNYM_MM2 = 50.0  # mm²: tyle pełnego wierzchu modelu nad dziurą w skanie = płytka nie pasuje (zmierzone: zgodne 0, niezgodne ≥ 54 na pełnej płytce, ≥ 180 na pustej i częściowej)
+# automatyczne rozpoznanie układu (rozpoznaj_uklad): kwadrat czy koło tej samej rodziny układów
+R_KSZTALTU_MIN = 47.5  # mm: dalej od środka nie ma gniazd ani stożków (wszystkie obrysy leżą w kole r 47), jest tylko brzeg płytki
+R_KSZTALTU_MAX = 75.0  # mm: rogi kwadratu sięgają r 67,9
+PAS_KSZTALTU_Z = 3.0  # mm: oceniana jest górna część bryły płytki (wierzch i górny pas ścianki)
+PROG_KSZTALTU_ODL = 0.3  # mm: punkt skanu dalej od modelu niż to = nie należy do płytki o tym kształcie
+PROG_KSZTALTU_MM2 = 40.0  # mm²: taka różnica powierzchni niewyjaśnionej między kształtami rozstrzyga (pomiar: narzedzia/auto_uklad.py)
 
 
 class BladWyrownania(RuntimeError):
@@ -558,15 +566,32 @@ def plik_modelu_plytki(uk: U.UkladPlytki, numer: int | None) -> Path:
     return uk.plik_stl(uk.numery[0])
 
 
-def wyrownaj(
-    skan: trimesh.Trimesh, uk: U.UkladPlytki, numer: int | None = None, seed: int = 0, icp: bool = True, ciecie: bool = True,
-    straznik: bool = True,
-) -> WynikWyrownania:
-    """Pełny przebieg plate na siatce skanu; ``numer`` podany przez użytkownika ma pierwszeństwo nad dołkami.
+@dataclass
+class _Przygotowanie:
+    """Część wyrównania niezależna od układu gniazd: wypoziomowany skan i dopasowane stożki znaczników (liczona raz na skan)."""
 
-    Skan, który nie pasuje do układu ``uk`` (inny rozstaw stożków albo gniazda w innych miejscach), kończy się
-    ``NiezgodnyUklad`` — wyniku z gniazdami nie ma. ``straznik=False`` wyłącza tylko drugie sprawdzenie (gniazda).
-    """
+    P0: np.ndarray
+    N0: np.ndarray
+    Ps: np.ndarray
+    Ns: np.ndarray
+    T1: np.ndarray
+    stozki: list
+    jak: dict
+    stan_rng: dict  # stan generatora po próbce i płaszczyźnie: ICP każdego układu startuje z tego samego stanu
+    stan_rng_plaszczyzna: dict  # stan generatora tuż przed ``plaszczyzna_wierzchu`` (ona ustawia też ziarno generatora Open3D)
+    czas_s: float
+    pole_punktu: float  # mm² powierzchni skanu na jeden punkt próbki Ps
+    swiezy: bool = True  # False po pierwszym ``_wyrownaj_do_ukladu``: generator Open3D został zużyty przez ICP
+
+
+def _klucz_przygotowania(uk: U.UkladPlytki) -> tuple:
+    """Od czego zależy ``_przygotuj``: grubość płytki i geometria stożka znacznika (dziś wspólne dla wszystkich układów)."""
+    zn = uk.markers[0]
+    return (float(uk.thickness), float(zn.d), float(zn.depth))
+
+
+def _przygotuj(skan: trimesh.Trimesh, uk: U.UkladPlytki, seed: int = 0) -> _Przygotowanie:
+    """Kroki 1–3: płaszczyzna wierzchu, wypoziomowanie, stożki znaczników (bez przypisania do układu)."""
     t0 = time.time()
     rng = np.random.default_rng(seed)
     P0 = np.asarray(skan.vertices, dtype=np.float64)
@@ -575,6 +600,7 @@ def wyrownaj(
     jak: dict = {"punkty": int(len(P0))}
 
     Ps, Ns = probka_powierzchni(skan, 1500000, rng)
+    stan_plaszczyzna = rng.bit_generator.state
     n, d, j = plaszczyzna_wierzchu(Ps, Ns, rng)
     jak.update(j)
     T1 = macierz_poziomowania(n, d, uk.thickness)
@@ -590,13 +616,32 @@ def wyrownaj(
     jak["stozki_kandydaci"] = len(kand)
     jak["stozki_dopasowane"] = len(stozki)
     jak["stozki_rms_mm"] = [round(s["rms"], 4) for s in stozki]
+    return _Przygotowanie(P0=P0, N0=N0, Ps=Ps, Ns=Ns, T1=T1, stozki=stozki, jak=jak, stan_rng=rng.bit_generator.state,
+                          stan_rng_plaszczyzna=stan_plaszczyzna, czas_s=time.time() - t0, pole_punktu=float(skan.area) / max(len(Ps), 1))
+
+
+def _wyrownaj_do_ukladu(prz: _Przygotowanie, uk: U.UkladPlytki, numer: int | None, icp: bool, straznik: bool) -> tuple[WynikWyrownania, dict]:
+    """Kroki 4–6 dla jednego układu na przygotowanym skanie; wynik bez cięcia + stan do ``_dotnij``."""
+    t1 = time.time()
+    rng = np.random.default_rng(0)
+    if not prz.swiezy:
+        # Kolejny układ na tym samym przygotowaniu. ICP losuje próbkę modelu generatorem Open3D (globalnym), którego ziarno
+        # ustawia ``plaszczyzna_wierzchu``; poprzedni układ już go zużył. Powtórzenie płaszczyzny z tym samym stanem przywraca
+        # generator Open3D do stanu, jaki ma w tym miejscu ``wyrownaj`` — wynik jest bit w bit taki sam jak przy układzie
+        # wybranym ręcznie.
+        rng.bit_generator.state = prz.stan_rng_plaszczyzna
+        plaszczyzna_wierzchu(prz.Ps, prz.Ns, rng)
+    prz.swiezy = False
+    rng.bit_generator.state = prz.stan_rng
+    jak: dict = dict(prz.jak)
+    P0, N0, Ps, Ns = prz.P0, prz.N0, prz.Ps, prz.Ns
     try:
-        T2, j = przypisz_znaczniki(stozki, uk)
+        T2, j = przypisz_znaczniki(prz.stozki, uk)
     except NiezgodnyUklad as e:
-        e.jakosc = {**jak, **e.jakosc, "czas_s": round(time.time() - t0, 2)}
+        e.jakosc = {**jak, **e.jakosc, "czas_s": round(prz.czas_s + time.time() - t1, 2)}
         raise
     jak.update(j)
-    T = T2 @ T1
+    T = T2 @ prz.T1
     if icp:
         N1 = N0 @ T[:3, :3].T
         P2 = P0 @ T[:3, :3].T + T[:3, 3]
@@ -607,7 +652,7 @@ def wyrownaj(
     N = N0 @ T[:3, :3].T
     Ps2 = Ps @ T[:3, :3].T + T[:3, 3]
     Ns2 = Ns @ T[:3, :3].T
-    jak["czas_wyrownania_s"] = round(time.time() - t0, 2)
+    jak["czas_wyrownania_s"] = round(prz.czas_s + time.time() - t1, 2)
 
     bity = odczytaj_bity(Ps2, uk)  # próbka po powierzchni: równomierna także na płaskim wierzchu
     numer_z_dolkow = None
@@ -616,44 +661,207 @@ def wyrownaj(
     if numer is not None:
         zrodlo = "podany"
         if numer_z_dolkow is not None and numer_z_dolkow != numer:
-            warnings.warn(f"numer płytki podany {numer}, z dołków odczytano {numer_z_dolkow} — używam podanego", stacklevel=2)
+            warnings.warn(f"numer płytki podany {numer}, z dołków odczytano {numer_z_dolkow} — używam podanego", stacklevel=3)
     elif numer_z_dolkow is not None:
         numer, zrodlo = numer_z_dolkow, "dolki"
         if numer not in uk.numery:
-            warnings.warn(f"numer płytki z dołków {numer} nie ma modelu w {uk.katalog} (są: {uk.numery})", stacklevel=2)
+            warnings.warn(f"numer płytki z dołków {numer} nie ma modelu w {uk.katalog} (są: {uk.numery})", stacklevel=3)
     else:
         zrodlo = "nieznany"
         warnings.warn(
             f"dołki kodu poza skanem ({sum(b is None for b in bity)} z {len(bity)} niewidocznych) — podaj numer płytki (--numer)",
-            stacklevel=2,
+            stacklevel=3,
         )
 
     if straznik:
         jak.update(zgodnosc_ukladu(Ps2, uk, plik_modelu_plytki(uk, numer)))
         if not jak["uklad_zgodny"]:
-            jak["czas_s"] = round(time.time() - t0, 2)
+            jak["czas_s"] = round(prz.czas_s + time.time() - t1, 2)
             raise NiezgodnyUklad(
                 f"płytka nie pasuje do wybranego układu „{uk.nazwa}”: stożki znaczników pasują, ale gniazda leżą inaczej niż w modelu "
                 f"(dno gniazda modelu nad pełnym wierzchem skanu: {jak['uklad_gniazdo_nad_pelnym_mm2']:.0f} mm², pełny wierzch modelu nad dziurą "
                 f"w skanie: {jak['uklad_dziura_w_pelnym_mm2']:.0f} mm²; progi {PROG_GNIAZDO_NAD_PELNYM_MM2:.0f} / {PROG_DZIURA_W_PELNYM_MM2:.0f} mm²) — sprawdź wybór układu płytki",
-                "gniazda", stozki, jak, T,
+                "gniazda", prz.stozki, jak, T,
             )
+    wyr = WynikWyrownania(
+        plytka=uk.nazwa, macierz=T, numer=numer, numer_zrodlo=zrodlo, bity=bity, numer_z_dolkow=numer_z_dolkow,
+        fragmenty=[], gniazda_puste=[], gniazda_podwojne=[], jakosc=jak,
+    )
+    return wyr, {"P": P, "N": N, "Ps": Ps2, "Ns": Ns2, "t1": t1, "czas_przygotowania": prz.czas_s}
 
-    fragmenty: list[Fragment] = []
-    puste, podwojne = [], []
+
+def _dotnij(wyr: WynikWyrownania, stan: dict, uk: U.UkladPlytki, ciecie: bool) -> WynikWyrownania:
+    """Krok 7 (cięcie na gniazda) na wyniku ``_wyrownaj_do_ukladu``; zamyka pomiar czasu."""
+    jak = wyr.jakosc
     if ciecie:
-        t1 = time.time()
-        fragmenty, j = potnij_na_fragmenty(P, N, Ps2, Ns2, uk, plik_modelu_plytki(uk, numer))
+        t = time.time()
+        fragmenty, j = potnij_na_fragmenty(stan["P"], stan["N"], stan["Ps"], stan["Ns"], uk, plik_modelu_plytki(uk, wyr.numer))
         jak.update(j)
         zajete = {f.gniazdo for f in fragmenty if f.gniazdo is not None and f.status in ("praca", "podwojny")}
-        puste = [g.id for g in uk.sockets if g.id not in zajete]
-        podwojne = sorted({f.gniazdo for f in fragmenty if f.status == "podwojny"})
-        jak["czas_ciecia_s"] = round(time.time() - t1, 2)
-    jak["czas_s"] = round(time.time() - t0, 2)
-    return WynikWyrownania(
-        plytka=uk.nazwa, macierz=T, numer=numer, numer_zrodlo=zrodlo, bity=bity, numer_z_dolkow=numer_z_dolkow,
-        fragmenty=fragmenty, gniazda_puste=puste, gniazda_podwojne=podwojne, jakosc=jak,
-    )
+        wyr.fragmenty = fragmenty
+        wyr.gniazda_puste = [g.id for g in uk.sockets if g.id not in zajete]
+        wyr.gniazda_podwojne = sorted({f.gniazdo for f in fragmenty if f.status == "podwojny"})
+        jak["czas_ciecia_s"] = round(time.time() - t, 2)
+    jak["czas_s"] = round(stan["czas_przygotowania"] + time.time() - stan["t1"], 2)
+    return wyr
+
+
+def wyrownaj(
+    skan: trimesh.Trimesh, uk: U.UkladPlytki, numer: int | None = None, seed: int = 0, icp: bool = True, ciecie: bool = True,
+    straznik: bool = True,
+) -> WynikWyrownania:
+    """Pełny przebieg plate na siatce skanu; ``numer`` podany przez użytkownika ma pierwszeństwo nad dołkami.
+
+    Skan, który nie pasuje do układu ``uk`` (inny rozstaw stożków albo gniazda w innych miejscach), kończy się
+    ``NiezgodnyUklad`` — wyniku z gniazdami nie ma. ``straznik=False`` wyłącza tylko drugie sprawdzenie (gniazda).
+    """
+    prz = _przygotuj(skan, uk, seed)
+    wyr, stan = _wyrownaj_do_ukladu(prz, uk, numer, icp, straznik)
+    return _dotnij(wyr, stan, uk, ciecie)
+
+
+# ----------------------------------------------------------------------------
+# automatyczne rozpoznanie układu płytki
+# ----------------------------------------------------------------------------
+class NierozpoznanyUklad(NiezgodnyUklad):
+    """Skan nie pasuje do żadnego układu z listy (``rozpoznaj_uklad``); komunikat zaczyna się od „nie rozpoznano układu płytki”.
+
+    ``kandydaci``: wpis dla każdego sprawdzonego układu (dlaczego odpadł).
+    """
+
+    def __init__(self, komunikat: str, powod: str, stozki: list | None = None, jakosc: dict | None = None, kandydaci: list | None = None):
+        super().__init__(komunikat, powod, stozki, jakosc, None)
+        self.kandydaci = list(kandydaci or [])
+
+
+def ksztalt_plytki(Ps: np.ndarray, uk: U.UkladPlytki, plik_modelu: Path, pole_punktu: float) -> dict:
+    """Ile powierzchni skanu przy brzegu płytki NIE leży na modelu ``uk`` — rozróżnia płytkę kwadratową i okrągłą tego samego układu gniazd.
+
+    Kwadrat (96 × 96) i koło (ø100) mają te same gniazda i stożki; różnią się tylko poza kołem r = R_KSZTALTU_MIN (dalej nie ma
+    gniazd ani stożków): koło ma tam wierzch do r = 50 i ściankę walca, kwadrat — ściankę płaską w x, y = ±48 i rogi. Liczone są
+    punkty próbki skanu (``Ps`` w układzie płytki) w górnych PAS_KSZTALTU_Z mm bryły, dalsze od modelu niż PROG_KSZTALTU_ODL.
+    Punkt, którego w skanie nie ma (poza polem skanera), nie jest dowodem — dlatego miara bywa zerem dla obu kształtów.
+    """
+    r = np.hypot(Ps[:, 0], Ps[:, 1])
+    m = (r >= R_KSZTALTU_MIN) & (r <= R_KSZTALTU_MAX) & (Ps[:, 2] <= uk.thickness + PROG_WIERZCHU_SKANU) & (Ps[:, 2] >= uk.thickness - PAS_KSZTALTU_Z)
+    if not m.any():
+        return {"ksztalt_strefa_mm2": 0.0, "ksztalt_niewyjasnione_mm2": 0.0}
+    odl = odleglosc_do_modelu(Ps[m], plik_modelu)
+    return {"ksztalt_strefa_mm2": round(float(m.sum() * pole_punktu), 1),
+            "ksztalt_niewyjasnione_mm2": round(float((odl > PROG_KSZTALTU_ODL).sum() * pole_punktu), 1)}
+
+
+def rozpoznaj_uklad(
+    skan: trimesh.Trimesh, uklady: list[U.UkladPlytki], numer: int | None = None, seed: int = 0, icp: bool = True, ciecie: bool = True,
+    straznik: bool = True,
+) -> tuple[WynikWyrownania, dict]:
+    """Sam rozpoznaje, do którego układu z ``uklady`` należy zeskanowana płytka, i wyrównuje skan do niego.
+
+    1. rozstaw trzech stożków znaczników wybiera rodzinę: wieczorna / poranna i układ gniazd R59 / poprzedni R54 (cztery różne
+       trójkąty) — to samo sprawdzenie co pierwsza warstwa strażnika układu;
+    2. każdy układ z pasującym rozstawem jest wyrównywany (ICP) i sprawdzany strażnikiem (gniazda skanu = gniazda modelu);
+    3. kwadrat i koło tej samej rodziny mają te same stożki i gniazda, więc wybiera między nimi kolejno: numer podany przez
+       człowieka (n1–n6 = kwadrat, n8–n9 = koło), numer odczytany z dołków kodu (na płytce okrągłej dołki leżą w polu skanowania,
+       więc dają ważny numer; na kwadracie leżą poza polem ø100), kształt brzegu płytki (``ksztalt_plytki``), wykluczenie
+       układu, którego dołki widać w całości, a nie dają numeru jego płytki; gdy nic nie rozstrzyga — układ, którego dołki
+       są poza skanem (kwadrat), z flagą ``pewny`` = False i ostrzeżeniem. Gdy kształt brzegu wyraźnie przeczy wyborowi
+       z numeru, ``pewny`` = False.
+
+    Wynik wyrównania dla wybranego układu jest taki sam jak z ``wyrownaj(skan, uk, …)`` z tym układem podanym ręcznie.
+    Zwraca też opis decyzji: ``wybrany``, ``pewny``, ``powod``, ``kandydaci`` (każdy układ: czy pasują stożki, dlaczego odpadł,
+    numer z dołków, miary kształtu), ``czas_s``. Żaden układ nie pasuje → ``NierozpoznanyUklad``.
+    """
+    if not uklady:
+        raise ValueError("rozpoznaj_uklad: pusta lista układów")
+    t0 = time.time()
+    przygotowania: dict[tuple, _Przygotowanie] = {}
+    kandydaci: list[dict] = []
+    przeszly: list[tuple] = []
+    for uk in uklady:
+        klucz = _klucz_przygotowania(uk)
+        if klucz not in przygotowania:
+            przygotowania[klucz] = _przygotuj(skan, uk, seed)
+        prz = przygotowania[klucz]
+        wpis: dict = {"uklad": uk.nazwa, "ksztalt": uk.shape, "numery": list(uk.numery), "stozki_pasuja": stozki_pasuja(prz.stozki, uk)}
+        kandydaci.append(wpis)
+        if not wpis["stozki_pasuja"]:
+            wpis["odrzucony"] = "stozki"
+            continue
+        n = numer if numer is not None and numer in uk.numery else None
+        try:
+            with warnings.catch_warnings(record=True) as ostrz:
+                warnings.simplefilter("always")
+                wyr, stan = _wyrownaj_do_ukladu(prz, uk, n, icp, straznik)
+        except NiezgodnyUklad as e:
+            wpis["odrzucony"] = e.powod
+            wpis.update({k: v for k, v in e.jakosc.items() if k.startswith("uklad_") and k != "uklad_powod"})
+            continue
+        except BladWyrownania as e:
+            wpis["odrzucony"] = f"blad: {e}"
+            continue
+        wpis.update({k: v for k, v in wyr.jakosc.items() if k.startswith("uklad_")})
+        wpis.update(ksztalt_plytki(stan["Ps"], uk, plik_modelu_plytki(uk, wyr.numer), prz.pole_punktu))
+        wpis["numer_z_dolkow"] = wyr.numer_z_dolkow
+        wpis["numer_z_dolkow_wazny"] = wyr.numer_z_dolkow is not None and wyr.numer_z_dolkow in uk.numery
+        wpis["dolki_widoczne"] = sum(b is not None for b in wyr.bity)
+        wpis["numer_podany_pasuje"] = None if numer is None else numer in uk.numery
+        przeszly.append((uk, wyr, stan, wpis, [str(o.message) for o in ostrz]))
+
+    prz0 = next(iter(przygotowania.values()))
+    if not przeszly:
+        jak = {**prz0.jak, "czas_s": round(time.time() - t0, 2)}
+        if len(prz0.stozki) < 3:
+            raise BladWyrownania(f"znaleziono {len(prz0.stozki)} stożki znaczników, potrzeba 3")
+        if not any(k["stozki_pasuja"] for k in kandydaci):
+            pts = np.array([[s["x"], s["y"]] for s in prz0.stozki])
+            boki = _boki(pts[list(_przypisania(prz0.stozki, uklady[0])[0][1])])
+            jak["uklad_rozstaw_skanu_mm"] = [round(b, 3) for b in boki]
+            raise NierozpoznanyUklad(
+                f"nie rozpoznano układu płytki: rozstaw stożków znaczników w skanie ({' / '.join(f'{b:.1f}' for b in boki)} mm) "
+                f"nie pasuje do żadnego układu ({', '.join(u.nazwa for u in uklady)})", "stozki", prz0.stozki, jak, kandydaci)
+        raise NierozpoznanyUklad(
+            "nie rozpoznano układu płytki: rozstaw stożków pasuje do " + ", ".join(k["uklad"] for k in kandydaci if k["stozki_pasuja"])
+            + ", ale gniazda w skanie leżą inaczej niż w tych układach", "gniazda", prz0.stozki, jak, kandydaci)
+
+    pewny = True
+    if len(przeszly) == 1:
+        wybrany, powod = przeszly[0], "jedyny_pasujacy"
+    else:
+        wg_ksztaltu = sorted(przeszly, key=lambda c: c[3]["ksztalt_niewyjasnione_mm2"])
+        ksztalt_rozstrzyga = wg_ksztaltu[1][3]["ksztalt_niewyjasnione_mm2"] - wg_ksztaltu[0][3]["ksztalt_niewyjasnione_mm2"] >= PROG_KSZTALTU_MM2
+        z_podanym = [c for c in przeszly if c[3]["numer_podany_pasuje"]]
+        z_dolkow = [c for c in przeszly if c[3]["numer_z_dolkow_wazny"]]
+        if len(z_podanym) == 1:
+            wybrany, powod = z_podanym[0], "numer_podany"
+            pewny = not (ksztalt_rozstrzyga and wg_ksztaltu[0] is not wybrany)
+        elif len(z_dolkow) == 1:
+            wybrany, powod = z_dolkow[0], "numer_z_dolkow"
+            pewny = not (ksztalt_rozstrzyga and wg_ksztaltu[0] is not wybrany)
+        elif ksztalt_rozstrzyga:
+            wybrany, powod = wg_ksztaltu[0], "ksztalt"
+        else:
+            # układ, którego wszystkie dołki kodu widać, a nie dają numeru jego płytki, odpada (kwadrat widziany jako koło:
+            # w miejscach dołków płytki okrągłej jest płaski wierzch → „numer 0”)
+            mozliwe = [c for c in przeszly if not (0 < len(c[1].bity) == c[3]["dolki_widoczne"] and not c[3]["numer_z_dolkow_wazny"])]
+            if len(mozliwe) == 1:
+                wybrany, powod = mozliwe[0], "dolki_wykluczaja"
+            else:
+                bez_dolkow = [c for c in przeszly if c[3]["dolki_widoczne"] == 0]
+                wybrany, powod, pewny = (bez_dolkow or przeszly)[0], "domyslny", False
+    uk, wyr, stan, wpis, ostrzezenia = wybrany
+    for o in ostrzezenia:
+        warnings.warn(o, stacklevel=2)
+    if numer is not None and numer not in uk.numery:
+        warnings.warn(f"podany numer płytki {numer} nie należy do rozpoznanego układu „{uk.nazwa}” (numery {uk.numery}) — pominięty", stacklevel=2)
+    if not pewny:
+        warnings.warn(
+            f"układ płytki rozpoznany niepewnie: „{uk.nazwa}” (pasują też: {', '.join(c[0].nazwa for c in przeszly if c[0] is not uk)}) — "
+            "podaj numer płytki albo wybierz układ ręcznie", stacklevel=2)
+    wyr = _dotnij(wyr, stan, uk, ciecie)
+    wyr.jakosc["czas_s"] = round(time.time() - t0, 2)
+    info = {"wybrany": uk.nazwa, "pewny": pewny, "powod": powod, "kandydaci": kandydaci, "czas_s": round(time.time() - t0, 2),
+            "czas_rozpoznania_s": round(time.time() - t0 - wyr.jakosc.get("czas_ciecia_s", 0.0), 2)}
+    return wyr, info
 
 
 def blad_wyrownania(T: np.ndarray, poza_skanu: np.ndarray | None, promien: float = 50.0) -> dict:

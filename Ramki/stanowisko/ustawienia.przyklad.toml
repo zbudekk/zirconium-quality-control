@@ -17,7 +17,9 @@ okragla_wieczorna = "modele_plytek/okragla_wieczorna"   # płytki okrągłe ø10
 okragla_poranna = "modele_plytek/okragla_poranna"
 # Powyżej układ gniazd R59 (14.11.2026: wieczorna 18 + 1 rynienka, poranna 23 + 1). Poniżej poprzedni układ R54
 # (18 + 2 i 31 + 2) — dla płytek fizycznych zamówionych przed R59; numery płytek są te same (n1–n6, n8, n9),
-# więc układ wybiera człowiek, a program ostrzega, gdy skan nie pasuje do wybranego układu (plate: strażnik układu).
+# więc układ rozpoznaje program ze skanu po rozstawie stożków (porownaj: --plytka auto, okno: „rozpoznaj automatycznie”);
+# przy układzie wybranym ręcznie program ostrzega, gdy skan do niego nie pasuje (plate: strażnik układu).
+# Wiersze okragla_* i *_r54 są opcjonalne: brakujące układy dostarczane z programem są dopisywane przy wczytaniu ustawień.
 wieczorna_r54 = "modele_plytek/wieczorna_r54"
 poranna_r54 = "modele_plytek/poranna_r54"
 okragla_wieczorna_r54 = "modele_plytek/okragla_wieczorna_r54"
@@ -31,6 +33,11 @@ pewnosc_min = 0.1                   # pokrycie 1. kandydata musi przewyższać 2
 filtr_wymiar_mm = 1.5               # filtr wstępny: wymiary obrysu/wysokość fragmentu vs projekt × współczynnik, tolerancja mm…
 filtr_wymiar_udzial = 0.15          # …albo udział (większe z dwojga)
 filtr_objetosc_udzial = 0.35        # tolerancja objętości otoczki wypukłej
+filtr_wysokosc_min_udzial = 0.5     # fragment może być niższy niż projekt (dół w gnieździe, widok z góry), ale nie niższy niż tyle jego wysokości; obrys i objętość liczone wobec projektu przyciętego do wysokości fragmentu (1.0 = stara reguła ± tolerancja)
+korekta_skali = true                # korekta skali ze skanu dla rozpoznanej pracy (decyzja 06.11.2026); na płytkach porannych tylko pomiar, bez stosowania
+korekta_skali_okno_proc = 1.0       # poprawka skali stosowana tylko w oknie ± tyle procent wokół współczynnika z puli; poza oknem: bez korekty + ostrzeżenie
+korekta_skali_ostrzezenie_proc = 0.3  # |poprawka| powyżej tego = ostrzeżenie „sprawdź współczynnik / krążek”
+korekta_skali_pas_brzegu_mm = 2.0   # punkty skanu bliżej brzegu niż tyle (od z = 0 projektu w dół) nie biorą udziału w wyznaczaniu skali — ukruszenie / odchyłka krawędzi nie zmienia skali
 pula_wieczor_dni = 2
 pula_rano_dni_roboczych = 4
 usun_z_puli_po_dniach = 10
@@ -49,11 +56,17 @@ drgniecie_udzial_obszaru = 0.10     # drgnięcie: tyle rozmytych komórek = podw
 wciecie_min_mm = 0.2                # metoda B: wcięcie linii brzegu = ukruszenie
 wciecie_pewne_mm = 0.4              # metoda B: samo wcięcie tej wielkości = czerwone (bez potwierdzenia metodą A)
 linia_min_udzial = 0.9              # metoda B tylko gdy linia brzegu widoczna prawie cała; mniej (bokiem, zasłonięta) → B pominięta (P3a: przy 0,6 bokiem dawało 18 fałszywych wcięć); zmierzyć na prawdziwym skanie w P3b
+pas_brzegu_od = "linia_i_plaszczyzna"  # pas brzegu = suma pasa od linii krawędzi brzegu każdego filaru (P2) i pasa sprzed P2 (od najwyższego punktu pracy); „nie sprawdzono” tylko przy braku danych skanu. "linia" = sam pas od linii (niepewna linia projektu też daje „nie sprawdzono”), "plaszczyzna" = sposób sprzed P2 — do porównań
+brzeg_min_sprawdzony = 0.9          # filar jest sprawdzony, gdy co najmniej taka część jego linii brzegu ma pewną linię projektu i dane skanu; mniej → „nie sprawdzono” (żółte, nigdy zielone)
+brzeg_max_przerwa_mm = 1.5          # … i gdy najdłuższy odcinek linii bez sprawdzenia nie przekracza tej długości (odcinek krótszy niż pas brzegu jest objęty kontrolą z sąsiednich odcinków)
 
 [synth]    # generator sztucznych skanów; zakres średnic i pas brzegu ubytków bierze z [inspect]
 szum_sigma_mm = 0.03
 wspolczynnik_min = 1.20
 wspolczynnik_max = 1.25
+odstep_ubytku_mm = 0.05             # odstęp punktów nowej powierzchni ubytku i jej otoczenia (gęstość skanu przyjęta w testach krawędzi; zmierzyć na skanerze w P3b)
+krawedz_rozmiar_min_mm = 0.08       # K6 (--krawedz): ukruszenia celowe na krawędzi brzegu, rozmiar = promień kuli o środku na powierzchni
+krawedz_rozmiar_max_mm = 0.40
 
 [excel]
 kolumna_kuwety = "C"
