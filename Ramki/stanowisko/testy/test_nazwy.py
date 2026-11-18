@@ -93,6 +93,23 @@ def test_p1_jeden_kandydat_bez_oznaczenia():
         assert not N.czy_niejednoznaczna(z.kuweta)
 
 
+# --- runda 3, D19: numer kuwety + zeby zapisane lacznikiem w ksztalcie daty -------------------------------------------------
+@pytest.mark.parametrize("folder, kuweta", [
+    ("Testowski 2012_11_21", "2012"),       # rok sprzed ROK_DATY_MIN, miesiac i dzien = zeby FDI: kuweta 2012 + most 11-21
+    ("Testowski 1984-12-11", "1984"),
+    ("Testowski 5-11-12", "5"),             # DD-MM-RR z rokiem 2012: kuweta 5 + zeby 11-12
+    ("Testowski 12-11-21", None),           # granica: most 12-11-21 bez numeru wyglada tak samo jak kuweta 12 + most 11-21
+    ("Testowski 2021-11-21", None),         # granica: rok od ROK_DATY_MIN to data zlecenia - bez kuwety (licznik, nie zgadujemy)
+    ("Testowski 3263 2015-03-05", "3263"),  # stara data bez zebow FDI nadal jest data
+    ("Testowski 3263 12.11.2015", "3263"),  # kropki: zawsze data
+    ("Testowski 3263 16-11-26", "3263"),    # P1: data DD-MM-RR bez zmian
+    ("Testowski 3263_16_11_2026", "3263"),  # P1 bez zmian
+])
+def test_d19_numer_kuwety_z_zebami_w_ksztalcie_dawnej_daty(folder, kuweta):
+    assert N.kuweta(folder) == kuweta
+    assert N.rozbierz(folder).kuweta == kuweta
+
+
 def test_kryterium1_kuweta_w_40_z_40_wzorow_drzewa():
     rng = np.random.default_rng(5)
     duze = rng.permutation(np.arange(1000, 10000))

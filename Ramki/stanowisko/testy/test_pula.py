@@ -53,7 +53,8 @@ CSV_WIECZOR = [
     "2026-11-16_brakujacy-21-crown_cad.stl;K-1;1,2210;2026-11-17",  # linia 6: STL spoza indeksu
     f"{PLIK_F};K-1;1,2210;2026-11-15",                           # linia 7: przedwczoraj (poza pula)
     "Fikcyjny 0412\\zab 46.stl;K-5;1,2300;2026-11-18",           # linia 8: z folderem; data kalendarza 3. zmiany
-    "zab 46.stl;K-5;1,2350;2026-11-19",                          # linia 9: jutro (poza pula)
+    "zab 46.stl;K-7;1,2350;2026-11-19",                          # linia 9: jutro (poza pula); runda 3: inny krazek niz w linii 8
+    #                                                              (decyzja A: oznaczenie krazka niepowtarzalne - K-5 z 1,23 i 1,235 to sprzecznosc)
     "zab 46.stl;K-6;1,2400;17.11.2026",                          # linia 10: sama nazwa, dwa pliki w indeksie
 ]
 
@@ -238,7 +239,7 @@ def test_kryterium4_dzis_i_wczoraj_w_dobach_roboczych_nie_w_datach(baza, wieczor
     # 18.11 08:00 = doba 18.11: wiersz z 16.11 wypada, wiersz z 19.11 (sama nazwa, blizej Fikcyjny) wchodzi
     p = P.pula_wieczorna(baza, dt.datetime(2026, 11, 18, 8, 0))
     assert wpisy(p, cel) == sorted([("Fikcyjny 0412/zab 46.stl", 1.23, "K-5", "csv"), ("Fikcyjny 0412/zab 46.stl", 1.24, "K-6", "csv"),
-                                    ("Fikcyjny 0412/zab 46.stl", 1.235, "K-5", "csv"), (f"Testowski 3263 zs/{PLIK_A}", 1.221, "K-1", "csv"),
+                                    ("Fikcyjny 0412/zab 46.stl", 1.235, "K-7", "csv"), (f"Testowski 3263 zs/{PLIK_A}", 1.221, "K-1", "csv"),
                                     (f"Testowski 3263 zs/{PLIK_A}", 1.248, "K-2", "csv")])
     assert p.liczniki["niejednoznaczne"] == 2
     # jeden dzien: tylko doba 17.11 (data kalendarza 17 i 18)
@@ -297,14 +298,20 @@ def test_wczytanie_csv_powiazanie_i_ponowne_wczytanie_bez_duplikatow(baza, wiecz
     r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, zmieniony), teraz=TERAZ)
     assert (r.nowe, r.zmienione, r.bez_zmian) == (0, 1, 8)
     assert baza.wiersz("SELECT wspolczynnik FROM frezowania WHERE id = ?", (po_linii[2]["id"],))["wspolczynnik"] == pytest.approx(1.222)
-    # runda 2 (P3, pytanie 6 - zmiana wymagania): dla dni obecnych w pliku plik jest zrodlem prawdy. Plik ma dni 16 i 17.11:
-    # wiersze tych dni, ktorych w pliku juz nie ma (linie 5, 6, 10), sa nieaktualne (w bazie zostaja, oznaczone); dni 15, 18
-    # i 19.11 (nieobecne w pliku - plik czyszczony codziennie) zostaja aktualne.
+    # runda 3 (P6 - zmiana wymagania z rundy 2, gdzie "dzien obecny w pliku = plik zrodlem prawdy" dawal tu 3 nieaktualne):
+    # plik skrocony do 3 wierszy (wyczyszczony) niczego nie uniewaznia - zaden brakujacy wiersz (linie 5-10) nie ma w pliku
+    # zastepnika z ta sama nazwa pliku; wszystkie 9 zostaja aktualne (pora czyszczenia bez znaczenia).
     r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, zmieniony[:3]), teraz=TERAZ)
-    assert (r.wierszy, r.nieaktualne) == (3, 3)
-    assert baza.wiersz("SELECT count(*) AS n FROM frezowania WHERE zrodlo = 'csv'")["n"] == 6
+    assert (r.wierszy, r.nieaktualne, r.bez_zmian) == (3, 0, 3)
+    assert baza.wiersz("SELECT count(*) AS n FROM frezowania WHERE zrodlo = 'csv'")["n"] == 9
+    # poprawione literowki: krazek linii 5 (ten sam plik i data) i data linii 10 (ten sam plik i krazek) - te dwa wiersze
+    # sa nieaktualne; linia 9 (ta sama sama nazwa pliku, ale inny krazek i inna data - np. dofrezowanie) zostaje
+    poprawiony = zmieniony[:3] + [f"{PLIK_C};K-9;;2026-11-17", "zab 46.stl;K-6;1,2400;2026-11-18"]
+    r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, poprawiony), teraz=TERAZ)
+    assert (r.wierszy, r.nowe, r.nieaktualne) == (5, 2, 2)
+    assert baza.wiersz("SELECT count(*) AS n FROM frezowania WHERE zrodlo = 'csv'")["n"] == 9
     nieaktualne = baza.wiersze("SELECT id FROM frezowania WHERE zrodlo = ? ORDER BY id", (W.ZRODLO_CSV_NIEAKTUALNY,))
-    assert [w["id"] for w in nieaktualne] == [po_linii[n]["id"] for n in (5, 6, 10)]
+    assert [w["id"] for w in nieaktualne] == [po_linii[n]["id"] for n in (5, 10)]
 
 
 @pytest.mark.parametrize("kodowanie, bom", [("utf-8", False), ("utf-8", True), ("cp1250", False)])
@@ -602,11 +609,15 @@ def test_p2_powiazanie_przeliczane_gdy_wlasciwy_plik_pozniej_w_indeksie(tmp_path
     kat.odswiez(TERAZ)
     assert baza.wiersz("SELECT projekt_id FROM frezowania")["projekt_id"] == id_projektu(baza, "Atrapowicz 512 Jan")
     zbuduj_foldery(cel, {("Cyrkon", "Fikcyjny 0412"): {"zab 46.stl": dt.datetime(2026, 11, 16, 12)}}, seed=1)
+    csv.rename(csv.with_suffix(".bak"))  # bez pliku CSV w tym odswiezeniu: powiazanie przelicza samo odswiezenie
     o = kat.odswiez(TERAZ)
+    csv.with_suffix(".bak").rename(csv)
+    assert (o["csv_plik"], o["powiazanie"]["zmienione"]) == ("brak", 1)
     p = kat.pula_wieczorna(TERAZ)
     assert [w.sha16 for w in p.wpisy] == [sha(cel, "Cyrkon", "Fikcyjny 0412", "zab 46.stl")]
     assert baza.wiersz("SELECT projekt_id FROM frezowania")["projekt_id"] == id_projektu(baza, "Fikcyjny 0412")
-    assert o["powiazanie"]["zmienione"] == 1
+    kat.odswiez(TERAZ)  # z plikiem CSV: wynik ten sam
+    assert klucze(kat.pula_wieczorna(TERAZ)) == klucze(p)
     b2 = B.otworz(tmp_path / "dane2" / "swieza.sqlite")  # swieza baza, ten sam stan folderow i pliku CSV
     try:
         k2 = P.KatalogPul(b2, zrodla(cel), plik_csv=csv, licz_cechy=False)
@@ -620,6 +631,7 @@ def test_p3_poprawka_wiersza_w_csv_usuwa_stary_wiersz_z_puli(tmp_path, baza):
     cel = tmp_path / "drzewo"
     zaindeksuj(baza, cel, FOLDERY)
     a, c = sha(cel, "Cyrkon", "Testowski 3263 zs", PLIK_A), sha(cel, "Cyrkon", "Probna 3301 kor", PLIK_C)
+    b = sha(cel, "Cyrkon", "Testowski 3263 zs", PLIK_B)
     csv = tmp_path / "millbox" / "wspolczynniki.csv"
     W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-1;1,2500;2026-11-17", f"{PLIK_B};K-3;1,2300;2026-11-16"]), teraz=TERAZ)
     # literowka w krazku poprawiona w pliku (zmienia sie klucz plik + krazek + data): stary wiersz wypada z puli
@@ -631,19 +643,23 @@ def test_p3_poprawka_wiersza_w_csv_usuwa_stary_wiersz_z_puli(tmp_path, baza):
     assert [x["krazek"] for x in P.krazki(baza, TERAZ)] == ["K-2", "K-3"]
     stary = baza.wiersz("SELECT * FROM frezowania WHERE krazek = 'K-1'")
     assert stary["zrodlo"] == W.ZRODLO_CSV_NIEAKTUALNY and stary["projekt_id"] is None  # w bazie zostaje, oznaczony
-    # pomylka nazwy pliku (b zamiast c) poprawiona: w puli tylko plik naprawde frezowany
+    # pomylka nazwy pliku (b zamiast c) poprawiona. Runda 3 (P6 - zmiana wymagania z rundy 2): wiersz z INNA nazwa pliku nie
+    # jest ewidentna poprawka (plik wyczyszczony + nowy wiersz wyglada tak samo), wiec stary wiersz zostaje aktualny - znana
+    # granica opisana w pula.md (skutek: dodatkowy kandydat w puli, nie zla skala)
     r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-2;1,2000;2026-11-17", f"{PLIK_C};K-3;1,2300;2026-11-16"]), teraz=TERAZ)
-    assert (r.nowe, r.nieaktualne) == (1, 1)
-    assert P.pula_wieczorna(baza, TERAZ).sha16() == {a, c}
+    assert (r.nowe, r.nieaktualne) == (1, 0)
+    assert P.pula_wieczorna(baza, TERAZ).sha16() == {a, b, c}
     # wiersz wraca do pliku: ten sam wiersz bazy znow aktualny
     r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-1;1,2500;2026-11-17", f"{PLIK_C};K-3;1,2300;2026-11-16"]), teraz=TERAZ)
     assert (r.nowe, r.przywrocone, r.nieaktualne) == (0, 1, 1)
     assert baza.wiersz("SELECT zrodlo, projekt_id FROM frezowania WHERE id = ?", (stary["id"],)) == {
         "zrodlo": "csv", "projekt_id": id_projektu(baza, "Testowski 3263 zs")}
-    # dni nieobecne w pliku (plik wyczyszczony rano) zostaja
+    # plik wyczyszczony rano: zostaje wszystko, takze wiersz pliku c z 16.11 - nowy wiersz c (inny krazek I inna data, np.
+    # dofrezowanie) nie jest poprawka literowki
     r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_C};K-4;1,2100;2026-11-18"]), teraz=TERAZ)
     assert r.nieaktualne == 0
-    assert klucze(P.pula_wieczorna(baza, TERAZ)) == sorted([(a, 1.25, "K-1", "csv"), (c, 1.23, "K-3", "csv"), (c, 1.21, "K-4", "csv")])
+    assert klucze(P.pula_wieczorna(baza, TERAZ)) == sorted([(a, 1.25, "K-1", "csv"), (b, 1.23, "K-3", "csv"), (c, 1.23, "K-3", "csv"),
+                                                           (c, 1.21, "K-4", "csv")])
 
 
 def test_p4_dwa_rozne_wspolczynniki_krazka_tej_samej_doby_sprzeczne(tmp_path, baza):
@@ -693,21 +709,169 @@ def test_p4_csv_kontra_wpis_reczny_sprzeczne_az_do_potwierdzenia(tmp_path, baza)
     assert p.liczniki["krazki_sprzeczne"] == []
 
 
-def test_p4_wpis_reczny_starszy_niz_wazny_dni_nie_obowiazuje(tmp_path, baza):
+# --- runda 3: decyzje wlasciciela z 17.11 - (A) oznaczenie krazka niepowtarzalne = jeden wspolczynnik na zawsze (P5, D16);
+#     (B) plik CSV prowadzony dowolnie: tylko rosnie, poprawiany recznie, czyszczony o dowolnej porze (P6, D14, D15) ---------
+def test_p5_wpis_reczny_obowiazuje_bezterminowo(tmp_path, baza):
+    """Zastepuje test rundy 2 "wpis reczny starszy niz wazny_dni nie obowiazuje" (zmiana wymagania - decyzja A)."""
     cel = tmp_path / "drzewo"
     zaindeksuj(baza, cel, FOLDERY)
     W.wczytaj_do_bazy(baza, zapisz_csv(tmp_path / "w.csv", [f"{PLIK_B};K-3;;2026-11-16"]), teraz=TERAZ)
     W.wpisz_reczny(baza, "K-3", 1.235, operator=OPERATOR, teraz=dt.datetime(2026, 9, 1, 10))  # wpis sprzed 2,5 miesiaca
     p = P.pula_wieczorna(baza, TERAZ)
-    assert (len(p.wpisy), p.liczniki["bez_wspolczynnika"], p.liczniki["krazki_bez_wspolczynnika"]) == (0, 1, ["K-3"])
+    assert klucze(p) == [(sha(cel, "Cyrkon", "Testowski 3263 zs", PLIK_B), 1.235, "K-3", "reczny")]
+    assert (p.liczniki["bez_wspolczynnika"], p.liczniki["krazki_bez_wspolczynnika"]) == (0, [])
     k = P.krazki(baza, TERAZ)[0]
-    assert (k["krazek"], k["brakuje"], k["wspolczynnik_reczny"], k["data_recznego"]) == ("K-3", True, 1.235, "2026-09-01")
-    # nowy wpis (stary juz nie obowiazuje - inna wartosc bez potwierdzenia przyjeta): 7 dni przed frezowaniem obowiazuje
-    W.wpisz_reczny(baza, "K-3", 1.24, operator=OPERATOR, teraz=dt.datetime(2026, 11, 9, 10))
-    assert klucze(P.pula_wieczorna(baza, TERAZ)) == [(sha(cel, "Cyrkon", "Testowski 3263 zs", PLIK_B), 1.24, "K-3", "reczny")]
-    assert P.krazki(baza, TERAZ)[0]["brakuje"] is False
-    assert P.pula_wieczorna(baza, TERAZ, wazny_dni=6).liczniki["bez_wspolczynnika"] == 1
-    assert P.krazki(baza, TERAZ, wazny_dni=6)[0]["brakuje"] is True
+    assert (k["krazek"], k["brakuje"], k["wspolczynnik_reczny"], k["data_recznego"], k["wspolczynnik"]) == (
+        "K-3", False, 1.235, "2026-09-01", 1.235)
+    with pytest.raises(W.BladWspolczynnikow) as e:  # inna wartosc nadal wymaga potwierdzenia - bez limitu dni
+        W.wpisz_reczny(baza, "K-3", 1.24, operator=OPERATOR, teraz=dt.datetime(2026, 11, 9, 10))
+    assert "1,2350" in str(e.value) and "2026-09-01" in str(e.value)
+    for funkcja in (P.pula_wieczorna, P.krazki):
+        with pytest.raises(TypeError):
+            funkcja(baza, TERAZ, wazny_dni=6)  # argumentu juz nie ma
+    with pytest.raises(TypeError):
+        P.KatalogPul(baza, zrodla(cel), wazny_dni=7)
+
+
+def test_p5_jeden_wspolczynnik_krazka_z_dowolnych_dat_albo_jawna_sprzecznosc(tmp_path, baza):
+    """S2 recenzji rundy 2 w modelu krazka niepowtarzalnego: pt 13.11 K-1 w CSV 1,2210, pon 16.11 wiersz K-1 bez wartosci,
+    potem wpis reczny 1,25. Jedna wartosc na krazek albo jawna sprzecznosc - nigdy po cichu jedna z dwoch."""
+    cel = tmp_path / "drzewo"
+    zaindeksuj(baza, cel, FOLDERY)
+    pon = dt.datetime(2026, 11, 16, 20)  # okno pt 13.11 - pon 16.11 (decyzja 7)
+    csv = zapisz_csv(tmp_path / "millbox" / "wspolczynniki.csv", [f"{PLIK_A};K-1;1,2210;2026-11-13", f"{PLIK_B};K-1;;2026-11-16"])
+    W.wczytaj_do_bazy(baza, csv, teraz=pon)
+    p = P.pula_wieczorna(baza, pon)  # wiersz bez wartosci dostaje wspolczynnik krazka z innego wiersza CSV (inna doba)
+    assert sorted((w.data, round(w.wspolczynnik, 4), w.zrodlo_wspolczynnika) for w in p.wpisy) == [
+        ("2026-11-13", 1.221, "csv"), ("2026-11-16", 1.221, "csv")]
+    W.wpisz_reczny(baza, "K-1", "1,25", operator=OPERATOR, teraz=pon)  # inna wartosc niz CSV z piatku
+    p = P.pula_wieczorna(baza, pon)
+    assert p.wpisy == [] and (p.liczniki["sprzeczne_wspolczynniki"], p.liczniki["krazki_sprzeczne"]) == (2, ["K-1"])
+    # 1,25 wpisane w CSV tylko dla poniedzialku nie usuwa sprzecznosci - piatek nadal 1,2210 (porownanie na caly krazek)
+    W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-1;1,2210;2026-11-13", f"{PLIK_B};K-1;1,25;2026-11-16"]),
+                      teraz=pon + dt.timedelta(minutes=1))
+    assert P.pula_wieczorna(baza, pon).liczniki["krazki_sprzeczne"] == ["K-1"]
+    k = P.krazki(baza, pon)[0]
+    assert (k["krazek"], k["sprzeczne"], k["wspolczynniki_csv"], k["wspolczynnik_reczny"], k["wspolczynnik"], k["brakuje"]) == (
+        "K-1", True, [1.221, 1.25], 1.25, None, False)
+    # sprzecznosc tez wtedy, gdy druga wartosc jest spoza okna puli (krazek ma jeden wspolczynnik na zawsze): okno jednej doby
+    # (16-17.11) ma tylko prace z poniedzialku (CSV 1,25 = wpis reczny), piatkowe 1,2210 jest poza oknem
+    p = P.pula_wieczorna(baza, pon, dni=1)
+    assert (p.wpisy, p.liczniki["sprzeczne_wspolczynniki"], p.liczniki["krazki_sprzeczne"]) == ([], 1, ["K-1"])
+    # czlowiek potwierdza jedna wartosc: obowiazuje dla CALEGO krazka (obie doby)
+    W.wpisz_reczny(baza, "K-1", "1,2210", zmien=True, operator=OPERATOR, teraz=pon + dt.timedelta(minutes=2))
+    p = P.pula_wieczorna(baza, pon)
+    assert sorted((w.data, round(w.wspolczynnik, 4), w.zrodlo_wspolczynnika) for w in p.wpisy) == [
+        ("2026-11-13", 1.221, "reczny"), ("2026-11-16", 1.221, "reczny")]
+    assert (p.liczniki["sprzeczne_wspolczynniki"], p.liczniki["krazki_sprzeczne"]) == (0, [])
+    assert P.krazki(baza, pon)[0]["wspolczynnik"] == pytest.approx(1.221)
+
+
+def test_p5_nowa_wartosc_krazka_tylko_jawnie_i_dla_wszystkich_jego_prac(tmp_path, baza):
+    """S1 recenzji rundy 2: pt 20.11 wpis 1,25, pon 23.11 ten sam krazek (oznaczenie niepowtarzalne). Prace z poniedzialku
+    dostaja 1,25 z piatku; 1,30 bez potwierdzenia = odmowa z obecna wartoscia; potwierdzenie = jawna decyzja w dzienniku dla
+    calego krazka; wpis obowiazuje tez po 2 tygodniach (bez limitu 7 dni)."""
+    cel = tmp_path / "drzewo"
+    zaindeksuj(baza, cel, FOLDERY)
+    c = sha(cel, "Cyrkon", "Probna 3301 kor", PLIK_C)
+    pt, pon, pozniej = dt.datetime(2026, 11, 20, 20), dt.datetime(2026, 11, 23, 20), dt.datetime(2026, 12, 3, 20)
+    csv = tmp_path / "w.csv"
+    W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-1;;2026-11-20"]), teraz=pt)
+    W.wpisz_reczny(baza, "K-1", "1,25", operator=OPERATOR, teraz=pt)
+    W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-1;;2026-11-20", f"{PLIK_B};K-1;;2026-11-23"]), teraz=pon)
+    p = P.pula_wieczorna(baza, pon)
+    assert sorted((w.data, round(w.wspolczynnik, 4), w.zrodlo_wspolczynnika) for w in p.wpisy) == [
+        ("2026-11-20", 1.25, "reczny"), ("2026-11-23", 1.25, "reczny")]
+    with pytest.raises(W.BladWspolczynnikow) as e:
+        W.wpisz_reczny(baza, "K-1", "1,30", operator=OPERATOR, teraz=pon)
+    assert "1,2500" in str(e.value) and "2026-11-20" in str(e.value)
+    assert {round(w.wspolczynnik, 4) for w in P.pula_wieczorna(baza, pon).wpisy} == {1.25}
+    W.wpisz_reczny(baza, "K-1", "1,30", zmien=True, operator=OPERATOR, teraz=pon)
+    assert sorted((w.data, round(w.wspolczynnik, 4)) for w in P.pula_wieczorna(baza, pon).wpisy) == [("2026-11-20", 1.3), ("2026-11-23", 1.3)]
+    zd = json.loads(baza.wiersz("SELECT dane FROM zdarzenia WHERE typ = 'wspolczynnik_reczny' ORDER BY id DESC LIMIT 1")["dane"])
+    assert (zd["poprzedni"], zd["zmien"], zd["operator"], zd["wspolczynnik"]) == (pytest.approx(1.25), True, OPERATOR, pytest.approx(1.3))
+    # dwa tygodnie pozniej ten sam krazek: wpis nadal obowiazuje, inna wartosc nadal wymaga potwierdzenia
+    W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_C};K-1;;2026-12-03"]), teraz=pozniej)
+    assert klucze(P.pula_wieczorna(baza, pozniej)) == [(c, 1.3, "K-1", "reczny")]
+    with pytest.raises(W.BladWspolczynnikow):
+        W.wpisz_reczny(baza, "K-1", "1,25", operator=OPERATOR, teraz=pozniej)
+
+
+def test_d16_potwierdzenie_trwale_ta_sama_wartosc_zgodna_inna_wartosc_nowa_sprawa_raz_w_dzienniku(tmp_path, baza):
+    cel = tmp_path / "drzewo"
+    zaindeksuj(baza, cel, FOLDERY)
+    csv = tmp_path / "millbox" / "wspolczynniki.csv"
+    wiersze = [f"{PLIK_A};K-1;1,2210;2026-11-17", f"{PLIK_B};K-1;1,2120;2026-11-17"]  # literowka w B zostaje w pliku
+    zapisz_csv(csv, wiersze)
+    kat = P.KatalogPul(baza, zrodla(cel), plik_csv=csv, licz_cechy=False)
+    minuty = lambda n: TERAZ + dt.timedelta(minutes=n)  # noqa: E731
+
+    def zdarzenia() -> list[dict]:
+        return [json.loads(w["dane"]) for w in baza.wiersze(
+            "SELECT dane FROM zdarzenia WHERE zrodlo = 'pula' AND typ = 'sprzeczne_wspolczynniki' ORDER BY id")]
+
+    o = kat.odswiez(TERAZ)
+    kat.odswiez(minuty(1))
+    assert (o["sprzeczne_wspolczynniki"], o["krazki_sprzeczne"], len(zdarzenia())) == (2, ["K-1"], 1)  # RAZ, nie co odswiezenie
+    kat.wpisz_wspolczynnik("K-1", "1,2210", operator=OPERATOR, zmien=True, teraz=minuty(2))
+    o = kat.odswiez(minuty(3))
+    assert (o["krazki_sprzeczne"], len(zdarzenia()), zdarzenia()[-1]["krazki"]) == ([], 2, [])  # zmiana listy: rozstrzygniete
+    # dopisany pozniej wiersz tego krazka z TA SAMA wartoscia nie otwiera sprawy (literowka B nadal w pliku)
+    zapisz_csv(csv, wiersze + [f"{PLIK_C};K-1;1,2210;2026-11-17"])
+    kat.odswiez(minuty(10))
+    o = kat.odswiez(minuty(11))
+    assert (o["krazki_sprzeczne"], len(kat.pula_wieczorna(minuty(11)).wpisy), len(zdarzenia())) == ([], 3, 2)
+    assert {(w.krazek, round(w.wspolczynnik, 4)) for w in kat.pula_wieczorna(minuty(11)).wpisy} == {("K-1", 1.221)}
+    # wiersz z INNA wartoscia dopisany pozniej: nowa sprzecznosc - licznik i JEDEN wpis w dzienniku mimo dwoch odswiezen
+    zapisz_csv(csv, wiersze + [f"{PLIK_C};K-1;1,2210;2026-11-17", f"{PLIK_F};K-1;1,2300;2026-11-17"])
+    kat.odswiez(minuty(20))
+    o = kat.odswiez(minuty(21))
+    assert (o["sprzeczne_wspolczynniki"], o["krazki_sprzeczne"], len(zdarzenia())) == (4, ["K-1"], 3)
+    assert (zdarzenia()[-1]["prac"], zdarzenia()[-1]["krazki"]) == (4, ["K-1"])
+    k = kat.krazki(minuty(21))[0]
+    assert (k["sprzeczne"], k["wspolczynniki_csv"], k["wspolczynnik_reczny"]) == (True, [1.212, 1.221, 1.23], 1.221)
+    # ponowne potwierdzenie rozstrzyga takze nowa wartosc (wiersz F wczytany przed nim)
+    kat.wpisz_wspolczynnik("K-1", "1,2210", operator=OPERATOR, zmien=True, teraz=minuty(22))
+    assert kat.odswiez(minuty(23))["krazki_sprzeczne"] == [] and len(zdarzenia()) == 4
+    assert "Testowski" not in json.dumps(zdarzenia())
+
+
+def test_p6_plik_czyszczony_o_dowolnej_porze_niczego_nie_uniewaznia(tmp_path, baza):
+    """S3 recenzji rundy 2: 3 zmiany, plik czyszczony o 06:00. Wiersz 3. zmiany z 18.11 02:00 (data kalendarza 18.11)
+    wczytany o 05:00; po czyszczeniu 1. zmiana wpisuje wiersz z 18.11 - wiersz nocny zostaje w puli."""
+    cel = tmp_path / "drzewo"
+    zaindeksuj(baza, cel, FOLDERY)
+    a, c = sha(cel, "Cyrkon", "Testowski 3263 zs", PLIK_A), sha(cel, "Cyrkon", "Probna 3301 kor", PLIK_C)
+    b = sha(cel, "Cyrkon", "Testowski 3263 zs", PLIK_B)
+    csv = tmp_path / "millbox" / "wspolczynniki.csv"
+    W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-1;1,2210;2026-11-17", f"{PLIK_C};K-1;1,2210;2026-11-18"]),
+                      teraz=dt.datetime(2026, 11, 18, 5))
+    r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_B};K-1;1,2210;2026-11-18"]), teraz=dt.datetime(2026, 11, 18, 7))
+    assert (r.nowe, r.nieaktualne) == (1, 0)
+    wieczor = dt.datetime(2026, 11, 18, 20)
+    p = P.pula_wieczorna(baza, wieczor)
+    assert p.sha16() == {a, b, c} and p.liczniki["nieaktualne"] == 0
+    # czyszczenie calkowite (sam naglowek) o 21:00 - tez nic
+    assert W.wczytaj_do_bazy(baza, zapisz_csv(csv, []), teraz=dt.datetime(2026, 11, 18, 21)).nieaktualne == 0
+    # dofrezowanie pliku C nastepnego dnia innym krazkiem po czyszczeniu: to nie poprawka - wiersz z 18.11 zostaje
+    r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_C};K-2;1,2300;2026-11-19"]), teraz=dt.datetime(2026, 11, 19, 7))
+    assert r.nieaktualne == 0
+    assert sorted((w.sha16 == c, w.krazek, w.data) for w in P.pula_wieczorna(baza, dt.datetime(2026, 11, 19, 8)).wpisy) == [
+        (False, "K-1", "2026-11-18"), (True, "K-1", "2026-11-18"), (True, "K-2", "2026-11-19")]
+
+
+def test_d15_poprawka_literowki_daty_bez_podwojnego_wpisu(tmp_path, baza):
+    cel = tmp_path / "drzewo"
+    zaindeksuj(baza, cel, FOLDERY)
+    c = sha(cel, "Cyrkon", "Probna 3301 kor", PLIK_C)
+    csv = tmp_path / "millbox" / "wspolczynniki.csv"
+    W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-1;1,2210;2026-11-17", f"{PLIK_C};K-2;1,2300;2026-11-19"]), teraz=TERAZ)
+    r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_A};K-1;1,2210;2026-11-17", f"{PLIK_C};K-2;1,2300;2026-11-18"]),
+                          teraz=TERAZ + dt.timedelta(minutes=5))  # 19 -> 18, w pliku nie ma juz zadnego wiersza z 19.11
+    assert (r.nowe, r.nieaktualne, r.bez_zmian) == (1, 1, 1)
+    p = P.pula_wieczorna(baza, dt.datetime(2026, 11, 18, 8))  # okno 17-19.11 obejmuje obie daty
+    assert [(w.data, w.krazek) for w in p.wpisy if w.sha16 == c] == [("2026-11-18", "K-2")]
+    assert p.liczniki["nieaktualne"] == 1
 
 
 def test_d3_swieza_baza_stary_folder_z_wiersza_csv_w_oknie_doindeksowany(tmp_path, baza):
@@ -745,13 +909,34 @@ def test_d7_srednik_na_koncu_wiersza_i_pusta_linia_przed_naglowkiem(tmp_path):
     assert e.value.linie == [2] and "4 pola" in str(e.value)
 
 
-@pytest.mark.parametrize("data", ["2025-11-17", "2027-11-17", "17.01.2027", "2026-09-17"])
-def test_d7_data_dalej_niz_60_dni_od_dzis_to_blad_linii(tmp_path, baza, data):
+@pytest.mark.parametrize("data", ["2027-11-17", "17.01.2027", "2026-11-20", "20.11.2026"])
+def test_d14_data_z_przyszlosci_dalej_niz_2_dni_to_blad_linii(tmp_path, baza, data):
+    """Runda 3 (D14) zastepuje test rundy 2 "data dalej niz 60 dni od dzis to blad linii" (zmiana wymagania): data
+    z przyszlosci - blad linii juz po 2 dniach; data starsza niz 60 dni - wiersz pominiety z licznikiem (testy nizej)."""
     p = zapisz_csv(tmp_path / "w.csv", [f"{PLIK_A};K-1;1,22;2026-11-17", f"{PLIK_B};K-1;1,22;2026-09-18", f"{PLIK_C};K-1;1,22;{data}"])
     with pytest.raises(W.BladWspolczynnikow) as e:
         W.wczytaj_do_bazy(baza, p, teraz=TERAZ)
-    assert e.value.linie == [4] and "60 dni" in str(e.value)
+    assert e.value.linie == [4] and "przyszlosci" in str(e.value)
     assert baza.wiersz("SELECT count(*) AS n FROM frezowania")["n"] == 0
+
+
+@pytest.mark.parametrize("data", ["2025-11-17", "2026-09-17", "16.09.2026"])
+def test_d14_plik_narastajacy_wiersze_starsze_niz_60_dni_pominiete_z_licznikiem(tmp_path, baza, data):
+    p = zapisz_csv(tmp_path / "w.csv", [f"{PLIK_C};K-1;1,22;{data}", f"{PLIK_A};K-1;1,22;2026-11-17", f"{PLIK_B};K-1;1,22;2026-09-18",
+                                        f"{PLIK_F};K-1;1,22;2026-11-19"])
+    r = W.wczytaj_do_bazy(baza, p, teraz=TERAZ)
+    assert (r.wierszy, r.nowe, r.stare) == (3, 3, 1)  # 18.09 = dokladnie 60 dni wstecz, 19.11 = 2 dni w przod: wczytane
+    assert baza.wiersz("SELECT count(*) AS n FROM frezowania")["n"] == 3
+    assert [x.linia for x in W.wczytaj_csv(p, dzis=TERAZ.date())] == [3, 4, 5]
+
+
+def test_d14_stary_wiersz_nadal_w_pliku_narastajacym_nie_staje_sie_nieaktualny(tmp_path, baza):
+    csv = tmp_path / "w.csv"
+    W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_C};K-1;1,22;2026-09-10"]), teraz=dt.datetime(2026, 9, 12, 20))
+    # 2 miesiace pozniej ten sam plik frezowany ponownie tym samym krazkiem; wiersz z 10.09 nadal w pliku (pominiety jako stary)
+    r = W.wczytaj_do_bazy(baza, zapisz_csv(csv, [f"{PLIK_C};K-1;1,22;2026-09-10", f"{PLIK_C};K-1;1,22;2026-11-17"]), teraz=TERAZ)
+    assert (r.stare, r.nowe, r.nieaktualne) == (1, 1, 0)
+    assert baza.wiersz("SELECT count(*) AS n FROM frezowania WHERE zrodlo = 'csv'")["n"] == 2
 
 
 def test_d8_wpis_reczny_z_data_wsteczna_odmowa(baza):
