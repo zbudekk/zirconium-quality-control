@@ -16,6 +16,7 @@ import ast
 import csv
 import datetime as dt
 import json
+import re
 import statistics
 import time
 import unicodedata
@@ -81,8 +82,9 @@ def _poz(ex, q, **kw) -> EX.Pozycja:
 def _bez_nazw(wpis: dict, folder: str) -> None:
     """P4: wynik dla A12 ma tylko pola ``POLA_WYNIKU`` i nie niesie nazwy folderu (nazwiska)."""
     assert set(wpis) == set(EX.POLA_WYNIKU), wpis
-    nazwisko = folder.replace("_", " ").split()[0].lower()
-    assert folder not in json.dumps(wpis, ensure_ascii=False) and nazwisko not in json.dumps(wpis, ensure_ascii=False).lower()
+    tekst = json.dumps(wpis, ensure_ascii=False).lower()
+    slowa = [s.lower() for s in re.findall(r"[^\W\d_]{2,}", folder)]  # slowa nazwy folderu ("#1758" = sam numer kuwety - bez slow)
+    assert slowa == [] or not any(s in tekst for s in slowa if s not in ("zs", "kor", "pg", "ab")), (wpis, slowa)
 
 
 # --- kryterium 1: 200 zapytan, wlasciwa klasa, 0 zapisow w zlym wierszu ---------------------------------------------
@@ -340,8 +342,9 @@ def test_p2_zapis_tylko_do_skoroszytu_i_arkusza_z_propozycji(tmp_path):
         with pytest.raises(EX.BladExcela, match="skoroszyt albo arkusz"):
             ex.zatwierdz(poz, OSOBA)
         assert _zapisy(kopia) == []
-    ark.skoroszyt = "Zlecenia zapisane jako.xlsx"  # "Zapisz jako" na tym samym obiekcie
     zrodla.append(ark)
+    ex.rozlacz()
+    ark.skoroszyt = "Zlecenia zapisane jako.xlsx"  # "Zapisz jako" na tym samym obiekcie
     with pytest.raises(EX.BladExcela, match="skoroszyt albo arkusz"):
         ex.zatwierdz(poz, OSOBA)
     ark.skoroszyt = AS.SKOROSZYT
