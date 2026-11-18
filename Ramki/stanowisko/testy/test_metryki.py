@@ -472,17 +472,26 @@ def test_bledne_parametry(plik_bazy):
 
 
 def test_raport_tylko_odczyt_i_schemat_bez_zmian(plik_bazy, raport):
-    """Raport nie zmienia pliku bazy ani schematu (wersja 1, 11 tabel z planu 3.4) - zmiana modelu danych wymaga zgody wlasciciela."""
+    """Raport nie zmienia pliku bazy ani schematu (zmiana modelu danych wymaga zgody wlasciciela): plik bazy bajt w bajt ten sam
+    po ``policz`` i po poleceniu, wersja schematu bez zmian, w kodzie modulu i narzedzia zadnego polecenia zmieniajacego baze."""
     przed = hashlib.sha256(plik_bazy.read_bytes()).hexdigest()
     policz(plik_bazy)
-    assert raport_metryk.main(["--baza", str(plik_bazy), "--od", OD, "--do", DO]) == 3
+    assert _uruchom(["--baza", str(plik_bazy), "--od", OD, "--do", DO])[0] == 3
     assert hashlib.sha256(plik_bazy.read_bytes()).hexdigest() == przed
-    assert B.WERSJA_SCHEMATU == 1 and max(B.MIGRACJE) == 1 and len(B.TABELE) == 11
     with B.otworz(plik_bazy, tylko_odczyt=True) as baza:
-        assert baza.wersja() == 1
+        assert baza.wersja() == B.WERSJA_SCHEMATU
+    for plik in (STANOWISKO / "stanowisko" / "metryki.py", STANOWISKO / "narzedzia" / "raport_metryk.py"):
+        kod = plik.read_text(encoding="utf-8")
+        for slowo in ("CREATE ", "ALTER ", "INSERT ", "UPDATE ", "DELETE ", "DROP ", ".wstaw(", ".wykonaj(", ".zdarzenie(", "MIGRACJE"):
+            assert slowo not in kod, (plik.name, slowo)
+
+
+UST_PRZYKLAD = ["--ustawienia", str(STANOWISKO / "ustawienia.przyklad.toml")]  # doba 6:00, zmiany 6/14/22, prog 0,6 - niezaleznie od ustawienia.toml
 
 
 def _uruchom(argv: list[str]) -> tuple[int, str, str]:
+    if "--ustawienia" not in argv:
+        argv = argv + UST_PRZYKLAD
     out, err = io.StringIO(), io.StringIO()
     with redirect_stdout(out), redirect_stderr(err):
         kod = raport_metryk.main(argv)
@@ -492,8 +501,7 @@ def _uruchom(argv: list[str]) -> tuple[int, str, str]:
 def test_cli_jedno_polecenie_jedna_strona_i_json(plik_bazy, raport, tmp_path):
     """M1: jedno polecenie = jedna strona na stdout (do 60 linii) + JSON z tymi samymi polami; kod 3 = ponizej progu."""
     cel = tmp_path / "metryki.json"
-    kod, out, err = _uruchom(["--baza", str(plik_bazy), "--od", OD, "--do", DO, "--tryb", "oba", "--json", str(cel),
-                              "--ustawienia", str(STANOWISKO / "ustawienia.przyklad.toml")])
+    kod, out, err = _uruchom(["--baza", str(plik_bazy), "--od", OD, "--do", DO, "--tryb", "oba", "--json", str(cel)] + UST_PRZYKLAD)
     assert kod == 3, err
     linie = out.rstrip("\n").split("\n")
     assert 0 < len(linie) <= 60
@@ -537,13 +545,34 @@ def test_cli_brak_bazy_kod_2(tmp_path):
 
 
 def test_modul_nie_importuje_okna_ani_silnika():
-    """Raport dziala w osobnym procesie bez Qt i bez silnika (tylko biblioteka standardowa + baza / session)."""
-    import os
-    import subprocess
+    """Raport dziala bez Qt, numpy i silnika: metryki.py i raport_metryk.py (oraz moduly stanowiska, ktore wczytuja - po kolei)
+    importuja tylko biblioteke standardowa i moduly ``stanowisko`` z listy (sprawdzane na zrodle, bez drugiego procesu Pythona)."""
+    import ast
 
-    kod = ("import sys; import stanowisko.metryki, raport_metryk; "
-           "zle = [m for m in ('PySide6', 'numpy', 'trimesh', 'open3d', 'stanowisko.silnik', 'stanowisko.aplikacja') if m in sys.modules]; "
-           "print(','.join(zle)); sys.exit(1 if zle else 0)")
-    r = subprocess.run([sys.executable, "-c", kod], cwd=STANOWISKO, capture_output=True, text=True,
-                       env={**os.environ, "PYTHONPATH": f"{STANOWISKO}{os.pathsep}{STANOWISKO / 'narzedzia'}"})
-    assert r.returncode == 0, r.stdout + r.stderr
+    dozwolone = {"baza", "session", "session_rano", "statusy", "ustawienia", "metryki"}
+    do_sprawdzenia = [STANOWISKO / "narzedzia" / "raport_metryk.py", STANOWISKO / "stanowisko" / "metryki.py"]
+    sprawdzone = set()
+    while do_sprawdzenia:
+        plik = do_sprawdzenia.pop()
+        if plik in sprawdzone:
+            continue
+        sprawdzone.add(plik)
+        for wezel in ast.walk(ast.parse(plik.read_text(encoding="utf-8"))):
+            moduly = []
+            if isinstance(wezel, ast.Import):
+                moduly = [(a.name, 0) for a in wezel.names]
+            elif isinstance(wezel, ast.ImportFrom):
+                if (wezel.level and not wezel.module) or wezel.module == "stanowisko":  # from . import baza
+                    moduly = [("stanowisko." + a.name, 1) for a in wezel.names]
+                elif wezel.level:  # from .ustawienia import KORZEN
+                    moduly = [("stanowisko." + wezel.module, 1)]
+                else:
+                    moduly = [(wezel.module, 0)]
+            for nazwa, nasz in moduly:
+                if nasz or nazwa.startswith("stanowisko."):
+                    krotka = nazwa.split(".", 1)[1]
+                    assert krotka in dozwolone, (plik.name, nazwa)
+                    do_sprawdzenia.append(STANOWISKO / "stanowisko" / f"{krotka}.py")
+                else:
+                    assert nazwa.split(".")[0] in sys.stdlib_module_names, (plik.name, nazwa)
+    assert len(sprawdzone) >= 5
