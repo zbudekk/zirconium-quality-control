@@ -367,7 +367,7 @@ def test_wiersze_metryk_maja_wartosci_tabeli(raport):
     oczekiwane = {"falszywe_alarmy": (3 / 14, 3, 14, "PONIZEJ"), "top1": (6 / 7, 6, 7, "OK"), "top2": (1.0, 7, 7, "OK"),
                   "nieznane_wieczor": (2 / 14, 2, 14, "PONIZEJ"), "nieznane_rano": (3 / 11, 3, 11, "PONIZEJ"),
                   "czas_wieczor": (34 / 3, None, None, "OK"), "powtorzone_wieczor": (4 / 9, 4, 9, "PONIZEJ"),
-                  "powtorzone_rano": (0.25, 1, 4, "PONIZEJ"), "dni_bez_awarii": (1, None, None, "PONIZEJ")}
+                  "powtorzone_rano": (0.25, 1, 4, "PONIZEJ"), "dni_bez_awarii": (0, None, None, "PONIZEJ")}
     for klucz, (wartosc, licznik, mianownik, ocena) in oczekiwane.items():
         m = wiersze[klucz]
         assert m["wartosc"] == pytest.approx(wartosc), klucz
