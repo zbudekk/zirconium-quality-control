@@ -151,7 +151,8 @@ DOMYSLNE_NOWYCH = {
               "ponowny_skan_okno_min": 60},
     "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True,
                 "obserwator": "watchdog"},
-    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": True, "ponow_plik_niedostepny": 3},
+    # pamiec_linii domyslnie False - tak samo jak w silnik (pamiec_linii=None); recenzja PR #20, D11
+    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": False, "ponow_plik_niedostepny": 3},
 }
 
 # Sekcje, których może nie być w pliku: każdy ich klucz ma wartość domyślną (dziś: [sesja], [scanner], [silnik]).
