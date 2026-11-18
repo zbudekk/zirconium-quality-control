@@ -38,9 +38,13 @@ Doba 2026-11-18:
   07:29 start_skanu; 07:30 R5 plytka 6 (piec F3, NIEZAMKNIETY): g1 P3 zielony
   18:58 start_skanu; 19:00 W8 plytka 2: g1 P6 czerwony, g2 P7 zielony; 19:03 "OK" g1 (falszywy alarm)
   19:09 start_skanu; 19:10 W9 plytka 3: g1 P8 "popraw ulozenie" -> do_powtorzenia (zostaje aktywny)
-  19:30 silnik_nie_startuje -> awaria (doba 2026-11-18)
+  19:30 silnik_nie_startuje -> osobny licznik, NIE awaria (runda 2, D3: program umie wrocic sam)
 
 Rachunek reczny (okres 2026-11-16 .. 2026-11-18, tryb oba) - w kolumnie "jak" tabeli ``OCZEKIWANE``.
+Runda 2 (recenzja PR #29 r1) zmienila definicje, wartosci tabeli policzone od nowa: mianownik wieczoru = prace skanow
+przyjetych bez czekajacych na potwierdzenie ponownego skanu (P1); nieznana = brak kandydata, ta sama regula wieczorem i rano
+(P2); powtorzone rano = skany zamknietych piecow okresu (D2); dni bez awarii = seria biegnaca do konca okresu z calej historii,
+``silnik_nie_startuje`` nie jest awaria (P4, D3). Przypadki z prob recenzenta: ``test_b1_*``, ``test_p1_*`` ... ``test_d7_*``.
 """
 from __future__ import annotations
 
@@ -269,19 +273,20 @@ def pole(d: dict, sciezka: tuple):
 
 # Tabela oczekiwan - rachunek reczny dla okresu 2026-11-16 .. 2026-11-18, tryb "oba". (id, sciezka, wartosc, jak policzono)
 OCZEKIWANE = [
-    # --- wieczor: zbior prac = prace skanow aktywnych (przyjety, do_powtorzenia) przyjetych w okresie, jak `prac` w stan_wieczoru
+    # --- wieczor: zbior prac = prace skanow PRZYJETYCH w okresie (tylko na nich technik decyduje), bez skanu czekajacego na
+    # potwierdzenie ponownego skanu (runda 2, P1)
     ("W01", ("wieczor", "skany"), 9, "W1..W9"),
     ("W02", ("wieczor", "skany_aktywne"), 6, "W1, W3, W6, W7, W8 (przyjety) + W9 (do_powtorzenia); W2 zastapiony, W4 plytka nie z trybu, W5 blad"),
-    ("W03", ("wieczor", "prace"), 15, "W1 5 + W3 2 + W6 3 + W7 2 + W8 2 + W9 1"),
+    ("W03", ("wieczor", "prace"), 14, "W1 5 + W3 2 + W6 3 + W7 2 + W8 2 (W9 do_powtorzenia - decyzji na nim nie ma, poza mianownikiem)"),
     ("W04", ("wieczor", "czerwone"), 6, "W1 g2, g3; W3 g2; W6 g3; W7 g2; W8 g1 (W2 g2 - skan zastapiony - nie)"),
     ("W05", ("wieczor", "falszywe_alarmy"), 3, "czerwone z obowiazujacym OK: W1 g3, W3 g2, W8 g1 (OK na W2 g2 przepada z zastapieniem)"),
-    ("W06", ("wieczor", "udzial_falszywych"), 3 / 15, "3 / 15 prac (PW: udzial w calosci prac)"),
+    ("W06", ("wieczor", "udzial_falszywych"), 3 / 14, "3 / 14 prac"),
     ("W07", ("wieczor", "czerwone_ukruszone"), 2, "W1 g2, W7 g2"),
     ("W08", ("wieczor", "czerwone_bez_decyzji"), 1, "W6 g3: Ukruszona cofnieta"),
     ("W09", ("wieczor", "niewykryte_cien"), 1, "W1 g5: zielony z ukruszona_niewykryta"),
     ("W10", ("wieczor", "wykrywalnosc_cien"), 2 / 3, "2 czerwone ukruszone / (2 + 1 niewykryta)"),
-    ("W11", ("wieczor", "nieznane"), 2, "W1 g4, W6 g2 (szare, bez kandydata)"),
-    ("W12", ("wieczor", "udzial_nieznanych"), 2 / 15, "2 / 15"),
+    ("W11", ("wieczor", "nieznane"), 2, "bez kandydata: W1 g4, W6 g2 (ta sama regula co rano - P2)"),
+    ("W12", ("wieczor", "udzial_nieznanych"), 2 / 14, "2 / 14"),
     ("W13", ("wieczor", "powtorzone", "skany"), 9, "W1..W9"),
     ("W14", ("wieczor", "powtorzone", "powtorzone"), 4, "W2 zastapiony, W4 plytka_nie_z_trybu, W5 blad, W9 do_powtorzenia"),
     ("W15", ("wieczor", "powtorzone", "udzial"), 4 / 9, "4 / 9"),
@@ -291,6 +296,13 @@ OCZEKIWANE = [
     ("W19", ("wieczor", "czas", "suma_min"), 34.0, "5 + 6 + 7 + 4 + 12"),
     ("W20", ("wieczor", "czas", "srednio_min"), 34 / 3, "34 / 3 zmiany"),
     ("W21", ("wieczor", "czas", "max_min"), 18.0, "16.11 zmiana 2: 5 + 6 + 7"),
+    ("W22", ("wieczor", "skany_mianownik"), 5, "W1, W3, W6, W7, W8"),
+    ("W23", ("wieczor", "skany_do_potwierdzenia"), 0, "W2 potwierdzony (zastapiony) - zaden ponowny skan nie czeka"),
+    ("W24", ("wieczor", "skany_do_powtorzenia"), 1, "W9 (aktywny, prace poza mianownikiem)"),
+    ("W25", ("wieczor", "dwuznaczne"), 0, "szara praca z kandydatem >= progu w indeksie - brak w scenariuszu"),
+    ("W26", ("wieczor", "czas", "zmian_bez_danych"), 0, "kazda zmiana ma posiedzenie dluzsze niz 0"),
+    ("W27", ("wieczor", "czas", "posiedzen_bez_startu"), 0, "kazde posiedzenie zaczyna start_skanu"),
+    ("W28", ("wieczor", "czas", "zmian_ponad_prog"), 0, "zadna zmiana > 20 min"),
     # --- rano: piece ZAMKNIETE z doba w okresie (F1, F2); prace skanow aktywnych i niepominietych (klasa ze stan_pieca)
     ("R01", ("rano", "piece"), 2, "F1, F2"),
     ("R02", ("rano", "piece_otwarte"), 1, "F3 (18.11) niezamkniety - poza metrykami klas"),
@@ -302,12 +314,12 @@ OCZEKIWANE = [
     ("R07", ("rano", "top2"), 7, "top-1 + R1 g3"),
     ("R08", ("rano", "udzial_top1"), 0.75, "6 / 8"),
     ("R09", ("rano", "udzial_top2"), 0.875, "7 / 8"),
-    ("R10", ("rano", "nieznane"), 2, "R1 g5 (bez kandydata), R2 g3 (kandydat spoza indeksu)"),
-    ("R11", ("rano", "udzial_nieznanych"), 2 / 11, "2 / 11"),
+    ("R10", ("rano", "nieznane"), 3, "brak kandydata (P2): R1 g4 (potem przypisana recznie), R1 g5, R2 g3 (kandydat spoza indeksu)"),
+    ("R11", ("rano", "udzial_nieznanych"), 3 / 11, "3 / 11"),
     ("R12", ("rano", "dwuznaczne"), 1, "R2 g2 nierozstrzygnieta do zamkniecia pieca"),
-    ("R13", ("rano", "powtorzone", "skany"), 5, "R1..R5 (skany poranne przyjete w okresie)"),
+    ("R13", ("rano", "powtorzone", "skany"), 4, "skany zamknietych piecow F1, F2: R1..R4 (D2; R5 w piecu niezamknietym - poza)"),
     ("R14", ("rano", "powtorzone", "powtorzone"), 1, "R3 blad"),
-    ("R15", ("rano", "powtorzone", "udzial"), 0.2, "1 / 5"),
+    ("R15", ("rano", "powtorzone", "udzial"), 0.25, "1 / 4"),
     ("R16", ("rano", "czas", "posiedzen"), 3, "17.11 06:58-07:20, 09:00-09:05; 18.11 07:29-07:30"),
     ("R17", ("rano", "czas", "zmian"), 2, "(17.11, zmiana 1), (18.11, zmiana 1)"),
     ("R18", ("rano", "czas", "suma_min"), 28.0, "22 + 5 + 1"),
@@ -315,15 +327,18 @@ OCZEKIWANE = [
     ("R20", ("rano", "czas", "max_min"), 27.0, "17.11 zmiana 1: 22 + 5"),
     ("R21", ("rano", "czas_pieca_min", "mediana"), 12.5, "F1 07:00-07:20 = 20, F2 09:00-09:05 = 5"),
     ("R22", ("rano", "czas_pieca_min", "max"), 20.0, "F1"),
+    ("R23", ("rano", "odrzucone"), 0, "zadne 'bez projektu' po propozycji programu"),
+    ("R24", ("rano", "top2_projekt"), 7, "top-2 po projekcie (informacyjnie) - tu rowne top-2 po kuwecie"),
     # --- stabilnosc (z dziennika, niezaleznie od trybu)
     ("S01", ("stabilnosc", "dni_pracy"), 3, "doby z wpisami dziennika: 16, 17, 18.11"),
-    ("S02", ("stabilnosc", "dni_z_awaria"), 2, "17.11 (restart bez program_stop), 18.11 (silnik nie startuje)"),
-    ("S03", ("stabilnosc", "awarie"), 2, "jw."),
+    ("S02", ("stabilnosc", "dni_z_awaria"), 1, "17.11 (restart bez program_stop); silnik nie startuje 18.11 - nie awaria (D3)"),
+    ("S03", ("stabilnosc", "awarie"), 1, "jw."),
     ("S04", ("stabilnosc", "restart_bez_zamkniecia"), 1, "program_start 17.11 22:50 po starcie 06:50 bez program_stop"),
-    ("S05", ("stabilnosc", "silnik_nie_startuje"), 1, "18.11 19:30"),
-    ("S06", ("stabilnosc", "najdluzsza_seria"), 1, "16.11"),
-    ("S07", ("stabilnosc", "obecna_seria"), 0, "ostatnia doba (18.11) z awaria"),
-    ("S08", ("stabilnosc", "doby_z_awaria"), ["2026-11-17", "2026-11-18"], "jw."),
+    ("S05", ("stabilnosc", "silnik_nie_startuje"), 1, "18.11 19:30 - osobny licznik, nie przerywa serii"),
+    ("S06", ("stabilnosc", "najdluzsza_seria"), 1, "16.11 albo 18.11"),
+    ("S07", ("stabilnosc", "obecna_seria"), 1, "seria biegnaca do 18.11: 18.11 bez awarii, 17.11 z awaria"),
+    ("S08", ("stabilnosc", "doby_z_awaria"), ["2026-11-17"], "jw."),
+    ("S09", ("stabilnosc", "uruchomiony_na_koniec"), True, "start 18.11 07:25 bez program_stop do konca okresu (dziala albo padl)"),
     # --- ocena wzgledem progow odbioru (PW "Testy odbiorcze i kryteria")
     ("O01", ("ponizej_progu",), ["falszywe_alarmy", "top1", "top2", "nieznane_wieczor", "nieznane_rano", "powtorzone_wieczor",
                                  "powtorzone_rano", "dni_bez_awarii"], "czas wieczor 11,3 min <= 20 - jedyna metryka w progu"),
@@ -343,10 +358,10 @@ def test_oczekiwane(raport, sciezka, oczekiwane):
 def test_wiersze_metryk_maja_wartosci_tabeli(raport):
     """Wiersze strony (tabela metryk) = wartosci z tabeli oczekiwan; M2 = "wymaga zmiany schematu", bez wartosci."""
     wiersze = {m["klucz"]: m for m in raport["metryki"]}
-    oczekiwane = {"falszywe_alarmy": (3 / 15, 3, 15, "PONIZEJ"), "top1": (0.75, 6, 8, "PONIZEJ"), "top2": (0.875, 7, 8, "PONIZEJ"),
-                  "nieznane_wieczor": (2 / 15, 2, 15, "PONIZEJ"), "nieznane_rano": (2 / 11, 2, 11, "PONIZEJ"),
+    oczekiwane = {"falszywe_alarmy": (3 / 14, 3, 14, "PONIZEJ"), "top1": (0.75, 6, 8, "PONIZEJ"), "top2": (0.875, 7, 8, "PONIZEJ"),
+                  "nieznane_wieczor": (2 / 14, 2, 14, "PONIZEJ"), "nieznane_rano": (3 / 11, 3, 11, "PONIZEJ"),
                   "czas_wieczor": (34 / 3, None, None, "OK"), "powtorzone_wieczor": (4 / 9, 4, 9, "PONIZEJ"),
-                  "powtorzone_rano": (0.2, 1, 5, "PONIZEJ"), "dni_bez_awarii": (1, None, None, "PONIZEJ")}
+                  "powtorzone_rano": (0.25, 1, 4, "PONIZEJ"), "dni_bez_awarii": (1, None, None, "PONIZEJ")}
     for klucz, (wartosc, licznik, mianownik, ocena) in oczekiwane.items():
         m = wiersze[klucz]
         assert m["wartosc"] == pytest.approx(wartosc), klucz
@@ -359,8 +374,8 @@ def test_strona_do_60_linii_z_liczbami_scenariusza(raport):
     linie = M.strona(raport)
     assert 0 < len(linie) <= 60
     tekst = "\n".join(linie)
-    for fragment in ("3/15", "6/8", "7/8", "2/15", "2/11", "4/9", "1/5", "20.0%", "75.0%", "87.5%", "11.3 min", "wymaga zmiany schematu",
-                     "2026-11-16 .. 2026-11-18", "kod 3"):
+    for fragment in ("3/14", "6/8", "7/8", "2/14", "3/11", "4/9", "1/4", "21.4%", "75.0%", "87.5%", "25.0%", "11.3 min",
+                     "wymaga zmiany schematu", "2026-11-16 .. 2026-11-18", "kod 3"):
         assert fragment in tekst, fragment
     assert all(len(x) <= 140 for x in linie)
     assert tekst.isascii()
@@ -378,7 +393,7 @@ def test_okres_zawezony(plik_bazy):
     w = policz(plik_bazy, "2026-11-16", "2026-11-17")
     assert w["okres"] == {"od": "2026-11-16", "do": "2026-11-17", "tryb": "oba", "doby": 2}
     ww = w["wieczor"]
-    assert (ww["skany"], ww["prace"], ww["czerwone"], ww["falszywe_alarmy"], ww["nieznane"]) == (7, 12, 5, 2, 2)
+    assert (ww["skany"], ww["prace"], ww["czerwone"], ww["falszywe_alarmy"], ww["nieznane"]) == (7, 12, 5, 2, 2)  # W9 i tak poza okresem
     assert ww["udzial_falszywych"] == pytest.approx(2 / 12)
     assert (ww["powtorzone"]["powtorzone"], ww["powtorzone"]["skany"]) == (3, 7)
     assert (ww["czas"]["zmian"], ww["czas"]["suma_min"], ww["czas"]["max_min"]) == (2, 22.0, 18.0)
@@ -415,7 +430,7 @@ def test_tryb_wieczor_albo_rano(plik_bazy, tryb, jest, nie_ma):
 
 
 def test_pusta_baza(tmp_path):
-    """Baza bez danych: kazda metryka "brak danych", kod 0, strona do 60 linii."""
+    """Baza bez danych: kazda metryka "brak danych", kod 4 (nic do oceny - zla baza albo zly okres nie "przechodzi"; D5)."""
     plik = tmp_path / "pusta.sqlite"
     B.otworz(plik).zamknij()
     w = policz(plik)
@@ -423,8 +438,8 @@ def test_pusta_baza(tmp_path):
     assert w["rano"]["piece"] == 0 and w["rano"]["udzial_top1"] is None
     assert w["stabilnosc"]["dni_pracy"] == 0
     assert all(m["ocena"] in ("brak danych", "wymaga zmiany schematu") for m in w["metryki"])
-    assert w["kod"] == 0 and w["ponizej_progu"] == []
-    assert len(M.strona(w)) <= 60
+    assert w["kod"] == 4 and w["ponizej_progu"] == []
+    assert len(M.strona(w)) <= 60 and "BRAK DANYCH" in "\n".join(M.strona(w))
     json.dumps(w)
 
 
@@ -453,6 +468,11 @@ def test_seria_dni_bez_awarii(tmp_path):
     assert st["doby_z_awaria"] == ["2026-11-03"]
     assert {m["klucz"]: m["ocena"] for m in w["metryki"]}["dni_bez_awarii"] == "OK"
     assert w["kod"] == 0
+    # P4: seria biegnie z historii sprzed --od (04, 05, 07 przed okresem 08-09.11)
+    w = policz(plik, "2026-11-08", "2026-11-09")
+    st = w["stabilnosc"]
+    assert (st["dni_pracy"], st["dni_z_awaria"], st["obecna_seria"]) == (2, 0, 5)
+    assert {m["klucz"]: m["ocena"] for m in w["metryki"]}["dni_bez_awarii"] == "OK"
 
 
 def test_ocena_progu():
@@ -505,7 +525,7 @@ def test_cli_jedno_polecenie_jedna_strona_i_json(plik_bazy, raport, tmp_path):
     assert kod == 3, err
     linie = out.rstrip("\n").split("\n")
     assert 0 < len(linie) <= 60
-    assert "3/15" in out and "wymaga zmiany schematu" in out
+    assert "3/14" in out and "wymaga zmiany schematu" in out
     j = json.loads(cel.read_text(encoding="utf-8"))
     for w in OCZEKIWANE:
         if w[1][0] in ("wieczor", "rano", "stabilnosc"):
@@ -525,7 +545,7 @@ def test_cli_domyslny_okres_7_dob(plik_bazy):
 
 def test_cli_tryb_wieczor(plik_bazy):
     kod, out, _ = _uruchom(["--baza", str(plik_bazy), "--od", OD, "--do", DO, "--tryb", "wieczor"])
-    assert kod == 3 and "top-1" not in out and "3/15" in out
+    assert kod == 3 and "top-1" not in out and "3/14" in out
 
 
 @pytest.mark.parametrize("argv", [
@@ -576,3 +596,148 @@ def test_modul_nie_importuje_okna_ani_silnika():
                 else:
                     assert nazwa.split(".")[0] in sys.stdlib_module_names, (plik.name, nazwa)
     assert len(sprawdzone) >= 5
+
+
+# --- runda 2: przypadki z prob recenzenta PR #29 r1 (rachunek reczny w docstringach) ---------------------------------------
+def test_b1_odrzucone_rozpoznanie_to_chybienie(tmp_path):
+    """B1 (proba A): piec, 5 prac zielonych P1, P2, P3, P4, P1 (konflikt); technik: g3 "bez projektu" (program byl pewny P3 - zle),
+    g5 "bez projektu" (rozstrzygniecie konfliktu). Top-1 = top-2 = 3/5 (nie 3/3), odrzucone 2, nieznane 0 (kandydat byl wszedzie)."""
+    b = Budowa(tmp_path, start="2026-11-17T06:30:00")
+    b.indeks()
+    _, pr = b.rano_skan("2026-11-17T07:00:00", 4, [(1, [("P1", 0.95)], "ok"), (2, [("P2", 0.95)], "ok"), (3, [("P3", 0.95)], "ok"),
+                                                  (4, [("P4", 0.95)], "ok"), (5, [("P1", 0.95)], "ok")])
+    b.o("2026-11-17T07:02:00"); b.rano.przypisz_recznie(pr[2], None)
+    b.o("2026-11-17T07:03:00"); b.rano.przypisz_recznie(pr[4], None)
+    b.o("2026-11-17T07:05:00"); b.rano.zamknij_piec()
+    b.baza.zamknij()
+    w = policz(b.plik, "2026-11-17", "2026-11-17", "rano")
+    ra = w["rano"]
+    assert (ra["prace"], ra["z_prawda"], ra["top1"], ra["top2"], ra["odrzucone"], ra["nieznane"]) == (5, 5, 3, 3, 2, 0)
+    assert ra["udzial_top1"] == pytest.approx(0.6) and ra["udzial_top2"] == pytest.approx(0.6)
+    assert {m["klucz"]: m["ocena"] for m in w["metryki"]}["top1"] == "PONIZEJ"
+    assert "odrzucone" in "\n".join(M.strona(w))
+
+
+@pytest.mark.parametrize("pierwszy", ["popraw_ulozenie", "ok"], ids=["do_powtorzenia", "przyjety"])
+def test_p1_mianownik_bez_skanu_do_powtorzenia_i_niepotwierdzonego(tmp_path, pierwszy):
+    """P1 (proba C): plytka 4 prac; skan 1 do powtorzenia (drgniecie) albo przyjety, skan 2 tej samej plytki 6 min pozniej - ponowny
+    skan NIEPOTWIERDZONY (propozycja wisi); "OK" na czerwonej g2 skanu 2. Falszywe = 1/4 (fizycznie 4 prace), nie 1/8."""
+    b = Budowa(tmp_path)
+    b.indeks()
+
+    def gniazda(ins3: str) -> list:
+        return [(1, [("P1", 0.95)], "ok"), (2, [("P2", 0.95)], "ubytek"), (3, [("P3", 0.95)], ins3), (4, [("P4", 0.95)], "ok")]
+
+    b.wieczor("2026-11-16T18:00:00", "wieczorna", 1, gniazda(pierwszy))
+    _, w2 = b.wieczor("2026-11-16T18:06:00", "wieczorna", 1, gniazda("ok"))
+    b.o("2026-11-16T18:07:00"); b.sesja.ok(w2[1])
+    b.baza.zamknij()
+    wi = policz(b.plik, "2026-11-16", "2026-11-16", "wieczor")["wieczor"]
+    assert (wi["falszywe_alarmy"], wi["prace"], wi["skany_mianownik"], wi["skany_do_potwierdzenia"]) == (1, 4, 1, 1)
+    assert wi["udzial_falszywych"] == pytest.approx(0.25)
+    assert wi["skany_do_powtorzenia"] == (1 if pierwszy == "popraw_ulozenie" else 0)
+
+
+def test_p2_nieznana_ta_sama_regula_wieczor_i_rano(tmp_path):
+    """P2 (proba B): ta sama plytka wieczorem i rano: g1 P1 zielony, g2 kandydaci P2 0,75 / P3 0,70 (match szary - mala przewaga),
+    g3 P4 zielony, g4 bez kandydata. Nieznana = brak kandydata (1. kandydat ponizej progu albo spoza indeksu) - wieczor 1/4 i rano
+    1/4; g2 = dwuznaczna po obu stronach."""
+    b = Budowa(tmp_path)
+    b.indeks()
+    gn = [(1, [("P1", 0.95)], "ok"), (2, [("P2", 0.75), ("P3", 0.70)], "ok"), (3, [("P4", 0.95)], "ok"), (4, [], "ok")]
+    b.wieczor("2026-11-16T18:01:00", "wieczorna", 1, gn)
+    b.rano_skan("2026-11-17T07:00:00", 4, gn)
+    b.o("2026-11-17T07:05:00"); b.rano.zamknij_piec()
+    b.baza.zamknij()
+    w = policz(b.plik, "2026-11-16", "2026-11-17")
+    wi, ra = w["wieczor"], w["rano"]
+    assert (wi["nieznane"], wi["prace"], wi["dwuznaczne"]) == (1, 4, 1)
+    assert (ra["nieznane"], ra["prace"], ra["dwuznaczne"]) == (1, 4, 1)
+    assert wi["udzial_nieznanych"] == ra["udzial_nieznanych"] == 0.25
+
+
+def test_p3_czas_bez_start_skanu_i_zmiany_bez_danych(tmp_path):
+    """P3: zmiana 2 16.11 bez start_skanu - posiedzenie od wykrycia pliku (``scanner/nowy_skan`` 18:00:00) do decyzji 18:02:40 =
+    2,67 min; zmiana 3 16.11 - sam skan 23:00 (jedna chwila): zmiana bez danych, poza srednia (nie 0 min); zmiana 2 17.11 - start
+    18:00, skan 18:01, decyzja 18:30 po przerwie > 10 min: 1 min + 0 min. Srednia = (2,67 + 1) / 2, zmian bez danych 1."""
+    b = Budowa(tmp_path)
+    b.indeks()
+    b.zd("2026-11-16T18:00:00", "scanner", "nowy_skan", {"sha16": "x1", "rozmiar": 1, "trojkaty": 1, "zastany": False})
+    _, w1 = b.wieczor("2026-11-16T18:00:40", "wieczorna", 1, [(1, [("P1", 0.95)], "ubytek")])
+    b.o("2026-11-16T18:02:40"); b.sesja.ok(w1[0])
+    b.wieczor("2026-11-16T23:00:00", "wieczorna", 2, [(1, [("P2", 0.95)], "ok")])
+    b.zd("2026-11-17T18:00:00", "ui", "start_skanu", {"udany": True})
+    _, w3 = b.wieczor("2026-11-17T18:01:00", "wieczorna", 3, [(1, [("P3", 0.95)], "ubytek")])
+    b.o("2026-11-17T18:30:00"); b.sesja.ukruszona(w3[0])
+    b.baza.zamknij()
+    w = policz(b.plik, "2026-11-16", "2026-11-17", "wieczor")
+    cz = w["wieczor"]["czas"]
+    assert (cz["zmian"], cz["zmian_bez_danych"], cz["posiedzen"], cz["posiedzen_bez_startu"], cz["zmian_ponad_prog"]) == (3, 1, 4, 3, 0)
+    assert cz["suma_min"] == pytest.approx(160 / 60 + 1)
+    assert cz["srednio_min"] == pytest.approx((160 / 60 + 1) / 2)
+    assert cz["max_min"] == pytest.approx(160 / 60)
+    assert "bez danych 1" in "\n".join(M.strona(w))
+
+
+def test_p4_krotka_historia_bez_awarii_to_za_krotki_okres(tmp_path):
+    """P4 (proba C): 3 doby programu bez awarii - seria 3 < 5, a w historii nie ma awarii: "za krotki okres", nie PONIZEJ; poza
+    metryka stabilnosci nic do oceny - kod 4."""
+    plik = tmp_path / "krotka.sqlite"
+    with B.otworz(plik) as baza:
+        for d in ("01", "02", "03"):
+            baza.zdarzenie("system", "program_start", {"wersja": "test"}, czas=f"2026-11-{d}T07:00:00")
+            baza.zdarzenie("system", "program_stop", {"niezakonczone": 0}, czas=f"2026-11-{d}T15:00:00")
+    w = policz(plik, "2026-11-01", "2026-11-03")
+    st = w["stabilnosc"]
+    assert (st["dni_pracy"], st["dni_z_awaria"], st["obecna_seria"], st["najdluzsza_seria"]) == (3, 0, 3, 3)
+    wiersz = {m["klucz"]: m for m in w["metryki"]}["dni_bez_awarii"]
+    assert wiersz["ocena"] == "za krotki okres" and "dni_bez_awarii" not in w["ponizej_progu"]
+    assert w["kod"] == 4
+
+
+def test_p5_top2_wlasciwa_kuweta_wsrod_dwoch_kandydatow(tmp_path):
+    """P5 (PW: "wlasciwa kuweta wsrod dwoch kandydatow"): kandydaci P5 (kuweta 3270) 0,72 i P6 (#1234) 0,65; technik przypisal recznie
+    P4 - spoza kandydatow, ale ta sama kuweta 3270 (inny zab zlecenia). Top-1 chybiony, top-2 trafiony (po projekcie - nie)."""
+    b = Budowa(tmp_path)
+    b.indeks()
+    _, pr = b.rano_skan("2026-11-17T07:00:00", 4, [(1, [("P5", 0.72), ("P6", 0.65)], "ok")])
+    b.o("2026-11-17T07:01:00"); b.rano.przypisz_recznie(pr[0], b.projekt_id["P4"])
+    b.o("2026-11-17T07:05:00"); b.rano.zamknij_piec()
+    b.baza.zamknij()
+    ra = policz(b.plik, "2026-11-17", "2026-11-17", "rano")["rano"]
+    assert (ra["z_prawda"], ra["top1"], ra["top2"], ra["top2_projekt"]) == (1, 0, 1, 0)
+
+
+def test_d4_awaria_ostatniej_doby_po_ponownym_starcie(tmp_path):
+    """D4: program padl 01.11 (start 07:00, ostatni wpis 08:00, bez program_stop), ponowny start 02.11. Raport za 01.11 widzi awarie
+    01.11 (start, ktory ja domyka, jest juz po okresie); na koniec okresu program uruchomiony bez program_stop."""
+    plik = tmp_path / "d4.sqlite"
+    with B.otworz(plik) as baza:
+        baza.zdarzenie("system", "program_start", {"wersja": "test"}, czas="2026-11-01T07:00:00")
+        baza.zdarzenie("ui", "start_skanu", {"udany": True}, czas="2026-11-01T08:00:00")
+        baza.zdarzenie("system", "program_start", {"wersja": "test"}, czas="2026-11-02T07:00:00")
+    st = policz(plik, "2026-11-01", "2026-11-01")["stabilnosc"]
+    assert (st["dni_pracy"], st["dni_z_awaria"], st["awarie"], st["obecna_seria"], st["uruchomiony_na_koniec"]) == (1, 1, 1, 0, True)
+    st = policz(plik, "2026-11-02", "2026-11-02")["stabilnosc"]
+    assert (st["dni_pracy"], st["dni_z_awaria"], st["obecna_seria"], st["uruchomiony_na_koniec"]) == (1, 0, 1, True)
+
+
+def test_d6_jedna_transakcja_odczytu(plik_bazy):
+    """D6: caly raport w jednej transakcji odczytu (spojny stan, gdy program w tym czasie pisze); po raporcie zadnej otwartej."""
+    with B.otworz(plik_bazy, tylko_odczyt=True) as baza:
+        polecenia: list[str] = []
+        baza.polaczenie.set_trace_callback(polecenia.append)
+        M.policz(baza, OD, DO, teraz="2026-11-18T20:00:00")
+        baza.polaczenie.set_trace_callback(None)
+        assert polecenia[0].strip().upper() == "BEGIN" and polecenia[-1].strip().upper() == "ROLLBACK"
+        assert sum(1 for x in polecenia if x.strip().upper() == "BEGIN") == 1
+        assert not baza.polaczenie.in_transaction
+
+
+def test_d7_uszkodzona_baza_kod_2(tmp_path):
+    """D7: plik bazy uciety po pierwszej stronie (blad SQLite inny niz blokada) - komunikat i kod 2, bez tracebacku."""
+    plik = tmp_path / "uszkodzona.sqlite"
+    B.otworz(plik).zamknij()
+    plik.write_bytes(plik.read_bytes()[:4096])
+    kod, out, err = _uruchom(["--baza", str(plik), "--od", OD, "--do", DO])
+    assert kod == 2 and err and not out and "Traceback" not in err
