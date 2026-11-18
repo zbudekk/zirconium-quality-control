@@ -658,6 +658,35 @@ def test_propozycje_z_wyniku_pieca_i_tabela_excel_zapisy(tmp_path):
     baza.zamknij()
 
 
+def test_a6_wynik_zamknij_piec_z_sesji_rano_do_propozycji_i_zapisu(tmp_path):
+    """Zgodnosc z obecnym API ``session_rano`` (A6 runda 5): prawdziwy ``SesjaRano`` (harness testow A6) - skan poranny obu prac
+    zlecenia Y (kuweta 3301), "Zamknij piec" -> ``propozycje`` -> jeden wiersz. ``otworz_piec_ponownie`` przed zatwierdzeniem =
+    odmowa X4 (piec znow otwarty); po ponownym zamknieciu ``wynik_pieca`` -> propozycja -> zapis i ``excel_zapisy`` z sesja pieca."""
+    import test_session_rano as TSR
+
+    st = TSR.Stanowisko(tmp_path)
+    TSR.wypelnij_indeks(st.sesja.baza)
+    st.skan(TSR.rano(4, "2026-11-18T07:00:00", [{"g": 2, "k": [["Y21", 0.95]]}, {"g": 3, "k": [["Y22", 0.95]]}]))
+    wynik = st.rano.zamknij_piec()
+    assert [z["kuweta"] for z in wynik["kompletne"]] == ["3301"] and wynik["zamknieto"]
+    ark = _maly([(D1, 51001.0, 3301.0, "Inna Osoba 3301 zs"), (D3, 51002.0, 3301.0, "Przykladowy Jan 3301 ZR")], ((2, ZIELONY),))
+    ex = EX.Excel(EX.Konfiguracja(log=tmp_path / "log_excel.csv"), ark, baza=st.sesja.baza, zegar=zegar, czekaj=bez_czekania)
+    (poz,) = ex.propozycje(wynik)
+    assert (poz.dopasowanie.klasa, poz.dopasowanie.wiersz, poz.sesja_pieca_id) == (J, 3, wynik["sesja_pieca_id"])
+    st.rano.otworz_piec_ponownie(wynik["sesja_pieca_id"])  # pomylka przy zamykaniu - piec znow otwarty
+    with pytest.raises(EX.BladExcela, match="X4"):
+        ex.zatwierdz(poz, OSOBA)
+    assert _zapisy(ark) == [] and ex.zaloguj_poprawki(wynik, OSOBA) == []
+    st.rano.zamknij_piec()
+    wynik2 = st.rano.wynik_pieca(wynik["sesja_pieca_id"])  # jak po restarcie programu
+    (poz2,) = ex.propozycje(wynik2)
+    wpis = ex.zatwierdz(poz2, OSOBA)
+    assert (wpis["wynik"], wpis["wiersz"]) == ("zapisano", 3) and _zapisy(ark) == [("ustaw_wypelnienie", 3, KOL_B, ZIELONY)]
+    z = st.sesja.baza.wiersz("SELECT * FROM excel_zapisy WHERE id = ?", (wpis["id"],))
+    assert (z["sesja_pieca_id"], z["kuweta"], z["wynik"], z["folder"]) == (wynik["sesja_pieca_id"], "3301", "zapisano", "Przykladowy Jan 3301 ZR")
+    st.sesja.baza.zamknij()
+
+
 def test_p1_propozycje_robia_swiezy_odczyt(tmp_path):
     baza, zl, piec = _baza_z_piecem(tmp_path)
     ark = _maly([(D1, 51001.0, 3263.0, "")])

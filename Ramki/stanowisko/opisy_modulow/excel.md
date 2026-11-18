@@ -109,6 +109,13 @@ ex.zapisz_cien(pozycje, operator)                 # tylko tryb "cien": log porow
 ex.rozlacz()                                      # zamkniecie programu i po bledzie COM: zwolnienie obiektow COM
 ```
 
+Zgodnosc z `session_rano` (A6 runda 5, sprawdzone testem na prawdziwym `SesjaRano`): `propozycje` czyta z wyniku tylko
+`zamknieto`, `sesja_pieca_id`, `kompletne[].zlecenie_id`, a `zaloguj_poprawki` - `poprawki[].zlecenie_id`; `zamknij_piec(plan_id=,
+sesja_pieca_id=)` i `wynik_pieca(id)` daja ten sam format. `otworz_piec_ponownie` zeruje `zamknieto` - zatwierdzenie propozycji
+sprzed ponownego otwarcia = odmowa X4; po ponownym zamknieciu `propozycje(wynik_pieca(id))` od nowa. Zlecenie domkniete recznie
+(`zamknij_brak_recznie`, `zlecenie_kompletne` = true) nie trafia do `kompletne`; jesli wlasciciel zdecyduje o zapisie przez A9,
+A12 wola `ex.pozycja(kuweta, folder, zlecenie_id, sesja_pieca_id=<ostatni zamkniety piec zlecenia>)` i `zatwierdz` w trybie "pytaj".
+
 Wynik `zatwierdz` / `pomin` / `zaloguj_*` / `zapisz_cien` (`POLA_WYNIKU`, P4): `id` (wiersz `excel_zapisy`), `kuweta`, `wiersz`,
 `klasa`, `wynik`, `regula`, `tryb`, `zlecenie_id`, `sesja_pieca_id` - BEZ nazwy folderu i nazwisk (mozna go zapisac w dzienniku).
 
