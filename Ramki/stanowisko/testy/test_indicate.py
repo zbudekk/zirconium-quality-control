@@ -8,6 +8,9 @@ zmiana stanu ramki W ponizej 1 s (dwa procesy), K8 zapis calego ruchu testow bez
 pliku). Wymaganie z recenzji PR #19 dla laptopa ("laptop widzial zdjecie plytki, a wysyla stary wynik") - testy `test_w<n>_...`.
 Pozostale: poranek (nowy piec, "Zamknij piec", restart programu laptopa, aktualizacja planu), jedna kolejka polecen, klucz,
 drugi laptop, ustawienia, plan z prawdziwej `SesjaRano.plan_plytek`, protokol (budowa i walidacja komunikatow).
+Runda 2 (recenzja PR #28): `test_b1_*` (ramka W = tylko ostatni skan), `test_b2_*` (zgaszenie przy zamykaniu, zastany
+plan gaszony), `test_b3_*` (historia po restarcie programu, klucz (start_id, nr)), `test_p1_*` (zatrzymaj < 1 s),
+`test_p2_*` (drugi laptop bez automatycznego przejecia), `test_zmiana_pieca_*` (proba 6); K8 z wlasnym ruchem.
 
 Atrapa ramki: `narzedzia/atrapa_ramki.py` w osobnym procesie (K1, K2, K5, K6, K7) albo w procesie testu
 (`atrapa_ramki.uruchom_atrape`) - zawsze przez HTTP na 127.0.0.1. Dane osobowe: tylko fikcyjne nazwy, i tylko po to, zeby
@@ -776,9 +779,10 @@ def test_w3_restart_ramki_w_laptop_nie_wznawia_wyniku(kal, sprzataj):
     assert k.wynik(2, "wieczorna", kol, z) == "niewazny"   # skan sprzed restartu ramki
 
 
-def test_w4_plan_sprzed_zdjecia_plytki_409_laptop_odbiera_i_wysyla_bez_tej_plytki(kal, sprzataj):
+def test_w4_plan_sprzed_zdjecia_plytki_409_laptop_odbiera_i_nie_wysyla_starego_wyniku(kal, sprzataj):
     """Plan zbudowany przed zdjeciem plytki 2 (zdjecie miedzy zbudowaniem planu a jego przyjeciem): ramka 409
-    zdarzenia_nieodebrane; laptop odbiera zdarzenia, widzi zdjecie i wysyla plan juz BEZ wyniku plytki 2."""
+    zdarzenia_nieodebrane; laptop odbiera zdarzenia, widzi zdjecie - wynik plytki 2 juz nie idzie, ramka ciemna
+    i w stanie "gotowa"; wynik poprzedniego skanu (plytka 1) tez nie wraca (ramka W = tylko ostatni skan, B1)."""
     program, atrapa, port, k, d = _wieczor(kal, sprzataj)
     kol1, kol2 = kolory_wieczor(kal), kolory_wieczor(kal, przesuniecie=2)
     z1 = k.skanowanie()
@@ -799,18 +803,24 @@ def test_w4_plan_sprzed_zdjecia_plytki_409_laptop_odbiera_i_wysyla_bez_tej_plytk
     k.przed_wyslaniem_planu = zdejmij_przed_wyslaniem
     put = d.liczba("PUT", "/plan")
     assert k.wynik(2, "wieczorna", kol2, z2) == "wyslany"
-    assert czekaj_na(lambda: program.logika.plan is not None, 5.0)
-    assert sorted(program.logika.plan.plytki) == [1]
+    assert czekaj_na(lambda: wywolania and program.logika.tryb == "gotowa" and not k.stan()["oczekuje"], 5.0), (
+        program.logika.tryb, program.logika.plan, {x: k.stan()[x] for x in ("oczekuje", "blad", "kod_bledu", "wyniki",
+                                                                          "kursor", "plan_przyjety")},
+        [(w["kierunek"], w["metoda"], w["sciezka"][:12], w.get("status")) for w in d.wpisy if w["metoda"] != "GET"],
+        [(z["nr"], z["typ"]) for z in program.logika.zdarzenia])
+    time.sleep(0.3)
+    assert program.logika.plan is None and program.logika.tryb == "gotowa"
     plany = [json.loads(w["tresc"]) for w in d.zadania("PUT", "/plan")[put:]]
-    assert [sorted(p["plytki"]) for p in plany] == [["1", "2"], ["1"]]
-    assert plany[1]["wersja"] > plany[0]["wersja"] and plany[1]["zdarzenia_do"] > plany[0]["zdarzenia_do"]
+    assert [sorted(p["plytki"]) for p in plany] == [["2"]]   # jedna proba (409), potem nic - bez starego wyniku
+    assert k.wynik(2, "wieczorna", kol2, z2) == "niewazny"
     atrapa.poloz_plytke(2)
     assert czekaj_na(lambda: program.logika.plytka == 2 and program.logika.plytka_pewna, 6.0)  # powrot A-0-A: po 3 s
     time.sleep(0.2)
     assert roznice_plytki(atrapa.klatka, {}) == []
-    assert k.wynik(2, "wieczorna", kol2, z2) == "niewazny"
     atrapa.poloz_plytke(1)
-    assert atrapa.czekaj(lambda a: roznice_plytki(a.klatka, piksele(kal, "W", "wieczorna", swiecace(kol1))) == [], 3.0)
+    assert czekaj_na(lambda: program.logika.plytka == 1 and program.logika.plytka_pewna, 3.0)
+    time.sleep(0.2)
+    assert roznice_plytki(atrapa.klatka, {}) == []   # wynik plytki 1 z poprzedniego skanu nie wraca
 
 
 def test_w5_wynik_bez_numeru_albo_bez_kalibracji_nic_nie_zapala(kal, sprzataj):
@@ -822,6 +832,46 @@ def test_w5_wynik_bez_numeru_albo_bez_kalibracji_nic_nie_zapala(kal, sprzataj):
     assert k.wynik(3, "okragla_wieczorna", {1: "zielony"}, z) == "brak_kalibracji"
     assert czekaj_na(lambda: program.logika.tryb == "gotowa", 3.0)   # pierscien nie zostaje w stanie "analiza"
     assert d.liczba("PUT", "/plan") == 0
+
+
+def test_b1_ramka_w_tylko_ostatni_skan_skan_bez_numeru_ciemno(kal, sprzataj):
+    """Runda 2, B1 (proba 1 A): plytka 1 zeskanowana (wynik na ramce), prace przelozone i ponowny skan bez numeru - stary
+    wynik plytki 1 nie wraca (ani po skanie bez numeru, ani z kolejnym planem); ramka ciemna i "gotowa"."""
+    program, atrapa, port, k, d = _wieczor(kal, sprzataj)
+    kol = kolory_wieczor(kal)
+    z1 = k.skanowanie()
+    assert k.wynik(1, "wieczorna", kol, z1) == "wyslany"
+    assert czekaj_na(lambda: program.logika.plan is not None, 3.0)
+    put = d.liczba("PUT", "/plan")
+    z2 = k.skanowanie()
+    k.analiza()
+    assert k.wynik(None, "wieczorna", kolory_wieczor(kal, przesuniecie=4), z2) == "bez_numeru"
+    assert czekaj_na(lambda: program.logika.tryb == "gotowa" and not k.stan()["oczekuje"], 3.0)
+    assert k.wynik(1, "wieczorna", kol, z1) == "niewazny"           # stary skan - nowszy skan juz byl
+    time.sleep(0.3)
+    assert program.logika.plan is None and d.liczba("PUT", "/plan") == put and k.stan()["wyniki"] == []
+    atrapa.poloz_plytke(1)
+    assert czekaj_na(lambda: program.logika.plytka == 1 and program.logika.plytka_pewna, 3.0)
+    time.sleep(0.2)
+    assert roznice_plytki(atrapa.klatka, {}) == []
+
+
+def test_b1_ramka_w_blad_skanu_i_nowy_skan_bez_starego_wyniku(kal, sprzataj):
+    """Runda 2, B1 (proba 1 B): wynik plytki 2, Spacja, skan zablokowany (`blad`), Spacja, wynik plytki 3 - plan
+    zawiera TYLKO plytke 3."""
+    program, atrapa, port, k, d = _wieczor(kal, sprzataj)
+    z = k.skanowanie()
+    assert k.wynik(2, "wieczorna", kolory_wieczor(kal), z) == "wyslany"
+    assert czekaj_na(lambda: program.logika.plan is not None and sorted(program.logika.plan.plytki) == [2], 3.0)
+    k.skanowanie()
+    k.blad()
+    z3 = k.skanowanie()
+    assert k.wynik(3, "wieczorna", kolory_wieczor(kal, przesuniecie=1), z3) == "wyslany"
+    assert czekaj_na(lambda: not k.stan()["oczekuje"] and program.logika.plan is not None
+                     and sorted(program.logika.plan.plytki) == [3], 3.0), k.stan()
+    time.sleep(0.3)
+    assert sorted(program.logika.plan.plytki) == [3] and program.logika.tryb == "wynik"
+    assert [sorted(json.loads(w["tresc"])["plytki"]) for w in d.zadania("PUT", "/plan")] == [["2"], ["3"]]
 
 
 # ----------------------------------------------------------------------------- poranek
@@ -896,9 +946,44 @@ def test_poranek_restart_programu_laptopa_przejmuje_stan_potwierdzen_z_ramki(kal
     k2, d2 = klient("P", port, kal)   # ten sam identyfikator laptopa, nowy program
     sprzataj.append(k2.zatrzymaj)
     k2.ustaw_plan_rano(plan_plytek_k1())
-    assert czekaj_na(lambda: program.logika.plan.wersja > wersja, 5.0), k2.stan()
+    assert czekaj_na(lambda: program.logika.plan is not None and program.logika.plan.wersja > wersja, 5.0), k2.stan()
     assert program.logika.stan(program.zegar())["potwierdzone"] == potw and k2.potwierdzone() == potw
-    assert [z for z in k2.odbierz_zdarzenia() if z["typ"] == "potwierdzenie"] == []   # historia sprzed startu - nie nowa
+    hist = [z for z in k2.odbierz_zdarzenia() if z["typ"] == "potwierdzenie"]
+    assert [z["kuweta"] for z in hist] == ["3263", "3301"] and all(z["z_historii"] for z in hist)  # B3: historia oznaczona
+
+
+def test_b3_restart_programu_historia_ramki_bez_utraty_i_bez_duplikatow(kal, sprzataj):
+    """Runda 2, B3 (proba 4): potwierdzenie odebrane, program zatrzymany, technik potwierdza 2 kuwety, program startuje
+    ponownie. Bez kursora: cala historia biezacego startu ramki (`z_historii`), po kluczu (start_id, nr) dokladnie
+    2 nowe potwierdzenia, w kolejnosci. Z kursorem programu: tylko zdarzenia powyzej niego."""
+    program, atrapa, port, k, d = _poranek(kal, sprzataj)
+    k.ustaw_plan_rano(plan_plytek_k1())
+    assert czekaj_na(lambda: program.logika.plan is not None, 5.0)
+    atrapa.poloz_plytke(4)
+    assert czekaj_na(lambda: program.logika.plytka == 4 and program.logika.plytka_pewna, 2.0)
+    atrapa.nacisnij("enter")
+    assert czekaj_na(lambda: k.potwierdzone() == [[4, "3263"]], 3.0)
+    zapisane = {IND.klucz_zdarzenia(z) for z in k.odbierz_zdarzenia()}   # "baza" programu
+    kursor = k.kursor
+    k.zatrzymaj()
+    atrapa.nacisnij("enter")
+    atrapa.nacisnij("enter")
+    assert czekaj_na(lambda: len(program.logika.stos.get(4, [])) == 3, 3.0)
+    k2, _ = klient("P", port, kal)
+    sprzataj.append(k2.zatrzymaj)
+    assert czekaj_na(lambda: k2.kursor[0] == program.logika.start_id and k2.kursor[1] >= kursor[1] + 2, 5.0)
+    hist = odbierz_n(k2, 1)
+    assert all(z["z_historii"] for z in hist if z["nr"] <= kursor[1] + 2)
+    nowe = [z for z in hist if IND.klucz_zdarzenia(z) not in zapisane]
+    assert [(z["typ"], z["kuweta"]) for z in nowe if z["typ"] == "potwierdzenie"] == [("potwierdzenie", "3301"),
+                                                                                      ("potwierdzenie", "0412")]
+    assert len({IND.klucz_zdarzenia(z) for z in hist}) == len(hist)
+    k3, _ = klient("P", port, kal, kursor=kursor)
+    sprzataj.append(k3.zatrzymaj)
+    assert czekaj_na(lambda: k3.kursor[1] >= kursor[1] + 2, 5.0)
+    od_kursora = odbierz_n(k3, 2)
+    assert [z["nr"] for z in od_kursora][:2] == [kursor[1] + 1, kursor[1] + 2] and all(z["nr"] > kursor[1] for z in od_kursora)
+    assert [z["kuweta"] for z in od_kursora if z["typ"] == "potwierdzenie"][:2] == ["3301", "0412"]
 
 
 def test_poranek_utracone_zdarzenia_stan_z_ramki(kal, sprzataj):
@@ -999,28 +1084,150 @@ def test_drugi_laptop_jasny_komunikat_plan_pierwszego_zostaje(kal, sprzataj):
     assert program.logika.plan.plan_id == "2026-11-18-p5"
 
 
+def test_p2_inny_laptop_bez_automatycznego_przejecia_ramki_do_wznow(kal, sprzataj):
+    """Runda 2, P2 (proba 5): drugi laptop B dostaje `inny_laptop`; wlasciciel A milknie dluzej niz limit lacznosci
+    ramki (tu 2 s) - B NIE przejmuje ramki sam (plan B nie pojawia sie, komunikat zostaje); dopiero `wznow()` (decyzja
+    czlowieka) wysyla plan B."""
+    program, atrapa, port, k, d = _poranek(kal, sprzataj, konf={"limit_lacznosci_s": 2.0})
+    k.ustaw_plan_rano(plan_plytek_k5())
+    assert czekaj_na(lambda: program.logika.plan is not None, 5.0)
+    kb, db = klient("P", port, kal, laptop_id="lap-test-b")
+    sprzataj.append(kb.zatrzymaj)
+    kb.ustaw_plan_rano(plan_plytek_k1(plan_id="2026-11-17-p3"))
+    assert czekaj_na(lambda: kb.stan()["blad"] == "inny_laptop" and kb.stan()["wstrzymane"], 5.0), kb.stan()
+    k.zatrzymaj()                     # wlasciciel milknie (uspienie, przerwa Wi-Fi, zamkniety program)
+    time.sleep(4.0)
+    assert program.logika.plan is None or program.logika.plan.plan_id != "2026-11-17-p3"
+    s = kb.stan()
+    assert s["blad"] == "inny_laptop" and s["wstrzymane"] and "drugi laptop" in s["komunikat"].lower()
+    assert db.liczba("PUT", "/plan") <= 1          # najwyzej pierwsza, odrzucona proba - bez ponawiania
+    kb.wznow()
+    assert czekaj_na(lambda: program.logika.plan is not None and program.logika.plan.plan_id == "2026-11-17-p3", 3.0)
+    assert kb.stan()["blad"] is None
+
+
+def test_b2_zatrzymaj_wysyla_zgaszenie_a_nowe_uruchomienie_gasi_zastany_plan(kal, sprzataj):
+    """Runda 2, B2 (proba 2): (a) `zgas()` tuz przed zamknieciem programu - `DELETE` wychodzi w `zatrzymaj()`, nawet gdy
+    kolejka polecen go nie wyslala; (b) poprzednie uruchomienie zostawilo plan na ramce, nowe uruchomienie z tym samym
+    identyfikatorem laptopa bez otwartego pieca - plan zgaszony przy pierwszym kontakcie; (c) to samo dla ramki W."""
+    program, atrapa, port = ramka_wewnatrz("P")
+    sprzataj.append(program.zatrzymaj)
+    k, d = klient("P", port, kal)
+    k.ustaw_plan_rano(plan_plytek_k5())
+    assert czekaj_na(lambda: program.logika.plan is not None, 5.0)
+    k._wybierz = lambda: None         # kolejka polecen nie wysle juz niczego (np. w przerwie po bledzie sieci)
+    k.zgas()
+    t0 = time.perf_counter()
+    k.zatrzymaj()
+    dt = time.perf_counter() - t0
+    assert dt < 1.0 and program.logika.plan is None and d.liczba("DELETE", "/plan") == 1, dt
+    k2, _ = klient("P", port, kal)
+    k2.ustaw_plan_rano(plan_plytek_k5(plan_id="2026-11-18-p6"))
+    assert czekaj_na(lambda: program.logika.plan is not None and program.logika.plan.plan_id == "2026-11-18-p6", 5.0)
+    k2.zatrzymaj()                    # bez zgas(): plan zostaje na ramce (i bylby podtrzymywany tym samym X-Laptop-Id)
+    assert program.logika.plan is not None
+    k3, d3 = klient("P", port, kal)
+    sprzataj.append(k3.zatrzymaj)
+    assert czekaj_na(lambda: program.logika.plan is None, 3.0)
+    assert d3.liczba("DELETE", "/plan") == 1 and d3.liczba("PUT", "/plan") == 0
+    progw, atrw, portw = ramka_wewnatrz("W")
+    sprzataj.append(progw.zatrzymaj)
+    kw, _ = klient("W", portw, kal)
+    assert czekaj_na(lambda: kw.stan()["polaczona"], 5.0)
+    z = kw.skanowanie()
+    assert kw.wynik(2, "wieczorna", kolory_wieczor(kal), z) == "wyslany"
+    assert czekaj_na(lambda: progw.logika.plan is not None, 3.0)
+    kw.zatrzymaj()
+    kw2, dw2 = klient("W", portw, kal)
+    sprzataj.append(kw2.zatrzymaj)
+    assert czekaj_na(lambda: progw.logika.plan is None and progw.logika.tryb == "gotowa", 3.0)
+    assert dw2.liczba("PUT", "/plan") == 0
+
+
+def test_p1_zatrzymaj_ponizej_1_s_przy_wiszacym_odpytywaniu_i_wiszacej_ramce(kal, sprzataj):
+    """Runda 2, P1 (proby 3, 3b): Windows - `shutdown` nie przerywa `recv`; `zatrzymaj()` ma trwac ponizej 1 s przy
+    dlugim odpytywaniu w toku, przy ramce, ktora przyjmuje polaczenie i nie odpowiada (z oczekujacym zgaszeniem),
+    i dla `Indicate` z dwiema takimi ramkami; watki sa daemon i koncza sie."""
+    program, atrapa, port = ramka_wewnatrz("P")
+    sprzataj.append(program.zatrzymaj)
+    k, _ = klient("P", port, kal, odpytywanie_s=25.0)
+    assert czekaj_na(lambda: k.stan()["polaczona"] and k.kursor[1] == program.logika.nr, 3.0)
+    time.sleep(0.3)                   # dlugie odpytywanie w toku (ramka czeka do 10 s)
+    watki = list(k._watki)
+    t0 = time.perf_counter()
+    k.zatrzymaj()
+    czasy = [time.perf_counter() - t0]
+    assert all(w.daemon for w in watki) and czekaj_na(lambda: not any(w.is_alive() for w in watki), 2.0)
+    gluchy = socket.socket(socket.AF_INET, socket.SOCK_STREAM)   # przyjmuje polaczenie (kolejka), nie odpowiada
+    gluchy.bind(("127.0.0.1", 0))
+    gluchy.listen(8)
+    sprzataj.append(gluchy.close)
+    port_g = gluchy.getsockname()[1]
+    k2, _ = klient("P", port_g, kal)
+    time.sleep(0.3)
+    k2.zgas()
+    t0 = time.perf_counter()
+    k2.zatrzymaj()
+    czasy.append(time.perf_counter() - t0)
+    ind = IND.Indicate(klient("W", port_g, kal)[0], klient("P", port_g, kal)[0])
+    time.sleep(0.3)
+    ind.poranna.zgas()
+    t0 = time.perf_counter()
+    ind.zatrzymaj()
+    czasy.append(time.perf_counter() - t0)
+    print(f"POMIAR P1: zatrzymaj() {', '.join(f'{c:.3f}' for c in czasy)} s (odpytywanie w toku, gluchy host, Indicate)")
+    assert max(czasy) < 1.0, czasy
+
+
+def test_zmiana_pieca_w_trakcie_wysylki_planu(kal, sprzataj):
+    """Recenzja PR #28, proba 6: nowy piec ustawiony w chwili wysylki planu poprzedniego - p1 przyjety, zgaszony
+    (DELETE), potem p2; na ramce zostaje p2."""
+    program, atrapa, port, k, d = _poranek(kal, sprzataj)
+    raz = []
+
+    def hak():
+        if not raz:
+            raz.append(1)
+            k.ustaw_plan_rano(plan_plytek_k5(plan_id="2026-11-18-p2"))
+
+    k.przed_wyslaniem_planu = hak
+    k.ustaw_plan_rano(plan_plytek_k5(plan_id="2026-11-18-p1"))
+    assert czekaj_na(lambda: program.logika.plan is not None and program.logika.plan.plan_id == "2026-11-18-p2", 5.0)
+    time.sleep(0.3)
+    assert program.logika.plan.plan_id == "2026-11-18-p2"
+    with program.warunek:
+        dz = [(z["typ"], z.get("plan_id"), z.get("przyczyna")) for z in program.logika.zdarzenia
+              if z["typ"] in ("plan_przyjety", "zgaszono")]
+    assert dz == [("plan_przyjety", "2026-11-18-p1", None), ("zgaszono", "2026-11-18-p1", "usuniecie"),
+                  ("plan_przyjety", "2026-11-18-p2", None)]
+
+
 # ----------------------------------------------------------------------------- ustawienia i plan z SesjaRano
 
 def test_z_ustawien_hosty_klucz_kalibracja_i_staly_identyfikator_laptopa(tmp_path):
     from stanowisko import ustawienia as UST
 
     ust = UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)
-    ust["sciezki"]["kalibracja_ramek"] = (tmp_path / "dane" / "kalibracja_ramek.json").as_posix()
-    ind = IND.Indicate.z_ustawien(ust)
+    ust["sciezki"]["kalibracja_ramek"] = (tmp_path / "kal" / "kalibracja_ramek.json").as_posix()
+    dane = tmp_path / "dane"
+    ind = IND.Indicate.z_ustawien(ust, katalog_danych=dane)
     assert ind.wieczorna.adres == (ust["ramki"]["wieczorna_host"], ust["ramki"]["port"])
     assert ind.poranna.adres == (ust["ramki"]["poranna_host"], ust["ramki"]["port"])
     assert ind.wieczorna.rola == "W" and ind.poranna.rola == "P"
     # brak pliku kalibracji: wartosci startowe z geometrii plytek + ostrzezenie (plik nie jest zapisywany)
     assert any("kalibrac" in o for o in ind.poranna.stan()["ostrzezenia"])
-    assert not (tmp_path / "dane" / "kalibracja_ramek.json").exists()
+    assert not (tmp_path / "kal" / "kalibracja_ramek.json").exists()
     lid = ind.poranna.laptop_id
     assert RPR.WZOR_ID.fullmatch(lid) and lid == ind.wieczorna.laptop_id
-    assert IND.Indicate.z_ustawien(ust).poranna.laptop_id == lid   # staly dla instalacji (plik lokalny)
+    # staly dla instalacji: plik w katalogu danych programu, niezaleznie od miejsca pliku kalibracji (D9)
+    assert (dane / IND.PLIK_ID_LAPTOPA).read_text(encoding="ascii").strip() == lid
+    assert not (tmp_path / "kal" / IND.PLIK_ID_LAPTOPA).exists()
+    assert IND.Indicate.z_ustawien(ust, katalog_danych=dane).poranna.laptop_id == lid
     # plik kalibracji jest - uzyty; zly plik - ramka bez planow (ciemno) i ostrzezenie, program dziala dalej
-    kalibracja.zapisz(kalibracja.domyslna(MODELE), tmp_path / "dane" / "kalibracja_ramek.json")
-    assert IND.Indicate.z_ustawien(ust).poranna.stan()["ostrzezenia"] == []
-    (tmp_path / "dane" / "kalibracja_ramek.json").write_text("{}", encoding="ascii")
-    ind3 = IND.Indicate.z_ustawien(ust)
+    kalibracja.zapisz(kalibracja.domyslna(MODELE), tmp_path / "kal" / "kalibracja_ramek.json")
+    assert IND.Indicate.z_ustawien(ust, katalog_danych=dane).poranna.stan()["ostrzezenia"] == []
+    (tmp_path / "kal" / "kalibracja_ramek.json").write_text("{}", encoding="ascii")
+    ind3 = IND.Indicate.z_ustawien(ust, katalog_danych=dane)
     assert ind3.poranna.stan()["ostrzezenia"] and ind3.poranna.kalibracja is None
 
 
@@ -1074,9 +1281,19 @@ def test_pliki_indicate_ascii_tylko_biblioteka_standardowa():
 # ----------------------------------------------------------------------------- K8: caly ruch (ostatni test pliku)
 
 def test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow_i_nazwisk(kal, sprzataj):
-    """Przed sprawdzeniem: plan z nazwami w polach pomocniczych i w miejscu numerow kuwet (jak bledny plan z sesji)
-    wyslany przez siec. Potem caly zapis ruchu testow tego pliku (dzienniki klientow, posredniki TCP, zadania testow)."""
-    program, atrapa, port, k, d = _poranek(kal, sprzataj)
+    """Test ma WLASNY ruch (nie zalezy od kolejnosci ani od innych testow - D11): ramka P z kluczem przez posrednik TCP
+    (surowe bajty), plan z nazwami w polach pomocniczych i w miejscu numerow kuwet (jak bledny plan z sesji), nowy piec
+    (DELETE), ramka W (PUT /tryb). Sprawdzany jest caly zapis ruchu: ten test i wszystko, co zapisaly wczesniej
+    uruchomione testy pliku (dzienniki klientow, posredniki TCP, zadania testow). Klucz moze wystapic w surowych bajtach
+    tylko w naglowku X-Ramka-Klucz."""
+    klucz = secrets.token_hex(24)
+    KLUCZE_TESTOW.add(klucz)
+    program, atrapa, port = ramka_wewnatrz("P", klucz=klucz)
+    sprzataj.append(program.zatrzymaj)
+    proxy = Posrednik(port)
+    sprzataj.append(proxy.zamknij)
+    k, d = klient("P", proxy.port, kal, klucz=klucz)
+    sprzataj.append(k.zatrzymaj)
     pp = plan_plytek_k1()
     pp["plytki"]["4"]["gniazda"][0]["kuweta"] = FOLDERY[0]
     pp["kuwety"].append({"kuweta": FOLDERY[1], "plytki": [4]})
@@ -1084,6 +1301,15 @@ def test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow_i_nazwisk(kal, sprzat
     pp["opisy"] = {k_: f for k_, f in zip(("3263", "3301", "0412", "#1234", "3999", "4100"), FOLDERY)}
     k.ustaw_plan_rano(pp)
     assert czekaj_na(lambda: program.logika.plan is not None, 5.0)
+    k.ustaw_plan_rano(plan_plytek_k5(plan_id="2026-11-18-p9"))
+    assert czekaj_na(lambda: program.logika.plan is not None and program.logika.plan.plan_id == "2026-11-18-p9", 5.0)
+    progw, atrw, portw = ramka_wewnatrz("W")
+    sprzataj.append(progw.zatrzymaj)
+    kw, _ = klient("W", portw, kal)
+    sprzataj.append(kw.zatrzymaj)
+    assert czekaj_na(lambda: kw.stan()["polaczona"], 5.0)
+    kw.skanowanie()
+    assert czekaj_na(lambda: progw.logika.tryb == "skanowanie", 3.0)
     with _RUCH_BLOK:
         ruch = list(RUCH)
     calosc = b"\n".join(ruch).decode("utf-8", "replace").lower()
@@ -1097,7 +1323,9 @@ def test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow_i_nazwisk(kal, sprzat
             rodzaje.add((w["metoda"], w["sciezka"].split("?")[0]))
     assert {("GET", "/stan"), ("GET", "/zdarzenia"), ("PUT", "/plan"), ("PUT", "/tryb"), ("DELETE", "/plan")} <= rodzaje
     trafienia = [n for n in NAZWISKA + FOLDERY if n.lower() in calosc]
-    klucze = [x for x in KLUCZE_TESTOW if x.lower() in calosc]
-    print(f"POMIAR K8: {len(ruch)} zapisow ruchu ({len(calosc)} znakow), trafien nazw {len(trafienia)}, kluczy {len(klucze)}")
-    assert len(ruch) > 500 and trafienia == [] and klucze == []
+    poza_naglowkiem = [x for x in KLUCZE_TESTOW if calosc.count(x.lower()) != calosc.count("x-ramka-klucz: " + x.lower())]
+    w_naglowku = calosc.count("x-ramka-klucz: " + klucz.lower())
+    print(f"POMIAR K8: {len(ruch)} zapisow ruchu ({len(calosc)} znakow), trafien nazw {len(trafienia)}, kluczy poza "
+          f"naglowkiem {len(poza_naglowkiem)} (klucz w naglowku surowych zadan: {w_naglowku} razy)")
+    assert trafienia == [] and poza_naglowkiem == [] and w_naglowku > 0
     assert not re.search(r"\b[a-z]:\\", calosc) and "/users/" not in calosc
