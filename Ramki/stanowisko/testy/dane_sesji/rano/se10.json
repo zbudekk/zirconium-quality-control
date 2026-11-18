@@ -1,0 +1,42 @@
+{
+ "opis": "Scenariusz SE10 (plan etapu 3, 4.1 E3-A6): 3 piece w 2 dniach, zab ukruszony wieczorem i dofrezowany, poprawka zlecenia juz odhaczonego, dwuznaczna, nieznana, konflikt, ponowny skan, restart. Dane w pelni sztuczne: fikcyjne nazwy folderow i plikow; skrot sha16 projektu = sha256('qc-test-rano/<klucz>')[:16]. Gniazdo: g = numer gniazda, k = kandydaci [klucz projektu, pokrycie] (status dopasowania liczy test regula match: zielony >= 0.85 i przewaga >= 0.1, zolty >= 0.6 i przewaga >= 0.1, inaczej szary), inspekcja = ok / ubytek.",
+ "zlecenia": [
+  {"klucz": "X", "zrodlo": "cyrkon", "folder": "3263 Testowa Anna", "kuweta": "3263"},
+  {"klucz": "Y", "zrodlo": "cyrkon", "folder": "Przykladowy Jan 3301 ZR", "kuweta": "3301"},
+  {"klucz": "Z", "zrodlo": "cyrkon", "folder": "0412 Atrapa Ewa", "kuweta": "412"},
+  {"klucz": "Q", "zrodlo": "prywatne", "folder": "#1234 Fikcyjny Piotr", "kuweta": "#1234"},
+  {"klucz": "V", "zrodlo": "cyrkon", "folder": "Wymyslona Zofia 46 5120", "kuweta": "?46,5120"}
+ ],
+ "projekty": [
+  {"klucz": "X11", "zlecenie": "X", "plik": "2026-11-16_testowa_anna-11-crown_cad.stl", "zeby": "11", "typ": "korona"},
+  {"klucz": "X12", "zlecenie": "X", "plik": "2026-11-16_testowa_anna-12-crown_cad.stl", "zeby": "12", "typ": "korona"},
+  {"klucz": "X13", "zlecenie": "X", "plik": "2026-11-16_testowa_anna-13-crown_cad.stl", "zeby": "13", "typ": "korona"},
+  {"klucz": "Y21", "zlecenie": "Y", "plik": "przykladowy_jan-21-crown_cad.stl", "zeby": "21", "typ": "korona"},
+  {"klucz": "Y22", "zlecenie": "Y", "plik": "przykladowy_jan-22-crown_cad.stl", "zeby": "22", "typ": "korona"},
+  {"klucz": "Z31", "zlecenie": "Z", "plik": "atrapa_ewa-31-crown_cad.stl", "zeby": "31", "typ": "korona"},
+  {"klucz": "Z32", "zlecenie": "Z", "plik": "atrapa_ewa-32-crown_cad.stl", "zeby": "32", "typ": "korona"},
+  {"klucz": "Q46", "zlecenie": "Q", "plik": "fikcyjny_piotr-46-crown_cad.stl", "zeby": "46", "typ": "korona"},
+  {"klucz": "V36", "zlecenie": "V", "plik": "wymyslona_zofia-36-crown_cad.stl", "zeby": "36", "typ": "korona"}
+ ],
+ "skany": [
+  {"klucz": "w1", "tryb": "wieczor", "plytka": "wieczorna", "numer": 1, "czas": "2026-11-17T19:00:00",
+   "gniazda": [{"g": 2, "k": [["X11", 0.93]]}, {"g": 3, "k": [["X12", 0.92]]}, {"g": 4, "k": [["X13", 0.91]], "inspekcja": "ubytek"},
+               {"g": 5, "k": [["Y21", 0.94]]}, {"g": 6, "k": [["Y22", 0.93]]}]},
+  {"klucz": "w2", "tryb": "wieczor", "plytka": "wieczorna", "numer": 2, "czas": "2026-11-17T19:20:00",
+   "gniazda": [{"g": 2, "k": [["Z31", 0.95]]}, {"g": 3, "k": [["Z32", 0.94]]}]},
+  {"klucz": "p1_4", "tryb": "rano", "plytka": "poranna", "numer": 4, "czas": "2026-11-18T07:00:00",
+   "gniazda": [{"g": 2, "k": [["X11", 0.95], ["X12", 0.40]]}, {"g": 3, "k": [["X12", 0.94]]}, {"g": 4, "k": [["Y21", 0.96]]}]},
+  {"klucz": "p1_5", "tryb": "rano", "plytka": "poranna", "numer": 5, "czas": "2026-11-18T07:05:00",
+   "gniazda": [{"g": 2, "k": [["Y22", 0.80], ["Q46", 0.76]]}, {"g": 3, "k": []}]},
+  {"klucz": "p1_5_ponownie", "tryb": "rano", "plytka": "poranna", "numer": 5, "czas": "2026-11-18T07:12:00",
+   "gniazda": [{"g": 2, "k": [["Y22", 0.90], ["Q46", 0.70]]}, {"g": 3, "k": [["Z31", 0.45]]}]},
+  {"klucz": "p2_4", "tryb": "rano", "plytka": "poranna", "numer": 4, "czas": "2026-11-18T09:30:00",
+   "gniazda": [{"g": 5, "k": [["Z32", 0.93]]}]},
+  {"klucz": "p2_6", "tryb": "rano", "plytka": "poranna", "numer": 6, "czas": "2026-11-18T09:35:00",
+   "gniazda": [{"g": 3, "k": [["Z32", 0.91], ["X12", 0.50]]}]},
+  {"klucz": "w3", "tryb": "wieczor", "plytka": "wieczorna", "numer": 2, "czas": "2026-11-18T20:00:00",
+   "gniazda": [{"g": 2, "k": [["X13", 0.94]]}]},
+  {"klucz": "p3_4", "tryb": "rano", "plytka": "poranna", "numer": 4, "czas": "2026-11-19T07:00:00",
+   "gniazda": [{"g": 2, "k": [["X13", 0.95]]}, {"g": 3, "k": [["Y21", 0.94]]}]}
+ ]
+}
