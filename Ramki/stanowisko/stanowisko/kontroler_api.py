@@ -812,9 +812,11 @@ class KontrolerSesji(Kontroler):
             pytania += [p for p in plytka.pytania if not p.ukryte]
             trwale += [k for k in plytka.komunikaty if not k.ukryte]
         if sw["konflikty"]:
+            oczekujace = {frozenset((skan_id, p["poprzedni_id"])) for skan_id, p in propozycje.items()
+                          if (skan_id, p["poprzedni_id"]) not in self._odrzucone}  # skany czekajace na odpowiedz "to ponowny skan?"
             for k in sw["konflikty"]:
                 id_ = f"konflikt_projektu:{k['sha16']}"
-                if id_ not in self._ukryte:
+                if id_ not in self._ukryte and not self._konflikt_ponownego_skanu(k, oczekujace):
                     trwale.append(self._nowy_komunikat(id_, "konflikt_projektu", trwaly=True, czas=sw["data"], miejsc=len(k["miejsca"])))
         komunikaty = sorted(list(self._komunikaty.values()) + trwale, key=lambda k: (k.czas, k.id))
         aktywne = [p.skan_id for p in plytki]
@@ -831,6 +833,18 @@ class KontrolerSesji(Kontroler):
             do_dofrezowania_biezaca=lista_biezaca,
             pytania=tuple(pytania), komunikaty=tuple(komunikaty), konflikty=zamroz(sw["konflikty"]), zamkniety=self._zamkniety,
             lista_zapisana=self._lista_czas, **self._stan_zywy())
+
+    @staticmethod
+    def _konflikt_ponownego_skanu(konflikt: dict, oczekujace: set) -> bool:
+        """Konflikt projektu TYLKO miedzy skanem, ktory czeka na odpowiedz "to ponowny skan?", a skanem, ktory proponuje zastapic
+        (po jednym miejscu w kazdym) - to ta sama praca zeskanowana drugi raz, nie dwa gniazda wieczoru: komunikat nie trafia na
+        pasek bledow (decyzja wlasciciela 18.11.2026, E3-A1p). Po "Nie, to nowy wsad" konflikt wraca, po "Tak" znika (skan
+        zastapiony); "Pozniej" to nie odpowiedz. Konflikt z innym skanem albo w obrebie jednego skanu - bez zmian (komunikat).
+        ``stan.konflikty`` podaje wszystkie konflikty jak dotad."""
+        miejsca: dict = {}
+        for m in konflikt["miejsca"]:
+            miejsca.setdefault(m["skan_id"], set()).add(m["gniazdo"] if m["gniazdo"] is not None else f"poza-{m['praca_id']}")
+        return frozenset(miejsca) in oczekujace and all(len(g) == 1 for g in miejsca.values())
 
     # --- lista "do dofrezowania" w pliku (P7, zalozenie Z6) ----------------------------------------
     def _katalog_listy(self) -> Path | None:
