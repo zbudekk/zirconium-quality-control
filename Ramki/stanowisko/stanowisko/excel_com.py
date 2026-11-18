@@ -2,25 +2,22 @@
 
 STAN: napisana, w paczce E3-A9 NIEURUCHAMIANA na prawdziwym Excelu (testy: atrapa obiektow COM w ``testy/test_excel.py``).
 Pierwsze uruchomienie na kopii pliku produkcyjnego = paczka D2 (komputer z Excelem i sesja interaktywna - COM nie dziala
-w sesji ssh). Do sprawdzenia w D2: odczyt ``Range.Value`` 30 tys. x 9 komorek (czas), daty jako ``datetime`` z pywintypes,
-``UsedRange`` przy formatowaniu ponizej danych, plik z SharePointa z Autozapisem i wspoledycja (zapis odrzucony, gdy ktos
-edytuje komorke - ponowienie), nazwa skoroszytu i arkusza.
+[usunieto w kopii: opis dostepu ssh]
 
 Zasady (plan wdrozenia "Excel produkcyjny", X1, X2): program podlacza sie do Excela JUZ OTWARTEGO (``GetActiveObject``) -
 nigdy nie otwiera pliku drugi raz (``Workbooks.Open``), nie tworzy skoroszytu, nie zapisuje (``Save``, ``SaveAs``,
 ``SaveCopyAs``), nie zamyka; zapisuje Autozapis Excela. Jedyny zapis: ``Interior.Color`` jednej komorki
-(``ArkuszCom.ustaw_wypelnienie``). Odczyt: ``Range.Value`` calego zakresu naraz (jedno wywolanie COM), kolor - komorka po komorce
-tylko dla kandydatow.
+(``ArkuszCom.ustaw_wypelnienie``) - JEDNA proba: odrzucone wywolanie = ``BladCom``; ponowienie robi ``excel.Excel.zatwierdz``
+jako caly krok ze swiezym odczytem i kontrola wiersza (runda 2 recenzji PR #27, B1 - ponowienie tutaj omijaloby kontrole).
+Odczyt: ``Range.Value`` calego zakresu naraz (jedno wywolanie COM), kolor - komorka po komorce tylko dla kandydatow.
+Nazwa i pelna sciezka skoroszytu oraz nazwa arkusza czytane na zywo (``Zapisz jako`` zmienia je na tym samym obiekcie - P2).
 pywin32 importowany dopiero w ``polacz`` - modul importuje sie na kazdym komputerze (testy na PC bez Excela).
 """
 from __future__ import annotations
 
-import time
 from typing import Any
 
 XL_BRAK_WYPELNIENIA = -4142  # xlColorIndexNone: komorka bez wypelnienia (Interior.Color podaje wtedy biel 16777215)
-PONOWIENIA_ZAPISU = 3  # Excel odrzuca wywolania COM, gdy ktos edytuje komorke (RPC_E_CALL_REJECTED) - ponowienie
-PRZERWA_PONOWIENIA_S = 0.5
 
 
 class BladCom(RuntimeError):
@@ -91,15 +88,35 @@ class ArkuszCom:
 
     def __init__(self, aplikacja: Any, skoroszyt: Any, arkusz: Any):
         self._app, self._wb, self._ws = aplikacja, skoroszyt, arkusz
-        self.nazwa = str(arkusz.Name)
-        self.skoroszyt = str(skoroszyt.Name)
+
+    def _arkusz(self) -> Any:
+        if self._ws is None:
+            raise BladCom("polaczenie z Excelem zwolnione - polacz ponownie")
+        return self._ws
+
+    @property
+    def nazwa(self) -> str:
+        return str(self._arkusz().Name)
+
+    @property
+    def skoroszyt(self) -> str:
+        return str(self._wb.Name) if self._wb is not None else ""
+
+    @property
+    def sciezka(self) -> str:
+        return str(getattr(self._wb, "FullName", "")) if self._wb is not None else ""
+
+    def zwolnij(self) -> None:
+        """Zwalnia referencje do obiektow COM (Application, Workbook, Worksheet) - zamkniecie programu, blad COM (D2)."""
+        self._ws = self._wb = self._app = None
 
     def _ostatni_wiersz(self) -> int:
-        uzyty = self._ws.UsedRange
+        uzyty = self._arkusz().UsedRange
         return int(uzyty.Row) + int(uzyty.Rows.Count) - 1
 
     def _zakres(self, w1: int, k1: int, w2: int, k2: int) -> list[tuple]:
-        v = self._ws.Range(self._ws.Cells(w1, k1), self._ws.Cells(w2, k2)).Value
+        ws = self._arkusz()
+        v = ws.Range(ws.Cells(w1, k1), ws.Cells(w2, k2)).Value
         if not isinstance(v, tuple):  # jedna komorka: sama wartosc
             return [(v,)]
         return [tuple(r) for r in v]
@@ -114,21 +131,16 @@ class ArkuszCom:
         return self._zakres(nr, 1, nr, ostatnia_kolumna)[0]
 
     def wypelnienie(self, nr: int, kolumna: int) -> tuple[int, int, int] | None:
-        wnetrze = self._ws.Cells(nr, kolumna).Interior
+        wnetrze = self._arkusz().Cells(nr, kolumna).Interior
         if int(wnetrze.ColorIndex) == XL_BRAK_WYPELNIENIA:
             return None
         return kolor_na_rgb(wnetrze.Color)
 
     def ustaw_wypelnienie(self, nr: int, kolumna: int, rgb) -> None:
-        kolor = rgb_na_kolor(rgb)
-        ostatni: Exception | None = None
-        for proba in range(PONOWIENIA_ZAPISU):
-            try:
-                self._ws.Cells(nr, kolumna).Interior.Color = kolor
-                return
-            except Exception as e:  # wspoledycja / Excel w trybie edycji komorki (plan wdrozenia: ryzyka - "z ponowieniem")
-                ostatni = e
-                if proba + 1 < PONOWIENIA_ZAPISU:
-                    time.sleep(PRZERWA_PONOWIENIA_S)
-        raise BladCom(f"zapis koloru nie powiodl sie po {PONOWIENIA_ZAPISU} probach (Excel zajety - np. edycja komorki): "
-                      f"{type(ostatni).__name__}")
+        """Jedna proba zapisu koloru; odrzucenie (Excel zajety: edycja komorki, zmiany wspoledytora) = ``BladCom``."""
+        try:
+            self._arkusz().Cells(nr, kolumna).Interior.Color = rgb_na_kolor(rgb)
+        except BladCom:
+            raise
+        except Exception as e:
+            raise BladCom(f"Excel odrzucil zapis koloru (zajety - np. edycja komorki albo zmiany wspoledytora): {type(e).__name__}") from e

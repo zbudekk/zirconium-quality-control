@@ -97,6 +97,7 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "arkusz": (str, "excel"),
         "tryb": (str, "excel"),
         "odswiez_co_min": (float, "excel"),
+        "maks_wiek_dni": (int, "excel"),  # runda 2 recenzji PR #27 (P3): bezpiecznik wieku wybranego wiersza
     },
     "ramki": {
         "port": (int, PRZYSZLY),
@@ -147,8 +148,10 @@ DOMYSLNE_NOWYCH = {
     "inspect": {"pas_brzegu_od": "linia_i_plaszczyzna", "brzeg_min_sprawdzony": 0.9, "brzeg_max_przerwa_mm": 1.5},
     "synth": {"odstep_ubytku_mm": 0.05, "krawedz_rozmiar_min_mm": 0.08, "krawedz_rozmiar_max_mm": 0.40},
     # E3-A9 (18.11.2026): [excel] - kolumna daty (regula 3), pierwszy wiersz danych, skoroszyt i arkusz ("" = aktywny),
-    # tryb ("pytaj" = zapis po zatwierdzeniu, "cien" = bez zapisu; DW10: bez zapisu samodzielnego), odswiezanie odczytu (min).
-    "excel": {"kolumna_daty": "A", "pierwszy_wiersz": 2, "skoroszyt": "", "arkusz": "", "tryb": "pytaj", "odswiez_co_min": 5.0},
+    # tryb ("pytaj" = zapis po zatwierdzeniu, "cien" = bez zapisu; DW10: bez zapisu samodzielnego), odswiezanie odczytu (min),
+    # maks_wiek_dni (wybrany wiersz starszy = "wskaz wiersz"; 0 = bez limitu; liczba do potwierdzenia w D2).
+    "excel": {"kolumna_daty": "A", "pierwszy_wiersz": 2, "skoroszyt": "", "arkusz": "", "tryb": "pytaj", "odswiez_co_min": 5.0,
+              "maks_wiek_dni": 60},
     # Etap 3 (E3-A1, 17.11.2026; plan etapu 3 sekcja 3.7): nowe klucze są wyłącznie opcjonalne — tu wartości domyślne.
     # [sesja] operatorzy: lista osób do wyboru na początku zmiany (DW3; lista jest wymagana do decyzji — przy pustej plik się
     # wczytuje, ale session odrzuca „Ukruszona” / „OK”); przechowuj_skany_dni: po ilu dniach wolno usuwać pliki skanów
@@ -276,12 +279,17 @@ def _waliduj(d: dict, plik: Path) -> dict:
     e = d["excel"]  # E3-A9: kolumny arkusza, tryb (DW10), odczyt
     kolumny = ("kolumna_daty", "kolumna_odhaczenia", "kolumna_kuwety", "kolumna_nazwy")
     for k in kolumny:
-        warunek(e[k].isascii() and e[k].isalpha() and 1 <= len(e[k]) <= 3, "excel", k, "litera kolumny Excela, np. C (A…ZZZ)")
-    warunek(len({e[k].upper() for k in kolumny}) == len(kolumny), "excel", "kolumna_daty",
-            "kolumny daty, odhaczenia, kuwety i nazwy musza byc rozne")
+        litery = e[k].upper()
+        warunek(litery.isascii() and litery.isalpha() and 1 <= len(litery) <= 3 and (len(litery) < 3 or litery <= "XFD"), "excel", k,
+                "litera kolumny Excela, np. C (A…XFD)")
+    widziane = set()
+    for k in kolumny:  # zglaszany pierwszy klucz z powtorzona litera
+        warunek(e[k].upper() not in widziane, "excel", k, "kolumny daty, odhaczenia, kuwety i nazwy musza byc rozne")
+        widziane.add(e[k].upper())
     warunek(e["pierwszy_wiersz"] >= 1, "excel", "pierwszy_wiersz", "musi być >= 1 (wiersz 1 = naglowek -> 2)")
     warunek(e["tryb"] in ("pytaj", "cien"), "excel", "tryb", "dopuszczalne: pytaj, cien (etap 3, DW10: bez zapisu samodzielnego)")
     warunek(e["odswiez_co_min"] > 0, "excel", "odswiez_co_min", "musi być > 0 (minuty)")
+    warunek(e["maks_wiek_dni"] >= 0, "excel", "maks_wiek_dni", "musi być >= 0 (dni; 0 = bez limitu wieku wiersza)")
     osoby = d["sesja"]["operatorzy"]
     warunek(all(isinstance(o, str) and o.strip() for o in osoby) and len(set(osoby)) == len(osoby), "sesja", "operatorzy",
             "lista niepustych, różnych nazw osób (może być pusta)")
