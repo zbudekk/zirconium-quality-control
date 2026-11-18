@@ -1318,6 +1318,8 @@ def test_d2_baza_zajeta_zdarzenia_ramki_czekaja_i_wracaja(tmp_path):
         assert ramka_zdarzen(k.sesja.baza) == [] and k.stan().rano.otwarty  # nic nie zapisane, nic nie zgubione
         zajeta["tak"] = False
         k.przetworz()
+        assert ramka_zdarzen(k.sesja.baza) == []  # r3 D-N1: ponowienie dopiero po odstepie (nie w kazdym obiegu zegara)
+        czekaj(lambda: len(ramka_zdarzen(k.sesja.baza)) == 3, 4.0, "ponowienie zdarzen po odstepie", pompa=k.przetworz)
         assert [(z["nr"], z["typ"]) for z in ramka_zdarzen(k.sesja.baza)] == [(1, "plytka"), (2, "potwierdzenie"), (3, "zamknij_piec")]
         assert not k.stan().rano.otwarty
         k.przetworz()
@@ -1370,14 +1372,133 @@ def test_enter_na_ramce_kuweta_rozlozona_na_ekranie_takze_po_restarcie(tmp_path)
                                   _zd(3, "potwierdzenie", plan_id=plan_id, plytka=4, kuweta="3200")]
         k.przetworz()
         assert kuweta(k, "3214").potwierdzona and kuweta(k, "3200").potwierdzona
+        assert k.wybierz_kuwete("3200")  # osoba przy laptopie wybiera kuwete numerem
         ind.poranna.potw = [[4, "3214"], [4, "3200"]]
         ind.poranna.zdarzenia.append(_zd(4, "cofniecie", plan_id=plan_id, plytka=5, kuweta="3214"))
         k.przetworz()
-        assert not kuweta(k, "3214").potwierdzona and kuweta(k, "3200").potwierdzona and k.stan().rano.kuweta_biezaca == "3214"
+        assert not kuweta(k, "3214").potwierdzona and kuweta(k, "3200").potwierdzona
+        assert k.stan().rano.kuweta_biezaca == "3200"  # r3 D-N3: Backspace na ramce nie przestawia biezacej kuwety laptopa
     finally:
         k.zamknij()
     k = _poranek_kontroler(tmp_path / "k", IndicateAtrapa())
     try:
         assert not kuweta(k, "3214").potwierdzona and kuweta(k, "3200").potwierdzona
+    finally:
+        k.zamknij()
+
+
+# ============================================================================
+# runda 3 (recenzja PR #30 r2): P-N1, P-N2, P-N3 (z ekranu)
+# ============================================================================
+def test_pn1_kuweta_z_praca_na_plytce_okraglej_rozlozona_dopiero_na_ekranie(tmp_path):
+    """P-N1: zlecenie 3200 na plytce 4 (ramka) i na okraglej 9 (poza ramka): Enter na ramce dla plytki 4 NIE oznacza kuwety jako
+    rozlozonej (ekran prowadzi dalej do plytki 9); rozlozenie potwierdza osoba na ekranie. Kuweta tylko na plytkach ramki (3207) -
+    rozlozona Enterem na ramce."""
+    ind = IndicateAtrapa()
+    k = _poranek_kontroler(tmp_path / "k", ind)
+
+    def kuweta(nr):
+        return next(x for x in k.stan().rano.kuwety if x.kuweta == nr)
+
+    try:
+        k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 5: "pewna"}, projekty={1: 301, 2: 302, 5: 304})
+        k.symuluj_skan_rano(9, {1: "pewna"}, projekty={1: 303}, uklad="okragla_poranna")
+        plan_id = k.stan().rano.plan_id
+        assert kuweta("3200").plytki == (4, 9)
+        plan = [p for p in ind.poranna.polecenia if p[0] == "plan"]
+        assert plan and k._plan_p_dane["kuwety"][0]["plytki"] == [4]  # plan ramki: tylko plytka 4
+        ind.poranna.potw = [[4, "3200"], [4, "3207"]]
+        ind.poranna.zdarzenia += [_zd(1, "potwierdzenie", plan_id=plan_id, plytka=4, kuweta="3200"),
+                                  _zd(2, "potwierdzenie", plan_id=plan_id, plytka=4, kuweta="3207")]
+        k.przetworz()
+        assert not kuweta("3200").potwierdzona and kuweta("3207").potwierdzona
+        assert k.stan().rano.kuweta_biezaca == "3200"  # ekran prowadzi do pracy 3200 na plytce okraglej
+        assert k.potwierdz_kuwete("3200") and kuweta("3200").potwierdzona  # Enter w oknie po rozlozeniu plytki 9
+    finally:
+        k.zamknij()
+
+
+def test_pn2_pozycja_excela_z_bledem_da_sie_pominac_i_cien_bez_dubli(tmp_path):
+    """P-N2: blad odczytu jednego zlecenia (np. chwilowy blad COM przy kolorze pola B) - pozycja "wskaz wiersz" ma tozsamosc z listy
+    zlecen kompletnych: "Pomin" dziala, po restarcie piec nie jest zalegly; tryb "cien" loguje ja raz (kolejne pokazanie - bez wpisu)."""
+    from stanowisko import excel as EX
+    from stanowisko import kontroler_api as K
+
+    arkusz, prawda = arkusz_zlecen(RANO_START.date())
+    oryginal = arkusz.wypelnienie
+
+    def wypelnienie(nr, kolumna):
+        if nr in (prawda["3200"], prawda["3214"]):
+            raise RuntimeError("blad COM")
+        return oryginal(nr, kolumna)
+
+    arkusz.wypelnienie = wypelnienie
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())
+    try:
+        k.przelacz_tryb("rano")
+        k.wybierz_operatora("Technik A")
+        _excel_pytaj(k, tmp_path, arkusz)
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        assert k.zamknij_piec(k.stan().rano.sesja_pieca_id)
+        czekaj(lambda: k.stan().excel.w_toku == 0, 5.0, "propozycje", pompa=k.przetworz)
+        a, b = k.stan().excel.pozycje
+        z3200 = k.sesja.baza.wiersz("SELECT id FROM zlecenia WHERE kuweta = '3200'")["id"]
+        assert (a.kuweta, a.klasa, a.zlecenie_id) == ("3200", EX.KLASA_WSKAZ_WIERSZ, z3200) and a.zlecenie_id != b.zlecenie_id
+        assert k.excel_pomin(a.sesja_pieca_id, a.zlecenie_id) and k.stan().excel.do_zalatwienia == 1
+        assert k.excel_zatwierdz(b.sesja_pieca_id, b.zlecenie_id) and k.stan().excel.do_zalatwienia == 0
+        piec1 = a.sesja_pieca_id
+    finally:
+        k.zamknij()
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())
+    try:
+        _excel_pytaj(k, tmp_path, arkusz)
+        assert piec1 not in {z[0] for z in k.stan().excel.zalegle}  # po restarcie piec nie jest zalegly
+        k.wybierz_operatora("Technik A")
+        k.podlacz_excel(EX.Excel.z_ustawien(ust_excela(tmp_path, "cien"), zrodlo=arkusz, baza=k.sesja.baza, zegar=lambda: RANO_START))
+        k.symuluj_skan_rano(5, {1: "pewna", 2: "pewna", 3: "pewna"}, projekty={1: 305, 2: 306, 3: 313})  # 3214 (blad odczytu) i 3235
+        assert k.zamknij_piec(k.stan().rano.sesja_pieca_id)
+        czekaj(lambda: k.stan().excel.w_toku == 0, 5.0, "cien", pompa=k.przetworz)
+        piec2 = k.stan().excel.sesja_pieca_id
+        wpisy = k.sesja.baza.wiersze("SELECT zlecenie_id, wynik FROM excel_zapisy WHERE sesja_pieca_id = ?", (piec2,))
+        assert len(wpisy) == 2 and all(w["zlecenie_id"] for w in wpisy) and all(w["wynik"] in ("tylko_log", "juz_odhaczone") for w in wpisy)
+        k.excel_pokaz(piec2)
+        k.excel_pokaz(piec2)
+        assert k.sesja.baza.wiersz("SELECT count(*) AS n FROM excel_zapisy WHERE sesja_pieca_id = ?", (piec2,))["n"] == 2  # bez dubli logu
+    finally:
+        k.zamknij()
+
+
+def test_pn3_zalegly_piec_osiagalny_z_ekranu_gdy_ostatni_zalatwiony(tmp_path, ekrany):
+    """P-N3 z ekranu: piec 1 odlozony ("Pozniej"), piec 2 zamkniety i zalatwiony - okno Excela znika, a na stronie "Kompletne i braki"
+    jest przycisk pieca 1; klikniecie pokazuje okno z jego pozycjami. Przycisk "Excel: wskaz wiersz" zalatwionego pieca pokazuje okno
+    z przyciskami zaleglych."""
+    from stanowisko import kontroler_api as K
+
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=ZegarRano())
+    try:
+        k.przelacz_tryb("rano")
+        k.wybierz_operatora("Technik A")
+        _excel_pytaj(k, tmp_path)
+        e = ekrany(k)
+        k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
+        e.klik("przycisk_zamknij_piec")
+        e.czekaj(lambda: e.jest("excel_panel"), 10.0, "okno Excela pieca 1")
+        piec1 = k.stan().excel.sesja_pieca_id
+        e.klik("excel_pozniej")
+        assert not e.jest("excel_panel")
+        k.symuluj_skan_rano(5, {1: "pewna", 2: "pewna"}, projekty={1: 305, 2: 306})
+        e.klik("przycisk_zamknij_piec")
+        e.czekaj(lambda: e.jest("excel_panel") and k.stan().excel.sesja_pieca_id != piec1, 10.0, "okno Excela pieca 2")
+        e.klik_wiersz("excel_tabela", 0)
+        e.klik("excel_pomin")
+        e.czekaj(lambda: not e.jest("excel_panel"), 5.0, "piec 2 zalatwiony - okno znika")
+        assert k.stan().excel.do_zalatwienia == 0 and [z[0] for z in k.stan().excel.zalegle] == [piec1]
+        if not e.jest("rano_wynik"):
+            e.klik("rano_strona_wynik")
+        assert e.jest(f"wynik_excel_zalegly_{piec1}")  # zalegly piec na stronie "Kompletne i braki"
+        e.klik("przycisk_excel")  # okno zalatwionego pieca 2 - widoczne z przyciskami zaleglych
+        assert e.jest("excel_panel") and e.jest(f"excel_zalegly_{piec1}")
+        e.klik(f"wynik_excel_zalegly_{piec1}")
+        assert e.jest("excel_panel") and k.stan().excel.sesja_pieca_id == piec1 and [p.kuweta for p in k.stan().excel.pozycje] == ["3200", "3207"]
     finally:
         k.zamknij()
