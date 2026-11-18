@@ -25,9 +25,9 @@ Zasady (plan: Z3, Z4, DW3; decyzje wlasciciela i koordynatora z 17.11.2026 po re
   z analizy zostaje w bazie bez zmian;
 - ponowny skan: gdy ostatni niezastapiony skan tej samej plytki (numer i rodzina ukladu) przyjeto najwyzej
   ``[sesja] ponowny_skan_okno_min`` (60) minut wczesniej - takze po drugiej stronie granicy doby - i lezy na nim ten sam
-  wsad (E3-A1p: co najmniej ``[sesja] ponowny_skan_min_wspolnych`` prac rozpoznanych nowego skanu ma projekt z prac
-  rozpoznanych poprzedniego; ten sam plik skanu, mniej niz 3 prace rozpoznane w ktoryms skanie albo prog 0 - bez tego
-  warunku), program proponuje zastapienie; zastepuje dopiero potwierdzenie (``zastap_skan``), pomylke cofa
+  wsad (E3-A1p: |N & S| / min(|N|, |S|) >= ``[sesja] ponowny_skan_min_wspolnych``, N i S - zbiory projektow prac
+  rozpoznanych nowego i poprzedniego skanu; ten sam plik skanu, mniej niz 3 projekty rozpoznane w ktoryms skanie albo prog 0 -
+  bez tego warunku), program proponuje zastapienie; zastepuje dopiero potwierdzenie (``zastap_skan``), pomylke cofa
   ``cofnij_zastapienie``. Starszy skan tej samej plytki albo skan z innymi pracami to nowy wsad;
 - lista "do dofrezowania" biezaca = wszystkie otwarte pozycje ze wszystkich dob (nie znika na granicy doby); widok doby to filtr;
 - decyzje sa tylko dopisywane i zawsze maja operatora z listy ``[sesja] operatorzy`` (pusta lista = brak decyzji);
@@ -56,8 +56,12 @@ TRYB_RANO = "rano"
 GRANICA_DOBY_GODZ = 6  # wartosci domyslne [sesja] granica_doby_godz, zmiany_start_godz, ponowny_skan_okno_min, ponowny_skan_min_wspolnych
 ZMIANY_START_GODZ = (6, 14, 22)
 PONOWNY_SKAN_OKNO_MIN = 60
-PONOWNY_SKAN_MIN_WSPOLNYCH = 0.5  # E3-A1p: udzial prac rozpoznanych nowego skanu z projektem z poprzedniego skanu plytki (0 = bez warunku)
-PONOWNY_SKAN_MIN_ROZPOZNANYCH = 3  # mniej prac rozpoznanych w nowym albo poprzednim skanie = brak podstaw do oceny wsadu: pytanie jak dawniej
+PONOWNY_SKAN_MIN_WSPOLNYCH = 0.5  # E3-A1p: |N & S| / min(|N|, |S|) projektow rozpoznanych nowego i poprzedniego skanu plytki (0 = bez warunku)
+PONOWNY_SKAN_MIN_ROZPOZNANYCH = 3  # mniej projektow rozpoznanych w nowym albo poprzednim skanie = brak podstaw do oceny wsadu: pytanie jak dawniej
+# rano: skan tego samego pieca (``skany.sesja_pieca_id``) mozna zastapic bez warunku doby i okna 60 min (rozladunek pieca przez 06:00),
+# o ile skany dzieli najwyzej tyle godzin - piec niezamkniety do nastepnego dnia to juz inny wsad tych samych numerow plytek
+# (recenzja PR #22 runda 2, P1; rozladunek pieca trwa godziny, nie doby)
+PONOWNY_SKAN_PIEC_MAX_H = 12
 # podstawa propozycji "to ponowny skan?" (pole ``podstawa`` wpisu ``do_potwierdzenia``)
 PODSTAWA_TEN_SAM_PLIK = "ten_sam_plik"
 PODSTAWA_TE_SAME_PRACE = "te_same_prace"
@@ -335,8 +339,11 @@ class Sesja:
         else:
             status = STATUS_PRZYJETY
         wybor = wynik.get("plytka_wybor")
+        # konflikt projektu (SE8) to regula WIECZORU: skan poranny nie dostaje wpisu ``konflikt_projektu`` w dzienniku (ta sama
+        # praca w dwoch piecach doby to nie konflikt; konflikty poranka liczy sesja poranna - recenzja PR #23 D6)
+        wieczor = tryb == TRYB_WIECZOR
         with self.baza.transakcja():
-            przed = {k["sha16"] for k in self.konflikty(doba, tryb)}
+            przed = {k["sha16"] for k in self.konflikty(doba, tryb)} if wieczor else set()
             sha16 = _pole(zdarzenie, "sha16") or wynik.get("skan_sha16")
             skan_id = self.baza.wstaw(
                 "skany", plik=str(plik), sha16=sha16, rozmiar=_pole(zdarzenie, "rozmiar"),
@@ -352,7 +359,7 @@ class Sesja:
                 self.baza.wykonaj("UPDATE skany SET wynik_json = ? WHERE id = ?", (self._zapisz_wynik(wynik, teraz, sha16), skan_id))
             self.baza.zdarzenie("silnik", "skan_przyjety", {"status": status, "prace": len(gniazda), "czas_s": (wynik.get("czas_s") or {}).get("razem")},
                                 skan_id=skan_id, czas=teraz)
-            nowe = [k["sha16"] for k in self.konflikty(doba, tryb) if k["sha16"] not in przed]
+            nowe = [k["sha16"] for k in self.konflikty(doba, tryb) if k["sha16"] not in przed] if wieczor else []
             if nowe:  # SE8: ten sam projekt w dwoch gniazdach wieczoru - zgloszenie do rozstrzygniecia
                 self.baza.zdarzenie("system", "konflikt_projektu", {"sha16": nowe}, skan_id=skan_id, czas=teraz)
         return skan_id
@@ -708,41 +715,48 @@ class Sesja:
 
         Liczone z roznicy czasow lokalnych bez strefy (znana granica: przy zmianie czasu i przy cofnietym zegarze roznica
         jest przeklamana o godzine albo ujemna - wtedy brak propozycji; zastapienie wprost dziala)."""
-        if not wczesniejszy["czas_analizy"] or not pozniejszy["czas_analizy"]:
-            return False
-        minut = (dt.datetime.fromisoformat(pozniejszy["czas_analizy"]) - dt.datetime.fromisoformat(wczesniejszy["czas_analizy"])).total_seconds() / 60
-        return 0 <= minut <= self.ponowny_skan_okno_min
+        minut = self._minut_miedzy(wczesniejszy, pozniejszy)
+        return minut is not None and 0 <= minut <= self.ponowny_skan_okno_min
 
-    def _projekty_rozpoznane(self, skan_id: int) -> list[str]:
-        """``sha16`` projektu top-1 kazdej pracy rozpoznanej skanu (jak ``_przypisany``: bez prac szarych i bez kandydata)."""
-        return [p["kandydat1_sha16"] for p in self.baza.wiersze("SELECT kandydat1_sha16, status_match FROM prace WHERE skan_id = ? ORDER BY id",
-                                                                (skan_id,)) if self._przypisany(p)]
+    @staticmethod
+    def _minut_miedzy(wczesniejszy: dict, pozniejszy: dict) -> float | None:
+        """Minuty miedzy przyjeciem skanow (``czas_analizy``; ujemne przy cofnietym zegarze); None, gdy ktorys czasu nie ma."""
+        if not wczesniejszy["czas_analizy"] or not pozniejszy["czas_analizy"]:
+            return None
+        return (dt.datetime.fromisoformat(pozniejszy["czas_analizy"]) - dt.datetime.fromisoformat(wczesniejszy["czas_analizy"])).total_seconds() / 60
+
+    def _projekty_rozpoznane(self, skan_id: int) -> set[str]:
+        """Zbior ``sha16`` projektow top-1 prac rozpoznanych skanu (jak ``_przypisany``: bez prac szarych i bez kandydata);
+        projekt w kilku pracach (fragmenty, powtorzony top-1) liczy sie raz."""
+        return {p["kandydat1_sha16"] for p in self.baza.wiersze("SELECT kandydat1_sha16, status_match FROM prace WHERE skan_id = ?", (skan_id,))
+                if self._przypisany(p)}
 
     def zgodnosc_prac(self, skan_id: int, poprzedni_id: int) -> dict:
-        """Zgodnosc prac dwoch skanow plytki (E3-A1p - podstawa pytania "to ponowny skan?").
+        """Zgodnosc prac dwoch skanow plytki (E3-A1p - podstawa pytania "to ponowny skan?"), na ZBIORACH projektow.
 
-        ``rozpoznane`` / ``rozpoznane_poprzedniego``: liczba prac rozpoznanych (projekt top-1 = ``sha16`` pierwszego kandydata,
-        match nie ``szary``) skanu ``skan_id`` i ``poprzedni_id``; ``wspolne``: prace rozpoznane skanu ``skan_id``, ktorych
-        projekt jest wsrod prac rozpoznanych skanu ``poprzedni_id``; ``udzial`` = wspolne / rozpoznane (None bez prac rozpoznanych).
-        Prace nieznane (szare, bez kandydata) sa pomijane po obu stronach.
+        ``projekty`` / ``projekty_poprzedniego``: liczba roznych projektow prac rozpoznanych (projekt top-1 = ``sha16`` pierwszego
+        kandydata, match nie ``szary``) skanu ``skan_id`` (N) i ``poprzedni_id`` (S); ``wspolne`` = |N & S|; ``udzial`` = wspolne /
+        min(|N|, |S|) - miara symetryczna (runda 3, recenzja PR #22 B1: slaby albo czesciowy pierwszy skan, ktorego prace leza
+        wszystkie na drugim, daje 1.0; wczesniej udzial liczony tylko wzgledem nowego skanu gubil pytanie); None, gdy ktorys zbior
+        jest pusty. Prace nieznane (szare, bez kandydata) sa pomijane po obu stronach.
         """
         nowe, stare = self._projekty_rozpoznane(skan_id), self._projekty_rozpoznane(poprzedni_id)
-        znane = set(stare)
-        wspolne = sum(1 for s in nowe if s in znane)
-        return {"rozpoznane": len(nowe), "rozpoznane_poprzedniego": len(stare), "wspolne": wspolne, "udzial": wspolne / len(nowe) if nowe else None}
+        wspolne = len(nowe & stare)
+        mniejszy = min(len(nowe), len(stare))
+        return {"projekty": len(nowe), "projekty_poprzedniego": len(stare), "wspolne": wspolne, "udzial": wspolne / mniejszy if mniejszy else None}
 
     def _podstawa_ponownego(self, sk: dict, kandydat: dict) -> str | None:
         """Dlaczego ``sk`` wyglada na ponowny skan plytki ze skanu ``kandydat`` (ta sama plytka, w oknie); None = nowy wsad.
 
-        E3-A1p (decyzja wlasciciela 18.11.2026): ten sam plik skanu - zawsze; prog ``ponowny_skan_min_wspolnych`` = 0 - regula sprzed
-        E3-A1p; mniej niz ``PONOWNY_SKAN_MIN_ROZPOZNANYCH`` prac rozpoznanych w ktorymkolwiek skanie - brak podstaw do oceny wsadu,
-        pytanie jak dawniej; inaczej udzial wspolnych prac (``zgodnosc_prac``) >= prog."""
+        E3-A1p (decyzja wlasciciela 18.11.2026, miara z rundy 3): ten sam plik skanu - zawsze; prog ``ponowny_skan_min_wspolnych``
+        = 0 - regula sprzed E3-A1p; mniej niz ``PONOWNY_SKAN_MIN_ROZPOZNANYCH`` projektow rozpoznanych w ktorymkolwiek skanie - brak
+        podstaw do oceny wsadu, pytanie jak dawniej; inaczej udzial wspolnych projektow (``zgodnosc_prac``) >= prog."""
         if sk["sha16"] and sk["sha16"] == kandydat["sha16"]:
             return PODSTAWA_TEN_SAM_PLIK
         if self.ponowny_skan_min_wspolnych <= 0:
             return PODSTAWA_REGULA_WYLACZONA
         z = self.zgodnosc_prac(sk["id"], kandydat["id"])
-        if min(z["rozpoznane"], z["rozpoznane_poprzedniego"]) < PONOWNY_SKAN_MIN_ROZPOZNANYCH:
+        if min(z["projekty"], z["projekty_poprzedniego"]) < PONOWNY_SKAN_MIN_ROZPOZNANYCH:
             return PODSTAWA_ZA_MALO_ROZPOZNANYCH
         return PODSTAWA_TE_SAME_PRACE if z["udzial"] >= self.ponowny_skan_min_wspolnych else None
 
@@ -785,16 +799,22 @@ class Sesja:
             if poprzedni_id is None:
                 poprzedni = self._poprzedni_skan(nowy)
                 if poprzedni is None:
-                    raise BladSesji(f"skan {skan_id}: nie ma skanu do zastapienia (ostatni skan tej samej plytki sprzed najwyzej "
-                                    f"{self.ponowny_skan_okno_min} min z tymi samymi pracami); starszy skan z tej samej doby albo skan "
-                                    f"z innymi pracami trzeba wskazac wprost")
+                    raise BladSesji(f"skan {skan_id}: nie ma skanu do zastapienia - program nie proponuje zastapienia tego skanu "
+                                    f"(ostatni skan tej samej plytki sprzed najwyzej {self.ponowny_skan_okno_min} min z tymi samymi pracami)")
             else:
                 poprzedni = self._skan(poprzedni_id)
-                blisko = (poprzedni["tryb"] == nowy["tryb"] and bool(poprzedni["czas_analizy"]) and bool(nowy["czas_analizy"])
-                          and (self.doba(poprzedni["czas_analizy"]) == self.doba(nowy["czas_analizy"]) or self._w_oknie_ponownego_skanu(poprzedni, nowy)))
+                # ten sam piec (sesja poranna): bez warunku doby i okna - tak, jak proponuje sesja poranna (piec rozladowany przez
+                # granice doby 06:00, recenzja PR #23 D10), ale najwyzej PONOWNY_SKAN_PIEC_MAX_H od siebie (piec niezamkniety do
+                # nastepnego dnia - recenzja PR #22 runda 2, P1); inaczej ta sama doba robocza albo okno ponownego skanu
+                minut = self._minut_miedzy(poprzedni, nowy)
+                ten_sam_piec = (poprzedni["sesja_pieca_id"] is not None and poprzedni["sesja_pieca_id"] == nowy["sesja_pieca_id"]
+                                and minut is not None and 0 <= minut <= PONOWNY_SKAN_PIEC_MAX_H * 60)
+                blisko = poprzedni["tryb"] == nowy["tryb"] and (ten_sam_piec or (
+                    bool(poprzedni["czas_analizy"]) and bool(nowy["czas_analizy"])
+                    and (self.doba(poprzedni["czas_analizy"]) == self.doba(nowy["czas_analizy"]) or self._w_oknie_ponownego_skanu(poprzedni, nowy))))
                 if poprzedni["id"] >= nowy["id"] or poprzedni["status"] not in STATUSY_AKTYWNE or not blisko:
                     raise BladSesji(f"skan {poprzedni_id} nie moze byc zastapiony skanem {skan_id} (musi byc wczesniejszy, aktywny i z tej samej doby "
-                                    f"roboczej albo sprzed najwyzej {self.ponowny_skan_okno_min} min)")
+                                    f"roboczej albo sprzed najwyzej {self.ponowny_skan_okno_min} min, rano - z tego samego pieca)")
                 ten_sam_plik = bool(nowy["sha16"]) and nowy["sha16"] == poprzedni["sha16"]
                 if not ten_sam_plik and (nowy["numer_plytki"] is None or poprzedni["numer_plytki"] is None):
                     raise BladSesji(f"skan {skan_id} nie moze zastapic skanu {poprzedni_id}: najpierw podaj numer plytki obu skanow "

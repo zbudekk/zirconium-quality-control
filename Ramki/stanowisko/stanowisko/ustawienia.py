@@ -148,8 +148,8 @@ DOMYSLNE_NOWYCH = {
     # wczytuje, ale session odrzuca „Ukruszona” / „OK”); przechowuj_skany_dni: po ilu dniach wolno usuwać pliki skanów
     # (DW4; 0 = nie usuwać — tryb cienia); granica_doby_godz: początek doby roboczej (6 = zmiany 1, 2, 3 jednego dnia);
     # zmiany_start_godz: początki zmian; ponowny_skan_okno_min: do ilu minut ta sama płytka to „ponowny skan”, a nie nowy wsad.
-    # E3-A1p (18.11.2026): ponowny_skan_min_wspolnych - pytanie o ponowny skan tylko, gdy co najmniej taki udzial prac
-    # rozpoznanych nowego skanu ma projekt z prac rozpoznanych poprzedniego (0 = bez tego warunku, regula sprzed E3-A1p).
+    # E3-A1p (18.11.2026): ponowny_skan_min_wspolnych - pytanie o ponowny skan tylko, gdy wspolne projekty prac rozpoznanych
+    # nowego i poprzedniego skanu to co najmniej taki udzial mniejszego zbioru projektow (0 = bez tego warunku, regula sprzed E3-A1p).
     # E3-A3a (17.11.2026): [sciezki] podglady — pliki *_podglad.npz z silnika (punkty i odchyłki gniazd do obrazu odchyłek);
     # pula_cache — pamięć linii brzegu projektów na dysku (silnik: pamiec_linii); logi — log programu i procesu analizy.
     # [scanner] i [silnik]: parametry konstruktorów Scanner / Silnik; wartości domyślne równe stałym tych modułów (test).
