@@ -59,10 +59,10 @@ def otwarte(pozycje) -> list:
     return [x for x in pozycje if not x.ukryte]
 
 
-def okno_zmaksymalizowane(platforma: str, dostepne=None) -> bool:
-    """Czy okno startuje zmaksymalizowane: ZAWSZE na prawdziwym ekranie, niezaleznie od jego wielkosci i skalowania (``dostepne``
-    - ekran bez paska zadan - nie zmienia decyzji; decyzja wlasciciela 18.11.2026, E3-A1p: wczesniej tylko ekran mniejszy niz
-    1640 x 960 punktow, przy 100 % okno mialo 1600 x 900). Tryb offscreen (testy i zrzuty): nie - rozmiar ustawia wolajacy."""
+def okno_zmaksymalizowane(platforma: str) -> bool:
+    """Czy okno startuje zmaksymalizowane: ZAWSZE na prawdziwym ekranie, niezaleznie od jego wielkosci i skalowania (decyzja
+    wlasciciela 18.11.2026, E3-A1p: wczesniej tylko ekran mniejszy niz 1640 x 960 punktow, przy 100 % okno mialo 1600 x 900).
+    Tryb offscreen (testy i zrzuty): nie - rozmiar ustawia wolajacy."""
     return platforma != "offscreen"
 
 
@@ -133,8 +133,7 @@ class OknoWieczor(QWidget):
     def _dopasuj_do_ekranu(self) -> None:
         """Okno startuje zmaksymalizowane (``okno_zmaksymalizowane``); na mniejszym ekranie (laptop 1920 x 1080 ze skalowaniem
         125-150 %) uklad przechodzi sam na zwarty (``resizeEvent``)."""
-        ekran = QGuiApplication.primaryScreen()
-        if ekran is not None and okno_zmaksymalizowane(QGuiApplication.platformName(), ekran.availableGeometry().size()):
+        if okno_zmaksymalizowane(QGuiApplication.platformName()):
             self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
 
     # --- budowa ----------------------------------------------------------------------------------
