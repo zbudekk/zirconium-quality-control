@@ -2181,14 +2181,15 @@ class KontrolerSesji(Kontroler):
         podpis = (r.sesja_pieca_id, r.plan_id, self._kolejnosc, r.plytki, r.braki)
         if podpis == self._plan_p_podpis:
             return
-        self._plan_p_podpis = podpis
         try:
             pp = self.rano.plan_plytek(r.sesja_pieca_id, kolejnosc=self._kolejnosc)
         except SE.BladSesji:  # piec niezamkniety z wczesniejszej doby - plytek nie ma juz na stole
+            self._plan_p_podpis = podpis
             if self._plan_p is not None:
                 k.zgas()
                 self._plan_p = None
             return
+        self._plan_p_podpis = podpis  # inny blad (baza zajeta) - podpis bez zmian: plan przy nastepnym odswiezeniu
         potwierdzone = None
         if pp["plan_id"] not in self._plany_wyslane:
             self._plany_wyslane.add(pp["plan_id"])
@@ -2351,10 +2352,11 @@ class KontrolerSesji(Kontroler):
             return
         self._usun_komunikat(ID_EXCEL)
         if ex.tryb == EX.TRYB_CIEN:
-            wpisy = ex.zapisz_cien(pozycje, operator) if pozycje else []
             self._excel_pozycje = pozycje
-            self._komunikat("excel_cien", id_=ID_EXCEL, nr=wynik.get("nr_w_dniu") or "?",
-                            ile=f"{len(wpisy)} {ST.odmiana(len(wpisy), *ST.ZLECENIA_ODMIANA)}")
+            if pozycje:
+                wpisy = ex.zapisz_cien(pozycje, operator)
+                self._komunikat("excel_cien", id_=ID_EXCEL, nr=wynik.get("nr_w_dniu") or "?",
+                                ile=f"{len(wpisy)} {ST.odmiana(len(wpisy), *ST.ZLECENIA_ODMIANA)}")
             return
         for p in pozycje:  # "juz odhaczone" bez watpliwosci - tylko log, bez pytania (A9: zaloguj_juz_odhaczone)
             if p.dopasowanie.klasa == EX.KLASA_JUZ_ODHACZONE and not p.dopasowanie.do_sprawdzenia:
