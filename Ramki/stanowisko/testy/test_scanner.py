@@ -37,7 +37,13 @@ class Zbior:
     def __init__(self):
         self.skany: list[SC.ZdarzenieSkanu] = []
         self.odrzucone: list[SC.Odrzucenie] = []
+        self.oczekiwania: list = []  # SC.Oczekiwanie: plik zajety przez inny program
         self._zmiana = threading.Condition()
+
+    def oczekiwanie(self, o) -> None:
+        with self._zmiana:
+            self.oczekiwania.append(o)
+            self._zmiana.notify_all()
 
     def skan(self, z) -> None:
         with self._zmiana:
@@ -64,7 +70,7 @@ def obserwator(tmp_path):
         if parametry.pop("utworz", True):
             folder.mkdir(parents=True, exist_ok=True)
         zb = Zbior()
-        sc = SC.Scanner(folder, na_skan=zb.skan, na_odrzucenie=zb.odrzucenie, **{**SZYBKO, **parametry})
+        sc = SC.Scanner(folder, na_skan=zb.skan, na_odrzucenie=zb.odrzucenie, na_oczekiwanie=zb.oczekiwanie, **{**SZYBKO, **parametry})
         sc.start()
         uruchomione.append(sc)
         return sc, zb, folder
@@ -230,22 +236,30 @@ def test_ponowny_zapis_i_duplikat(obserwator):
 # ----------------------------------------------------------------------------
 # kryterium 4 (czesc obserwatora): 20 plikow naraz
 # ----------------------------------------------------------------------------
+def kolejnosc_wg_czasu_pliku(zdarzenia, luz_s: float = 0.1) -> bool:
+    """Czy zdarzenia ida w kolejnosci czasu zapisu plikow. Test nie zaklada, w jakiej kolejnosci symulator SKONCZYL zapisy
+    (to zalezy od obciazenia komputera - uwaga D9 recenzji), tylko porownuje kolejnosc zdarzen z czasami plikow; pliki
+    zakonczone w odstepie mniejszym niz ``luz_s`` (dwa obiegi obserwatora) moga byc zgloszone w dowolnej kolejnosci."""
+    czasy = [z.mtime_ns / 1e9 for z in zdarzenia]
+    return all(a <= b + luz_s for a, b in zip(czasy, czasy[1:]))
+
+
 def test_20_plikow_naraz_w_kolejnosci_zapisu(obserwator):
     sc, zb, folder = obserwator()
     zrodla = [SY.sztuczny_stl(300 + i, seed=100 + i) for i in range(20)]
-    # 20 zapisow rozpoczetych jednoczesnie; koncza sie co 0,15 s w kolejnosci INNEJ niz kolejnosc nazw
+    # 20 zapisow rozpoczetych jednoczesnie; plan: koncza sie co 0,3 s w kolejnosci INNEJ niz kolejnosc nazw
     kolejnosc = [(7 * i) % 20 for i in range(20)]
     czasy = [0.0] * 20
     for miejsce, nr in enumerate(kolejnosc):
-        czasy[nr] = 0.6 + 0.15 * miejsce
+        czasy[nr] = 0.6 + 0.3 * miejsce
     zapisy = SY.symuluj(folder, zrodla, ile=20, czasy=czasy, kawalki=(6, 6), rownolegle=20, seed=4)
-    assert zb.czekaj(lambda: len(zb.skany) >= 20, 30.0), len(zb.skany)
+    assert zb.czekaj(lambda: len(zb.skany) >= 20, 60.0), len(zb.skany)
     time.sleep(0.5)
-    assert len(zb.skany) == 20 and zb.odrzucone == []
-    wg_zapisu = [Path(z["plik"]).name for z in sorted(zapisy, key=lambda z: z["mtime_ns"])]
-    assert wg_zapisu == [f"skan_{nr + 1:04d}.stl" for nr in kolejnosc]  # symulator rzeczywiscie konczyl w zadanej kolejnosci
-    assert [Path(z.plik).name for z in zb.skany] == wg_zapisu
+    assert len(zb.skany) == 20 and zb.odrzucone == []  # zadnego zgubionego, zadnego nadmiarowego
+    assert sorted(Path(z.plik).name for z in zb.skany) == sorted(Path(z["plik"]).name for z in zapisy)
     assert {z.sha16 for z in zb.skany} == {z["sha16"] for z in zapisy}
+    assert kolejnosc_wg_czasu_pliku(zb.skany), [(Path(z.plik).name, z.mtime_ns) for z in zb.skany]
+    assert [Path(z.plik).name for z in zb.skany] != sorted(Path(z.plik).name for z in zb.skany)  # kolejnosc zapisu, nie nazw
 
 
 # ----------------------------------------------------------------------------
@@ -414,6 +428,285 @@ def test_start_skanu_atrapa(tmp_path):
         raise OSError("okno skanera nieznalezione")
 
     assert SC.Scanner(folder, start_skanu=zepsuta).start_skanu() is False  # wyjatek akcji = False, nie awaria programu
+
+
+# ----------------------------------------------------------------------------
+# runda 2 recenzji PR #17: B1 (plik zajety), P2 (nadrabianie po restarcie), P3 (pliki zastane), D1 (folder odtworzony)
+# ----------------------------------------------------------------------------
+WINDOWS = pytest.mark.skipif(os.name != "nt", reason="uchwyt wylaczny (plik otwarty bez zgody na wspoldzielenie) istnieje tylko na Windows")
+
+
+def _reczny(folder: Path, zegar: list, **parametry):
+    """Obserwator bez watku i bez watchdog, na sztucznym zegarze: test sam wola ``obieg()``."""
+    zb = Zbior()
+    sc = SC.Scanner(folder, na_skan=zb.skan, na_odrzucenie=zb.odrzucenie, na_oczekiwanie=zb.oczekiwanie, obserwator="odpytywanie", przeglad_s=0.0,
+                    zegar=lambda: zegar[0], **parametry)
+    sc.przygotuj()
+    return sc, zb
+
+
+def _obiegi(sc, zegar: list, ile: int, krok_s: float = 0.1) -> None:
+    for _ in range(ile):
+        sc.obieg()
+        zegar[0] += krok_s
+
+
+@WINDOWS
+def test_plik_trzymany_wylacznie_4_s_daje_zdarzenie_po_zwolnieniu(obserwator):
+    """B1, proby ``a`` i ``b4`` recenzenta na parametrach DOMYSLNYCH: (a) program zapisuje caly plik i trzyma go wylacznie
+    jeszcze 4 s; (b) plik gotowy, potem inny program trzyma go wylacznie do ODCZYTU 4 s. Kazdy daje dokladnie 1 zdarzenie
+    po zwolnieniu, zadnego odrzucenia (przed poprawka: ``blad_odczytu`` po 2,8 s i 0 zdarzen juz na zawsze)."""
+    sc, zb, folder = obserwator(stabilizacja_ms=SC.STABILIZACJA_MS, odrzuc_po_s=SC.ODRZUC_PO_S, okres_s=SC.OKRES_S, przeglad_s=SC.PRZEGLAD_S)
+    dane_a, dane_b = SY.sztuczny_stl(4000, seed=1), SY.sztuczny_stl(4000, seed=2)
+    zapis = {}
+    w = threading.Thread(target=lambda: zapis.update(SY.zapisz_jak_skaner(dane_a, folder / "a.stl", czas_s=0.2, kawalki=3, tryb="wylaczny", trzymaj_s=4.0)))
+    w.start()
+    (folder / "b.stl").write_bytes(dane_b)
+    uchwyt = SY.otworz_wylacznie(folder / "b.stl", zapis=False)
+    time.sleep(4.0)
+    assert zb.skany == [] and zb.odrzucone == []  # plik zajety to nie odrzucenie
+    zwolnienie_b = time.time()
+    uchwyt.close()
+    w.join()
+    assert zb.czekaj(lambda: len(zb.skany) >= 2, 15.0), (zb.skany, zb.odrzucone)
+    time.sleep(2 * SC.PRZEGLAD_S + 0.5)  # dwa pelne przeglady folderu: nic nadmiarowego
+    zd = {Path(z.plik).name: z for z in zb.skany}
+    assert sorted(zd) == ["a.stl", "b.stl"] and len(zb.skany) == 2 and zb.odrzucone == []
+    assert zd["a.stl"].sha16 == SY.skrot16(dane_a) and zd["b.stl"].sha16 == SY.skrot16(dane_b)
+    assert zd["a.stl"].czas_zdarzenia >= zapis["koniec"] and zd["b.stl"].czas_zdarzenia >= zwolnienie_b
+    assert sc.stan()["zajete"] == 0
+
+
+@WINDOWS
+@pytest.mark.parametrize("wariant", ["zapis", "odczyt"])
+def test_plik_trzymany_wylacznie_30_s_czeka_bez_limitu(tmp_path, wariant):
+    """B1: 30 s (sztuczny zegar, prawdziwy uchwyt wylaczny) - zero odrzucen, informacja "czeka na zwolnienie pliku" po 10 s
+    (powtarzana rzadko), po zwolnieniu dokladnie 1 zdarzenie."""
+    folder = tmp_path / "eksport"
+    folder.mkdir()
+    zegar = [5000.0]
+    sc, zb = _reczny(folder, zegar)
+    dane = SY.sztuczny_stl(600, seed=7)
+    p = folder / "zajety.stl"
+    if wariant == "zapis":
+        uchwyt = SY.otworz_wylacznie(p, zapis=True)
+        uchwyt.write(dane)
+        uchwyt.flush()
+    else:
+        p.write_bytes(dane)
+        uchwyt = SY.otworz_wylacznie(p, zapis=False)
+    try:
+        _obiegi(sc, zegar, 95)  # 9,5 s
+        assert zb.oczekiwania == [] and zb.skany == [] and zb.odrzucone == []
+        _obiegi(sc, zegar, 205)  # razem 30 s
+        assert zb.skany == [] and zb.odrzucone == []
+        assert len(zb.oczekiwania) == 1  # jedna informacja po 10 s, nastepna dopiero po minucie
+        o = zb.oczekiwania[0]
+        assert Path(o.plik) == p and 10.0 <= o.od_s < 13.0 and o.opis
+        assert sc.stan()["zajete"] == 1 and sc.stan()["czeka"] == 1
+        _obiegi(sc, zegar, 450)  # do 75 s: druga informacja
+        assert len(zb.oczekiwania) == 2 and zb.skany == [] and zb.odrzucone == []
+    finally:
+        uchwyt.close()
+    _obiegi(sc, zegar, 40)  # 4 s po zwolnieniu (odstep ponawiania najwyzej 2 s)
+    assert len(zb.skany) == 1 and zb.skany[0].sha16 == SY.skrot16(dane) and zb.skany[0].trojkaty == 600
+    _obiegi(sc, zegar, 40)
+    assert len(zb.skany) == 1 and zb.odrzucone == [] and sc.stan()["zajete"] == 0
+
+
+def test_nadrabianie_po_restarcie_od_czasu(tmp_path, obserwator):
+    """P2 (a): ``zglos_zastane_od`` - po starcie zgloszone sa tylko pliki nowsze niz podany czas (np. czas pliku ostatniego
+    skanu zapisanego w bazie), z flaga ``zastany``, w kolejnosci czasu pliku; starsze sa zastane; nowe ida zwykla droga."""
+    folder = tmp_path / "eksport"
+    folder.mkdir()
+    teraz = time.time()
+    for nazwa, wiek_s in (("stary1.stl", 7200), ("stary2.stl", 3600), ("nowszy2.stl", 60), ("nowszy1.stl", 600)):
+        p = folder / nazwa
+        p.write_bytes(SY.sztuczny_stl(100, seed=wiek_s))
+        os.utime(p, (teraz - wiek_s, teraz - wiek_s))
+    sc, zb, _ = obserwator(folder, zglos_zastane_od=teraz - 1800)
+    assert zb.czekaj(lambda: len(zb.skany) >= 2)
+    time.sleep(0.8)
+    assert [(Path(z.plik).name, z.zastany, z.ponowny) for z in zb.skany] == [("nowszy1.stl", True, False), ("nowszy2.stl", True, False)]
+    SY.zapisz_jak_skaner(SY.sztuczny_stl(100, seed=1), folder / "biezacy.stl", czas_s=0.1, kawalki=2)
+    assert zb.czekaj(lambda: len(zb.skany) >= 3)
+    assert Path(zb.skany[2].plik).name == "biezacy.stl" and zb.skany[2].zastany is False and zb.odrzucone == []
+
+
+def test_nadrabianie_po_restarcie_funkcja_znane(tmp_path, obserwator, monkeypatch):
+    """P2 (a): ``znane(sciezka, rozmiar, mtime_ns)`` - aplikacja odpowiada z bazy, czy plik byl juz przyjety; nieznane sa
+    zglaszane z flaga ``zastany``. Skrot liczony tylko dla plikow zglaszanych (nie dla calej historii folderu). Tak tez
+    wraca po restarcie plik, ktory przed zamknieciem programu byl zajety albo czekal w kolejce (B1, P2)."""
+    folder = tmp_path / "eksport"
+    (folder / "zlec").mkdir(parents=True)
+    pliki = {"a.stl": folder / "a.stl", "b.stl": folder / "b.stl", "c.stl": folder / "zlec" / "c.stl"}
+    for i, p in enumerate(pliki.values()):
+        p.write_bytes(SY.sztuczny_stl(100 + i, seed=i))
+        os.utime(p, (time.time() - 100 + i, time.time() - 100 + i))
+    pytania, liczone = [], []
+    prawdziwy = SC.skrot16_pliku
+    monkeypatch.setattr(SC, "skrot16_pliku", lambda plik: (liczone.append(Path(plik).name), prawdziwy(plik))[1])
+
+    def znane(sciezka, rozmiar, mtime_ns) -> bool:
+        pytania.append((Path(sciezka).name, rozmiar, mtime_ns))
+        return Path(sciezka).name == "a.stl"
+
+    sc, zb, _ = obserwator(folder, znane=znane)
+    assert zb.czekaj(lambda: len(zb.skany) >= 2)
+    time.sleep(0.8)
+    assert [(Path(z.plik).name, z.zastany) for z in zb.skany] == [("b.stl", True), ("c.stl", True)]
+    assert sorted(liczone) == ["b.stl", "c.stl"]  # plik znany nie jest nawet czytany
+    assert sorted(pytania) == sorted((n, p.stat().st_size, p.stat().st_mtime_ns) for n, p in pliki.items())
+    sc.stop()
+    # obie reguly naraz: plik musi byc nowszy niz czas ORAZ nieznany
+    sc2, zb2, _ = obserwator(folder, znane=lambda *a: False, zglos_zastane_od=pliki["b.stl"].stat().st_mtime_ns / 1e9)
+    assert zb2.czekaj(lambda: len(zb2.skany) >= 1)
+    time.sleep(0.8)
+    assert [Path(z.plik).name for z in zb2.skany] == ["c.stl"]
+
+
+def test_folder_z_historia_pojawia_sie_po_starcie(tmp_path, obserwator):
+    """P3 (a), proba ``e2`` recenzenta: folderu nie ma przy starcie programu, pojawia sie pozniej z 3 starymi plikami -
+    przy ``zglos_zastane=False`` to nie sa nowe skany; plik zapisany potem jest."""
+    stare = tmp_path / "stare"
+    stare.mkdir()
+    for i in range(3):
+        (stare / f"stary{i}.stl").write_bytes(SY.sztuczny_stl(100 + i, seed=i))
+    time.sleep(0.1)
+    folder = tmp_path / "eksport"
+    sc, zb, _ = obserwator(folder, utworz=False)
+    time.sleep(0.7)
+    os.rename(stare, folder)
+    time.sleep(2.0)
+    assert zb.skany == [] and zb.odrzucone == [] and sc.stan()["folder_dostepny"] is True
+    SY.zapisz_jak_skaner(SY.sztuczny_stl(100, seed=9), folder / "nowy.stl", czas_s=0.2, kawalki=2)
+    assert zb.czekaj(lambda: len(zb.skany) >= 1)
+    time.sleep(0.8)
+    assert [(Path(z.plik).name, z.zastany) for z in zb.skany] == [("nowy.stl", False)]
+
+
+def test_blad_listowania_nie_zglasza_plikow_zastanych(tmp_path, monkeypatch):
+    """P3 (b), proba ``e3`` recenzenta: chwilowy blad listowania folderu albo podfolderu nie kasuje wiedzy o plikach
+    zastanych - po powrocie nie sa zglaszane jako nowe. Plik naprawde usuniety i zapisany znowu jest nowym skanem."""
+    folder = tmp_path / "eksport"
+    (folder / "zlec1").mkdir(parents=True)
+    for i in range(3):
+        (folder / "zlec1" / f"stary{i}.stl").write_bytes(SY.sztuczny_stl(100 + i, seed=i))
+    time.sleep(0.05)
+    zegar = [100.0]
+    sc, zb = _reczny(folder, zegar)
+    _obiegi(sc, zegar, 5)
+    prawdziwa = SC.pliki_w_folderze
+
+    def pusta_lista(korzen, pomijaj=(), niedostepne=None):  # jak w probie recenzenta: lista pusta, bledu nie widac
+        return iter(())
+
+    def podfolder_niedostepny(korzen, pomijaj=(), niedostepne=None):
+        if niedostepne is not None:
+            niedostepne.append(str(Path(korzen) / "zlec1"))
+        return iter(())
+
+    def folder_niedostepny(korzen, pomijaj=(), niedostepne=None):
+        if niedostepne is not None:
+            niedostepne.append(str(korzen))
+        return iter(())
+
+    for udawana in (pusta_lista, podfolder_niedostepny, folder_niedostepny):
+        monkeypatch.setattr(SC, "pliki_w_folderze", udawana)
+        _obiegi(sc, zegar, 3)
+        monkeypatch.setattr(SC, "pliki_w_folderze", prawdziwa)
+        _obiegi(sc, zegar, 10)
+        assert zb.skany == [] and zb.odrzucone == [], udawana.__name__
+    p = folder / "zlec1" / "stary0.stl"
+    st, dane = p.stat(), p.read_bytes()
+    p.unlink()
+    _obiegi(sc, zegar, 3)
+    p.write_bytes(dane)
+    os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns))  # ten sam rozmiar i czas co plik zastany
+    _obiegi(sc, zegar, 10)
+    assert [Path(z.plik).name for z in zb.skany] == ["stary0.stl"]
+
+
+def test_podfolder_niedostepny_przy_starcie(tmp_path, monkeypatch):
+    """P3: podfolderu nie dalo sie wylistowac przy ustalaniu plikow zastanych - gdy staje sie dostepny, jego stare pliki
+    nadal sa zastane, a nie nowe."""
+    folder = tmp_path / "eksport"
+    (folder / "zlec1").mkdir(parents=True)
+    for i in range(2):
+        (folder / "zlec1" / f"stary{i}.stl").write_bytes(SY.sztuczny_stl(100 + i, seed=i))
+    (folder / "widoczny.stl").write_bytes(SY.sztuczny_stl(50, seed=5))
+    time.sleep(0.05)
+    prawdziwa = SC.pliki_w_folderze
+
+    def bez_podfolderu(korzen, pomijaj=(), niedostepne=None):
+        if niedostepne is not None:
+            niedostepne.append(str(Path(korzen) / "zlec1"))
+        return (w for w in prawdziwa(korzen, pomijaj) if not w[0].startswith("zlec1/"))
+
+    monkeypatch.setattr(SC, "pliki_w_folderze", bez_podfolderu)
+    zegar = [100.0]
+    sc, zb = _reczny(folder, zegar)
+    _obiegi(sc, zegar, 5)
+    monkeypatch.setattr(SC, "pliki_w_folderze", prawdziwa)
+    _obiegi(sc, zegar, 10)
+    assert zb.skany == [] and zb.odrzucone == []
+    (folder / "zlec1" / "nowy.stl").write_bytes(SY.sztuczny_stl(70, seed=6))
+    _obiegi(sc, zegar, 10)
+    assert [Path(z.plik).name for z in zb.skany] == ["nowy.stl"]
+
+
+def test_folder_usuniety_i_odtworzony_watchdog_dziala_dalej(obserwator):
+    """D1, proba ``e6`` recenzenta: po usunieciu i odtworzeniu folderu obserwator watchdog jest uruchamiany od nowa -
+    zdarzenie znow przychodzi z powiadomienia, a nie dopiero z przegladu folderu."""
+    import shutil
+
+    sc, zb, folder = obserwator(przeglad_s=0.3)
+    SY.zapisz_jak_skaner(SY.sztuczny_stl(100, seed=1), folder / "a.stl", czas_s=0.1, kawalki=2)
+    assert zb.czekaj(lambda: len(zb.skany) >= 1)
+    startow = sc.stan()["startow_watchdog"]
+    shutil.rmtree(folder, ignore_errors=True)
+    t0 = time.time()
+    while time.time() - t0 < 15:  # katalog z otwartym uchwytem obserwatora znika dopiero po jego zamknieciu
+        try:
+            folder.mkdir()
+            break
+        except OSError:
+            time.sleep(0.1)
+    assert folder.is_dir()
+    t0 = time.time()
+    while sc.stan()["startow_watchdog"] <= startow and time.time() - t0 < 15:
+        time.sleep(0.05)
+    assert sc.stan()["startow_watchdog"] > startow and sc.stan()["obserwator"] == "watchdog"
+    time.sleep(0.5)
+    sc.przeglad_s = 3600.0  # od teraz bez przegladu okresowego: zdarzenie musi przyjsc z watchdog
+    time.sleep(0.5)
+    SY.zapisz_jak_skaner(SY.sztuczny_stl(100, seed=2), folder / "b.stl", czas_s=0.1, kawalki=2)
+    assert zb.czekaj(lambda: len(zb.skany) >= 2, 10.0)
+    assert Path(zb.skany[1].plik).name == "b.stl"
+
+
+def test_stop_nie_gubi_watku_liczacego(tmp_path, monkeypatch):
+    """D11 (a): gdy ``stop()`` nie doczeka sie konca watku (liczenie skrotu duzego pliku), kolejny ``start()`` nie uruchamia
+    drugiego watku na tym samym stanie."""
+    folder = tmp_path / "eksport"
+    folder.mkdir()
+    wolny = threading.Event()
+    prawdziwy = SC.skrot16_pliku
+    monkeypatch.setattr(SC, "skrot16_pliku", lambda plik: (wolny.wait(5.0), prawdziwy(plik))[1])
+    zb = Zbior()
+    sc = SC.Scanner(folder, na_skan=zb.skan, **SZYBKO)
+    sc.start()
+    try:
+        SY.zapisz_jak_skaner(SY.sztuczny_stl(100, seed=1), folder / "a.stl", czas_s=0.1, kawalki=2)
+        time.sleep(1.0)  # watek stoi w liczeniu skrotu
+        sc.stop(czekaj_s=0.2)
+        assert sc.dziala()  # watek jeszcze zyje - stop() tego nie ukrywa
+        sc.start()
+        assert sum(1 for t in threading.enumerate() if t.name == "scanner") == 1
+    finally:
+        wolny.set()
+        sc.stop()
+    assert not sc.dziala()
 
 
 # ----------------------------------------------------------------------------

@@ -24,14 +24,17 @@ Funkcja ``analiza_probna`` jest ladowana w procesie silnika (parametr ``funkcja`
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
+import re
 import signal
 import subprocess
 import sys
 import threading
 import time
+import warnings
 from pathlib import Path
 
 import pytest
@@ -51,7 +54,10 @@ FUNKCJA_PROBNA = "test_silnik:analiza_probna"
 # funkcje wykonywane W PROCESIE SILNIKA zamiast porownaj (ta sama sygnatura wywolania)
 # ----------------------------------------------------------------------------
 def analiza_probna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, *reszta, postep=None, **kw):
-    """Udaje analize: czyta plik, zglasza postep, zwraca slownik. Tresc pliku steruje awaria (ZLY / ZABIJ / SPIJ <s>)."""
+    """Udaje analize: czyta plik, zglasza postep, zwraca slownik. Tresc pliku steruje awaria (ZLY / ZABIJ / SPIJ <s> /
+    NADPISZ = plik zmieniony w trakcie analizy / PULA = ostrzezenia i uwagi z nazwami plikow i folderow puli, jak
+    ``synth.wczytaj_projekt`` i inspekcja; PULA_BLAD = wyjatek z taka nazwa). ``qt``: czy w procesie roboczym jest
+    zaladowane PySide6 (nie powinno byc)."""
     t0 = time.time()
     dane = Path(skan).read_bytes()
     if postep is not None:
@@ -62,11 +68,28 @@ def analiza_probna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, *r
         os._exit(7)  # proces silnika znika bez komunikatu (jak zabity z zewnatrz)
     if dane.startswith(b"SPIJ"):
         time.sleep(float(dane.split()[1]))
+    if dane.startswith(b"NADPISZ"):
+        Path(skan).write_bytes(b"inna tresc zapisana w trakcie analizy")
+    uwagi = []
+    if dane.startswith(b"PULA"):
+        projekty = [p for f in foldery for p in sorted(Path(f).rglob("*.stl")) if p != Path(skan)]
+        if dane.startswith(b"PULA_BLAD"):
+            raise ValueError(f"nie da sie wczytac projektu {projekty[0].name} z folderu {projekty[0].parent.name} ({projekty[0]})")
+        for p in projekty:
+            warnings.warn(f"pomijam projekt {p.name}: brak trojkatow", stacklevel=2)
+            uwagi.append(f"zob. {p.parent.name} / {p.stem.upper()}")
     time.sleep(0.05)
     if postep is not None:
         postep("proba: koniec", 0.9)
-    return {"skan": Path(skan).name, "plytka": plytka, "numer": numer, "wspolczynnik": wspolczynnik, "bajtow": len(dane),
-            "pid": os.getpid(), "start": t0, "koniec": time.time(), "gniazda": [], "czas_s": {"razem": round(time.time() - t0, 3)}}
+    wynik = {"skan": Path(skan).name, "plytka": plytka, "numer": numer, "wspolczynnik": wspolczynnik, "bajtow": len(dane), "qt": "PySide6" in sys.modules,
+             "pid": os.getpid(), "start": t0, "koniec": time.time(), "gniazda": [], "czas_s": {"razem": round(time.time() - t0, 3)}}
+    if uwagi:
+        wynik["uwagi"] = uwagi
+    return wynik
+
+
+def _skrot(dane: bytes) -> str:
+    return hashlib.sha256(dane).hexdigest()[:16]
 
 
 # ----------------------------------------------------------------------------
@@ -167,6 +190,7 @@ def bez_czasow(o):
 
 TOL_SZUMU = 1e-9  # poziom 1: szum numeryczny
 TOL_DECYZJI = 2e-3  # poziom 2: 0,002 mm (albo wzglednie) - 25 razy ponizej najmniejszego progu decyzji (0,05 mm)
+TOL_SKANOW_ODNIESIENIA = 0.1  # poziom 3: 0,1 mm bezwzglednie
 
 
 def _licznik_punktow(sciezka: str) -> str | None:
@@ -181,10 +205,11 @@ def _licznik_punktow(sciezka: str) -> str | None:
     return "punkty" if "punkt" in nazwa or nazwa in ("komorek", "brak_danych") else None
 
 
-def roznice(a, b, sciezka="", tol: float = TOL_SZUMU, liczniki_z_tolerancja: bool = False) -> list[str]:
+def roznice(a, b, sciezka="", tol: float = TOL_SZUMU, liczniki_z_tolerancja: bool = False, tol_wzgl: float | None = None) -> list[str]:
     """Lista pol, ktorymi roznia sie dwie struktury JSON. Wszystko porownywane dokladnie, poza liczbami zmiennoprzecinkowymi:
-    te moga sie roznic o ``tol`` (wzglednie albo bezwzglednie). ``liczniki_z_tolerancja``: pola ``iteracje`` sa pomijane,
-    a liczniki probek (``_licznik_punktow``) moga sie roznic o 2 albo 1 %.
+    te moga sie roznic o ``tol`` (bezwzglednie) albo o ``tol_wzgl`` wzglednie (domyslnie tez ``tol``; 0 = tylko prog
+    bezwzgledny). ``liczniki_z_tolerancja``: pola ``iteracje`` sa pomijane, a liczniki probek (``_licznik_punktow``) moga
+    sie roznic o 2 albo 1 %.
 
     Dlaczego nie rownosc bit w bit: ``porownaj`` nie jest powtarzalne - DWA URUCHOMIENIA Z WIERSZA POLECEN na tym samym
     skanie roznia sie (pomiary 17.11.2026 na PC: 2 x 6 przebiegow na plytkach z atrap, 3 przebiegi na skanie odniesienia):
@@ -200,7 +225,8 @@ def roznice(a, b, sciezka="", tol: float = TOL_SZUMU, liczniki_z_tolerancja: boo
     liczby = lambda x: isinstance(x, (int, float)) and not isinstance(x, bool)  # noqa: E731
     if liczby(a) and liczby(b):
         if isinstance(a, float) or isinstance(b, float):
-            return [] if math.isclose(a, b, rel_tol=tol, abs_tol=tol) or (math.isnan(a) and math.isnan(b)) else [f"{sciezka}: {a!r} != {b!r}"]
+            wzgl = tol if tol_wzgl is None else tol_wzgl
+            return [] if math.isclose(a, b, rel_tol=wzgl, abs_tol=tol) or (math.isnan(a) and math.isnan(b)) else [f"{sciezka}: {a!r} != {b!r}"]
         if licznik == "punkty" and abs(a - b) <= max(2, 0.01 * max(abs(a), abs(b))):
             return []
         return [] if a == b else [f"{sciezka}: {a!r} != {b!r}"]
@@ -209,14 +235,14 @@ def roznice(a, b, sciezka="", tol: float = TOL_SZUMU, liczniki_z_tolerancja: boo
     if isinstance(a, dict):
         w = [f"{sciezka}.{k}: brak po jednej stronie" for k in sorted(set(a) ^ set(b))]
         for k in sorted(set(a) & set(b)):
-            w += roznice(a[k], b[k], f"{sciezka}.{k}", tol, liczniki_z_tolerancja)
+            w += roznice(a[k], b[k], f"{sciezka}.{k}", tol, liczniki_z_tolerancja, tol_wzgl)
         return w
     if isinstance(a, list):
         if len(a) != len(b):
             return [f"{sciezka}: dlugosc {len(a)} != {len(b)}"]
         w = []
         for i, (x, y) in enumerate(zip(a, b)):
-            w += roznice(x, y, f"{sciezka}[{i}]", tol, liczniki_z_tolerancja)
+            w += roznice(x, y, f"{sciezka}[{i}]", tol, liczniki_z_tolerancja, tol_wzgl)
         return w
     return [] if a == b else [f"{sciezka}: {a!r} != {b!r}"]
 
@@ -242,15 +268,16 @@ def test_kolejka_20_zadan_po_kolei(tmp_path, silnik_probny):
         p = tmp_path / f"s{i:02d}.stl"
         p.write_bytes(b"x" * (100 + i))
         pliki.append(p)
-    ids = [s.zlec(_zadanie(p, numer=i, skan_sha16=f"{i:016x}")) for i, p in enumerate(pliki)]
+    ids = [s.zlec(_zadanie(p, numer=i, skan_sha16=_skrot(p.read_bytes()))) for i, p in enumerate(pliki)]
     assert ids == sorted(ids) and len(set(ids)) == 20
     koncowe = odb.czekaj_na_koncowe(20)
     assert [z.typ for z in koncowe] == ["wynik"] * 20
     assert [z.zadanie_id for z in koncowe] == ids  # kolejnosc zlecen, zadnego zgubionego
     wyniki = [z.wynik for z in koncowe]
     assert [w["skan"] for w in wyniki] == [p.name for p in pliki]
-    assert [w["zadanie_id"] for w in wyniki] == ids and [w["skan_sha16"] for w in wyniki] == [f"{i:016x}" for i in range(20)]
+    assert [w["zadanie_id"] for w in wyniki] == ids and [w["skan_sha16"] for w in wyniki] == [_skrot(p.read_bytes()) for p in pliki]
     assert [w["numer"] for w in wyniki] == list(range(20))
+    assert "PySide6" in sys.modules and not any(w["qt"] for w in wyniki)  # D8: Qt jest w procesie testow (okna), nie w procesie roboczym
     assert all(a["koniec"] <= b["start"] for a, b in zip(wyniki, wyniki[1:]))  # jedna analiza naraz
     assert len({w["pid"] for w in wyniki}) == 1 and wyniki[0]["pid"] != os.getpid()  # jeden proces, inny niz proces testu
     assert wyniki[0]["pid"] == s.pid
@@ -383,7 +410,269 @@ def test_komunikat_bledu_bez_nazw_plikow_puli():
     czysty = SI.bez_nazw_z_puli(tekst, foldery)
     for nazwisko in ("Kowalski", "kowalski", "Nowak", "nowak", "Wisniewska"):
         assert nazwisko not in czysty
-    assert "plytka.stl" in czysty and "PermissionError" in czysty and czysty.count("<plik z puli projektow>") == 3
+    assert "plytka.stl" in czysty and "PermissionError" in czysty and czysty.count("<projekt>") == 3
+
+
+def test_nazwy_plikow_i_folderow_puli_zastapione_skrotem(tmp_path):
+    """P5: sama nazwa pliku projektu (bez sciezki) i nazwa folderu zlecenia tez nie wychodza - plik dostaje ``<projekt sha16>``,
+    folder ``<projekt>``; ``foldery_projektow`` (folder puli podany w zadaniu) zostaje, liczby i inne pola bez zmian."""
+    from stanowisko import silnik as SI
+
+    pula = tmp_path / "pula"
+    (pula / "Fikcyjna Testowa 4321").mkdir(parents=True)
+    (pula / "12").mkdir()
+    (pula / "Fikcyjna Testowa 4321" / "FikcyjnaTestowa-11-crown_cad.stl").write_bytes(b"smiec")
+    (pula / "12" / "a.stl").write_bytes(b"x")
+    cz = SI.CzyscicielNazw([str(pula)])
+    t = cz("pomijam projekt FikcyjnaTestowa-11-crown_cad.stl: pusty; folder Fikcyjna Testowa 4321; gniazdo 12; plik a.stl i fikcyjnatestowa-11-crown_cad.STL")
+    assert "ikcyjna" not in t.lower() and "testowa" not in t.lower()
+    assert t.count(f"<projekt {_skrot(b'smiec')}>") == 2 and f"<projekt {_skrot(b'x')}>" in t and "folder <projekt>;" in t
+    assert "gniazdo 12;" in t  # nazwa folderu bez liter (numer kuwety) nie jest dana osobowa i nie psuje liczb w tekscie
+    wynik = {"ostrzezenia": ["pomijam projekt FikcyjnaTestowa-11-crown_cad.stl: x"], "foldery_projektow": [str(pula)], "ubytki": 5, "uklad_zgodny": True,
+             "gniazda": [{"uwagi": ["zob. Fikcyjna Testowa 4321"], "inspekcja": {"blad": "ValueError: FikcyjnaTestowa-11-crown_cad.stl", "pokrycie": 0.5}}]}
+    czysty = cz.oczysc(wynik)
+    assert "ikcyjna" not in json.dumps({k: v for k, v in czysty.items() if k != "foldery_projektow"}).lower()
+    assert czysty["foldery_projektow"] == [str(pula)] and czysty["ubytki"] == 5 and czysty["uklad_zgodny"] is True
+    assert czysty["gniazda"][0]["inspekcja"]["pokrycie"] == 0.5 and czysty["gniazda"][0]["uwagi"] == ["zob. <projekt>"]
+    assert SI.CzyscicielNazw([str(tmp_path / "nie_ma")])("tekst bez zmian") == "tekst bez zmian"
+    # nazwa tylko jako czesc dluzszej nazwy albo slowa nie jest ruszana (skan "plytka.stl" przy projekcie "a.stl")
+    assert cz("skan plytka.stl; plik a.stl.") == f"skan plytka.stl; plik <projekt {_skrot(b'x')}>."
+
+
+def _bez_nazwiska(tekst: str) -> bool:
+    return "fikcyjn" not in tekst.lower() and "testowa" not in tekst.lower()
+
+
+def test_nazwy_z_puli_nie_wychodza_z_silnika(tmp_path, silnik_probny):
+    """P5 na silniku (funkcja probna udaje ``synth.wczytaj_projekt`` i inspekcje): projekt w puli, ktorego nie da sie
+    wczytac, z fikcyjnym nazwiskiem w nazwie pliku i folderu -> 0 wystapien w zdarzeniach (wynik, blad, szczegoly) i w
+    plikach wyjscia; w ich miejscu skrot pliku albo znacznik."""
+    from stanowisko import silnik as SI
+
+    s, odb = silnik_probny()
+    pula = tmp_path / "pula"
+    (pula / "Fikcyjna Testowa 4321").mkdir(parents=True)
+    (pula / "Fikcyjna Testowa 4321" / "FikcyjnaTestowa-11-crown_cad.stl").write_bytes(b"smiec")
+    skany = tmp_path / "skany"
+    skany.mkdir()
+    ok, zly = skany / "ok.stl", skany / "zly.stl"
+    ok.write_bytes(b"PULA ostrzezenia")
+    zly.write_bytes(b"PULA_BLAD")
+    opis, wyj = SI.OpisPuli(foldery=(str(pula),)), tmp_path / "wyniki"
+    ids = [s.zlec(SI.ZadanieAnalizy(skan=p, pula=opis, wyjscie=wyj)) for p in (ok, zly)]
+    koncowe = odb.czekaj_na_koncowe(2, 60.0)
+    assert [(z.zadanie_id, z.typ, z.rodzaj) for z in koncowe] == [(ids[0], "wynik", ""), (ids[1], "blad", "analiza")]
+    znacznik = f"<projekt {_skrot(b'smiec')}>"
+    w = koncowe[0].wynik
+    assert w["ostrzezenia"] == [f"pomijam projekt {znacznik}: brak trojkatow"] and w["uwagi"] == [f"zob. <projekt> / {znacznik}"]
+    assert koncowe[1].blad.startswith(f"ValueError: nie da sie wczytac projektu {znacznik} z folderu <projekt> (")
+    assert "Traceback" in koncowe[1].szczegoly
+    pliki = list(wyj.iterdir())
+    assert [p.name for p in pliki] == [Path(koncowe[0].pliki["wynik"]).name]
+    for tekst in [repr(z) for z in odb.wszystkie] + [p.read_text(encoding="utf-8") for p in pliki]:
+        assert _bez_nazwiska(tekst), tekst[:500]
+
+
+def test_plik_nadpisany_w_kolejce_nie_dostaje_cudzego_skrotu(tmp_path, silnik_probny):
+    """P1, proba ``s1`` recenzenta: plik zapisany ponownie pod ta sama nazwa, gdy jego zadanie czeka w kolejce. Zadanie ze
+    starym skrotem konczy sie ``plik_zmieniony`` (bez wyniku); nowa tresc ma wlasne zadanie i wynik ze SWOIM skrotem."""
+    s, odb = silnik_probny()
+    wolny, x = tmp_path / "wolny.stl", tmp_path / "x.stl"
+    tresc1, tresc2 = b"plytka A " * 20, b"plytka B, inna " * 20
+    wolny.write_bytes(b"SPIJ 1.5")
+    x.write_bytes(tresc1)
+    a = s.zlec(_zadanie(wolny))
+    b = s.zlec(_zadanie(x, skan_sha16=_skrot(tresc1)))
+    assert odb.czekaj(lambda: any(z.typ == "start" and z.zadanie_id == a for z in odb.wszystkie), 60.0)
+    x.write_bytes(tresc2)  # nadpisanie, gdy zadanie b czeka w kolejce
+    c = s.zlec(_zadanie(x, skan_sha16=_skrot(tresc2)))  # zdarzenie ze scannera dla nowej tresci
+    koncowe = odb.czekaj_na_koncowe(3, 60.0)
+    assert [(z.zadanie_id, z.typ, z.rodzaj) for z in koncowe] == [(a, "wynik", ""), (b, "blad", "plik_zmieniony"), (c, "wynik", "")]
+    assert koncowe[1].wynik is None and _skrot(tresc1) in koncowe[1].blad and _skrot(tresc2) in koncowe[1].blad
+    assert koncowe[2].wynik["skan_sha16"] == _skrot(tresc2) and koncowe[2].wynik["bajtow"] == len(tresc2)
+    assert not any(z.typ == "postep" and z.zadanie_id == b for z in odb.wszystkie)  # analizy zmienionego pliku nie zaczynano
+
+
+def test_plik_zmieniony_w_trakcie_analizy(tmp_path, silnik_probny):
+    """P1: plik nadpisany, gdy analiza juz trwa - wynik nie wiadomo ktorej tresci jest odrzucany jako ``plik_zmieniony``."""
+    s, odb = silnik_probny()
+    p, q = tmp_path / "n.stl", tmp_path / "q.stl"
+    p.write_bytes(b"NADPISZ w trakcie")
+    q.write_bytes(b"dobry")
+    a, b = s.zlec(_zadanie(p, skan_sha16=_skrot(b"NADPISZ w trakcie"))), s.zlec(_zadanie(q))
+    koncowe = odb.czekaj_na_koncowe(2, 60.0)
+    assert [(z.zadanie_id, z.typ, z.rodzaj) for z in koncowe] == [(a, "blad", "plik_zmieniony"), (b, "wynik", "")]
+    assert koncowe[0].wynik is None and koncowe[1].wynik["skan_sha16"] == _skrot(b"dobry")
+
+
+def test_stop_zwraca_zadania_niezakonczone(tmp_path, silnik_probny):
+    """P2 (b), proba ``s3`` recenzenta: ``stop()`` przy 1 zadaniu w toku i 3 w kolejce zwraca te 4 zadania (w toku pierwsze)
+    i zglasza je zdarzeniem ``zatrzymany`` - aplikacja moze je zapisac i zlecic ponownie po starcie."""
+    s, odb = silnik_probny()
+    wolny, szybki = tmp_path / "wolny.stl", tmp_path / "szybki.stl"
+    wolny.write_bytes(b"SPIJ 30")
+    szybki.write_bytes(b"dobry")
+    ids = [s.zlec(_zadanie(wolny, skan_sha16=_skrot(b"SPIJ 30")))] + [s.zlec(_zadanie(szybki, numer=i)) for i in range(3)]
+    assert odb.czekaj(lambda: any(z.typ == "postep" and z.zadanie_id == ids[0] for z in odb.wszystkie), 60.0)
+    t0 = time.time()
+    niezakonczone = s.stop()
+    assert time.time() - t0 < 10.0
+    assert [z.zadanie_id for z in niezakonczone] == ids and [z.numer for z in niezakonczone[1:]] == [0, 1, 2]
+    assert Path(niezakonczone[0].skan) == wolny and niezakonczone[0].skan_sha16 == _skrot(b"SPIJ 30")
+    ostatnie = odb.wszystkie[-1]
+    assert ostatnie.typ == "zatrzymany" and [z.zadanie_id for z in ostatnie.niezakonczone] == ids
+    assert odb.koncowe() == []  # zadne z tych zadan nie dostalo wyniku ani bledu - nie sa "zakonczone"
+    assert s.stop() == []  # drugie wywolanie niczego nie zwraca ani nie zglasza
+    assert len(odb.typu("zatrzymany")) == 1
+
+
+def test_stop_bez_zadan_zwraca_pusta_liste(tmp_path, silnik_probny):
+    s, odb = silnik_probny()
+    p = tmp_path / "a.stl"
+    p.write_bytes(b"dobry")
+    s.zlec(_zadanie(p))
+    odb.czekaj_na_koncowe(1)
+    assert s.czekaj_na_pusta_kolejke(10.0) is True
+    assert s.stop() == [] and odb.wszystkie[-1].typ == "zatrzymany" and odb.wszystkie[-1].niezakonczone == ()
+
+
+def test_wyjscie_unikalne_nazwy_na_zadanie(tmp_path, silnik_probny):
+    """P4, proba ``s2`` recenzenta: ``zlec1\\scan.stl`` i ``zlec2\\scan.stl`` oraz ten sam skan zlecony ponownie daja osobne
+    pliki ``<czas przyjecia>_<sha16>_<nazwa>[_n]_wynik.json``; zdarzenie kazdego zadania wskazuje SWOJ plik; nic nie jest
+    nadpisywane; po zapisie nie zostaja pliki tymczasowe."""
+    s, odb = silnik_probny()
+    wyj = tmp_path / "wyniki"
+    p1, p2 = tmp_path / "zlec1" / "scan.stl", tmp_path / "zlec2" / "scan.stl"
+    for p, tresc in ((p1, b"plytka pierwsza"), (p2, b"plytka druga, inna")):
+        p.parent.mkdir()
+        p.write_bytes(tresc)
+    ids = [s.zlec(_zadanie(p, wyjscie=wyj)) for p in (p1, p2, p1, p1)]
+    koncowe = odb.czekaj_na_koncowe(4, 60.0)
+    assert [(z.zadanie_id, z.typ) for z in koncowe] == [(i, "wynik") for i in ids]
+    pliki = [Path(z.pliki["wynik"]) for z in koncowe]
+    assert len(set(pliki)) == 4 and all(p.is_file() and p.parent == wyj for p in pliki)
+    for z, p in zip(koncowe, pliki):
+        d = json.loads(p.read_text(encoding="utf-8"))
+        assert d == z.wynik and d["zadanie_id"] == z.zadanie_id  # plik = wynik TEGO zadania
+        m = re.fullmatch(r"(\d{8}_\d{6})_([0-9a-f]{16})_scan(_\d+)?_wynik\.json", p.name)
+        assert m and m.group(2) == z.wynik["skan_sha16"], p.name
+        assert abs(time.mktime(time.strptime(m.group(1), "%Y%m%d_%H%M%S")) - time.time()) < 600
+    assert [z.wynik["skan_sha16"] for z in koncowe] == [_skrot(b"plytka pierwsza"), _skrot(b"plytka druga, inna")] + [_skrot(b"plytka pierwsza")] * 2
+    assert sorted(x.name for x in wyj.iterdir()) == sorted(p.name for p in pliki)
+
+
+def test_straznik_procesu_roboczego():
+    """P6: straznik w procesie roboczym konczy proces, gdy zniknie proces okna albo gdy zadanie przekroczy wlasny limit
+    czasu (limit nadzorcy + zapas - nadzorca moze juz nie zyc)."""
+    from stanowisko import silnik as SI
+
+    konce, rodzic, t = [], [True], [100.0]
+    st = SI.Straznik(rodzic_zyje=lambda: rodzic[0], limit_zadania_s=10.0, zakoncz=konce.append, zegar=lambda: t[0])
+    st.sprawdz()
+    st.poczatek_zadania()
+    t[0] += 10.0 + SI.ZAPAS_LIMITU_S - 0.5
+    st.sprawdz()
+    assert konce == []
+    st.koniec_zadania()
+    t[0] += 1000.0
+    st.sprawdz()
+    assert konce == []  # miedzy zadaniami limit nie biegnie
+    st.poczatek_zadania()
+    t[0] += 10.0 + SI.ZAPAS_LIMITU_S + 0.5
+    st.sprawdz()
+    assert konce == [SI.KOD_LIMIT_ZADANIA]
+    st.koniec_zadania()
+    rodzic[0] = False
+    st.sprawdz()
+    assert konce == [SI.KOD_LIMIT_ZADANIA, SI.KOD_BEZ_PROCESU_OKNA]
+
+
+KOD_PROCESU_OKNA = """
+import sys, time
+from pathlib import Path
+from stanowisko import silnik as SI
+
+if __name__ == "__main__":
+    p = Path(sys.argv[1])
+    s = SI.Silnik(ust={}, funkcja="test_silnik:analiza_probna")
+    s.start()
+    s.zlec(SI.ZadanieAnalizy(skan=p, pula=SI.OpisPuli(foldery=(str(p.parent),))))
+    while True:
+        z = s.zdarzenia.get(timeout=120)
+        if z.typ == "postep":
+            print(s.pid, flush=True)
+            break
+    time.sleep(300)
+"""
+
+
+def test_proces_roboczy_konczy_sie_po_smierci_procesu_okna(tmp_path):
+    """P6, proba ``eksp3`` recenzenta: proces okna zabity twardo W TRAKCIE analizy (zadanie probne 60 s) - procesu roboczego
+    nie ma najpozniej po 10 s (przed poprawka liczyl do konca zadania)."""
+    p = tmp_path / "wolny.stl"
+    p.write_bytes(b"SPIJ 60")
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)}
+    with open(tmp_path / "okno.log", "wb") as log:
+        okno = subprocess.Popen([sys.executable, "-c", KOD_PROCESU_OKNA, str(p)], cwd=str(STANOWISKO), stdout=subprocess.PIPE, stderr=log, text=True, env=env)
+    pid = None
+    try:
+        wiersz = okno.stdout.readline().strip()
+        assert wiersz.isdigit(), (tmp_path / "okno.log").read_text(errors="replace")[-2000:]
+        pid = int(wiersz)
+        assert _proces_zyje(pid) and pid != okno.pid
+        okno.kill()  # jak Menedzer zadan: bez sprzatania
+        okno.wait(10)
+        t0 = time.time()
+        while _proces_zyje(pid) and time.time() - t0 < 20:
+            time.sleep(0.1)
+        czas = time.time() - t0
+        print(f"\n[P6] proces roboczy zniknal {czas:.1f} s po zabiciu procesu okna (wymagane <= 10 s)")
+        assert not _proces_zyje(pid) and czas <= 10.0
+    finally:
+        if okno.poll() is None:
+            okno.kill()
+        if pid is not None and _proces_zyje(pid):
+            os.kill(pid, signal.SIGTERM)
+
+
+PLIK_STARTOWY = """
+import sys
+from pathlib import Path
+
+from stanowisko import silnik as SI
+{import_qt_na_gorze}
+
+
+def main():
+    import PySide6.QtCore  # noqa: F401 - jak w aplikacji: Qt importowane w main(), przed pierwszym uzyciem silnika
+    p = Path(sys.argv[1])
+    with SI.Silnik(ust={{}}, funkcja="test_silnik:analiza_probna") as s:
+        s.zlec(SI.ZadanieAnalizy(skan=p, pula=SI.OpisPuli(foldery=(str(p.parent),))))
+        while True:
+            z = s.zdarzenia.get(timeout=120)
+            if z.typ in ("wynik", "blad"):
+                break
+    print("QT_W_PROCESIE_ROBOCZYM", z.wynik["qt"] if z.wynik else z.blad, flush=True)
+
+
+if __name__ == "__main__":
+    main()
+"""
+
+
+@pytest.mark.parametrize("qt_na_gorze", [False, True])
+def test_qt_w_procesie_roboczym_zalezy_od_pliku_startowego(tmp_path, qt_na_gorze):
+    """D8: proces roboczy (spawn) wykonuje ponownie plik startowy programu jako ``__mp_main__``. Plik startowy z importem
+    Qt w ``main()`` (zalecenie dla A3) -> w procesie roboczym nie ma PySide6; import Qt na poziomie modulu -> jest (tego
+    ukladu A3 ma unikac: Qt obok Open3D w procesie liczacym)."""
+    p = tmp_path / "skan.stl"
+    p.write_bytes(b"dobry")
+    start = tmp_path / "start_programu.py"
+    start.write_text(PLIK_STARTOWY.format(import_qt_na_gorze="import PySide6.QtCore  # noqa" if qt_na_gorze else ""), encoding="utf-8")
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(sys.path), "QT_QPA_PLATFORM": "offscreen"}
+    w = subprocess.run([sys.executable, str(start), str(p)], cwd=str(STANOWISKO), capture_output=True, text=True, env=env, timeout=300)
+    assert w.returncode == 0, w.stdout[-2000:] + w.stderr[-2000:]
+    assert f"QT_W_PROCESIE_ROBOCZYM {qt_na_gorze}" in w.stdout, w.stdout[-2000:] + w.stderr[-2000:]
 
 
 def test_pamiec_pul(tmp_path, monkeypatch):
@@ -437,14 +726,18 @@ def test_20_plikow_naraz_symulator_scanner_silnik(tmp_path, silnik_probny):
         kolejnosc = [(3 * i + 5) % 20 for i in range(20)]
         czasy = [0.0] * 20
         for miejsce, nr in enumerate(kolejnosc):
-            czasy[nr] = 0.6 + 0.15 * miejsce
+            czasy[nr] = 0.6 + 0.3 * miejsce
         zapisy = SY.symuluj(folder, [SY.sztuczny_stl(200 + i, seed=i) for i in range(20)], ile=20, czasy=czasy, kawalki=(5, 5), rownolegle=20, seed=1)
         koncowe = odb.czekaj_na_koncowe(20, 120.0)
     finally:
         sc.stop()
-    wg_zapisu = [Path(z["plik"]).name for z in sorted(zapisy, key=lambda z: z["mtime_ns"])]
-    assert [z.typ for z in koncowe] == ["wynik"] * 20  # zadnego zgubionego, zadnej awarii
-    assert [z.wynik["skan"] for z in koncowe] == wg_zapisu == [Path(z.plik).name for z in zdarzenia]  # analiza w kolejnosci zapisu
+    assert [z.typ for z in koncowe] == ["wynik"] * 20 and len(zdarzenia) == 20  # zadnego zgubionego, zadnej awarii
+    assert sorted(z.wynik["skan"] for z in koncowe) == sorted(Path(z["plik"]).name for z in zapisy)
+    # analiza w kolejnosci zdarzen, a zdarzenia w kolejnosci czasu zapisu plikow (bez zakladania, w jakiej kolejnosci symulator
+    # skonczyl zapisy - to zalezy od obciazenia komputera, uwaga D9 recenzji; luz 0,1 s = dwa obiegi obserwatora)
+    assert [z.wynik["skan"] for z in koncowe] == [Path(z.plik).name for z in zdarzenia]
+    czasy_plikow = [z.mtime_ns / 1e9 for z in zdarzenia]
+    assert all(a <= b + 0.1 for a, b in zip(czasy_plikow, czasy_plikow[1:])), czasy_plikow
     assert [z.wynik["skan_sha16"] for z in koncowe] == [z.sha16 for z in zdarzenia]
     wyniki = [z.wynik for z in koncowe]
     assert all(a["koniec"] <= b["start"] for a, b in zip(wyniki, wyniki[1:]))  # po kolei, nie rownolegle
@@ -519,10 +812,13 @@ def wyniki_atrap(plytki, tmp_path_factory):
 
 
 def _sprawdz_rownosc(typ: str, cli: dict, sil: dict, zrodlo: str = "atrapy", wymagany: int = 2) -> None:
+    from stanowisko import silnik as SI
+
     assert sil["plytka"] == typ == cli["plytka"] and sil["plytka_wybor"] == "auto" and sil["uklad_zgodny"] is True
     assert len(sil["gniazda"]) >= 1
     dodatkowe = {"zadanie_id", "skan_sha16"}
     assert dodatkowe <= set(sil) and set(sil) - dodatkowe == set(cli)  # kontrakt 3.8: slownik porownaj + zadanie_id + skan_sha16
+    cli = SI.CzyscicielNazw(cli["foldery_projektow"]).oczysc(cli)  # P5: silnik oddaje wynik bez nazw z puli - wiersz polecen tak samo
     _rowne(f"kryterium 5, {zrodlo}, {typ}", bez_czasow({k: v for k, v in sil.items() if k not in dodatkowe}), bez_czasow(cli), wymagany)
 
 
@@ -533,13 +829,14 @@ def _rowne(opis: str, a, b, wymagany: int = 2) -> None:
        wiersza polecen, wiec w zwyklym zestawie dawalby losowo czerwony test;
     2. miary (liczby do 2e-3, liczniki probek do 2 albo 1 %, bez liczby iteracji) - wymagany w testach na plytkach z atrap;
     3. decyzje: struktura, teksty, statusy, identyfikatory i liczniki decyzji (gniazdo, numer, liczba ubytkow ...) rowne,
-       wartosci zmiennoprzecinkowe nieporownywane - wymagany w wariantach na skanach odniesienia 45-55 MB. Tam inna galaz
-       ICP korekty skali zmienia tez miary skwantowane (17.11.2026: ``najdl_przerwa_mm`` 0,0 / 0,05 w 1 z 16 porownan
+       liczby zmiennoprzecinkowe do ``TOL_SKANOW_ODNIESIENIA`` = 0,1 (mm; bezwzglednie - prog posredni z recenzji PR #17:
+       ubytek 0,5 mm i 1,5 mm nie moga uchodzic za rowne) - wymagany w wariantach na skanach odniesienia 45-55 MB. Tam inna
+       galaz ICP korekty skali zmienia tez miary skwantowane (17.11.2026: ``najdl_przerwa_mm`` 0,0 / 0,05 w 1 z 16 porownan
        silnik - wiersz polecen), a wiersz polecen rozni sie sam od siebie na poziomie 1 w 3 z 3 par przebiegow."""
     poziomy = {1: roznice(a, b), 2: roznice(a, b, tol=TOL_DECYZJI, liczniki_z_tolerancja=True),
-               3: roznice(a, b, tol=math.inf, liczniki_z_tolerancja=True)}
+               3: roznice(a, b, tol=TOL_SKANOW_ODNIESIENIA, liczniki_z_tolerancja=True, tol_wzgl=0.0)}
     print(f"\n[{opis}] pol roznych: {len(poziomy[1])} przy tolerancji 1e-9, {len(poziomy[2])} na poziomie miar (2e-3, liczniki probek "
-          f"z tolerancja), {len(poziomy[3])} na poziomie decyzji; wymagany poziom {1 if SCISLE else wymagany}"
+          f"z tolerancja), {len(poziomy[3])} na poziomie decyzji (liczby do 0,1); wymagany poziom {1 if SCISLE else wymagany}"
           + "".join(f"\n    {x}" for x in (poziomy[2] + poziomy[1])[:6]))
     r = poziomy[1 if SCISLE else wymagany]
     assert not r, f"pol roznych: {len(r)}\n" + "\n".join(r[:40])
@@ -560,9 +857,10 @@ def test_postep_i_pliki_wyjscia(wyniki_atrap, plytki):
     for z in [z for z in zdarzenia if z.typ == "wynik"]:
         etapy = [(p.etap, p.udzial) for p in zdarzenia if p.typ == "postep" and p.zadanie_id == z.zadanie_id]
         assert len(etapy) >= 4 and [u for _, u in etapy] == sorted(u for _, u in etapy) and etapy[-1] == ("wynik", 0.95)
-        stem = Path(z.zadanie.skan).stem
-        p_json, p_npz = d / "silnik" / f"{stem}_wynik.json", d / "silnik" / f"{stem}_podglad.npz"
-        assert z.pliki == {"wynik": str(p_json), "podglad": str(p_npz)}
+        p_json, p_npz = Path(z.pliki["wynik"]), Path(z.pliki["podglad"])
+        rdzen = re.fullmatch(rf"(\d{{8}}_\d{{6}}_{z.wynik['skan_sha16']}_{re.escape(Path(z.zadanie.skan).stem)})_wynik\.json", p_json.name)
+        assert rdzen and p_npz.name == f"{rdzen.group(1)}_podglad.npz" and p_json.parent == p_npz.parent == d / "silnik"  # wzor nazw jak w A1
+        assert set(z.pliki) == {"wynik", "podglad"}
         assert json.loads(p_json.read_text(encoding="utf-8")) == z.wynik  # plik = slownik ze zdarzenia
         podglad = SI.wczytaj_podglad(p_npz)
         z_inspekcja = {g["gniazdo"] for g in z.wynik["gniazda"] if g["inspekcja"] and g["gniazdo"] is not None}
@@ -613,6 +911,32 @@ def test_brak_projektow_w_puli_to_blad_a_nie_koniec_procesu(plytki, tmp_path):
     assert "brak projekt" in koncowe[0].blad
     w = koncowe[1].wynik  # pola zadania trafiaja do porownaj: uklad podany recznie, numer plytki, bez inspekcji
     assert (w["plytka"], w["plytka_wybor"], w["numer"], w["inspekcja"]) == ("poranna", "reczny", nr, False)
+
+
+def test_p5_prawdziwa_analiza_z_projektem_niewczytywalnym(plytki, tmp_path):
+    """P5 na prawdziwym ``porownaj`` (proba ``s4`` recenzenta): w puli plik-smiec z fikcyjnym nazwiskiem w nazwie pliku
+    i folderu. ``synth.wczytaj_projekt`` ostrzega "pomijam projekt <nazwa pliku>" - w zdarzeniach i w plikach wyjscia ma byc
+    skrot pliku, a nazwiska 0 razy."""
+    import shutil
+
+    from stanowisko import silnik as SI
+
+    pliki, proj = plytki
+    pula = tmp_path / "pula"
+    shutil.copytree(proj, pula)
+    (pula / "Fikcyjna Testowa 4321").mkdir()
+    (pula / "Fikcyjna Testowa 4321" / "FikcyjnaTestowa-11-crown_cad.stl").write_bytes(b"smiec")
+    wyj = tmp_path / "wyniki"
+    odb = Odbior()
+    with SI.Silnik(na_zdarzenie=odb) as s:
+        s.zlec(SI.ZadanieAnalizy(skan=pliki["poranna"], pula=SI.OpisPuli(foldery=(str(pula),)), wyjscie=wyj))
+        koncowe = odb.czekaj_na_koncowe(1, 600.0)
+    assert koncowe[0].typ == "wynik", (koncowe[0].blad, koncowe[0].szczegoly)
+    ostrz = koncowe[0].wynik["ostrzezenia"]
+    assert any(o.startswith(f"pomijam projekt <projekt {_skrot(b'smiec')}>") for o in ostrz), ostrz
+    assert sorted(p.name for p in wyj.iterdir()) == sorted(Path(x).name for x in koncowe[0].pliki.values())  # _wynik.json i _podglad.npz
+    for tekst in [repr(z) for z in odb.wszystkie] + [Path(koncowe[0].pliki["wynik"]).read_text(encoding="utf-8")]:
+        assert _bez_nazwiska(tekst), tekst[:500]
 
 
 def test_pamiec_linii_na_dysku(plytki, wyniki_atrap, tmp_path):
