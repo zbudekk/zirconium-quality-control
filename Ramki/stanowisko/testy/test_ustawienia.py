@@ -171,7 +171,7 @@ NOWE_E3_A1 = {"sciezki": {"wyniki": "dane/wyniki"}, "sesja": {"operatorzy": [], 
 def test_e3_a1_nie_dodaje_kluczy_wymaganych():
     wymagane = {s: sorted(set(klucze) - set(UST.DOMYSLNE_NOWYCH.get(s, {}))) for s, klucze in UST.SCHEMAT.items()}
     assert {s: k for s, k in wymagane.items() if k} == WYMAGANE_PRZED_ETAPEM_3
-    assert set(UST.SEKCJE_OPCJONALNE) == {"sesja"}  # sekcja, ktorej wszystkie klucze maja wartosc domyslna, moze nie istniec w pliku
+    assert set(UST.SEKCJE_OPCJONALNE) == {"sesja", "scanner", "silnik"}  # sekcja, ktorej wszystkie klucze maja wartosc domyslna, moze nie istniec w pliku (E3-A3a: scanner, silnik)
     for sekcja, klucze in NOWE_E3_A1.items():
         for k, v in klucze.items():
             assert k in UST.SCHEMAT[sekcja] and UST.DOMYSLNE_NOWYCH[sekcja][k] == v, (sekcja, k)
@@ -248,5 +248,77 @@ def test_nowe_klucze_wpis_w_pliku_ma_pierwszenstwo(tmp_path):
 ])
 def test_nowe_klucze_zla_wartosc_nadal_jest_bledem(tmp_path, dopisek, komunikat):
     p = _stary_plik(tmp_path, "\n" + dopisek)
+    with pytest.raises(UST.BladUstawien, match=r"^ustawienia\.toml: " + komunikat):
+        UST.wczytaj_ustawienia(p)
+
+
+# --- E3-A3a: parametry scanner / silnik i sciezki programu "Stanowisko" - wylacznie klucze opcjonalne ---------------
+NOWE_E3_A3A = {
+    "sciezki": {"podglady": "dane/podglady", "pula_cache": "dane/pula_cache", "logi": "dane/logi"},
+    "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True, "obserwator": "watchdog"},
+    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": True, "ponow_plik_niedostepny": 3},
+}
+
+
+def _plik_sprzed_etapu_3(tmp_path, dopisek: str = ""):
+    """Wzor ustawien cofniety do stanu sprzed etapu 3: bez sekcji [sesja], [scanner], [silnik] i bez nowych kluczy [sciezki]."""
+    nowe = {k for kl in list(NOWE_E3_A1.values()) + list(NOWE_E3_A3A.values()) for k in kl}
+    linie, pomijaj = [], False
+    for linia in UST.PLIK_PRZYKLADU.read_text(encoding="utf-8").splitlines():
+        if linia.startswith("["):
+            pomijaj = linia.split("]")[0].strip("[") in UST.SEKCJE_OPCJONALNE
+        if not pomijaj and linia.split("=")[0].strip() not in nowe:
+            linie.append(linia)
+    stary = "\n".join(linie) + "\n"
+    assert not [s for s in ("[sesja]", "[scanner]", "[silnik]", "podglady =", "pula_cache =", "logi =", "stabilizacja_ms") if s in stary] and "[ramki]" in stary
+    p = tmp_path / "ustawienia.toml"
+    p.write_text(stary + dopisek, encoding="utf-8")
+    return p
+
+
+def test_e3_a3a_nowe_klucze_sa_opcjonalne_i_rowne_stalym_modulow(tmp_path):
+    """Stary plik ustawien (sprzed etapu 3) wczytuje sie bez zmian, a wartosci domyslne sa tymi samymi liczbami, co stale
+    modulow scanner i silnik (jedno zrodlo prawdy: podpiecie do ustawien nie zmienia zachowania)."""
+    from stanowisko import scanner as SC, silnik as SI
+
+    for sekcja, klucze in NOWE_E3_A3A.items():
+        for k, v in klucze.items():
+            assert k in UST.SCHEMAT[sekcja] and UST.DOMYSLNE_NOWYCH[sekcja][k] == v, (sekcja, k)
+    assert set(UST.SCHEMAT["scanner"]) == set(NOWE_E3_A3A["scanner"]) and set(UST.SCHEMAT["silnik"]) == set(NOWE_E3_A3A["silnik"])
+    d = UST.DOMYSLNE_NOWYCH
+    assert (d["scanner"]["stabilizacja_ms"], d["scanner"]["min_rozmiar_mb"], d["scanner"]["min_trojkatow"], d["scanner"]["wzorzec_pliku"]) == (
+        SC.STABILIZACJA_MS, SC.MIN_ROZMIAR_MB, SC.MIN_TROJKATOW, SC.WZORZEC_PLIKU)
+    assert (d["silnik"]["limit_zadania_s"], d["silnik"]["czekaj_na_plik_s"]) == (SI.LIMIT_ZADANIA_S, SI.CZEKAJ_NA_PLIK_S)
+    ust = UST.wczytaj_ustawienia(_plik_sprzed_etapu_3(tmp_path))
+    assert ust == UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)  # wzor ma nowe klucze wpisane z wartosciami domyslnymi
+    assert ust["scanner"] == NOWE_E3_A3A["scanner"] and ust["silnik"] == NOWE_E3_A3A["silnik"]
+    assert {k: ust["sciezki"][k] for k in NOWE_E3_A3A["sciezki"]} == NOWE_E3_A3A["sciezki"]
+    # lokalny plik tej maszyny (na PC: kopia sprzed etapu 3, bez nowych kluczy) tez przechodzi
+    lokalny = UST.wczytaj_ustawienia(UST.PLIK_USTAWIEN)
+    assert lokalny["scanner"]["wzorzec_pliku"] and lokalny["silnik"]["limit_zadania_s"] > 0 and lokalny["sciezki"]["logi"]
+    # wpis w pliku ma pierwszenstwo, brakujace klucze sekcji dostaja wartosci domyslne
+    ust = UST.wczytaj_ustawienia(_plik_sprzed_etapu_3(tmp_path, '\n[scanner]\nstabilizacja_ms = 500\nwzorzec_pliku = "plytka_*.stl"\n\n[silnik]\nlimit_zadania_s = 300\n'))
+    assert ust["scanner"] == {**NOWE_E3_A3A["scanner"], "stabilizacja_ms": 500, "wzorzec_pliku": "plytka_*.stl"}
+    assert ust["silnik"] == {**NOWE_E3_A3A["silnik"], "limit_zadania_s": 300}
+
+
+@pytest.mark.parametrize("dopisek, komunikat", [
+    ("[scanner]\nstabilizacja_ms = -1\n", r"\[scanner\] stabilizacja_ms: musi"),
+    ('[scanner]\nstabilizacja_ms = "300"\n', r"\[scanner\] stabilizacja_ms: oczekiwano float"),
+    ("[scanner]\nmin_rozmiar_mb = -0.5\n", r"\[scanner\] min_rozmiar_mb: musi"),
+    ("[scanner]\nmin_trojkatow = 0\n", r"\[scanner\] min_trojkatow: musi"),
+    ("[scanner]\nmin_trojkatow = 1.5\n", r"\[scanner\] min_trojkatow: oczekiwano int"),
+    ('[scanner]\nwzorzec_pliku = " "\n', r"\[scanner\] wzorzec_pliku: niepusty"),
+    ('[scanner]\nobserwator = "inny"\n', r"\[scanner\] obserwator: dopuszczalne"),
+    ('[scanner]\nrekurencyjnie = "tak"\n', r"\[scanner\] rekurencyjnie: oczekiwano bool"),
+    ("[scanner]\nstabilizacja = 300\n", r"\[scanner\] stabilizacja: nieznany klucz"),
+    ("[silnik]\nlimit_zadania_s = 0\n", r"\[silnik\] limit_zadania_s: musi"),
+    ("[silnik]\nczekaj_na_plik_s = -1\n", r"\[silnik\] czekaj_na_plik_s: musi"),
+    ("[silnik]\nponow_plik_niedostepny = -1\n", r"\[silnik\] ponow_plik_niedostepny: musi"),
+    ("[silnik]\npamiec_linii = 1\n", r"\[silnik\] pamiec_linii: oczekiwano bool"),
+    ("[silniki]\nlimit_zadania_s = 5\n", r"\[silniki\]: nieznana sekcja"),
+])
+def test_e3_a3a_zla_wartosc_nowego_klucza_jest_bledem(tmp_path, dopisek, komunikat):
+    p = _plik_sprzed_etapu_3(tmp_path, "\n" + dopisek)
     with pytest.raises(UST.BladUstawien, match=r"^ustawienia\.toml: " + komunikat):
         UST.wczytaj_ustawienia(p)
