@@ -90,7 +90,10 @@ ex.zapisz_cien(pozycje, operator)                 # tylko tryb "cien": log porow
 Wymagania dla A12: (1) w trybie "pytaj" `zatwierdz` tylko po kliknieciu czlowieka (modul nie zna okna); `juz_odhaczone`
 mozna zatwierdzic bez pytania (nic nie zapisuje); (2) `operator` = osoba wybrana na zmianie (`[sesja] operatorzy`); (3) kazdy
 `BladExcela` pokazac jako komunikat i pracowac dalej (brak Excela, arkusz zmieniony - wtedy `odswiez` i `propozycje`
-ponownie); (4) `ex.tryb` i `ex.ostrzezenia` widoczne w oknie; (5) `kandydaci_do_okna[i]["nazwa"]` (H) tylko na ekranie.
+ponownie); (4) `ex.tryb` i `ex.ostrzezenia` widoczne w oknie; (5) `kandydaci_do_okna[i]["nazwa"]` (H) tylko na ekranie;
+(6) wszystkie wywolania jednego obiektu `Excel` z jednego watku (obiekt COM nie przechodzi miedzy watkami; watek inny niz
+watek okna wymaga `pythoncom.CoInitialize()` i wlasnego `Excel`); (7) `odswiez` przez COM moze trwac sekundy (30 tys. x 9 -
+zmierzyc w D2) - wolac przy "Zamknij piec", nie w petli okna.
 
 ## Warstwa COM (`excel_com.py`) - stan: napisana, nieuruchamiana
 
@@ -113,8 +116,10 @@ kolumny rozne, `pierwszy_wiersz >= 1`, `odswiez_co_min > 0`, `tryb` z listy. `[s
 ## Kryteria i wyniki (testy/test_excel.py, PC)
 
 Arkusz sztuczny 30 000 wierszy A-I (fikcyjne nazwy), 200 zapytan z 27 pulapek (120 jeden wiersz / 21 juz odhaczone /
-59 wskaz wiersz): (1) klasa wlasciwa 200 z 200, zapisow w zlym wierszu 0 (154 zapisy w trybie "pytaj"); (2) wyszukanie
-- liczby w raporcie E3-A9; (3) log CSV - pola reguly 6; (4) domyslnie "pytaj", "cien": 0 zmian arkusza przy 200 zatwierdzeniach;
+59 wskaz wiersz): (1) klasa wlasciwa 200 z 200 (regula 2: 84, regula 3: 36, regula 4: 21, regula 5: 59), zapisow w zlym
+wierszu 0 (154 zapisy w trybie "pytaj"); (2) wyszukanie: mediana 0,010 ms, najdluzej 0,058 ms na zapytanie (odczyt i indeks
+30 tys. wierszy z atrapy: 268 ms; PC, 18.11.2026); (3) log CSV - pola reguly 6; (4) domyslnie "pytaj", "cien": 0 zmian arkusza
+przy 200 zatwierdzeniach;
 (5) zapis zmienia tylko kolor jednej komorki (porownanie wszystkich wartosci i wypelnien przed i po).
 Plus: 27 przypadkow regul na malym arkuszu, odmowa po wstawieniu wiersza (wspoledycja), `excel_zapisy` z wyniku pieca,
 warstwa COM na atrapie, klucze ustawien.
