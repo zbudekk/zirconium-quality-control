@@ -337,11 +337,10 @@ def test_ranking_wstepny_ogranicza_pelne_dopasowania(stl, pula_obu, plytka, ust,
     wynik_wstepny = {kl: match.ocena_wstepna(fr, pula.lekkie[kl]) for kl in przeszly}
     assert wynik_wstepny[kl_wl] == max(wynik_wstepny.values()) and wynik_wstepny[kl_wl] >= 0.8, wynik_wstepny
     w_marg = {kl for kl in przeszly if wynik_wstepny[kl] >= max(wynik_wstepny.values()) - match.WSTEPNY_MARGINES}
-    blizniak = {kl for kl in przeszly if pula.lekkie[kl].id == wl.sha16}  # wlasciwy STL na drugim krazku: zawsze w pelni (P4b)
     wywolania = _licz_pelne(monkeypatch)
     r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
-    oczekiwane = {(pula.lekkie[kl].id, pula.lekkie[kl].wspolczynnik) for kl in w_marg | blizniak}
-    assert set(wywolania) == oczekiwane and len(wywolania) == len(oczekiwane) <= 3 * match.WSTEPNY_PELNYCH + 1, (wywolania, wynik_wstepny)
+    oczekiwane = {(pula.lekkie[kl].id, pula.lekkie[kl].wspolczynnik) for kl in w_marg}  # tylko margines (wlasciwy >= 0,85: bez dalszych tur)
+    assert set(wywolania) == oczekiwane and len(wywolania) == len(oczekiwane) <= 3 * match.WSTEPNY_PELNYCH, (wywolania, wynik_wstepny)
     assert r.najlepszy.frezowanie_id == wl.frezowanie_id and r.status == "zielony"
     for k in r.kandydaci:
         if k.metoda == "wstepny":  # bez pelnego dopasowania tylko kandydaci spoza marginesu
@@ -373,16 +372,39 @@ def test_p1_kandydaci_w_marginesie_bez_pelnego_dopasowania_to_nie_zielony(stl, p
     assert r.status == "zolty" and any("ranking wstepny" in u for u in r.uwagi), (r.status, r.uwagi)
 
 
-def test_p4b_blizniak_poza_rankingiem_dopasowany_w_pelni(stl, pula_obu, plytka, ust, monkeypatch):
-    """P4b: blizniak wlasciwego STL (drugi krazek) z ocena wstepna poza marginesem i tak dostaje pelne dopasowanie - wybor
-    wpisu porownuje oba warianty (tu 1,20 / 1,25: wlasciwy wpis z pokrycia i estymaty)."""
+def test_p4b_blizniak_poza_rankingiem_oceniony_po_wspolczynniku(stl, pula_obu, plytka, ust, monkeypatch):
+    """P4b: blizniak wlasciwego STL (drugi krazek, 1,20 / 1,25 = 4 %) z ocena wstepna poza marginesem nie ma pelnego
+    dopasowania, ale wybor wpisu bierze go pod uwage: estymata skali wyklucza go po wspolczynniku -> wlasciwy wpis."""
     pula = pula_obu[0]
     f, fr, przeszly, wl, kl_wl = _fragment_trzonowca(stl, pula_obu, plytka, ust)
     monkeypatch.setattr(match, "ocena_wstepna", lambda fr_, lk: 1.0 if lk is pula.lekkie[kl_wl] else 0.0 if lk.id == wl.sha16 else 0.5)
     r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
     blizniak = next(k for k in r.kandydaci if k.id == wl.sha16 and k.klucz != kl_wl)
-    assert blizniak.metoda in ("ransac", "obroty") and blizniak.pokrycie_wstepne == 0.0
-    assert r.najlepszy.frezowanie_id == wl.frezowanie_id
+    assert blizniak.metoda == "wstepny" and blizniak.pokrycie_wstepne == 0.0
+    assert r.najlepszy.frezowanie_id == wl.frezowanie_id and not any("nie rozstrzygnieto" in u for u in r.uwagi)
+
+
+def _blizniak_wstepny(w: float, fid: int) -> match.Kandydat:
+    k = match.Kandydat(id="a" * 16, zeby=[], typ="korona", klucz="a" * 16 + "@" + match.tekst_wspolczynnika(w), wspolczynnik=w, metoda="wstepny",
+                       pokrycie_wstepne=0.5)
+    match._wpisy_kandydata(k, [{"frezowanie_id": fid, "projekt_id": 7, "krazek": f"K-{fid}", "wspolczynnik": w}])
+    return k
+
+
+def test_p4b_blizniak_bez_pelnego_dopasowania_po_wspolczynniku():
+    """P4b (jednostkowo): wariant bez pelnego dopasowania blisko estymaty = niejednoznaczny; daleko od estymaty = wykluczony;
+    estymata wskazuje wariant bez pelnego dopasowania = niejednoznaczny; bez estymaty = niejednoznaczny."""
+    w = 1.2215
+    przypadki = [(w * 1.001, w, None), (w * 1.03, w, 1), (w * 1.003, w * 1.003, None), (w * 1.03, None, None)]
+    for w_b, est, oczekiwany in przypadki:
+        a = _kandydat_wariantu(w, 1, est if est is not None else w)
+        if est is None:
+            a.skala = match.KorektaSkali(powod="skali nie wyznaczono")
+        kandydaci, uwagi = [a, _blizniak_wstepny(w_b, 2)], []
+        match._wybierz_wariant(None, None, kandydaci, None, {}, "", uwagi)
+        assert kandydaci[0].frezowanie_id == oczekiwany, (w_b, est, kandydaci[0].frezowanie_id, uwagi)
+        if oczekiwany is None:
+            assert sorted(x["frezowanie_id"] for x in kandydaci[0].wpisy) == [1, 2] and uwagi
 
 
 def _kandydat_wariantu(w: float, fid: int, est: float, pokrycie: float = 0.9, sha: str = "a" * 16) -> match.Kandydat:
@@ -439,7 +461,7 @@ def test_p4b_blizniak_bez_pelnego_dopasowania_niejednoznaczny():
     match._wpisy_kandydata(b, [{"frezowanie_id": 2, "projekt_id": 7, "krazek": "K-2", "wspolczynnik": 1.25}])
     kandydaci, uwagi = [a, b], []
     match._wybierz_wariant(None, None, kandydaci, None, {}, "", uwagi)
-    assert kandydaci[0].frezowanie_id is None and any("bez pelnego dopasowania" in u for u in uwagi)
+    assert kandydaci[0].frezowanie_id is None and any("nie da sie wczytac" in u for u in uwagi)
 
 
 def test_ratunek_bez_filtru_tez_przez_ranking(pula_obu, plytka, ust, monkeypatch):

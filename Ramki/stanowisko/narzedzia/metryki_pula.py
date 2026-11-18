@@ -392,7 +392,7 @@ def jakosc(a) -> None:
 BLIZNIAK_R59 = 1.025  # P5: drugi krazek projektow R59 i atrap "plytkowych" w duzej puli (wspolczynnik plytki x tyle)
 
 
-def wpisy_r59(projekty, w: float, rozpraszacze: Path | None = None) -> list[dict]:
+def wpisy_r59(projekty, w: float, rozpraszacze: Path | None = None, bez_wariantow: bool = False) -> list[dict]:
     """Wpisy puli dla skanu R59: projekty (17) ze wspolczynnikiem plytki ``w``; z ``rozpraszacze`` (``pula_<n>.csv`` z
     ``przygotuj``, P5 recenzji PR #25) dodatkowo wszystkie pozostale pliki tej puli (warianty, atrapy) TAKZE z ``w`` oraz
     drugi krazek (``w`` x BLIZNIAK_R59) projektow i atrap plytkowych - razem ok. 400 wpisow."""
@@ -401,6 +401,8 @@ def wpisy_r59(projekty, w: float, rozpraszacze: Path | None = None) -> list[dict
     if rozpraszacze is None:
         return wpisy
     inne = sorted({x["plik"] for x in PO.wczytaj_wpisy(rozpraszacze)} - set(pliki))
+    if bez_wariantow:  # bez kopii anizotropowych projektow R59 (prawie te same ksztalty - zanizaja pewnosc wlasciwego projektu)
+        inne = [q for q in inne if "warianty" not in Path(q).parts]
     plik_pl = rozpraszacze.parent / "plytkowe.json"
     plytkowe = set(json.loads(plik_pl.read_text(encoding="utf-8"))["projekty"]) if plik_pl.is_file() else set()
     for q in inne:
@@ -430,11 +432,11 @@ def pamiec(a) -> None:
 
 
 def _skan_r59(arg) -> dict:
-    p, projekty, rozpraszacze = arg
+    p, projekty, rozpraszacze, bez_wariantow = arg
     ust, pam = _STAN["ust"], _STAN["pamiec"]
     prawda = S.wczytaj_prawde(p.with_suffix(".json"))
     w = float(np.mean([x.wspolczynnik for x in prawda.prace])) if prawda.prace else 1.0  # jak metryki_P3a
-    wpisy = wpisy_r59(projekty, w, rozpraszacze)
+    wpisy = wpisy_r59(projekty, w, rozpraszacze, bez_wariantow)
     pula = M.Pula.z_wpisow(wpisy, None, pamiec=pam)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -467,7 +469,7 @@ def r59(a) -> None:
     t0 = time.time()
     wyniki = []
     with mp.Pool(a.procesy, initializer=_init, initargs=(a.pamiec, a.linie, a.ustawienia)) as pool:
-        for r in pool.imap(_skan_r59, [(q, tuple(a.projekty), a.rozpraszacze) for q in skany]):
+        for r in pool.imap(_skan_r59, [(q, tuple(a.projekty), a.rozpraszacze, a.bez_wariantow) for q in skany]):
             print(r["linia"], flush=True)
             wyniki.append(r)
     ok = [r for r in wyniki if not r.get("niezgodny")]
@@ -529,6 +531,7 @@ def main() -> None:
             s.add_argument("--skany", type=Path, nargs="+", required=True)
             s.add_argument("--wyjscie", type=Path, required=True)
             s.add_argument("--wzor", type=Path, default=None, help="JSON metryki_P3a do porownania gniazdo po gniezdzie (kolory, projekt)")
+            s.add_argument("--bez-wariantow", action="store_true", help="z --rozpraszacze: bez wariantow (kopii anizotropowych) projektow")
         elif nazwa != "pamiec":
             s.add_argument("--katalog", type=Path, required=True)
             s.add_argument("--wyjscie", type=Path, default=None)
