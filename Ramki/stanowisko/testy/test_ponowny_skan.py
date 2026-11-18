@@ -2,20 +2,21 @@
 
 Regula (``opisy_modulow/session.md``, "Ponowny skan plytki"): propozycja zastapienia (``do_potwierdzenia`` / ``moze_zastapic``)
 tylko, gdy (a) ta sama zawartosc pliku skanu albo (b) ten sam numer plytki, rodzina ukladu, tryb, okno
-``[sesja] ponowny_skan_okno_min`` ORAZ udzial prac rozpoznanych nowego skanu (projekt top-1 = ``sha16`` pierwszego kandydata,
-bez prac szarych), ktorych projekt jest wsrod prac rozpoznanych poprzedniego skanu, wynosi co najmniej
-``[sesja] ponowny_skan_min_wspolnych`` (domyslnie 0.5). Gdy nowy albo poprzedni skan ma mniej niz 3 prace rozpoznane, albo prog
-= 0 - regula sprzed E3-A1p (pytanie przy kazdym skanie tej plytki w oknie).
+``[sesja] ponowny_skan_okno_min`` ORAZ ``[sesja] ponowny_skan_min_wspolnych`` (domyslnie 0.5) <= |N & S| / min(|N|, |S|),
+gdzie N i S to ZBIORY projektow prac rozpoznanych nowego i poprzedniego skanu (projekt top-1 = ``sha16`` pierwszego kandydata,
+bez prac szarych; runda 3 - recenzja PR #22 B1, D1: miara symetryczna, projekt liczony raz). Gdy ktorys zbior ma mniej niz
+3 projekty, albo prog = 0 - regula sprzed E3-A1p (pytanie przy kazdym skanie tej plytki w oknie).
 
 Kryteria paczki E3-A1p (raport ``raporty/E3-A1p_2026-11-18.md``) - kazde ma test ``test_kN_...``:
  1 wieczor 36 plytek, 3 numery, kazda z innym wsadem, skany co 5-15 min -> 0 pytan; stara regula (prog 0) na tych samych
    danych: 33 pytania (liczby wypisuje ``pytest -s``)
  2 10 prawdziwych ponownych skanow (te same prace w innych gniazdach albo przesuniete, 1-2 prace mniej / wiecej) -> 10 z 10
- 3 mniej niz 3 prace rozpoznane w nowym albo poprzednim skanie -> pytanie jak dawniej
+ 3 mniej niz 3 projekty rozpoznane w nowym albo poprzednim skanie -> pytanie jak dawniej
  4 ``ponowny_skan_min_wspolnych = 0`` -> stara regula
  5 ten sam plik skanu -> pytanie zawsze (takze przy innych pracach i progu 1); okno 60 min obowiazuje jak dawniej
 Do tego: kontroler (pytania i konflikty projektu w stanie aplikacji wynikaja z nowej reguly; wariant prawdziwej aplikacji
-w ``test_kontroler_api.py::test_e3a1p_*``), granica progu, "liczy sie ostatni skan plytki", zastapienie wprost bez zmian,
+w ``test_kontroler_api.py::test_e3a1p_*``), granica progu, slaby pierwszy skan (k z 19 prac rozpoznanych, k = 0..19) i skan
+czesciowy (8 z 19) - zawsze pytanie, projekt liczony raz, "liczy sie ostatni skan plytki", zastapienie wprost bez zmian,
 walidacja progu (ustawienia: ``test_ustawienia.py``).
 
 Dane sztuczne: wyniki ``kontroler_api.sztuczny_wynik`` (projekt N = skrot ``sha16`` napisu "projekt sztuczny N").
@@ -239,7 +240,7 @@ def test_k2_dziesiec_prawdziwych_ponownych_skanow_daje_10_pytan(wieczor):
         ponowny = wieczor.skan(numer, x["ponowny"], szare=x.get("szare_ponowny", ()), uklad=x.get("uklad_ponowny", "wieczorna"))
         oczekiwane[ponowny] = pierwszy
         z = wieczor.sesja.zgodnosc_prac(ponowny, pierwszy)
-        udzialy.append(f"{x['opis']}: {z['wspolne']}/{z['rozpoznane']} = {z['udzial']:.2f}")
+        udzialy.append(f"{x['opis']}: {z['wspolne']}/{min(z['projekty'], z['projekty_poprzedniego'])} = {z['udzial']:.2f}")
         wieczor.zegar.przesun(los.randint(1, 4))
     propozycje = wieczor.propozycje()
     trafione = sum(1 for k, v in oczekiwane.items() if propozycje.get(k) == v)
@@ -259,7 +260,7 @@ def test_k3_mniej_niz_3_prace_rozpoznane_pytanie_jak_dawniej(wieczor):
     w.zegar.przesun(10)
     b = w.skan(1, praca_po_pracy(200, range(1, 6)), szare={3, 4, 5})  # nowy skan: 2 prace rozpoznane (inne projekty)
     assert w.propozycje() == {b: a} and w.podstawa(b) == "za_malo_rozpoznanych"
-    assert w.sesja.zgodnosc_prac(b, a) == {"rozpoznane": 2, "rozpoznane_poprzedniego": 19, "wspolne": 0, "udzial": 0.0}
+    assert w.sesja.zgodnosc_prac(b, a) == {"projekty": 2, "projekty_poprzedniego": 19, "wspolne": 0, "udzial": 0.0}
     c = w.skan(2, {1: 301, 2: 302, 7: 307, 9: 309}, szare={7, 9})  # poprzedni skan: 2 prace rozpoznane
     w.zegar.przesun(10)
     d = w.skan(2, praca_po_pracy(400, SLOTY))
@@ -330,33 +331,105 @@ def test_k5_ten_sam_plik_skanu_pytanie_zawsze(tmp_path):
 
 
 # --- granica progu, ostatni skan plytki, zastapienie wprost ----------------------------------------------------------------
-def test_granica_progu_i_prace_szare_poprzedniego_skanu(tmp_path):
+def test_granica_progu_miara_symetryczna_na_zbiorach_projektow(tmp_path):
+    """Runda 3 (recenzja PR #22 B1): udzial = |N & S| / min(|N|, |S|) - prawdziwy ponowny skan po slabym pierwszym skanie
+    (prace szare w poprzednim) daje pytanie; granica 0.5 od strony mniejszego zbioru; prog 1."""
     w = Wieczor(tmp_path)  # prog domyslny 0.5
     try:
         a = w.skan(1, praca_po_pracy(100, range(1, 11)))
         w.zegar.przesun(10)
         b = w.skan(1, {**praca_po_pracy(100, range(1, 6)), **praca_po_pracy(200, range(6, 11))})  # 5 z 10 = 0.5: pytanie
-        assert w.sesja.zgodnosc_prac(b, a) == {"rozpoznane": 10, "rozpoznane_poprzedniego": 10, "wspolne": 5, "udzial": 0.5}
+        assert w.sesja.zgodnosc_prac(b, a) == {"projekty": 10, "projekty_poprzedniego": 10, "wspolne": 5, "udzial": 0.5}
         c = w.skan(2, praca_po_pracy(300, range(1, 10)))
         w.zegar.przesun(10)
         d = w.skan(2, {**praca_po_pracy(300, range(1, 5)), **praca_po_pracy(400, range(5, 10))})  # 4 z 9 = 0.44: nowy wsad
         e = w.skan(3, praca_po_pracy(500, range(1, 11)), szare={1, 2, 3, 4, 5, 6})  # 4 rozpoznane (projekty 506-509)
         w.zegar.przesun(5)
-        f = w.skan(3, praca_po_pracy(500, range(1, 11)))  # te same prace, ale 6 z nich w poprzednim skanie bylo szarych: 4 z 10
-        assert w.propozycje() == {b: a} and d not in w.propozycje() and f not in w.propozycje()
-        assert w.sesja.zgodnosc_prac(f, e) == {"rozpoznane": 10, "rozpoznane_poprzedniego": 4, "wspolne": 4, "udzial": 0.4}
-        assert c not in w.propozycje().values()
-        jeden = w.z_progiem(1)  # prog 1: tylko gdy kazda praca rozpoznana nowego skanu jest w poprzednim
-        assert w.propozycje(jeden) == {}
+        f = w.skan(3, praca_po_pracy(500, range(1, 11)))  # te same prace, w poprzednim skanie 6 szarych: 4 z min(10, 4) = 1.0
+        assert w.sesja.zgodnosc_prac(f, e) == {"projekty": 10, "projekty_poprzedniego": 4, "wspolne": 4, "udzial": 1.0}
         g = w.skan(4, praca_po_pracy(600, SLOTY))
         w.zegar.przesun(5)
         h = w.skan(4, praca_po_pracy(600, range(1, 18)))  # 2 prace mniej: 17 z 17
         w.zegar.przesun(5)
-        i = w.skan(4, {**praca_po_pracy(600, range(1, 18)), 18: 699})  # jedna praca wiecej: 17 z 18
-        assert w.propozycje(jeden) == {h: g}
-        assert w.propozycje() == {b: a, h: g, i: h}
+        i = w.skan(4, {**praca_po_pracy(600, range(1, 18)), 18: 699})  # jedna praca wiecej: 17 z min(18, 17) = 1.0
+        assert w.sesja.zgodnosc_prac(i, h) == {"projekty": 18, "projekty_poprzedniego": 17, "wspolne": 17, "udzial": 1.0}
+        j = w.skan(5, praca_po_pracy(700, SLOTY))
+        w.zegar.przesun(5)
+        k = w.skan(5, {**praca_po_pracy(700, range(1, 4)), **praca_po_pracy(750, range(4, 7))})  # nowy mniejszy: 3 z 6 = 0.5
+        m = w.skan(6, praca_po_pracy(800, SLOTY))
+        w.zegar.przesun(5)
+        n = w.skan(6, {**praca_po_pracy(800, range(1, 4)), **praca_po_pracy(850, range(4, 8))})  # 3 z 7 = 0.43: nowy wsad
+        assert w.propozycje() == {b: a, f: e, h: g, i: h, k: j}
+        assert d not in w.propozycje() and n not in w.propozycje() and c not in w.propozycje().values() and m not in w.propozycje().values()
+        assert w.propozycje(w.z_progiem(1)) == {f: e, h: g, i: h}  # prog 1: kazdy projekt mniejszego zbioru jest w drugim
     finally:
         w.baza.zamknij()
+
+
+def test_slaby_pierwszy_skan_k_z_19_rozpoznanych_zawsze_pytanie(tmp_path):
+    """Recenzja PR #22 B1: pierwszy skan poruszony - rozpoznanych k z 19 prac (reszta szara), ponowny skan 6 min pozniej z tymi
+    samymi 19 pracami rozpoznanymi -> pytanie dla kazdego k = 0..19 (przy mierze wzgledem nowego skanu brak dla k = 3..9)."""
+    w = Wieczor(tmp_path)
+    try:
+        pary = {}
+        for k in range(20):
+            prace = praca_po_pracy(1000 + 100 * k, SLOTY)
+            pierwszy = w.skan(k + 1, prace, szare=set(SLOTY[k:]))
+            w.zegar.przesun(6)
+            pary[k] = (pierwszy, w.skan(k + 1, prace))
+            w.zegar.przesun(1)
+        propozycje = w.propozycje()
+        z_pytaniem = [k for k, (pierwszy, ponowny) in pary.items() if propozycje.get(ponowny) == pierwszy]
+        print(f"\n[E3-A1p B1] slaby pierwszy skan, k = 0..19 rozpoznanych z 19: pytanie dla k = {z_pytaniem}")
+        assert z_pytaniem == list(range(20)) and len(propozycje) == 20
+        assert [w.podstawa(pary[k][1]) for k in range(20)] == ["za_malo_rozpoznanych"] * 3 + ["te_same_prace"] * 17
+        assert w.sesja.zgodnosc_prac(pary[9][1], pary[9][0]) == {"projekty": 19, "projekty_poprzedniego": 9, "wspolne": 9, "udzial": 1.0}
+    finally:
+        w.baza.zamknij()
+
+
+def test_skan_czesciowy_8_z_19_pytanie_i_bez_komunikatow_konfliktu(tmp_path):
+    """Recenzja PR #22 B1: pierwszy skan objal tylko 8 z 19 prac (reszta poza polem skanu), ponowny skan - wszystkie 19:
+    pytanie (8 z min(19, 8) = 1.0); w stanie aplikacji pytanie, "Tak" mozliwe, konflikty nie na pasku bledow."""
+    w = Wieczor(tmp_path)
+    try:
+        prace = praca_po_pracy(100, SLOTY)
+        pierwszy = w.skan(3, {g: prace[g] for g in range(1, 9)})
+        w.zegar.przesun(6)
+        ponowny = w.skan(3, prace)
+        assert w.propozycje() == {ponowny: pierwszy} and w.podstawa(ponowny) == "te_same_prace"
+        assert w.sesja.zgodnosc_prac(ponowny, pierwszy) == {"projekty": 19, "projekty_poprzedniego": 8, "wspolne": 8, "udzial": 1.0}
+    finally:
+        w.baza.zamknij()
+    zegar = Zegar()
+    k = K.AtrapaKontrolera(tmp_path / "atrapa", operatorzy=tuple(OSOBY), zegar=zegar)
+    try:
+        assert k.wybierz_operatora(OSOBY[0])
+        pierwszy = k.symuluj_skan("zwykla", numer=3, gniazda={g: "zielony" for g in range(1, 9)}, projekty={g: 100 + g for g in range(1, 9)})
+        zegar.przesun(6)
+        ponowny = k.symuluj_skan("zwykla", numer=3, gniazda={g: "zielony" for g in SLOTY}, projekty={g: 100 + g for g in SLOTY})
+        s = k.stan()
+        assert [(q.rodzaj, q.skan_id, q.poprzedni_id) for q in s.pytania] == [("ponowny_skan", ponowny, pierwszy)]
+        assert "potwierdz_ponowny_skan" in s.plytka(ponowny).dozwolone and len(s.konflikty) == 8
+        assert [x.rodzaj for x in s.komunikaty if x.rodzaj == "konflikt_projektu"] == []
+    finally:
+        k.zamknij()
+
+
+def test_projekt_liczony_raz_powtorzony_top1_i_fragmenty(wieczor):
+    """Recenzja PR #22 D1: zgodnosc i prog 3 licza projekty, nie prace - nowy wsad z 3 koronami o (blednym) top-1 = projekt
+    z poprzedniego skanu nie daje pytania; poprzedni skan z 2 koronami, z ktorych jedna lezy w 2 gniazdach (fragmenty) = 2 projekty
+    (< 3) -> pytanie jak dawniej."""
+    w = wieczor
+    a = w.skan(1, praca_po_pracy(101, range(1, 6)))
+    w.zegar.przesun(10)
+    b = w.skan(1, {1: 101, 2: 101, 3: 101, 4: 201, 5: 202})
+    assert b not in w.propozycje()
+    assert w.sesja.zgodnosc_prac(b, a) == {"projekty": 3, "projekty_poprzedniego": 5, "wspolne": 1, "udzial": 1 / 3}
+    c = w.skan(2, {1: 301, 2: 302, 3: 302})
+    w.zegar.przesun(10)
+    d = w.skan(2, praca_po_pracy(400, range(1, 8)))
+    assert w.propozycje() == {d: c} and w.podstawa(d) == "za_malo_rozpoznanych"
 
 
 def test_liczy_sie_ostatni_skan_plytki(wieczor):
