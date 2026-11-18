@@ -733,8 +733,9 @@ def test_k3_excel_pytaj_propozycje_rowne_kompletnym_i_tylko_kolor_wlasciwych_kom
         e.klik("praca_rano_bez_projektu")
         przed = arkusz.zrzut()
         petla = Petla()
-        e.klik("przycisk_zamknij_piec")
-        assert not e.jest("excel_panel") and k.stan().excel.w_toku == 1  # P1: Excel odroczony - najpierw ekran (i ramka)
+        with e.bez_zegara():  # zegar okna zatrzymany: widac stan zaraz po poleceniu
+            e.klik("przycisk_zamknij_piec")
+            assert not e.jest("excel_panel") and k.stan().excel.w_toku == 1  # P1: Excel odroczony - najpierw ekran (i ramka)
         e.czekaj(lambda: e.jest("excel_panel") and k.stan().excel.w_toku == 0, 10.0, "okno Excela po kolejnych obiegach petli")
         wynik = SR.SesjaRano(k.sesja).wynik_pieca(k.stan().rano.sesja_pieca_id)
         assert wynik["kompletne"] and e.jest("excel_tabela") and not e.okno.ekran_rano.excel.wybrana() and not e.aktywny("excel_zatwierdz")
