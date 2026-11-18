@@ -452,9 +452,12 @@ def _skan_r59(arg) -> dict:
            "prace_cale": mi["razem"]["prac_calych"], "prace_cale_z_czerwonym": mi["razem"]["prace_cale_z_czerwonym"],
            "prace_cale_z_alarmem": mi["razem"]["prace_cale_z_alarmem"], "ubytkow": mi["razem"]["ubytkow"], "wykryte_dowolny": mi["razem"]["wykryte"]["dowolny"],
            "statusy_gniazd": wynik["statusy_gniazd"], "statusy_match": mt["statusy"], "czas_s": wynik["czas_s"], "wpisow": len(wpisy),
+           "ratunek": wynik.get("ratunek"),
            "scenariusze": {s: {"top1_bledny": v["top1_bledny"], "prace_cale_z_czerwonym": v["prace_cale_z_czerwonym"]} for s, v in mi["scenariusze"].items()},
            "gniazda": [{"gniazdo": g["gniazdo"], "status": g["status"], "status_gniazda": g["status_gniazda"],
                         "projekt": (g["kandydaci"][0]["id"] if g["kandydaci"] else None),
+                        "pokrycie": (g["kandydaci"][0]["pokrycie"] if g["kandydaci"] else None), "pewnosc": g["pewnosc"],
+                        "metoda": (g["kandydaci"][0]["metoda"] if g["kandydaci"] else None), "ratunek": any("ratunek: pelne" in u for u in g["uwagi"]),
                         "projekt_prawda": next((x.projekt for x in prawda.prace if x.gniazdo == g["gniazdo"]), None),
                         "scenariusz": next((PO.scenariusz(x) for x in prawda.prace if x.gniazdo == g["gniazdo"]), None)} for g in wynik["gniazda"]]}
     for g in rek["gniazda"]:

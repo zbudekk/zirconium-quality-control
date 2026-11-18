@@ -34,6 +34,7 @@ wywolanie) dziala bez zmian - bez rankingu wstepnego.
 from __future__ import annotations
 
 import collections.abc
+import copy
 import dataclasses
 import math
 import time
@@ -91,6 +92,15 @@ WARIANT_REMIS_POKRYCIA = 0.02  # warianty tego samego STL o pokryciach blizej ni
 WARIANT_ROZROZNIENIE_PROC = 0.2  # punkty proc.: warianty tego samego STL, ktorych odleglosc od estymaty skali rozni sie mniej niz tyle, sa nierozroznialne.
 # >= zmierzone MAKSIMUM bledu estymaty "wiarygodnej" (czesc A, pomiary koncowe 17.11.2026 pkt 5.2: max 0,174 %, p95 <= 0,031 %) - nie
 # SKALA_DOKLADNOSC_PROC (cel / p95, granica okna): wybrany wpis jest wtedy zawsze wlasciwy albo wynik jest niejednoznaczny (recenzja PR #25, B1)
+# rozszerzony ratunek (runda 3): prace lezace bokiem, czesciowo zasloniete, z drgnieciem - nierozpoznane w zwyklym przebiegu
+RATUNEK_FPFH_PROJEKTU = 800  # deskryptory FPFH projektu w czesci lekkiej (wybor staly; ranking niezalezny od obrotu pracy)
+RATUNEK_FPFH_FRAGMENTU = 300  # deskryptory FPFH fragmentu do oceny (wybor staly)
+RATUNEK_PELNYCH = 4  # pelnych dopasowan (sam RANSAC + ICP, bez przegladu obrotow wokol z) w jednej turze ratunku
+RATUNEK_TUR = 12  # najwyzej tyle tur na fragment (48 kandydatow wg deskryptorow FPFH; pomiar: wlasciwy w pierwszej 48 w 114 / 114)
+RATUNEK_PLYTKA_MAX = 120  # najwyzej tyle pelnych dopasowan ratunku na cala plytke (ok. 0,1-0,2 s kazde)
+RATUNEK_BUDZET_S = 36.0  # s: ratunek konczy sie, gdy od poczatku analizy plytki minie tyle (minus zapas na inspekcje)
+RATUNEK_ZAPAS_INSPEKCJI_S = 0.4  # s na fragment: zapas na inspekcje po ratunku
+RATUNEK_FPFH_UWAGA = "praca nie przeszla filtru wymiarow (lezy bokiem albo jest czesciowo widoczna) - pelne dopasowanie tylko czesci puli (ranking wg deskryptorow FPFH) - wynik niepewny"
 UWAGA_RATUNEK = "żaden projekt nie przeszedł filtru wymiarów — dopasowano wszystkie"
 
 
@@ -295,9 +305,12 @@ class Projekt:
         pc = self.chmura.voxel_down_sample(WSTEPNY_VOXEL_PROJEKTU)
         N = np.asarray(pc.normals)
         N = N / np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
+        D = np.asarray(self.fpfh.data, dtype=np.float32).T  # deskryptory FPFH (voxel VOXEL_FPFH) - niezalezne od obrotu pracy
+        if len(D) > RATUNEK_FPFH_PROJEKTU:
+            D = D[np.sort(np.random.default_rng(0).choice(len(D), RATUNEK_FPFH_PROJEKTU, replace=False))]
         return ProjektLekki(self.id, float(self.wspolczynnik), [float(v) for v in self.obrys_xy], float(self.wysokosc), float(self.hull),
                             np.asarray(profil, dtype=np.float64).reshape(-1, 3), np.asarray(pc.points, dtype=np.float64), N,
-                            list(self.cechy.zeby), self.cechy.typ)
+                            list(self.cechy.zeby), self.cechy.typ, np.ascontiguousarray(D))
 
     def odleglosci(self, P: np.ndarray) -> np.ndarray:
         return self.scena.compute_distance(o3d.core.Tensor(np.ascontiguousarray(P, dtype=np.float32))).numpy()
@@ -332,12 +345,14 @@ class ProjektLekki:
     WSTEPNY_VOXEL_PROJEKTU z normalnymi do oceny wstepnej - w ukladzie puli (projekt x wspolczynnik, brzeg na z = 0).
     Wystarcza do ``filtr`` i ``ocena_wstepna``; pelny ``Projekt`` buduje ``pamiec_puli`` tylko dla kandydatow."""
 
-    __slots__ = ("id", "wspolczynnik", "obrys_xy", "wysokosc", "hull", "profil", "punkty", "normalne", "zeby", "typ", "klucz_pamieci", "zrodlo", "_drzewo")
+    __slots__ = ("id", "wspolczynnik", "obrys_xy", "wysokosc", "hull", "profil", "punkty", "normalne", "zeby", "typ", "klucz_pamieci", "zrodlo", "_drzewo",
+                 "deskryptory")
 
     def __init__(self, id: str, wspolczynnik: float, obrys_xy: list, wysokosc: float, hull: float, profil: np.ndarray, punkty: np.ndarray,
-                 normalne: np.ndarray, zeby: list | None = None, typ: str = ""):
+                 normalne: np.ndarray, zeby: list | None = None, typ: str = "", deskryptory: np.ndarray | None = None):
         self.id, self.wspolczynnik, self.obrys_xy, self.wysokosc, self.hull = id, wspolczynnik, obrys_xy, wysokosc, hull
         self.profil, self.punkty, self.normalne = profil, punkty, normalne
+        self.deskryptory = deskryptory  # (n, 33) float32: probka deskryptorow FPFH projektu (ratunek - ranking niezalezny od obrotu)
         self.zeby, self.typ = list(zeby or []), typ
         self.klucz_pamieci = ""  # nazwa wpisu w pamieci podrecznej (pamiec_puli)
         self.zrodlo: tuple | None = None  # (plik, orientacja) do zbudowania pelnego projektu - tylko w pamieci procesu (sciezka = dane osobowe)
@@ -521,6 +536,7 @@ class FragmentDoDopasowania:
     fpfh: o3d.pipelines.registration.Feature
     chmura_zgrubna: o3d.geometry.PointCloud
     wstepne: np.ndarray | None = None  # punkty do oceny wstepnej (pula per praca), wzgledem srodka c; liczone przy pierwszym uzyciu
+    deskryptory: np.ndarray | None = None  # probka deskryptorow FPFH (ratunek); liczona przy pierwszym uzyciu
 
     @classmethod
     def z_punktow(cls, P: np.ndarray, N: np.ndarray) -> FragmentDoDopasowania:
@@ -634,7 +650,9 @@ def zgrubne_obroty(fr: FragmentDoDopasowania, pr: Projekt, odl_max: float, krok_
     return najl, najl_pok
 
 
-def dopasuj_pare(fr: FragmentDoDopasowania, pr: Projekt, ust: dict, seed: int = 0) -> Kandydat:
+def dopasuj_pare(fr: FragmentDoDopasowania, pr: Projekt, ust: dict, seed: int = 0, obroty: bool = True) -> Kandydat:
+    """Pelne dopasowanie pary. ``obroty`` = False (ratunek puli per praca, prace lezace bokiem): bez przegladu obrotow wokol z
+    po nieudanym RANSAC (praca bokiem i tak nie lezy brzegiem do gory); RANSAC bez wyniku = kandydat bez transformacji."""
     m = ust["match"]
     odl_max = m["odleglosc_max_mm"]
     k = Kandydat(id=pr.id, zeby=pr.cechy.zeby, typ=pr.cechy.typ, wspolczynnik=pr.wspolczynnik)
@@ -648,7 +666,10 @@ def dopasuj_pare(fr: FragmentDoDopasowania, pr: Projekt, ust: dict, seed: int = 
         T = _icp(fr.chmura, pr.chmura, T0)
         pok, _, _ = ocena(fr, pr, T, odl_max)
         najl = (pok, T, "ransac")
-    if najl is None or najl[0] < m["prog_akceptacji_pokrycie"]:
+    if not obroty and najl is None:
+        k.metoda = "ransac_brak"
+        return k
+    if obroty and (najl is None or najl[0] < m["prog_akceptacji_pokrycie"]):
         T0, _ = zgrubne_obroty(fr, pr, odl_max)
         T = _icp(fr.chmura, pr.chmura, T0)
         pok, _, _ = ocena(fr, pr, T, odl_max)
@@ -741,6 +762,36 @@ def ocena_wstepna(fr: FragmentDoDopasowania, lk: ProjektLekki) -> float:
     naj = np.argsort(-_wynik_wstepny(Xp, R, t, lk), kind="stable")[:WSTEPNY_OBROTOW_ICP]
     R, t = _icp_wstepne(X, R[naj], t[naj], lk, WSTEPNY_ICP_ODL)
     return float(_wynik_wstepny(X, R, t, lk).max())
+
+
+def _deskryptory_fragmentu(fr: FragmentDoDopasowania) -> np.ndarray:
+    """Najwyzej RATUNEK_FPFH_FRAGMENTU deskryptorow FPFH fragmentu (wybor staly), float32."""
+    if fr.deskryptory is None:
+        D = np.asarray(fr.fpfh.data, dtype=np.float32).T
+        if len(D) > RATUNEK_FPFH_FRAGMENTU:
+            D = D[np.sort(np.random.default_rng(0).choice(len(D), RATUNEK_FPFH_FRAGMENTU, replace=False))]
+        fr.deskryptory = np.ascontiguousarray(D)
+    return fr.deskryptory
+
+
+def ocena_fpfh(fr: FragmentDoDopasowania, lekkie: list) -> np.ndarray:
+    """Ocena NIEZALEZNA OD OBROTU pracy (ratunek): dla kazdego projektu mediana odleglosci deskryptora FPFH fragmentu do
+    najblizszego deskryptora projektu (mniej = lepiej; inf = brak deskryptorow). Fragment czesciowy (widok z gory pracy
+    lezacej bokiem, plamy) ma deskryptory podzbioru powierzchni projektu, wiec ocena jest odporna tez na brakujaca czesc.
+    Pomiar R59 (pula 366, prace bokiem / czesciowe / z drgnieciem, 114 fragmentow): wlasciwy projekt w pierwszej 4 w 88,
+    w pierwszej 12 w 99, w pierwszej 24 w 110, w pierwszej 48 w 114; ok. 0,08 s na fragment przy 366 projektach."""
+    A = _deskryptory_fragmentu(fr)
+    out = np.full(len(lekkie), np.inf)
+    if len(A) == 0:
+        return out
+    a2 = np.einsum("ij,ij->i", A, A)
+    for i, lk in enumerate(lekkie):
+        B = getattr(lk, "deskryptory", None)
+        if B is None or len(B) == 0:
+            continue
+        d2 = a2[:, None] + np.einsum("ij,ij->i", B, B)[None, :] - 2.0 * (A @ B.T)
+        out[i] = float(np.median(np.sqrt(np.maximum(d2.min(axis=1), 0.0))))
+    return out
 
 
 # ----------------------------------------------------------------------------
@@ -943,13 +994,13 @@ def _kandydat_puli(pula: Pula, kl: str, k: Kandydat | None = None, **pola) -> Ka
     return k
 
 
-def _pelne_dopasowanie(fr: FragmentDoDopasowania, pula: Pula, kl: str, ust: dict, seed: int, uwagi: list[str]) -> Kandydat:
+def _pelne_dopasowanie(fr: FragmentDoDopasowania, pula: Pula, kl: str, ust: dict, seed: int, uwagi: list[str], obroty: bool = True) -> Kandydat:
     try:
         pr = pula.projekty[kl]
     except (ValueError, OSError) as e:  # plik zmieniony albo usuniety po zbudowaniu puli (i brak w pamieci na dysku)
         uwagi.append(f"projekt {pula.lekkie[kl].id} pominiety: nie da sie go wczytac ({type(e).__name__})")
         return _kandydat_puli(pula, kl, metoda="blad")
-    return _kandydat_puli(pula, kl, k=dopasuj_pare(fr, pr, ust, seed))
+    return _kandydat_puli(pula, kl, k=dopasuj_pare(fr, pr, ust, seed, obroty=obroty))
 
 
 def _koryguj_bezpiecznie(P: np.ndarray, fr: FragmentDoDopasowania, k: Kandydat, pula: Pula, m: dict, bez_korekty: str, uwagi: list[str]) -> None:
@@ -964,12 +1015,13 @@ def _koryguj_bezpiecznie(P: np.ndarray, fr: FragmentDoDopasowania, k: Kandydat, 
     koryguj_skale(P, fr, k, pr, m, bez_korekty)
 
 
-def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed: int, uwagi: list[str]) -> tuple[list[Kandydat], int]:
+def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed: int, uwagi: list[str]) -> tuple[list[Kandydat], list[str]]:
     """Filtr wymiarow na czesci lekkiej kazdej geometrii; gdy po filtrze zostaje wiecej niz WSTEPNY_PELNYCH - ranking
-    wstepny (``ocena_wstepna``) i pelne dopasowanie w turach po WSTEPNY_PELNYCH (najwyzej WSTEPNY_TUR tur): najpierw
-    kandydaci z ocena >= najlepsza - WSTEPNY_MARGINES (margines), a gdy margines wyczerpany, a najlepsze pokrycie jest
-    < prog_akceptacji_pokrycie - nastepni z rankingu. Pozostali: ``metoda = wstepny``, pokrycie 0 (jak odrzuceni filtrem). Zwraca
-    (kandydaci, liczba kandydatow z marginesu BEZ pelnego dopasowania) - dopasuj nie daje wtedy statusu zielonego (P1).
+    wstepny (``ocena_wstepna``) i pelne dopasowanie w turach po WSTEPNY_PELNYCH (najwyzej WSTEPNY_TUR tur) kandydatow z ocena
+    >= najlepsza - WSTEPNY_MARGINES (margines); dalsi kandydaci (praca nierozpoznana albo niepewna) - w ratunku plytki
+    (``ratuj_plytke``: kolejnosc wg deskryptorow FPFH, budzet czasu plytki). Ratunek w duzej puli (nikt nie przeszedl filtru):
+    jedna tura wg ``ocena_fpfh`` (praca zwykle lezy bokiem). Pozostali: ``metoda = wstepny``, pokrycie 0 (jak odrzuceni filtrem). Zwraca
+    (kandydaci, klucze kandydatow z marginesu BEZ pelnego dopasowania) - dopasuj nie daje wtedy statusu zielonego (P1).
     Ratunek (nikt nie przeszedl filtru) idzie ta sama droga po calej puli - chyba ze pula ma najwyzej
     WSTEPNY_RATUNEK_WSZYSTKIE geometrii (wtedy pelne dopasowanie wszystkich, jak w puli z folderu)."""
     m = ust["match"]
@@ -987,25 +1039,33 @@ def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed:
     wstepne: dict[str, float] = {}
     pozostali: list[str] = []
     prog_marg = -math.inf
-    if pula.ranking_wstepny and len(zbior) > WSTEPNY_PELNYCH and not (ust_pary is not ust and len(zbior) <= WSTEPNY_RATUNEK_WSZYSTKIE):
+    duza = pula.ranking_wstepny and len(zbior) > WSTEPNY_PELNYCH and not (ust_pary is not ust and len(zbior) <= WSTEPNY_RATUNEK_WSZYSTKIE)
+    if duza and ust_pary is not ust:
+        # ratunek w duzej puli (nikt nie przeszedl filtru - praca zwykle lezy bokiem albo jest czesciowo widoczna): jedna tura
+        # wg deskryptorow FPFH (niezaleznych od obrotu); kolejne - w ratunku plytki (ratuj_plytke), w budzecie czasu
+        oceny = ocena_fpfh(fr, [lekkie[kl] for kl in zbior])
+        pozostali = [zbior[i] for i in np.argsort(oceny, kind="stable")]
+        for kl in pozostali[:WSTEPNY_PELNYCH]:
+            kandydaci[kl] = _pelne_dopasowanie(fr, pula, kl, ust_pary, seed, uwagi, obroty=False)
+        pozostali = pozostali[WSTEPNY_PELNYCH:]
+        uwagi.append(RATUNEK_FPFH_UWAGA)
+    elif duza:
         wstepne = {kl: ocena_wstepna(fr, lekkie[kl]) for kl in zbior}
         pozostali = sorted(zbior, key=lambda kl: (-wstepne[kl], kl))
         prog_marg = wstepne[pozostali[0]] - WSTEPNY_MARGINES
-        prog_akc = m["prog_akceptacji_pokrycie"]
-        najl = 0.0
-        for _ in range(WSTEPNY_TUR):
-            w_marg = [kl for kl in pozostali if wstepne[kl] >= prog_marg]
-            tura = (w_marg if w_marg else (pozostali if najl < prog_akc else []))[:WSTEPNY_PELNYCH]
+        w_marg = sum(1 for kl in pozostali if wstepne[kl] >= prog_marg)
+        tur = WSTEPNY_TUR if w_marg <= WSTEPNY_TUR * WSTEPNY_PELNYCH else 1  # ranking plaski (praca dziwna): 1 tura, reszta w ratunku plytki
+        for _ in range(tur):  # tury z marginesu oceny wstepnej (P1); dalsi kandydaci - w ratunku plytki (wg FPFH, w budzecie)
+            tura = [kl for kl in pozostali if wstepne[kl] >= prog_marg][:WSTEPNY_PELNYCH]
             if not tura:
                 break
             for kl in tura:
                 kandydaci[kl] = _pelne_dopasowanie(fr, pula, kl, ust_pary, seed, uwagi)
                 pozostali.remove(kl)
-            najl = max((kandydaci[kl].pokrycie for kl in zbior if kl in kandydaci), default=0.0)
     else:
         for kl in zbior:
             kandydaci[kl] = _pelne_dopasowanie(fr, pula, kl, ust_pary, seed, uwagi)
-    niepewne = sum(1 for kl in pozostali if wstepne[kl] >= prog_marg)
+    niepewne = [kl for kl in pozostali if kl in wstepne and wstepne[kl] >= prog_marg]
     for kl in pozostali:
         kandydaci[kl] = _kandydat_puli(pula, kl, metoda="wstepny")
     for kl, w in wstepne.items():
@@ -1076,7 +1136,10 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
 
     Po rankingu korekta skali ze skanu dla najlepszego kandydata (``Kandydat.skala``, ``WynikDopasowania.skala``);
     ``bez_korekty`` — niepusty powód, dla którego poprawki skali nie wolno stosować (płytka poranna: prace spieczone,
-    współczynnik 1,0): poprawka jest wtedy tylko mierzona."""
+    współczynnik 1,0): poprawka jest wtedy tylko mierzona.
+
+    Pula per praca: wynik ma atrybut ``stan_ratunku`` (kandydaci przed korekta skali) - ``ratuj`` / ``ratuj_plytke`` moga
+    potem dopasowac w pelni kolejnych kandydatow wg deskryptorow FPFH (praca nierozpoznana albo niepewna)."""
     t0 = time.time()
     m = ust["match"]
     uwagi: list[str] = []
@@ -1084,9 +1147,12 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
         return WynikDopasowania(gniazdo, [], 0.0, "szary", 0.0, int(len(P)), ["za mało punktów" if len(P) < 50 else "pusta pula"])
     fr = FragmentDoDopasowania.z_punktow(P, N)
     per_praca = getattr(pula, "per_praca", False)
-    niepewne = 0
+    niepewne: list[str] = []
+    stan = None
     if per_praca:
         kandydaci, niepewne = _kandydaci_per_praca(fr, pula, ust, seed, uwagi)
+        stan = {"fr": fr, "surowi": [copy.copy(k) for k in kandydaci], "uwagi": list(uwagi), "niepewne": list(niepewne), "seed": seed,
+                "bez_korekty": bez_korekty}
     else:
         kandydaci = [dopasuj_pare(fr, pr, ust, seed) for pr in pula.projekty.values()]
         if not any(k.filtr_ok for k in kandydaci):
@@ -1095,6 +1161,25 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
                 k.filtr_ok = True
                 kk = dopasuj_pare(fr, pr, {**ust, "match": {**m, "filtr_wymiar_mm": 1e9, "filtr_objetosc_udzial": 1e9}}, seed)
                 k.pokrycie, k.rms_mm, k.pokrycie_odwrotne, k.transformacja, k.metoda = kk.pokrycie, kk.rms_mm, kk.pokrycie_odwrotne, kk.transformacja, kk.metoda
+    wynik = _zakoncz(P, fr, kandydaci, pula, ust, bez_korekty, uwagi, _ograniczenie(niepewne, uwagi), gniazdo, t0)
+    if stan is not None:
+        wynik.stan_ratunku = stan
+    return wynik
+
+
+def _ograniczenie(niepewne: list, uwagi: list[str]) -> str:
+    """Powod, dla ktorego wynik nie moze byc zielony (pewnosc wzgledem kandydatow bez pelnego dopasowania nieznana) albo ""."""
+    if niepewne:
+        return f"ranking wstepny: {len(niepewne)} kandydatow o ocenie bliskiej najlepszej bez pelnego dopasowania - wynik niepewny"
+    return "praca bez pelnego dopasowania calej puli" if RATUNEK_FPFH_UWAGA in uwagi else ""
+
+
+def _zakoncz(P: np.ndarray, fr: FragmentDoDopasowania, kandydaci: list[Kandydat], pula: Pula, ust: dict, bez_korekty: str, uwagi: list[str],
+             ograniczenie: str, gniazdo: int | None, t0: float) -> WynikDopasowania:
+    """Sortowanie, korekta skali, wybor wpisu (pula per praca), pewnosc i status - wspolne dla dopasuj i ratuj. ``ograniczenie``
+    (niepusty powod): status najwyzej zolty - pewnosc wzgledem kandydatow bez pelnego dopasowania jest nieznana (P1)."""
+    m = ust["match"]
+    per_praca = getattr(pula, "per_praca", False)
     kandydaci.sort(key=lambda k: (-k.pokrycie, k.rms_mm))
     # korekta skali ze skanu: najlepszy kandydat, a drugi tylko gdy ranking jest niepewny (pokrycia blisko siebie, jak przy
     # błędzie współczynnika); obcy projekt dostaje skalę poza oknem i zostaje bez korekty (T7: 1,36–1,46 zamiast 1,22)
@@ -1121,10 +1206,86 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
         status = "zolty"
     else:
         status = "szary"
-    if niepewne and status == "zielony":  # P1: kandydaci z marginesu oceny wstepnej bez pelnego dopasowania - pewnosc nieznana
+    if ograniczenie and status == "zielony":  # P1: kandydaci bez pelnego dopasowania (margines, ratunek) - pewnosc nieznana
         status = "zolty"
-        uwagi.append(f"ranking wstepny: {niepewne} kandydatow o ocenie bliskiej najlepszej bez pelnego dopasowania - wynik niepewny")
+        if ograniczenie not in uwagi:
+            uwagi.append(ograniczenie)
     return WynikDopasowania(gniazdo, kandydaci, pewnosc, status, round(time.time() - t0, 2), int(len(P)), uwagi)
+
+
+def ratuj(wynik: WynikDopasowania, P: np.ndarray, pula: Pula, ust: dict, termin: float, limit: int = RATUNEK_PLYTKA_MAX) -> tuple[WynikDopasowania, int]:
+    """Rozszerzony ratunek fragmentu z puli per praca (runda 3): praca nierozpoznana albo niepewna (status inny niz zielony)
+    - kandydaci bez pelnego dopasowania (ranking wstepny, filtr wymiarow - oba zakladaja prace brzegiem do gory) w kolejnosci
+    ``ocena_fpfh`` (niezalezna od obrotu pracy), pelne dopasowanie (sam RANSAC + ICP, bez filtra i bez przegladu obrotow) po
+    RATUNEK_PELNYCH, najwyzej RATUNEK_TUR tur, ``limit`` dopasowan i do chwili ``termin`` (time.time()). Koniec: pokrycie >=
+    prog_akceptacji_pokrycie; praca juz rozpoznana (>= prog_ostrzezenia_pokrycie) - jeszcze jedna tura (sprawdzenie
+    konkurentow) i koniec. Zwraca (nowy wynik albo ten sam, liczba pelnych dopasowan)."""
+    st = getattr(wynik, "stan_ratunku", None)
+    m = ust["match"]
+    if st is None or wynik.status == "zielony" or limit <= 0 or time.time() >= termin:
+        return wynik, 0
+    t0 = time.time()
+    fr = st["fr"]
+    kand = {k.klucz: copy.copy(k) for k in st["surowi"]}
+    pozostali = [kl for kl, k in kand.items() if k.transformacja is None and k.metoda in ("wstepny", "filtr")]
+    if not pozostali:
+        return wynik, 0
+    oceny = ocena_fpfh(fr, [pula.lekkie[kl] for kl in pozostali])
+    kolejka = [pozostali[i] for i in np.argsort(oceny, kind="stable") if np.isfinite(oceny[i])]
+    ust_bez = {**ust, "match": {**m, "filtr_wymiar_mm": 1e9, "filtr_objetosc_udzial": 1e9}}
+    uwagi = list(st["uwagi"])
+    zrobione = 0
+    najl = max((k.pokrycie for k in kand.values()), default=0.0)
+    zostalo_tur = 1 if najl >= m["prog_ostrzezenia_pokrycie"] else RATUNEK_TUR
+    while kolejka and zostalo_tur > 0 and zrobione < limit and time.time() < termin:
+        zostalo_tur -= 1
+        tura, kolejka = kolejka[:RATUNEK_PELNYCH], kolejka[RATUNEK_PELNYCH:]
+        for kl in tura:
+            if zrobione >= limit or time.time() >= termin:
+                break
+            k = _pelne_dopasowanie(fr, pula, kl, ust_bez, st["seed"], uwagi, obroty=False)
+            k.pokrycie_wstepne = kand[kl].pokrycie_wstepne
+            kand[kl] = k
+            zrobione += 1
+        nowe = max(k.pokrycie for k in kand.values())
+        if nowe >= m["prog_akceptacji_pokrycie"]:
+            break
+        if nowe >= m["prog_ostrzezenia_pokrycie"] and najl < m["prog_ostrzezenia_pokrycie"]:
+            zostalo_tur = min(zostalo_tur, 1)  # praca rozpoznana w ratunku: jeszcze jedna tura (konkurenci) i koniec
+        najl = nowe
+    if zrobione == 0:
+        return wynik, 0
+    niepewne = [kl for kl in st["niepewne"] if kand[kl].transformacja is None and kand[kl].metoda == "wstepny"]
+    uwagi.append(f"ratunek: pelne dopasowanie {zrobione} kandydatow wg deskryptorow FPFH (praca nierozpoznana albo niepewna)")
+    bez_pelnego = sum(1 for k in kand.values() if k.transformacja is None and k.metoda in ("wstepny", "filtr"))
+    ogr = _ograniczenie(niepewne, uwagi) or (f"ratunek: {bez_pelnego} kandydatow bez pelnego dopasowania - wynik niepewny" if bez_pelnego else "")
+    nowy = _zakoncz(P, fr, list(kand.values()), pula, ust, st["bez_korekty"], uwagi, ogr, wynik.gniazdo, t0)
+    nowy.czas_s = round(wynik.czas_s + nowy.czas_s, 2)
+    return nowy, zrobione
+
+
+def ratuj_plytke(punkty: list, wyniki: list, pula: Pula, ust: dict, start: float, budzet_s: float = RATUNEK_BUDZET_S,
+                 limit: int = RATUNEK_PLYTKA_MAX) -> dict:
+    """Ratunek fragmentow plytki PO zwyklym dopasowaniu wszystkich (najpierw zwykle fragmenty): fragmenty ze statusem innym
+    niz zielony, najpierw nierozpoznane (pokrycie < prog_ostrzezenia_pokrycie), potem niepewne; ``wyniki`` (lista
+    WynikDopasowania, ``punkty`` - punkty tych fragmentow) podmieniane w miejscu. Budzet: do ``start`` + ``budzet_s`` minus
+    RATUNEK_ZAPAS_INSPEKCJI_S na fragment i najwyzej ``limit`` pelnych dopasowan na plytke. Zwraca liczby do wyniku."""
+    m = ust["match"]
+    termin = start + budzet_s - RATUNEK_ZAPAS_INSPEKCJI_S * len(wyniki)
+    trudne = [i for i, r in enumerate(wyniki) if getattr(r, "stan_ratunku", None) is not None and r.status != "zielony"]
+    trudne.sort(key=lambda i: (wyniki[i].najlepszy.pokrycie if wyniki[i].najlepszy else 0.0) >= m["prog_ostrzezenia_pokrycie"])
+    zrobione = przetworzone = zmienione = 0
+    przed_ratunkiem = round(time.time() - start, 2)
+    for i in trudne:
+        if time.time() >= termin or zrobione >= limit:
+            break
+        przed = wyniki[i].najlepszy.klucz if wyniki[i].najlepszy else None
+        wyniki[i], n = ratuj(wyniki[i], punkty[i], pula, ust, termin, limit - zrobione)
+        zrobione += n
+        przetworzone += 1
+        zmienione += n > 0 and (wyniki[i].najlepszy.klucz if wyniki[i].najlepszy else None) != przed
+    return {"fragmentow_trudnych": len(trudne), "przetworzonych": przetworzone, "pelnych_dopasowan": zrobione, "zmieniony_top1": zmienione,
+            "budzet_wyczerpany": przetworzone < len(trudne), "czas_przed_ratunkiem_s": przed_ratunkiem, "czas_od_startu_s": round(time.time() - start, 2)}
 
 
 def blad_pozy(transformacja: np.ndarray, prawda: np.ndarray, siatka: trimesh.Trimesh) -> dict:

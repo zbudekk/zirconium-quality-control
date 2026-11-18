@@ -511,6 +511,7 @@ def test_porownaj_z_pula_wpisow_i_cli(pula_obu, plytka, ust, tmp_path):
     skan.export(plik_skanu)
     wynik = PO.porownaj(plik_skanu, [], PO.AUTO, ust, None, None, "auto", False, pula)  # auto, bez wspolczynnika: pula wpisow zostaje
     assert wynik["wspolczynnik"] is None and wynik["pula_wpisy"]["wpisow"] == len(wp) and wynik["projekty"] == len(pula)
+    assert {"fragmentow_trudnych", "pelnych_dopasowan", "budzet_wyczerpany"} <= set(wynik["ratunek"])  # runda 3: liczby ratunku plytki
     mapa = {x.gniazdo: x for x in prawda.prace}
     for g in wynik["gniazda"]:
         k = g["kandydaci"][0]
@@ -640,3 +641,78 @@ def test_d11_dwa_procesy_zapisuja_ten_sam_wpis(stl, tmp_path):
     pula = match.Pula.z_wpisow(wp, {1: p}, pamiec=pc)
     assert pc.statystyka["lekkie_z_dysku"] == 1 and pc.statystyka["bledy_odczytu"] == 0 and len(pc.pliki()) == 1
     assert pula.projekty[next(iter(pula.lekkie))].id == pr.id and pc.statystyka["ciezkie_z_dysku"] == 1
+
+
+# --- runda 3: ranking niezalezny od obrotu (FPFH) i ratunek plytki w budzecie czasu ------------------------------------
+def _obroc(P: np.ndarray, N: np.ndarray, kat_deg: float, os=(1.0, 0.0, 0.0)):
+    import trimesh as tm
+    R = tm.transformations.rotation_matrix(np.radians(kat_deg), os)[:3, :3]
+    c = P.mean(axis=0)
+    return (P - c) @ R.T + c, N @ R.T
+
+
+def test_r3_ocena_fpfh_niezalezna_od_obrotu_pracy(pula_obu, plytka):
+    """Ocena wg deskryptorow FPFH (ratunek) nie zalezy od obrotu pracy: fragment obrocony o 90 st. wokol osi poziomej (praca
+    bokiem) daje prawie te same oceny wszystkich 18 geometrii (korelacja kolejnosci >= 0,8, ocena wlasciwej zmienia sie
+    najwyzej o 25 %). Rozdzielczosc na prawdziwych projektach (R59) - pomiar w raporcie E3-A5; gladkie atrapy rozni slabiej."""
+    from scipy.stats import spearmanr
+
+    pula = pula_obu[0]
+    _, wyr, prawda = plytka
+    mapa = {x.gniazdo: x for x in prawda.prace}
+    kl = list(pula.lekkie)
+    assert all(pula.lekkie[k].deskryptory is not None and pula.lekkie[k].deskryptory.shape[1] == 33 for k in kl)
+    for f in wyr.fragmenty:
+        sha = mapa[f.gniazdo].projekt
+        oceny = []
+        for P, N in ((f.punkty, f.normalne), _obroc(f.punkty, f.normalne, 90.0)):
+            fr = match.FragmentDoDopasowania.z_punktow(P, N)
+            oceny.append(match.ocena_fpfh(fr, [pula.lekkie[k] for k in kl]))
+        assert np.isfinite(oceny[0]).all() and np.isfinite(oceny[1]).all()
+        assert spearmanr(oceny[0], oceny[1])[0] >= 0.8, (f.gniazdo, oceny)
+        i = next(i for i, k in enumerate(kl) if pula.lekkie[k].id == sha)
+        assert abs(oceny[0][i] - oceny[1][i]) <= 0.25 * oceny[0][i], (oceny[0][i], oceny[1][i])
+
+
+def test_r3_dopasuj_pare_bez_przegladu_obrotow(pula_obu, plytka, ust):
+    """Ratunek: pelne dopasowanie bez przegladu obrotow wokol z (sam RANSAC + ICP)."""
+    pula = pula_obu[0]
+    _, wyr, prawda = plytka
+    f = wyr.fragmenty[0]
+    fr = match.FragmentDoDopasowania.z_punktow(f.punkty, f.normalne)
+    ust_bez = {**ust, "match": {**ust["match"], "filtr_wymiar_mm": 1e9, "filtr_objetosc_udzial": 1e9}}
+    for kl in list(pula.lekkie)[:6]:
+        k = match.dopasuj_pare(fr, pula.projekty[kl], ust_bez, obroty=False)
+        assert k.metoda in ("ransac", "ransac_brak") and (k.transformacja is None) == (k.metoda == "ransac_brak")
+
+
+def test_r3_ratunek_znajduje_prace_pominieta_przez_ranking(stl, pula_obu, plytka, ust, monkeypatch):
+    """Wlasciwy STL odciety rankingiem wstepnym (ocena 0, poza marginesem): zwykle dopasowanie konczy sie praca niezielona,
+    ratunek (kolejnosc wg FPFH, sam RANSAC) dopasowuje wlasciwy wpis; ratunek plytki z budzetem w przeszlosci nic nie robi."""
+    pula = pula_obu[0]
+    f, fr, przeszly, wl, kl_wl = _fragment_trzonowca(stl, pula_obu, plytka, ust)
+    monkeypatch.setattr(match, "ocena_wstepna", lambda fr_, lk: 0.0 if lk.id == wl.sha16 else 1.0)
+    r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
+    assert r.najlepszy.id != wl.sha16 and r.status != "zielony" and r.stan_ratunku is not None
+    st = match.ratuj_plytke([f.punkty], [r], pula, ust, start=time.time() - 1000)  # budzet wyczerpany: bez ratunku
+    assert st["przetworzonych"] == 0 and st["budzet_wyczerpany"]
+    wyniki = [r]
+    st = match.ratuj_plytke([f.punkty], wyniki, pula, ust, start=time.time())
+    r2 = wyniki[0]
+    assert st["przetworzonych"] == 1 and st["pelnych_dopasowan"] >= 1 and st["zmieniony_top1"] == 1
+    assert r2.najlepszy.id == wl.sha16 and r2.najlepszy.frezowanie_id == wl.frezowanie_id and r2.najlepszy.pokrycie >= 0.85
+    assert any("ratunek: pelne dopasowanie" in u for u in r2.uwagi) and r2.status in ("zielony", "zolty")
+
+
+def test_r3_ratunek_w_duzej_puli_nie_daje_zielonego_bez_sprawdzenia_puli(stl, pula_obu, plytka, ust, monkeypatch):
+    """Nikt nie przechodzi filtru wymiarow w duzej puli: jedna tura wg FPFH (praca zwykle bokiem); wynik najwyzej zolty
+    (pewnosc wzgledem niedopasowanych nieznana), wlasciwy projekt na czele."""
+    pula = pula_obu[0]
+    _, wyr, prawda = plytka
+    f = wyr.fragmenty[0]
+    monkeypatch.setattr(match, "WSTEPNY_RATUNEK_WSZYSTKIE", 4)
+    ust_z = {**ust, "match": {**ust["match"], "filtr_wymiar_mm": 0.0, "filtr_wymiar_udzial": 0.0, "filtr_objetosc_udzial": 0.0}}
+    wywolania = _licz_pelne(monkeypatch)
+    r = match.dopasuj(f.punkty, f.normalne, pula, ust_z, f.gniazdo)
+    assert len(wywolania) == match.WSTEPNY_PELNYCH and r.status != "zielony"
+    assert r.najlepszy.id == {x.gniazdo: x for x in prawda.prace}[f.gniazdo].projekt

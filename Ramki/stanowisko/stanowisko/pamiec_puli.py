@@ -41,7 +41,7 @@ WERSJA = 1  # format pliku pamieci; zmiana tresci = nowy numer
 PODKATALOG = "projekty"  # w [sciezki] pula_cache (obok linii brzegu z krawedz)
 LIMIT_CIEZKICH = 64  # pelnych projektow trzymanych w procesie (ok. 10-30 MB kazdy); najdawniej uzyte wypadaja (zostaja na dysku)
 LIMIT_LEKKICH = 4000  # czesci lekkich w procesie (ok. 0,1-0,3 MB kazda)
-POLA_LEKKIE = ("l_profil", "l_pts", "l_nrm")
+POLA_LEKKIE = ("l_profil", "l_pts", "l_nrm", "l_fpfh")
 
 
 def funkcje_odcisku() -> list:
@@ -71,7 +71,7 @@ def odcisk() -> str:
             zrodlo = getattr(f, "__qualname__", repr(f))
         h.update(zrodlo.encode("utf-8"))
     dane = {"wersja": WERSJA, "punkty": M.PUNKTY_KANDYDATA, "voxel_fpfh": M.VOXEL_FPFH, "voxel_zgrubne": M.VOXEL_ZGRUBNE, "krok_profilu": M.KROK_PROFILU,
-            "voxel_wstepny": M.WSTEPNY_VOXEL_PROJEKTU, "exocad": getattr(getattr(S, "WZOR_EXOCAD", None), "pattern", ""),
+            "voxel_wstepny": M.WSTEPNY_VOXEL_PROJEKTU, "fpfh_lekki": M.RATUNEK_FPFH_PROJEKTU, "exocad": getattr(getattr(S, "WZOR_EXOCAD", None), "pattern", ""),
             "open3d": o3d.__version__, "trimesh": trimesh.__version__, "numpy": np.__version__, "scipy": scipy.__version__, "kod": h.hexdigest()}
     return hashlib.sha256(json.dumps(dane, sort_keys=True).encode("ascii")).hexdigest()[:8]
 
@@ -181,9 +181,10 @@ class PamiecPuli:
                 opis = json.loads(str(d["meta"]))
                 if opis.get("klucz") != kl or opis.get("id") != sha16 or abs(float(opis.get("wspolczynnik", -1)) - round(float(wspolczynnik), 6)) > 1e-9:
                     raise ValueError("wpis pamieci niezgodny z kluczem")
-                prof, pts, nrm = (np.array(d[n], dtype=np.float64) for n in POLA_LEKKIE)
+                prof, pts, nrm = (np.array(d[n], dtype=np.float64) for n in POLA_LEKKIE[:3])
+                desk = np.ascontiguousarray(d["l_fpfh"], dtype=np.float32)
             lk = M.ProjektLekki(opis["id"], float(opis["wspolczynnik"]), [float(v) for v in opis["obrys_xy"]], float(opis["wysokosc"]), float(opis["hull"]),
-                                prof.reshape(-1, 3), pts, nrm, opis["cechy"].get("zeby", []), opis["cechy"].get("typ", ""))
+                                prof.reshape(-1, 3), pts, nrm, opis["cechy"].get("zeby", []), opis["cechy"].get("typ", ""), desk)
         except (OSError, KeyError, ValueError, TypeError, AttributeError, EOFError, zipfile.BadZipFile):  # D7: niespojny wpis = liczenie od nowa
             self.statystyka["bledy_odczytu"] += 1
             return None
@@ -264,7 +265,7 @@ class PamiecPuli:
         tmp = plik.with_name(f"{plik.stem}.{os.getpid()}.tmp.npz")
         try:
             plik.parent.mkdir(parents=True, exist_ok=True)
-            np.savez(tmp, meta=np.array(json.dumps(opis)), l_profil=lk.profil, l_pts=lk.punkty, l_nrm=lk.normalne, **tab)
+            np.savez(tmp, meta=np.array(json.dumps(opis)), l_profil=lk.profil, l_pts=lk.punkty, l_nrm=lk.normalne, l_fpfh=lk.deskryptory, **tab)
             os.replace(tmp, plik)
         except OSError as e:  # pamiec na dysku jest tylko przyspieszeniem (pelny dysk, plik zajety przez inny proces)
             self.statystyka["bledy_zapisu"] += 1
