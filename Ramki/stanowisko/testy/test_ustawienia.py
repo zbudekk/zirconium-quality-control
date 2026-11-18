@@ -150,6 +150,65 @@ def test_nowe_klucze_maja_domyslne_ze_wzoru(tmp_path):
         UST.wczytaj_ustawienia(p)
 
 
+# --- E3-A9: opcjonalne klucze [excel] (modul excel; sekcja [excel] i jej 5 kluczy sprzed etapu 3 zostaja wymagane) -----
+NOWE_E3_A9 = {"excel": {"kolumna_daty": "A", "pierwszy_wiersz": 2, "skoroszyt": "", "arkusz": "", "tryb": "pytaj", "odswiez_co_min": 5.0}}
+
+
+def _plik_bez_kluczy_e3_a9(tmp_path, wstaw: str = ""):
+    """Wzor ustawien bez nowych kluczy [excel] z E3-A9; ``wstaw`` = linie dopisane zaraz po naglowku [excel]."""
+    linie = [linia for linia in UST.PLIK_PRZYKLADU.read_text(encoding="utf-8").splitlines()
+             if linia.split("=")[0].strip() not in NOWE_E3_A9["excel"]]
+    tekst = "\n".join(linie) + "\n"
+    assert "\n[excel]\n" in tekst and not [k for k in NOWE_E3_A9["excel"] if f"\n{k} =" in tekst]
+    p = tmp_path / "ustawienia.toml"
+    p.write_text(tekst.replace("\n[excel]\n", "\n[excel]\n" + wstaw, 1), encoding="utf-8")
+    return p
+
+
+def test_e3_a9_klucze_excel_opcjonalne(tmp_path):
+    for sekcja, klucze in NOWE_E3_A9.items():
+        for k, v in klucze.items():
+            assert k in UST.SCHEMAT[sekcja] and UST.DOMYSLNE_NOWYCH[sekcja][k] == v, (sekcja, k)
+    assert "excel" not in UST.SEKCJE_OPCJONALNE  # 5 kluczy sprzed etapu 3 nadal wymaganych
+    ust = UST.wczytaj_ustawienia(_plik_bez_kluczy_e3_a9(tmp_path))
+    assert {k: ust["excel"][k] for k in NOWE_E3_A9["excel"]} == NOWE_E3_A9["excel"]
+    assert ust == UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)  # wzor ma nowe klucze z wartosciami domyslnymi
+    ust = UST.wczytaj_ustawienia(_plik_bez_kluczy_e3_a9(tmp_path, 'tryb = "cien"\narkusz = "2026"\nskoroszyt = "Zlecenia"\n'))
+    assert ust["excel"] == {**UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)["excel"], "tryb": "cien", "arkusz": "2026", "skoroszyt": "Zlecenia"}
+    # klucze czyta modul excel (nie "przyszly modul"); test_kazdy_klucz_uzyty_w_kodzie... sprawdza, ze sa w excel.py
+    assert {k: m for k, (_, m) in UST.SCHEMAT["excel"].items()} == {k: "excel" for k in UST.SCHEMAT["excel"]}
+    assert UST.SCHEMAT["sciezki"]["log_excel"][1] == "excel"
+
+
+@pytest.mark.parametrize("wstaw, komunikat", [
+    ('tryb = "auto"\n', r"\[excel\] tryb: dopuszczalne: pytaj, cien"),
+    ('tryb = "PYTAJ"\n', r"\[excel\] tryb: dopuszczalne: pytaj, cien"),
+    ("tryb = true\n", r"\[excel\] tryb: oczekiwano str"),
+    ("pierwszy_wiersz = 0\n", r"\[excel\] pierwszy_wiersz: musi"),
+    ("pierwszy_wiersz = 1.5\n", r"\[excel\] pierwszy_wiersz: oczekiwano int"),
+    ("odswiez_co_min = 0\n", r"\[excel\] odswiez_co_min: musi"),
+    ('odswiez_co_min = "5"\n', r"\[excel\] odswiez_co_min: oczekiwano float"),
+    ('kolumna_daty = "1"\n', r"\[excel\] kolumna_daty: litera kolumny"),
+    ('kolumna_daty = "ABCD"\n', r"\[excel\] kolumna_daty: litera kolumny"),
+    ('kolumna_daty = "C"\n', r"\[excel\] kolumna_daty: kolumny daty, odhaczenia, kuwety i nazwy"),
+    ("skoroszyt = 5\n", r"\[excel\] skoroszyt: oczekiwano str"),
+    ('arkusze = "2026"\n', r"\[excel\] arkusze: nieznany klucz"),
+])
+def test_e3_a9_zla_wartosc_klucza_excel_jest_bledem(tmp_path, wstaw, komunikat):
+    with pytest.raises(UST.BladUstawien, match=r"^ustawienia\.toml: " + komunikat):
+        UST.wczytaj_ustawienia(_plik_bez_kluczy_e3_a9(tmp_path, wstaw))
+
+
+@pytest.mark.parametrize("stare, nowe, komunikat", [
+    ('kolumna_kuwety = "C"', 'kolumna_kuwety = "3"', r"\[excel\] kolumna_kuwety: litera kolumny"),
+    ('kolumna_nazwy = "H"', 'kolumna_nazwy = "B"', r"\[excel\] kolumna_daty: kolumny daty, odhaczenia, kuwety i nazwy"),
+])
+def test_e3_a9_kolumny_excela_sprawdzane(tmp_path, stare, nowe, komunikat):
+    with pytest.raises(UST.BladUstawien, match=r"^ustawienia\.toml: " + komunikat):
+        UST.wczytaj_ustawienia(_zepsuj(tmp_path, stare, nowe))
+    assert UST.wczytaj_ustawienia(_zepsuj(tmp_path, 'kolumna_kuwety = "C"', 'kolumna_kuwety = "c"'))["excel"]["kolumna_kuwety"] == "c"
+
+
 # --- E3-A1: klucze opcjonalne z wartoscia domyslna (plan etapu 3, sekcja 3.7) ---------------------
 # Klucze WYMAGANE w stanie sprzed etapu 3 (commit fe66217). Etap 3 dodaje wylacznie klucze opcjonalne:
 # stary lokalny ustawienia.toml ma dzialac bez recznych poprawek (R59 pkt 9.1).
