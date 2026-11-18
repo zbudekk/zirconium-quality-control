@@ -12,19 +12,27 @@ Kontrakty (plan etapu 3, sekcja 3.8):
 * wynik - slownik zwracany przez ``porownaj.porownaj`` w postaci z pliku ``<skan>_wynik.json`` (lacznie z ``ostrzezenia``,
   jak w wierszu polecen) + ``zadanie_id`` + ``skan_sha16`` (skrot tresci FAKTYCZNIE analizowanej);
 * ``ZdarzenieSilnika`` - ``gotowy`` / ``start`` / ``postep`` / ``wynik`` / ``blad`` (``rodzaj``: ``analiza``, ``proces``,
-  ``limit_czasu``, ``start``, ``plik_zmieniony``) / ``zatrzymany`` (``niezakonczone``: zadania przerwane przez ``stop()``).
+  ``limit_czasu``, ``start``, ``plik_zmieniony``, ``plik_niedostepny``) / ``zatrzymany`` (``niezakonczone``: zadania
+  przerwane przez ``stop()``).
 
-Plik skanu zmieniony po zdarzeniu (nadpisany, gdy zadanie czekalo w kolejce, albo w trakcie analizy): skrot sprawdzany
-przed analiza i po niej; niezgodnosc = ``blad`` rodzaju ``plik_zmieniony`` bez wyniku - nowa tresc ma wlasne zdarzenie
-ze ``scanner``. Teksty wychodzace z procesu roboczego (ostrzezenia, uwagi, bledy, pliki w ``wyjscie``) sa czyszczone
-z nazw plikow i folderow puli projektow (``CzyscicielNazw``: nazwiska). Proces roboczy pilnuje sie sam (``Straznik``):
-konczy sie w ok. 1 s po zniknieciu procesu okna (takze w trakcie analizy) i po przekroczeniu limitu zadania z zapasem.
+Kopia robocza (N1, recenzja PR #17 runda 2): proces roboczy kopiuje skan do ``katalog_roboczy`` (odczyt z pelnym
+wspoldzieleniem - program skanera moze w tym czasie pisac, przenosic i usuwac plik), liczy skrot KOPII i analizuje kopie.
+Skrot kopii inny niz ``skan_sha16`` zdarzenia = plik nadpisany, zanim analiza ruszyla: ``blad`` ``plik_zmieniony`` bez
+analizy (nowa tresc ma wlasne zdarzenie ze ``scanner``). Pozniejsza blokada, przeniesienie albo usuniecie pliku skanu
+nie uniewaznia wyniku. Pliku nie da sie skopiowac (inny program trzyma go bez zgody na odczyt): ponawianie z rosnacym
+odstepem (postep ``ETAP_OCZEKIWANIA``), po ``czekaj_na_plik_s`` ``blad`` ``plik_niedostepny``. Teksty wychodzace
+z procesu roboczego (ostrzezenia, uwagi, bledy - tylko pola z tekstem wolnym, N2) sa czyszczone z nazw plikow i folderow
+puli projektow (``CzyscicielNazw``: nazwiska). Proces roboczy pilnuje sie sam (``Straznik``): konczy sie w ok. 1 s po
+zniknieciu procesu okna i po przekroczeniu limitu zadania z zapasem, o ile analiza nie trzyma GIL; niezaleznie od tego na
+Windows jest w obiekcie zadania (Job Object) procesu okna, ktory system konczy razem z procesem okna (D-N5).
 
 Uzycie:
     s = Silnik(na_zdarzenie=funkcja)      # funkcja wolana w watku nadzorcy (zwykly watek Pythona, bez Open3D i bez Qt)
     s.start()
     nr = s.zlec(ZadanieAnalizy(skan=plik, pula=OpisPuli(foldery=(folder,))))   # albo s.zlec_skan(zdarzenie_skanu, pula)
     ... niezakonczone = s.stop()          # zadania w toku i w kolejce - do ponownego zlecenia po starcie programu
+W oknie: najpierw ``scanner.stop()``, potem ``silnik.stop()`` (zadne nowe zlecenie w trakcie zatrzymania; ``zlec`` po
+rozpoczeciu ``stop()`` odmawia wyjatkiem ``SilnikZatrzymany``). ``na_zdarzenie`` nie moze czekac na watek wolajacy ``stop()``.
 Bez ``na_zdarzenie`` zdarzenia trafiaja do kolejki ``s.zdarzenia``. W oknie Qt: ``lacznik_qt(s)`` zamienia je na sygnaly
 emitowane w watku okna (zegar Qt oproznia kolejke). Program uruchamiajacy silnik musi miec glowny modul chroniony przez
 ``if __name__ == "__main__":`` (wymaganie ``multiprocessing`` na Windows), a ten plik startowy nie moze importowac Qt na
@@ -45,7 +53,9 @@ import multiprocessing
 import os
 import queue
 import re
+import shutil
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -59,10 +69,18 @@ LIMIT_ZADANIA_S = 600.0  # analiza dluzsza niz to = proces zabity, blad "limit_c
 LIMIT_STARTU_S = 180.0  # proces roboczy, ktory nie zglosi gotowosci w tym czasie, jest zabijany
 PUL_W_PAMIECI = 2  # np. pula wieczorna (wspolczynnik krazka) i poranna (1,0)
 OKRES_S = 0.02  # co ile nadzorca zaglada do lacza z procesem
-RODZAJE_BLEDU = ("analiza", "proces", "limit_czasu", "start", "plik_zmieniony")
+RODZAJE_BLEDU = ("analiza", "proces", "limit_czasu", "start", "plik_zmieniony", "plik_niedostepny")
 ZNACZNIK_PULI = "<projekt>"  # w miejsce sciezki albo nazwy z puli projektow; nazwa pliku z puli -> "<projekt sha16>"
-POLA_BEZ_CZYSZCZENIA = ("foldery_projektow",)  # pola wyniku, ktorych CzyscicielNazw nie rusza (foldery puli z zadania)
+# N2: CzyscicielNazw.oczysc zmienia TYLKO wartosci tekstowe pod tymi kluczami (takze listy tekstow pod nimi) i pod kluczami
+# konczacymi sie na "_" + jeden z nich (np. "uklad_komunikat"); statusy, typy, identyfikatory, nazwa skanu i liczby - nigdy
+POLA_TEKSTU_WOLNEGO = ("ostrzezenia", "uwagi", "uwaga", "blad", "bledy", "komunikat", "podpowiedz", "powod", "powod_filtru", "opis", "szczegoly")
 ZAPAS_LIMITU_S = 30.0  # proces roboczy konczy sie sam po limit_zadania_s + tyle (nadzorcy moze juz nie byc)
+KATALOG_ROBOCZY = "qc_silnik"  # domyslny katalog kopii roboczych skanow: <katalog tymczasowy systemu>/qc_silnik
+CZEKAJ_NA_PLIK_S = 60.0  # pliku skanu nie da sie skopiowac (zajety): ponawianie najwyzej tyle, potem blad plik_niedostepny
+ODSTEP_KOPII_MAX_S = 2.0  # ponawianie kopiowania: co 0,1 s, potem 2x, 4x ... rzadziej, najrzadziej co tyle (jak scanner B1)
+ZAPAS_DYSKU_B = 256 * 1024 * 1024  # kopia robocza tylko, gdy po niej zostanie tyle wolnego miejsca w katalogu roboczym
+ETAP_OCZEKIWANIA = "oczekiwanie na zwolnienie pliku skanu"  # postep (udzial 0), gdy pliku nie da sie jeszcze skopiowac
+BLOK_ODCZYTU = 4 * 1024 * 1024
 OKRES_STRAZNIKA_S = 0.5  # co ile straznik w procesie roboczym sprawdza proces okna i czas zadania
 KOD_BEZ_PROCESU_OKNA = 91  # kod wyjscia procesu roboczego: zniknal proces okna
 KOD_LIMIT_ZADANIA = 92  # kod wyjscia procesu roboczego: zadanie przekroczylo limit (z zapasem)
@@ -86,11 +104,11 @@ class ZadanieAnalizy:
     tryb: str = "wieczor"  # wieczor / rano - dla odbiorcy wyniku (sesja); analiza od trybu nie zalezy
     uklad: str = "auto"  # "auto" albo "rozpoznaj" = program rozpoznaje uklad; inaczej nazwa ukladu z [plytki]
     numer: int | None = None  # numer plytki, gdy dolki kodu sa poza skanem
-    skan_sha16: str | None = None  # z ZdarzenieSkanu; None = silnik policzy sam
+    skan_sha16: str | None = None  # z ZdarzenieSkanu: porownywany ze skrotem kopii roboczej; None = silnik policzy sam
     inspekcja: bool = True
     bez_filtru: bool = False
     straznik: bool = True
-    wyjscie: Path | None = None  # folder na <czas>_<sha16>_<skan>_wynik.json i ..._podglad.npz (punkty i odchylki gniazd)
+    wyjscie: Path | None = None  # folder na <czas>_<sha16>[_n]_wynik.json i ..._podglad.npz (punkty i odchylki gniazd); bez nazwy skanu
     zadanie_id: int = 0  # nadaje Silnik.zlec
     przyjete: float | None = None  # czas przyjecia zadania (time.time()) - nadaje Silnik.zlec; poczatek nazw plikow w wyjscie
 
@@ -141,12 +159,14 @@ class CzyscicielNazw:
     * sama nazwa pliku z puli (z rozszerzeniem albo bez) -> ``<projekt sha16>`` (skrot zawartosci, jak ``synth.skrot_pliku``;
       liczony dopiero, gdy nazwa wystapi w tekscie); nazwa wspolna dla kilku plikow -> ``<projekt>``;
     * nazwa folderu w puli -> ``<projekt>``.
-    Nazwy dopasowywane bez rozrozniania wielkosci liter i tylko w calosci (nie jako czesc dluzszej nazwy). Zostaja: sam
-    folder puli z zadania, nazwy folderow z mniej niz 2 literami (np. numer kuwety ``12``) i rdzenie nazw plikow krotsze niz
-    3 znaki albo z mniej niz 2 literami (nie sa danymi osobowymi, a ich zamiana psulaby liczby i zwykle slowa).
-    ``pomin`` - pliki, ktorych nazw nie ruszac (skan zadania, gdy lezy w folderze puli). Wywolanie ``czysciciel(tekst)``;
-    ``czysciciel.oczysc(struktura_json)`` - kopia z oczyszczonymi tekstami (klucze i liczby bez zmian, pola
-    ``POLA_BEZ_CZYSZCZENIA`` bez zmian)."""
+    Nazwy dopasowywane bez rozrozniania wielkosci liter i tylko w calosci (granice slowa i separatory: nie jako czesc
+    dluzszej nazwy ani slowa), najdluzsza najpierw. Zostaja: sam folder puli z zadania, nazwy folderow z mniej niz 2 literami
+    (np. numer kuwety ``12``) i rdzenie nazw plikow krotsze niz 3 znaki albo z mniej niz 2 literami (nie sa danymi
+    osobowymi, a ich zamiana psulaby liczby i zwykle slowa). ``pomin`` - pliki, ktorych nazw nie ruszac (skan zadania, gdy
+    lezy w folderze puli). Wywolanie ``czysciciel(tekst)`` - jeden tekst (komunikat bledu, slad wyjatku);
+    ``czysciciel.oczysc(struktura_json)`` - kopia, w ktorej zmienione sa TYLKO teksty wolne (N2: klucze z
+    ``POLA_TEKSTU_WOLNEGO``); pola decyzji (``status``, ``typ``, ``id``, ``skan``, kolory gniazd ...), klucze i liczby -
+    bez zmian, nawet gdy folder w puli nazywa sie ``OK`` albo plik ``korona.stl``."""
 
     def __init__(self, foldery, pomin=()):
         self.foldery: list[str] = []
@@ -204,14 +224,39 @@ class CzyscicielNazw:
         tekst = bez_nazw_z_puli(tekst, self.foldery)
         return self._wzor.sub(self._zamien, tekst) if self._wzor is not None else tekst
 
-    def oczysc(self, o):
+    def oczysc(self, o, klucz: str | None = None):
+        """Kopia struktury JSON z oczyszczonymi tekstami wolnymi. ``klucz`` - klucz slownika, pod ktorym lezy ``o`` (lista
+        dziedziczy klucz; slownik w liscie zaczyna od nowa); tekst bez klucza (sam napis, lista napisow) = tekst wolny."""
         if isinstance(o, str):
-            return self(o)
+            return self(o) if klucz is None or tekst_wolny(klucz) else o
         if isinstance(o, dict):
-            return {k: (v if k in POLA_BEZ_CZYSZCZENIA else self.oczysc(v)) for k, v in o.items()}
+            return {k: self.oczysc(v, k) for k, v in o.items()}
         if isinstance(o, (list, tuple)):
-            return [self.oczysc(v) for v in o]
+            return [self.oczysc(v, klucz) for v in o]
         return o
+
+
+def tekst_wolny(klucz) -> bool:
+    """N2: czy pole o tym kluczu jest tekstem wolnym (komunikat, uwaga, ostrzezenie, tresc bledu), ktory ``CzyscicielNazw``
+    moze zmienic. Pola statusow, typow, identyfikatorow i liczb - nigdy."""
+    k = str(klucz)
+    return k in POLA_TEKSTU_WOLNEGO or any(k.endswith("_" + p) for p in POLA_TEKSTU_WOLNEGO)
+
+
+class PlikNiedostepny(Exception):
+    """Pliku skanu nie da sie skopiowac przez ``czekaj_na_plik_s`` (inny program trzyma go bez zgody na odczyt albo brak
+    uprawnien) - ``blad`` rodzaju ``plik_niedostepny`` z prawdziwym komunikatem (N1). Zadanie trzeba zlecic ponownie."""
+
+
+class SilnikZatrzymany(RuntimeError):
+    """``zlec`` po rozpoczeciu ``stop()`` (D-N4): zadanie NIE zostalo przyjete do analizy. ``zadanie`` - to zadanie;
+    ``na_liscie`` - True, gdy ``stop()`` jeszcze nie zebral listy: zadanie jest na liscie niezakonczonych (wynik ``stop()``
+    i zdarzenie ``zatrzymany``), wiec aplikacja zapisze je razem z innymi; False - lista juz oddana, zadanie trzeba zapisac
+    samemu (albo wroci przez nadrabianie ``scanner``)."""
+
+    def __init__(self, komunikat: str, zadanie, na_liscie: bool):
+        super().__init__(komunikat)
+        self.zadanie, self.na_liscie = zadanie, na_liscie
 
 
 class PlikZmieniony(Exception):
@@ -242,7 +287,10 @@ class Straznik:
     """Pilnuje procesu roboczego od srodka (P6). Proces okna zabity twardo (Menedzer zadan, awaria Qt) nie zamyka lacza
     w trakcie analizy, a limitu czasu pilnuje nadzorca, ktorego juz nie ma - wiec proces roboczy sam: konczy sie, gdy
     zniknie proces okna (``rodzic_zyje()`` False) albo gdy zadanie trwa dluzej niz ``limit_zadania_s`` + ``ZAPAS_LIMITU_S``.
-    ``sprawdz()`` - jedno sprawdzenie; ``uruchom()`` - watek sprawdzajacy co ``OKRES_STRAZNIKA_S``."""
+    ``sprawdz()`` - jedno sprawdzenie; ``uruchom()`` - watek sprawdzajacy co ``OKRES_STRAZNIKA_S``.
+    Granica (D-N5): to watek Pythona - nie dostaje czasu, gdy analiza stoi w wywolaniu natywnym trzymajacym GIL
+    (zmierzone: ``segment_plane``, ``estimate_normals`` w Open3D). Dlatego na Windows proces roboczy jest dodatkowo
+    w obiekcie zadania procesu okna (``_dolacz_do_obiektu_zadania``) - system konczy go razem z procesem okna."""
 
     def __init__(self, rodzic_zyje, limit_zadania_s: float | None = LIMIT_ZADANIA_S, zakoncz=_zakoncz_proces, zegar=time.monotonic):
         self.rodzic_zyje, self.limit_zadania_s, self.zakoncz, self.zegar = rodzic_zyje, limit_zadania_s, zakoncz, zegar
@@ -321,9 +369,191 @@ def _wczytaj_funkcje(nazwa: str):
 def _skrot16(plik: Path) -> str:
     h = hashlib.sha256()
     with open(plik, "rb") as f:
-        for blok in iter(lambda: f.read(4 * 1024 * 1024), b""):
+        for blok in iter(lambda: f.read(BLOK_ODCZYTU), b""):
             h.update(blok)
     return h.hexdigest()[:16]
+
+
+# --- kopia robocza skanu (N1) i sprzatanie
+def _pid_zyje(pid: int) -> bool:
+    """Czy proces o tym numerze jeszcze dziala. Proces innego konta (brak dostepu) liczy sie jako zyjacy - jego plikow nie
+    ruszamy. Numer uzyty ponownie przez inny proces = "zyje" (resztki zostaja do nastepnego sprzatania)."""
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.OpenProcess.restype = ctypes.c_void_p
+        k32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+        k32.GetExitCodeProcess.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
+        k32.CloseHandle.argtypes = [ctypes.c_void_p]
+        uchwyt = k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not uchwyt:
+            return ctypes.get_last_error() == 5  # ERROR_ACCESS_DENIED: proces jest, tylko nie nasz
+        try:
+            kod = ctypes.c_uint32()
+            return not k32.GetExitCodeProcess(uchwyt, ctypes.byref(kod)) or kod.value == 259  # STILL_ACTIVE
+        finally:
+            k32.CloseHandle(uchwyt)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
+    return True
+
+
+def _sprzataj_katalog_roboczy(katalog: Path) -> None:
+    """Usuwa z katalogu roboczego kopie skanow (``<pid>_<zadanie>``) procesow, ktorych juz nie ma (zabitych w trakcie
+    zadania), i resztki tego procesu; kopie zyjacych procesow (inny silnik, inny program) zostaja. Wolane przy starcie
+    procesu roboczego i przed kazda kopia - na dysku jest najwyzej jedna kopia na proces roboczy."""
+    try:
+        wpisy = list(os.scandir(katalog))
+    except OSError:
+        return
+    for e in wpisy:
+        m = re.match(r"(\d+)_", e.name)
+        if not m:
+            continue
+        pid = int(m.group(1))
+        if pid != os.getpid() and _pid_zyje(pid):
+            continue
+        try:
+            if e.is_dir(follow_symlinks=False):
+                shutil.rmtree(e.path, ignore_errors=True)
+            else:
+                os.unlink(e.path)
+        except OSError:
+            pass
+
+
+def _sprzataj_tmp(folder: Path) -> None:
+    """D-N6: pliki tymczasowe zapisu (``<plik>.<pid>.tmp``) po procesach, ktorych juz nie ma (zabitych w trakcie zapisu)."""
+    try:
+        wpisy = list(os.scandir(folder))
+    except OSError:
+        return
+    for e in wpisy:
+        m = re.search(r"\.(\d+)\.tmp$", e.name)
+        if m and (int(m.group(1)) == os.getpid() or not _pid_zyje(int(m.group(1)))):
+            try:
+                os.unlink(e.path)
+            except OSError:
+                pass
+
+
+def _kopiuj_skan(skan: Path, cel: Path, czekaj_s: float, na_oczekiwanie=None) -> str:
+    """N1: kopia robocza skanu w ``cel``; zwraca sha16 KOPII (liczony przy kopiowaniu - tresc analizowana i skrot sa z definicji
+    te same). Odczyt przez ``otworz_zrodlo`` (pelne wspoldzielenie: program skanera moze w tym czasie pisac, przenosic i
+    usuwac plik). Pliku nie da sie otworzyc (zajety) albo zmienil sie w trakcie kopiowania: ponawianie z rosnacym odstepem
+    (``na_oczekiwanie()`` raz, przy pierwszej przeszkodzie), po ``czekaj_s`` ``PlikNiedostepny``. Pliku nie ma = ``FileNotFoundError``."""
+    from .dzien_skanera_rdzen import otworz_zrodlo
+
+    t0, proba, zgloszone, powod = time.monotonic(), 0, False, ""
+    while True:
+        try:
+            zrodlo = otworz_zrodlo(skan)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"brak pliku skanu {skan.name} (przeniesiony albo usuniety, zanim analiza ruszyla)") from None
+        except OSError as e:
+            powod = f"{type(e).__name__}: {e}"
+        else:
+            with zrodlo:
+                przed = os.fstat(zrodlo.fileno())
+                wolne = shutil.disk_usage(cel.parent).free
+                if wolne < przed.st_size + ZAPAS_DYSKU_B:
+                    raise OSError(f"za malo miejsca na dysku na kopie robocza skanu: wolne {wolne // 2**20} MB, potrzeba "
+                                  f"{(przed.st_size + ZAPAS_DYSKU_B) // 2**20} MB (katalog roboczy {cel.parent.parent})")
+                h = hashlib.sha256()
+                with open(cel, "wb") as f:
+                    for blok in iter(lambda: zrodlo.read(BLOK_ODCZYTU), b""):
+                        h.update(blok)
+                        f.write(blok)
+                po = os.fstat(zrodlo.fileno())
+            if (po.st_size, po.st_mtime_ns) == (przed.st_size, przed.st_mtime_ns):
+                return h.hexdigest()[:16]
+            powod = "plik zmienial sie w trakcie kopiowania (program skanera jeszcze go zapisuje)"
+        if time.monotonic() - t0 >= czekaj_s:
+            raise PlikNiedostepny(f"nie da sie odczytac pliku skanu {skan.name} przez {czekaj_s:.0f} s ({powod}) - inny program trzyma go "
+                                  "bez zgody na odczyt albo brak uprawnien; analiza pominieta, zlec ja ponownie po zwolnieniu pliku")
+        if not zgloszone and na_oczekiwanie is not None:
+            zgloszone = True
+            na_oczekiwanie()
+        proba += 1
+        time.sleep(min(ODSTEP_KOPII_MAX_S, 0.05 * 2 ** min(proba, 16), max(0.0, czekaj_s - (time.monotonic() - t0)) + 0.01))
+
+
+# --- obiekt zadania Windows (D-N5)
+_OBIEKT_ZADANIA = None  # uchwyt obiektu zadania procesu okna: jeden na proces, NIGDY nie zamykany (zamkniecie = koniec procesow roboczych)
+_ZAMEK_OBIEKTU = threading.Lock()
+
+
+def _utworz_obiekt_zadania():
+    """Obiekt zadania Windows z ``JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE``: gdy proces okna sie konczy (takze zabity), system
+    zamyka jego uchwyty, a z ostatnim uchwytem konczy wszystkie procesy w obiekcie. Uchwyt nie jest dziedziczony."""
+    import ctypes
+
+    class LimityPodstawowe(ctypes.Structure):  # JOBOBJECT_BASIC_LIMIT_INFORMATION
+        _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64), ("LimitFlags", ctypes.c_uint32),
+                    ("MinimumWorkingSetSize", ctypes.c_size_t), ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", ctypes.c_uint32),
+                    ("Affinity", ctypes.c_size_t), ("PriorityClass", ctypes.c_uint32), ("SchedulingClass", ctypes.c_uint32)]
+
+    class Liczniki(ctypes.Structure):  # IO_COUNTERS
+        _fields_ = [(n, ctypes.c_uint64) for n in ("ReadOperationCount", "WriteOperationCount", "OtherOperationCount", "ReadTransferCount",
+                                                    "WriteTransferCount", "OtherTransferCount")]
+
+    class LimityRozszerzone(ctypes.Structure):  # JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+        _fields_ = [("BasicLimitInformation", LimityPodstawowe), ("IoInfo", Liczniki), ("ProcessMemoryLimit", ctypes.c_size_t),
+                    ("JobMemoryLimit", ctypes.c_size_t), ("PeakProcessMemoryUsed", ctypes.c_size_t), ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CreateJobObjectW.restype = ctypes.c_void_p
+    k32.CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
+    k32.SetInformationJobObject.restype = ctypes.c_int
+    k32.SetInformationJobObject.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
+    k32.CloseHandle.argtypes = [ctypes.c_void_p]
+    uchwyt = k32.CreateJobObjectW(None, None)
+    if not uchwyt:
+        raise ctypes.WinError(ctypes.get_last_error())
+    info = LimityRozszerzone()
+    info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    if not k32.SetInformationJobObject(uchwyt, 9, ctypes.byref(info), ctypes.sizeof(info)):  # JobObjectExtendedLimitInformation
+        blad = ctypes.WinError(ctypes.get_last_error())
+        k32.CloseHandle(uchwyt)
+        raise blad
+    return uchwyt
+
+
+def _dolacz_do_obiektu_zadania(pid: int) -> bool:
+    """D-N5: wklada proces roboczy do obiektu zadania procesu okna - system konczy go razem z procesem okna niezaleznie od
+    tego, co proces roboczy robi (takze w wywolaniu natywnym trzymajacym GIL, gdy ``Straznik`` nie dziala). True = w obiekcie;
+    False = nie Windows. ``OSError`` = nie udalo sie (zostaje sam ``Straznik``)."""
+    global _OBIEKT_ZADANIA
+    if os.name != "nt":
+        return False
+    import ctypes
+
+    with _ZAMEK_OBIEKTU:
+        if _OBIEKT_ZADANIA is None:
+            _OBIEKT_ZADANIA = _utworz_obiekt_zadania()
+        obiekt = _OBIEKT_ZADANIA
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.OpenProcess.restype = ctypes.c_void_p
+    k32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+    k32.AssignProcessToJobObject.restype = ctypes.c_int
+    k32.AssignProcessToJobObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    k32.CloseHandle.argtypes = [ctypes.c_void_p]
+    proces = k32.OpenProcess(0x0100 | 0x0001, False, pid)  # PROCESS_SET_QUOTA | PROCESS_TERMINATE
+    if not proces:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        if not k32.AssignProcessToJobObject(obiekt, proces):
+            raise ctypes.WinError(ctypes.get_last_error())
+    finally:
+        k32.CloseHandle(proces)
+    return True
 
 
 def wczytaj_podglad(plik) -> dict:
@@ -332,12 +562,6 @@ def wczytaj_podglad(plik) -> dict:
 
     with np.load(plik) as z:
         return {int(k[1:-2]): (z[k], z[k[:-2] + "_d"]) for k in z.files if k.endswith("_P")}
-
-
-def _bezpieczna_nazwa(s: str, dlugosc: int = 60) -> str:
-    """Nazwa pliku z dowolnego tekstu: litery ASCII, cyfry, kropka, myslnik, podkreslenie."""
-    s = re.sub(r"[^A-Za-z0-9._-]+", "_", s).strip("._")
-    return s[:dlugosc] or "skan"
 
 
 def _zapisz_bez_nadpisania(cel: Path, zapisz) -> None:
@@ -361,14 +585,17 @@ def _zapisz_bez_nadpisania(cel: Path, zapisz) -> None:
 
 
 def _zapisz_wyjscie(zadanie: ZadanieAnalizy, wynik: dict, podglad: dict) -> dict:
-    """P4: pliki unikalne na zadanie - ``<czas przyjecia>_<sha16>_<bezpieczna nazwa skanu>[_n]_wynik.json`` i ``..._podglad.npz``
-    (ten sam rdzen); istniejacy plik nigdy nie jest nadpisywany (kolejny wolny numer ``_n``)."""
+    """P4 / D-N6: pliki unikalne na zadanie, BEZ nazwy skanu (jak w A1: program skanera moze nazywac pliki nazwiskiem ze
+    zlecenia) - ``<czas przyjecia>_<sha16>[_n]_wynik.json`` i ``..._podglad.npz`` (ten sam rdzen). Najpierw podglad, potem
+    wynik: plik wyniku oznacza komplet. Istniejacy plik nigdy nie jest nadpisywany (kolejny wolny numer ``_n``). Pliki
+    tymczasowe po procesach zabitych w trakcie zapisu sa usuwane przed zapisem."""
     import numpy as np
 
     wyj = Path(zadanie.wyjscie)
     wyj.mkdir(parents=True, exist_ok=True)
+    _sprzataj_tmp(wyj)
     czas = time.strftime("%Y%m%d_%H%M%S", time.localtime(zadanie.przyjete if zadanie.przyjete is not None else time.time()))
-    baza = f"{czas}_{wynik['skan_sha16']}_{_bezpieczna_nazwa(Path(zadanie.skan).stem)}"
+    baza = f"{czas}_{wynik['skan_sha16']}"
     tablice = {}
     for gniazdo, wi in podglad.items():
         P, d = getattr(wi, "_P", None), getattr(wi, "_d", None)
@@ -382,26 +609,37 @@ def _zapisz_wyjscie(zadanie: ZadanieAnalizy, wynik: dict, podglad: dict) -> dict
         p_json, p_npz = wyj / f"{rdzen}_wynik.json", wyj / f"{rdzen}_podglad.npz"
         if p_json.exists() or p_npz.exists():
             continue
+        if tablice:
+            try:
+                _zapisz_bez_nadpisania(p_npz, lambda f: np.savez(f, **tablice))
+            except FileExistsError:
+                continue
         try:
             _zapisz_bez_nadpisania(p_json, lambda f: f.write(dane))
         except FileExistsError:
+            if tablice:
+                try:
+                    os.unlink(p_npz)
+                except OSError:
+                    pass
             continue
         pliki = {"wynik": str(p_json)}
         if tablice:
-            _zapisz_bez_nadpisania(p_npz, lambda f: np.savez(f, **tablice))
             pliki["podglad"] = str(p_npz)
         return pliki
     raise FileExistsError(f"brak wolnej nazwy pliku wyniku {baza} w folderze wyjscia")
 
 
-def _wykonaj(zadanie: ZadanieAnalizy, funkcja, ust: dict, pamiec: PamiecPul, lacze, czysc: CzyscicielNazw) -> tuple[dict, dict | None]:
+def _folder_kopii(katalog: Path, zadanie: ZadanieAnalizy) -> Path:
+    """Folder kopii roboczej zadania: ``<katalog roboczy>/<pid procesu roboczego>_<zadanie_id>`` (w nim plik o nazwie skanu)."""
+    return Path(katalog) / f"{os.getpid()}_{zadanie.zadanie_id}"
+
+
+def _wykonaj(zadanie: ZadanieAnalizy, funkcja, ust: dict, pamiec: PamiecPul, lacze, czysc: CzyscicielNazw, katalog: Path,
+             czekaj_na_plik_s: float = CZEKAJ_NA_PLIK_S) -> tuple[dict, dict | None]:
     skan = Path(zadanie.skan)
     if not skan.is_file():
         raise FileNotFoundError(f"brak pliku skanu {skan.name}")
-    sha16 = _skrot16(skan)  # P1: skrot tresci, ktora za chwile przeczyta analiza
-    if zadanie.skan_sha16 and sha16 != zadanie.skan_sha16:
-        raise PlikZmieniony(f"plik skanu zmienil sie, zanim analiza ruszyla (zdarzenie: sha16 {zadanie.skan_sha16}, plik teraz: sha16 {sha16}) - "
-                            "analiza pominieta; nowa tresc ma wlasne zdarzenie skanu")
     uklad = "auto" if zadanie.uklad in (None, "", "auto", "rozpoznaj") else zadanie.uklad
     foldery = [Path(f) for f in zadanie.pula.foldery]
     podglad: dict | None = {} if zadanie.wyjscie is not None else None
@@ -409,24 +647,28 @@ def _wykonaj(zadanie: ZadanieAnalizy, funkcja, ust: dict, pamiec: PamiecPul, lac
     def postep(etap, udzial) -> None:
         lacze.send(("postep", zadanie.zadanie_id, str(etap), float(udzial)))
 
-    with warnings.catch_warnings(record=True) as ostrz:  # jak w wierszu polecen: ostrzezenia trafiaja do wyniku
-        warnings.simplefilter("always")
-        wynik = funkcja(skan, foldery, uklad, ust, zadanie.pula.wspolczynnik, zadanie.numer, zadanie.pula.orientacja, zadanie.bez_filtru, None,
-                        inspekcja=zadanie.inspekcja, podglad=podglad, postep=postep, straznik=zadanie.straznik,
-                        pula_dla=pamiec.dla(zadanie.pula), kontekst={})
+    _sprzataj_katalog_roboczy(katalog)  # kopia jedna naraz: resztki poprzednich zadan i procesow zabitych
+    folder = _folder_kopii(katalog, zadanie)
     try:
-        po = _skrot16(skan)
-    except OSError:
-        po = None
-    if po != sha16:  # nie wiadomo, ktora tresc przeczytala analiza: wyniku nie przypisujemy zadnej
-        raise PlikZmieniony(f"plik skanu zmienil sie w trakcie analizy (sha16 {sha16} -> {po or 'brak pliku'}) - wynik odrzucony; "
-                            "nowa tresc ma wlasne zdarzenie skanu")
+        folder.mkdir(parents=True, exist_ok=True)
+        kopia = folder / skan.name  # ta sama nazwa pliku: wynik["skan"] jak w wierszu polecen
+        sha16 = _kopiuj_skan(skan, kopia, czekaj_na_plik_s, lambda: postep(ETAP_OCZEKIWANIA, 0.0))  # N1: skrot = tresc analizowana
+        if zadanie.skan_sha16 and sha16 != zadanie.skan_sha16:
+            raise PlikZmieniony(f"plik skanu zmienil sie, zanim analiza ruszyla (zdarzenie: sha16 {zadanie.skan_sha16}, plik teraz: sha16 {sha16}) - "
+                                "analiza pominieta; nowa tresc ma wlasne zdarzenie skanu")
+        with warnings.catch_warnings(record=True) as ostrz:  # jak w wierszu polecen: ostrzezenia trafiaja do wyniku
+            warnings.simplefilter("always")
+            wynik = funkcja(kopia, foldery, uklad, ust, zadanie.pula.wspolczynnik, zadanie.numer, zadanie.pula.orientacja, zadanie.bez_filtru, None,
+                            inspekcja=zadanie.inspekcja, podglad=podglad, postep=postep, straznik=zadanie.straznik,
+                            pula_dla=pamiec.dla(zadanie.pula), kontekst={})
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)  # blokada, przeniesienie albo usuniecie pliku skanu po kopii nie szkodzi wynikowi
     if not isinstance(wynik, dict):
         raise TypeError(f"funkcja analizy zwrocila {type(wynik).__name__}, oczekiwany slownik")
     wynik = dict(wynik)
     wynik["ostrzezenia"] = [str(o.message) for o in ostrz]
     wynik = json.loads(json.dumps(wynik, ensure_ascii=False))  # postac jak w <skan>_wynik.json: same typy JSON
-    wynik = czysc.oczysc(wynik)  # P5: bez nazw plikow i folderow puli (ostrzezenia "pomijam projekt ...", uwagi, bledy inspekcji)
+    wynik = czysc.oczysc(wynik)  # P5 / N2: teksty wolne bez nazw z puli ("pomijam projekt ...", uwagi, bledy inspekcji); decyzje bez zmian
     wynik["zadanie_id"] = zadanie.zadanie_id
     wynik["skan_sha16"] = sha16
     pliki = _zapisz_wyjscie(zadanie, wynik, podglad or {}) if zadanie.wyjscie is not None else None
@@ -434,7 +676,7 @@ def _wykonaj(zadanie: ZadanieAnalizy, funkcja, ust: dict, pamiec: PamiecPul, lac
 
 
 def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamieci: int, plik_logu, pamiec_linii=None,
-              limit_zadania_s: float | None = LIMIT_ZADANIA_S) -> None:
+              limit_zadania_s: float | None = LIMIT_ZADANIA_S, katalog_roboczy=None, czekaj_na_plik_s: float = CZEKAJ_NA_PLIK_S) -> None:
     """Cialo procesu roboczego: laduje ustawienia i funkcje analizy, potem wykonuje zadania z lacza, jedno naraz."""
     rodzic = multiprocessing.parent_process()
     straznik = Straznik(rodzic.is_alive if rodzic is not None else (lambda: True), limit_zadania_s)
@@ -468,6 +710,12 @@ def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamiec
         except OSError:
             pass
         return
+    katalog = Path(katalog_roboczy) if katalog_roboczy is not None else Path(tempfile.gettempdir()) / KATALOG_ROBOCZY
+    try:  # N1 / D-N6: kopie po procesach roboczych zabitych w trakcie zadania (Straznik, limit czasu, awaria)
+        katalog.mkdir(parents=True, exist_ok=True)
+        _sprzataj_katalog_roboczy(katalog)
+    except OSError:
+        pass  # katalog niedostepny: kazde zadanie dostanie blad z powodem przy probie kopii
     lacze.send(("gotowy", os.getpid()))
     while True:
         try:
@@ -479,15 +727,22 @@ def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamiec
         zadanie: ZadanieAnalizy = wiadomosc[1]
         straznik.poczatek_zadania()
         czysc = CzyscicielNazw(zadanie.pula.foldery, pomin=(zadanie.skan,))  # lista plikow puli: nazwy do usuniecia z tekstow
+        kopia, oryginal = str(_folder_kopii(katalog, zadanie) / Path(zadanie.skan).name), str(zadanie.skan)
+
+        def tekst(t: str) -> str:  # sciezka kopii roboczej w komunikacie -> plik skanu (technik zna plik skanu, nie kopie)
+            return czysc(t.replace(kopia, oryginal).replace(kopia.replace("\\", "\\\\"), oryginal.replace("\\", "\\\\")))
+
         try:
-            wynik, pliki = _wykonaj(zadanie, f, ust, pamiec, lacze, czysc)
+            wynik, pliki = _wykonaj(zadanie, f, ust, pamiec, lacze, czysc, katalog, czekaj_na_plik_s)
             odpowiedz = ("wynik", zadanie.zadanie_id, wynik, pliki)
         except KeyboardInterrupt:
             return
         except PlikZmieniony as e:
-            odpowiedz = ("blad", zadanie.zadanie_id, czysc(str(e)), "", "plik_zmieniony")
+            odpowiedz = ("blad", zadanie.zadanie_id, tekst(str(e)), "", "plik_zmieniony")
+        except PlikNiedostepny as e:
+            odpowiedz = ("blad", zadanie.zadanie_id, tekst(str(e)), "", "plik_niedostepny")
         except BaseException as e:  # noqa: BLE001 - takze SystemExit z porownaj ("brak projektow STL"); proces pracuje dalej
-            odpowiedz = ("blad", zadanie.zadanie_id, czysc(f"{type(e).__name__}: {e}"), czysc(traceback.format_exc()), "analiza")
+            odpowiedz = ("blad", zadanie.zadanie_id, tekst(f"{type(e).__name__}: {e}"), tekst(traceback.format_exc()), "analiza")
         finally:
             straznik.koniec_zadania()
         try:
@@ -506,16 +761,20 @@ class Silnik:
     programu, jak wiersz polecen). ``funkcja`` - ``"modul:funkcja"`` analizy (domyslnie ``porownaj.porownaj``).
     ``limit_zadania_s`` - najdluzszy czas jednej analizy. ``plik_logu`` - dokad proces roboczy wypisuje to, co biblioteki
     drukuja na ekran. ``pamiec_linii`` - katalog pamieci podrecznej linii brzegu projektow (``krawedz.ustaw_katalog_pamieci``;
-    None = tylko pamiec procesu, na dysk nic nie trafia). ``na_zdarzenie`` - funkcja wolana z kazdym ``ZdarzenieSilnika``
-    w watku nadzorcy.
+    None = tylko pamiec procesu, na dysk nic nie trafia). ``katalog_roboczy`` - katalog kopii roboczych skanow (N1; None =
+    ``<katalog tymczasowy systemu>/qc_silnik``; jedna kopia 45-55 MB naraz na proces roboczy). ``czekaj_na_plik_s`` - jak
+    dlugo ponawiac kopiowanie pliku skanu, ktory trzyma inny program. ``na_zdarzenie`` - funkcja wolana z kazdym
+    ``ZdarzenieSilnika`` w watku nadzorcy; nie moze czekac na watek, ktory wola ``stop()`` (D-N3).
     """
 
     def __init__(self, ust: dict | None = None, plik_ustawien=None, *, funkcja: str = FUNKCJA_ANALIZY, limit_zadania_s: float = LIMIT_ZADANIA_S,
                  limit_startu_s: float = LIMIT_STARTU_S, pul_w_pamieci: int = PUL_W_PAMIECI, plik_logu=None, pamiec_linii=None,
-                 na_zdarzenie=None):
+                 katalog_roboczy=None, czekaj_na_plik_s: float = CZEKAJ_NA_PLIK_S, na_zdarzenie=None):
         self.ust, self.plik_ustawien, self.funkcja = ust, plik_ustawien, funkcja
         self.limit_zadania_s, self.limit_startu_s, self.pul_w_pamieci, self.plik_logu = limit_zadania_s, limit_startu_s, pul_w_pamieci, plik_logu
         self.pamiec_linii = str(pamiec_linii) if pamiec_linii is not None else None
+        self.katalog_roboczy = str(katalog_roboczy) if katalog_roboczy is not None else os.path.join(tempfile.gettempdir(), KATALOG_ROBOCZY)
+        self.czekaj_na_plik_s = float(czekaj_na_plik_s)
         self.na_zdarzenie = na_zdarzenie
         self.zdarzenia: queue.Queue = queue.Queue()  # ZdarzenieSilnika, gdy nie podano ``na_zdarzenie``
         self._ctx = multiprocessing.get_context("spawn")
@@ -534,6 +793,9 @@ class Silnik:
         self._starty = 0
         self._nieudany_start: tuple | None = None  # (tekst, szczegoly) ostatniego nieudanego startu procesu
         self._po_stopie = False
+        self._lista_zebrana = False  # stop() zebral juz liste niezakonczonych (D-N4)
+        self._zglaszane: ZadanieAnalizy | None = None  # zadanie, ktorego zdarzenie koncowe wlasnie idzie do odbiorcy (D-N3)
+        self._w_obiekcie_zadania = False  # D-N5: proces roboczy jest w obiekcie zadania Windows procesu okna
 
     # --- sterowanie
     def start(self) -> None:
@@ -546,22 +808,32 @@ class Silnik:
     def stop(self, czekaj_s: float = 5.0) -> list:
         """Konczy prace: trwajaca analiza jest przerywana razem z procesem, kolejka oprozniana. Zwraca liste zadan
         niezakonczonych (``ZadanieAnalizy``: w toku pierwsze, potem kolejka) i zglasza ja zdarzeniem ``zatrzymany``
-        (P2) - aplikacja zapisuje je i zleca ponownie po starcie. Zadne z nich nie dostaje zdarzenia ``wynik`` ani
-        ``blad``. Zdarzenie ``zatrzymany`` jest wolane w watku wywolujacym ``stop()``. Kolejne wywolanie zwraca []."""
+        (P2) - aplikacja zapisuje je i zleca ponownie po starcie. Zwraca [] przy kolejnym wywolaniu.
+
+        Gwarancja (D-N3, D-N4): kazde przyjete zadanie albo dostaje dokladnie jedno zdarzenie ``wynik`` / ``blad``, albo jest
+        na tej liscie - nigdy oba. Po rozpoczeciu ``stop()`` zadne zadanie nie dostaje juz ``wynik`` ani ``blad`` (spoznione
+        sa odrzucane); wyjatek: zadanie, ktorego zdarzenie koncowe nadzorca WLASNIE przekazuje (``na_zdarzenie`` blokuje sie
+        dluzej niz ``czekaj_s``) - nie ma go na liscie, a zdarzenie dojdzie po ``zatrzymany``. ``zlec`` po rozpoczeciu
+        ``stop()`` odmawia (``SilnikZatrzymany``); zadanie odrzucone, zanim lista zostala zebrana, jest na liscie.
+        Zdarzenie ``zatrzymany`` jest wolane w watku wywolujacym ``stop()``."""
         with self._zamek:
             if self._po_stopie:
                 return []
-            self._po_stopie = True
-        self._zatrzymany = True
+            self._po_stopie = self._zatrzymany = True
         self._stop.set()
-        if self._watek is not None:
-            self._watek.join(czekaj_s)
-            self._watek = None
+        w = self._watek
+        if w is not None and w is not threading.current_thread():
+            w.join(czekaj_s)
+            if w.is_alive():
+                LOG.warning("silnik: nadzorca nie zakonczyl sie w %.1f s (funkcja na_zdarzenie czeka?) - jego spoznione zdarzenia "
+                            "koncowe sa odrzucane", czekaj_s)
+        self._watek = None
         with self._zamek:
-            biezace = self._biezace
+            biezace = self._biezace if self._biezace is not self._zglaszane else None
             niezakonczone = ([biezace] if biezace is not None else []) + list(self._kolejka)
             self._kolejka.clear()
             self._biezace = None
+            self._lista_zebrana = True
         self._zamknij_proces(grzecznie=biezace is None)
         self._zglos("zatrzymany", niezakonczone=tuple(niezakonczone))
         return niezakonczone
@@ -587,10 +859,17 @@ class Silnik:
 
     def zlec(self, zadanie: ZadanieAnalizy) -> int:
         """Dodaje zadanie na koniec kolejki; zwraca ``zadanie_id`` (rosnace od 1 w kazdym obiekcie ``Silnik``) i ustawia
-        ``przyjete`` (czas przyjecia). Zadanie z ``stop()`` innego obiektu mozna zlecic ponownie - dostanie nowy numer."""
-        if self._zatrzymany:
-            raise RuntimeError("silnik zatrzymany - zadanie nie zostalo przyjete")
-        with self._zamek:
+        ``przyjete`` (czas przyjecia). Zadanie z ``stop()`` innego obiektu mozna zlecic ponownie - dostanie nowy numer.
+        Po rozpoczeciu ``stop()`` - wyjatek ``SilnikZatrzymany`` (podklasa ``RuntimeError``; D-N4): zadanie nie ruszy, a gdy
+        ``stop()`` jeszcze nie zebral listy, trafia na liste niezakonczonych (``na_liscie`` True, ``zadanie_id`` bez zmian)."""
+        with self._zamek:  # D-N4: sprawdzenie i dopisanie pod jednym zamkiem ze stop()
+            if self._po_stopie:
+                z = dataclasses.replace(zadanie, przyjete=time.time())
+                if not self._lista_zebrana:
+                    self._kolejka.append(z)  # nadzorca juz nic nie bierze z kolejki; stop() odda ja w liscie niezakonczonych
+                    raise SilnikZatrzymany("silnik sie zatrzymuje - zadanie nie zostalo przyjete do analizy; jest na liscie "
+                                           "niezakonczonych z stop()", z, True)
+                raise SilnikZatrzymany("silnik zatrzymany - zadanie nie zostalo przyjete", z, False)
             nr = self._nastepny_id
             self._nastepny_id += 1
             self._kolejka.append(dataclasses.replace(zadanie, zadanie_id=nr, przyjete=time.time()))
@@ -598,7 +877,8 @@ class Silnik:
 
     def zlec_skan(self, zdarzenie, pula: OpisPuli, **pola) -> int:
         """Zadanie z ``scanner.ZdarzenieSkanu``: sciezka i skrot skanu ze zdarzenia, reszta pol jak w ``ZadanieAnalizy``.
-        Skrot ze zdarzenia jest sprawdzany przed analiza i po niej (P1: plik nadpisany = ``blad`` ``plik_zmieniony``)."""
+        Skrot ze zdarzenia jest porownywany ze skrotem kopii roboczej (P1 / N1: plik nadpisany, zanim analiza ruszyla =
+        ``blad`` ``plik_zmieniony``; plik zmieniony, przeniesiony albo zablokowany PO zrobieniu kopii - wynik zostaje)."""
         return self.zlec(ZadanieAnalizy(skan=Path(zdarzenie.plik), pula=pula, skan_sha16=zdarzenie.sha16, **pola))
 
     def anuluj(self, zadanie_id: int) -> bool:
@@ -621,7 +901,7 @@ class Silnik:
         t0 = time.monotonic()
         while True:
             with self._zamek:
-                pusto = not self._kolejka and self._biezace is None
+                pusto = not self._kolejka and self._biezace is None and self._zglaszane is None
             if pusto:
                 return True
             if time.monotonic() - t0 > limit_s:
@@ -631,7 +911,7 @@ class Silnik:
     def stan(self) -> dict:
         b = self._biezace
         return {"dziala": self.dziala(), "proces_gotowy": self._gotowy, "pid": self.pid, "w_kolejce": len(self._kolejka),
-                "biezace": b.zadanie_id if b is not None else None, "starty_procesu": self._starty}
+                "biezace": b.zadanie_id if b is not None else None, "starty_procesu": self._starty, "obiekt_zadania": self._w_obiekcie_zadania}
 
     # --- nadzorca
     def _zglos(self, typ: str, **pola) -> None:
@@ -656,15 +936,29 @@ class Silnik:
         rodzic, dziecko = self._ctx.Pipe()
         p = self._ctx.Process(target=_robotnik, name="silnik-analiza", daemon=True,
                               args=(dziecko, self.ust, self.plik_ustawien, self.funkcja, self.pul_w_pamieci, self.plik_logu, self.pamiec_linii,
-                                    self.limit_zadania_s))
+                                    self.limit_zadania_s, self.katalog_roboczy, self.czekaj_na_plik_s))
         p.start()
         dziecko.close()  # koniec lacza po stronie procesu roboczego zostaje tylko u niego: jego smierc = koniec danych
-        self._proces, self._lacze, self._gotowy, self._start_procesu = p, rodzic, False, time.monotonic()
-        self._starty += 1
+        try:  # D-N5: system konczy proces roboczy razem z procesem okna (takze, gdy Straznik nie dostaje czasu - kod natywny z GIL)
+            w_obiekcie = _dolacz_do_obiektu_zadania(p.pid)
+        except Exception as e:  # noqa: BLE001 - bez obiektu zadania zostaje Straznik (jak do rundy 3)
+            w_obiekcie = False
+            LOG.warning("silnik: procesu roboczego nie dalo sie wlozyc do obiektu zadania Windows (%s: %s) - zostaje straznik w procesie",
+                        type(e).__name__, e)
+        with self._zamek:
+            if not self._po_stopie:
+                self._proces, self._lacze, self._gotowy, self._start_procesu = p, rodzic, False, time.monotonic()
+                self._w_obiekcie_zadania = bool(w_obiekcie)
+                self._starty += 1
+                return
+        p.kill()  # D-N3: stop() ruszyl w trakcie startu procesu (wolny p.start()) - proces nie moze zostac bez nadzoru
+        p.join(5.0)
+        rodzic.close()
 
     def _zamknij_proces(self, grzecznie: bool = False) -> int | None:
-        p, lacze = self._proces, self._lacze
-        self._proces, self._lacze, self._gotowy = None, None, False
+        with self._zamek:  # stop() i nadzorca (po przekroczeniu czasu join) nie zamykaja tego samego procesu dwa razy
+            p, lacze = self._proces, self._lacze
+            self._proces, self._lacze, self._gotowy = None, None, False
         kod = None
         if p is not None:
             if grzecznie and p.is_alive() and lacze is not None:
@@ -694,16 +988,19 @@ class Silnik:
                 time.sleep(0.05)  # po nieudanym starcie kolejna proba dopiero, gdy jest dla kogo
                 return
             self._uruchom_proces()
+        p, lacze = self._proces, self._lacze
+        if p is None or lacze is None:
+            return  # stop() w trakcie startu procesu albo zamknal proces
         try:
-            if self._lacze.poll(OKRES_S):
-                self._odbierz(self._lacze.recv())
+            if lacze.poll(OKRES_S):
+                self._odbierz(lacze.recv())
                 self._sprawdz_limit()  # D4 (a): zadanie, ktore stale przysyla postep, tez ma limit czasu
                 return
         except (EOFError, OSError):
             self._po_smierci_procesu()
             return
         teraz = time.monotonic()
-        if not self._proces.is_alive():
+        if not p.is_alive():
             self._po_smierci_procesu()
         elif self._biezace is not None:
             self._sprawdz_limit()
@@ -713,15 +1010,35 @@ class Silnik:
                 self._nieudany_start_procesu(f"proces silnika nie zglosil gotowosci w {self.limit_startu_s:.0f} s", "")
         else:
             with self._zamek:  # D3: zdjecie z kolejki i "w toku" razem - czekaj_na_pusta_kolejke nie widzi luki
+                if self._po_stopie:
+                    return  # D-N4: po rozpoczeciu stop() kolejka nalezy do listy niezakonczonych
                 zadanie = self._kolejka.popleft() if self._kolejka else None
                 if zadanie is not None:
                     self._biezace, self._biezace_od = zadanie, teraz
             if zadanie is not None:
                 self._zglos("start", zadanie_id=zadanie.zadanie_id, zadanie=zadanie)
                 try:
-                    self._lacze.send(("zadanie", zadanie))
+                    lacze.send(("zadanie", zadanie))
                 except OSError:
                     self._po_smierci_procesu()
+
+    def _zakoncz(self, zadanie: ZadanieAnalizy, typ: str, **pola) -> None:
+        """Zdarzenie koncowe zadania (``wynik`` / ``blad``) - jedyna droga (D-N3). Po rozpoczeciu ``stop()`` zdarzenie jest
+        odrzucane: zadanie zostaje w ``_biezace`` i trafia na liste niezakonczonych. Zadanie w trakcie przekazywania
+        (``_zglaszane``) ``stop()`` pomija - dostaje to zdarzenie. ``_biezace`` = None dopiero po zgloszeniu (D3)."""
+        with self._zamek:
+            if self._po_stopie:
+                LOG.info("silnik: zdarzenie %s zadania %s po rozpoczeciu stop() odrzucone - zadanie jest na liscie niezakonczonych",
+                         typ, zadanie.zadanie_id)
+                return
+            self._zglaszane = zadanie
+        try:
+            self._zglos(typ, zadanie_id=zadanie.zadanie_id, zadanie=zadanie, **pola)
+        finally:
+            with self._zamek:
+                self._zglaszane = None
+                if self._biezace is zadanie:
+                    self._biezace = None
 
     def _sprawdz_limit(self) -> None:
         zadanie = self._biezace
@@ -731,9 +1048,8 @@ class Silnik:
         if czas <= self.limit_zadania_s:
             return
         self._zamknij_proces()
-        self._zglos("blad", zadanie_id=zadanie.zadanie_id, zadanie=zadanie, rodzaj="limit_czasu", czas_s=round(czas, 3),
-                    blad=f"analiza trwala dluzej niz {self.limit_zadania_s:.0f} s i zostala przerwana")
-        self._biezace = None
+        self._zakoncz(zadanie, "blad", rodzaj="limit_czasu", czas_s=round(czas, 3),
+                      blad=f"analiza trwala dluzej niz {self.limit_zadania_s:.0f} s i zostala przerwana")
 
     def _odbierz(self, w: tuple) -> None:
         rodzaj = w[0]
@@ -749,24 +1065,22 @@ class Silnik:
         if zadanie is None or w[1] != zadanie.zadanie_id:
             return  # spozniona wiadomosc zadania juz zamknietego
         if rodzaj == "postep":
-            self._zglos("postep", zadanie_id=zadanie.zadanie_id, zadanie=zadanie, etap=w[2], udzial=w[3])
+            if not self._po_stopie:  # zadanie z listy stop() nie dostaje juz zdarzen
+                self._zglos("postep", zadanie_id=zadanie.zadanie_id, zadanie=zadanie, etap=w[2], udzial=w[3])
             return
         czas_s = round(time.monotonic() - self._biezace_od, 3)
         if rodzaj == "wynik":
-            self._zglos("wynik", zadanie_id=zadanie.zadanie_id, zadanie=zadanie, wynik=w[2], pliki=w[3], czas_s=czas_s)
+            self._zakoncz(zadanie, "wynik", wynik=w[2], pliki=w[3], czas_s=czas_s)
         elif rodzaj == "blad":
-            self._zglos("blad", zadanie_id=zadanie.zadanie_id, zadanie=zadanie, rodzaj=w[4] if len(w) > 4 else "analiza", blad=w[2], szczegoly=w[3],
-                        czas_s=czas_s)
-        self._biezace = None  # D3: "wolny" dopiero po zgloszeniu wyniku
+            self._zakoncz(zadanie, "blad", rodzaj=w[4] if len(w) > 4 else "analiza", blad=w[2], szczegoly=w[3], czas_s=czas_s)
 
     def _po_smierci_procesu(self) -> None:
         """Proces roboczy zniknal (zabity, awaria biblioteki): blad biezacego zadania; nowy proces ruszy w nastepnym kroku."""
         gotowy, zadanie, od = self._gotowy, self._biezace, self._biezace_od
         kod = self._zamknij_proces()
         if zadanie is not None:
-            self._zglos("blad", zadanie_id=zadanie.zadanie_id, zadanie=zadanie, rodzaj="proces", czas_s=round(time.monotonic() - od, 3),
-                        blad=f"proces silnika zakonczyl sie w trakcie analizy (kod wyjscia {kod}); analiza przerwana")
-            self._biezace = None
+            self._zakoncz(zadanie, "blad", rodzaj="proces", czas_s=round(time.monotonic() - od, 3),
+                          blad=f"proces silnika zakonczyl sie w trakcie analizy (kod wyjscia {kod}); analiza przerwana")
         elif not gotowy:
             self._nieudany_start_procesu(f"proces silnika zakonczyl sie przy starcie (kod wyjscia {kod})", "")
 
@@ -775,9 +1089,15 @@ class Silnik:
         LOG.error("%s", tekst)
         self._nieudany_start = (tekst, szczegoly)
         with self._zamek:
-            zadanie = self._kolejka.popleft() if self._kolejka else None
-        if zadanie is not None:
+            if self._po_stopie or not self._kolejka:
+                return  # po rozpoczeciu stop() kolejka nalezy do listy niezakonczonych
+            zadanie = self._kolejka.popleft()
+            self._zglaszane = zadanie
+        try:
             self._zglos("blad", zadanie_id=zadanie.zadanie_id, zadanie=zadanie, rodzaj="start", blad=tekst, szczegoly=szczegoly, czas_s=0.0)
+        finally:
+            with self._zamek:
+                self._zglaszane = None
 
 
 # ----------------------------------------------------------------------------

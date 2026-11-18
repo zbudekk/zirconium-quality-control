@@ -16,9 +16,10 @@ Bez ``--zrodla`` symulator sam tworzy male poprawne pliki binarnego STL (losowe 
 nie do analizy). Z ``--pomiar`` wypisuje liczniki (zdarzen / zapisow, ile zdarzen przed koncem zapisu, mediana opoznienia,
 odrzucenia z powodami) i konczy kodem 0 tylko wtedy, gdy kazdy dobry plik dal dokladnie jedno zdarzenie po koncu zapisu,
 a kazdy zly - zero zdarzen i wpis z powodem. Z ``--analiza`` dochodza wyniki silnika (czas od konca zapisu do startu
-analizy, czas plytki, statusy gniazd) i pliki ``<czas>_<sha16>_<skan>_wynik.json`` w ``--wyjscie``. ``--tryb wylaczny``
-(tylko Windows) zapisuje plik bez zgody na wspoldzielenie - obserwator czeka wtedy na zwolnienie pliku (``Oczekiwanie``
-po 10 s, liczone w ``--pomiar``).
+analizy, czas plytki, statusy gniazd) i pliki ``<czas przyjecia>_<sha16>[_n]_wynik.json`` (bez nazwy skanu) w ``--wyjscie``.
+``--tryb wylaczny`` (tylko Windows) zapisuje plik bez zgody na wspoldzielenie - obserwator czeka wtedy na zwolnienie pliku
+(``Oczekiwanie`` po 10 s, liczone w ``--pomiar``). Na koncu zatrzymuje najpierw obserwator, potem silnik (kolejnosc jak
+w oknie aplikacji: zadne zlecenie w trakcie ``Silnik.stop()``).
 
 Funkcje dla testow: ``sztuczny_stl``, ``zly_plik``, ``zapisz_jak_skaner``, ``symuluj``, ``statystyki``.
 """
@@ -287,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--czekaj", type=float, default=60.0, help="ile najdluzej czekac na zdarzenia po ostatnim zapisie, s")
     ap.add_argument("--analiza", action="store_true", help="analizuj kazdy zgloszony skan silnikiem (wymaga --projekty)")
     ap.add_argument("--projekty", type=Path, nargs="+", default=[], help="folder(y) puli projektow dla --analiza")
-    ap.add_argument("--wyjscie", type=Path, default=None, help="folder na <czas>_<sha16>_<skan>_wynik.json z silnika")
+    ap.add_argument("--wyjscie", type=Path, default=None, help="folder na <czas>_<sha16>[_n]_wynik.json z silnika (bez nazwy skanu)")
     ap.add_argument("--ustawienia", type=Path, default=None)
     ap.add_argument("--limit-analizy", type=float, default=3600.0, help="ile najdluzej czekac na wszystkie analizy, s")
     a = ap.parse_args(argv)
