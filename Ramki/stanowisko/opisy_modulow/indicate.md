@@ -102,7 +102,7 @@ potwierdzenia ramki (gdy plan na ramce jest wazny) - nowy klient wysyla je dalej
 | K1 plan plytki porannej 23 gniazda -> matryca 64 x 64 piksel po pikselu | `test_k1_...` (osobny proces) | 23 z 23 gniazd, w 6 krokach (5 kuwet + reszta), 0 roznych pikseli; nowy piec 23 naraz |
 | K2 margines: kuweta i liczba prac | `test_k2_...` (osobny proces) | 5 z 5 napisow "kuweta liczba" + prawy margines, potem "-5120" |
 | K5 5 potwierdzen bez sieci, 100 powtorzen | `test_k5_...` (osobny proces + posrednik TCP, 30 % zgubionych odpowiedzi) | 500 z 500, 0 powtorek, 0 luk, 0 planow po zdarzeniach klawiatury |
-| K6 restart ramki -> plan ponownie do 5 s | `test_k6_...` (3 restarty procesu ramki) | ponizej 0,1 s od startu ramki (szczegoly w raporcie) |
+| K6 restart ramki -> plan ponownie do 5 s | `test_k6_...` (3 restarty procesu ramki) | 0,07 s od startu ramki, 0,22 s od zabicia poprzedniego procesu ramki (prog 5 s) |
 | K7 Spacja -> stan ramki W < 1 s, dwa procesy | `test_k7_...` | 10 z 10, maks ok. 10 ms; kolory gniazd = mapa (statusy.py) |
 | K8 caly ruch testow bez nazw folderow i nazwisk | `test_zz_k8_...` (ostatni test pliku) | 0 trafien, 0 kluczy w ok. 3,5 tys. zapisow |
 | PR #19: stary wynik po zdjeciu plytki | `test_w1_...`-`test_w5_...` | zdjecie, `plan_wygasl`, restart ramki, 409 w trakcie wysylki: 0 starych wynikow na ramce |
