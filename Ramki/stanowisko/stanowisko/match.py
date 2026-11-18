@@ -99,7 +99,7 @@ RATUNEK_PELNYCH = 4  # pelnych dopasowan (sam RANSAC + ICP, bez przegladu obroto
 RATUNEK_TUR = 12  # najwyzej tyle tur na fragment (48 kandydatow wg deskryptorow FPFH; pomiar: wlasciwy w pierwszej 48 w 114 / 114)
 RATUNEK_PLYTKA_MAX = 60  # BUDZET ratunku: pelnych dopasowan na cala plytke (staly - wynik powtarzalny; ok. 0,1-0,2 s kazde, pomiar R59: raport E3-A5)
 RATUNEK_LIMIT_CZASU_S = 38.0  # s: AWARYJNY limit zegara (time.monotonic) od poczatku analizy plytki, minus zapas na inspekcje; przerwanie = uwaga
-RATUNEK_ZAPAS_INSPEKCJI_S = 0.4  # s na fragment: zapas na inspekcje po ratunku (tylko w limicie awaryjnym)
+RATUNEK_ZAPAS_INSPEKCJI_S = 0.25  # s na fragment: zapas na inspekcje po ratunku (tylko w limicie awaryjnym; R59: mediana 0,13-0,15, max 0,39 s na gniazdo)
 UWAGA_RATUNEK_CZAS = "ratunek przerwany: limit czasu"
 UWAGA_RATUNEK_LIMIT = "ratunek przerwany: limit dopasowan plytki"
 UWAGA_RATUNEK_WYZSZY = "ratunek: zwyciezca nie spelnia reguly 'fragment nie wyzszy niz projekt' - wynik niepewny"
