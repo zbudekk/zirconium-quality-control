@@ -546,7 +546,46 @@ def test_plytka_bez_numeru_ponowny_skan_i_plytka_wieczorna_rano(atrapa, ekrany, 
     assert list(e.mapy()) == [drugi] and e.jest("rano_nieaktywne")
     wieczorna = atrapa.symuluj_skan("nie_z_trybu", numer=1, gniazda={1: "zielony"})
     e.czekaj(lambda: e.jest("pytanie_plytka_nie_z_trybu"), 5.0, "pytanie o plytke nie z trybu")
-    assert atrapa.stan().rano.plytka(wieczorna).status == "plytka_nie_z_trybu"
+    assert atrapa.stan().rano.plytka(wieczorna).status == "plytka_nie_z_trybu" and not e.aktywny("przycisk_zamknij_piec")
+    assert e.jest("odp_pomin_skan") and not e.jest("odp_dopusc_plytke")  # rano plytki nie z trybu sie nie dopuszcza (A6 runda 2)
+    e.klik("odp_pomin_skan")
+    assert atrapa.stan().rano.plytka(wieczorna).pominieta and e.aktywny("przycisk_zamknij_piec")
+    assert "pominięta" in e.w(f"rano_plytka_{wieczorna}_tytul").text() and e.jest(f"rano_plytka_{wieczorna}_cofnij_pominiecie")
+    e.klik(f"rano_plytka_{wieczorna}_cofnij_pominiecie")
+    assert not atrapa.stan().rano.plytka(wieczorna).pominieta and not e.aktywny("przycisk_zamknij_piec")
+
+
+def test_a6r2_reczne_zamkniecie_braku_ponowne_otwarcie_pieca_i_zamkniecie_w_trakcie_analizy(atrapa, ekrany):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from stanowisko import statusy as ST
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    rozstrzygnij_konflikt(e, atrapa, skany)
+    atrapa.symuluj_postep(udzial=0.4)  # skan w analizie: "Zamknij piec" niedostepne (A6 runda 2, D11)
+    e.zdarzenia()
+    assert not e.aktywny("przycisk_zamknij_piec") and ST.tekst_komunikatu("analiza_trwa")[2] in e.w("rano_blokady").text()
+    atrapa.symuluj_postep(udzial=None)
+    e.zdarzenia()
+    assert e.aktywny("przycisk_zamknij_piec")
+    e.klik("przycisk_zamknij_piec")
+    assert e.jest("przycisk_otworz_piec") and not e.jest("przycisk_zamknij_piec")
+    biezace = atrapa.stan().rano.braki_biezace
+    t = e.w("tabela_braki_biezace")
+    QTest.mouseClick(t.viewport(), Qt.MouseButton.LeftButton, pos=t.visualItemRect(t.item(0, 0)).center())
+    e.odczekaj(5)
+    punkt = biezace[0].brakujace[0]
+    assert e.jest("rano_brak_reczny_tytul") and biezace[0].kuweta in e.w("rano_brak_reczny_tytul").text()
+    e.klik(f"brak_{punkt.projekt_id}_zaginiona")
+    assert len(atrapa.stan().rano.braki_biezace) == len(biezace) - (len(biezace[0].brakujace) == 1) and e.jest(f"brak_cofnij_{punkt.projekt_id}")
+    d = atrapa.sesja.baza.wiersz("SELECT rodzaj, wartosc FROM decyzje WHERE rodzaj = 'zamkniecie_reczne'")
+    assert '"powod": "zaginiona"' in d["wartosc"]
+    e.klik(f"brak_cofnij_{punkt.projekt_id}")
+    assert len(atrapa.stan().rano.braki_biezace) == len(biezace) and not e.jest(f"brak_cofnij_{punkt.projekt_id}")
+    e.klik("przycisk_otworz_piec")  # pomylka przy zamykaniu: piec otwarty ponownie
+    assert atrapa.stan().rano.otwarty and e.jest("przycisk_zamknij_piec") and not e.jest("przycisk_otworz_piec")
 
 
 # ----------------------------------------------------------------------------

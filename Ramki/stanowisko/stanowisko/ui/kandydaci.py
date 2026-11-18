@@ -237,7 +237,7 @@ class WidokPracyRano(QFrame):
             b.setEnabled(jest_osoba)
             akcje.addWidget(b)
         if "cofnij_przypisanie" in praca.dozwolone:
-            b = przycisk(ST.PRZYCISKI["cofnij_przypisanie"], "praca_rano_cofnij", None, lambda p=praca.praca_id: self.polecenie.emit("cofnij_przypisanie", (p,)),
+            b = przycisk(ST.PRZYCISKI["cofnij_przypisanie"], "praca_rano_cofnij", None, lambda p=praca.praca_id, d=praca.decyzja_id: self.polecenie.emit("cofnij_przypisanie", (p, d) if d is not None else (p,)),
                          r.wysokosc_przycisku)
             b.setEnabled(jest_osoba)
             akcje.addWidget(b)

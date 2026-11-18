@@ -38,7 +38,7 @@ OCHRONA_MS = 800  # po zmianie zestawu plytek klikniecia map sa pomijane (jak A-
 KOLUMN_PLYTEK = 3
 KOLEJNOSC_KLAS = ("pewna", "przypisana", "dwuznaczna", "nieznana", "poprawka", "konflikt", "do_powtorzenia")
 MAX_BUFORA = 7
-PYTANE = {"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "dopusc_plytke"}
+PYTANE = {"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "pomin_skan"}  # rano: plytki nie z trybu nie dopuszcza sie (A6)
 
 
 def blad_programu(komunikat) -> bool:
@@ -164,9 +164,16 @@ class PanelKuwet(QFrame):
         for b in (self.potwierdz, self.cofnij, *self.przyciski_kolejnosci.values()):
             b.setMinimumHeight(r.wysokosc_przycisku)
         self.podpowiedz.setVisible(not r.zwarty)  # maly ekran: podpowiedz w komunikacie ramki i na przyciskach
+        self._sygnatura = None
 
     def ustaw(self, stan, bufor: str) -> None:
         rano = stan.rano
+        sygnatura = (rano.kuwety if rano is not None else None, rano.kolejnosc if rano is not None else None,
+                     rano.otwarty if rano is not None else None, rano.sesja_pieca_id if rano is not None else None, stan.operator, bufor,
+                     self._r.zwarty)
+        if sygnatura == getattr(self, "_sygnatura", None):
+            return
+        self._sygnatura = sygnatura
         jest_osoba = stan.operator is not None
         kuwety = rano.kuwety if rano is not None else ()
         self._kuwety = kuwety
@@ -207,10 +214,15 @@ class PanelKuwet(QFrame):
 
 class PanelWyniku(QScrollArea):
     """Zlecenia kompletne (do odhaczenia w Excelu) i braki pieca - prowizoryczne w otwartym piecu, z zapisu "Zamknij piec"
-    w zamknietym; lista brakow ze wszystkich piecow; poprawki (tylko log)."""
+    w zamknietym; lista brakow ze wszystkich piecow (klikniecie zlecenia = reczne zamkniecie brakujacego punktu z powodem,
+    A6 runda 2; ostatnie zamkniecie mozna cofnac); poprawki (tylko log)."""
 
-    def __init__(self):
+    def __init__(self, ekran: "EkranRano | None" = None):
         super().__init__()
+        self.ekran = ekran
+        self._wybrane: int | None = None  # zlecenie_id z listy brakow wybrane do recznego zamkniecia
+        self._ostatnie: tuple | None = None  # (projekt_id, kuweta, zab) ostatnio zamknietego recznie punktu (do cofniecia)
+        self._biezace: tuple = ()
         self.setObjectName("rano_wynik")
         self.setWidgetResizable(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
@@ -237,11 +249,71 @@ class PanelWyniku(QScrollArea):
         self.biezace_tytul = etykieta("", "duzy", "rano_braki_biezace_tytul", zawijaj=True)
         u.addWidget(self.biezace_tytul)
         self.biezace = tabela("tabela_braki_biezace", NR.KOLUMNY_BRAKI_BIEZACE, styl.ZWYKLE)
+        self.biezace.cellClicked.connect(self._klik_braku)
         u.addWidget(self.biezace)
+        self.reczne = QWidget()
+        self.reczne.setObjectName("rano_brak_reczny")
+        self._reczne = QVBoxLayout(self.reczne)
+        self._reczne.setContentsMargins(0, 0, 0, 0)
+        u.addWidget(self.reczne)
         u.addStretch(1)
         self.setWidget(wnetrze)
         self._r = styl.ZWYKLE
         self._sygnatura = None
+        self._stan = None
+
+    def _klik_braku(self, wiersz: int, _kolumna: int) -> None:
+        if 0 <= wiersz < len(self._biezace):
+            z = self._biezace[wiersz]
+            self._wybrane = None if self._wybrane == z.zlecenie_id else z.zlecenie_id
+            self._sygnatura = None
+            if self._stan is not None:
+                self.ustaw(self._stan.rano, self._stan)
+
+    def _zamknij(self, z, b, powod: str) -> None:
+        odpowiedz = self.ekran._polecenie("zamknij_brak_recznie", b.projekt_id, powod) if self.ekran is not None else None
+        if odpowiedz is not None and odpowiedz.ok:
+            self._ostatnie = (b.projekt_id, z.kuweta, b.zeby)
+            self._sygnatura = None
+            if self._stan is not None:
+                self.ustaw(self._stan.rano, self._stan)
+
+    def _cofnij(self) -> None:
+        if self._ostatnie is None or self.ekran is None:
+            return
+        odpowiedz = self.ekran._polecenie("cofnij_zamkniecie_reczne", self._ostatnie[0])
+        if odpowiedz is not None and odpowiedz.ok:
+            self._ostatnie = None
+            self._sygnatura = None
+            if self._stan is not None:
+                self.ustaw(self._stan.rano, self._stan)
+
+    def _odswiez_reczne(self, stan) -> None:
+        """Pod lista brakow: punkty wybranego zlecenia z przyciskami powodow i "Cofnij zamkniecie reczne" ostatniego zamkniecia."""
+        wyczysc(self._reczne)
+        jest_osoba = stan is not None and stan.operator is not None
+        z = next((x for x in self._biezace if x.zlecenie_id == self._wybrane), None)
+        if z is None:
+            self._wybrane = None
+        else:
+            self._reczne.addWidget(etykieta(NR.RECZNE_TYTUL.format(kuweta=z.kuweta or NR.BRAK_DANYCH), "naglowek", "rano_brak_reczny_tytul", zawijaj=True))
+            self._reczne.addWidget(etykieta(NR.RECZNE_OPIS, "slaby", zawijaj=True))
+            for b in z.brakujace:
+                self._reczne.addWidget(etykieta(NR.RECZNE_PUNKT.format(zab=b.zeby or NR.BRAK_DANYCH, stan=b.napis), "duzy", zawijaj=True))
+                powody = UkladPlynny(odstep_poziomy=6, odstep_pionowy=3)
+                for kod, napis in ST.POWODY_ZAMKNIECIA.items():
+                    przycisk_ = przycisk(napis, f"brak_{b.projekt_id}_{kod}", "lacze", lambda z=z, b=b, kod=kod: self._zamknij(z, b, kod))
+                    przycisk_.setEnabled(jest_osoba)
+                    powody.addWidget(przycisk_)
+                self._reczne.addLayout(powody)
+        if self._ostatnie is not None:
+            projekt_id, kuweta, zab = self._ostatnie
+            self._reczne.addWidget(etykieta(NR.RECZNE_ZAMKNIETO.format(kuweta=kuweta or NR.BRAK_DANYCH, zab=zab or NR.BRAK_DANYCH), "informacja",
+                                            "rano_brak_zamkniety", zawijaj=True))
+            b = przycisk(ST.PRZYCISKI["cofnij_zamkniecie_reczne"], f"brak_cofnij_{projekt_id}", None, self._cofnij)
+            b.setEnabled(jest_osoba)
+            self._reczne.addWidget(b)
+        self.reczne.setVisible(self._reczne.count() > 0)
 
     def ustaw_tryb(self, r: styl.Rozmiary) -> None:
         self._r = r
@@ -257,8 +329,9 @@ class PanelWyniku(QScrollArea):
     def _stany(z) -> str:
         return ", ".join(dict.fromkeys(b.napis for b in z.brakujace)) or NR.LISTA_PUSTA
 
-    def ustaw(self, rano) -> None:
-        sygnatura = (rano, self._r.zwarty)
+    def ustaw(self, rano, stan=None) -> None:
+        self._stan = stan
+        sygnatura = (rano, self._r.zwarty, stan.operator if stan is not None else None, self._wybrane, self._ostatnie)
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
@@ -286,9 +359,14 @@ class PanelWyniku(QScrollArea):
                                                                      for x in poprawki)) if poprawki else "")
         self.poprawki.setVisible(bool(poprawki))
         biezace = rano.braki_biezace if rano is not None else ()
+        self._biezace = tuple(biezace)
         self.biezace_tytul.setText(NR.BRAKI_BIEZACE_TYTUL.format(n=len(biezace)))
         wypelnij(self.biezace, [[z.kuweta or NR.BRAK_DANYCH, self._brakuje(z), self._stany(z), str(z.ostatni_piec or NR.BRAK_DANYCH)]
                                 for z in biezace], r)
+        indeks = next((i for i, z in enumerate(biezace) if z.zlecenie_id == self._wybrane), None)
+        if indeks is not None:
+            self.biezace.selectRow(indeks)
+        self._odswiez_reczne(stan)
 
 
 class EkranRano(QWidget):
@@ -344,10 +422,14 @@ class EkranRano(QWidget):
         self.blokady = etykieta("", "uwaga", "rano_blokady", zawijaj=True)
         self.blokady.setVisible(False)
         kolumna.addWidget(self.blokady)
+        self.ostrzezenia = etykieta("", "informacja", "rano_ostrzezenia", zawijaj=True)
+        self.ostrzezenia.setVisible(False)
+        kolumna.addWidget(self.ostrzezenia)
         u.addLayout(kolumna, 1)
-        self.zamknij_piec = przycisk(ST.PRZYCISKI["zamknij_piec"], "przycisk_zamknij_piec", "glowny", lambda: self._polecenie("zamknij_piec"),
-                                     styl.ZWYKLE.wysokosc_skanuj)
+        self.zamknij_piec = przycisk(ST.PRZYCISKI["zamknij_piec"], "przycisk_zamknij_piec", "glowny", self._zamknij_piec, styl.ZWYKLE.wysokosc_skanuj)
         u.addWidget(self.zamknij_piec, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.otworz_piec = przycisk(ST.PRZYCISKI["otworz_piec_ponownie"], "przycisk_otworz_piec", None, self._otworz_piec)
+        u.addWidget(self.otworz_piec, 0, Qt.AlignmentFlag.AlignVCenter)
         lewa.addWidget(naglowek)
         self.plytki = QWidget()
         self.plytki.setObjectName("rano_plytki")
@@ -394,7 +476,7 @@ class EkranRano(QWidget):
         self.widok.po_zmianie(self._odswiez)
         su.addWidget(self.widok, 1)
         self._stos.addWidget(strona)
-        self.wynik = PanelWyniku()
+        self.wynik = PanelWyniku(self)
         self._stos.addWidget(self.wynik)
         pu.addLayout(self._stos, 1)
         korzen.addWidget(prawa)
@@ -487,7 +569,7 @@ class EkranRano(QWidget):
         else:
             self.widok.ustaw(stan, plytka, gniazdo, praca, rano.otwarty)
         self.kuwety.ustaw(stan, self._bufor)
-        self.wynik.ustaw(rano)
+        self.wynik.ustaw(rano, stan)
         self.przycisk_rozkladanie.setChecked(self._strona == "rozkladanie")
         self.przycisk_wynik.setChecked(self._strona == "wynik")
         self._stos.setCurrentIndex(0 if self._strona == "rozkladanie" else 1)
@@ -526,7 +608,7 @@ class EkranRano(QWidget):
                     self._obraz(sha, dane)
             wybrane = self._wybor[1] if self._wybor is not None and self._wybor[0] == p.skan_id else None
             karta.mapa.ustaw_rano(p, geometria, wybrane, biezaca, self._obrazy)
-            akcje = tuple(a for a in ("podaj_numer_plytki", "cofnij_zastapienie", "dopusc_plytke", "cofnij_dopuszczenie")
+            akcje = tuple(a for a in ("podaj_numer_plytki", "cofnij_zastapienie", "cofnij_dopuszczenie", "pomin_skan", "cofnij_pominiecie")
                           if a in p.dozwolone and (p.skan_id, a) not in pytane)
             podpis = (akcje, p.numer, stan.operator, self._r.zwarty)
             if podpis != karta._akcje_podpis:
@@ -583,12 +665,31 @@ class EkranRano(QWidget):
                     z.setToolTip(w.opis)
                     self.liczniki.addWidget(z)
             self._liczniki_widzet.updateGeometry()
-        blokady = rano.blokady if rano is not None else ()
+        blokady = tuple(rano.blokady) if rano is not None else ()
+        analiza = rano is not None and rano.otwarty and stan.kolejka.razem > 0  # A6 runda 2 (D11): wynik po zamknieciu otworzylby nowy piec
+        if analiza:
+            blokady += (ST.tekst_komunikatu("analiza_trwa")[2],)
         self.blokady.setText(NR.BLOKADY_TYTUL + " " + " ".join(blokady) if blokady else "")
         self.blokady.setVisible(bool(blokady))
+        ostrzezenia = tuple(rano.ostrzezenia) if rano is not None else ()
+        self.ostrzezenia.setText(" ".join(ostrzezenia))
+        self.ostrzezenia.setVisible(bool(ostrzezenia))
         self.zamknij_piec.setVisible(rano is not None and rano.otwarty)
-        self.zamknij_piec.setEnabled(rano is not None and "zamknij_piec" in rano.dozwolone and stan.operator is not None)
+        self.zamknij_piec.setEnabled(rano is not None and "zamknij_piec" in rano.dozwolone and stan.operator is not None and not analiza)
         self.zamknij_piec.setToolTip(" ".join(blokady))
+        self.otworz_piec.setVisible(rano is not None and "otworz_piec_ponownie" in rano.dozwolone)
+        self.otworz_piec.setEnabled(stan.operator is not None)
+
+    def _zamknij_piec(self) -> None:
+        """"Zamknij piec" POKAZANEGO pieca (A6 runda 2, P3: spoznione klikniecie nie zamknie nastepnego pieca)."""
+        rano = self._stan.rano if self._stan is not None else None
+        if rano is not None and rano.sesja_pieca_id is not None:
+            self._polecenie("zamknij_piec", rano.sesja_pieca_id)
+
+    def _otworz_piec(self) -> None:
+        rano = self._stan.rano if self._stan is not None else None
+        if rano is not None and rano.sesja_pieca_id is not None:
+            self._polecenie("otworz_piec_ponownie", rano.sesja_pieca_id)
 
     def _odswiez_uwagi(self, stan, rano) -> None:
         r = self._r

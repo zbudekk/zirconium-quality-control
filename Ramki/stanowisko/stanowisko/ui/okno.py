@@ -296,8 +296,11 @@ class OknoWieczor(QWidget):
             if self._stan is not None and stan.plytki is not self._stan.plytki:
                 self.pokaz_stan(stan)
             else:
+                zmiana_kolejki = self._stan is not None and (stan.kolejka.razem > 0) != (self._stan.kolejka.razem > 0)
                 self._stan = stan
                 self.pasek.ustaw(stan)
+                if zmiana_kolejki and self.rano():  # E3-A7: analiza trwa / skonczona - "Zamknij piec" niedostepne w trakcie (A6 D11)
+                    self.ekran_rano.pokaz(stan)
 
     def _na_zamkniety(self) -> None:
         self.setEnabled(False)
