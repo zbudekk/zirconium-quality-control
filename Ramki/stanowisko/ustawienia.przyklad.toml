@@ -77,7 +77,15 @@ kolumna_kuwety = "C"
 kolumna_nazwy = "H"
 kolumna_odhaczenia = "B"
 kolor_rgb = [198, 239, 206]
-tryb_pytaj_przed_zapisem = true
+tryb_pytaj_przed_zapisem = true     # etap 3 (DW10): zawsze pytaj albo cien - false NIE wlacza zapisu samodzielnego
+# E3-A9: klucze opcjonalne (plik bez nich dziala - wartosci jak ponizej); uklad arkusza DO POTWIERDZENIA na kopii pliku (D2)
+kolumna_daty = "A"                  # data zlecenia (regula 3: najnowsza data sposrod wierszy kuwety)
+pierwszy_wiersz = 2                 # pierwszy wiersz danych (wiersz 1 = naglowek)
+skoroszyt = ""                      # nazwa (albo jej fragment) otwartego pliku zlecen; "" = aktywny skoroszyt
+arkusz = ""                         # nazwa arkusza; "" = aktywny arkusz (plan wdrozenia: "biezacy arkusz")
+tryb = "pytaj"                      # "pytaj" = kolor pola B dopiero po zatwierdzeniu przez czlowieka; "cien" = nic nie zapisuje, tylko log porownawczy
+odswiez_co_min = 5.0                # co ile minut program czyta kolumny A-I arkusza do pamieci (propozycja i zatwierdzenie czytaja zawsze od nowa)
+maks_wiek_dni = 60                  # wiersz wybrany regulami starszy niz tyle dni (albo bez daty w A) = "Excel: wskaz wiersz"; 0 = bez limitu; liczba do potwierdzenia na kopii pliku (D2)
 
 [ramki]
 port = 8765
