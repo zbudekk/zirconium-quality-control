@@ -84,6 +84,12 @@ def analiza_sztuczna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, 
         raise ValueError(f"blad sztuczny w projekcie z folderu {gdzie}")
     if not projekty:
         raise SystemExit(f"brak projektow STL w {', '.join(map(str, foldery))}")
+    if opis.get("rano"):  # E3-A7: plytka poranna z kandydatami (``sztuczny_wynik_rano``); JSON: klucze napisami, pary listami
+        wynik = K.sztuczny_wynik_rano(opis.get("uklad", "poranna"), opis.get("numer") if numer is None else numer,
+                                      {int(k): v for k, v in (opis.get("gniazda") or {}).items()}, skan=Path(skan).name,
+                                      projekty={int(k): (tuple(v) if isinstance(v, list) else v) for k, v in (opis.get("projekty") or {}).items()})
+        wynik["foldery_projektow"] = [str(f) for f in foldery]
+        return wynik
     wynik = K.sztuczny_wynik(opis.get("uklad", "wieczorna"), opis.get("numer") if numer is None else numer,
                              {int(k): v for k, v in (opis.get("gniazda") or {}).items()}, uklad_zgodny=opis.get("uklad_zgodny", True),
                              poza_gniazdem=int(opis.get("poza", 0)), skan=Path(skan).name,
@@ -149,6 +155,13 @@ class Stanowisko:
     def stan(self):
         return self.k.stan()
 
+    def poranek(self) -> None:
+        """E3-A7: pula poranna (fikcyjne zlecenia ``indeks_rano_sztuczny``), osoba i tryb "rano"."""
+        from stanowisko import kontroler_api as K
+
+        K.indeks_rano_sztuczny(self.k.sesja.baza, self.k.sesja.teraz())
+        assert self.k.przelacz_tryb("rano") and self.k.wybierz_operatora("Technik A")
+
     def odbierz(self, z) -> None:
         self.sygnaly.append(z)
 
@@ -184,6 +197,9 @@ class StanowiskoAtrapy(Stanowisko):
 
     def starty_skanu(self) -> int:
         return len(self.k.starty_skanu)
+
+    def wrzuc_rano(self, numer, gniazda: dict, projekty: dict | None = None, *, uklad: str = "poranna") -> int:
+        return self.k.symuluj_skan_rano(numer, gniazda, projekty=projekty, uklad=uklad)
 
     def koniec(self) -> None:
         self.k.zamknij()
@@ -251,11 +267,34 @@ class StanowiskoAplikacji(Stanowisko):
         os.replace(tmp, cel)
         return cel
 
+    def _skany(self) -> set:
+        """skan_id plytek w stanie: wieczornych i - w trybie "rano" - plytek pieca (E3-A7)."""
+        s = self.k.stan()
+        return {p.skan_id for p in s.plytki} | ({p.skan_id for p in s.rano.plytki} if s.rano is not None else set())
+
     def wrzuc(self, rodzaj: str = "zwykla", *, numer=1, gniazda=None, projekty=None, uklad=None, poza=0) -> int:
-        przed = {p.skan_id for p in self.k.stan().plytki}
+        przed = self._skany()
         self.zapisz(self.opis(rodzaj, numer, gniazda, projekty, uklad, poza))
-        self.czekaj(lambda: {p.skan_id for p in self.k.stan().plytki} - przed, 90.0, f"skan {rodzaj} w stanie")
-        return max({p.skan_id for p in self.k.stan().plytki} - przed)
+        self.czekaj(lambda: self._skany() - przed, 90.0, f"skan {rodzaj} w stanie")
+        return max(self._skany() - przed)
+
+    @staticmethod
+    def opis_rano(numer, gniazda: dict, projekty: dict | None = None, *, uklad: str = "poranna", spij: float = 0.0, brama: str | None = None,
+                  blad: bool = False) -> dict:
+        """Opis sztucznego skanu plytki porannej (``kontroler_api.sztuczny_wynik_rano`` w procesie silnika); ``brama`` - analiza czeka
+        na ten plik (D13), ``blad`` - analiza konczy sie bledem."""
+        opis = {"rano": True, "uklad": uklad, "numer": numer, "gniazda": gniazda, "projekty": projekty or {}, "poza": 0, "spij": spij}
+        if brama is not None:
+            opis["brama"] = brama
+        if blad:
+            opis["blad"] = True
+        return opis
+
+    def wrzuc_rano(self, numer, gniazda: dict, projekty: dict | None = None, *, uklad: str = "poranna") -> int:
+        przed = self._skany()
+        self.zapisz(self.opis_rano(numer, gniazda, projekty, uklad=uklad))
+        self.czekaj(lambda: self._skany() - przed, 90.0, f"skan poranny plytki {numer} w stanie")
+        return max(self._skany() - przed)
 
     def starty_skanu(self) -> int:
         return len(self.atrapa_startu.wywolania)
@@ -1181,3 +1220,539 @@ def test_atrapa_scenariusz_pokazowy_i_sprzatanie(tmp_path):
     assert katalog.is_dir()
     a.zamknij()
     assert not katalog.exists()
+
+
+# ----------------------------------------------------------------------------
+# poranek (E3-A7, kontrakt w wersji 3): ten sam zestaw dla atrapy i prawdziwej aplikacji
+# ----------------------------------------------------------------------------
+PLYTKA_RANO = {1: "pewna", 2: "pewna", 3: "zolta", 4: "nieznana", 5: "pewna", 6: "dwuznaczna", 7: "brak"}
+PROJEKTY_RANO = {1: 307, 2: 308, 3: (309, 319), 4: 311, 5: 313, 6: (312, 320), 7: 314}  # 3221 = 307-310, 3228 = 311-312, 3235 = 313
+
+
+def klasy_rano(st, skan_id: int) -> dict:
+    return {p.gniazdo: p.klasa for p in st.stan().rano.plytka(skan_id).prace}
+
+
+def test_rano_przelacznik_trybu_i_skan_do_sesji_pieca(st):
+    """Kryterium A6 dla A7 (recenzja A6, D7): w trybie "rano" skan idzie do ``SesjaRano`` - piec otwiera sie sam, ``skany.sesja_pieca_id``;
+    plytka poza stanem wieczoru; klasy prac i kolory = ``session_rano.stan_pieca``; tryb w dzienniku."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+    from stanowisko import statusy as ST
+
+    assert st.stan().tryb == "wieczor" and st.stan().rano is None
+    odp = st.k.przelacz_tryb("rano")  # bez osoby
+    assert odp and odp.dane == "rano" and st.stan().tryb == "rano" and isinstance(st.stan().rano, K.StanRano)
+    assert st.stan().rano.sesja_pieca_id is None and not st.stan().rano.otwarty
+    st.poranek()
+    skan_id = st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    s = st.stan()
+    assert s.plytka(skan_id) is None and s.rano.otwarty and s.rano.plan_id.endswith("-p1")
+    assert st.k.sesja.baza.wiersz("SELECT tryb, sesja_pieca_id FROM skany WHERE id = ?", (skan_id,)) == {"tryb": "rano", "sesja_pieca_id": s.rano.sesja_pieca_id}
+    prawda = SR.SesjaRano(st.k.sesja).stan_pieca()
+    oczekiwane = {p["gniazdo"]: p["klasa"] for x in prawda["skany"] for p in x["prace"]}
+    assert klasy_rano(st, skan_id) == oczekiwane == {1: "pewna", 2: "pewna", 3: "dwuznaczna", 4: "nieznana", 5: "pewna", 6: "dwuznaczna", 7: "nieznana"}
+    plytka = s.rano.plytka(skan_id)
+    for g in plytka.gniazda:
+        if g.praca is None:
+            assert g.status == "pusty"
+            continue
+        w = ST.status_rano(g.praca.klasa)
+        assert (g.rgb, g.kolor, g.praca.status) == (w.hex, SR.kolory_statusu(SR.STATUS_KLASY[g.praca.klasa])[0], w.klucz)
+        assert g.podpis == (g.praca.kuweta if g.praca.klasa == "pewna" else w.napis)
+    p1 = plytka.gniazdo(1).praca
+    assert (p1.kuweta, p1.zeby, p1.sha16) == ("3221", K.zab_sztuczny(307), K.projekt_sztuczny(307)) and p1.miniatura.startswith(b"\x89PNG")
+    p3 = plytka.gniazdo(3).praca
+    assert [k.kuweta for k in p3.kandydaci] == ["3221", "3256"] and all(k.miniatura and k.projekt_id for k in p3.kandydaci)
+    assert p3.dozwolone == ("wybierz_kandydata", "przypisz_recznie")
+    assert s.rano.liczniki == {"pewna": 3, "dwuznaczna": 2, "nieznana": 2} and s.rano.nierozstrzygniete == {"dwuznaczne": 2, "nieznane": 2}
+    assert any(k.id == K.ID_RAMKA_PORANNA for k in s.komunikaty)  # ramka poranna niepodlaczona: komunikat, nie awaria
+    assert st.k.przelacz_tryb("wieczor") and st.stan().rano is None
+    wpisy = st.k.sesja.baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'tryb_zmieniony' ORDER BY id")
+    assert [json.loads(w["dane"])["tryb"] for w in wpisy] == ["rano", "wieczor"]
+
+
+def test_rano_decyzje_wybor_przypisanie_cofniecie_i_odmowy(st):
+    from stanowisko import kontroler_api as K
+
+    st.poranek()
+    skan_id = st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    plytka = st.stan().rano.plytka(skan_id)
+    p3, p4 = plytka.gniazdo(3).praca, plytka.gniazdo(4).praca
+    assert st.k.wybierz_kandydata(p3.praca_id, p3.kandydaci[0].sha16)
+    assert klasy_rano(st, skan_id)[3] == "przypisana" and st.stan().rano.plytka(skan_id).gniazdo(3).rgb == plytka.gniazdo(1).rgb
+    projekty = st.k.projekty_kuwety("3228")
+    assert [(x.kuweta, x.zeby, x.stan) for x in projekty] == [("3228", K.zab_sztuczny(311), "oczekuje"), ("3228", K.zab_sztuczny(312), "oczekuje")]
+    assert all(isinstance(x, K.ProjektPuli) and x.miniatura for x in projekty) and st.k.projekty_kuwety(" 03228 ") == projekty
+    assert st.k.projekty_kuwety("1") == () and st.k.projekty_kuwety(None) == ()
+    assert st.k.przypisz_recznie(p4.praca_id, projekty[0].projekt_id)  # nieznana przypisana recznie -> konflikt z gniazdem 5? nie: 311 ma tylko gniazdo 4
+    assert klasy_rano(st, skan_id)[4] == "przypisana"
+    assert st.k.cofnij_przypisanie(p4.praca_id) and klasy_rano(st, skan_id)[4] == "nieznana"
+    assert st.k.przypisz_recznie(p4.praca_id) and klasy_rano(st, skan_id)[4] == "nieznana"  # "bez projektu"
+    d = st.k.sesja.baza.wiersze("SELECT rodzaj, wartosc, operator FROM decyzje WHERE skan_id = ? ORDER BY id", (skan_id,))
+    assert [x["rodzaj"] for x in d] == ["wybor_kandydata", "przypisanie_reczne", "cofniecie", "przypisanie_reczne"] and d[-1]["wartosc"] == ""
+    # odmowy: zly kandydat (session_rano), brak osoby, zle argumenty - odpowiedz, nigdy wyjatek
+    odp = st.k.wybierz_kandydata(p4.praca_id, "0" * 16)
+    assert not odp and odp.kod == "odmowa" and "kandydat" in odp.tekst
+    for zle in ((p4.praca_id, 5), ("x", "y"), (True, p3.kandydaci[0].sha16)):
+        odp = st.k.wykonaj("wybierz_kandydata", *zle)
+        assert not odp and odp.kod == K.KOD_ZLE_ARGUMENTY
+    assert st.k.wykonaj("przypisz_recznie", p4.praca_id, "12").kod == K.KOD_ZLE_ARGUMENTY
+    assert st.k.wykonaj("przelacz_tryb", "noc").kod == K.KOD_ZLE_ARGUMENTY and st.k.wykonaj("ustaw_kolejnosc", "losowo").kod == K.KOD_ZLE_ARGUMENTY
+    assert st.k.wybierz_operatora(None)
+    odp = st.k.cofnij_przypisanie(p3.praca_id)
+    assert not odp and odp.kod == "brak_operatora"
+
+
+def test_rano_kolejnosc_kuwet_wybor_po_numerze_rozkladanie(st):
+    from stanowisko import session_rano as SR
+
+    st.poranek()
+    st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    st.wrzuc_rano(5, {1: "pewna", 2: "pewna", 3: "pewna"}, {1: 310, 2: 315, 3: 316})
+    rano = SR.SesjaRano(st.k.sesja)
+    for kolejnosc in ("liczba", "numer"):
+        assert st.k.ustaw_kolejnosc(kolejnosc)
+        plan = rano.plan_plytek(kolejnosc=kolejnosc)
+        assert [(k.kuweta, k.prac, k.plytki) for k in st.stan().rano.kuwety] == [(k["kuweta"], plan["liczba_prac"][k["kuweta"]], tuple(k["plytki"]))
+                                                                               for k in plan["kuwety"]]
+    assert st.k.ustaw_kolejnosc("liczba")
+    kolejne = [k.kuweta for k in st.stan().rano.kuwety]
+    assert kolejne[0] == "3221" and st.stan().rano.kuweta_biezaca == "3221"
+    assert st.k.wybierz_kuwete(" 03242") and st.stan().rano.kuweta_biezaca == "3242"  # numer wpisany recznie (zera i spacje bez znaczenia)
+    odp = st.k.wybierz_kuwete("9999")
+    assert not odp and "9999" in odp.tekst and st.stan().rano.kuweta_biezaca == "3242"
+    assert st.k.potwierdz_kuwete("3242").dane == "3242"  # polecenie niesie kuwete pokazana na ekranie (recenzja PR #26, B1)
+    assert st.stan().rano.kuweta_biezaca == "3221" and [k.kuweta for k in st.stan().rano.kuwety if k.potwierdzona] == ["3242"]
+    assert st.stan().rano.kuweta_do_cofniecia == "3242"
+    assert st.k.potwierdz_kuwete("3221").dane == "3221" and st.k.cofnij_kuwete("3221").dane == "3221" and st.stan().rano.kuweta_biezaca == "3221"
+    for _ in kolejne:
+        if st.stan().rano.kuweta_biezaca is not None:
+            assert st.k.potwierdz_kuwete(st.stan().rano.kuweta_biezaca)
+    odp = st.k.potwierdz_kuwete("3221")
+    assert not odp and st.stan().rano.kuweta_biezaca is None
+    assert st.k.wykonaj("potwierdz_kuwete").kod == "zle_argumenty" and st.k.wykonaj("cofnij_kuwete", 5).kod == "zle_argumenty"
+    wpisy = st.k.sesja.baza.wiersze("SELECT typ, dane FROM zdarzenia WHERE typ LIKE 'kuweta_%' ORDER BY id")
+    # D4: bez nazwisk w dzienniku (jak dziennik sesji porannej A6)
+    assert wpisy and all("operator" not in json.loads(w["dane"]) and json.loads(w["dane"])["plan_id"] == st.stan().rano.plan_id for w in wpisy)
+
+
+def test_rano_zamknij_piec_wynik_rowny_A6_i_komunikat_excela(st):
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+
+    st.poranek()
+    skan_id = st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    rano = st.stan().rano
+    assert rano.dozwolone == ("zamknij_piec",) and rano.blokady == ()
+    assert [z.kuweta for z in rano.kompletne] == ["3235"] and [z.kuweta for z in rano.braki] == ["3221"]  # prowizorycznie
+    odp = st.k.zamknij_piec()
+    assert odp and isinstance(odp.dane, dict)
+    wynik = SR.SesjaRano(st.k.sesja).wynik_pieca(rano.sesja_pieca_id)
+    assert dict(odp.dane) == wynik or json.loads(json.dumps(odp.dane)) == wynik
+    s = st.stan()
+    assert not s.rano.otwarty and s.rano.wynik is not None and s.rano.dozwolone == ("otworz_piec_ponownie",)
+    assert [z.kuweta for z in s.rano.kompletne] == [z["kuweta"] for z in wynik["kompletne"]] == ["3235"]
+    assert [(z.kuweta, [b.zeby for b in z.brakujace]) for z in s.rano.braki] == [(z["kuweta"], [b["zeby"] for b in z["brakujace"]]) for z in wynik["braki"]]
+    assert [z.kuweta for z in s.rano.braki_biezace] == [z["kuweta"] for z in SR.SesjaRano(st.k.sesja).braki()]
+    assert all(b.napis for z in s.rano.braki for b in z.brakujace)
+    # bez Excela: komunikat z WLASNA lista kuwet pieca (ekran moze juz pokazywac nastepny piec - P1), program dziala dalej
+    assert any(k.id == K.ID_EXCEL and "3235" in k.tekst and "1 zlecenie" in k.tekst for k in s.komunikaty)
+    odp = st.k.przypisz_recznie(s.rano.plytka(skan_id).gniazdo(4).praca.praca_id)
+    assert not odp and "zamkniety" in odp.tekst  # piec zamkniety jest zamrozony (A6)
+    assert not st.k.zamknij_piec()
+    nowy = st.wrzuc_rano(5, {1: "pewna"}, {1: 310})
+    assert st.stan().rano.otwarty and st.stan().rano.nr_w_dniu == 2 and st.stan().rano.plytka(nowy) is not None
+
+
+def test_rano_polecenia_plytki_numer_ponowny_skan_konflikt_blokuje(st):
+    from stanowisko import statusy as ST
+
+    st.poranek()
+    bez = st.wrzuc_rano(None, {1: "pewna", 2: "pewna"}, {1: 307, 2: 308})
+    rano = st.stan().rano
+    assert rano.blokady and "numer" in rano.blokady[0].lower() and "zamknij_piec" not in rano.dozwolone
+    assert [q.rodzaj for q in st.stan().pytania] == ["brak_numeru_plytki"] and st.stan().pytania[0].numery == (4, 5, 6)
+    assert st.k.podaj_numer_plytki(bez, 4) and st.stan().rano.plytka(bez).numer == 4 and st.stan().rano.dozwolone == ("zamknij_piec",)
+    st.przesun(2)
+    drugi = st.wrzuc_rano(4, {1: "pewna", 3: "pewna"}, {1: 307, 3: 308})
+    s = st.stan()
+    assert s.rano.plytka(drugi).moze_zastapic == bez and [q.rodzaj for q in s.pytania] == ["ponowny_skan"]
+    assert any(napis in s.pytania[0].tekst for napis in ST.PODSTAWY_PONOWNEGO_SKANU.values())  # A6 runda 4: podstawa propozycji
+    assert "konflikt" in " ".join(s.rano.blokady).lower() and len(s.rano.konflikty) == 2
+    assert st.k.potwierdz_ponowny_skan(drugi)
+    s = st.stan()
+    assert s.rano.plytka(bez).status == "zastapiony" and s.rano.konflikty == () and s.rano.dozwolone == ("zamknij_piec",)
+    assert st.k.cofnij_zastapienie(drugi) and st.stan().rano.plytka(bez).status == "przyjety"
+
+
+def test_rano_statusy_jedna_tabela_zgodna_z_session_rano():
+    from stanowisko import session_rano as SR
+    from stanowisko import statusy as ST
+
+    for klasa, status in SR.STATUS_KLASY.items():  # A6 runda 2: klasa -> klucz statusy (kolor ekranu i diod z tabeli)
+        w = ST.status_rano(klasa)
+        assert (w.kolor, w.ramka, w.rgb) == (*SR.kolory_statusu(status), ST.STATUSY[status].rgb), klasa
+        assert ST.status(w.klucz) is w and w.napis and w.opis
+    assert SR.kolory_statusu("nieznana_rano") == ("bialy", "bialy")  # wiersz tabeli (zapas A6 przestaje dzialac sam)
+    w = ST.status("rano_juz_rozpoznany")  # poprawka przy zleceniu z brakami (A6 runda 2, D2): ten sam bursztyn, inny napis
+    assert (w.kolor, w.ramka, w.rgb) == (ST.STATUSY["dofrezowany"].kolor, ST.STATUSY["dofrezowany"].ramka, ST.STATUSY["dofrezowany"].rgb)
+    assert w.napis != ST.STATUSY["dofrezowany"].napis and set(ST.POWODY_ZAMKNIECIA) == set(SR.POWODY_ZAMKNIECIA)
+    assert ST.POWOD_DOFREZOWANIE == SR.POWOD_DOFREZOWANIE and set(ST.powody_zamkniecia("do_dofrezowania")) == {SR.POWOD_DOFREZOWANIE}
+    assert SR.POWOD_DOFREZOWANIE not in ST.powody_zamkniecia("brak_po_piecu") and len(ST.powody_zamkniecia("oczekuje")) == len(SR.POWODY_ZAMKNIECIA) - 1
+    assert ST.STATUSY["nieznana_rano"].kolor == ST.KOLOR_BIALY and ST.status_rano("nieznana") is ST.STATUSY["nieznana_rano"]
+    assert ST.status_rano("poprawka") is ST.STATUSY["dofrezowany"]  # Z9: "zab dofrezowany", nie "poprawiana recznie"
+    assert ST.STATUSY_ZIELONE == ("zielony",)  # wiersze poranne nie zmieniaja zielonego wieczoru (P4)
+    assert ST.status_rano("nowa_klasa").kolor == ST.KOLOR_ZOLTY  # nieznana klasa: nigdy zielona
+    for polecenie in ("wybierz_kandydata", "przypisz_recznie", "cofnij_przypisanie", "zamknij_piec", "potwierdz_kuwete", "cofnij_kuwete",
+                      "zamknij_piec_i_przenies"):
+        assert ST.PRZYCISKI[polecenie]
+    for rodzaj in ("ramka_niedostepna", "analiza_trwa", "skanowanie_trwa", "rano_niedostepny"):
+        assert "?" not in ST.tekst_komunikatu(rodzaj)[2]
+    assert "?" not in ST.tekst_komunikatu("excel_niedostepny", ile="1 zlecenie", nr=1, doba="18.11", godzina="06:10", kuwety="3235")[2]
+    assert "?" not in ST.tekst_komunikatu("kuweta_zmienila_sie", kuweta="3221", podana="3214")[2]
+    assert [ST.tekst_pytania(rodzaj, plytki="4", skanow=1, stary=4, numer=5)[2].count("?") for rodzaj in ("nowy_wsad", "numer_nowy_wsad")] == [1, 0]
+
+
+def test_rano_a6r2_pominiecie_skanu_i_plytka_wieczorna_rano(st):
+    """A6 runda 2: plytki wieczornej rano sie nie dopuszcza (pytanie: "Zeskanuje wlasciwa" / "Pomin skan"); skan pominiety nie
+    liczy sie i nie blokuje "Zamknij piec"; cofniecie pominiecia przywraca blokade; numer plytki tylko 4-6."""
+    st.poranek()
+    dobra = st.wrzuc_rano(4, {1: "pewna"}, {1: 307})
+    wieczorna = st.wrzuc("nie_z_trybu", numer=1, gniazda={1: "zielony"}, uklad="wieczorna")
+    s = st.stan()
+    assert s.rano.plytka(wieczorna).status == "plytka_nie_z_trybu" and "zamknij_piec" not in s.rano.dozwolone and s.rano.blokady
+    q = next(q for q in s.pytania if q.rodzaj == "plytka_nie_z_trybu")
+    assert [o.polecenie for o in q.odpowiedzi] == ["zamknij_pytanie", "pomin_skan"]
+    assert "pomin_skan" in s.rano.plytka(wieczorna).dozwolone and "pomin_skan" not in s.rano.plytka(dobra).dozwolone
+    odp = st.k.dopusc_plytke(wieczorna)
+    assert not odp and "dopusc" in odp.tekst  # rano odmowa (A6)
+    assert st.k.wykonaj(q.odpowiedzi[1].polecenie, *q.odpowiedzi[1].argumenty)
+    s = st.stan()
+    assert s.rano.plytka(wieczorna).pominieta and s.rano.dozwolone == ("zamknij_piec",) and "cofnij_pominiecie" in s.rano.plytka(wieczorna).dozwolone
+    assert not any(q.skan_id == wieczorna for q in s.pytania)
+    assert st.k.cofnij_pominiecie(wieczorna) and st.stan().rano.blokady
+    odp = st.k.podaj_numer_plytki(dobra, 7)
+    assert not odp and "4, 5, 6" in odp.tekst
+
+
+def test_rano_a6r2_zamknij_piec_pokazanego_pieca_ponowne_otwarcie_reczne_zamkniecie_braku(st):
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+
+    st.poranek()
+    st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    rano = st.stan().rano
+    assert not st.k.zamknij_piec(rano.sesja_pieca_id + 1)  # nie ten piec: odmowa, nic nie zamkniete
+    assert st.stan().rano.otwarty
+    assert st.k.zamknij_piec(rano.sesja_pieca_id)
+    rano = st.stan().rano
+    assert not rano.otwarty and rano.dozwolone == ("otworz_piec_ponownie",)
+    braki = rano.braki_biezace
+    assert [z.kuweta for z in braki] == ["3221"] and [b.zeby for b in braki[0].brakujace] == [K.zab_sztuczny(309), K.zab_sztuczny(310)]
+    punkt = braki[0].brakujace[0]
+    assert st.k.wykonaj("zamknij_brak_recznie", punkt.projekt_id, "nieznany_powod").kod == "zle_argumenty"
+    assert st.k.zamknij_brak_recznie(punkt.projekt_id, "zaginiona")
+    assert all(b.projekt_id != punkt.projekt_id for z in st.stan().rano.braki_biezace for b in z.brakujace)
+    assert st.k.cofnij_zamkniecie_reczne(punkt.projekt_id)
+    assert [z.kuweta for z in st.stan().rano.braki_biezace] == [z["kuweta"] for z in SR.SesjaRano(st.k.sesja).braki()] == ["3221"]
+    assert st.k.otworz_piec_ponownie(rano.sesja_pieca_id) and st.stan().rano.otwarty and st.stan().rano.dozwolone == ("zamknij_piec",)
+    d = st.k.sesja.baza.wiersze("SELECT rodzaj FROM decyzje WHERE praca_id IS NULL AND skan_id IS NULL ORDER BY id")
+    assert [x["rodzaj"] for x in d] == ["zamkniecie_reczne", "cofniecie", "otworz_piec_ponownie"]
+
+
+def test_rano_a6r2_cofniecie_dokladnie_tej_decyzji_i_napis_poprawki(st):
+    from stanowisko import statusy as ST
+
+    st.poranek()
+    skan_id = st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    p3 = st.stan().rano.plytka(skan_id).gniazdo(3).praca
+    assert st.k.wybierz_kandydata(p3.praca_id, p3.kandydaci[0].sha16)
+    p3 = st.stan().rano.plytka(skan_id).gniazdo(3).praca
+    assert p3.decyzja_id is not None and st.k.cofnij_przypisanie(p3.praca_id, p3.decyzja_id)
+    odp = st.k.cofnij_przypisanie(p3.praca_id, p3.decyzja_id)  # podwojne klikniecie nie cofa drugiej decyzji
+    assert not odp and st.stan().rano.plytka(skan_id).gniazdo(3).praca.klasa == "dwuznaczna"
+    assert st.k.zamknij_piec()
+    # zab 307 rozpoznany w piecu 1, zlecenie 3221 wciaz z brakami: w piecu 2 klasa poprawka, napis "zab juz rozpoznany" (D2)
+    nowy = st.wrzuc_rano(5, {1: "pewna", 2: "pewna"}, {1: 307, 2: 313})
+    p = st.stan().rano.plytka(nowy)
+    assert p.gniazdo(1).praca.klasa == "poprawka" and not p.gniazdo(1).praca.zlecenie_odhaczone
+    assert p.gniazdo(1).status == "rano_juz_rozpoznany" and p.gniazdo(1).rgb == ST.STATUSY["dofrezowany"].hex
+    assert p.gniazdo(2).praca.zlecenie_odhaczone and p.gniazdo(2).status == "dofrezowany"  # 3235 (jeden punkt) odhaczone w piecu 1
+
+
+def test_rano_a6r2_zamknij_piec_niedostepne_w_trakcie_analizy():
+    """A6 runda 2 (D11): dopoki skan jest w analizie albo w kolejce, "Zamknij piec" odmawia (atrapa: symulowana analiza)."""
+    from stanowisko import kontroler_api as K
+
+    a = K.AtrapaKontrolera()
+    try:
+        K.indeks_rano_sztuczny(a.sesja.baza, a.sesja.teraz())
+        a.przelacz_tryb("rano")
+        a.wybierz_operatora("Technik A")
+        a.symuluj_skan_rano(4, {1: "pewna"}, projekty={1: 313})
+        a.symuluj_postep(udzial=0.3)
+        odp = a.zamknij_piec(a.stan().rano.sesja_pieca_id)
+        assert not odp and odp.kod == "analiza_trwa" and "analiza" in odp.tekst.lower() and a.stan().rano.otwarty
+        assert a.stan().rano.zajety == "analiza_trwa" and "zamknij_piec" not in a.stan().rano.dozwolone  # jedno zrodlo blokady (D1)
+        a.symuluj_postep(udzial=None)
+        assert a.zamknij_piec(a.stan().rano.sesja_pieca_id) and not a.stan().rano.otwarty
+    finally:
+        a.zamknij()
+
+
+# ----------------------------------------------------------------------------
+# E3-A7 runda 2 (recenzja PR #26 runda 1: B1, P1-P5, D4-D6, D13) i A6 runda 4 (nowy wsad)
+# ----------------------------------------------------------------------------
+def wpisy_kuwet(st, typ: str = "kuweta_potwierdzona") -> list:
+    return [json.loads(w["dane"])["kuweta"] for w in st.k.sesja.baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = ? ORDER BY id", (typ,))]
+
+
+def test_rano_r2_b1_kuweta_biezaca_stala_i_polecenie_z_numerem_pokazanej(st):
+    """B1 (proba ``probe3`` recenzenta): biezaca kuweta nie przeskakuje po decyzji o kandydacie ani po nowym skanie; Enter niesie
+    kuwete pokazana na ekranie - gdy w kontrolerze jest inna, odmowa ``kuweta_zmienila_sie`` bez wpisu w dzienniku."""
+    st.poranek()
+    s4 = st.wrzuc_rano(4, {1: "pewna", 2: "pewna", 3: "pewna", 4: "pewna", 5: "zolta"}, {1: 305, 2: 306, 3: 307, 4: 308, 5: (309, 319)})
+    rano = st.stan().rano
+    assert [(k.kuweta, k.prac) for k in rano.kuwety] == [("3214", 2), ("3221", 2)] and rano.kuweta_biezaca == "3214"
+    p5 = rano.plytka(s4).gniazdo(5).praca
+    assert st.k.wybierz_kandydata(p5.praca_id, p5.kandydaci[0].sha16)  # osoba rozstrzyga zolte: 3221 ma teraz 3 prace
+    rano = st.stan().rano
+    assert [(k.kuweta, k.prac) for k in rano.kuwety] == [("3221", 3), ("3214", 2)]
+    assert rano.kuweta_biezaca == "3214" and rano.obwodka(s4) == {1, 2}  # biezaca stala (osoba rozklada 3214)
+    odp = st.k.potwierdz_kuwete("3221")  # Enter z kuweta, ktorej ekran nie pokazuje jako biezacej
+    assert not odp and odp.kod == "kuweta_zmienila_sie" and "3214" in odp.tekst and wpisy_kuwet(st) == []
+    assert st.k.potwierdz_kuwete("3214").dane == "3214" and st.stan().rano.kuweta_biezaca == "3221"
+    st.przesun(1)
+    st.wrzuc_rano(5, {1: "pewna", 2: "pewna", 3: "pewna", 4: "pewna"}, {1: 314, 2: 315, 3: 316, 4: 317})  # 3242 x 3 w trakcie rozkladania
+    rano = st.stan().rano
+    assert ("3242", 3) in [(k.kuweta, k.prac) for k in rano.kuwety] and rano.kuweta_biezaca == "3221"  # nowa kuweta nie przejmuje "teraz"
+    assert rano.kuweta_do_cofniecia == "3214"
+    odp = st.k.cofnij_kuwete("3221")  # Backspace tez niesie pokazana kuwete (ostatnia potwierdzona)
+    assert not odp and odp.kod == "kuweta_zmienila_sie" and wpisy_kuwet(st, "kuweta_cofnieta") == []
+    assert st.k.cofnij_kuwete("3214").dane == "3214" and st.stan().rano.kuweta_biezaca == "3214"
+    assert st.k.potwierdz_kuwete("3214") and st.k.wybierz_kuwete("3249") and st.stan().rano.kuweta_biezaca == "3249"
+    assert st.k.ustaw_kolejnosc("numer") and st.stan().rano.kuweta_biezaca == "3221"  # zmiana kolejnosci przez osobe: pierwsza nierozlozona
+    assert wpisy_kuwet(st) == ["3214", "3214"] and wpisy_kuwet(st, "kuweta_cofnieta") == ["3214"]
+
+
+def test_rano_r2_p1_wynik_zamknietego_pieca_po_6_i_po_nastepnym_piecu(st):
+    """P1 (proba ``probe4``): piec z 05:40 zamkniety o 06:10 zostaje na ekranie (z jawnym id, z "Otworz piec ponownie"); po skanie
+    nastepnego pieca jego wynik jest w ``ostatni_zamkniety``; komunikat Excela ma wlasna liste kuwet."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+
+    st.teraz = dt.datetime(2026, 11, 18, 5, 40)
+    st.poranek()
+    st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    piec1 = st.stan().rano.sesja_pieca_id
+    st.teraz = dt.datetime(2026, 11, 18, 6, 10)  # nowa doba robocza (granica 06:00) i nowa zmiana
+    assert st.k.wybierz_operatora("Technik A") and st.k.zamknij_piec(piec1)
+    rano = st.stan().rano
+    wynik = SR.SesjaRano(st.k.sesja).wynik_pieca(piec1)
+    assert rano.sesja_pieca_id == piec1 and not rano.otwarty and rano.data == "2026-11-17"
+    assert [z.kuweta for z in rano.kompletne] == [z["kuweta"] for z in wynik["kompletne"]] == ["3235"] and rano.braki
+    assert "otworz_piec_ponownie" in rano.dozwolone and rano.ostatni_zamkniety is None
+    excel = next(k for k in st.stan().komunikaty if k.id == K.ID_EXCEL)
+    assert "3235" in excel.tekst and "17.11" in excel.tekst and "06:10" in excel.tekst
+    st.przesun(5)
+    nowy = st.wrzuc_rano(5, {1: "pewna"}, {1: 310})
+    rano = st.stan().rano
+    assert rano.otwarty and rano.sesja_pieca_id != piec1 and rano.plytka(nowy) is not None
+    z = rano.ostatni_zamkniety
+    assert z is not None and z.sesja_pieca_id == piec1 and not z.otwarty and z.plytki == () and z.zamknal == "Technik A"
+    assert [x.kuweta for x in z.kompletne] == ["3235"]
+    assert [(x.kuweta, [b.zeby for b in x.brakujace]) for x in z.braki] == [(x["kuweta"], [b["zeby"] for b in x["brakujace"]]) for x in wynik["braki"]]
+    assert any(k.id == K.ID_EXCEL and "3235" in k.tekst for k in st.stan().komunikaty)  # komunikat nadal o piecu 1, nie o ekranie
+    assert "otworz_piec_ponownie" not in rano.dozwolone  # otwarty jest nastepny piec (A6)
+
+
+def test_rano_r2_p2_lista_brakow_z_pamieci_uniewazniana_zdarzeniami(st, monkeypatch):
+    """P2: ``session_rano.braki()`` (cala historia zlecen) liczona tylko po zdarzeniu, ktore moze zmienic stan punktow - nie przy
+    kazdym odswiezeniu (decyzja, Enter, wybor kuwety, skan poranny); zapis innego polaczenia do bazy tez uniewaznia pamiec."""
+    import sqlite3
+
+    st.poranek()
+    s4 = st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    wywolania = []
+    prawdziwe = st.k.rano.braki
+    monkeypatch.setattr(st.k.rano, "braki", lambda: wywolania.append(1) or prawdziwe())
+    p3 = st.stan().rano.plytka(s4).gniazdo(3).praca
+    assert st.k.wybierz_kandydata(p3.praca_id, p3.kandydaci[0].sha16)
+    assert st.k.potwierdz_kuwete(st.stan().rano.kuweta_biezaca) and st.k.wybierz_kuwete("3235") and st.k.ustaw_kolejnosc("numer")
+    st.przesun(1)
+    st.wrzuc_rano(5, {1: "pewna"}, {1: 316})
+    assert wywolania == []
+    assert st.k.zamknij_piec() and len(wywolania) == 1  # zamkniecie zmienia stan punktow
+    punkt = st.stan().rano.braki_biezace[0].brakujace[0]
+    assert st.k.zamknij_brak_recznie(punkt.projekt_id, "zaginiona") and len(wywolania) == 2
+    assert all(b.projekt_id != punkt.projekt_id for z in st.stan().rano.braki_biezace for b in z.brakujace)
+    pol = sqlite3.connect(st.k.sesja.baza.plik)  # inny program (np. import indeksu) zmienia stan punktu
+    try:
+        pol.execute("DELETE FROM stan_punktow WHERE projekt_id = ?", (punkt.projekt_id,))
+        pol.commit()
+    finally:
+        pol.close()
+    assert st.k.przelacz_tryb("rano") and len(wywolania) == 3  # odswiezenie po zapisie z zewnatrz: lista od nowa
+    assert any(b.projekt_id == punkt.projekt_id for z in st.stan().rano.braki_biezace for b in z.brakujace)
+
+
+def test_rano_r2_p3_zamknij_piec_niedostepne_od_startu_skanu_do_przyjecia_pliku(st):
+    """P3: od "start skanu" (Spacja) do przyjecia pliku "Zamknij piec" jest zablokowane w kontrolerze (``dozwolone``, ``blokady``,
+    odmowa ``skanowanie_trwa``); skan przerwany - blokada znika po ``LIMIT_SKANOWANIA_S``."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    st.poranek()
+    st.wrzuc_rano(4, {1: "pewna"}, {1: 313})
+    rano = st.stan().rano
+    assert rano.dozwolone == ("zamknij_piec",) and rano.zajety is None
+    assert st.k.start_skanu()
+    rano = st.stan().rano
+    assert rano.zajety == "skanowanie_trwa" and "zamknij_piec" not in rano.dozwolone and rano.blokady[0] == ST.tekst_komunikatu("skanowanie_trwa")[2]
+    odp = st.k.zamknij_piec(rano.sesja_pieca_id)
+    assert not odp and odp.kod == "skanowanie_trwa" and st.stan().rano.otwarty
+    st.przesun(1)
+    nowy = st.wrzuc_rano(5, {1: "pewna"}, {1: 314})  # plik skanu przyszedl i zostal przeanalizowany
+    st.czekaj(lambda: st.stan().rano.zajety is None, 30.0, "koniec skanowania i analizy")
+    assert "zamknij_piec" in st.stan().rano.dozwolone and st.stan().rano.plytka(nowy) is not None
+    assert st.k.start_skanu() and st.stan().rano.zajety == "skanowanie_trwa"  # skan przerwany (pliku nie bedzie)
+    st.przesun(K.LIMIT_SKANOWANIA_S / 60 + 1)
+    st.k.przetworz()
+    assert st.stan().rano.zajety is None and st.k.zamknij_piec(st.stan().rano.sesja_pieca_id)
+
+
+def test_rano_r2_p3_atrapa_plik_skanera_w_zapisie_blokuje_zamkniecie():
+    from stanowisko import kontroler_api as K
+
+    a = K.AtrapaKontrolera()
+    try:
+        K.indeks_rano_sztuczny(a.sesja.baza, a.sesja.teraz())
+        a.przelacz_tryb("rano")
+        a.wybierz_operatora("Technik A")
+        a.symuluj_skan_rano(4, {1: "pewna"}, projekty={1: 313})
+        a.symuluj_skaner(zajete=1)  # skaner zapisuje plik (obserwator czeka na zwolnienie)
+        assert a.stan().rano.zajety == "skanowanie_trwa" and a.zamknij_piec().kod == "skanowanie_trwa"
+        a.symuluj_skaner(zajete=0)
+        assert a.stan().rano.zajety is None and a.zamknij_piec()
+    finally:
+        a.zamknij()
+
+
+def test_rano_r2_p4_gniazda_kuwety_z_kontrolera_bez_numeru_i_dwa_skany_jednego_numeru(st):
+    """P4 (proba ``probe5``): gniazda biezacej kuwety (``KuwetaRano.gniazda``, ``StanRano.obwodka``) wg tej samej reguly co lista
+    kuwet - plytka bez numeru i dwa skany z jednym numerem nie maja obwodki, liczba gniazd = ``prac``."""
+    st.poranek()
+    s4 = st.wrzuc_rano(4, {1: "pewna", 2: "pewna"}, {1: 307, 2: 308})
+    st.przesun(1)
+    bez = st.wrzuc_rano(None, {1: "pewna", 2: "pewna"}, {1: 305, 2: 306})
+    st.przesun(1)
+    a5 = st.wrzuc_rano(5, {1: "pewna"}, {1: 309})  # dwa rozne skany z numerem 5 (zly odczyt albo nowy wsad)
+    st.przesun(1)
+    b5 = st.wrzuc_rano(5, {1: "pewna"}, {1: 313})
+    rano = st.stan().rano
+    assert [(k.kuweta, k.prac, k.plytki, k.gniazda) for k in rano.kuwety] == [("3221", 2, (4,), ((s4, 1), (s4, 2)))]
+    assert rano.kuweta_biezaca == "3221" and rano.obwodka(s4) == {1, 2}
+    assert rano.obwodka(bez) == rano.obwodka(a5) == rano.obwodka(b5) == frozenset()
+    assert sum(len(rano.obwodka(p.skan_id)) for p in rano.plytki) == rano.kuwety[0].prac
+
+
+def test_rano_r2_a6r4_nowy_wsad_pytanie_zamknij_i_przenies_oraz_numer_mimo(st):
+    """A6 runda 4: nastepny wsad przy niezamknietym piecu - blokada z rada, pytanie "Poprzedni piec nie zostal zamkniety..."
+    (``zamknij_piec_i_przenies``); zmiana numeru plytki ze skanem innego wsadu - pytanie "mimo to" (``mimo_nowego_wsadu``)."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+
+    st.poranek()
+    s1 = st.wrzuc_rano(4, {1: "pewna", 2: "pewna"}, {1: 307, 2: 308})
+    piec1 = st.stan().rano.sesja_pieca_id
+    st.przesun(30)
+    s2 = st.wrzuc_rano(4, {1: "pewna", 2: "pewna"}, {1: 313, 2: 314})  # osoba zapomniala "Zamknij piec"
+    s = st.stan()
+    assert s.rano.nowy_wsad == K.NowyWsad(plytki=(4,), skany=(s2,))
+    assert "zamknij_piec" not in s.rano.dozwolone and "zamknij_piec_i_przenies" in s.rano.dozwolone
+    assert any("nowy wsad" in b for b in s.rano.blokady)
+    q = next(q for q in s.pytania if q.rodzaj == "nowy_wsad")
+    assert [(o.polecenie, o.argumenty) for o in q.odpowiedzi] == [("zamknij_piec_i_przenies", (piec1, (s2,))), ("zamknij_pytanie", (q.id,))]
+    odp = st.k.podaj_numer_plytki(s2, 5)  # zmiana numeru drugiego skanu - kontroler pyta, nic nie zmienia
+    assert not odp and odp.kod == "numer_nowy_wsad" and st.stan().rano.plytka(s2).numer == 4
+    q2 = next(q for q in st.stan().pytania if q.rodzaj == "numer_nowy_wsad")
+    assert [(o.polecenie, o.argumenty) for o in q2.odpowiedzi] == [("podaj_numer_plytki", (s2, 5, True)), ("zamknij_pytanie", (q2.id,))]
+    assert st.k.wykonaj(q2.odpowiedzi[0].polecenie, *q2.odpowiedzi[0].argumenty)  # "Zmien numer mimo to" (jawne potwierdzenie)
+    s = st.stan()
+    assert s.rano.plytka(s2).numer == 5 and s.rano.nowy_wsad is None and not any(q.rodzaj == "numer_nowy_wsad" for q in s.pytania)
+    assert st.k.wykonaj("podaj_numer_plytki", s2, 4, "tak").kod == "zle_argumenty"
+    assert st.k.podaj_numer_plytki(s2, 4) and st.stan().rano.nowy_wsad is not None  # z powrotem: znow nowy wsad
+    odp = st.k.zamknij_piec_i_przenies(piec1, (s1,))  # A6 r5: przenosi sie tylko ogon nowszych skanow - odmowa jako komunikat
+    assert not odp and odp.kod == "odmowa" and any(k.id == "odmowa:odmowa" for k in st.stan().komunikaty) and st.stan().rano.otwarty
+    q = next(q for q in st.stan().pytania if q.rodzaj == "nowy_wsad")
+    odp = st.k.wykonaj(q.odpowiedzi[0].polecenie, *q.odpowiedzi[0].argumenty)  # "Tak, zamknij piec i przenies nowe skany"
+    assert odp and odp.dane["decyzja_id"]
+    s = st.stan()
+    assert s.rano.otwarty and s.rano.sesja_pieca_id != piec1 and [p.skan_id for p in s.rano.plytki] == [s2]
+    assert s.rano.ostatni_zamkniety is not None and s.rano.ostatni_zamkniety.sesja_pieca_id == piec1
+    assert SR.SesjaRano(st.k.sesja).wynik_pieca(piec1) is not None and not any(q.rodzaj == "nowy_wsad" for q in s.pytania)
+    assert st.k.sesja.baza.wiersz("SELECT sesja_pieca_id FROM skany WHERE id = ?", (s1,))["sesja_pieca_id"] == piec1
+    assert "cofnij_przeniesienie" in s.rano.dozwolone  # A6 r5: pomylke cofa przycisk przy piecu z przeniesienia
+    assert st.k.cofnij_przeniesienie(s.rano.sesja_pieca_id)
+    s = st.stan()
+    assert s.rano.sesja_pieca_id == piec1 and s.rano.otwarty and sorted(p.skan_id for p in s.rano.plytki) == [s1, s2]
+    assert s.rano.nowy_wsad is not None and "cofnij_przeniesienie" not in s.rano.dozwolone
+
+
+def test_rano_r2_d13_blad_sesji_porannej_nie_zatrzymuje_stanu(monkeypatch):
+    from stanowisko import kontroler_api as K
+
+    a = K.AtrapaKontrolera()
+    try:
+        K.indeks_rano_sztuczny(a.sesja.baza, a.sesja.teraz())
+        a.przelacz_tryb("rano")
+        a.wybierz_operatora("Technik A")
+        skan = a.symuluj_skan_rano(4, {1: "pewna"}, projekty={1: 313})
+        przed = a.stan()
+
+        def awaria():
+            raise RuntimeError("awaria sztuczna")
+
+        monkeypatch.setattr(a.rano, "piece", awaria)
+        assert a.wybierz_operatora("Technik B")  # stan odswieza sie mimo bledu czesci porannej
+        s = a.stan()
+        assert s.wersja > przed.wersja and s.operator == "Technik B" and s.rano.plytka(skan) is not None
+        assert any(k.rodzaj == "rano_niedostepny" for k in s.komunikaty)
+    finally:
+        a.zamknij()
+
+
+def test_rano_r2_aplikacja_przelaczenie_w_trakcie_analizy_blad_porannego_skanu_i_restart(tmp_path):
+    """D6 / D5 na prawdziwej ``Aplikacja``: skan zauwazony rano, osoba przelacza na wieczor w trakcie analizy - wynik idzie do
+    sesji pieca (tryb skanu); "Zamknij piec" w trakcie analizy - odmowa ``analiza_trwa``; blad analizy skanu porannego ma wpis
+    ``blad_analizy_rodzaj``; po restarcie programu tryb "Poranek" wraca."""
+    if not _jest_aplikacja():
+        pytest.skip("brak modulu stanowisko.aplikacja")
+    st = StanowiskoAplikacji(tmp_path)
+    try:
+        st.poranek()
+        brama = tmp_path / "brama_rano"
+        st.zapisz(st.opis_rano(4, {1: "pewna"}, {1: 313}, brama=str(brama)))
+        st.czekaj(lambda: st.stan().kolejka.razem > 0 and st.stan().rano is not None and st.stan().rano.zajety == "analiza_trwa", 60.0,
+                  "skan poranny w analizie")
+        odp = st.k.zamknij_piec()
+        assert not odp and odp.kod == "analiza_trwa"
+        assert st.k.przelacz_tryb("wieczor")  # przelaczenie w trakcie analizy skanu porannego
+        brama.write_text("ok", encoding="utf-8")
+        st.czekaj(lambda: st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM skany")["n"] == 1 and st.stan().kolejka.razem == 0, 90.0, "wynik")
+        w = st.k.sesja.baza.wiersz("SELECT tryb, sesja_pieca_id FROM skany")
+        assert w["tryb"] == "rano" and w["sesja_pieca_id"] is not None and st.stan().plytki == ()  # sesja trybu skanu, nie biezacego
+        assert st.k.przelacz_tryb("rano") and st.stan().rano.otwarty
+        st.zapisz(st.opis_rano(5, {1: "pewna"}, {1: 314}, blad=True))
+        st.czekaj(lambda: st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM skany WHERE status = 'blad'")["n"] == 1, 90.0, "blad analizy")
+        skan = st.k.sesja.baza.wiersz("SELECT id, tryb FROM skany WHERE status = 'blad'")
+        assert skan["tryb"] == "rano"
+        assert st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE typ = 'blad_analizy_rodzaj' AND skan_id = ?", (skan["id"],))["n"] == 1
+    finally:
+        st.koniec()
+    st2 = StanowiskoAplikacji(tmp_path)  # restart prawdziwego programu na tej samej bazie
+    try:
+        assert st2.stan().tryb == "rano" and st2.stan().rano is not None and st2.stan().rano.otwarty
+    finally:
+        st2.koniec()

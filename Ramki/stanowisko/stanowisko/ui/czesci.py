@@ -24,10 +24,12 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFrame, QHBoxLay
 
 from .. import statusy as ST
 from . import napisy as N
+from . import napisy_rano as NR
 from . import styl
 
 # polecenia, ktore kontroler przyjmuje tylko od wybranej osoby (reszta: zamkniecie pytania / komunikatu, pula, start skanu)
-BEZ_OSOBY = ("zamknij_pytanie", "zamknij_komunikat", "odswiez_pule", "start_skanu", "wybierz_operatora", "ustaw_pule", "zamknij")
+BEZ_OSOBY = ("zamknij_pytanie", "zamknij_komunikat", "odswiez_pule", "start_skanu", "wybierz_operatora", "ustaw_pule", "zamknij",
+             "przelacz_tryb", "ustaw_kolejnosc", "wybierz_kuwete")  # poranek (E3-A7)
 # "polecenia" przyciskow, ktore obsluguje samo okno (nie ida do kontrolera)
 LOKALNE_NUMER_BEZ_ZMIAN = "_numer_bez_zmian"
 LOKALNE_ZAMKNIJ_ODPOWIEDZ = "_zamknij_odpowiedz"
@@ -413,6 +415,7 @@ class PasekStanu(QFrame):
     skanuj = Signal()
     odswiez_pule = Signal()
     zmien_osobe = Signal()
+    przelacz_tryb = Signal()  # E3-A7: przycisk "-> Poranek" / "-> Wieczor" obok trybu
 
     def __init__(self):
         super().__init__()
@@ -430,7 +433,8 @@ class PasekStanu(QFrame):
             siatka.addLayout(wiersz)
         self._uklad.addLayout(siatka, 1)
         w1, w2 = self._wiersze
-        self.tryb = self._pole(w1, N.TRYB, "napis_tryb")
+        self.przycisk_trybu = przycisk("", "przycisk_przelacz_tryb", "lacze", self.przelacz_tryb.emit)  # E3-A7: Wieczor <-> Poranek
+        self.tryb = self._pole(w1, N.TRYB, "napis_tryb", self.przycisk_trybu)
         self.doba = self._pole(w1, N.DOBA, "napis_doba")
         self.przycisk_osoby = przycisk(N.ZMIEN_OSOBE, "przycisk_zmien_osobe", "lacze", self.zmien_osobe.emit)
         self.osoba = self._pole(w1, N.OSOBA, "napis_osoba", self.przycisk_osoby)
@@ -513,6 +517,9 @@ class PasekStanu(QFrame):
             return
         self._sygnatura = sygnatura
         self.tryb.setText(ST.NAZWY_TRYBOW.get(stan.tryb, stan.tryb))
+        inny = ST.NAZWY_TRYBOW["wieczor" if stan.tryb == "rano" else "rano"]
+        self.przycisk_trybu.setText(NR.PRZELACZ_NA.format(tryb=inny))
+        self.przycisk_trybu.setToolTip(NR.PRZELACZ_OPIS.format(tryb=inny))
         self.doba.setText(N.DOBA_I_ZMIANA.format(doba=dzien(stan.doba, rok=True), zmiana=stan.zmiana))
         self.osoba.setText(stan.operator or N.OSOBA_BRAK)
         self._rola(self.osoba, "wartosc" if stan.operator else "wartosc_uwaga")
@@ -663,7 +670,7 @@ def panel_pytania(pytanie, stan, typ_plytki: str | None, plytka: str = "", r: st
     for odp in pytanie.odpowiedzi:
         potrzebuje_osoby = odp.polecenie not in BEZ_OSOBY
         wymaga = wymaga or potrzebuje_osoby
-        cyfra = odp.polecenie == "podaj_numer_plytki"
+        cyfra = odp.polecenie == "podaj_numer_plytki" and len(odp.argumenty) == 2  # (skan, numer); rano "mimo to" - zwykly przycisk
         nazwa = nazwa_obiektu("odp", odp.polecenie) + (f"_{odp.argumenty[-1]}" if cyfra else "")
         przyciski.append((nazwa, odp.napis, odp.polecenie, odp.argumenty, jest_osoba or not potrzebuje_osoby, "cyfra" if cyfra else None))
     tekst, ostrzezenie, rada = pytanie.tekst, "", ""

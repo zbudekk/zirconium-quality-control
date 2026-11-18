@@ -1,4 +1,4 @@
-"""ui - ekran trybu "Wieczor" programu "Stanowisko" (paczka E3-A3b).
+"""ui - ekran programu "Stanowisko": tryb "Wieczor" (paczka E3-A3b) i "Poranek" (E3-A7, `ekran_rano`, `kandydaci`, `mapa_rano`).
 
 Wejscie: ``utworz_okno(kontroler, lacznik)`` - wolane z ``aplikacja.main()`` po zaimportowaniu Qt; zwraca okno Qt (jeszcze
 niepokazane). Okno niczego samo nie liczy: pokazuje ``kontroler.stan()`` i wysyla polecenia kontrolera (kontrakt:
@@ -12,7 +12,8 @@ ladowane w calosci dopiero w ``utworz_okno``. Moduly pakietu:
 * ``mapa``   - mapa plytki rysowana ze stanu,
 * ``obraz``  - obraz odchylek pracy liczony w watku pomocniczym,
 * ``czesci`` - pasek stanu, panele pytan i komunikatow, lista plytek, widok pracy, lista "do dofrezowania",
-* ``okno``   - okno wieczorne: sklada czesci, trzyma wybor technika (plytka, gniazdo), obsluguje klawisze.
+* ``okno``   - okno: sklada czesci, trzyma wybor technika (plytka, gniazdo), obsluguje klawisze; druga strona = ekran poranny
+  (``ekran_rano``: plytki pieca ``mapa_rano``, kandydaci i przypisanie reczne ``kandydaci``, napisy ``napisy_rano``).
 """
 from __future__ import annotations
 
