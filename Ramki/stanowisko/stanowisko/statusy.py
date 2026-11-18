@@ -256,7 +256,16 @@ PRZYCISKI = {
 }
 # powod recznego zamkniecia braku (kody ``session_rano.POWODY_ZAMKNIECIA``) -> napis przycisku
 POWODY_ZAMKNIECIA = {"nie_praca_z_cyrkonu": "to nie praca z cyrkonu", "zaginiona": "praca zaginęła", "wydana_bez_skanu": "wydana bez skanu",
-                     "inny": "inny powód"}
+                     "inny": "inny powód", "nie_bedzie_dofrezowany": "nie będzie dofrezowany"}
+POWOD_DOFREZOWANIE = "nie_bedzie_dofrezowany"  # = session_rano.POWOD_DOFREZOWANIE: jedyny powod dla punktu do_dofrezowania (A6 runda 3)
+
+
+def powody_zamkniecia(stan_punktu: str | None) -> dict:
+    """Powody recznego zamkniecia dozwolone dla punktu w stanie ``stan_punktu`` (A6 runda 3): zab do dofrezowania zamyka tylko
+    "nie bedzie dofrezowany", inny punkt - kazdy powod poza nim."""
+    if stan_punktu == "do_dofrezowania":
+        return {POWOD_DOFREZOWANIE: POWODY_ZAMKNIECIA[POWOD_DOFREZOWANIE]}
+    return {k: v for k, v in POWODY_ZAMKNIECIA.items() if k != POWOD_DOFREZOWANIE}
 NAPIS_POMINIETEJ = "pominięta (nie liczy się)"  # skan poranny pominiety przez osobe (A6 runda 2)
 PRZYCISK_BEZ_PROJEKTU = "Bez projektu"  # przypisz_recznie(praca, None): praca nieznana (przymiarka na modelach), rozstrzygniecie konfliktu
 NAZWY_KOLEJNOSCI = {"liczba": "Od najliczniejszej", "numer": "Według numeru"}  # U7 (trzeci sposob: numer wpisany recznie)

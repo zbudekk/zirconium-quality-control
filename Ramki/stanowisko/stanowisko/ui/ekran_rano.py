@@ -301,7 +301,7 @@ class PanelWyniku(QScrollArea):
             for b in z.brakujace:
                 self._reczne.addWidget(etykieta(NR.RECZNE_PUNKT.format(zab=b.zeby or NR.BRAK_DANYCH, stan=b.napis), "duzy", zawijaj=True))
                 powody = UkladPlynny(odstep_poziomy=6, odstep_pionowy=3)
-                for kod, napis in ST.POWODY_ZAMKNIECIA.items():
+                for kod, napis in ST.powody_zamkniecia(b.stan).items():
                     przycisk_ = przycisk(napis, f"brak_{b.projekt_id}_{kod}", "lacze", lambda z=z, b=b, kod=kod: self._zamknij(z, b, kod))
                     przycisk_.setEnabled(jest_osoba)
                     powody.addWidget(przycisk_)
