@@ -12,7 +12,7 @@ Jeden `KlientRamki` = jedna ramka (W albo P), dwa watki:
   program po `klucz_zdarzenia` = (start_id, nr); restart ramki (inny start_id) = kursor od zera, rano plan ponownie;
 - polecenia: JEDNA szeregowa kolejka (`PUT /tryb`, `DELETE /plan`, `PUT /plan`); polecenie gaszace anuluje oczekujacy
   plan i ponowienie; plan budowany tuz przed wyslaniem, z `zdarzenia_do` = numer ostatniego ODEBRANEGO zdarzenia i po
-  odebraniu zdarzenia wlasnego poprzedniego polecenia; `http.client` bez automatycznych ponowien - ponowienie swiadome tylko
+  odebraniu zdarzenia wlasnego poprzedniego polecenia; klient HTTP bez automatycznych ponowien - ponowienie swiadome tylko
   po zgubionej odpowiedzi (ta sama tresc i wersja); polecenia gaszace ponawiane do skutku; po 409 `inny_laptop` plan
   dopiero po jawnym `wznow()`.
 Start i stop: przy pierwszym kontakcie uruchomienia plan zastany na ramce, ktorego to uruchomienie nie ustawilo, jest
@@ -104,6 +104,30 @@ def _int(v) -> bool:
     return isinstance(v, int) and not isinstance(v, bool)
 
 
+def _rozbierz_odpowiedz(surowe: bytes) -> tuple:
+    """(status, tresc) z surowej odpowiedzi HTTP. Odpowiedz urwana (bez naglowkow, tresc krotsza niz Content-Length) =
+    `ConnectionError` (jak zerwana siec - zgubiona odpowiedz); zla linia statusu = `BladOdpowiedzi`."""
+    glowa, sep, tresc = surowe.partition(b"\r\n\r\n")
+    if not sep:
+        raise ConnectionError("odpowiedz ramki urwana (bez naglowkow)")
+    linie = glowa.split(b"\r\n")
+    czesci = linie[0].split(b" ", 2)
+    if len(czesci) < 2 or not czesci[0].startswith(b"HTTP/") or not czesci[1].isdigit():
+        raise RP.BladOdpowiedzi("zla linia statusu odpowiedzi")
+    dlugosc = None
+    for linia in linie[1:]:
+        nazwa, _, wartosc = linia.partition(b":")
+        if nazwa.strip().lower() == b"content-length":
+            if not wartosc.strip().isdigit():
+                raise RP.BladOdpowiedzi("zly naglowek Content-Length")
+            dlugosc = int(wartosc.strip())
+    if dlugosc is not None:
+        if len(tresc) < dlugosc:
+            raise ConnectionError("odpowiedz ramki urwana (tresc krotsza niz Content-Length)")
+        tresc = tresc[:dlugosc]
+    return int(czesci[1]), tresc
+
+
 class KlientRamki:
     """Klient jednej ramki. `rola` W (wieczorna) albo P (poranna); `host`, `port` = `[ramki]` ustawien.
 
@@ -181,7 +205,8 @@ class KlientRamki:
         self._plan_potrzebny = False
         self._cel = 0                       # licznik zmian tego, co ma byc na ramce
         self._min_kursor = None             # (start_id, nr): przed planem odebrac zdarzenia co najmniej do nr
-        self._czekaj_na = None              # 409 zdarzenia_nieodebrane: (start_id, zdarzenia_do odrzuconego planu)
+        self._czekaj_na = None              # 409 zdarzenia_nieodebrane: (start_id, numer) - plan, gdy kursor go minie
+        self._po_odmowie = False            # P-N1: po 409 zdarzenia_nieodebrane GET /stan (numer ostatniego zdarzenia)
         self._ponowienie = None             # PUT /plan bez odpowiedzi: ta sama tresc i wersja
         self._zablokowane = set()           # odciski tresci, ktorych nie wysylac (409 plan_zgaszony, odrzucone)
         self._wersje = {}                   # plan_id -> najwyzsza znana / uzyta wersja
@@ -233,9 +258,11 @@ class KlientRamki:
             self._watki.append(w)
             w.start()
 
-    def zatrzymaj(self, timeout: float = ZATRZYMANIE_S) -> None:
+    def zatrzymaj(self, timeout: float = ZATRZYMANIE_S) -> bool:
         """Zatrzymanie w czasie najwyzej `timeout` (domyslnie 1 s): najpierw proba wyslania oczekujacego polecenia
-        gaszacego (np. `zgas()` tuz przed zamknieciem programu - B2), potem zamkniecie polaczen w toku; watki sa daemon."""
+        gaszacego (np. `zgas()` tuz przed zamknieciem programu - B2), potem zamkniecie polaczen w toku; watki sa daemon.
+        Zwraca False, gdy oczekujace zgaszenie NIE doszlo do ramki (ramka moze swiecic do konca waznosci planu - program
+        moze o tym powiedziec technikowi), inaczej True."""
         koniec = time.monotonic() + timeout
         with self._warunek:
             stop = self._stop
@@ -244,11 +271,12 @@ class KlientRamki:
             self._warunek.notify_all()
         self._wznow.set()
         self._przerwij_polaczenia()
+        doszlo = [pol is None]
         if pol is not None:
             czas = min(0.6, koniec - time.monotonic() - 0.15)
             if czas > 0.05:
                 # osobny watek daemon: tez rozwiazywanie nazwy hosta (np. ramka-p.local) nie przedluzy zamkniecia
-                w = threading.Thread(target=self._wyslij_przy_zamykaniu, args=(pol, czas), daemon=True,
+                w = threading.Thread(target=self._wyslij_przy_zamykaniu, args=(pol, czas, doszlo), daemon=True,
                                      name=f"indicate-{self.rola}-zamykanie")
                 w.start()
                 w.join(czas + 0.1)
@@ -256,13 +284,15 @@ class KlientRamki:
         for w in self._watki:
             w.join(max(0.0, koniec - time.monotonic()))
         self._watki = []
+        return bool(doszlo[0])
 
-    def _wyslij_przy_zamykaniu(self, pol, czas: float) -> None:
+    def _wyslij_przy_zamykaniu(self, pol, czas: float, doszlo: list) -> None:
         metoda, sciezka, tresc_d, _ = pol
         try:
             st, _ = self._zadanie(metoda, sciezka, RP.koduj(tresc_d) if tresc_d is not None else None, timeout=czas,
                                   przy_zamykaniu=True)
             if st == 200:
+                doszlo[0] = True
                 with self._warunek:
                     if self._gaszace is pol:
                         self._gaszace = None
@@ -270,21 +300,18 @@ class KlientRamki:
             log.warning("ramka %s: polecenie gaszace przy zamykaniu nie doszlo", self.rola)
 
     def _przerwij_polaczenia(self) -> None:
-        """Zamyka gniazda zadan w toku. Na Windows `shutdown` nie przerywa `recv` w innym watku - gniazdo jest zamykane
-        od razu (takze gdy `http.client` trzyma na nim plik odpowiedzi)."""
+        """Zamyka gniazda zadan w toku (na Windows `shutdown` nie przerywa `recv` w innym watku - gniazdo jest zamykane;
+        klient nie uzywa `makefile`, wiec `close()` zamyka je od razu - bez prywatnego API)."""
         with self._warunek:
-            polaczenia = list(self._aktywne)
-        for c in polaczenia:
-            sock = getattr(c, "sock", None)
-            if sock is None:
-                continue
+            gniazda = list(self._aktywne)
+        for sock in gniazda:
             try:
                 sock.shutdown(socket.SHUT_RDWR)
             except OSError:
                 pass
             try:
-                sock._real_close()  # noqa: SLF001 - close() czeka na zamkniecie pliku odpowiedzi http.client
-            except (OSError, AttributeError):
+                sock.close()
+            except OSError:
                 pass
 
     def wznow(self) -> None:
@@ -324,10 +351,11 @@ class KlientRamki:
             }
 
     def odbierz_zdarzenia(self) -> list:
-        """Zdarzenia ramki od ostatniego wywolania, w kolejnosci: slownik zdarzenia z protokolu + `rola`, `start_id`
-        i `z_historii` (True = zdarzenie sprzed pierwszego kontaktu tego uruchomienia klienta). W jednym uruchomieniu
-        kazde zdarzenie raz; po restarcie programu wraca historia biezacego startu ramki (powyzej `kursor`, jesli podany) -
-        WYMAGANIE dla programu: zapis z kluczem unikalnym `klucz_zdarzenia(z)` = (start_id, nr)."""
+        """Zdarzenia ramki od ostatniego wywolania, w kolejnosci: slownik zdarzenia z protokolu + `rola`, `start_id`,
+        `z_historii` (True = zdarzenie sprzed pierwszego kontaktu tego uruchomienia klienta) i `nieaktualne` (True dla
+        `zamknij_piec` z historii albo innego pieca niz biezacy plan klienta - NIE wykonywac, tylko dziennik; r3 B-N1).
+        W jednym uruchomieniu kazde zdarzenie raz; po restarcie programu wraca historia biezacego startu ramki (powyzej
+        `kursor`, jesli podany) - WYMAGANIE dla programu: zapis kazdego zdarzenia z kluczem unikalnym `klucz_zdarzenia(z)`."""
         with self._warunek:
             wynik = list(self._zdarzenia_wy)
             self._zdarzenia_wy.clear()
@@ -353,10 +381,11 @@ class KlientRamki:
         return [list(x) for x in self._potw.get(self._rano_plan_id, [])]
 
     def znacznik(self) -> Znacznik:
-        """Znacznik chwili skanu rozpoczetego bez Spacji (ramka W: nowy skan - poprzedni wynik przestaje obowiazywac)."""
+        """Ramka W: NOWY SKAN rozpoczety bez Spacji - dziala jak `skanowanie()` (P-N2: ramka gasi poprzedni wynik od razu,
+        `PUT /tryb skanowanie`); to nie jest odczyt bez skutku. Ramka P: znacznik chwili (start ramki, kursor) bez skutku."""
+        if self.rola == "W":
+            return self.skanowanie()
         with self._warunek:
-            if self.rola == "W":
-                self._nowy_skan()
             return Znacznik(self._start_id, self._kursor, self._skan)
 
     def _nowy_skan(self) -> None:
@@ -423,8 +452,8 @@ class KlientRamki:
         zaczyna nowy skan - poprzedni wynik nie wroci (B1); "analiza" nalezy do biezacego skanu."""
         tresc = RP.tresc_trybu(stan)
         with self._warunek:
-            if self.rola == "W" and stan != "analiza":
-                self._nowy_skan()
+            if self.rola == "W" and (stan != "analiza" or self._ostatni_tryb != "skanowanie"):
+                self._nowy_skan()   # "analiza" bez poprzedzajacej Spacji / znacznik() tez zaczyna nowy skan (r2 P-N2)
             z = Znacznik(self._start_id, self._kursor, self._skan)
             self._zlec_gaszace("PUT", "/tryb", tresc, stan)
             if self.rola == "P":
@@ -534,33 +563,48 @@ class KlientRamki:
 
     def _zadanie(self, metoda: str, sciezka: str, tresc: bytes | None = None, timeout: float | None = None,
                  przy_zamykaniu: bool = False, stop=None):
-        """Jedno zadanie HTTP (nowe polaczenie, bez ponowien). Zwraca (status, JSON albo None). `stop` - sygnal
-        uruchomienia watku (zatrzymany = brak zadania); `przy_zamykaniu` - polecenie gaszace z `zatrzymaj()`."""
+        """Jedno zadanie HTTP (nowe polaczenie, `Connection: close`, bez zadnych ponowien). Zwraca (status, JSON albo None).
+        `stop` - sygnal uruchomienia watku (zatrzymany = brak zadania); `przy_zamykaniu` - polecenie gaszace z `zatrzymaj()`.
+        Klient HTTP na zwyklym gniezdzie (bez `makefile`): `zatrzymaj()` zamyka gniazdo w toku od razu (P1, bez prywatnego
+        API - recenzja r2 D-N2). Odpowiedz ramki: HTTP/1.0, `Content-Length`, zamkniecie polaczenia po odpowiedzi."""
         nr = next(self._nr_zadania)
-        naglowki = {"X-Laptop-Id": self.laptop_id, "Connection": "close"}
+        naglowki = {"Host": f"{self.host}:{self.port}", "X-Laptop-Id": self.laptop_id, "Connection": "close"}
         if self._klucz:
             naglowki[NAGLOWEK_KLUCZA] = self._klucz
         if tresc is not None:
             naglowki["Content-Type"] = "application/json"
             naglowki["Content-Length"] = str(len(tresc))
         self._zapisz("do_ramki", nr, metoda, sciezka, naglowki=naglowki, tresc=tresc)
-        c = http.client.HTTPConnection(self.host, self.port, timeout=timeout or self._limit)
+        zatrzymany = stop if stop is not None else self._stop
         with self._warunek:
-            if not przy_zamykaniu and (stop if stop is not None else self._stop).is_set():
+            if not przy_zamykaniu and zatrzymany.is_set():
                 raise OSError("klient zatrzymany")
-            self._aktywne.add(c)
+        sock = None
         try:
-            c.request(metoda, sciezka, body=tresc, headers=naglowki)
-            r = c.getresponse()
-            dane = r.read(RP.MAX_ODPOWIEDZI + 1)
-            status = r.status
+            sock = socket.create_connection((self.host, self.port), timeout=timeout or self._limit)
+            with self._warunek:
+                if not przy_zamykaniu and zatrzymany.is_set():
+                    raise OSError("klient zatrzymany")
+                self._aktywne.add(sock)
+            glowa = f"{metoda} {sciezka} HTTP/1.1\r\n" + "".join(f"{k}: {v}\r\n" for k, v in naglowki.items()) + "\r\n"
+            sock.sendall(glowa.encode("ascii") + (tresc or b""))
+            surowe = bytearray()
+            while True:
+                b = sock.recv(65536)
+                if not b:
+                    break
+                surowe += b
+                if len(surowe) > RP.MAX_ODPOWIEDZI + 65536:
+                    raise RP.BladOdpowiedzi("odpowiedz za duza")
+            status, dane = _rozbierz_odpowiedz(bytes(surowe))
         except Exception as e:
             self._zapisz("blad", nr, metoda, sciezka, blad=type(e).__name__)
             raise
         finally:
-            with self._warunek:
-                self._aktywne.discard(c)
-            c.close()
+            if sock is not None:
+                with self._warunek:
+                    self._aktywne.discard(sock)
+                sock.close()
         self._zapisz("z_ramki", nr, metoda, sciezka, status=status, tresc=dane)
         if len(dane) > RP.MAX_ODPOWIEDZI:
             raise RP.BladOdpowiedzi("odpowiedz za duza")
@@ -748,6 +792,10 @@ class KlientRamki:
                 wy["rola"] = self.rola
                 wy["start_id"] = self._start_id
                 wy["z_historii"] = nr <= self._prog_historii
+                # B-N1: "Zamknij piec" z historii albo innego pieca niz biezacy plan klienta - tylko do dziennika,
+                # nie jako polecenie (spoznione zdarzenie nie zamyka nastepnego pieca)
+                wy["nieaktualne"] = z["typ"] == "zamknij_piec" and (wy["z_historii"]
+                                                                    or z.get("plan_id") != self._rano_plan_id)
                 if len(self._zdarzenia_wy) == self._zdarzenia_wy.maxlen:
                     self._przepelnienie += 1     # D8: program nie odbiera (tylko na_zdarzenie) - najstarsze odpada
                 self._zdarzenia_wy.append(wy)
@@ -1052,8 +1100,28 @@ class KlientRamki:
                 self._pauza_po_bledzie()
             return
         with self._warunek:
-            if not stop.is_set():
-                self._po_planie(st, d, plan_id, wersja, odcisk, cel, ponowienie, sid, zdarzenia_do)
+            if stop.is_set():
+                return
+            self._po_planie(st, d, plan_id, wersja, odcisk, cel, ponowienie, sid, zdarzenia_do)
+            po_odmowie, self._po_odmowie = self._po_odmowie, False
+        if po_odmowie:
+            self._stan_po_odmowie(stop, sid)
+
+    def _stan_po_odmowie(self, stop: threading.Event, sid) -> None:
+        """P-N1: `GET /stan` zaraz po 409 zdarzenia_nieodebrane - plan dopiero, gdy kursor dojdzie do `nr_zdarzenia` ramki."""
+        try:
+            st, d = self._zadanie("GET", "/stan", stop=stop)
+            if st != 200:
+                return
+            d = RP.sprawdz_stan(d)
+        except (RP.BladOdpowiedzi,) + BLEDY_SIECI:
+            return      # zostaje warunek przyblizony (dwa zdarzenia nowsze niz odrzucony plan)
+        with self._warunek:
+            if not stop.is_set() and d["start_id"] == sid == self._start_id:
+                self._min_kursor = (sid, d["nr_zdarzenia"])
+                self._czekaj_na = None
+                self._szybko.set()
+                self._warunek.notify_all()
 
     def _po_planie(self, st, d, plan_id, wersja, odcisk, cel, ponowienie=False, sid=None, zdarzenia_do=0) -> None:
         """Odpowiedz na PUT /plan (README, wymaganie 6). Pod blokada."""
@@ -1085,9 +1153,12 @@ class KlientRamki:
         if wersja_ramki is not None:
             self._wersje[plan_id] = max(self._wersje.get(plan_id, 0), wersja_ramki)
         if kod == "zdarzenia_nieodebrane":
-            # odpytac, przeliczyc (potwierdzenia, zdjete plytki), nowa wersja - dopiero gdy kursor minie zdarzenia_do
-            # odrzuconego planu (ramka ma nowsze zdarzenia; czekanie na nowe odpytanie mogloby utknac w dlugim odpytaniu)
-            self._czekaj_na = (sid, zdarzenia_do)
+            # P-N1: odpytac, przeliczyc (potwierdzenia, zdjete plytki), nowa wersja dopiero, gdy kursor dojdzie do numeru
+            # ostatniego zdarzenia ramki PO odmowie (GET /stan zaraz po tej odpowiedzi - zawiera tez `zgaszono` odmowy):
+            # jedno ponowienie na zdarzenie, bez czekania na nowe dlugie odpytanie. Gdyby GET /stan sie nie udal - co
+            # najmniej dwa zdarzenia nowsze niz odrzucony plan (brakujace + `zgaszono` odmowy).
+            self._czekaj_na = (sid, zdarzenia_do + 1)
+            self._po_odmowie = True
             self._szybko.set()
         elif kod in ("plan_starszy", "konflikt_wersji"):
             pass                                 # nowa wersja powyzej wersji ramki
@@ -1155,6 +1226,13 @@ def identyfikator_laptopa(katalog) -> str:
     return lid
 
 
+def _zapisany_identyfikator(katalog, lid: str) -> bool:
+    try:
+        return (Path(katalog) / PLIK_ID_LAPTOPA).read_text(encoding="ascii").strip() == lid
+    except (OSError, UnicodeDecodeError):
+        return False
+
+
 class Indicate:
     """Obie ramki stanowiska: `wieczorna` (W) i `poranna` (P) - klienci `KlientRamki`."""
 
@@ -1177,7 +1255,13 @@ class Indicate:
         if not sciezka.is_absolute():
             sciezka = korzen / sciezka
         kal, ostrzezenia = wczytaj_kalibracje(sciezka, korzen / "modele_plytek")
-        lid = identyfikator_laptopa(Path(katalog_danych) if katalog_danych is not None else korzen / "dane")
+        katalog = Path(katalog_danych) if katalog_danych is not None else korzen / "dane"
+        lid = identyfikator_laptopa(katalog)
+        if not _zapisany_identyfikator(katalog, lid):
+            # D-N3: identyfikator tylko na czas programu - szybki restart = ramka widzi "drugi laptop" przez 30 s
+            ostrzezenia = list(ostrzezenia) + [
+                "Identyfikator laptopa nie zostal zapisany w katalogu danych - po restarcie programu ramka moze przez "
+                "30 s zglaszac drugi laptop na stanowisku."]
 
         def klient(rola, host):
             return KlientRamki(rola, host, r["port"], laptop_id=lid, kalibracja=kal, klucz=r.get("klucz", ""),
@@ -1193,14 +1277,21 @@ class Indicate:
         for k in self.klienci():
             k.uruchom()
 
-    def zatrzymaj(self, timeout: float = ZATRZYMANIE_S) -> None:
-        """Obie ramki naraz (kazda z proba wyslania oczekujacego zgaszenia) - razem najwyzej ok. `timeout` (P1)."""
-        watki = [threading.Thread(target=k.zatrzymaj, args=(timeout,), daemon=True) for k in self.klienci()]
+    def zatrzymaj(self, timeout: float = ZATRZYMANIE_S) -> dict:
+        """Obie ramki naraz (kazda z proba wyslania oczekujacego zgaszenia) - razem najwyzej ok. `timeout` (P1). Zwraca
+        {rola: czy oczekujace zgaszenie doszlo (albo nie bylo potrzebne)} - False = ramka moze jeszcze swiecic (D-N4)."""
+        wyniki = {k.rola: False for k in self.klienci()}
+
+        def zatrzymaj_klienta(k):
+            wyniki[k.rola] = k.zatrzymaj(timeout)
+
+        watki = [threading.Thread(target=zatrzymaj_klienta, args=(k,), daemon=True) for k in self.klienci()]
         for w in watki:
             w.start()
         koniec = time.monotonic() + timeout + 0.1
         for w in watki:
             w.join(max(0.0, koniec - time.monotonic()))
+        return dict(wyniki)
 
     def stan(self) -> dict:
         return {k.rola: k.stan() for k in self.klienci()}
