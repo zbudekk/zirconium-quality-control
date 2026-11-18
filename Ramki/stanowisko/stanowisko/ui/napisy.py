@@ -1,8 +1,9 @@
 """napisy - teksty ekranu wieczornego, ktorych nie ma w ``statusy`` (etykiety pol, naglowki, podpowiedzi).
 
 Statusy prac i plytek, komunikaty, pytania i napisy przyciskow polecen sa WYLACZNIE w ``statusy`` - tutaj ich nie ma.
-Teksty sa po polsku ze znakami diakrytycznymi (czyta je technik); plik UTF-8, bez Qt. Wszystkie do zatwierdzenia przez
-wlasciciela na pokazie G1 (lista w raporcie paczki).
+Wyjatek: napis stanu obejrzenia plytki ("do obejrzenia: n" / "sprawdzona"), ktory ekran wylicza z decyzji w stanie
+(``czesci.stan_obejrzenia``) - to nie jest status skanu. Teksty sa po polsku ze znakami diakrytycznymi (czyta je technik);
+plik UTF-8, bez Qt. Wszystkie do zatwierdzenia przez wlasciciela na pokazie G1 (lista w raporcie paczki).
 """
 from __future__ import annotations
 
@@ -15,21 +16,31 @@ DOBA_I_ZMIANA = "{doba} · zmiana {zmiana}"
 OSOBA = "Osoba"
 OSOBA_BRAK = "nie wybrano"
 ZMIEN_OSOBE = "Zmień"
-PULA = "Projekty w puli"
-SKANER = "Skaner"
-SKANER_GOTOWY = "gotowy"
-SKANER_CZEKA = "czekam na skan…"
+PULA = "Folder projektów"
+SKANER = "Folder skanera"
+SKANER_GOTOWY = "dostępny"
+SKANER_CZEKA = "czekam na plik skanu…"
 SKANER_ZAJETY = "plik skanu zajęty — czekam"
-SKANER_BRAK_FOLDERU = "brak folderu skanera"
-SKANER_NIE_DZIALA = "nie działa"
+SKANER_BRAK_FOLDERU = "niedostępny"
+SKANER_NIE_DZIALA = "nie jest obserwowany"
 ANALIZA = "Analiza"
 ANALIZA_BRAK = "nic nie czeka"
 ANALIZA_TRWA = "trwa: {procent} %"
 ANALIZA_CZEKA = "skany czekają"
-KOLEJKA = "w kolejce: {n}"
-WSTRZYMANE_PULA = "czekają na projekty w puli: {n}"
-WSTRZYMANE_ANALIZA = "czekają na uruchomienie analizy: {n}"
+PODPIS_POLA = "{podpis}:"
+KOLEJKA = "skany w kolejce: {n}"
+WSTRZYMANE_PULA = "czekają na projekty: {n}"
+WSTRZYMANE_ANALIZA = "czekają na analizę: {n}"
 WSTRZYMANE_ZAPIS = "czekają na zapis: {n}"
+ODSTEP_KOLEJKI = " · "
+# start skanu jest atrapa do dnia skanera (B2): skan uruchamia technik w programie skanera, program czeka na plik
+SKANUJ_ATRAPA = "Skanuj w programie skanera\nSpacja: program czeka na plik"
+SKANUJ_ATRAPA_OPIS = "Program sam nie uruchamia skanera. Uruchom skan w programie skanera — program przyjmie plik skanu sam."
+NOWA_PLYTKA = "Pokaż nowy wynik:\n{plytka}"
+NOWE_PLYTKI = "Pokaż nowe wyniki ({n}):\n{plytka}"
+
+# --- pasek bledow programu (A-P3) ----------------------------------------------------------------
+BLEDY_PROGRAMU = "Błędy programu: {n}"
 
 # --- wybor osoby -----------------------------------------------------------------------------------
 KTO_PRACUJE = "Kto teraz pracuje?"
@@ -38,35 +49,49 @@ ZOSTAW_OSOBE = "Bez zmian"
 
 # --- lista plytek ----------------------------------------------------------------------------------
 PLYTKI_ZMIANY = "Płytki tej zmiany"
-PLYTKI_BRAK = "Jeszcze nie ma skanów.\nUłóż prace na płytce, włóż ją do skanera i naciśnij Spację."
+PLYTKI_BRAK = "Jeszcze nie ma skanów.\nUłóż prace na płytce, włóż ją do skanera i uruchom skan w programie skanera."
 PLYTKA_NR = "Płytka {numer}"
-PLYTKA_BEZ_NUMERU = "Płytka ?"
+PLYTKA_BEZ_NUMERU = "Płytka bez numeru"
 PLYTKA_NOWA = "NOWA"
 PLYTKA_PYTANIE = "czeka na odpowiedź"
+PLYTKA_KOMUNIKAT = "ma komunikat"
 PLYTKA_BEZ_PRAC = "brak prac"
+PLYTKA_DO_OBEJRZENIA = "do obejrzenia: {n}"
+PLYTKA_SPRAWDZONA = "sprawdzona"
+PLYTKA_DOPUSZCZONA = "{jaka} — dopuszczona świadomie"
 PRAC = "prac: {n}"
 WCZESNIEJSZE_POKAZ = "Pokaż wcześniejsze zmiany ({n})"
 WCZESNIEJSZE_UKRYJ = "Ukryj wcześniejsze zmiany"
 ZMIANA_NR = "zmiana {zmiana}"
+LICZNIK_OPIS = "{napis}: {n}"
 
 # --- mapa ------------------------------------------------------------------------------------------
 MAPA_BRAK_PLYTKI = "Tu pojawi się mapa płytki po pierwszym skanie."
 MAPA_NAGLOWEK = "{plytka} — {napis}"
 MAPA_GODZINA = "skan z {godzina}"
+MAPA_NAPIS_I_GODZINA = "{napis} · skan z {godzina}"
 MAPA_PRZOD = "PRZÓD PŁYTKI"
 MAPA_BEZ_GNIAZD = "Płytka {napis}."
 LEGENDA = "Na tej płytce:"
 ODSTEP = "   ·   "
 POZA_GNIAZDEM = "Poza gniazdami: {n}"
-JESZCZE = "… i jeszcze {n} (zamknij powyższe, żeby zobaczyć)"
+JESZCZE = "… i jeszcze {n} — zamknij powyższe, żeby je zobaczyć"
 UWAGA_PLYTKI = "{plytka}: {tytul}"
 KILKA_RAZY = "{tytul}  ({n} razy)"
 NUMER_PLYTKI_TEKST = "Wybierz numer wybity na płytce."
+ZMIEN_NUMER = "Zmień numer"
+ZMIEN_NUMER_TYTUL = "zmień numer płytki"
+KONFLIKT_MIEJSCA = "Gniazda: {miejsca}."
+KONFLIKT_MIEJSCE = "{plytka}, gniazdo {gniazdo}"
+KONFLIKT_GODZINA = " ({godzina})"
+KONFLIKT_I = " i "
+KONFLIKT_ODSTEP = "; "
+KONFLIKT_DALEJ = "; …"
 
 # --- widok pracy -----------------------------------------------------------------------------------
 PRACA_PUSTY_WIDOK = "Kliknij gniazdo na mapie, żeby obejrzeć pracę.\n\nCzerwone i żółte prace weź do ręki, obejrzyj i wybierz „Ukruszona” albo „OK”."
-PRACA_TYTUL = "Gniazdo {gniazdo}"
-PRACA_TYTUL_POZA = "Praca poza gniazdem"
+PRACA_TYTUL = "{plytka} — gniazdo {gniazdo}"
+PRACA_TYTUL_POZA = "{plytka} — praca poza gniazdem"
 PRACA_Z_DWOCH = "praca {nr} z {ile}"
 KUWETA = "Kuweta"
 ZAB = "Ząb"
@@ -79,12 +104,18 @@ OBRAZ_WCZYTYWANIE = "Wczytuję obraz pracy…"
 OBRAZ_BRAK = "Brak obrazu tej pracy."
 OBRAZ_OPIS = "Widok z góry: czerwone = brakuje materiału, niebieskie = nadmiar, kółko = ubytek."
 DECYZJA_ZAPISANA = "Decyzja: {decyzja} — {osoba}, {godzina}"
-DECYZJA_NIEWYKRYTA = "{decyzja} (program jej nie wskazał)"
+DECYZJA_NIEWYKRYTA = "{decyzja} (program tego nie wykrył)"
 DECYZJE_NIEDOSTEPNE = "Decyzji nie można teraz zapisać — płytka {napis}."
 SKROT = "{napis}  [{klawisz}]"
 ZAMKNIJ_PRACE = "Zamknij  [Esc]"
 NASTEPNA = "Następna  [N]"
 NASTEPNA_OPIS = "Następna praca do obejrzenia na tej płytce"
+
+# --- informacje ekranu (panel z przyciskiem "Zamknij"; nie sa komunikatami kontrolera) -------------
+INFORMACJA = "Informacja"
+PRACA_ZNIKNELA = "Pokazanej pracy nie ma już w stanie programu (nowa doba robocza albo skan nie jest już liczony) — widok pracy zamknięto."
+PRACA_ZMIENIONA = "Dane w tym gnieździe zmieniły się — widok pracy zamknięto, żeby decyzja nie trafiła do innej pracy. Kliknij gniazdo ponownie."
+POZYCJA_Z_INNEJ_DOBY = "Ta praca jest z doby {doba} (zmiana {zmiana}) — jej płytki nie ma na mapie tej doby."
 
 # --- lista "do dofrezowania" -----------------------------------------------------------------------
 LISTA_TYTUL = "Do dofrezowania: {n}"
@@ -93,11 +124,11 @@ LISTA_WSZYSTKIE = "Wszystkie otwarte"
 LISTA_PUSTA = "Lista jest pusta."
 KOLUMNY_LISTY = ("Kuweta", "Ząb", "Krążek", "Płytka", "Gniazdo", "Doba", "Zmiana")
 POWTORZONY = "oznaczony {n} razy"
-LISTA_PLIK = "plik listy zapisany o {godzina}"
+LISTA_PLIK = "Lista zapisana do pliku o {godzina}"
 
 # --- rady do pytan (uzupelnienie tekstu pytania ze ``statusy``; patrz POTRZEBUJE w raporcie) --------
-RADA_PLYTKA_PORANNA = "To płytka poranna — przełóż prace na płytkę wieczorną i zeskanuj ponownie."
-RADA_PLYTKA_WIECZORNA = "To płytka wieczorna — przełóż prace na płytkę poranną i zeskanuj ponownie."
+RADA_PLYTKA_PORANNA = "Przełóż prace na płytkę wieczorną i zeskanuj ponownie."
+RADA_PLYTKA_WIECZORNA = "Przełóż prace na płytkę poranną i zeskanuj ponownie."
 RADA_PLYTKA_NIEZNANA = "Przełóż prace na właściwą płytkę i zeskanuj ponownie."
 
 # --- skroty klawiszowe -----------------------------------------------------------------------------
