@@ -24,12 +24,15 @@ import math
 import re
 import time
 import warnings
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
 import numpy as np
+import open3d as o3d
 import trimesh
+from scipy.spatial import ConvexHull, cKDTree
 
+from . import krawedz as KR
 from . import uklad as U
 from . import ustawienia as UST
 
@@ -38,6 +41,13 @@ MAKS_UNIESIENIE = 1.5  # mm: o tyle praca może wisieć nad dnem gniazda (klin n
 TOLERANCJA_PRZENIKANIA = 1e-6  # mm: osadzenie z większym wejściem w ściankę to błąd programu
 WSPOLCZYNNIK_PORANNA = (1.0, 1.0)  # rano prace są już spieczone: skala 1 z definicji, to nie próg do strojenia
 GLEBOKOSC_UBYTKU = 0.7  # głębokość ubytku = 0,7·r (środek kuli 0,3·r nad powierzchnią)
+WERSJE_UBYTKOW = (1, 2)  # 1 = generator sprzed P4 (czasza pod płaszczyzną styczną — tylko do odtwarzania starych zestawów), 2 = czasza w materiale
+POLOZENIA_UKRUSZEN = ("srodek", "zewn", "wewn", "sciana")  # K6: środek płaskiej krawędzi brzegu, narożnik zewnętrzny / wewnętrzny, ściana w pasie brzegu
+KLASY_POLOZENIA = {"srodek": "krawedz_srodek", "zewn": "krawedz_zewn", "wewn": "krawedz_wewn", "sciana": "sciana"}  # → Ubytek.polozenie
+ODSTEP_UKRUSZEN_MM = 2.0  # K6: środki ubytków tej samej pracy leżą co najmniej o tyle od siebie (plus ich promienie)
+SCIANA_OD_KRAWEDZI_MM = 0.15  # K6 „sciana”: kula nie dochodzi do płaskiej krawędzi brzegu bliżej niż na tyle
+PUNKTOW_POMIARU_KULI = 4000  # gęsta siatka punktów kuli do pomiaru rzeczywistej głębokości ubytku
+PROB_UKRUSZENIA = 60  # K6: tyle losowań miejsca, zanim ukruszenie zostanie pominięte
 ORIENTACJE = ("auto", "brzeg_dol", "brzeg_gora")
 ULOZENIA = ("dobrze", "bokiem", "do_gory_nogami")
 NORMALNA_NIEWIDOCZNA = -0.15  # praca bokiem: trójkąty z normalną z poniżej tego nie są widziane z góry
@@ -57,6 +67,12 @@ class Ubytek:
     glebokosc: float
     wykrywalny: bool = True  # False: płytszy niż [inspect] prog_glebokosci_mm, średnica poza zakresem [inspect] albo niewidoczny
     widoczny: bool = True  # False: powierzchnia ubytku usunięta ze skanu (--pokrycie, praca bokiem)
+    # pola od P4 (15.11.2026); w prawdzie starszych zestawów ich nie ma — zostają wartości domyślne („nieznane”)
+    polozenie: str = ""  # klasa położenia: krawedz_srodek | krawedz_zewn | krawedz_wewn | sciana; "" = nieznana
+    glebokosc_rzeczywista: float | None = None  # zmierzona: największa odległość nowej powierzchni pod pierwotną powierzchnią pracy [mm]
+    filar: int = 0  # numer filaru (pętli brzegu) najbliższej linii; 0 = nieznany / brak linii
+    odleglosc_od_linii: float | None = None  # odległość środka (x, y, z) od linii krawędzi brzegu O / I [mm]
+    celowy: bool = False  # True: ukruszenie K6 postawione celowo (środek kuli NA powierzchni, rozmiar = promień = srednica / 2)
 
 
 @dataclass
@@ -81,6 +97,7 @@ class PracaNaPlytce:
     ulozenie: str = "dobrze"  # dobrze | bokiem | do_gory_nogami (P3a: --bokiem)
     pokrycie: float = 1.0  # udział powierzchni pracy, który został w skanie (P3a: --pokrycie, praca bokiem)
     poprawki: list[Poprawka] = field(default_factory=list)  # gładkie poprawki ręczne (P3a: --poprawka)
+    ukruszenia_pominiete: int = 0  # K6: ile zamówionych ukruszeń celowych nie dało się postawić (brak zweryfikowanej linii / miejsca)
 
 
 @dataclass
@@ -202,15 +219,18 @@ def orientacja_brzegiem_do_gory(m: trimesh.Trimesh, orientacja: str = "auto", na
     return obrot if brzeg == "dol" else np.eye(4)
 
 
-def wytnij_ubytek(
+def _wytnij_ubytek_v1(
     m: trimesh.Trimesh, srednica: float, rng: np.random.Generator, pas_brzegu: float | None = None
 ) -> tuple[trimesh.Trimesh, Ubytek]:
-    """Wycina kulisty ubytek na brzegu pracy (brzeg = górny pas ``pas_brzegu`` mm).
+    """Generator ubytków sprzed P4 (``wersja_ubytkow`` = 1) — ZOSTAWIONY BEZ ZMIAN wyłącznie po to, żeby dało się
+    odtworzyć bajt w bajt zestawy wygenerowane przed 15.11.2026 (zestawy odniesienia R59 / r54, mapa seed 7001).
 
-    ``pas_brzegu`` None = ``[inspect] pas_brzegu_mm`` z ustawień (ten sam pas, w którym szuka inspect).
-    Praca musi być już obrócona brzegiem do góry. Siatka jest lokalnie zagęszczona
-    do 0,05 mm, trójkąty w kuli usunięte, a w ich miejsce wstawiona „czasza”
-    kuli leżąca pod pierwotną powierzchnią — tak wygląda miejsce bez materiału.
+    Błąd tej wersji (testy krawędzi T5, 06.11.2026): wstawiana jest połowa kuli pod płaszczyzną styczną w wierzchołku,
+    a nie część kuli leżąca w materiale — na krawędzi i na cienkiej ściance część czaszy wisi w powietrzu, a część
+    materiału w kuli zostaje bez powierzchni. Nowe zestawy generuje ``wytnij_ubytek`` (wersja 2).
+
+    ``pas_brzegu`` None = ``[inspect] pas_brzegu_mm`` z ustawień. Praca musi być już obrócona brzegiem do góry.
+    Siatka jest lokalnie zagęszczona do 0,05 mm, trójkąty w kuli usunięte, a w ich miejsce wstawiona „czasza” kuli.
     """
     if not (math.isfinite(srednica) and srednica > 0):
         raise ValueError(f"średnica ubytku musi być > 0 mm, jest {srednica}")
@@ -253,6 +273,266 @@ def wytnij_ubytek(
     out.update_faces(out.nondegenerate_faces())
     out.remove_unreferenced_vertices()
     return out, Ubytek(*map(float, p), srednica=float(srednica), glebokosc=float(GLEBOKOSC_UBYTKU * r))
+
+
+class Material:
+    """Materiał pracy do wycinania ubytków: pierwotna powierzchnia (przed ubytkami) i lista już wyciętych kul.
+
+    ``funkcja(Q)`` < 0 = punkt leży w materiale, który jeszcze jest (pod pierwotną powierzchnią i poza wyciętymi
+    kulami). Znak odległości od powierzchni: siatka szczelna — ``compute_signed_distance`` Open3D (parzystość
+    przecięć promienia); nieszczelna — normalna najbliższego trójkąta (jak ``inspect.odchylki``; przy bardzo ostrych
+    krawędziach znak bywa błędny — ograniczenie opisane w ``opisy_modulow/synth.md``).
+    """
+
+    def __init__(self, m: trimesh.Trimesh):
+        self.scena = KR.scena_siatki(m)
+        self.szczelna = bool(m.is_watertight)
+        self.kule: list[tuple[np.ndarray, float]] = []
+
+    def najblizszy(self, Q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """(najbliższy punkt pierwotnej powierzchni, odległość) dla każdego punktu ``Q``."""
+        r = self.scena.compute_closest_points(o3d.core.Tensor(np.ascontiguousarray(np.atleast_2d(Q), dtype=np.float32)))
+        C = r["points"].numpy().astype(np.float64)
+        return C, np.linalg.norm(np.atleast_2d(Q) - C, axis=1)
+
+    def od_powierzchni(self, Q: np.ndarray) -> np.ndarray:
+        """Odległość ze znakiem od pierwotnej powierzchni pracy: < 0 = w materiale."""
+        t = o3d.core.Tensor(np.ascontiguousarray(Q, dtype=np.float32))
+        if self.szczelna:
+            return self.scena.compute_signed_distance(t).numpy().astype(np.float64)
+        r = self.scena.compute_closest_points(t)
+        R = Q - r["points"].numpy().astype(np.float64)
+        znak = np.sign(np.einsum("ij,ij->i", R, r["primitive_normals"].numpy().astype(np.float64)))
+        return znak * np.linalg.norm(R, axis=1)
+
+    def funkcja(self, Q: np.ndarray) -> np.ndarray:
+        g = self.od_powierzchni(Q)
+        for c, r in self.kule:
+            g = np.maximum(g, r - np.linalg.norm(Q - c, axis=1))
+        return g
+
+
+def _punkty_kuli(n: int) -> np.ndarray:
+    """``n`` prawie równomiernych kierunków na sferze jednostkowej (spirala Fibonacciego)."""
+    i = np.arange(n) + 0.5
+    z = 1 - 2 * i / n
+    fi = i * math.pi * (3 - math.sqrt(5))
+    s = np.sqrt(1 - z * z)
+    return np.c_[s * np.cos(fi), s * np.sin(fi), z]
+
+
+def _przytnij(V: np.ndarray, F: np.ndarray, g, rzut=None, iteracje: int = 10) -> tuple[np.ndarray, np.ndarray]:
+    """Część siatki, w której ``g(punkt)`` < 0. Trójkąty przecięte granicą g = 0 są dzielone: punkt przecięcia każdej
+    krawędzi szukany bisekcją i brany po stronie g < 0 (zostająca część nigdy nie wychodzi poza granicę);
+    ``rzut`` — opcjonalne dociągnięcie punktów bisekcji na powierzchnię, po której biegnie krawędź (np. na sferę).
+    Zwraca (wierzchołki + nowe punkty, trójkąty)."""
+    ins = np.asarray(g(V)) < 0
+    k = ins[F].sum(axis=1)
+    cale = F[k == 3]
+    miesz = F[(k == 1) | (k == 2)]
+    if len(miesz) == 0:
+        return V, cale
+    flag = ins[miesz]
+    jeden = flag.sum(axis=1) == 1  # jeden wierzchołek po stronie g < 0 (inaczej: jeden po stronie g >= 0)
+    odm = np.where(jeden[:, None], flag, ~flag).argmax(axis=1)  # kolumna wierzchołka „odmiennego”
+    T = np.take_along_axis(miesz, (odm[:, None] + np.arange(3)) % 3, axis=1)  # (a, b, c): a odmienny, kolejność cykliczna zachowana
+    a, b, c = T.T
+    e_in = np.concatenate([np.where(jeden, a, b), np.where(jeden, a, c)])  # krawędzie a–b i a–c jako (g < 0, g >= 0)
+    e_out = np.concatenate([np.where(jeden, b, a), np.where(jeden, c, a)])
+    _, pierwszy, odw = np.unique(e_in.astype(np.int64) * len(V) + e_out, return_index=True, return_inverse=True)
+    lo, hi = V[e_in[pierwszy]].astype(np.float64).copy(), V[e_out[pierwszy]].astype(np.float64).copy()
+    for _ in range(iteracje):
+        mid = (lo + hi) / 2 if rzut is None else rzut((lo + hi) / 2)
+        w = np.asarray(g(mid)) < 0
+        lo[w] = mid[w]
+        hi[~w] = mid[~w]
+    X = lo
+    odw = odw.ravel()
+    xab, xac = len(V) + odw[: len(T)], len(V) + odw[len(T):]
+    nowe = [np.c_[a, xab, xac][jeden], np.c_[xab, b, c][~jeden], np.c_[xab, c, xac][~jeden]]
+    return np.vstack([V, X]), np.vstack([cale, *nowe])
+
+
+def _wytnij_kule(m: trimesh.Trimesh, material: Material, c: np.ndarray, r: float, odstep: float) -> tuple[trimesh.Trimesh, dict] | None:
+    """Usuwa z pracy materiał w kuli (c, r): powierzchnia pracy przycięta dokładnie na sferze, w jej miejsce część
+    sfery leżąca W materiale (przycięta na pierwotnej powierzchni i na wcześniej wyciętych kulach) — nic nie wisi w
+    powietrzu i żaden materiał w kuli nie zostaje bez powierzchni. Punkty nowej powierzchni mają gęstość skanu:
+    jeden na ``odstep``² mm². Dopisuje kulę do ``material.kule``. Zwraca (siatka, pomiar) albo None, gdy kula nie
+    sięga materiału.
+
+    pomiar: ``glebokosc`` = największa odległość nowej powierzchni pod PIERWOTNĄ powierzchnią pracy [mm],
+    ``udzial_kuli_w_materiale`` (udział pola sfery, który stał się nową powierzchnią), ``punktow_czaszy``.
+    """
+    Pd = c + r * _punkty_kuli(PUNKTOW_POMIARU_KULI)
+    w = material.funkcja(Pd) < 0
+    if not w.any():
+        return None
+    glebokosc = float(max(0.0, -material.od_powierzchni(Pd[w]).min()))
+    V, F = m.vertices.copy(), m.faces.copy()
+    blisko = np.linalg.norm(m.triangles_center - c, axis=1) < 1.6 * r + 0.3
+    if blisko.any():  # lokalne zagęszczenie wokół ubytku do gęstości skanu
+        Vs, Fs = trimesh.remesh.subdivide_to_size(V, F[blisko], max_edge=odstep)
+        F = np.concatenate([F[~blisko], Fs + len(V)])
+        V = np.concatenate([V, Vs])
+    V, F = _przytnij(V, F, lambda Q: r - np.linalg.norm(Q - c, axis=1))  # zostaje część powierzchni poza kulą
+    Uk = _punkty_kuli(max(24, int(round(4 * math.pi * r * r / odstep**2))))
+    Vk, Fk = _przytnij(c + r * Uk, ConvexHull(Uk).simplices, material.funkcja,
+                       rzut=lambda X: c + r * (X - c) / np.maximum(np.linalg.norm(X - c, axis=1, keepdims=True), 1e-12))
+    if len(Fk):  # normalne czaszy do środka kuli = na zewnątrz materiału
+        tr = Vk[Fk]
+        nrm = np.cross(tr[:, 1] - tr[:, 0], tr[:, 2] - tr[:, 0])
+        zle = np.einsum("ij,ij->i", nrm, tr.mean(axis=1) - c) > 0
+        Fk[zle] = Fk[zle][:, ::-1]
+    out = trimesh.Trimesh(np.concatenate([V, Vk]), np.concatenate([F, Fk + len(V)]), process=False)
+    out.merge_vertices()
+    out.update_faces(out.nondegenerate_faces())
+    out.remove_unreferenced_vertices()
+    material.kule.append((np.asarray(c, dtype=np.float64).copy(), float(r)))
+    return out, {"glebokosc": glebokosc, "udzial_kuli_w_materiale": float(w.mean()), "punktow_czaszy": int(len(np.unique(Fk)))}
+
+
+def _stacje_pewne(linie: KR.LinieProjektu | None) -> np.ndarray:
+    """Zweryfikowane stacje linii O i I wszystkich filarów (N×3); bez linii — pusta tablica."""
+    if linie is None or not linie.filary:
+        return np.zeros((0, 3))
+    st = KR.stacje(linie)
+    return st["X"][st["zweryf"]]
+
+
+def polozenie_wzgledem_brzegu(linie: KR.LinieProjektu | None, p: np.ndarray, r: float) -> tuple[str, int, float | None]:
+    """Klasa położenia ubytku o promieniu ``r`` i środku ``p`` na powierzchni: (klasa, numer filaru, odległość od linii
+    O / I). Kula sięgająca płaskiej krawędzi brzegu (odległość od najbliższej z linii O / S / I ≤ r) = krawędź, klasa
+    wg najbliższej linii (O → ``krawedz_zewn``, S → ``krawedz_srodek``, I → ``krawedz_wewn``); inaczej ``sciana``.
+    Bez linii: ("", 0, None)."""
+    if linie is None or not linie.filary:
+        return "", 0, None
+    naj = (math.inf, "", 0)
+    odl_linii = math.inf
+    for f in linie.filary:
+        for nazwa, klasa in (("O", "krawedz_zewn"), ("S", "krawedz_srodek"), ("I", "krawedz_wewn")):
+            d = float(cKDTree(f.linie[nazwa].X).query(p)[0])
+            if d < naj[0]:
+                naj = (d, klasa, f.nr)
+            if nazwa != "S":
+                odl_linii = min(odl_linii, d)
+    return (naj[1] if naj[0] <= r else "sciana"), naj[2], round(odl_linii, 4)
+
+
+def wytnij_ubytek(
+    m: trimesh.Trimesh, srednica: float, rng: np.random.Generator, pas_brzegu: float | None = None, *,
+    linie: KR.LinieProjektu | None = None, material: Material | None = None, odstep: float | None = None, wersja: int = 2,
+) -> tuple[trimesh.Trimesh, Ubytek]:
+    """Wycina kulisty ubytek w losowym miejscu pasa brzegu pracy (praca już obrócona brzegiem do góry).
+
+    Miejsce = losowy wierzchołek siatki w pasie ``pas_brzegu`` (None = ``[inspect] pas_brzegu_mm``): z liniami
+    krawędzi brzegu (``linie`` z ``krawedz.linie_siatki``) pas liczy się od zweryfikowanych odcinków linii każdego
+    filaru — tak jak szuka inspect; bez linii to górny pas ``pas_brzegu`` mm pracy. Środek kuli leży 0,3·r nad
+    powierzchnią (głębokość nominalna 0,7·r). Materiał w kuli jest usuwany, a w jego miejsce wchodzi część sfery
+    leżąca w materiale (``_wytnij_kule``); w prawdzie: klasa położenia względem brzegu i zmierzona głębokość.
+    ``material`` — wspólny dla kolejnych ubytków tej samej pracy (None = nowy z ``m``); ``odstep`` — gęstość punktów
+    nowej powierzchni (None = ``[synth] odstep_ubytku_mm``); ``wersja`` = 1 → generator sprzed P4 (``_wytnij_ubytek_v1``).
+    """
+    if not (math.isfinite(srednica) and srednica > 0):
+        raise ValueError(f"średnica ubytku musi być > 0 mm, jest {srednica}")
+    if wersja not in WERSJE_UBYTKOW:
+        raise ValueError(f"wersja generatora ubytków {wersja!r}: dopuszczalne {WERSJE_UBYTKOW}")
+    if wersja == 1:
+        return _wytnij_ubytek_v1(m, srednica, rng, pas_brzegu)
+    if pas_brzegu is None:
+        pas_brzegu = UST.domyslne()["inspect"]["pas_brzegu_mm"]
+    if odstep is None:
+        odstep = UST.domyslne()["synth"]["odstep_ubytku_mm"]
+    if material is None:
+        material = Material(m)
+    r = srednica / 2
+    pewne = _stacje_pewne(linie)
+    if len(pewne):
+        kand = np.flatnonzero(np.isfinite(cKDTree(pewne).query(m.vertices, distance_upper_bound=pas_brzegu)[0]))
+    else:
+        kand = np.flatnonzero(m.vertices[:, 2] > m.bounds[1, 2] - pas_brzegu)
+    if len(kand) == 0:
+        kand = np.arange(len(m.vertices))
+    for _ in range(PROB_UKRUSZENIA):
+        iv = int(rng.choice(kand))
+        p = m.vertices[iv].copy()
+        n = m.vertex_normals[iv].copy()
+        if not np.isfinite(n).all() or np.linalg.norm(n) < 0.5:
+            n = np.array([0, 0, 1.0])
+        n /= np.linalg.norm(n)
+        wynik = _wytnij_kule(m, material, p + (1 - GLEBOKOSC_UBYTKU) * r * n, r, odstep)  # środek kuli lekko na zewnątrz
+        if wynik is not None:
+            break
+    else:
+        raise RuntimeError("nie znaleziono miejsca na ubytek (kula nie sięga materiału)")
+    klasa, filar, odl = polozenie_wzgledem_brzegu(linie, p, r)
+    return wynik[0], Ubytek(*map(float, p), srednica=float(srednica), glebokosc=float(GLEBOKOSC_UBYTKU * r), polozenie=klasa,
+                            glebokosc_rzeczywista=round(wynik[1]["glebokosc"], 4), filar=filar, odleglosc_od_linii=odl)
+
+
+def wytnij_ukruszenie(
+    m: trimesh.Trimesh, linie: KR.LinieProjektu | None, polozenie: str, rozmiar: float, rng: np.random.Generator, *,
+    material: Material | None = None, pas_brzegu: float | None = None, odstep: float | None = None,
+) -> tuple[trimesh.Trimesh, Ubytek | None]:
+    """K6: ukruszenie postawione celowo na krawędzi brzegu (albo, dla porównania, na ścianie w pasie brzegu).
+
+    ``rozmiar`` = promień kuli, której środek leży DOKŁADNIE NA powierzchni projektu (nie pod nią — błąd testów fali 1:
+    środek pod powierzchnią dawał ukruszenie głębsze niż nominalne). ``polozenie``:
+    ``srodek`` — środek płaskiej krawędzi (wgryz o głębokości = rozmiar i szerokości 2 × rozmiar),
+    ``zewn`` / ``wewn`` — narożnik zewnętrzny / wewnętrzny płaskiej krawędzi (odprysk o boku ≈ rozmiar; największa
+    głębokość pod powierzchnią ≈ rozmiar · sin(kąt narożnika / 2)), ``sciana`` — wierzchołek siatki w pasie brzegu
+    dalej niż rozmiar + SCIANA_OD_KRAWEDZI_MM od linii O / S / I. Miejsca krawędziowe tylko na ZWERYFIKOWANYCH
+    przekrojach linii (losowy filar, potem losowy przekrój), co najmniej ODSTEP_UKRUSZEN_MM od innych ubytków pracy.
+    W prawdzie: ``srednica`` = 2 × rozmiar, ``glebokosc`` = rozmiar (nominalna), ``glebokosc_rzeczywista`` — zmierzona
+    na wyciętej geometrii, ``polozenie``, ``filar``, ``celowy`` = True. Brak miejsca (brak linii, zajęte) → (m, None).
+    """
+    if polozenie not in POLOZENIA_UKRUSZEN:
+        raise ValueError(f"położenie ukruszenia {polozenie!r}: dopuszczalne {', '.join(POLOZENIA_UKRUSZEN)}")
+    if not (math.isfinite(rozmiar) and rozmiar > 0):
+        raise ValueError(f"rozmiar ukruszenia musi być > 0 mm, jest {rozmiar}")
+    if pas_brzegu is None:
+        pas_brzegu = UST.domyslne()["inspect"]["pas_brzegu_mm"]
+    if odstep is None:
+        odstep = UST.domyslne()["synth"]["odstep_ubytku_mm"]
+    if material is None:
+        material = Material(m)
+    filary = [f for f in (linie.filary if linie is not None else []) if f.zweryf.any()]
+    if not filary:
+        return m, None
+
+    def wolne(p: np.ndarray) -> bool:
+        return all(np.linalg.norm(p - c) >= ODSTEP_UKRUSZEN_MM + rozmiar + r for c, r in material.kule)
+
+    kand_sciany = None
+    for _ in range(PROB_UKRUSZENIA):
+        f = filary[int(rng.integers(len(filary)))]
+        if polozenie == "sciana":
+            if kand_sciany is None:  # wierzchołki pierwotnej powierzchni w pasie, z dala od płaskiej krawędzi
+                V = m.vertices
+                pewne = _stacje_pewne(linie)
+                wszystkie = KR.stacje(linie, KR.NAZWY_LINII)["X"]
+                w_pasie = np.isfinite(cKDTree(pewne).query(V, distance_upper_bound=max(pas_brzegu - rozmiar, 0.0))[0])
+                daleko = ~np.isfinite(cKDTree(wszystkie).query(V, distance_upper_bound=rozmiar + SCIANA_OD_KRAWEDZI_MM)[0])
+                kand_sciany = np.flatnonzero(w_pasie & daleko)
+                if len(kand_sciany):
+                    kand_sciany = kand_sciany[material.najblizszy(V[kand_sciany])[1] < 1e-4]
+            if len(kand_sciany) == 0:
+                return m, None
+            p0 = m.vertices[int(rng.choice(kand_sciany))]
+        else:
+            i = int(rng.choice(np.flatnonzero(f.zweryf)))
+            p0 = {"srodek": f.S, "zewn": f.O, "wewn": f.I}[polozenie][i]
+        q, odl = material.najblizszy(p0)
+        if odl[0] > 0.02 or not wolne(q[0]):  # punkt linii poza powierzchnią albo za blisko innego ubytku
+            continue
+        wynik = _wytnij_kule(m, material, q[0], rozmiar, odstep)
+        if wynik is None:
+            continue
+        p = q[0]
+        _, filar, odl_linii = polozenie_wzgledem_brzegu(linie, p, rozmiar)
+        return wynik[0], Ubytek(*map(float, p), srednica=float(2 * rozmiar), glebokosc=float(rozmiar), polozenie=KLASY_POLOZENIA[polozenie],
+                                glebokosc_rzeczywista=round(wynik[1]["glebokosc"], 4), filar=(filar if polozenie == "sciana" else f.nr),
+                                odleglosc_od_linii=odl_linii, celowy=True)
+    return m, None
 
 
 def dodaj_szum(m: trimesh.Trimesh, sigma: float, rng: np.random.Generator) -> trimesh.Trimesh:
@@ -340,8 +620,15 @@ def usun_plamy(m: trimesh.Trimesh, udzial: float, rng: np.random.Generator, ile_
     return out, float(out.area / A0) if A0 > 0 else 0.0
 
 
-def ubytek_widoczny(m: trimesh.Trimesh, u: Ubytek) -> bool:
-    """Czy po usunięciu części powierzchni w skanie została powierzchnia ubytku (≥ 3 wierzchołki w promieniu 0,5·r od środka)."""
+def ubytek_widoczny(m: trimesh.Trimesh, u: Ubytek, srodek_kuli: np.ndarray | None = None) -> bool:
+    """Czy po usunięciu części powierzchni w skanie została powierzchnia ubytku.
+
+    Generator w wersji 2 podaje środek kuli ubytku (``srodek_kuli``, układ siatki ``m``): ubytek jest widoczny, gdy
+    ≥ 3 wierzchołki leżą na jego sferze (± 0,01 mm) — nowa powierzchnia albo jej obrys. Bez środka kuli (wersja 1):
+    ≥ 3 wierzchołki w promieniu 0,5·r od środka z prawdy — reguła sprzed P4, zostawiona bez zmian (uwaga: czasza
+    wersji 1 leży ≥ 0,7·r od tego środka, więc reguła odrzuca prawie każdy ubytek o r > 0,086 mm; opis w synth.md)."""
+    if srodek_kuli is not None:
+        return bool((np.abs(np.linalg.norm(m.vertices - srodek_kuli, axis=1) - u.srednica / 2) < 0.01).sum() >= 3)
     c = np.array([u.x, u.y, u.z])
     r = max(0.5 * u.srednica / 2, 0.06)
     return bool((np.linalg.norm(m.vertices - c, axis=1) < r).sum() >= 3)
@@ -528,6 +815,8 @@ def _z_ustawien(ust: dict, plytka: str) -> dict:
         "srednica_wykrywalna": (i["srednica_min_mm"], i["srednica_max_mm"]),
         "pas_brzegu": i["pas_brzegu_mm"],
         "prog_glebokosci": i["prog_glebokosci_mm"],
+        "odstep_ubytku": s["odstep_ubytku_mm"],
+        "krawedz_rozmiar": (s["krawedz_rozmiar_min_mm"], s["krawedz_rozmiar_max_mm"]),
     }
 
 
@@ -552,6 +841,12 @@ class Opcje:
     p_pokrycie: float = 0.0  # P3a: prawdopodobieństwo usunięcia części powierzchni skanu pracy (plamy)
     pokrycie_usuwane: tuple[float, float] = (0.3, 0.6)  # P3a: udział powierzchni usuwany przy --pokrycie
     p_poprawki: float = 0.0  # P3a: prawdopodobieństwo gładkiej poprawki ręcznej na pracy
+    wersja_ubytkow: int = 2  # P4: 2 = czasza ubytku w materiale; 1 = generator sprzed P4 (odtwarzanie starych zestawów bajt w bajt)
+    odstep_ubytku: float | None = None  # P4: [synth] odstep_ubytku_mm — gęstość punktów nowej powierzchni ubytku i jej otoczenia
+    krawedz_na_prace: tuple[int, int] = (0, 0)  # K6: ile ukruszeń celowych (na krawędzi brzegu) na pracę
+    krawedz_rozmiar: tuple[float, float] | None = None  # K6: zakres rozmiaru (promień kuli) — [synth] krawedz_rozmiar_min/max_mm
+    krawedz_rozmiary: tuple[float, ...] | None = None  # K6: lista rozmiarów zamiast zakresu (np. 0.08, 0.10, 0.15)
+    krawedz_polozenia: tuple[str, ...] = ("srodek", "zewn", "wewn")  # K6: losowane położenia (POLOZENIA_UKRUSZEN)
 
     def __post_init__(self) -> None:
         if self._niepelne():
@@ -562,7 +857,7 @@ class Opcje:
 
     def _niepelne(self) -> bool:
         return None in (self.szum_sigma, self.wspolczynnik, self.srednica_ubytku, self.srednica_wykrywalna,
-                        self.pas_brzegu, self.prog_glebokosci)
+                        self.pas_brzegu, self.prog_glebokosci, self.odstep_ubytku, self.krawedz_rozmiar)
 
     @classmethod
     def z_toml(cls, ust: dict | None = None, plytka: str = "wieczorna", **nadpisania) -> Opcje:
@@ -591,9 +886,26 @@ class Opcje:
         self.pokrycie_usuwane = zakres("pokrycie_usuwane", float, False)
         if self.pokrycie_usuwane[1] >= 1:
             raise ValueError(f"Opcje.pokrycie_usuwane: udział usuwany musi być < 1, jest {self.pokrycie_usuwane!r}")
+        self.krawedz_na_prace = zakres("krawedz_na_prace", int, False)
+        self.krawedz_rozmiar = zakres("krawedz_rozmiar", float, True)
+        if self.krawedz_rozmiary is not None:
+            try:
+                self.krawedz_rozmiary = tuple(float(x) for x in self.krawedz_rozmiary)
+            except (TypeError, ValueError):
+                raise ValueError(f"Opcje.krawedz_rozmiary: oczekiwano listy liczb, jest {self.krawedz_rozmiary!r}") from None
+            if not self.krawedz_rozmiary or not all(math.isfinite(x) and x > 0 for x in self.krawedz_rozmiary):
+                raise ValueError(f"Opcje.krawedz_rozmiary: niepusta lista rozmiarów > 0 mm, jest {self.krawedz_rozmiary!r}")
+        self.krawedz_polozenia = tuple(self.krawedz_polozenia) if not isinstance(self.krawedz_polozenia, str) else (self.krawedz_polozenia,)
+        if not self.krawedz_polozenia or any(p not in POLOZENIA_UKRUSZEN for p in self.krawedz_polozenia):
+            raise ValueError(f"Opcje.krawedz_polozenia: {self.krawedz_polozenia!r} — dopuszczalne {', '.join(POLOZENIA_UKRUSZEN)}")
+        if self.wersja_ubytkow not in WERSJE_UBYTKOW:
+            raise ValueError(f"Opcje.wersja_ubytkow: {self.wersja_ubytkow!r} — dopuszczalne {WERSJE_UBYTKOW}")
+        if self.wersja_ubytkow == 1 and self.krawedz_na_prace[1] > 0:
+            raise ValueError("Opcje.krawedz_na_prace: ukruszenia celowe (K6) wymagają wersja_ubytkow = 2")
         for nazwa, ok in (
             ("szum_sigma", lambda v: v >= 0),
             ("pas_brzegu", lambda v: v > 0),
+            ("odstep_ubytku", lambda v: v > 0),
             ("prog_glebokosci", lambda v: v >= 0),
             ("p_drgniecia", lambda v: 0 <= v <= 1),
             ("p_bokiem", lambda v: 0 <= v <= 1),
@@ -650,10 +962,28 @@ def generuj_plytke(
             continue
         # ubytki i poprawki na pracy brzegiem do góry (pas brzegu liczony od brzegu, nie od wierzchu w gnieździe)
         ubytki_lok: list[Ubytek] = []
-        for _ in range(int(rng.integers(opcje.ubytki_na_prace[0], opcje.ubytki_na_prace[1] + 1))):
-            m2, ub = wytnij_ubytek(m2, float(rng.uniform(*opcje.srednica_ubytku)), rng, opcje.pas_brzegu)
+        n_ubytkow = int(rng.integers(opcje.ubytki_na_prace[0], opcje.ubytki_na_prace[1] + 1))
+        linie = material = None
+        if opcje.wersja_ubytkow != 1 and (n_ubytkow > 0 or opcje.krawedz_na_prace[1] > 0):
+            # linie krawędzi brzegu każdego filaru (raz na projekt, pamięć w module krawedz) i materiał przed ubytkami
+            linie = KR.linie_siatki(m2, skala=w, klucz=KR.klucz_projektu(skrot_pliku(plik), O))
+            material = Material(m2)
+        for _ in range(n_ubytkow):
+            m2, ub = wytnij_ubytek(m2, float(rng.uniform(*opcje.srednica_ubytku)), rng, opcje.pas_brzegu, linie=linie, material=material,
+                                   odstep=opcje.odstep_ubytku, wersja=opcje.wersja_ubytkow)
             ub.wykrywalny = opcje.wykrywalny(ub.srednica, ub.glebokosc)
             ubytki_lok.append(ub)
+        pominiete_k6 = 0
+        if opcje.krawedz_na_prace[1] > 0:  # K6: ukruszenia celowe na krawędzi brzegu (losowania tylko, gdy zamówione)
+            for _ in range(int(rng.integers(opcje.krawedz_na_prace[0], opcje.krawedz_na_prace[1] + 1))):
+                gdzie = str(rng.choice(opcje.krawedz_polozenia))
+                rozmiar = float(rng.choice(opcje.krawedz_rozmiary)) if opcje.krawedz_rozmiary else float(rng.uniform(*opcje.krawedz_rozmiar))
+                m2, ub = wytnij_ukruszenie(m2, linie, gdzie, rozmiar, rng, material=material, pas_brzegu=opcje.pas_brzegu, odstep=opcje.odstep_ubytku)
+                if ub is None:
+                    pominiete_k6 += 1
+                    continue
+                ub.wykrywalny = opcje.wykrywalny(ub.srednica, ub.glebokosc)
+                ubytki_lok.append(ub)
         poprawki_lok: list[Poprawka] = []
         if rng.uniform() < opcje.p_poprawki:
             m2, pop = poprawka_reczna(m2, rng)
@@ -681,7 +1011,7 @@ def generuj_plytke(
         ubytki = []
         for ub in ubytki_lok:
             x, y, z = trimesh.transform_points([[ub.x, ub.y, ub.z]], TR)[0]
-            ubytki.append(Ubytek(float(x), float(y), float(z), ub.srednica, ub.glebokosc, ub.wykrywalny))
+            ubytki.append(replace(ub, x=float(x), y=float(y), z=float(z)))
         poprawki = []
         for pop in poprawki_lok:
             x, y, z = trimesh.transform_points([[pop.x, pop.y, pop.z]], TR)[0]
@@ -695,8 +1025,10 @@ def generuj_plytke(
             m3, zostalo = usun_plamy(m3, float(rng.uniform(*opcje.pokrycie_usuwane)), rng)
             pokrycie *= zostalo
         if pokrycie < 1.0:
-            for ub in ubytki:
-                ub.widoczny = ubytek_widoczny(m3, ub)
+            # wersja 2: środki kul ubytków (material.kule, w kolejności ubytków) przeniesione do układu skanu
+            srodki = trimesh.transform_points([c for c, _ in material.kule], TR) if material is not None and material.kule else None
+            for j, ub in enumerate(ubytki):
+                ub.widoczny = ubytek_widoczny(m3, ub, None if srodki is None else srodki[j])
                 ub.wykrywalny = ub.wykrywalny and ub.widoczny
         drg = bool(rng.uniform() < opcje.p_drgniecia)
         m3 = dodaj_szum(m3, opcje.szum_sigma, rng)
@@ -714,6 +1046,7 @@ def generuj_plytke(
                 ulozenie=ulozenie,
                 pokrycie=round(pokrycie, 4),
                 poprawki=poprawki,
+                ukruszenia_pominiete=pominiete_k6,
             )
         )
 
@@ -845,6 +1178,19 @@ def _zakres(typ, dodatni: bool):
     return parsuj
 
 
+def _lista(typ):
+    def parsuj(s: str) -> tuple:
+        try:
+            v = tuple(typ(x.strip()) for x in s.split(","))
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"oczekiwano listy rozdzielonej przecinkami; jest {s!r}") from None
+        if not v or any(x == "" for x in v):
+            raise argparse.ArgumentTypeError(f"pusta pozycja na liście {s!r}")
+        return v
+
+    return parsuj
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--ustawienia", type=Path, default=None, help="plik ustawień (domyślnie ustawienia.toml programu)")
@@ -867,6 +1213,20 @@ def main() -> None:
     ap.add_argument("--pokrycie", type=_liczba(float, 0, 1), default=0.0, help="P3a: prawdopodobieństwo usunięcia części powierzchni skanu pracy")
     ap.add_argument("--pokrycie-zakres", type=_zakres(float, False), default=(0.3, 0.6), help="udział usuwanej powierzchni przy --pokrycie, np. 0.3-0.6")
     ap.add_argument("--poprawka", type=_liczba(float, 0, 1), default=0.0, help="P3a: prawdopodobieństwo gładkiej poprawki ręcznej na pracy")
+    ap.add_argument("--wersja-ubytkow", type=int, choices=WERSJE_UBYTKOW, default=2,
+                    help="generator ubytków: 2 = czasza w materiale (domyślnie), 1 = sprzed P4, do odtwarzania starych zestawów bajt w bajt")
+    ap.add_argument("--odstep-ubytku", type=_liczba(float, dodatnia=True), default=None,
+                    help="odstęp punktów nowej powierzchni ubytku [mm] (domyślnie [synth] odstep_ubytku_mm)")
+    ap.add_argument("--krawedz", type=_zakres(int, False), default=(0, 0),
+                    help="K6: zakres liczby ukruszeń celowych na krawędzi brzegu na pracę, np. 1-2 (domyślnie 0-0)")
+    ap.add_argument("--krawedz-rozmiar", type=_zakres(float, True), default=None,
+                    help="K6: zakres rozmiaru ukruszenia = promienia kuli o środku na powierzchni [mm] "
+                         "(domyślnie [synth] krawedz_rozmiar_min_mm-krawedz_rozmiar_max_mm)")
+    ap.add_argument("--krawedz-rozmiary", type=_lista(float), default=None, help="K6: lista rozmiarów zamiast zakresu, np. 0.08,0.10,0.15,0.20,0.30,0.40")
+    ap.add_argument("--krawedz-polozenie", type=_lista(str), default=("srodek", "zewn", "wewn"),
+                    help=f"K6: losowane położenia, lista z: {', '.join(POLOZENIA_UKRUSZEN)} (domyślnie srodek,zewn,wewn)")
+    ap.add_argument("--pamiec-linii", type=Path, default=None,
+                    help="katalog pamięci podręcznej linii krawędzi brzegu na dysku (domyślnie tylko w pamięci procesu)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--wyjscie", type=Path, default=Path("dane/syntetyczne"))
     ap.add_argument("--mapa", type=Path, default=None,
@@ -881,23 +1241,34 @@ def main() -> None:
     projekty = pliki_projektow(a.projekty)
     if not projekty:
         raise SystemExit(f"brak plików STL w {a.projekty}; uruchom narzedzia/atrapy_koron.py")
-    opcje = Opcje.z_toml(
-        ust,
-        a.plytka,
-        szum_sigma=a.szum,
-        ubytki_na_prace=a.ubytki,
-        srednica_ubytku=a.srednica,
-        p_drgniecia=a.drgniecie,
-        prace_na_plytce=a.prace,
-        wspolczynnik=(a.wspolczynnik, a.wspolczynnik) if a.wspolczynnik is not None else None,
-        orientacja=a.orientacja,
-        poza_uklad=a.poza_uklad,
-        pole=a.pole,
-        p_bokiem=a.bokiem,
-        p_pokrycie=a.pokrycie,
-        pokrycie_usuwane=a.pokrycie_zakres,
-        p_poprawki=a.poprawka,
-    )
+    try:
+        opcje = Opcje.z_toml(
+            ust,
+            a.plytka,
+            szum_sigma=a.szum,
+            ubytki_na_prace=a.ubytki,
+            srednica_ubytku=a.srednica,
+            p_drgniecia=a.drgniecie,
+            prace_na_plytce=a.prace,
+            wspolczynnik=(a.wspolczynnik, a.wspolczynnik) if a.wspolczynnik is not None else None,
+            orientacja=a.orientacja,
+            poza_uklad=a.poza_uklad,
+            pole=a.pole,
+            p_bokiem=a.bokiem,
+            p_pokrycie=a.pokrycie,
+            pokrycie_usuwane=a.pokrycie_zakres,
+            p_poprawki=a.poprawka,
+            wersja_ubytkow=a.wersja_ubytkow,
+            odstep_ubytku=a.odstep_ubytku,
+            krawedz_na_prace=a.krawedz,
+            krawedz_rozmiar=a.krawedz_rozmiar,
+            krawedz_rozmiary=a.krawedz_rozmiary,
+            krawedz_polozenia=a.krawedz_polozenie,
+        )
+    except ValueError as e:
+        ap.error(str(e))
+    if a.pamiec_linii is not None:
+        KR.ustaw_katalog_pamieci(a.pamiec_linii)
     if a.ile > 0:
         dopisz_mape_projektow(a.mapa if a.mapa is not None else a.wyjscie.resolve().parent / "mapa_projektow.json", projekty)
     for k in range(a.ile):
@@ -915,11 +1286,16 @@ def main() -> None:
         n_bok = sum(p.ulozenie != "dobrze" for p in prawda.prace)
         n_pok = sum(p.pokrycie < 1.0 for p in prawda.prace)
         n_pop = sum(len(p.poprawki) for p in prawda.prace)
+        n_k6 = sum(u.celowy for p in prawda.prace for u in p.ubytki)
+        n_k6_pom = sum(p.ukruszenia_pominiete for p in prawda.prace)
         print(
-            f"{p_stl.name}: prac {len(prawda.prace)} (pominiętych {len(prawda.pominiete)}), ubytków {n_ub} (wykrywalnych {n_wyk}), "
+            f"{p_stl.name}: prac {len(prawda.prace)} (pominiętych {len(prawda.pominiete)}), ubytków {n_ub} (wykrywalnych {n_wyk}"
+            + (f", celowych na krawędzi {n_k6}, niepostawionych {n_k6_pom}" if opcje.krawedz_na_prace[1] > 0 else "") + "), "
             f"bokiem {n_bok}, częściowych {n_pok}, poprawek {n_pop}, "
             f"trójkątów {len(skan.faces)}, {p_stl.stat().st_size / 1e6:.1f} MB, {time.time() - t0:.1f} s"
         )
+    if a.pamiec_linii is not None:
+        KR.ustaw_katalog_pamieci(None)
 
 
 if __name__ == "__main__":

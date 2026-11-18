@@ -81,6 +81,30 @@ def test_cli_rzut_px_ujemny(skan_z_prawda, monkeypatch, capsys):
     assert "--px" in capsys.readouterr().err
 
 
+def test_metryki_skala_widok_z_gory_i_strefa_brzegu():
+    """narzedzia/metryki_skala.py: widoczność z góry (stożek 30°) i zmiana strefy brzegu tylko w pasie."""
+    import metryki_skala as MS
+
+    kier = MS.kierunki_widoku()
+    assert kier.shape == (17, 3) and np.allclose(np.linalg.norm(kier, axis=1), 1) and kier[:, 2].min() >= np.cos(np.radians(30)) - 1e-9
+    pudlo = trimesh.creation.box([4, 4, 4])
+    P = np.array([[0, 0, 2.0], [0, 0, -2.0], [2.0, 0, 0], [0, 0, 2.0]])  # wierzch, spód, bok, wierzch pod daszkiem
+    N = np.array([[0, 0, 1.0], [0, 0, -1.0], [1.0, 0, 0], [0, 0, 1.0]])
+    assert MS.widoczne_z_gory(P[:3], N[:3], [pudlo]).tolist() == [True, False, True]
+    daszek = trimesh.creation.box([40, 40, 0.2])
+    daszek.apply_translation([0, 0, 5])
+    assert MS.widoczne_z_gory(P, N, [pudlo, daszek]).tolist() == [False, False, False, False]
+    gl = np.array([0.0, 0.3, 0.4, 0.5, 1.4, 1.7, 2.0, 3.0])
+    assert np.allclose(MS.waga_pasa(gl, "A"), [1, 1, 0.5, 0, 0, 0, 0, 0]) and np.allclose(MS.waga_pasa(gl, "C"), [1, 1, 1, 1, 1, 0.5, 0, 0])
+    Q = np.array([[3.0, 0, -0.1], [3.0, 0, -1.0], [3.0, 0, -2.5]])  # układ puli = układ płytki (T = I): głębokość od brzegu 0,1 / 1,0 / 2,5
+    Nq = np.tile([1.0, 0, 0], (3, 1))
+    rng = np.random.default_rng(0)
+    assert np.allclose(MS.zaburz_brzeg(Q, Nq, np.eye(4), "grubosc+C", 0.02, rng) - Q, [[0.02, 0, 0], [0.02, 0, 0], [0, 0, 0]])
+    assert np.allclose(MS.zaburz_brzeg(Q, Nq, np.eye(4), "z-A", 0.02, rng) - Q, [[0, 0, -0.02], [0, 0, 0], [0, 0, 0]])
+    U2 = MS.zaburz_brzeg(Q, Nq, np.eye(4), "ukruszenia", 0.02, rng)
+    assert np.allclose(U2[2], Q[2]) and (U2[:2, 0] <= Q[:2, 0]).all() and U2[0, 0] < Q[0, 0]
+
+
 def test_atrapy_nie_nadpisuja_bez_flagi(tmp_path):
     p = atrapy_koron.generuj(tmp_path, 1, 1, mosty=0)[0]
     p.write_bytes(b"x")
