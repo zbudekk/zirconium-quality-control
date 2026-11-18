@@ -85,7 +85,7 @@ ZAPYTAN_WZOR = sum(n for n, _ in PULAPKI.values())  # 200
 _RDZENIE_SC = ("Atrap", "Fikc", "Makiet", "Prob", "Szablon", "Test", "Wzorc", "Zmysl", "Pozor", "Umown")
 _RDZENIE_TLA = ("Abak", "Bemol", "Cyrkl", "Dukat", "Ekran", "Fresk", "Grafit", "Hasl", "Indeks", "Jodl",
                 "Kalk", "Linijk", "Modul", "Notat", "Obraz", "Pastel", "Rysik", "Sztal", "Tusz", "Wektor")
-_RDZENIE_NFD = ("Źrebi", "Łąkow", "Śliwk", "Żołęd", "Ćwikł")  # Zrebi, Lakow, Sliwk, Zoled, Cwikl
+_RDZENIE_NFD = ("\u0179rebi", "\u0141\u0105kow", "\u015aliwk", "\u017bo\u0142\u0119d", "\u0106wik\u0142")  # Zrebi, Lakow, Sliwk, Zoled, Cwikl
 _SRODKI = ("", "o", "e", "an", "el", "ur")
 _KONCOWKI = ("wski", "wska", "wicz", "niak", "rek", "lska", "nski", "cka", "ny", "na")
 IMIONA = ("Jan", "Anna", "Piotr", "Ewa", "Maria", "Adam")
@@ -360,7 +360,7 @@ def zbuduj(wierszy: int = 30000, zapytan: int = ZAPYTAN_WZOR, seed: int = 0, dzi
             elif p == "zlecenie_bez_wiersza":
                 r["inny"] = nowy(dzien(12, 29), c, inny(), kolor=rng.choice((ZIELONY, None)))
             elif p == "c_liczba_spacje":
-                r["prawdziwy"] = nowy(dzien(1, 9), rng.choice((f" {k} ", k, str(k), f"{k} ")), folder)
+                r["prawdziwy"] = nowy(dzien(1, 9), rng.choice((f" {k} ", k, str(k), f"{k}\u00a0")), folder)
             elif p == "wielkosc_liter_spacje":
                 r["prawdziwy"] = nowy(dzien(1, 9), c, "  ".join(folder.upper().split()))
             elif p == "fragment_kuwety":

@@ -402,7 +402,7 @@ def test_reguly_1_5_na_malym_arkuszu(tmp_path, opis, wiersze, kolory, kuweta, fo
 
 # --- normalizacja ----------------------------------------------------------------------------------------------------
 @pytest.mark.parametrize("v, oczekiwane", [
-    (3263.0, "3263"), (3263, "3263"), ("3263", "3263"), (" 3263 ", "3263"), ("03263", "3263"), ("0412", "412"), ("3263 ", "3263"),
+    (3263.0, "3263"), (3263, "3263"), ("3263", "3263"), (" 3263 ", "3263"), ("03263", "3263"), ("0412", "412"), ("3263\u00a0", "3263"),
     (None, None), ("", None), ("  ", None), ("13263", "13263"), ("3263/2", "3263/2"), ("3263a", "3263a"), (3263.5, "3263.5"), ("#1234", "#1234"),
 ])
 def test_norm_kuweta(v, oczekiwane):
@@ -435,7 +435,7 @@ def test_norm_numer(v, oczekiwane):
     ("Testowski_88_zs", "88", ("testowski",)),
     ("Testowski 512 Anna", "512", ("testowski",)),
     ("Nowak-Testowa 3263 zs", "3263", ("nowak", "testowa")),
-    (unicodedata.normalize("NFD", "Żółtkowska 3263 ZS1"), "3263", ("żółtkowska",)),
+    (unicodedata.normalize("NFD", "\u017b\u00f3\u0142tkowska 3263 ZS1"), "3263", ("\u017c\u00f3\u0142tkowska",)),
     ("#1234 Testowski", "#1234", ("testowski",)),
     ("J.K. 3263", "3263", ()),
 ])
