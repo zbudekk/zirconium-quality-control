@@ -1,31 +1,31 @@
 """session_rano - sesja poranna: sesja pieca, punkty zlecen, kompletnosc, braki, dofrezowania, poprawki (E3-A6).
 
 Wejscie: wyniki analizy skanow plytek porannych (slownik z ``porownaj.porownaj`` + zdarzenie skanu - jak wieczorem),
-decyzje osoby rozkladajacej piec (wybor kandydata, przypisanie reczne, cofniecie), "Zamknij piec". Wyjscie: wiersze w bazie
-(``baza.py``, plan etapu 3 sekcja 3.4 - schemat bez zmian) i funkcje stanu dla ekranu porannego (A7), planu ramki (A8)
-i Excela (A9): ``stan_pieca``, ``plan_plytek``, ``zamknij_piec`` / ``wynik_pieca``, ``braki``, ``piece``.
+decyzje osoby rozkladajacej piec (wybor kandydata, przypisanie reczne, pominiecie skanu, cofniecie), "Zamknij piec". Wyjscie:
+wiersze w bazie (``baza.py``, plan etapu 3 sekcja 3.4 - schemat bez zmian) i funkcje stanu dla ekranu porannego (A7), planu
+ramki (A8) i Excela (A9): ``stan_pieca``, ``plan_plytek``, ``zamknij_piec`` / ``wynik_pieca``, ``braki``, ``piece``.
 
 Modul nie rozszerza ``session.py`` (ten plik zmienia rownolegle paczka A1p) - korzysta z jego publicznego API: skan poranny
 przyjmuje ``Sesja.przyjmij_wynik(..., tryb="rano")``, ponowny skan i numer plytki obsluguja ``Sesja.zastap_skan``,
-``cofnij_zastapienie``, ``podaj_numer_plytki``, ``dopusc_plytke`` (tu tylko z kontrola, ze skan nalezy do otwartego pieca).
-Caly stan jest w bazie - obiekt ``SesjaRano`` niczego nie pamieta, wiec po restarcie programu nowy obiekt na tym samym pliku
-daje ten sam stan (takze otwarty piec).
+``cofnij_zastapienie``, ``podaj_numer_plytki`` (tu tylko z kontrola, ze skan nalezy do otwartego pieca i numer do plytek
+porannych). Kolory i klucze statusow bierze z ``statusy.py`` (zalozenie Z8). Caly stan jest w bazie - obiekt ``SesjaRano``
+niczego nie pamieta, wiec po restarcie programu nowy obiekt na tym samym pliku daje ten sam stan (takze otwarty piec).
 
 Zasady (szczegoly, granice i decyzje do potwierdzenia: ``opisy_modulow/session.md``, sekcja "Sesja poranna"):
 - sesja pieca = wiersz ``sesje_pieca``; otwiera ja sam pierwszy skan poranny po zamknieciu poprzedniej (albo ``otworz_piec``),
   zamyka "Zamknij piec"; naraz otwarta najwyzej jedna; skan poranny dostaje ``skany.sesja_pieca_id``;
-- punkt zlecenia = wiersz ``projekty`` (plik STL w folderze zlecenia, ``usuniety = 0``); zlecenie kompletne = kazdy jego punkt
-  rozpoznany (w tym albo w poprzednim piecu) albo zamkniety recznie;
-- klasa pracy porannej: ``pewna`` (dopasowanie zielone) i ``przypisana`` (z decyzji) licza sie do kompletu; ``dwuznaczna``
-  (kandydat z pokryciem >= ``prog_kandydata``, bez pewnosci) i ``nieznana`` czekaja na decyzje; ``poprawka`` = projekt, ktorego
-  punkt zamknal juz poprzedni piec (np. zab dofrezowany do zlecenia juz odhaczonego - tylko log, Excel bez zmian);
-  ``konflikt`` = ten sam projekt w dwoch gniazdach jednego pieca (blokuje "Zamknij piec" do rozstrzygniecia);
-- ``stan_punktow`` zmienia dopiero "Zamknij piec": prace liczone -> ``rozpoznany`` (takze punkt ``do_dofrezowania`` - zab
-  dofrezowany rozpoznany po tym samym STL; pozycja znika wtedy z listy "do dofrezowania"), brakujace punkty zlecen dotknietych
-  w tym piecu -> ``brak_po_piecu`` (punkt ``do_dofrezowania`` zostaje, zeby lista wieczoru sie nie zmienila);
-- wynik "Zamknij piec" (kompletne, braki, poprawki) zostaje w dzienniku (``zdarzenia``, typ ``piec_zamkniety``) i po
-  restarcie daje go ``wynik_pieca`` - to lista dla Excela;
-- decyzje sa tylko dopisywane i zawsze maja operatora z listy ``[sesja] operatorzy``;
+- punkt zlecenia = wiersz ``projekty`` (plik STL w folderze zlecenia, ``usuniety = 0``); punkt bez wlasnego stanu dziedziczy
+  stan usunietego projektu o tej samej zawartosci (``sha16``) z tego samego zlecenia albo zlecenia o tej samej kuwecie (zmiana
+  nazwy folderu albo pliku w indeksie nie gubi stanu); zlecenie kompletne = kazdy punkt rozpoznany albo zamkniety recznie;
+- klasa pracy porannej: ``pewna`` i ``przypisana`` licza sie do kompletu; ``dwuznaczna`` i ``nieznana`` czekaja na decyzje;
+  ``poprawka`` = projekt, ktorego punkt zamknal juz poprzedni piec (tylko log, Excel bez zmian); ``konflikt`` = ten sam projekt
+  w dwoch gniazdach jednego pieca;
+- "Zamknij piec" odmawia, dopoki jakas plytka pieca sie nie liczy (brak numeru, ten sam numer na dwoch skanach, skan do
+  powtorzenia, skan bez wyniku albo niezgodny bez ponownego skanu, plytka spoza ramki porannej) albo jest konflikt;
+- ``stan_punktow`` zmienia dopiero "Zamknij piec" (prace liczone -> ``rozpoznany``, brakujace punkty zlecen dotknietych ->
+  ``brak_po_piecu``, punkt ``do_dofrezowania`` zostaje); wynik i stan sprzed zamkniecia zostaja w dzienniku (``piec_zamkniety``),
+  wiec ``wynik_pieca`` dziala po restarcie, a ``otworz_piec_ponownie`` cofa zamkniecie ostatniego pieca;
+- decyzje sa tylko dopisywane, z operatorem z listy ``[sesja] operatorzy``; kazda ma cofniecie;
 - nazwy folderow i plikow zlecen nie sa nigdzie zapisywane ani zwracane: tylko ``sha16``, kuweta, zeby, id.
 
 Modul korzysta tylko z biblioteki standardowej.
@@ -38,6 +38,7 @@ from typing import Any
 
 from . import baza as B
 from . import session as SE
+from . import statusy as ST
 
 # klasy pracy porannej (tylko w wynikach funkcji, nie w bazie)
 KLASA_PEWNA = "pewna"
@@ -48,14 +49,14 @@ KLASA_POPRAWKA = "poprawka"
 KLASA_KONFLIKT = "konflikt"
 KLASA_DO_POWTORZENIA = "do_powtorzenia"
 KLASY_LICZONE = (KLASA_PEWNA, KLASA_PRZYPISANA)  # tylko takie prace domykaja punkty zlecen
-# kolor na ekranie (A7; "bursztynowy" = statusy.KOLOR_BURSZTYNOWY, napis "zab dofrezowany" - Z9) i kolor diod ramki (A8)
-KOLOR_KLASY = {KLASA_PEWNA: "zielony", KLASA_PRZYPISANA: "zielony", KLASA_DWUZNACZNA: "zolty", KLASA_NIEZNANA: "bialy",
-               KLASA_POPRAWKA: "bursztynowy", KLASA_KONFLIKT: "czerwony", KLASA_DO_POWTORZENIA: "zolty"}
-KOLOR_RAMKI = {KLASA_PEWNA: "zielony", KLASA_PRZYPISANA: "zielony", KLASA_DWUZNACZNA: "zolty", KLASA_NIEZNANA: "bialy",
-               KLASA_POPRAWKA: "bursztyn", KLASA_KONFLIKT: "czerwony", KLASA_DO_POWTORZENIA: "zolty"}
 KLASY_Z_KUWETA = (KLASA_PEWNA, KLASA_PRZYPISANA, KLASA_POPRAWKA)  # gniazdo planu ramki z numerem kuwety
-KOLOR_RAMKI_SPRAWDZ = "czerwony"  # kuweta niejednoznaczna albo pusta, dwie prace w gniezdzie: ramka swieci "sprawdz"
-KOLOR_RAMKI_DWIE_PRACE = "zolty"
+# klasa -> klucz ``statusy.STATUSY`` (Z8: kolory ekranu i diod tylko z tej tabeli). "nieznana_rano" dopisuje A7; do tego czasu
+# kolory z ``STATUSY_ZAPASOWE`` (jedyny wyjatek, usunac po scaleniu A7)
+STATUS_KLASY = {KLASA_PEWNA: "zielony", KLASA_PRZYPISANA: "zielony", KLASA_DWUZNACZNA: "zolty", KLASA_NIEZNANA: "nieznana_rano",
+                KLASA_POPRAWKA: "dofrezowany", KLASA_KONFLIKT: "czerwony", KLASA_DO_POWTORZENIA: "skan_do_powtorzenia"}
+STATUSY_ZAPASOWE = {"nieznana_rano": ("bialy", "bialy")}  # (kolor, ramka) - praca nieznana rano: biel (PW, I2)
+STATUS_DWIE_PRACE = "podwojny"  # dwie prace w jednym gniezdzie planu ramki
+STATUS_SPRAWDZ = "czerwony"  # kuweta pusta albo niejednoznaczna: ramka swieci "sprawdz", numer pokazuje ekran
 
 # stany punktow (plan 3.4; ``oczekuje`` i ``do_dofrezowania`` ustawia session)
 STAN_ROZPOZNANY = "rozpoznany"
@@ -63,19 +64,50 @@ STAN_BRAK_PO_PIECU = "brak_po_piecu"
 STAN_ZAMKNIETY_RECZNIE = "zamkniety_recznie"
 STANY_KONCOWE = (STAN_ROZPOZNANY, STAN_ZAMKNIETY_RECZNIE)
 
-# rodzaje decyzji porannych (plan 3.4) - cofniecie jak wieczorem: wiersz ``cofniecie`` z id cofanej decyzji
-RODZAJ_WYBOR = "wybor_kandydata"  # wartosc = sha16 wybranego kandydata (1. albo 2.)
-RODZAJ_PRZYPISANIE = "przypisanie_reczne"  # wartosc = id projektu albo "" (praca bez projektu - nieznana)
+# rodzaje decyzji porannych - cofniecie jak wieczorem: wiersz ``cofniecie`` z id cofanej decyzji
+RODZAJ_WYBOR = "wybor_kandydata"  # praca; wartosc = sha16 wybranego kandydata (1. albo 2.)
+RODZAJ_PRZYPISANIE = "przypisanie_reczne"  # praca; wartosc = id projektu albo "" (praca bez projektu - nieznana)
+RODZAJ_POMIN_SKAN = "pomin_skan"  # skan: nie nalezy do pieca / zastapiony skanem, ktorego Sesja nie przyjmie - nie liczy sie i nie blokuje
+RODZAJ_ZAMKNIECIE_RECZNE = "zamkniecie_reczne"  # bez pracy i skanu; wartosc = JSON (projekt_id, powod, stan sprzed)
+RODZAJ_OTWORZ_PIEC = "otworz_piec_ponownie"  # bez pracy i skanu; wartosc = id sesji pieca
 BEZ_PROJEKTU = ""
+POWODY_ZAMKNIECIA = ("nie_praca_z_cyrkonu", "zaginiona", "wydana_bez_skanu", "inny")  # kody, nie tekst wolny (dziennik bez nazwisk)
 
 PROG_KANDYDATA = 0.6  # = [match] prog_ostrzezenia_pokrycie z ustawienia.przyklad.toml (z_ustawien bierze wartosc z pliku)
 KOLEJNOSCI = ("liczba", "numer")  # kuwety od najliczniejszej albo wg numeru (U7); numer wpisany recznie obsluguje ramka
-WZOR_KUWETY_RAMKI = re.compile(r"#?[0-9]{1,6}")  # jak ramka/protokol.py WZOR_KUWETY - inna kuweta nie idzie do ramki
-MAX_BRAKOW_PLANU = 100  # ramka/protokol.py MAX_BRAKOW
+WZOR_KUWETY_RAMKI = re.compile(r"#?[0-9]{1,6}")  # = ramka/protokol.py WZOR_KUWETY - inna kuweta nie idzie do ramki
+MAX_BRAKOW_PLANU = 100  # = ramka/protokol.py MAX_BRAKOW
+# numery plytek porannych wg ukladu (= modele_plytek/<uklad>/plytka_n*.stl; kwadratowe = ramka/protokol.py RODZINY["P"])
+NUMERY_PLYTEK_PORANNYCH = (4, 5, 6)
+NUMERY_PLYTEK_OKRAGLYCH_PORANNYCH = (9,)
+TYPY_BEZ_PUNKTU: tuple[str, ...] = ()  # typy plikow (indeks: projekty.typ, np. "waxup"), ktore nie sa punktem pracy - do decyzji
 
 TYP_OTWARTY = "piec_otwarty"
 TYP_ZAMKNIETY = "piec_zamkniety"
+TYP_OTWARTY_PONOWNIE = "piec_otwarty_ponownie"
 TYP_POPRAWKA = "poprawka_rano"
+TYP_POMINIETY = "skan_pominiety_rano"
+TYP_ZAMKNIETY_RECZNIE = "brak_zamkniety_recznie"
+
+
+def kolory_statusu(klucz: str) -> tuple[str | None, str | None]:
+    """(kolor ekranu, kolor diod ramki) statusu z ``statusy.STATUSY``; klucz, ktorego tabela jeszcze nie ma - ``STATUSY_ZAPASOWE``."""
+    w = ST.STATUSY.get(klucz)
+    return (w.kolor, w.ramka) if w is not None else STATUSY_ZAPASOWE.get(klucz, (None, None))
+
+
+def numery_plytki(uklad: str | None) -> tuple[int, ...] | None:
+    """Dozwolone numery plytki porannej danego ukladu; None = uklad nie jest poranny (albo nieznany)."""
+    c = SE.czesci_ukladu(uklad)
+    if c is None or c["typ"] != SE.TYP_PLYTKI_TRYBU[SE.TRYB_RANO]:
+        return None
+    return NUMERY_PLYTEK_OKRAGLYCH_PORANNYCH if c["okragla"] else NUMERY_PLYTEK_PORANNYCH
+
+
+def na_ramce(uklad: str | None) -> bool:
+    """Czy plytka tego ukladu lezy na ramce porannej (kwadratowa poranna; okragle nie pasuja do wkladki - R58)."""
+    c = SE.czesci_ukladu(uklad)
+    return c is not None and c["typ"] == SE.TYP_PLYTKI_TRYBU[SE.TRYB_RANO] and not c["okragla"]
 
 
 def _klucz_kuwety(kuweta: str | None) -> tuple:
@@ -86,18 +118,25 @@ def _klucz_kuwety(kuweta: str | None) -> tuple:
     return (2, 0, str(kuweta or ""))
 
 
-def _obowiazujaca(decyzje: list[dict]) -> dict | None:
-    """Z decyzji jednej pracy (rosnaco po id): ostatnia niecofnieta ``wybor_kandydata`` / ``przypisanie_reczne``."""
+def _obowiazujace(decyzje: list[dict], rodzaje: tuple[str, ...]) -> list[dict]:
+    """Z decyzji (rosnaco po id): niecofniete decyzje podanych rodzajow (cofniecie = wiersz ``cofniecie`` z id decyzji)."""
     cofniete = {int(d["wartosc"]) for d in decyzje if d["rodzaj"] == SE.RODZAJ_COFNIECIE and str(d["wartosc"] or "").isdigit()}
-    wynik = None
-    for d in decyzje:
-        if d["rodzaj"] in (RODZAJ_WYBOR, RODZAJ_PRZYPISANIE) and d["id"] not in cofniete:
-            wynik = d
-    return wynik
+    return [d for d in decyzje if d["rodzaj"] in rodzaje and d["id"] not in cofniete]
+
+
+def _obowiazujaca(decyzje: list[dict]) -> dict | None:
+    """Ostatnia niecofnieta ``wybor_kandydata`` / ``przypisanie_reczne`` jednej pracy."""
+    lista = _obowiazujace(decyzje, (RODZAJ_WYBOR, RODZAJ_PRZYPISANIE))
+    return lista[-1] if lista else None
 
 
 def _znaki(n: int) -> str:
     return ", ".join("?" * n)
+
+
+def _wiersz_stanu(w: dict | None) -> dict | None:
+    """Wiersz ``stan_punktow`` bez klucza - do zapisu "stanu sprzed" w dzienniku i odtworzenia."""
+    return None if w is None else {k: w[k] for k in ("stan", "praca_id", "sesja_pieca_id", "czas")}
 
 
 def plan_id(piec: dict) -> str:
@@ -126,7 +165,7 @@ class SesjaRano:
 
     # --- operator -----------------------------------------------------------------------------
     def _osoba(self, podany: str | None = None) -> str:
-        """Osoba do kolumny ``operator`` - te same reguly co wieczorem (lista wymagana; decyzja wlasciciela z 17.11.2026)."""
+        """Osoba do kolumny ``operator`` - te same reguly co ``Sesja._operator`` (kopia: prywatnej metody A1p nie wolamy)."""
         if not self.sesja.operatorzy:
             raise SE.BladSesji("lista operatorow jest pusta - dopisz osoby w ustawienia.toml ([sesja] operatorzy) i uruchom program ponownie; "
                                "bez wskazanej osoby decyzje nie sa zapisywane")
@@ -144,21 +183,33 @@ class SesjaRano:
         return {**w, "plan_id": plan_id(w)}
 
     def otwarty_piec(self) -> dict | None:
-        """Otwarta sesja pieca (wiersz ``sesje_pieca`` + ``plan_id``) albo None."""
+        """Otwarta sesja pieca - najnowsza (wiersz ``sesje_pieca`` + ``plan_id``) albo None. Niezamkniety piec z wczesniejszej doby
+        roboczej moze zostac otwarty obok nowego (``otwarte_piece``, ostrzezenie w ``stan_pieca``)."""
         w = self.baza.wiersz("SELECT * FROM sesje_pieca WHERE zamknieto IS NULL ORDER BY id DESC LIMIT 1")
         return self._piec(w) if w else None
 
+    def otwarte_piece(self) -> list[dict]:
+        """Wszystkie otwarte sesje pieca (rosnaco po id) z polem ``z_poprzedniej_doby`` (piec niezamkniety od wczesniejszej doby)."""
+        doba = self.sesja.doba()
+        return [{**self._piec(w), "z_poprzedniej_doby": w["data"] != doba}
+                for w in self.baza.wiersze("SELECT * FROM sesje_pieca WHERE zamknieto IS NULL ORDER BY id")]
+
+    def _otwarty_w_dobie(self, data: str) -> dict | None:
+        w = self.baza.wiersz("SELECT * FROM sesje_pieca WHERE zamknieto IS NULL AND data = ? ORDER BY id DESC LIMIT 1", (data,))
+        return self._piec(w) if w else None
+
     def otworz_piec(self) -> int:
-        """Przycisk "Nowy piec": otwiera sesje pieca; odmowa, gdy inna jest otwarta. Zwykle niepotrzebny - otwiera ja pierwszy skan."""
+        """Przycisk "Nowy piec": otwiera sesje pieca; odmowa, gdy w biezacej dobie roboczej inna jest otwarta. Zwykle niepotrzebny -
+        otwiera ja pierwszy skan."""
         with self.baza.transakcja():
             return self._otworz("ui")
 
     def _otworz(self, zrodlo: str) -> int:
-        otwarty = self.otwarty_piec()
-        if otwarty is not None:
-            raise SE.BladSesji(f"piec {otwarty['nr_w_dniu']} doby {otwarty['data']} jest otwarty - najpierw 'Zamknij piec'")
         teraz = self.sesja.teraz()
         data = self.sesja.doba(teraz)
+        otwarty = self._otwarty_w_dobie(data)
+        if otwarty is not None:
+            raise SE.BladSesji(f"piec {otwarty['nr_w_dniu']} doby {otwarty['data']} jest otwarty - najpierw 'Zamknij piec'")
         nr = self.baza.wiersz("SELECT count(*) AS n FROM sesje_pieca WHERE data = ?", (data,))["n"] + 1
         pid = self.baza.wstaw("sesje_pieca", data=data, nr_w_dniu=nr, otwarto=teraz)
         self.baza.zdarzenie(zrodlo, TYP_OTWARTY, {"sesja_pieca_id": pid, "data": data, "nr_w_dniu": nr}, czas=teraz)
@@ -181,7 +232,8 @@ class SesjaRano:
         if w is None:
             raise SE.BladSesji(f"{co}: skan nie nalezy do zadnego pieca - skany poranne przyjmuje sesja poranna (SesjaRano.przyjmij_wynik)")
         if w["zamknieto"] is not None:
-            raise SE.BladSesji(f"{co}: piec {w['nr_w_dniu']} doby {w['data']} jest zamkniety - jego prac i skanow nie da sie juz zmienic")
+            raise SE.BladSesji(f"{co}: piec {w['nr_w_dniu']} doby {w['data']} jest zamkniety - jego prac i skanow nie da sie zmienic "
+                               f"(pomylke cofa otworz_piec_ponownie)")
         return w
 
     def piece(self, data: str | None = None) -> list[dict]:
@@ -189,16 +241,18 @@ class SesjaRano:
         data = data or self.sesja.doba()
         wiersze = self.baza.wiersze("SELECT sp.*, (SELECT count(*) FROM skany s WHERE s.sesja_pieca_id = sp.id) AS skanow "
                                     "FROM sesje_pieca sp WHERE sp.data = ? ORDER BY sp.id", (data,))
-        return [{**self._piec(w), "otwarty": w["zamknieto"] is None} for w in wiersze]
+        biezaca = self.sesja.doba()
+        return [{**self._piec(w), "otwarty": w["zamknieto"] is None, "z_poprzedniej_doby": w["zamknieto"] is None and w["data"] != biezaca}
+                for w in wiersze]
 
     # --- przyjecie skanu ----------------------------------------------------------------------
     def przyjmij_wynik(self, zdarzenie: Any, wynik: dict) -> int:
         """Skan plytki porannej: ``Sesja.przyjmij_wynik(..., tryb="rano")`` + przypisanie do otwartego pieca (bez otwartego -
         nowy piec) + przypisanie obowiazujace prac (``prace.projekt_id``: projekt pracy pewnej, inne puste do decyzji).
-        Zwraca ``skany.id``. Nie wymaga operatora."""
+        Skan nie trafia do pieca otwartego w WCZESNIEJSZEJ dobie roboczej (piec niezamkniety od wczoraj) - otwiera nowy, a stary
+        zostaje otwarty z ostrzezeniem. Zwraca ``skany.id``. Nie wymaga operatora."""
         with self.baza.transakcja():
-            piec = self.otwarty_piec()
-            pid = piec["id"] if piec is not None else self._otworz("system")
+            pid = self._piec_do_skanu()
             skan_id = self.sesja.przyjmij_wynik(zdarzenie, wynik, tryb=SE.TRYB_RANO)
             self.baza.wykonaj("UPDATE skany SET sesja_pieca_id = ? WHERE id = ?", (pid, skan_id))
             for p in self.baza.wiersze("SELECT * FROM prace WHERE skan_id = ? ORDER BY id", (skan_id,)):
@@ -206,15 +260,20 @@ class SesjaRano:
         return skan_id
 
     def przyjmij_blad(self, zdarzenie: Any, blad: BaseException | str) -> int:
-        """Analiza skanu porannego bez wyniku: ``Sesja.przyjmij_blad(..., tryb="rano")`` + przypisanie do pieca."""
+        """Analiza skanu porannego bez wyniku: ``Sesja.przyjmij_blad(..., tryb="rano")`` + przypisanie do pieca (blokuje
+        "Zamknij piec", dopoki skan nie zostanie pominiety - plytke trzeba zeskanowac ponownie)."""
         with self.baza.transakcja():
-            piec = self.otwarty_piec()
-            pid = piec["id"] if piec is not None else self._otworz("system")
+            pid = self._piec_do_skanu()
             skan_id = self.sesja.przyjmij_blad(zdarzenie, blad, tryb=SE.TRYB_RANO)
             self.baza.wykonaj("UPDATE skany SET sesja_pieca_id = ? WHERE id = ?", (pid, skan_id))
         return skan_id
 
-    # --- skany otwartego pieca: ponowny skan, numer plytki, plytka nie z trybu -----------------
+    def _piec_do_skanu(self) -> int:
+        """Piec dla nowego skanu porannego: otwarty piec BIEZACEJ doby roboczej albo nowy (recenzja PR #22 r2, P1)."""
+        piec = self._otwarty_w_dobie(self.sesja.doba())
+        return piec["id"] if piec is not None else self._otworz("system")
+
+    # --- skany otwartego pieca: ponowny skan, numer plytki, pominiecie ---------------------------
     def _skan_rano(self, skan_id: int | None) -> dict:
         sk = self.baza.wiersz("SELECT * FROM skany WHERE id = ?", (skan_id,)) if skan_id is not None else None
         if sk is None:
@@ -252,28 +311,82 @@ class SesjaRano:
             return self.sesja.cofnij_zastapienie(skan_id, operator)
 
     def podaj_numer_plytki(self, skan_id: int, numer: Any, operator: str | None = None) -> int:
-        """Numer plytki wskazany recznie (Z3: rano obowiazkowy przed "Zamknij piec") - ``Sesja.podaj_numer_plytki``."""
+        """Numer plytki wskazany recznie (Z3: rano obowiazkowy przed "Zamknij piec") - tylko numer plytki porannej tego ukladu
+        (kwadratowe 4-6 = plytki ramki porannej, okragle 9); potem ``Sesja.podaj_numer_plytki``."""
         with self.baza.transakcja():
-            self._skan_rano(skan_id)
-            return self.sesja.podaj_numer_plytki(skan_id, numer, operator)
+            sk = self._skan_rano(skan_id)
+            dozwolone = numery_plytki(sk["uklad"])
+            if dozwolone is None:
+                raise SE.BladSesji(f"skan {skan_id}: uklad {sk['uklad']!r} nie jest plytka poranna - numeru nie podaje sie; zeskanuj plytke "
+                                   f"poranna albo pomin ten skan")
+            try:
+                n = int(numer)
+            except (TypeError, ValueError):
+                n = None
+            if n not in dozwolone:
+                raise SE.BladSesji(f"skan {skan_id}: numer plytki {numer!r} spoza plytek porannych tego ukladu "
+                                   f"({', '.join(map(str, dozwolone))}) - sprawdz numer na plytce")
+            return self.sesja.podaj_numer_plytki(skan_id, n, operator)
 
     def dopusc_plytke(self, skan_id: int, operator: str | None = None) -> int:
-        """Swiadome dopuszczenie skanu plytki nie z trybu (wieczorna rano) - ``Sesja.dopusc_plytke``."""
-        with self.baza.transakcja():
-            self._skan_rano(skan_id)
-            return self.sesja.dopusc_plytke(skan_id, operator)
+        """Rano plytki nie z trybu NIE dopuszcza sie (P2 recenzji PR #23): ramka poranna nie zna jej ukladu, plan bylby odrzucony.
+        Prace trzeba przelozyc na plytke poranna i zeskanowac; skan zablokowany usuwa z blokad ``pomin_skan``."""
+        sk = self._skan_rano(skan_id)
+        raise SE.BladSesji(f"skan {skan_id}: plytki {sk['uklad']!r} nie mozna dopuscic rano - ramka poranna jej nie obsluzy; przeloz prace "
+                           f"na plytke poranna i zeskanuj ja, a ten skan pomin")
 
     def cofnij_dopuszczenie(self, skan_id: int, operator: str | None = None) -> int:
+        """Cofa dopuszczenie (zrobione wprost przez ``Sesja``) skanu porannego w otwartym piecu - ``Sesja.cofnij_dopuszczenie``."""
         with self.baza.transakcja():
             self._skan_rano(skan_id)
             return self.sesja.cofnij_dopuszczenie(skan_id, operator)
 
+    def pomin_skan(self, skan_id: int, operator: str | None = None) -> int:
+        """Skan nie nalezy do pieca (bez wyniku, niezgodny uklad, plytka nie z trybu, zly numer, plytka zeskanowana ponownie, gdy
+        zastapienia nie da sie potwierdzic): jego prace nie licza sie, nie ida do planu ramki i skan nie blokuje "Zamknij piec".
+        Decyzja ``pomin_skan`` (z operatorem; cofa ``cofnij_pominiecie``). Zwraca ``decyzje.id``."""
+        osoba = self._osoba(operator)
+        with self.baza.transakcja():
+            sk = self._skan_rano(skan_id)
+            if sk["status"] == SE.STATUS_ZASTAPIONY:
+                raise SE.BladSesji(f"skan {skan_id} jest juz zastapiony - nie liczy sie i nie blokuje")
+            if sk["id"] in self._pominiete([sk["id"]]):
+                raise SE.BladSesji(f"skan {skan_id} jest juz pominiety")
+            teraz = self.sesja.teraz()
+            d = self.baza.wstaw("decyzje", skan_id=sk["id"], rodzaj=RODZAJ_POMIN_SKAN, operator=osoba, czas=teraz)
+            self.baza.zdarzenie("ui", TYP_POMINIETY, {"decyzja_id": d, "status": sk["status"], "sesja_pieca_id": sk["sesja_pieca_id"]},
+                                skan_id=sk["id"], czas=teraz)
+        return d
+
+    def cofnij_pominiecie(self, skan_id: int, operator: str | None = None) -> int:
+        """Cofa ``pomin_skan`` (wiersz ``cofniecie``): skan znow sie liczy albo blokuje."""
+        osoba = self._osoba(operator)
+        with self.baza.transakcja():
+            sk = self._skan_rano(skan_id)
+            ob = _obowiazujace(self._decyzje_skanow([sk["id"]]).get(sk["id"], []), (RODZAJ_POMIN_SKAN,))
+            if not ob:
+                raise SE.BladSesji(f"skan {skan_id} nie jest pominiety - nie ma czego cofac")
+            return self.baza.wstaw("decyzje", skan_id=sk["id"], rodzaj=SE.RODZAJ_COFNIECIE, wartosc=str(ob[-1]["id"]), operator=osoba,
+                                   czas=self.sesja.teraz())
+
+    def _decyzje_skanow(self, skany_ids: list) -> dict[int, list[dict]]:
+        """Decyzje o skanach (bez pracy): ``pomin_skan`` i ``cofniecie``, rosnaco po id."""
+        wynik: dict[int, list[dict]] = {}
+        for d in self._wiersze_in(f"SELECT * FROM decyzje WHERE praca_id IS NULL AND rodzaj IN ('{RODZAJ_POMIN_SKAN}', '{SE.RODZAJ_COFNIECIE}') "
+                                  f"AND skan_id IN ({{}}) ORDER BY id", list(skany_ids)):
+            wynik.setdefault(d["skan_id"], []).append(d)
+        return wynik
+
+    def _pominiete(self, skany_ids: list) -> set[int]:
+        return {s for s, lst in self._decyzje_skanow(skany_ids).items() if _obowiazujace(lst, (RODZAJ_POMIN_SKAN,))}
+
     def _propozycje(self, sesja_pieca_id: int) -> list[dict]:
         """Propozycje "to ponowny skan tej plytki?": skan aktywny i wczesniejszy skan aktywny TEGO SAMEGO pieca z tym samym numerem
-        plytki i rodzina ukladu (albo ta sama zawartosc pliku). W jednym piecu numer plytki sie nie powtarza (piec = 1-3 plytki),
-        wiec okno czasu nie jest potrzebne. Pomijane sa pary, dla ktorych zastapienie juz cofnieto."""
+        plytki i rodzina ukladu (albo ta sama zawartosc pliku); skany pominiete i pary z cofnietym zastapieniem sa pomijane."""
         skany = self.baza.wiersze(f"SELECT * FROM skany WHERE sesja_pieca_id = ? AND status IN ({_znaki(len(SE.STATUSY_AKTYWNE))}) ORDER BY id",
                                   (sesja_pieca_id, *SE.STATUSY_AKTYWNE))
+        pominiete = self._pominiete([s["id"] for s in skany])
+        skany = [s for s in skany if s["id"] not in pominiete]
         cofniete = {(d["skan_id"], int(d["wartosc"])) for d in self._wiersze_in(
             f"SELECT skan_id, wartosc FROM decyzje WHERE rodzaj = '{SE.RODZAJ_COFNIJ_ZASTAPIENIE}' AND skan_id IN ({{}})", [s["id"] for s in skany])
             if str(d["wartosc"] or "").isdigit()}
@@ -292,7 +405,7 @@ class SesjaRano:
 
     # --- decyzje o pracach porannych ------------------------------------------------------------
     def _praca_rano(self, praca_id: int | None) -> dict:
-        """Praca, o ktorej wolno zdecydowac rano: skan poranny ``przyjety`` w otwartym piecu."""
+        """Praca, o ktorej wolno zdecydowac rano: skan poranny ``przyjety``, niepominiety, w otwartym piecu."""
         p = self.baza.wiersz("SELECT p.*, s.status AS status_skanu, s.tryb AS tryb_skanu, s.sesja_pieca_id FROM prace p "
                              "JOIN skany s ON s.id = p.skan_id WHERE p.id = ?", (praca_id,)) if praca_id is not None else None
         if p is None:
@@ -304,10 +417,12 @@ class SesjaRano:
         if p["status_skanu"] != SE.STATUS_PRZYJETY:
             rada = {SE.STATUS_ZASTAPIONY: "podejmij decyzje na nowym skanie plytki", SE.STATUS_DO_POWTORZENIA: "zeskanuj plytke ponownie",
                     SE.STATUS_NIEZGODNY_UKLAD: "zeskanuj plytke ponownie z wlasciwym ukladem",
-                    SE.STATUS_PLYTKA_NIE_Z_TRYBU: "to plytka nie z tego trybu: zeskanuj wlasciwa plytke albo swiadomie dopusc ten skan",
+                    SE.STATUS_PLYTKA_NIE_Z_TRYBU: "to plytka nie z tego trybu: przeloz prace na plytke poranna i zeskanuj ja",
                     }.get(p["status_skanu"], "skan nie zostal przyjety")
             raise SE.BladSesji(f"praca {praca_id}: skan {p['skan_id']} ma status {p['status_skanu']!r} - decyzje mozna podejmowac tylko na skanie "
                                f"przyjetym ({rada})")
+        if p["skan_id"] in self._pominiete([p["skan_id"]]):
+            raise SE.BladSesji(f"praca {praca_id}: skan {p['skan_id']} jest pominiety - cofnij pominiecie albo zdecyduj na nowym skanie")
         return p
 
     def _decyzja_przypisania(self, praca_id: int) -> dict | None:
@@ -350,14 +465,17 @@ class SesjaRano:
             self._zapisz_przypisanie(p["id"], projekt_id)
         return d
 
-    def cofnij_przypisanie(self, praca_id: int, operator: str | None = None) -> int:
-        """Cofa obowiazujaca decyzje przypisania (wraca poprzednia albo przypisanie automatyczne); dopisuje wiersz ``cofniecie``."""
+    def cofnij_przypisanie(self, praca_id: int, operator: str | None = None, *, decyzja_id: int | None = None) -> int:
+        """Cofa obowiazujaca decyzje przypisania (wraca poprzednia albo przypisanie automatyczne); dopisuje wiersz ``cofniecie``.
+        ``decyzja_id`` (zalecane dla okna): cofnij dokladnie te decyzje - inna obowiazujaca = odmowa (podwojne klikniecie)."""
         osoba = self._osoba(operator)
         with self.baza.transakcja():
             p = self._praca_rano(praca_id)
             ob = self._decyzja_przypisania(p["id"])
             if ob is None:
                 raise SE.BladSesji(f"praca {praca_id}: nie ma decyzji do cofniecia")
+            if decyzja_id is not None and ob["id"] != decyzja_id:
+                raise SE.BladSesji(f"praca {praca_id}: obowiazuje decyzja {ob['id']}, nie {decyzja_id} - odswiez widok (decyzja juz cofnieta?)")
             d = self.baza.wstaw("decyzje", praca_id=p["id"], skan_id=p["skan_id"], rodzaj=SE.RODZAJ_COFNIECIE, wartosc=str(ob["id"]),
                                 operator=osoba, czas=self.sesja.teraz())
             nowa = self._decyzja_przypisania(p["id"])
@@ -382,7 +500,7 @@ class SesjaRano:
         """``prace.projekt_id`` = przypisanie obowiazujace (plan 3.4: automatyczne albo z decyzji)."""
         self.baza.wykonaj("UPDATE prace SET projekt_id = ? WHERE id = ?", (projekt_id, praca_id))
 
-    # --- pomocnicze zapytania -------------------------------------------------------------------
+    # --- punkty i ich stan ----------------------------------------------------------------------
     def _wiersze_in(self, sql: str, wartosci: list, porcja: int = 500) -> list[dict]:
         """Zapytanie z lista wartosci w miejscu ``{}``, w porcjach; pusta lista = brak wierszy."""
         wynik: list[dict] = []
@@ -391,35 +509,78 @@ class SesjaRano:
             wynik += self.baza.wiersze(sql.format(_znaki(len(czesc))), tuple(czesc))
         return wynik
 
-    _POLA_PROJEKTU = ("SELECT p.id AS projekt_id, p.sha16, p.zlecenie_id, p.zeby, p.typ, z.kuweta, z.zrodlo "
-                      "FROM projekty p JOIN zlecenia z ON z.id = p.zlecenie_id WHERE p.usuniety = 0 AND ")
+    _POLA_PROJEKTU = ("SELECT p.id AS projekt_id, p.sha16, p.zlecenie_id, p.zeby, p.typ, p.usuniety, z.kuweta, z.zrodlo "
+                      "FROM projekty p JOIN zlecenia z ON z.id = p.zlecenie_id WHERE ")
 
     def _projekty_sha(self, shas: list) -> dict[str, list[dict]]:
-        """``sha16`` -> projekty (punkty) o tej zawartosci; bez nazw folderow i plikow."""
+        """``sha16`` -> projekty (punkty, ``usuniety = 0``) o tej zawartosci; bez nazw folderow i plikow."""
         wynik: dict[str, list[dict]] = {}
-        for w in self._wiersze_in(self._POLA_PROJEKTU + "p.sha16 IN ({}) ORDER BY p.id", sorted({s for s in shas if s})):
+        for w in self._wiersze_in(self._POLA_PROJEKTU + "p.usuniety = 0 AND p.sha16 IN ({}) ORDER BY p.id", sorted({s for s in shas if s})):
             wynik.setdefault(w["sha16"], []).append(w)
         return wynik
 
     def _projekty_id(self, ids: list) -> dict[int, dict]:
-        return {w["projekt_id"]: w for w in self._wiersze_in(self._POLA_PROJEKTU.replace("p.usuniety = 0 AND ", "") + "p.id IN ({})",
-                                                              sorted({i for i in ids if i is not None}))}
+        return {w["projekt_id"]: w for w in self._wiersze_in(self._POLA_PROJEKTU + "p.id IN ({})", sorted({i for i in ids if i is not None}))}
 
-    def _punkty_zlecen(self, zlecenia: list) -> dict[int, list[dict]]:
-        """Zlecenie -> jego punkty (projekty ``usuniety = 0``) ze stanem punktu (brak wiersza = ``oczekuje``)."""
+    def _poprzednicy(self, info: dict[int, dict]) -> dict[int, list[dict]]:
+        """Punkt (projekt ``usuniety = 0``) -> usuniete projekty z wierszem ``stan_punktow`` o tej samej zawartosci (``sha16``)
+        z tego samego zlecenia albo ze zlecenia o tej samej (niepustej) kuwecie - ten sam plik po zmianie nazwy pliku albo
+        folderu w indeksie (A4 zaklada wtedy nowe ``projekt_id``). Najnowszy (czas stanu, id) na koncu listy."""
+        zywe = {i: p for i, p in info.items() if not p["usuniety"] and p["sha16"]}
+        if not zywe:
+            return {}
+        wiersze = self._wiersze_in(
+            "SELECT p.id AS projekt_id, p.sha16, p.zlecenie_id, z.kuweta, sp.stan, sp.praca_id, sp.sesja_pieca_id, sp.czas "
+            "FROM projekty p JOIN zlecenia z ON z.id = p.zlecenie_id JOIN stan_punktow sp ON sp.projekt_id = p.id "
+            "WHERE p.usuniety = 1 AND p.sha16 IN ({})", sorted({p["sha16"] for p in zywe.values()}))
         wynik: dict[int, list[dict]] = {}
-        for w in self._wiersze_in(
-                "SELECT p.zlecenie_id, z.kuweta, z.zrodlo, p.id AS projekt_id, p.sha16, p.zeby, p.typ, sp.stan, sp.sesja_pieca_id "
-                "FROM projekty p JOIN zlecenia z ON z.id = p.zlecenie_id LEFT JOIN stan_punktow sp ON sp.projekt_id = p.id "
-                "WHERE p.usuniety = 0 AND p.zlecenie_id IN ({}) ORDER BY p.zlecenie_id, p.id", sorted({z for z in zlecenia if z is not None})):
-            wynik.setdefault(w["zlecenie_id"], []).append(w)
+        for i, p in zywe.items():
+            lista = [w for w in wiersze if w["sha16"] == p["sha16"] and w["projekt_id"] != i
+                     and (w["zlecenie_id"] == p["zlecenie_id"] or (p["kuweta"] and w["kuweta"] == p["kuweta"]))]
+            if lista:
+                wynik[i] = sorted(lista, key=lambda w: (w["czas"] or "", w["projekt_id"]))
         return wynik
 
-    def _ustaw_punkt(self, projekt_id: int, stan: str, praca_id: int | None, sesja_pieca_id: int, czas: str) -> None:
+    def _stany(self, info: dict[int, dict]) -> dict[int, dict]:
+        """Projekt -> obowiazujacy stan punktu: wlasny wiersz ``stan_punktow`` albo (bez wlasnego) stan najnowszego poprzednika
+        (``_poprzednicy``; pole ``odziedziczony_z``). Brak w slowniku = ``oczekuje``."""
+        wlasne = {w["projekt_id"]: {**w, "odziedziczony_z": None}
+                  for w in self._wiersze_in("SELECT * FROM stan_punktow WHERE projekt_id IN ({})", sorted(info))}
+        bez = {i: p for i, p in info.items() if i not in wlasne}
+        for i, lista in self._poprzednicy(bez).items():
+            w = lista[-1]
+            wlasne[i] = {"projekt_id": i, "stan": w["stan"], "praca_id": w["praca_id"], "sesja_pieca_id": w["sesja_pieca_id"],
+                         "czas": w["czas"], "odziedziczony_z": w["projekt_id"]}
+        return wlasne
+
+    def _punkty_zlecen(self, zlecenia: list) -> dict[int, list[dict]]:
+        """Zlecenie -> jego punkty (projekty ``usuniety = 0``, bez ``TYPY_BEZ_PUNKTU``) z obowiazujacym stanem (``_stany``)."""
+        info = {w["projekt_id"]: w for w in self._wiersze_in(self._POLA_PROJEKTU + "p.usuniety = 0 AND p.zlecenie_id IN ({}) ORDER BY p.id",
+                                                             sorted({z for z in zlecenia if z is not None}))
+                if w["typ"] not in TYPY_BEZ_PUNKTU}
+        stany = self._stany(info)
+        wynik: dict[int, list[dict]] = {}
+        for i, p in info.items():
+            st = stany.get(i) or {}
+            wynik.setdefault(p["zlecenie_id"], []).append({**p, "stan": st.get("stan"), "sesja_pieca_id": st.get("sesja_pieca_id"),
+                                                           "odziedziczony_z": st.get("odziedziczony_z")})
+        return wynik
+
+    def _wlasny_stan(self, projekt_id: int) -> dict | None:
+        return _wiersz_stanu(self.baza.wiersz("SELECT * FROM stan_punktow WHERE projekt_id = ?", (projekt_id,)))
+
+    def _ustaw_punkt(self, projekt_id: int, stan: str, praca_id: int | None, sesja_pieca_id: int | None, czas: str) -> None:
         self.baza.wykonaj(
             """INSERT INTO stan_punktow (projekt_id, stan, praca_id, sesja_pieca_id, czas) VALUES (?, ?, ?, ?, ?)
                ON CONFLICT (projekt_id) DO UPDATE SET stan = excluded.stan, praca_id = excluded.praca_id,
                sesja_pieca_id = excluded.sesja_pieca_id, czas = excluded.czas""", (projekt_id, stan, praca_id, sesja_pieca_id, czas))
+
+    def _przywroc_punkt(self, projekt_id: int, wiersz: dict | None) -> None:
+        """Stan punktu sprzed zmiany (None = punkt bez wiersza: ``oczekuje`` albo stan odziedziczony)."""
+        if wiersz is None:
+            self.baza.wykonaj("DELETE FROM stan_punktow WHERE projekt_id = ?", (projekt_id,))
+        else:
+            self._ustaw_punkt(projekt_id, wiersz["stan"], wiersz["praca_id"], wiersz["sesja_pieca_id"], wiersz["czas"])
 
     @staticmethod
     def _zlecenie(z_id: int, punkty: list[dict], teraz_ids: set, wczesniej: dict) -> dict:
@@ -447,6 +608,9 @@ class SesjaRano:
         pid = piec["id"]
         otwarty = piec["zamknieto"] is None
         skany = self.baza.wiersze("SELECT * FROM skany WHERE sesja_pieca_id = ? ORDER BY id", (pid,))
+        pominiete = self._pominiete([s["id"] for s in skany])
+        aktywne = [s for s in skany if s["status"] in SE.STATUSY_AKTYWNE and s["id"] not in pominiete]
+        aktywne_ids = {s["id"] for s in aktywne}
         prace = self._wiersze_in("SELECT * FROM prace WHERE skan_id IN ({}) ORDER BY skan_id, id", [s["id"] for s in skany])
         decyzje: dict[int, list[dict]] = {}
         for d in self._wiersze_in(f"SELECT * FROM decyzje WHERE rodzaj IN ('{RODZAJ_WYBOR}', '{RODZAJ_PRZYPISANIE}', '{SE.RODZAJ_COFNIECIE}') "
@@ -455,17 +619,17 @@ class SesjaRano:
         obow = {pid_: _obowiazujaca(lst) for pid_, lst in decyzje.items()}
         po_sha = self._projekty_sha([p["kandydat1_sha16"] for p in prace] + [p["kandydat2_sha16"] for p in prace])
         projekty = self._projekty_id([p["projekt_id"] for p in prace])
-        stany = {w["projekt_id"]: w for w in self._wiersze_in("SELECT * FROM stan_punktow WHERE projekt_id IN ({})", sorted(projekty))}
+        stany = self._stany(projekty)
         skan_po_id = {s["id"]: s for s in skany}
 
-        def wczesniej(projekt_id: int) -> bool:  # punkt zamknal juz wczesniejszy piec
-            st = stany.get(projekt_id)
-            return st is not None and st["stan"] in STANY_KONCOWE and (st["sesja_pieca_id"] is None or st["sesja_pieca_id"] < pid)
+        def wczesniej(st: dict | None) -> bool:  # punkt zamknal juz inny piec (otwarty: kazdy inny; zamkniety: wczesniejszy) albo reka
+            return st is not None and st["stan"] in STANY_KONCOWE and (
+                st["sesja_pieca_id"] is None or (st["sesja_pieca_id"] != pid if otwarty else st["sesja_pieca_id"] < pid))
 
         # SE8: ten sam projekt w dwoch gniazdach skanow przyjetych tego pieca (dwa fragmenty w jednym gniezdzie = jedno miejsce)
         miejsca: dict[int, list[dict]] = {}
         for p in prace:
-            if p["projekt_id"] is not None and skan_po_id[p["skan_id"]]["status"] == SE.STATUS_PRZYJETY:
+            if p["projekt_id"] is not None and p["skan_id"] in aktywne_ids and skan_po_id[p["skan_id"]]["status"] == SE.STATUS_PRZYJETY:
                 miejsca.setdefault(p["projekt_id"], []).append(p)
         w_konflikcie = {pr for pr, lst in miejsca.items()
                         if len({(x["skan_id"], x["gniazdo"] if x["gniazdo"] is not None else f"poza-{x['id']}") for x in lst}) > 1}
@@ -476,16 +640,16 @@ class SesjaRano:
                                   for q in po_sha.get(p[f"kandydat{i}_sha16"], [])]}
                     for i in (1, 2) if p[f"kandydat{i}_sha16"]]
 
-        wynik_skany, liczniki, nierozstrzygniete, liczone = [], {}, {"dwuznaczne": 0, "nieznane": 0}, {}
-        poprawki = []
+        wynik_skany, liczniki, nierozstrzygniete, liczone, poprawki = [], {}, {"dwuznaczne": 0, "nieznane": 0}, {}, []
         odhaczone_cache: dict[int, bool] = {}
         for s in skany:
-            aktywny = s["status"] in SE.STATUSY_AKTYWNE
+            aktywny = s["id"] in aktywne_ids
             lista = []
             for p in (x for x in prace if x["skan_id"] == s["id"]):
                 d = obow.get(p["id"])
                 kand = kandydaci(p)
                 pr = p["projekt_id"]
+                st = stany.get(pr) if pr is not None else None
                 if not aktywny:
                     klasa = None
                 elif s["status"] == SE.STATUS_DO_POWTORZENIA:
@@ -495,23 +659,24 @@ class SesjaRano:
                     klasa = KLASA_DWUZNACZNA if dwuznaczna else KLASA_NIEZNANA
                 elif pr in w_konflikcie:
                     klasa = KLASA_KONFLIKT
-                elif wczesniej(pr):
+                elif wczesniej(st):
                     klasa = KLASA_POPRAWKA
                 else:
                     klasa = KLASA_PRZYPISANA if d is not None else KLASA_PEWNA
                 info = projekty.get(pr) if pr is not None else None
                 kuweta = info["kuweta"] if info else None
-                st = stany.get(pr) if pr is not None else None
                 odhaczone = False
                 if klasa == KLASA_POPRAWKA:
                     z_id = info["zlecenie_id"]
                     if z_id not in odhaczone_cache:
                         odhaczone_cache[z_id] = all(pt["stan"] in STANY_KONCOWE for pt in self._punkty_zlecen([z_id]).get(z_id, []))
                     odhaczone = odhaczone_cache[z_id]
+                status = STATUS_KLASY.get(klasa) if klasa else None
+                kolor, kolor_ramki = kolory_statusu(status) if status else (None, None)
                 wpis = {
                     "id": p["id"], "skan_id": s["id"], "numer_plytki": s["numer_plytki"], "gniazdo": p["gniazdo"], "nr_fragmentu": p["nr_fragmentu"],
                     "status_fragmentu": p["status_fragmentu"], "status_match": p["status_match"], "pewnosc": p["pewnosc"],
-                    "klasa": klasa, "kolor": KOLOR_KLASY.get(klasa), "kolor_ramki": KOLOR_RAMKI.get(klasa), "liczona": klasa in KLASY_LICZONE,
+                    "klasa": klasa, "status": status, "kolor": kolor, "kolor_ramki": kolor_ramki, "liczona": klasa in KLASY_LICZONE,
                     "projekt_id": pr, "sha16": info["sha16"] if info else None, "zlecenie_id": info["zlecenie_id"] if info else None,
                     "kuweta": kuweta, "zeby": info["zeby"] if info else None, "typ": info["typ"] if info else None,
                     "przypisanie": None if pr is None else ("decyzja" if d is not None else "auto"),
@@ -530,21 +695,19 @@ class SesjaRano:
                     elif klasa in KLASY_LICZONE:
                         liczone[pr] = wpis
                     elif klasa == KLASA_POPRAWKA:
-                        poprawki.append({k: wpis[k] for k in ("id", "skan_id", "numer_plytki", "gniazdo", "projekt_id", "sha16", "zlecenie_id",
-                                                              "kuweta", "zeby", "zlecenie_odhaczone")})
+                        poprawki.append({"praca_id": p["id"], **{k: wpis[k] for k in (
+                            "skan_id", "numer_plytki", "gniazdo", "projekt_id", "sha16", "zlecenie_id", "kuweta", "zeby", "zlecenie_odhaczone")}})
+            dozwolone = numery_plytki(s["uklad"])
             wynik_skany.append({
                 "id": s["id"], "sha16": s["sha16"], "numer_plytki": s["numer_plytki"], "numer_zrodlo": s["numer_zrodlo"], "uklad": s["uklad"],
-                "status": s["status"], "aktywny": aktywny, "czas_analizy": s["czas_analizy"], "zastepuje_id": s["zastepuje_id"],
+                "status": s["status"], "aktywny": aktywny, "pominiety": s["id"] in pominiete, "czas_analizy": s["czas_analizy"],
+                "zastepuje_id": s["zastepuje_id"], "na_ramce": na_ramce(s["uklad"]) and s["numer_plytki"] in (dozwolone or ()),
                 "powod": SE.powod_nie_z_trybu(s["uklad"], s["tryb"]) if s["status"] == SE.STATUS_PLYTKA_NIE_Z_TRYBU else None, "prace": lista})
-        for x in poprawki:
-            x["praca_id"] = x.pop("id")
 
         # zlecenia dotkniete w tym piecu (praca liczona) - stan prowizoryczny do "Zamknij piec"
         punkty = self._punkty_zlecen([w["zlecenie_id"] for w in liczone.values()])
-        teraz_ids = set(liczone)
-        wczesniej_pt = {pt["projekt_id"]: pt["stan"] in STANY_KONCOWE and (pt["sesja_pieca_id"] is None or pt["sesja_pieca_id"] < pid)
-                        for lst in punkty.values() for pt in lst}
-        zlecenia = self._sortuj_zlecenia([self._zlecenie(z_id, lst, teraz_ids, wczesniej_pt) for z_id, lst in punkty.items()])
+        wczesniej_pt = {pt["projekt_id"]: wczesniej(pt) for lst in punkty.values() for pt in lst}
+        zlecenia = self._sortuj_zlecenia([self._zlecenie(z_id, lst, set(liczone), wczesniej_pt) for z_id, lst in punkty.items()])
 
         konflikty = []
         for pr in w_konflikcie:
@@ -553,18 +716,17 @@ class SesjaRano:
                               "zeby": info.get("zeby"), "miejsca": [{"skan_id": x["skan_id"], "numer_plytki": skan_po_id[x["skan_id"]]["numer_plytki"],
                                                                       "gniazdo": x["gniazdo"], "praca_id": x["id"]} for x in miejsca[pr]]})
         konflikty.sort(key=lambda k: (k["miejsca"][0]["skan_id"], k["miejsca"][0]["praca_id"]))
-        aktywne = [s for s in skany if s["status"] in SE.STATUSY_AKTYWNE]
         bez_numeru = [s["id"] for s in aktywne if s["numer_plytki"] is None]
-        numery: dict[int, int] = {}
+        po_numerze: dict[int, list[int]] = {}
         for s in aktywne:
             if s["numer_plytki"] is not None:
-                numery[s["numer_plytki"]] = numery.get(s["numer_plytki"], 0) + 1
-        blokady = []
-        if otwarty and bez_numeru:
-            blokady.append(f"podaj numer plytki dla skanow {', '.join(map(str, bez_numeru))} (rano numer jest obowiazkowy przed 'Zamknij piec' - Z3)")
-        if otwarty and konflikty:
-            blokady.append(f"rozstrzygnij konflikty ({len(konflikty)}): ten sam projekt w kilku gniazdach - dla jednej z prac wybierz inny "
-                           f"projekt albo 'bez projektu'")
+                po_numerze.setdefault(s["numer_plytki"], []).append(s["id"])
+        zdublowane = sorted(n for n, ids in po_numerze.items() if len(ids) > 1)
+        blokady, ostrzezenia = (self._blokady(skany, aktywne, pominiete, bez_numeru, po_numerze, zdublowane, konflikty) if otwarty else ([], []))
+        inne_otwarte = [p for p in self.otwarte_piece() if p["id"] != pid] if otwarty else []
+        for p in inne_otwarte:
+            ostrzezenia.append(f"piec {p['plan_id']} (doba {p['data']}) nie zostal zamkniety - zamknij go ('Zamknij piec' z jego numerem); "
+                               f"nowe skany ida do pieca biezacej doby")
         return {
             "sesja_pieca_id": pid, "data": piec["data"], "nr_w_dniu": piec["nr_w_dniu"], "plan_id": plan_id(piec), "otwarto": piec["otwarto"],
             "zamknieto": piec["zamknieto"], "zamknal": piec["zamknal"], "otwarty": otwarty,
@@ -573,8 +735,50 @@ class SesjaRano:
             "kompletne": [z for z in zlecenia if z["kompletne"]], "braki": [z for z in zlecenia if not z["kompletne"]],
             "poprawki": sorted(poprawki, key=lambda x: (x["numer_plytki"] or 0, x["gniazdo"] or 0, x["praca_id"])), "konflikty": konflikty,
             "do_potwierdzenia": self._propozycje(pid) if otwarty else [], "bez_numeru": bez_numeru,
-            "do_powtorzenia": [s["id"] for s in aktywne if s["status"] == SE.STATUS_DO_POWTORZENIA],
-            "zdublowane_plytki": sorted(n for n, ile in numery.items() if ile > 1), "blokady": blokady}
+            "do_powtorzenia": [s["id"] for s in aktywne if s["status"] == SE.STATUS_DO_POWTORZENIA], "pominiete_skany": sorted(pominiete),
+            "zdublowane_plytki": zdublowane, "blokady": blokady, "ostrzezenia": ostrzezenia,
+            "inne_otwarte_piece": [p["plan_id"] for p in inne_otwarte]}
+
+    @staticmethod
+    def _blokady(skany: list[dict], aktywne: list[dict], pominiete: set, bez_numeru: list, po_numerze: dict, zdublowane: list,
+                 konflikty: list) -> tuple[list[str], list[str]]:
+        """Powody, dla ktorych "Zamknij piec" teraz odmowi (kazda plytka pieca musi sie liczyc), i ostrzezenia bez blokady."""
+        blokady, ostrzezenia = [], []
+        aktywne_ids = {s["id"] for s in aktywne}
+        for s in skany:
+            if s["id"] in pominiete or s["status"] == SE.STATUS_ZASTAPIONY:
+                continue
+            if s["id"] not in aktywne_ids:  # blad, niezgodny uklad, plytka nie z trybu - liczy sie dopiero ponowny skan tej plytki
+                ponowny = s["numer_plytki"] is not None and any(t["id"] > s["id"] and t["numer_plytki"] == s["numer_plytki"] for t in aktywne)
+                if not ponowny:
+                    powod = {SE.STATUS_BLAD: "analiza skanu nie dala wyniku", SE.STATUS_NIEZGODNY_UKLAD: "uklad plytki niezgodny",
+                             SE.STATUS_PLYTKA_NIE_Z_TRYBU: SE.powod_nie_z_trybu(s["uklad"], s["tryb"]) or "plytka nie z tego trybu"
+                             }.get(s["status"], f"status {s['status']}")
+                    blokady.append(f"skan {s['id']}: {powod} - zeskanuj plytke poranna ponownie (prace tej plytki inaczej sie nie licza), "
+                                   f"a ten skan pomin")
+                continue
+            if s["status"] == SE.STATUS_DO_POWTORZENIA:
+                blokady.append(f"skan {s['id']} (plytka {s['numer_plytki']}): skan do powtorzenia (dwie prace w gniezdzie, praca poza gniazdem "
+                               f"albo drgniecie) - popraw ulozenie, zeskanuj plytke ponownie i potwierdz ponowny skan")
+            dozwolone = numery_plytki(s["uklad"])
+            if dozwolone is None:
+                blokady.append(f"skan {s['id']}: plytka {s['uklad']!r} nie jest plytka poranna - ramka poranna jej nie obsluzy; przeloz prace "
+                               f"na plytke poranna i zeskanuj ja, a ten skan pomin")
+            elif s["numer_plytki"] is not None and s["numer_plytki"] not in dozwolone:
+                blokady.append(f"skan {s['id']}: numer plytki {s['numer_plytki']} spoza plytek porannych tego ukladu "
+                               f"({', '.join(map(str, dozwolone))}) - popraw numer")
+            elif not na_ramce(s["uklad"]) and s["numer_plytki"] is not None:
+                ostrzezenia.append(f"skan {s['id']}: plytka okragla nr {s['numer_plytki']} - ramka poranna jej nie pokazuje, rozloz prace wg ekranu")
+        if bez_numeru:
+            blokady.append(f"podaj numer plytki dla skanow {', '.join(map(str, bez_numeru))} (rano numer jest obowiazkowy przed "
+                           f"'Zamknij piec' - Z3)")
+        for n in zdublowane:
+            blokady.append(f"plytka {n}: dwa skany z tym samym numerem (skany {', '.join(map(str, po_numerze[n]))}) - potwierdz ponowny skan "
+                           f"albo popraw numer plytki; do tego czasu ramka tej plytki nie dostaje")
+        if konflikty:
+            blokady.append(f"rozstrzygnij konflikty ({len(konflikty)}): ten sam projekt w kilku gniazdach - dla jednej z prac wybierz inny "
+                           f"projekt albo 'bez projektu'")
+        return blokady, ostrzezenia
 
     def stan_pieca(self, sesja_pieca_id: int | None = None) -> dict | None:
         """Stan sesji pieca (domyslnie otwartej; None, gdy zadna nie jest otwarta) jako zwykle dane (JSON) - kontrakt dla ekranu (A7).
@@ -591,74 +795,202 @@ class SesjaRano:
                         zlecenia=self._sortuj_zlecenia(rec.get("kompletne", []) + rec.get("braki", [])))
         return stan
 
-    # --- "Zamknij piec" -------------------------------------------------------------------------
-    def zamknij_piec(self, operator: str | None = None) -> dict:
-        """"Zamknij piec" (przycisk albo klawisz ramki): punkty prac liczonych -> ``rozpoznany``, brakujace punkty zlecen dotknietych
-        -> ``brak_po_piecu`` (``do_dofrezowania`` zostaje), zapis wyniku w dzienniku, wpis ``poprawka_rano`` dla kazdej poprawki.
+    # --- "Zamknij piec" i jego cofniecie --------------------------------------------------------
+    def zamknij_piec(self, operator: str | None = None, *, plan_id: str | None = None, sesja_pieca_id: int | None = None) -> dict:
+        """"Zamknij piec" (przycisk albo klawisz ramki): punkty prac liczonych -> ``rozpoznany`` (takze stary punkt ``do_dofrezowania``
+        przed zmiana nazwy), brakujace punkty zlecen dotknietych -> ``brak_po_piecu`` (``do_dofrezowania`` zostaje), zapis wyniku
+        i stanu sprzed zamkniecia w dzienniku, wpis ``poprawka_rano`` dla kazdej poprawki.
 
-        Odmowa (``BladSesji``, nic nie zapisane): brak operatora, brak otwartego pieca, skan aktywny bez numeru plytki (Z3),
-        nierozstrzygniety konflikt. Dwuznaczne i nieznane nie blokuja - nie licza sie (``nierozstrzygniete``).
-        Zwraca ``wynik_pieca`` (to samo da po restarcie): ``kompletne`` (lista dla Excela), ``braki``, ``poprawki`` (tylko log),
-        ``domkniete_dofrezowania``, ``nierozstrzygniete``."""
+        ``plan_id`` (zdarzenie ``zamknij_piec`` ramki) albo ``sesja_pieca_id`` (piec pokazany w oknie): gdy nie wskazuja otwartego
+        pieca - odmowa (spoznione zdarzenie nie zamyka nastepnego pieca). Odmowa (``BladSesji``, nic nie zapisane) takze: brak
+        operatora, brak otwartego pieca, kazdy powod z ``stan_pieca()["blokady"]``. Dwuznaczne i nieznane nie blokuja - nie licza
+        sie (``nierozstrzygniete``). Zwraca ``wynik_pieca``: ``kompletne`` (lista dla Excela), ``braki``, ``poprawki`` (tylko log),
+        ``domkniete_dofrezowania``, ``nierozstrzygniete``, ``zamknal``."""
         osoba = self._osoba(operator)
         with self.baza.transakcja():
-            piec = self.otwarty_piec()
-            if piec is None:
+            otwarte = self.otwarte_piece()
+            if not otwarte:
                 raise SE.BladSesji("nie ma otwartego pieca - nie ma czego zamykac (piec otwiera pierwszy skan poranny)")
+            if plan_id is None and sesja_pieca_id is None:
+                piec = otwarte[-1]
+            else:
+                piec = next((p for p in otwarte if (plan_id is None or p["plan_id"] == plan_id)
+                             and (sesja_pieca_id is None or p["id"] == sesja_pieca_id)), None)
+                if piec is None:
+                    raise SE.BladSesji(f"'Zamknij piec' dotyczy pieca {plan_id or sesja_pieca_id}, ktory nie jest otwarty (otwarte: "
+                                       f"{', '.join(p['plan_id'] for p in otwarte)}) - polecenie spoznione albo dla innego pieca, nic nie zamknieto")
+            piec = {k: v for k, v in piec.items() if k != "z_poprzedniej_doby"}
             stan = self._oblicz(piec)
             if stan["blokady"]:
                 raise SE.BladSesji("'Zamknij piec' niemozliwe: " + "; ".join(stan["blokady"]))
             teraz = self.sesja.teraz()
             liczone = [p for s in stan["skany"] for p in s["prace"] if p["liczona"] and s["aktywny"]]
-            domkniete = [{k: p[k] for k in ("projekt_id", "sha16", "zlecenie_id", "kuweta", "zeby")} | {"praca_id": p["id"]}
-                         for p in liczone if p["domyka_dofrezowanie"]]
+            punkty_przed = []  # stan sprzed zamkniecia kazdego zmienionego wiersza - do otworz_piec_ponownie
+
+            def ustaw(projekt_id: int, stan_: str, praca_id: int | None) -> None:
+                punkty_przed.append({"projekt_id": projekt_id, "przed": self._wlasny_stan(projekt_id),
+                                     "po": {"stan": stan_, "praca_id": praca_id, "sesja_pieca_id": piec["id"]}})
+                self._ustaw_punkt(projekt_id, stan_, praca_id, piec["id"], teraz)
+
+            domkniete = []
+            info = self._projekty_id([p["projekt_id"] for p in liczone])
+            poprzednicy = self._poprzednicy(info)
             for p in liczone:
-                self._ustaw_punkt(p["projekt_id"], STAN_ROZPOZNANY, p["id"], piec["id"], teraz)
+                if p["domyka_dofrezowanie"]:
+                    domkniete.append({"praca_id": p["id"], **{k: p[k] for k in ("projekt_id", "sha16", "zlecenie_id", "kuweta", "zeby")}})
+                ustaw(p["projekt_id"], STAN_ROZPOZNANY, p["id"])
+                for q in poprzednicy.get(p["projekt_id"], []):  # stary punkt po zmianie nazwy: pozycja znika z listy "do dofrezowania"
+                    if q["stan"] == SE.STAN_DO_DOFREZOWANIA:
+                        ustaw(q["projekt_id"], STAN_ROZPOZNANY, p["id"])
             zlecenia = []
             for z in stan["zlecenia"]:
                 brakujace = []
                 for b in z["brakujace"]:
                     if b["stan"] == SE.STAN_OCZEKUJE:
-                        self._ustaw_punkt(b["projekt_id"], STAN_BRAK_PO_PIECU, None, piec["id"], teraz)
+                        ustaw(b["projekt_id"], STAN_BRAK_PO_PIECU, None)
                         b = {**b, "stan": STAN_BRAK_PO_PIECU}
                     brakujace.append(b)
                 zlecenia.append({**z, "brakujace": brakujace})
             self.baza.wykonaj("UPDATE sesje_pieca SET zamknieto = ?, zamknal = ? WHERE id = ?", (teraz, osoba, piec["id"]))
             for x in stan["poprawki"]:  # "tylko log": Excel bez zmian, punkt bez zmian
                 self.baza.zdarzenie("system", TYP_POPRAWKA, {**x, "sesja_pieca_id": piec["id"]}, skan_id=x["skan_id"], czas=teraz)
-            wynik = {
-                "sesja_pieca_id": piec["id"], "data": piec["data"], "nr_w_dniu": piec["nr_w_dniu"], "plan_id": plan_id(piec),
-                "otwarto": piec["otwarto"], "zamknieto": teraz, "zamknal": osoba,
+            zapis = {
+                "sesja_pieca_id": piec["id"], "data": piec["data"], "nr_w_dniu": piec["nr_w_dniu"], "plan_id": piec["plan_id"],
+                "otwarto": piec["otwarto"], "zamknieto": teraz,
                 "kompletne": [z for z in zlecenia if z["kompletne"]], "braki": [z for z in zlecenia if not z["kompletne"]],
                 "poprawki": stan["poprawki"], "domkniete_dofrezowania": domkniete, "nierozstrzygniete": stan["nierozstrzygniete"],
-                "prac": sum(stan["liczniki"].values()), "liczone": len(liczone)}
-            self.baza.zdarzenie("ui", TYP_ZAMKNIETY, wynik, czas=teraz)
+                "pominiete_skany": stan["pominiete_skany"], "prac": sum(stan["liczniki"].values()), "liczone": len(liczone),
+                "punkty_przed": punkty_przed}
+            self.baza.zdarzenie("ui", TYP_ZAMKNIETY, zapis, czas=teraz)
             return self.wynik_pieca(piec["id"])
 
-    def wynik_pieca(self, sesja_pieca_id: int) -> dict | None:
-        """Wynik "Zamknij piec" zapisany w dzienniku (None dla pieca niezamknietego) - lista dla Excela takze po restarcie."""
+    def _zapis_zamkniecia(self, sesja_pieca_id: int) -> dict | None:
         for w in reversed(self.baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = ? ORDER BY id", (TYP_ZAMKNIETY,))):
             dane = json.loads(w["dane"]) if w["dane"] else {}
             if dane.get("sesja_pieca_id") == sesja_pieca_id:
                 return dane
         return None
 
-    # --- lista brakow (trwala, miedzy piecami i dniami) ----------------------------------------
+    def wynik_pieca(self, sesja_pieca_id: int) -> dict | None:
+        """Wynik ostatniego "Zamknij piec" tego pieca z dziennika + ``zamknal`` z ``sesje_pieca`` (None dla pieca otwartego albo
+        niezamknietego) - lista dla Excela takze po restarcie."""
+        piec = self.baza.wiersz("SELECT * FROM sesje_pieca WHERE id = ?", (sesja_pieca_id,))
+        if piec is None or piec["zamknieto"] is None:
+            return None
+        zapis = self._zapis_zamkniecia(sesja_pieca_id)
+        if zapis is None:
+            return None
+        return {**{k: v for k, v in zapis.items() if k != "punkty_przed"}, "zamknal": piec["zamknal"]}
+
+    def otworz_piec_ponownie(self, sesja_pieca_id: int, operator: str | None = None) -> dict:
+        """Cofa "Zamknij piec" OSTATNIEGO pieca (pomylka): przywraca stan punktow sprzed zamkniecia (poza punktami, ktore pozniej
+        zmienil wieczor - te zostaja i sa wypisane w ``zmienione_pozniej``) i otwiera piec. Odmowa: inny piec otwarty, piec nie jest
+        ostatni albo nie jest zamkniety. Decyzja ``otworz_piec_ponownie`` (operator) i wpis w dzienniku; cofniecie = ponowne
+        "Zamknij piec". Uwaga dla A9: odhaczen juz zapisanych w Excelu program nie zdejmuje."""
+        osoba = self._osoba(operator)
+        with self.baza.transakcja():
+            piec = self.baza.wiersz("SELECT * FROM sesje_pieca WHERE id = ?", (sesja_pieca_id,))
+            if piec is None:
+                raise SE.BladSesji(f"nie ma sesji pieca {sesja_pieca_id}")
+            if piec["zamknieto"] is None:
+                raise SE.BladSesji(f"piec {plan_id(piec)} jest otwarty - nie ma czego otwierac")
+            otwarty = self.otwarty_piec()
+            if otwarty is not None:
+                raise SE.BladSesji(f"otwarty jest piec {otwarty['plan_id']} - najpierw go zamknij")
+            ostatni = self.baza.wiersz("SELECT max(id) AS id FROM sesje_pieca")["id"]
+            if piec["id"] != ostatni:
+                raise SE.BladSesji(f"otworzyc ponownie mozna tylko ostatni piec (piec {plan_id(piec)} nie jest ostatni)")
+            zapis = self._zapis_zamkniecia(piec["id"]) or {}
+            przywrocone, zmienione = 0, []
+            for z in reversed(zapis.get("punkty_przed", [])):
+                teraz_w = self._wlasny_stan(z["projekt_id"])
+                po = z["po"]
+                if teraz_w is not None and all(teraz_w[k] == po[k] for k in ("stan", "praca_id", "sesja_pieca_id")):
+                    self._przywroc_punkt(z["projekt_id"], z["przed"])
+                    przywrocone += 1
+                else:
+                    zmienione.append(z["projekt_id"])
+            teraz = self.sesja.teraz()
+            self.baza.wykonaj("UPDATE sesje_pieca SET zamknieto = NULL, zamknal = NULL WHERE id = ?", (piec["id"],))
+            d = self.baza.wstaw("decyzje", rodzaj=RODZAJ_OTWORZ_PIEC, wartosc=str(piec["id"]), operator=osoba, czas=teraz)
+            wynik = {"sesja_pieca_id": piec["id"], "plan_id": plan_id(piec), "decyzja_id": d, "przywrocone": przywrocone,
+                     "zmienione_pozniej": sorted(zmienione)}
+            self.baza.zdarzenie("ui", TYP_OTWARTY_PONOWNIE, wynik, czas=teraz)
+        return wynik
+
+    # --- lista brakow (trwala, miedzy piecami i dniami) i jej reczne zamkniecie --------------------
     def braki(self) -> list[dict]:
         """Lista brakow BIEZACA: zlecenia, ktorych co najmniej jeden punkt rozpoznal juz zamkniety piec, a co najmniej jeden
-        nie jest rozpoznany. Brakujacy punkt ma ``stan``: ``do_dofrezowania`` (ukruszony wieczorem - nie szukac, jest
-        dofrezowywany), ``brak_po_piecu`` (nie wyszedl z pieca), ``oczekuje`` (np. nowy plik w folderze). Uzupelnia sie sama,
-        gdy brakujaca praca wyjdzie z kolejnego pieca. Kolejnosc wg numeru kuwety."""
-        rozp = self.baza.wiersze("SELECT DISTINCT p.zlecenie_id FROM stan_punktow sp JOIN projekty p ON p.id = sp.projekt_id "
-                                 "WHERE sp.stan = ? AND p.usuniety = 0", (STAN_ROZPOZNANY,))
-        punkty = self._punkty_zlecen([w["zlecenie_id"] for w in rozp])
+        nie jest rozpoznany ani zamkniety recznie. Brakujacy punkt ma ``stan``: ``do_dofrezowania`` (ukruszony wieczorem - nie
+        szukac, jest dofrezowywany), ``brak_po_piecu`` (nie wyszedl z pieca), ``oczekuje`` (np. nowy plik w folderze). Uzupelnia
+        sie sama, gdy brakujaca praca wyjdzie z kolejnego pieca. Kolejnosc wg numeru kuwety."""
+        kandydaci = self.baza.wiersze(
+            "SELECT DISTINCT p.zlecenie_id FROM projekty p WHERE p.usuniety = 0 AND (p.id IN (SELECT projekt_id FROM stan_punktow WHERE stan = ?) "
+            "OR p.sha16 IN (SELECT q.sha16 FROM projekty q JOIN stan_punktow s ON s.projekt_id = q.id WHERE q.usuniety = 1 AND s.stan = ? "
+            "AND q.sha16 IS NOT NULL))", (STAN_ROZPOZNANY, STAN_ROZPOZNANY))
+        punkty = self._punkty_zlecen([w["zlecenie_id"] for w in kandydaci])
         wynik = []
         for z_id, lst in punkty.items():
+            if not any(pt["stan"] == STAN_ROZPOZNANY for pt in lst):
+                continue
             z = self._zlecenie(z_id, lst, set(), {pt["projekt_id"]: pt["stan"] in STANY_KONCOWE for pt in lst})
             if z["brakujace"]:
                 z["ostatni_piec"] = max((pt["sesja_pieca_id"] or 0) for pt in lst if pt["stan"] == STAN_ROZPOZNANY)
                 wynik.append(z)
         return self._sortuj_zlecenia(wynik)
+
+    def zamknij_brak_recznie(self, projekt_id: int, operator: str | None = None, *, powod: str) -> int:
+        """Reczne zamkniecie brakujacego punktu (plik, ktory nie jest praca, praca zaginiona albo wydana bez skanu): stan
+        ``zamkniety_recznie`` (takze starego punktu ``do_dofrezowania`` po zmianie nazwy - znika z listy "do dofrezowania").
+        ``powod`` - kod z ``POWODY_ZAMKNIECIA`` (bez tekstu wolnego). Decyzja ``zamkniecie_reczne`` (operator, stan sprzed w
+        ``wartosc``) i wpis w dzienniku; cofa ``cofnij_zamkniecie_reczne``. Zlecenie, ktore stalo sie przez to kompletne, NIE
+        idzie samo do Excela (do decyzji wlasciciela). Zwraca ``decyzje.id``."""
+        osoba = self._osoba(operator)
+        if powod not in POWODY_ZAMKNIECIA:
+            raise SE.BladSesji(f"nieznany powod {powod!r} (znane: {', '.join(POWODY_ZAMKNIECIA)})")
+        with self.baza.transakcja():
+            info = self._projekty_id([projekt_id]) if isinstance(projekt_id, int) and not isinstance(projekt_id, bool) else {}
+            p = info.get(projekt_id)
+            if p is None or p["usuniety"]:
+                raise SE.BladSesji(f"nie ma punktu {projekt_id} (projekt usuniety z indeksu albo nieznany)")
+            st = self._stany(info).get(projekt_id)
+            if st is not None and st["stan"] in STANY_KONCOWE:
+                raise SE.BladSesji(f"punkt {projekt_id} jest juz zamkniety (stan {st['stan']!r}) - nie ma czego zamykac")
+            zmiany = [{"projekt_id": projekt_id, "przed": self._wlasny_stan(projekt_id)}]
+            zmiany += [{"projekt_id": q["projekt_id"], "przed": _wiersz_stanu(q)} for q in self._poprzednicy(info).get(projekt_id, [])
+                       if q["stan"] == SE.STAN_DO_DOFREZOWANIA]
+            teraz = self.sesja.teraz()
+            d = self.baza.wstaw("decyzje", rodzaj=RODZAJ_ZAMKNIECIE_RECZNE, operator=osoba, czas=teraz,
+                                wartosc=json.dumps({"projekt_id": projekt_id, "powod": powod, "zmiany": zmiany}, sort_keys=True))
+            for z in zmiany:
+                self._ustaw_punkt(z["projekt_id"], STAN_ZAMKNIETY_RECZNIE, None, None, teraz)
+            self.baza.zdarzenie("ui", TYP_ZAMKNIETY_RECZNIE, {"decyzja_id": d, "projekt_id": projekt_id, "sha16": p["sha16"], "kuweta": p["kuweta"],
+                                                              "zeby": p["zeby"], "powod": powod, "stan_przed": (st or {}).get("stan") or SE.STAN_OCZEKUJE},
+                                czas=teraz)
+        return d
+
+    def cofnij_zamkniecie_reczne(self, projekt_id: int, operator: str | None = None) -> int:
+        """Cofa ostatnie niecofniete ``zamkniecie_reczne`` punktu: przywraca stan sprzed (wiersz ``cofniecie``). Odmowa, gdy punkt
+        zmienil potem stan (np. wieczorna "Ukruszona")."""
+        osoba = self._osoba(operator)
+        with self.baza.transakcja():
+            wiersze = self.baza.wiersze("SELECT * FROM decyzje WHERE praca_id IS NULL AND skan_id IS NULL AND rodzaj IN (?, ?) ORDER BY id",
+                                        (RODZAJ_ZAMKNIECIE_RECZNE, SE.RODZAJ_COFNIECIE))
+            ob = [d for d in _obowiazujace(wiersze, (RODZAJ_ZAMKNIECIE_RECZNE,)) if json.loads(d["wartosc"]).get("projekt_id") == projekt_id]
+            if not ob:
+                raise SE.BladSesji(f"punkt {projekt_id}: nie ma recznego zamkniecia do cofniecia")
+            dane = json.loads(ob[-1]["wartosc"])
+            teraz_w = self._wlasny_stan(projekt_id)
+            if teraz_w is None or teraz_w["stan"] != STAN_ZAMKNIETY_RECZNIE:
+                raise SE.BladSesji(f"punkt {projekt_id} zmienil stan po recznym zamknieciu ({(teraz_w or {}).get('stan')!r}) - nie cofam")
+            for z in dane["zmiany"]:
+                w = self._wlasny_stan(z["projekt_id"])
+                if w is not None and w["stan"] == STAN_ZAMKNIETY_RECZNIE:
+                    self._przywroc_punkt(z["projekt_id"], z["przed"])
+            teraz = self.sesja.teraz()
+            d = self.baza.wstaw("decyzje", rodzaj=SE.RODZAJ_COFNIECIE, wartosc=str(ob[-1]["id"]), operator=osoba, czas=teraz)
+            self.baza.zdarzenie("ui", TYP_ZAMKNIETY_RECZNIE + "_cofniete", {"decyzja_id": d, "projekt_id": projekt_id}, czas=teraz)
+        return d
 
     # --- plan plytek dla ramki porannej (A8) ---------------------------------------------------
     def plan_plytek(self, sesja_pieca_id: int | None = None, kolejnosc: str = "liczba") -> dict:
@@ -666,26 +998,33 @@ class SesjaRano:
         ``kuweta`` tylko dla pracy rozpoznanej z kuweta zgodna z protokolem), lista kuwet w kolejnosci ``kolejnosc``
         ("liczba" - od najliczniejszej, "numer" - wg numeru), ``braki`` (kuwety zlecen niekompletnych tego pieca).
 
-        To NIE jest gotowa tresc ``PUT /plan``: ``indicate`` dodaje ``px`` z kalibracji (``ramka.kalibracja.gniazda_planu`` z ukladem
-        z ``uklady``), ``protokol``, ``wersja``, ``start_id``, ``zdarzenia_do``, ``wazny_s``, ``potwierdzone``, ``wybrane`` i pomija
-        pola pomocnicze (``sesja_pieca_id``, ``uklady``, ``skany``, ``liczba_prac``, ``pominiete``). Plytka = najnowszy aktywny skan
-        o danym numerze; skan bez numeru, praca poza gniazdem i skany nieaktywne nie ida do planu (``pominiete``)."""
+        Do planu idzie tylko plytka, ktora ramka przyjmie: aktywny, niepominiety skan kwadratowej plytki porannej o numerze 4-6,
+        numer jedyny w piecu (dwa skany z tym samym numerem = ``pominiete.zdublowane_plytki``, plytka bez obrazu). Reszta trafia do
+        ``pominiete`` (``bez_numeru``, ``zdublowane_plytki``, ``poza_ramka``, ``poza_gniazdem``). To NIE jest gotowa tresc
+        ``PUT /plan``: ``indicate`` dodaje ``px`` z kalibracji (uklad z ``uklady``), ``protokol``, ``wersja``, ``start_id``,
+        ``zdarzenia_do``, ``wazny_s``, ``potwierdzone``, ``wybrane`` i pomija pola pomocnicze."""
         if kolejnosc not in KOLEJNOSCI:
             raise SE.BladSesji(f"nieznana kolejnosc kuwet {kolejnosc!r} (znane: {', '.join(KOLEJNOSCI)})")
         piec = self._piec_po_id(sesja_pieca_id)
         stan = self.stan_pieca(piec["id"])
         po_numerze: dict[int, list[dict]] = {}
-        bez_numeru = []
+        bez_numeru, poza_ramka = [], []
         for s in stan["skany"]:
             if not s["aktywny"]:
                 continue
             if s["numer_plytki"] is None:
                 bez_numeru.append(s["id"])
+            elif not s["na_ramce"]:
+                poza_ramka.append(s["id"])
             else:
                 po_numerze.setdefault(s["numer_plytki"], []).append(s)
+        zdublowane = sorted(set(stan["zdublowane_plytki"]))
+        kolor_dwie, kolor_sprawdz = kolory_statusu(STATUS_DWIE_PRACE)[1], kolory_statusu(STATUS_SPRAWDZ)[1]
         plytki, uklady, skany, liczba, na_plytkach, poza = {}, {}, {}, {}, {}, 0
         for n in sorted(po_numerze):
-            s = max(po_numerze[n], key=lambda x: x["id"])
+            if n in zdublowane or len(po_numerze[n]) > 1:
+                continue
+            s = po_numerze[n][0]
             gniazda: dict[int, list[dict]] = {}
             for p in s["prace"]:
                 if p["gniazdo"] is None:
@@ -695,7 +1034,7 @@ class SesjaRano:
             lista = []
             for gid in sorted(gniazda):
                 if len(gniazda[gid]) > 1:  # dwie prace w gniezdzie (skan do powtorzenia): bez kuwety
-                    lista.append({"id": gid, "kolor": KOLOR_RAMKI_DWIE_PRACE})
+                    lista.append({"id": gid, "kolor": kolor_dwie})
                     continue
                 p = gniazda[gid][0]
                 g = {"id": gid, "kolor": p["kolor_ramki"]}
@@ -705,7 +1044,7 @@ class SesjaRano:
                         liczba[p["kuweta"]] = liczba.get(p["kuweta"], 0) + 1
                         na_plytkach.setdefault(p["kuweta"], set()).add(n)
                     else:  # kuweta niejednoznaczna albo pusta: ramka swieci "sprawdz", numer pokazuje ekran
-                        g["kolor"] = KOLOR_RAMKI_SPRAWDZ
+                        g["kolor"] = kolor_sprawdz
                 lista.append(g)
             plytki[str(n)] = {"gniazda": lista}
             uklady[str(n)] = s["uklad"]
@@ -718,4 +1057,4 @@ class SesjaRano:
         return {"plan_id": plan_id(piec), "tryb": SE.TRYB_RANO, "sesja_pieca_id": piec["id"], "plytki": plytki,
                 "kuwety": [{"kuweta": k, "plytki": sorted(na_plytkach[k])} for k in porzadek], "braki": braki[:MAX_BRAKOW_PLANU],
                 "uklady": uklady, "skany": skany, "liczba_prac": {k: liczba[k] for k in porzadek},
-                "pominiete": {"bez_numeru": bez_numeru, "poza_gniazdem": poza, "zdublowane_plytki": stan["zdublowane_plytki"]}}
+                "pominiete": {"bez_numeru": bez_numeru, "poza_gniazdem": poza, "zdublowane_plytki": zdublowane, "poza_ramka": poza_ramka}}
