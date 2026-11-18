@@ -10,8 +10,10 @@ ponowny skan plytki 9 (te same prace, dwie zamienione gniazdami) -> panel pytani
 o decyzjach; otwarta czerwona praca (przyciski decyzji). Sprawdzane przy kazdym rozmiarze: wszystko z
 ``test_ui_wieczor.sprawdz_uklad`` (napisy i przyciski w oknie i w rodzicu, napisy nieuciete - ``sizeHint`` <= rozmiar,
 klikalne elementy nie na sobie, mapa w oknie i nie mniejsza niz minimum) oraz: zadna widoczna kontrolka poza oknem (poza
-zawartoscia list przewijanych), przyciski decyzji, przyciski pytania i mapa widoczne w calosci (bez przewijania), zaden
-widoczny pasek przewijania poziomego.
+zawartoscia list przewijanych), przyciski decyzji, przyciski pytania i mapa widoczne w calosci (bez przewijania), panel
+pytania z ostrzezeniem o decyzjach w calosci (bez pionowego paska przewijania obszaru paneli - po zmniejszeniu okna z 1536 x 784
+do 1280 x 720 obszar zostawal przyciety: pasek przewijania zwezal panel, tekst zawijal sie w dodatkowy wiersz, a wysokosc
+obszaru byla liczona dla pelnej szerokosci), zaden widoczny pasek przewijania poziomego.
 
 Zrzuty: zmienna ``E3_ZRZUTY`` = katalog, do ktorego test zapisuje PNG kazdego rozmiaru (``wieczor_<nazwa>_<w>x<h>_dpr<m>.png``,
 obraz w pikselach ekranu).
@@ -126,6 +128,13 @@ def usterki_rozdzielczosci(e, rozmiar: tuple) -> list:
             usterki.append(f"przyciety (zasloniety albo do przewiniecia) {nazwa}: widac {UW._widoczny_wycinek(okno, w)} z {UW._w_oknie(okno, w)}")
     if UW._widoczny_wycinek(okno, okno.mapa) != UW._w_oknie(okno, okno.mapa):
         usterki.append(f"mapa przycieta: {UW._widoczny_wycinek(okno, okno.mapa)} z {UW._w_oknie(okno, okno.mapa)}")
+    # panel pytania pokazanej plytki (pierwszy panel obszaru "uwagi") w calosci, z ostrzezeniem o decyzjach - bez przewijania
+    for nazwa in ("pytanie_ponowny_skan", "pytanie_ostrzezenie"):
+        w = e.w(nazwa)
+        if not w.isVisibleTo(okno) or UW._widoczny_wycinek(okno, w) != UW._w_oknie(okno, w):
+            usterki.append(f"panel pytania do przewiniecia: {nazwa} widac {UW._widoczny_wycinek(okno, w)} z {UW._w_oknie(okno, w)}")
+    if okno.uwagi.verticalScrollBar().isVisibleTo(okno) and len(okno.uwagi.panele()) == 1:
+        usterki.append("pasek przewijania pionowego przy jednym panelu pytania")
     return usterki
 
 
