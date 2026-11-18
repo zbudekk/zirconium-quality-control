@@ -124,7 +124,8 @@ def test_pula_z_wpisow_geometrie_klucze_i_liczniki(stl, tmp_path):
     sha0 = synth.skrot_pliku(p0)
     klucze = [k for k in pula.lekkie if k.startswith(sha0)]
     assert sorted(klucze) == [f"{sha0}@1.2", f"{sha0}@1.25"]  # ten sam STL z dwoma wspolczynnikami = dwa klucze
-    assert sorted(w["frezowanie_id"] for w in pula.wpisy_geometrii[f"{sha0}@1.2"]) == [1, 901]  # ta sama geometria, dwa wpisy
+    fid0 = next(w.frezowanie_id for w in wp if w.projekt_id == pid0 and w.wspolczynnik == 1.20)
+    assert sorted(w["frezowanie_id"] for w in pula.wpisy_geometrii[f"{sha0}@1.2"]) == [fid0, 901]  # ta sama geometria, dwa wpisy
     for kl, lk in pula.lekkie.items():
         assert lk.id == kl.split("@")[0] and lk.wspolczynnik in KRAZKI
     opis = json.dumps(pula.opis())

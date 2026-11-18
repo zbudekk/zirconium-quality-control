@@ -23,9 +23,18 @@ POZA pasem brzegu (`korekta_skali_pas_brzegu_mm`; strefa przy krawędzi brzegu n
 pokrycie i transformacja liczone w skali skorygowanej. Transformacja kandydata po korekcie jest podobieństwem.
 
 Progi w ``ustawienia.toml`` [match]; nic nie jest strojone w kodzie.
+
+Pula per praca (E3-A5, ``Pula.z_wpisow``): wpis puli = projekt STL x wspolczynnik swojego krazka (+ krazek, frezowanie_id,
+projekt_id); ten sam STL z dwoma wspolczynnikami = dwie geometrie, wynik wskazuje wpis. Lekka czesc kazdej geometrii (cechy
+filtra z profilem glebokosci, chmura 0,3 mm do rankingu wstepnego) jest w pamieci procesu i na dysku (``pamiec_puli``);
+pelny ``Projekt`` (siatka, FPFH, scena promieni) powstaje tylko dla kandydatow, ktorzy przeszli filtr i ranking wstepny
+(``ocena_wstepna``: przeglad obrotow + krotkie ICP punkt-plaszczyzna na ok. 300 punktach). Pula z folderu (dotychczasowe
+wywolanie) dziala bez zmian - bez rankingu wstepnego.
 """
 from __future__ import annotations
 
+import collections.abc
+import dataclasses
 import math
 import time
 import warnings
@@ -35,7 +44,7 @@ from pathlib import Path
 import numpy as np
 import open3d as o3d
 import trimesh
-from scipy.spatial import cKDTree
+from scipy.spatial import ConvexHull, QhullError, cKDTree
 
 from . import katalog as K
 from . import synth as S
@@ -64,6 +73,21 @@ SKALA_KANDYDATOW = 2  # najwyżej tylu kandydatów dostaje korektę skali (drugi
 SKALA_REMIS = 0.5  # drugi kandydat dostaje korektę, gdy jego pokrycie ≥ tyle × pokrycie pierwszego (ranking niepewny przy błędzie współczynnika)
 SKALA_SPADEK_POKRYCIA = 0.02  # korekta, po której pokrycie spada o więcej niż tyle, nie jest stosowana
 SKALA_DOKLADNOSC_PROC = 0.05  # dokładność estymaty skali (cel z testów T7, zmierzona: raport części A); poprawka do okno + tyle jest jeszcze stosowana
+# pula per praca (E3-A5): ranking wstepny i wybor wpisu wsrod wariantow tego samego STL (parametry robocze, nie progi [match])
+WSTEPNY_PELNYCH = 4  # najwyzej tylu kandydatow po filtrze dostaje pelne dopasowanie (FPFH + RANSAC + ICP) w jednej turze
+WSTEPNY_MARGINES = 0.15  # do pelnego dopasowania ida kandydaci z oceną wstepna >= najlepsza - tyle (i najwyzej WSTEPNY_PELNYCH)
+WSTEPNY_TUR = 3  # gdy najlepszy po pelnym dopasowaniu ma pokrycie < prog_ostrzezenia_pokrycie: kolejna tura (nastepni z rankingu), najwyzej tyle tur
+WSTEPNY_PUNKTOW = 300  # punkty fragmentu do oceny wstepnej (z chmury 0,5 mm, wybor staly)
+WSTEPNY_VOXEL_PROJEKTU = 0.3  # mm: chmura projektu do oceny wstepnej (punkty + normalne; czesc lekka, na dysku)
+WSTEPNY_OBROTOW = 8  # hipotezy obrotu wokol z (co 45 st., jak zgrubne_obroty); KAZDA dostaje krotkie ICP (przeglad bez ICP mylil obrot - pomiar E3-A5)
+WSTEPNY_PUNKTOW_PRZEGLADU = 100  # punkty fragmentu w ICP wszystkich hipotez (co 3. z WSTEPNY_PUNKTOW)
+WSTEPNY_ICP_PRZEGLADU = (1.0, 1.0, 0.6, 0.4)  # mm: odrzucanie par w krokach ICP wszystkich hipotez
+WSTEPNY_OBROTOW_ICP = 2  # najlepsze hipotezy po przegladzie: dalsze ICP na WSTEPNY_PUNKTOW punktach
+WSTEPNY_ICP_ODL = (0.6, 0.4, 0.25, 0.25, 0.25)  # mm: odrzucanie par w krokach dalszego ICP
+WSTEPNY_ODL_SASIADA = 0.35  # mm: punkt liczy sie do oceny, gdy najblizszy punkt chmury projektu jest blizej niz tyle ...
+WSTEPNY_PROG_MM = 0.1  # mm: ... i odleglosc od plaszczyzny stycznej projektu jest nie wieksza niz tyle
+WARIANT_REMIS_POKRYCIA = 0.02  # warianty tego samego STL o pokryciach blizej niz tyle: rozstrzyga estymata skali (albo sa nierozroznialne)
+UWAGA_RATUNEK = "żaden projekt nie przeszedł filtru wymiarów — dopasowano wszystkie"
 
 
 @dataclass
@@ -102,6 +126,20 @@ class Kandydat:
     filtr_ok: bool = True
     powod_filtru: str = ""
     skala: KorektaSkali | None = None  # korekta skali ze skanu (tylko kandydaci, dla których ją liczono)
+    # E3-A5 (pula per praca): ``klucz`` = klucz geometrii w ``Pula.projekty`` (pula z folderu: = id); ``wspolczynnik`` geometrii;
+    # ``wpisy`` = wpisy puli zgodne z wynikiem ({frezowanie_id, projekt_id, krazek, wspolczynnik}); ``frezowanie_id``, ``projekt_id``
+    # i ``krazek`` tylko, gdy wszystkie wpisy z ``wpisy`` maja te sama wartosc (inaczej None - program nie zgaduje krazka ani zlecenia)
+    klucz: str = ""
+    wspolczynnik: float | None = None
+    krazek: str | None = None
+    frezowanie_id: int | None = None
+    projekt_id: int | None = None
+    wpisy: list = field(default_factory=list)
+    pokrycie_wstepne: float | None = None  # ocena wstepna (pula per praca, gdy liczona); ``metoda = wstepny`` = bez pelnego dopasowania
+
+    def __post_init__(self) -> None:
+        if not self.klucz:
+            self.klucz = self.id
 
 
 @dataclass
@@ -171,11 +209,91 @@ class Projekt:
         self.chmura = _chmura(pts, m2.face_normals[fid])
         self.chmura_fpfh, self.fpfh = _fpfh(self.chmura, VOXEL_FPFH)
         self.chmura_zgrubna = self.chmura.voxel_down_sample(VOXEL_ZGRUBNE)
+        self._zbuduj_scene()
+        self.drzewo = cKDTree(pts)
+        self._profil: dict[int, tuple[list[float], float]] = {}  # cechy projektu przyciętego do głębokości k·KROK_PROFILU (filtr)
+
+    def _zbuduj_scene(self) -> None:
+        m2 = self.siatka
         mo = o3d.t.geometry.TriangleMesh(o3d.core.Tensor(np.asarray(m2.vertices, dtype=np.float32)), o3d.core.Tensor(np.asarray(m2.faces, dtype=np.int32)))
         self.scena = o3d.t.geometry.RaycastingScene()
         self.scena.add_triangles(mo)
-        self.drzewo = cKDTree(pts)
-        self._profil: dict[int, tuple[list[float], float]] = {}  # cechy projektu przyciętego do głębokości k·KROK_PROFILU (filtr)
+
+    # --- pamiec podreczna (E3-A5): zapis i odtworzenie bez wczytywania pliku STL ---------------------------------------
+    def do_tablic(self) -> tuple[dict, dict]:
+        """(tablice, opis) - wszystko, z czego ``z_tablic`` odtwarza ten sam projekt bez pliku STL (bez sciezki i nazwy pliku)."""
+        tab = {
+            "V": np.asarray(self.siatka.vertices, dtype=np.float64), "F": np.asarray(self.siatka.faces, dtype=np.int64),
+            "T0": np.asarray(self.T0, dtype=np.float64),
+            "pts": np.asarray(self.chmura.points), "nrm": np.asarray(self.chmura.normals),
+            "fpfh_pts": np.asarray(self.chmura_fpfh.points), "fpfh_nrm": np.asarray(self.chmura_fpfh.normals),
+            "fpfh": np.asarray(self.fpfh.data),
+        }
+        opis = {"id": self.id, "wspolczynnik": float(self.wspolczynnik), "obrys_xy": [float(v) for v in self.obrys_xy],
+                "wysokosc": float(self.wysokosc), "hull": float(self.hull), "cechy": dataclasses.asdict(self.cechy)}
+        return tab, opis
+
+    @classmethod
+    def z_tablic(cls, tab, opis: dict, plik: Path | None = None) -> Projekt:
+        """Projekt z tablic ``do_tablic`` (pamiec podreczna na dysku): te same punkty, cechy FPFH, siatka i transformacja."""
+        pr = cls.__new__(cls)
+        pr.plik = Path(plik) if plik is not None else None
+        pr.id = opis["id"]
+        pr.cechy = K.Projekt(**opis["cechy"])
+        pr.cechy.id = pr.id
+        pr.T0 = np.array(tab["T0"], dtype=np.float64)
+        pr.siatka = trimesh.Trimesh(np.array(tab["V"], dtype=np.float64), np.array(tab["F"], dtype=np.int64), process=False)
+        pr.wspolczynnik = float(opis["wspolczynnik"])
+        pr.obrys_xy = [float(v) for v in opis["obrys_xy"]]
+        pr.wysokosc = float(opis["wysokosc"])
+        pr.hull = float(opis["hull"])
+        pts = np.array(tab["pts"], dtype=np.float64)
+        pr.chmura = _chmura(pts, np.array(tab["nrm"], dtype=np.float64))
+        pr.chmura_fpfh = _chmura(np.array(tab["fpfh_pts"], dtype=np.float64), np.array(tab["fpfh_nrm"], dtype=np.float64))
+        f = o3d.pipelines.registration.Feature()
+        f.data = np.array(tab["fpfh"], dtype=np.float64)
+        pr.fpfh = f
+        pr.chmura_zgrubna = pr.chmura.voxel_down_sample(VOXEL_ZGRUBNE)
+        pr._zbuduj_scene()
+        pr.drzewo = cKDTree(pts)
+        pr._profil = {}
+        return pr
+
+    def lekki(self) -> ProjektLekki:
+        """Lekka czesc projektu (E3-A5): cechy filtra z profilem glebokosci dla kazdego kroku KROK_PROFILU (te same liczby co
+        ``cechy_do_glebokosci``) i chmura WSTEPNY_VOXEL_PROJEKTU z normalnymi do oceny wstepnej.
+
+        Profil liczony przyrostowo: otoczka czesci od brzegu do glebokosci k = otoczka (wierzcholki otoczki dla k - 1
+        + punkty nowej warstwy) - ta sama otoczka i ten sam obrys co z wszystkich punktow (objetosc z qhull wprost, bez
+        budowy siatki trimesh; roznica wzgledem ``cechy_do_glebokosci`` na poziomie bledu zaokraglen)."""
+        Q = np.asarray(self.chmura.points)
+        z = Q[:, 2]
+        profil = []
+        H = np.zeros((0, 3))
+        k = 1
+        while k * KROK_PROFILU < self.wysokosc:
+            dol = -k * KROK_PROFILU
+            nowe = Q[z >= dol] if k == 1 else Q[(z >= dol) & (z < -(k - 1) * KROK_PROFILU)]
+            P = np.vstack([H, nowe])
+            if int((z >= dol).sum()) < 4:
+                profil.append((0.0, 0.0, 0.0))
+                H = P
+            else:
+                _, boki = trimesh.bounds.oriented_bounds_2D(P[:, :2])
+                try:
+                    otoczka = ConvexHull(P)
+                    hull, H = float(otoczka.volume), P[otoczka.vertices]
+                except (QhullError, ValueError):  # punkty w jednej płaszczyźnie: otoczka bez objętości (jak cechy_do_glebokosci)
+                    hull, H = 0.0, P
+                a, b = sorted(float(v) for v in boki)
+                profil.append((a, b, hull))
+            k += 1
+        pc = self.chmura.voxel_down_sample(WSTEPNY_VOXEL_PROJEKTU)
+        N = np.asarray(pc.normals)
+        N = N / np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
+        return ProjektLekki(self.id, float(self.wspolczynnik), [float(v) for v in self.obrys_xy], float(self.wysokosc), float(self.hull),
+                            np.asarray(profil, dtype=np.float64).reshape(-1, 3), np.asarray(pc.points, dtype=np.float64), N,
+                            list(self.cechy.zeby), self.cechy.typ)
 
     def odleglosci(self, P: np.ndarray) -> np.ndarray:
         return self.scena.compute_distance(o3d.core.Tensor(np.ascontiguousarray(P, dtype=np.float32))).numpy()
@@ -205,10 +323,77 @@ class Projekt:
         return self._profil[k]
 
 
+class ProjektLekki:
+    """Lekka czesc projektu puli (E3-A5): cechy filtra wymiarow (obrys, wysokosc, otoczka i profil glebokosci) i chmura
+    WSTEPNY_VOXEL_PROJEKTU z normalnymi do oceny wstepnej - w ukladzie puli (projekt x wspolczynnik, brzeg na z = 0).
+    Wystarcza do ``filtr`` i ``ocena_wstepna``; pelny ``Projekt`` buduje ``pamiec_puli`` tylko dla kandydatow."""
+
+    __slots__ = ("id", "wspolczynnik", "obrys_xy", "wysokosc", "hull", "profil", "punkty", "normalne", "zeby", "typ", "klucz_pamieci", "zrodlo", "_drzewo")
+
+    def __init__(self, id: str, wspolczynnik: float, obrys_xy: list, wysokosc: float, hull: float, profil: np.ndarray, punkty: np.ndarray,
+                 normalne: np.ndarray, zeby: list | None = None, typ: str = ""):
+        self.id, self.wspolczynnik, self.obrys_xy, self.wysokosc, self.hull = id, wspolczynnik, obrys_xy, wysokosc, hull
+        self.profil, self.punkty, self.normalne = profil, punkty, normalne
+        self.zeby, self.typ = list(zeby or []), typ
+        self.klucz_pamieci = ""  # nazwa wpisu w pamieci podrecznej (pamiec_puli)
+        self.zrodlo: tuple | None = None  # (plik, orientacja) do zbudowania pelnego projektu - tylko w pamieci procesu (sciezka = dane osobowe)
+        self._drzewo = None
+
+    @property
+    def drzewo(self) -> cKDTree:
+        if self._drzewo is None:
+            self._drzewo = cKDTree(self.punkty)
+        return self._drzewo
+
+    def cechy_do_glebokosci(self, glebokosc: float) -> tuple[list[float], float]:
+        """Jak ``Projekt.cechy_do_glebokosci`` (z profilu policzonego raz dla kazdego kroku KROK_PROFILU)."""
+        k = max(1, math.ceil(glebokosc / KROK_PROFILU - 1e-9))
+        if k * KROK_PROFILU >= self.wysokosc or k > len(self.profil):
+            return self.obrys_xy, self.hull
+        a, b, h = self.profil[k - 1]
+        return [float(a), float(b)], float(h)
+
+
+def tekst_wspolczynnika(w: float) -> str:
+    """Wspolczynnik w kluczu geometrii puli: 6 miejsc po przecinku bez zer na koncu (1,2 -> "1.2", 1,2215 -> "1.2215")."""
+    return f"{round(float(w), 6):.6f}".rstrip("0").rstrip(".")
+
+
+def _pole(o, nazwa: str, domyslne=None):
+    """Pole wpisu puli: obiekt (``pula.Wpis``) albo slownik."""
+    if isinstance(o, dict):
+        return o.get(nazwa, domyslne)
+    return getattr(o, nazwa, domyslne)
+
+
+class _ProjektyPuli(collections.abc.Mapping):
+    """``Pula.projekty`` puli per praca: klucz geometrii -> pelny ``Projekt`` budowany przy pierwszym uzyciu (pamiec_puli)."""
+
+    def __init__(self, pula: Pula):
+        self._pula = pula
+
+    def __getitem__(self, klucz: str) -> Projekt:
+        return self._pula.pamiec.projekt(self._pula.lekkie[klucz])
+
+    def __iter__(self):
+        return iter(self._pula.lekkie)
+
+    def __len__(self) -> int:
+        return len(self._pula.lekkie)
+
+    def __contains__(self, klucz) -> bool:
+        return klucz in self._pula.lekkie
+
+
 class Pula:
     """Pula projektów. ``wspolczynnik`` — współczynnik skurczu wspólny dla puli; ``wspolczynniki`` (opcjonalnie)
     — współczynnik dla pojedynczych projektów: skrót projektu (``Projekt.id``) → współczynnik (np. z raportu MillBox
-    każdej pracy); projekt bez wpisu dostaje współczynnik wspólny."""
+    każdej pracy); projekt bez wpisu dostaje współczynnik wspólny.
+
+    Pula per praca (E3-A5): ``Pula.z_wpisow(wpisy, sciezki)`` - wpis = projekt x wspolczynnik krazka (``pula.Wpis`` z A4)."""
+
+    per_praca = False  # pula z wpisow (z_wpisow); pula z folderu: False
+    ranking_wstepny = False
 
     def __init__(self, foldery: list[Path] | Path, wspolczynnik: float, orientacja: str = "auto", wspolczynniki: dict[str, float] | None = None):
         foldery = [Path(f) for f in (foldery if isinstance(foldery, (list, tuple)) else [foldery])]
@@ -230,6 +415,91 @@ class Pula:
     def __len__(self) -> int:
         return len(self.projekty)
 
+    @classmethod
+    def z_wpisow(cls, wpisy, sciezki: dict | None = None, orientacja: str = "auto", pamiec=None, wspolczynnik_domyslny: float | None = None,
+                 ranking_wstepny: bool = True) -> Pula:
+        """Pula per praca z wpisow puli dnia (``pula.Wpis`` z A4 albo slowniki z tymi polami): ``sha16``, ``wspolczynnik``,
+        ``krazek``, ``frezowanie_id``, ``projekt_id``; plik STL z ``sciezki[projekt_id]`` (``KatalogPul.sciezki``) albo z pola
+        ``plik`` wpisu.
+
+        Geometria = (skrot ZAWARTOSCI pliku, wspolczynnik, orientacja): ten sam STL z dwoma wspolczynnikami = dwie geometrie
+        (klucz ``<sha16>@<wspolczynnik>``), ten sam STL z tym samym wspolczynnikiem w kilku wpisach (dwa krazki o tej samej
+        wartosci; rano ten sam plik w dwoch zleceniach) = jedna geometria z kilkoma wpisami (``wpisy_geometrii``). Klucz
+        geometrii to samo ``sha16``, gdy STL ma w puli jeden wspolczynnik. Wpis bez wspolczynnika (i bez
+        ``wspolczynnik_domyslny``), bez sciezki albo z plikiem, ktorego nie ma (folder usuniety - D17 recenzji A4), jest
+        pominiety z licznikiem, nie blad. Skrot liczony z biezacej zawartosci pliku: inny niz ``sha16`` wpisu = licznik
+        ``plik_zmieniony`` (geometria z biezacej zawartosci). ``pamiec`` = ``pamiec_puli.PamiecPuli`` (domyslnie bez dysku).
+        """
+        from . import pamiec_puli as PP
+
+        t0 = time.time()
+        pula = cls.__new__(cls)
+        pula.per_praca = True
+        pula.ranking_wstepny = bool(ranking_wstepny)
+        pula.wspolczynnik = None
+        pula.orientacja = orientacja
+        pula.pamiec = pamiec if pamiec is not None else PP.PamiecPuli(None)
+        pula.lekkie: dict[str, ProjektLekki] = {}
+        pula.wpisy_geometrii: dict[str, list[dict]] = {}
+        pula.opisy: dict[str, tuple[list, str]] = {}  # klucz -> (zeby, typ) z nazwy pliku tego wpisu
+        lz = {"wpisow": 0, "geometrii": 0, "stl": 0, "bez_wspolczynnika": 0, "bez_sciezki": 0, "brak_pliku": 0, "plik_zmieniony": 0, "pominiete": 0,
+              "geometrie_z_kilkoma_wpisami": 0, "stl_z_kilkoma_wspolczynnikami": 0}
+        grupy: dict[tuple, dict] = {}
+        for w in wpisy:
+            lz["wpisow"] += 1
+            wsp = _pole(w, "wspolczynnik")
+            wsp = wspolczynnik_domyslny if wsp is None else wsp
+            if wsp is None:
+                lz["bez_wspolczynnika"] += 1
+                continue
+            pid = _pole(w, "projekt_id")
+            plik = sciezki.get(pid) if sciezki and pid in sciezki else (_pole(w, "plik") or _pole(w, "sciezka"))
+            if plik is None:
+                lz["bez_sciezki"] += 1
+                continue
+            plik = Path(plik)
+            if not plik.is_file():
+                lz["brak_pliku"] += 1
+                continue
+            try:
+                sha = pula.pamiec.skrot(plik)
+            except OSError:
+                lz["brak_pliku"] += 1
+                continue
+            if _pole(w, "sha16") and _pole(w, "sha16") != sha:
+                lz["plik_zmieniony"] += 1
+            znak = orientacja if orientacja != "auto" else ("e" if S.plik_exocad(plik.name) else "h")  # exocad: brzeg na dole z nazwy
+            g = grupy.setdefault((sha, round(float(wsp), 6), znak), {"plik": plik, "wpisy": []})
+            g["wpisy"].append({"frezowanie_id": _pole(w, "frezowanie_id"), "projekt_id": pid, "krazek": _pole(w, "krazek"), "wspolczynnik": round(float(wsp), 6)})
+        sha_ile = collections.Counter(k[0] for k in grupy)
+        sha_w_ile = collections.Counter(k[:2] for k in grupy)
+        for (sha, wsp, znak), g in grupy.items():
+            kl = sha if sha_ile[sha] == 1 else f"{sha}@{tekst_wspolczynnika(wsp)}" + (f"#{znak}" if sha_w_ile[(sha, wsp)] > 1 else "")
+            try:
+                lk = pula.pamiec.lekki(g["plik"], sha, wsp, orientacja)
+            except ValueError:  # plik nie do wczytania (pusty, NaN, zerowa powierzchnia) - jak Pula z folderu
+                lz["pominiete"] += len(g["wpisy"])
+                continue
+            pula.lekkie[kl] = lk
+            pula.wpisy_geometrii[kl] = g["wpisy"]
+            typ, zeby = K.typ_i_zeby_z_nazwy(g["plik"].name)
+            pula.opisy[kl] = (zeby, typ)
+            lz["geometrie_z_kilkoma_wpisami"] += len(g["wpisy"]) > 1
+        lz["geometrii"] = len(pula.lekkie)
+        lz["stl"] = len({lk.id for lk in pula.lekkie.values()})
+        lz["stl_z_kilkoma_wspolczynnikami"] = sum(1 for n in collections.Counter(lk.id for lk in pula.lekkie.values()).values() if n > 1)
+        pula.liczniki = lz
+        pula.pominiete = lz["pominiete"]
+        pula.projekty = _ProjektyPuli(pula)
+        pula.czas_s = round(time.time() - t0, 2)
+        return pula
+
+    def opis(self) -> dict:
+        """Liczby puli per praca do wyniku i na ekran (bez nazw plikow i sciezek)."""
+        if not self.per_praca:
+            return {"per_praca": False, "projekty": len(self), "wspolczynnik": self.wspolczynnik, "czas_s": self.czas_s}
+        return {"per_praca": True, **self.liczniki, "czas_s": self.czas_s, "pamiec": dict(self.pamiec.statystyka)}
+
 
 # ----------------------------------------------------------------------------
 # fragment
@@ -246,6 +516,7 @@ class FragmentDoDopasowania:
     chmura_fpfh: o3d.geometry.PointCloud
     fpfh: o3d.pipelines.registration.Feature
     chmura_zgrubna: o3d.geometry.PointCloud
+    wstepne: np.ndarray | None = None  # punkty do oceny wstepnej (pula per praca), wzgledem srodka c; liczone przy pierwszym uzyciu
 
     @classmethod
     def z_punktow(cls, P: np.ndarray, N: np.ndarray) -> FragmentDoDopasowania:
@@ -362,7 +633,7 @@ def zgrubne_obroty(fr: FragmentDoDopasowania, pr: Projekt, odl_max: float, krok_
 def dopasuj_pare(fr: FragmentDoDopasowania, pr: Projekt, ust: dict, seed: int = 0) -> Kandydat:
     m = ust["match"]
     odl_max = m["odleglosc_max_mm"]
-    k = Kandydat(id=pr.id, zeby=pr.cechy.zeby, typ=pr.cechy.typ)
+    k = Kandydat(id=pr.id, zeby=pr.cechy.zeby, typ=pr.cechy.typ, wspolczynnik=pr.wspolczynnik)
     ok, powod = filtr(fr, pr, ust)
     if not ok:
         k.filtr_ok, k.powod_filtru, k.metoda = False, powod, "filtr"
@@ -385,6 +656,87 @@ def dopasuj_pare(fr: FragmentDoDopasowania, pr: Projekt, ust: dict, seed: int = 
     # T: fragment (płytka) → pula; projekt (× w) → płytka = T⁻¹ · T0_projektu
     k.transformacja = (np.linalg.inv(T) @ pr.T0).tolist()
     return k
+
+
+# ----------------------------------------------------------------------------
+# ranking wstepny (pula per praca, E3-A5)
+# ----------------------------------------------------------------------------
+def _punkty_wstepne(fr: FragmentDoDopasowania) -> np.ndarray:
+    """Najwyzej WSTEPNY_PUNKTOW punktow chmury 0,5 mm fragmentu (wybor staly), wzgledem srodka c (jak przeglad obrotow)."""
+    if fr.wstepne is None:
+        X = np.asarray(fr.chmura_zgrubna.points, dtype=np.float64)
+        if len(X) > WSTEPNY_PUNKTOW:
+            X = X[np.sort(np.random.default_rng(0).choice(len(X), WSTEPNY_PUNKTOW, replace=False))]
+        fr.wstepne = X - fr.c
+    return fr.wstepne
+
+
+def _obrot_z(a: float) -> np.ndarray:
+    c, s = math.cos(a), math.sin(a)
+    return np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
+
+
+def _obroty_z_wektorow(W: np.ndarray) -> np.ndarray:
+    """Macierze obrotu (K, 3, 3) z wektorow obrotu (K, 3) - wzor Rodriguesa, wsadowo."""
+    th = np.linalg.norm(W, axis=1)
+    k = W / np.maximum(th, 1e-12)[:, None]
+    Kx = np.zeros((len(W), 3, 3))
+    Kx[:, 0, 1], Kx[:, 0, 2], Kx[:, 1, 0], Kx[:, 1, 2], Kx[:, 2, 0], Kx[:, 2, 1] = -k[:, 2], k[:, 1], k[:, 2], -k[:, 0], -k[:, 1], k[:, 0]
+    s, c = np.sin(th)[:, None, None], (1 - np.cos(th))[:, None, None]
+    return np.eye(3)[None] + s * Kx + c * (Kx @ Kx)
+
+
+def _icp_wstepne(X: np.ndarray, R: np.ndarray, t: np.ndarray, lk: ProjektLekki, odleglosci) -> tuple[np.ndarray, np.ndarray]:
+    """Krotkie ICP punkt-plaszczyzna (Gauss-Newton, 6 parametrow) WSADOWO dla K hipotez (R: K x 3 x 3, t: K x 3) do chmury
+    lekkiej projektu; w kroku j pary dalsze niz ``odleglosci[j]`` odrzucane; hipoteza z < 12 parami stoi w miejscu."""
+    drzewo, Q, Nq = lk.drzewo, lk.punkty, lk.normalne
+    K, n = len(R), len(X)
+    for odl in odleglosci:
+        Y = np.einsum("kij,nj->kni", R, X) + t[:, None, :]
+        d, i = drzewo.query(Y.reshape(-1, 3), distance_upper_bound=odl)
+        w = np.isfinite(d).reshape(K, n)
+        i = np.where(np.isfinite(d), i, 0).reshape(K, n)
+        nq = Nq[i]
+        r = np.einsum("kni,kni->kn", Y - Q[i], nq) * w
+        J = np.concatenate([np.cross(Y, nq), nq], axis=2) * w[..., None]
+        A = np.einsum("kni,knj->kij", J, J) + 1e-9 * np.eye(6)[None]
+        dx = np.linalg.solve(A, -np.einsum("kni,kn->ki", J, r)[..., None])[..., 0]
+        dx[w.sum(axis=1) < 12] = 0.0
+        dR = _obroty_z_wektorow(dx[:, :3])
+        R, t = dR @ R, np.einsum("kij,kj->ki", dR, t) + dx[:, 3:]
+    return R, t
+
+
+def _wynik_wstepny(X: np.ndarray, R: np.ndarray, t: np.ndarray, lk: ProjektLekki) -> np.ndarray:
+    """Dla K hipotez: udzial punktow X z punktem projektu blizej niz WSTEPNY_ODL_SASIADA i odlegloscia od plaszczyzny
+    stycznej projektu najwyzej WSTEPNY_PROG_MM."""
+    K, n = len(R), len(X)
+    Y = np.einsum("kij,nj->kni", R, X) + t[:, None, :]
+    d, i = lk.drzewo.query(Y.reshape(-1, 3), distance_upper_bound=WSTEPNY_ODL_SASIADA)
+    w = np.isfinite(d).reshape(K, n)
+    i = np.where(np.isfinite(d), i, 0).reshape(K, n)
+    r = np.abs(np.einsum("kni,kni->kn", Y - lk.punkty[i], lk.normalne[i]))
+    return ((r <= WSTEPNY_PROG_MM) & w).mean(axis=1)
+
+
+def ocena_wstepna(fr: FragmentDoDopasowania, lk: ProjektLekki) -> float:
+    """Szybka ocena pary fragment-projekt (kilka ms) do rankingu przed pelnym dopasowaniem w puli per praca.
+
+    Srodki na siebie (jak ``zgrubne_obroty``: xy srodek obrysu, z brzeg), WSTEPNY_OBROTOW hipotez obrotu wokol z, kazda
+    z krotkim ICP punkt-plaszczyzna na WSTEPNY_PUNKTOW_PRZEGLADU punktach (wsadowo), dalsze ICP dla WSTEPNY_OBROTOW_ICP
+    najlepszych na WSTEPNY_PUNKTOW punktach; wynik = najlepszy udzial punktow fragmentu, ktore maja punkt projektu blizej
+    niz WSTEPNY_ODL_SASIADA i leza najwyzej WSTEPNY_PROG_MM od jego plaszczyzny stycznej (0-1). Tylko do kolejnosci
+    kandydatow - o wyniku dopasowania decyduje pelne ``dopasuj_pare`` (pokrycie przy odleglosc_max_mm)."""
+    X = _punkty_wstepne(fr)
+    if len(X) < 12 or len(lk.punkty) < 12:
+        return 0.0
+    Xp = X[:: max(1, len(X) // WSTEPNY_PUNKTOW_PRZEGLADU)]
+    R = np.stack([_obrot_z(2 * math.pi * j / WSTEPNY_OBROTOW) for j in range(WSTEPNY_OBROTOW)])
+    t = np.zeros((WSTEPNY_OBROTOW, 3))
+    R, t = _icp_wstepne(Xp, R, t, lk, WSTEPNY_ICP_PRZEGLADU)
+    naj = np.argsort(-_wynik_wstepny(Xp, R, t, lk), kind="stable")[:WSTEPNY_OBROTOW_ICP]
+    R, t = _icp_wstepne(X, R[naj], t[naj], lk, WSTEPNY_ICP_ODL)
+    return float(_wynik_wstepny(X, R, t, lk).max())
 
 
 # ----------------------------------------------------------------------------
@@ -564,6 +916,114 @@ def koryguj_skale(P: np.ndarray, fr: FragmentDoDopasowania, k: Kandydat, pr: Pro
     kor.czas_s = round(time.time() - t0, 3)
 
 
+# ----------------------------------------------------------------------------
+# pula per praca (E3-A5): kandydaci z wpisow, ranking wstepny, wybor wpisu
+# ----------------------------------------------------------------------------
+def _wpisy_kandydata(k: Kandydat, wpisy: list[dict]) -> None:
+    """``k.wpisy`` = wpisy zgodne z wynikiem; ``frezowanie_id`` / ``projekt_id`` / ``krazek`` tylko, gdy wszystkie wpisy sie zgadzaja."""
+    k.wpisy = [dict(w) for w in wpisy]
+    for pole in ("frezowanie_id", "projekt_id", "krazek"):
+        wart = {w.get(pole) for w in k.wpisy}
+        setattr(k, pole, next(iter(wart)) if len(wart) == 1 else None)
+
+
+def _kandydat_puli(pula: Pula, kl: str, k: Kandydat | None = None, **pola) -> Kandydat:
+    lk = pula.lekkie[kl]
+    zeby, typ = pula.opisy.get(kl, (lk.zeby, lk.typ))
+    if k is None:
+        k = Kandydat(id=lk.id, zeby=list(zeby), typ=typ, **pola)
+    else:
+        k.zeby, k.typ = list(zeby), typ
+    k.klucz, k.wspolczynnik = kl, lk.wspolczynnik
+    _wpisy_kandydata(k, pula.wpisy_geometrii.get(kl, []))
+    return k
+
+
+def _pelne_dopasowanie(fr: FragmentDoDopasowania, pula: Pula, kl: str, ust: dict, seed: int, uwagi: list[str]) -> Kandydat:
+    try:
+        pr = pula.projekty[kl]
+    except (ValueError, OSError) as e:  # plik zmieniony albo usuniety po zbudowaniu puli (i brak w pamieci na dysku)
+        uwagi.append(f"projekt {pula.lekkie[kl].id} pominiety: nie da sie go wczytac ({type(e).__name__})")
+        return _kandydat_puli(pula, kl, metoda="blad")
+    return _kandydat_puli(pula, kl, k=dopasuj_pare(fr, pr, ust, seed))
+
+
+def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed: int, uwagi: list[str]) -> list[Kandydat]:
+    """Filtr wymiarow na czesci lekkiej kazdej geometrii; gdy po filtrze zostaje wiecej niz WSTEPNY_PELNYCH - ranking
+    wstepny (``ocena_wstepna``) i pelne dopasowanie tylko najlepszych (ocena >= najlepsza - WSTEPNY_MARGINES, najwyzej
+    WSTEPNY_PELNYCH); gdy najlepszy z nich ma pokrycie < prog_ostrzezenia_pokrycie - kolejna tura z rankingu (najwyzej
+    WSTEPNY_TUR tur). Pozostali: ``metoda = wstepny``, pokrycie 0 (jak odrzuceni filtrem). Ratunek (nikt nie przeszedl
+    filtru) idzie ta sama droga po calej puli."""
+    m = ust["match"]
+    lekkie = pula.lekkie
+    wyn_filtru = {kl: filtr(fr, lk, ust) for kl, lk in lekkie.items()}
+    zbior = [kl for kl, (ok, _) in wyn_filtru.items() if ok]
+    ust_pary = ust
+    if not zbior:
+        uwagi.append(UWAGA_RATUNEK)
+        zbior = list(lekkie)
+        ust_pary = {**ust, "match": {**m, "filtr_wymiar_mm": 1e9, "filtr_objetosc_udzial": 1e9}}
+    w_zbiorze = set(zbior)
+    kandydaci = {kl: _kandydat_puli(pula, kl, filtr_ok=False, powod_filtru=powod, metoda="filtr")
+                 for kl, (_, powod) in wyn_filtru.items() if kl not in w_zbiorze}
+    wstepne: dict[str, float] = {}
+    if pula.ranking_wstepny and len(zbior) > WSTEPNY_PELNYCH:
+        wstepne = {kl: ocena_wstepna(fr, lekkie[kl]) for kl in zbior}
+        kolejka = sorted(zbior, key=lambda kl: (-wstepne[kl], kl))
+        tura = [kl for kl in kolejka[:WSTEPNY_PELNYCH] if wstepne[kl] >= wstepne[kolejka[0]] - WSTEPNY_MARGINES]
+    else:
+        kolejka, tura = list(zbior), list(zbior)
+    w_turze = set(tura)
+    reszta = [kl for kl in kolejka if kl not in w_turze]
+    for nr in range(1, WSTEPNY_TUR + 1):
+        for kl in tura:
+            kandydaci[kl] = _pelne_dopasowanie(fr, pula, kl, ust_pary, seed, uwagi)
+        najl = max((kandydaci[kl].pokrycie for kl in zbior if kl in kandydaci), default=0.0)
+        if najl >= m["prog_ostrzezenia_pokrycie"] or not reszta or nr == WSTEPNY_TUR:
+            break
+        tura, reszta = reszta[:WSTEPNY_PELNYCH], reszta[WSTEPNY_PELNYCH:]
+    for kl in reszta:
+        kandydaci[kl] = _kandydat_puli(pula, kl, metoda="wstepny")
+    for kl, w in wstepne.items():
+        kandydaci[kl].pokrycie_wstepne = round(w, 4)
+    return [kandydaci[kl] for kl in lekkie if kl in kandydaci]
+
+
+def _wybierz_wariant(P: np.ndarray, fr: FragmentDoDopasowania, kandydaci: list[Kandydat], pula: Pula, m: dict, bez_korekty: str,
+                     uwagi: list[str]) -> None:
+    """Ten sam STL w puli z kilkoma wspolczynnikami (krazkami): wpis = wariant o wspolczynniku najblizszym estymacie ze skanu
+    (``KorektaSkali.wspolczynnik_ze_skanu``), o ile jego pokrycie nie jest nizsze niz najlepszego o wiecej niz
+    WARIANT_REMIS_POKRYCIA. Warianty blizej siebie niz dokladnosc estymaty (SKALA_DOKLADNOSC_PROC) albo - bez estymaty -
+    o pokryciach blizej niz WARIANT_REMIS_POKRYCIA sa nierozroznialne: ich wpisy ida razem do ``wpisy`` najlepszego
+    kandydata, a ``frezowanie_id`` / ``krazek`` zostaja puste (program nie zgaduje)."""
+    k1 = kandydaci[0]
+    if k1.transformacja is None:
+        return
+    grupa = [k for k in kandydaci if k.id == k1.id and k.transformacja is not None]
+    najl, rowne = k1, []
+    if len(grupa) > 1:
+        est = next((k.skala.wspolczynnik_ze_skanu for k in grupa
+                    if k.skala is not None and k.skala.wspolczynnik_ze_skanu is not None and not k.skala.niepewna), None)
+        if est is not None:
+            odl = {k.klucz: abs(est / k.wspolczynnik - 1.0) * 100.0 for k in grupa}
+            grupa.sort(key=lambda k: (odl[k.klucz], -k.pokrycie))
+            if grupa[0] is not k1:
+                if grupa[0].skala is None:
+                    koryguj_skale(P, fr, grupa[0], pula.projekty[grupa[0].klucz], m, bez_korekty)
+                if grupa[0].pokrycie >= k1.pokrycie - WARIANT_REMIS_POKRYCIA:
+                    najl = grupa[0]
+                    kandydaci.remove(najl)
+                    kandydaci.insert(0, najl)
+            rowne = [k for k in grupa if k is not najl and abs(odl[k.klucz] - odl[najl.klucz]) < SKALA_DOKLADNOSC_PROC]
+        else:
+            rowne = [k for k in grupa if k is not k1 and k.pokrycie >= k1.pokrycie - WARIANT_REMIS_POKRYCIA]
+    if rowne:
+        _wpisy_kandydata(najl, najl.wpisy + [w for k in rowne for w in k.wpisy])
+        uwagi.append(f"ten sam projekt w puli z {len(rowne) + 1} wspolczynnikami blizszymi niz dokladnosc estymaty skali - wpisu (krazka) nie rozstrzygnieto")
+    elif len(najl.wpisy) > 1:
+        uwagi.append(f"ten sam projekt w {len(najl.wpisy)} wpisach puli o tym samym wspolczynniku - krazek albo zlecenie do wskazania")
+
+
 def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | None = None, seed: int = 0, bez_korekty: str = "") -> WynikDopasowania:
     """Ranking projektów z puli dla fragmentu (punkty + normalne w układzie płytki).
 
@@ -576,27 +1036,36 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
     if len(P) < 50 or len(pula) == 0:
         return WynikDopasowania(gniazdo, [], 0.0, "szary", 0.0, int(len(P)), ["za mało punktów" if len(P) < 50 else "pusta pula"])
     fr = FragmentDoDopasowania.z_punktow(P, N)
-    kandydaci = [dopasuj_pare(fr, pr, ust, seed) for pr in pula.projekty.values()]
-    if not any(k.filtr_ok for k in kandydaci):
-        uwagi.append("żaden projekt nie przeszedł filtru wymiarów — dopasowano wszystkie")
-        for k, pr in zip(kandydaci, pula.projekty.values()):
-            k.filtr_ok = True
-            kk = dopasuj_pare(fr, pr, {**ust, "match": {**m, "filtr_wymiar_mm": 1e9, "filtr_objetosc_udzial": 1e9}}, seed)
-            k.pokrycie, k.rms_mm, k.pokrycie_odwrotne, k.transformacja, k.metoda = kk.pokrycie, kk.rms_mm, kk.pokrycie_odwrotne, kk.transformacja, kk.metoda
+    per_praca = getattr(pula, "per_praca", False)
+    if per_praca:
+        kandydaci = _kandydaci_per_praca(fr, pula, ust, seed, uwagi)
+    else:
+        kandydaci = [dopasuj_pare(fr, pr, ust, seed) for pr in pula.projekty.values()]
+        if not any(k.filtr_ok for k in kandydaci):
+            uwagi.append(UWAGA_RATUNEK)
+            for k, pr in zip(kandydaci, pula.projekty.values()):
+                k.filtr_ok = True
+                kk = dopasuj_pare(fr, pr, {**ust, "match": {**m, "filtr_wymiar_mm": 1e9, "filtr_objetosc_udzial": 1e9}}, seed)
+                k.pokrycie, k.rms_mm, k.pokrycie_odwrotne, k.transformacja, k.metoda = kk.pokrycie, kk.rms_mm, kk.pokrycie_odwrotne, kk.transformacja, kk.metoda
     kandydaci.sort(key=lambda k: (-k.pokrycie, k.rms_mm))
     # korekta skali ze skanu: najlepszy kandydat, a drugi tylko gdy ranking jest niepewny (pokrycia blisko siebie, jak przy
     # błędzie współczynnika); obcy projekt dostaje skalę poza oknem i zostaje bez korekty (T7: 1,36–1,46 zamiast 1,22)
     for i, k in enumerate(list(kandydaci[:SKALA_KANDYDATOW])):
         if k.transformacja is not None and (i == 0 or k.pokrycie >= SKALA_REMIS * kandydaci[0].pokrycie):
-            koryguj_skale(P, fr, k, pula.projekty[k.id], m, bez_korekty)
+            koryguj_skale(P, fr, k, pula.projekty[k.klucz], m, bez_korekty)
     kandydaci.sort(key=lambda k: (-k.pokrycie, k.rms_mm))
+    if per_praca:
+        _wybierz_wariant(P, fr, kandydaci, pula, m, bez_korekty, uwagi)
     sk = kandydaci[0].skala
     if sk is not None and sk.ostrzezenie:
         uwagi.append(f"skala: praca {'większa' if sk.poprawka_proc > 0 else 'mniejsza'} o {abs(sk.poprawka_proc):.2f} % niż projekt × współczynnik "
                      f"(próg ostrzeżenia {m['korekta_skali_ostrzezenie_proc']:g} %) — sprawdź współczynnik / krążek"
                      + ("" if sk.zastosowana else f"; korekty nie zastosowano: {sk.powod}"))
     p1 = kandydaci[0].pokrycie
-    p2 = kandydaci[1].pokrycie if len(kandydaci) > 1 else 0.0
+    if per_praca:  # pewnosc wzgledem innego projektu: wariant tego samego STL (inny krazek) nie jest konkurentem
+        p2 = max((k.pokrycie for k in kandydaci[1:] if k.id != kandydaci[0].id), default=0.0)
+    else:
+        p2 = kandydaci[1].pokrycie if len(kandydaci) > 1 else 0.0
     pewnosc = p1 - p2
     if p1 >= m["prog_akceptacji_pokrycie"] and pewnosc >= m["pewnosc_min"]:
         status = "zielony"
