@@ -879,3 +879,28 @@ def test_d14_cofniecie_wskazanej_decyzji(st):
     with pytest.raises(SE.BladSesji, match="obowiazuje decyzja"):
         st.rano.cofnij_przypisanie(p, decyzja_id=d2)  # podwojne klikniecie "Cofnij" - druga decyzja zostaje
     assert praca_stanu(st.rano.stan_pieca(), s, 2)["decyzja_id"] == d1
+
+
+def test_skan_nie_trafia_do_pieca_z_poprzedniej_doby(st):
+    """Recenzja PR #22 r2, P1: piec otwarty 18.11 05:00 (doba 17.11) i niezamkniety; skan 19.11 05:15 (doba 18.11) otwiera nowy piec,
+    a stary zostaje otwarty z ostrzezeniem (stan_pieca, piece, otwarte_piece); kazdy da sie zamknac wskazanym plan_id."""
+    stary = st.skan(rano(4, "2026-11-18T05:00:00", [{"g": 2, "k": [["Y21", 0.95]]}]))
+    p_stary = st.rano.otwarty_piec()
+    assert (p_stary["data"], p_stary["plan_id"]) == ("2026-11-17", "2026-11-17-p1")
+    nowy = st.skan(rano(4, "2026-11-19T05:15:00", [{"g": 2, "k": [["X11", 0.95]]}]))
+    p_nowy = st.rano.otwarty_piec()
+    assert p_nowy["id"] != p_stary["id"] and (p_nowy["data"], p_nowy["nr_w_dniu"]) == ("2026-11-18", 1)
+    assert st.skan_wiersz(stary)["sesja_pieca_id"] == p_stary["id"] and st.skan_wiersz(nowy)["sesja_pieca_id"] == p_nowy["id"]
+    stan = st.rano.stan_pieca()
+    assert stan["sesja_pieca_id"] == p_nowy["id"] and stan["inne_otwarte_piece"] == ["2026-11-17-p1"]
+    assert any("2026-11-17-p1" in x and "nie zostal zamkniety" in x for x in stan["ostrzezenia"]) and stan["blokady"] == []
+    assert st.rano.stan_pieca(p_stary["id"])["otwarty_z_poprzedniej_doby"] is True
+    assert [(p["plan_id"], p["z_poprzedniej_doby"]) for p in st.rano.otwarte_piece()] == [("2026-11-17-p1", True), ("2026-11-18-p1", False)]
+    assert [(p["plan_id"], p["z_poprzedniej_doby"]) for p in st.rano.piece("2026-11-17")] == [("2026-11-17-p1", True)]
+    kolejny = st.skan(rano(5, "2026-11-19T05:30:00", [{"g": 3, "k": [["X12", 0.95]]}]))  # ta sama doba: do nowego pieca
+    assert st.skan_wiersz(kolejny)["sesja_pieca_id"] == p_nowy["id"]
+    with pytest.raises(SE.BladSesji, match="otwarty"):
+        st.rano.otworz_piec()  # w biezacej dobie piec jest juz otwarty
+    assert st.rano.zamknij_piec(plan_id="2026-11-17-p1")["sesja_pieca_id"] == p_stary["id"]
+    assert [p["plan_id"] for p in st.rano.otwarte_piece()] == ["2026-11-18-p1"] and st.rano.stan_pieca()["ostrzezenia"] == []
+    assert st.rano.zamknij_piec()["sesja_pieca_id"] == p_nowy["id"] and st.rano.otwarte_piece() == []
