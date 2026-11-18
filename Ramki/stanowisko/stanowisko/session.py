@@ -127,10 +127,24 @@ def typ_plytki(nazwa: str | None) -> str | None:
     return c["typ"] if c else None
 
 
+def sprawdz_tryb(tryb: Any) -> str:
+    """Tryb pracy musi byc znany (``wieczor`` / ``rano``); literowka nie moze dac skanu przyjetego poza stanem wieczoru."""
+    if tryb not in TYP_PLYTKI_TRYBU:
+        raise BladSesji(f"nieznany tryb {tryb!r} (znane: {', '.join(TYP_PLYTKI_TRYBU)})")
+    return tryb
+
+
 def powod_nie_z_trybu(uklad: str | None, tryb: str | None) -> str | None:
-    """Powod blokady skanu, gdy typ plytki nie pasuje do trybu (np. "plytka poranna w trybie wieczor"); None = pasuje albo nie wiadomo."""
-    typ, oczekiwany = typ_plytki(uklad), TYP_PLYTKI_TRYBU.get(tryb)
-    return f"plytka {typ} w trybie {tryb}" if typ and oczekiwany and typ != oczekiwany else None
+    """Powod blokady skanu (np. "plytka poranna w trybie wieczor"); None = plytka pasuje do trybu.
+
+    Blokada domyka sie na nieznanym: uklad o nazwie spoza wzoru (``czesci_ukladu`` nie zna jego typu) tez daje powod
+    ("nieznany uklad plytki ..."), a nieznany tryb to ``BladSesji``.
+    """
+    sprawdz_tryb(tryb)
+    typ = typ_plytki(uklad)
+    if typ is None:
+        return f"nieznany uklad plytki {uklad!r} w trybie {tryb}"
+    return f"plytka {typ} w trybie {tryb}" if typ != TYP_PLYTKI_TRYBU[tryb] else None
 
 
 def do_zapisu(wynik: dict) -> dict:
@@ -195,10 +209,15 @@ class Sesja:
         zmiany = tuple(zmiany_start_godz)
         if not zmiany or any(not isinstance(g, int) or not 0 <= g <= 23 for g in zmiany) or list(zmiany) != sorted(set(zmiany)):
             raise BladSesji(f"poczatki zmian musza byc rosnacymi godzinami 0-23 (jest {zmiany_start_godz!r})")
-        if not isinstance(ponowny_skan_okno_min, int) or ponowny_skan_okno_min < 0:
-            raise BladSesji(f"okno ponownego skanu musi byc liczba minut >= 0 (jest {ponowny_skan_okno_min!r})")
+        if zmiany[0] != granica_doby_godz:
+            raise BladSesji(f"pierwsza zmiana musi zaczynac sie o granicy doby ({granica_doby_godz}:00), a zaczyna sie o {zmiany[0]}:00")
+        if not isinstance(ponowny_skan_okno_min, int) or ponowny_skan_okno_min < 1:
+            raise BladSesji(f"okno ponownego skanu musi byc liczba minut > 0 (jest {ponowny_skan_okno_min!r})")
+        osoby = tuple(o.strip() if isinstance(o, str) else o for o in operatorzy)
+        if any(not isinstance(o, str) or not o for o in osoby) or len(set(osoby)) != len(osoby):
+            raise BladSesji("nazwy operatorow musza byc niepuste i rozne (po przycieciu bialych znakow)")
         self.baza = baza
-        self.operatorzy = tuple(operatorzy)  # lista osob z [sesja] operatorzy (DW3); pusta = decyzje sa odrzucane
+        self.operatorzy = osoby  # lista osob z [sesja] operatorzy (DW3), bez bialych znakow na koncach; pusta = decyzje sa odrzucane
         self.operator: str | None = None  # osoba wybrana na poczatku zmiany
         self.katalog_wynikow = Path(katalog_wynikow) if katalog_wynikow is not None else None
         self.wersja_programu = wersja_programu
@@ -282,6 +301,7 @@ class Sesja:
         Plytka nie z tego trybu (poranna wieczorem albo wieczorna rano) = status ``plytka_nie_z_trybu``: skan nieaktywny,
         dopoki operator swiadomie go nie dopusci (``dopusc_plytke``).
         """
+        sprawdz_tryb(tryb)
         plik = _pole(zdarzenie, "plik")
         if not plik:
             raise BladSesji("zdarzenie skanu bez nazwy pliku")
@@ -291,7 +311,7 @@ class Sesja:
         zgodny = wynik.get("uklad_zgodny")
         if zgodny is False:
             status = STATUS_NIEZGODNY_UKLAD
-        elif powod_nie_z_trybu(wynik.get("plytka"), tryb) is not None:
+        elif powod_nie_z_trybu(wynik.get("plytka"), tryb) is not None:  # takze uklad o nieznanej nazwie
             status = STATUS_PLYTKA_NIE_Z_TRYBU
         elif _do_powtorzenia(wynik):
             status = STATUS_DO_POWTORZENIA
@@ -300,8 +320,9 @@ class Sesja:
         wybor = wynik.get("plytka_wybor")
         with self.baza.transakcja():
             przed = {k["sha16"] for k in self.konflikty(doba, tryb)}
+            sha16 = _pole(zdarzenie, "sha16") or wynik.get("skan_sha16")
             skan_id = self.baza.wstaw(
-                "skany", plik=str(plik), sha16=_pole(zdarzenie, "sha16") or wynik.get("skan_sha16"), rozmiar=_pole(zdarzenie, "rozmiar"),
+                "skany", plik=str(plik), sha16=sha16, rozmiar=_pole(zdarzenie, "rozmiar"),
                 czas_pliku=_czas_iso(_pole(zdarzenie, "czas_pliku")), czas_analizy=teraz, czas_s=(wynik.get("czas_s") or {}).get("razem"),
                 tryb=tryb, uklad=wynik.get("plytka"), uklad_zrodlo=("auto" if wybor == "auto" else "reczny") if wybor else None,
                 uklad_zgodny=None if zgodny is None else int(bool(zgodny)), numer_plytki=wynik.get("numer"),
@@ -311,7 +332,7 @@ class Sesja:
                 w_gniezdzie[g.get("gniazdo")] = w_gniezdzie.get(g.get("gniazdo"), 0) + 1
                 self._wstaw_prace(skan_id, g, w_gniezdzie[g.get("gniazdo")], wynik)
             if self.katalog_wynikow is not None:
-                self.baza.wykonaj("UPDATE skany SET wynik_json = ? WHERE id = ?", (self._zapisz_wynik(skan_id, plik, wynik), skan_id))
+                self.baza.wykonaj("UPDATE skany SET wynik_json = ? WHERE id = ?", (self._zapisz_wynik(plik, wynik, teraz, sha16), skan_id))
             self.baza.zdarzenie("silnik", "skan_przyjety", {"status": status, "prace": len(gniazda), "czas_s": (wynik.get("czas_s") or {}).get("razem")},
                                 skan_id=skan_id, czas=teraz)
             nowe = [k["sha16"] for k in self.konflikty(doba, tryb) if k["sha16"] not in przed]
@@ -326,6 +347,7 @@ class Sesja:
         najwyzej 500 znakow. Dziennika nie da sie poprawic, wiec pelnego tekstu wyjatku (ze sciezka folderu zlecenia)
         nie wolno tu wkladac inna droga.
         """
+        sprawdz_tryb(tryb)
         plik = _pole(zdarzenie, "plik")
         if not plik:
             raise BladSesji("zdarzenie skanu bez nazwy pliku")
@@ -380,22 +402,45 @@ class Sesja:
         w = self.baza.wiersze("SELECT id FROM frezowania WHERE projekt_id = ? ORDER BY id LIMIT 2", (projekt_id,))
         return w[0]["id"] if len(w) == 1 else None
 
-    def _zapisz_wynik(self, skan_id: int, plik: Any, wynik: dict) -> str:
+    def _zapisz_wynik(self, plik: Any, wynik: dict, czas: str, sha16: str | None) -> str:
         """Zapisuje wynik (``do_zapisu``) do ``katalog_wynikow``; zwraca sciezke do ``skany.wynik_json`` (wzgledna od folderu bazy, gdy sie da).
 
-        Plik powstaje przed zatwierdzeniem transakcji (blad zapisu wycofuje caly skan). Plik o tym samym numerze skanu
-        pozostaly po przerwanym przyjeciu (proces zabity przed zatwierdzeniem) jest usuwany - numer nie nalezal do zadnego skanu.
+        Nazwa pliku nie zalezy od numeracji bazy: ``<czas przyjecia>_<sha16 skanu>_<nazwa skanu>_wynik.json``. Istniejacego pliku
+        NIGDY nie nadpisuje ani nie usuwa (wyniki sa trzymane bezterminowo, takze po zalozeniu bazy od nowa albo przywroceniu
+        jej z kopii): gdy nazwa jest zajeta, dostaje przyrostek ``_2``, ``_3``... Plik powstaje przed zatwierdzeniem transakcji
+        (blad zapisu wycofuje caly skan); po zabitym procesie moze zostac plik bez wiersza w bazie - wypisuje je ``osierocone_wyniki``.
         """
         self.katalog_wynikow.mkdir(parents=True, exist_ok=True)
-        for sierota in self.katalog_wynikow.glob(f"skan{skan_id:06d}_*_wynik.json"):
-            sierota.unlink()
         rdzen = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", PureWindowsPath(str(plik)).stem) or "skan"
-        cel = self.katalog_wynikow / f"skan{skan_id:06d}_{rdzen}_wynik.json"
-        cel.write_text(json.dumps(do_zapisu(wynik), ensure_ascii=False, indent=1), encoding="utf-8")
+        skrot = re.sub(r"[^0-9A-Za-z]", "", str(sha16 or "")) or "bezskrotu"
+        podstawa = f"{dt.datetime.fromisoformat(czas):%Y%m%d_%H%M%S}_{skrot}_{rdzen}"
+        tresc = json.dumps(do_zapisu(wynik), ensure_ascii=False, indent=1)
+        nr = 1
+        while True:
+            cel = self.katalog_wynikow / (f"{podstawa}_wynik.json" if nr == 1 else f"{podstawa}_{nr}_wynik.json")
+            try:
+                with open(cel, "x", encoding="utf-8") as f:  # "x": odmowa nadpisania istniejacego pliku
+                    f.write(tresc)
+                break
+            except FileExistsError:
+                nr += 1
         try:
             return cel.resolve().relative_to(self.baza.plik.resolve().parent).as_posix()
         except ValueError:
             return cel.resolve().as_posix()
+
+    def osierocone_wyniki(self) -> list[Path]:
+        """Pliki ``*_wynik.json`` w ``katalog_wynikow``, do ktorych nie prowadzi zaden skan tej bazy (kontrola; niczego nie usuwa).
+
+        Powstaja po przerwanym przyjeciu skanu, po zalozeniu bazy od nowa albo po przywroceniu jej z kopii.
+        """
+        if self.katalog_wynikow is None or not self.katalog_wynikow.is_dir():
+            return []
+        znane = set()
+        for w in self.baza.wiersze("SELECT wynik_json FROM skany WHERE wynik_json IS NOT NULL"):
+            sciezka = Path(w["wynik_json"])
+            znane.add((sciezka if sciezka.is_absolute() else self.baza.plik.parent / sciezka).resolve())
+        return sorted(x for x in self.katalog_wynikow.glob("*_wynik.json") if x.resolve() not in znane)
 
     def sciezka_wyniku(self, skan_id: int) -> Path | None:
         """Plik wyniku skanu (``skany.wynik_json``) jako sciezka bezwzgledna; None, gdy wyniku nie zapisano."""
@@ -433,9 +478,37 @@ class Sesja:
         osoba = self._operator(operator)
         with self.baza.transakcja():
             praca = self._praca_do_decyzji(praca_id)
-            decyzja_id = self.baza.wstaw("decyzje", praca_id=praca["id"], rodzaj=rodzaj, operator=osoba, czas=self.teraz())
+            byla = self._punkt_na_liscie(praca["projekt_id"]) if rodzaj in DECYZJE_UKRUSZENIA else None
+            teraz = self.teraz()
+            decyzja_id = self.baza.wstaw("decyzje", praca_id=praca["id"], rodzaj=rodzaj, operator=osoba, czas=teraz)
             self._odswiez_punkt(praca, praca["tryb_skanu"])
+            if byla is not None and byla["praca_id"] != praca["id"]:  # ten zab jest juz na liscie: pozycja przechodzi na te prace, nie powstaje druga
+                self.baza.zdarzenie("system", "ukruszona_powtorzona", {
+                    "praca_id": praca["id"], "byla_praca_id": byla["praca_id"], "byl_skan_id": byla["skan_id"],
+                    "doba": self.doba(byla["czas_analizy"]), "zmiana": self.zmiana(byla["czas_analizy"])}, skan_id=praca["skan_id"], czas=teraz)
         return decyzja_id
+
+    def _punkt_na_liscie(self, projekt_id: int | None) -> dict | None:
+        """Praca, na ktora wskazuje punkt projektu w stanie ``do_dofrezowania`` (razem ze skanem), albo None."""
+        if projekt_id is None:
+            return None
+        return self.baza.wiersz(
+            "SELECT sp.praca_id, p.skan_id, s.czas_analizy FROM stan_punktow sp JOIN prace p ON p.id = sp.praca_id JOIN skany s ON s.id = p.skan_id "
+            "WHERE sp.projekt_id = ? AND sp.stan = ?", (projekt_id, STAN_DO_DOFREZOWANIA))
+
+    def pozycja_projektu(self, praca_id: int) -> dict | None:
+        """Pozycja listy "do dofrezowania" dla projektu tej pracy (None, gdy zeba nie ma na liscie).
+
+        Dla okna: przed kliknieciem "Ukruszona" mozna pokazac "ten zab jest juz na liscie (skan X, zmiana Y)" - pola
+        ``skan_id``, ``doba``, ``zmiana`` pozycji. Druga "Ukruszona" na tym samym projekcie nie tworzy drugiej pozycji.
+        """
+        praca = self.baza.wiersz("SELECT id, projekt_id FROM prace WHERE id = ?", (praca_id,))
+        if praca is None:
+            raise BladSesji(f"nie ma pracy {praca_id}")
+        for x in self.do_dofrezowania():
+            if (x["projekt_id"] == praca["projekt_id"]) if praca["projekt_id"] is not None else (x["praca_id"] == praca_id):
+                return x
+        return None
 
     def ukruszona(self, praca_id: int, operator: str | None = None) -> int:
         """Przycisk "Ukruszona": praca robi sie czerwona i idzie na liste "do dofrezowania"."""
@@ -523,6 +596,9 @@ class Sesja:
             obowiazujace = [d["id"] for d in dopuszczenia if d["id"] not in cofniete]
             if not obowiazujace or sk["status"] not in STATUSY_AKTYWNE:
                 raise BladSesji(f"skan {skan_id}: nie ma dopuszczenia do cofniecia (status {sk['status']!r})")
+            if sk["zastepuje_id"] is not None:  # plytka nie moze po cichu zostac bez aktywnego skanu
+                raise BladSesji(f"skan {skan_id} zastapil skan {sk['zastepuje_id']} - najpierw cofnij zastapienie (poprzedni skan plytki wroci do stanu), "
+                                f"potem cofnij dopuszczenie")
             teraz = self.teraz()
             decyzja_id = self.baza.wstaw("decyzje", skan_id=skan_id, rodzaj=RODZAJ_COFNIECIE, wartosc=str(obowiazujace[-1]), operator=osoba, czas=teraz)
             self.baza.wykonaj("UPDATE skany SET status = ? WHERE id = ?", (STATUS_PLYTKA_NIE_Z_TRYBU, skan_id))
@@ -545,7 +621,12 @@ class Sesja:
             raise BladSesji(f"numer plytki musi byc liczba od 1 w gore (jest {numer!r})")
         osoba = self._operator(operator)
         with self.baza.transakcja():
-            self._skan(skan_id)
+            sk = self._skan(skan_id)
+            powiazane = self.baza.wiersze("SELECT * FROM skany WHERE zastepuje_id = ? OR id = ?", (skan_id, sk["zastepuje_id"]))
+            for inny in powiazane:  # skan, ktory ten zastapil, albo skan, ktory zastapil ten
+                if inny["numer_plytki"] is not None and inny["numer_plytki"] != n and not (sk["sha16"] and sk["sha16"] == inny["sha16"]):
+                    raise BladSesji(f"skan {skan_id} jest powiazany zastapieniem ze skanem {inny['id']} plytki nr {inny['numer_plytki']} - "
+                                    f"inny numer plytki ({n}) oznaczalby inna plytke; najpierw cofnij zastapienie")
             decyzja_id = self.baza.wstaw("decyzje", skan_id=skan_id, rodzaj="numer_plytki", wartosc=str(n), operator=osoba, czas=self.teraz())
             self.baza.wykonaj("UPDATE skany SET numer_plytki = ?, numer_zrodlo = 'podany' WHERE id = ?", (n, skan_id))
         return decyzja_id
@@ -600,8 +681,11 @@ class Sesja:
         return None
 
     def _w_oknie_ponownego_skanu(self, wczesniejszy: dict, pozniejszy: dict) -> bool:
-        """Czy ``pozniejszy`` przyjeto najwyzej ``ponowny_skan_okno_min`` minut (wlacznie) po ``wczesniejszy``; okno 0 = nigdy."""
-        if not wczesniejszy["czas_analizy"] or not pozniejszy["czas_analizy"] or self.ponowny_skan_okno_min <= 0:
+        """Czy ``pozniejszy`` przyjeto najwyzej ``ponowny_skan_okno_min`` minut (wlacznie) po ``wczesniejszy``.
+
+        Liczone z roznicy czasow lokalnych bez strefy (znana granica: przy zmianie czasu i przy cofnietym zegarze roznica
+        jest przeklamana o godzine albo ujemna - wtedy brak propozycji; zastapienie wprost dziala)."""
+        if not wczesniejszy["czas_analizy"] or not pozniejszy["czas_analizy"]:
             return False
         minut = (dt.datetime.fromisoformat(pozniejszy["czas_analizy"]) - dt.datetime.fromisoformat(wczesniejszy["czas_analizy"])).total_seconds() / 60
         return 0 <= minut <= self.ponowny_skan_okno_min
@@ -644,6 +728,10 @@ class Sesja:
                 if poprzedni["id"] >= nowy["id"] or poprzedni["status"] not in STATUSY_AKTYWNE or not blisko:
                     raise BladSesji(f"skan {poprzedni_id} nie moze byc zastapiony skanem {skan_id} (musi byc wczesniejszy, aktywny i z tej samej doby "
                                     f"roboczej albo sprzed najwyzej {self.ponowny_skan_okno_min} min)")
+                ten_sam_plik = bool(nowy["sha16"]) and nowy["sha16"] == poprzedni["sha16"]
+                if not ten_sam_plik and (nowy["numer_plytki"] is None or poprzedni["numer_plytki"] is None):
+                    raise BladSesji(f"skan {skan_id} nie moze zastapic skanu {poprzedni_id}: najpierw podaj numer plytki obu skanow "
+                                    f"(bez numeru nie wiadomo, czy to ta sama plytka)")
                 powod = self._niezgodnosc(nowy, poprzedni)
                 if powod is not None:
                     raise BladSesji(f"skan {skan_id} nie moze zastapic skanu {poprzedni_id}: {powod} - to nie jest ponowny skan tej samej plytki")
@@ -704,7 +792,8 @@ class Sesja:
         if not skany_ids:
             return []
         return self.baza.wiersze(
-            f"""SELECT p.*, pr.zeby AS zeby, z.kuweta AS kuweta, f.krazek AS krazek, sp.stan AS stan_punktu
+            f"""SELECT p.*, pr.zeby AS zeby, z.kuweta AS kuweta, f.krazek AS krazek, sp.stan AS stan_punktu,
+                       sp.praca_id AS punkt_praca_id
                 FROM prace p LEFT JOIN projekty pr ON pr.id = p.projekt_id LEFT JOIN zlecenia z ON z.id = pr.zlecenie_id
                 LEFT JOIN frezowania f ON f.id = p.frezowanie_id LEFT JOIN stan_punktow sp ON sp.projekt_id = p.projekt_id
                 WHERE p.skan_id IN ({_znaki(len(skany_ids))}) ORDER BY p.skan_id, p.id""", tuple(skany_ids))
@@ -740,6 +829,9 @@ class Sesja:
         (``status_gniazda`` = ocena programu), ``kolor`` (po decyzjach technika, patrz ``_kolor``), ``sha16`` / ``kuweta`` /
         ``zeby`` / ``krazek`` i obowiazujaca ``decyzja``. ``liczniki`` (po kolorze), ``decyzje`` (po rodzaju obowiazujacej decyzji)
         i ``prac``: tylko skany aktywne. ``do_potwierdzenia``: skany, ktore wygladaja na ponowny skan plytki (``zastap_skan``).
+        Wpis ``do_potwierdzenia`` podaje tez, ile decyzji przestanie obowiazywac po potwierdzeniu (``liczba_decyzji``,
+        ``liczba_ukruszonych``, ``decyzje``) - okno ostrzega przed kliknieciem. Praca z "Ukruszona" ma ``na_liscie`` = pozycja
+        listy, ktora ja reprezentuje (ta sama praca albo inna praca tego samego projektu).
         ``do_dofrezowania``: pozycje tej doby, ``do_dofrezowania_biezaca``: wszystkie otwarte (takze z poprzednich dob).
         Bez nazw folderow i plikow zlecen.
         """
@@ -777,7 +869,8 @@ class Sesja:
                     "decyzja": d["rodzaj"] if d else None, "decyzja_id": d["id"] if d else None, "operator": d["operator"] if d else None,
                     "czas_decyzji": d["czas"] if d else None})
             if poprzedni is not None:
-                do_potwierdzenia.append({"skan_id": s["id"], "poprzedni_id": poprzedni["id"], "numer_plytki": s["numer_plytki"]})
+                do_potwierdzenia.append({"skan_id": s["id"], "poprzedni_id": poprzedni["id"], "numer_plytki": s["numer_plytki"],
+                                         **self._decyzje_do_utraty(poprzedni["id"])})
             wynik_skany.append({
                 "id": s["id"], "plik": s["plik"], "sha16": s["sha16"], "czas_pliku": s["czas_pliku"], "czas_analizy": s["czas_analizy"],
                 "zmiana": self.zmiana(s["czas_analizy"]), "czas_s": s["czas_s"], "uklad": s["uklad"], "uklad_zrodlo": s["uklad_zrodlo"],
@@ -788,20 +881,38 @@ class Sesja:
                 "moze_zastapic": poprzedni["id"] if poprzedni is not None else None, "wynik_json": s["wynik_json"],
                 "liczniki": liczniki, "prace": prace})
         biezaca = self.do_dofrezowania()
+        po_projekcie = {x["projekt_id"]: x for x in biezaca if x["projekt_id"] is not None}
+        po_pracy = {x["praca_id"]: x for x in biezaca}
+        for sk in wynik_skany:  # "ten zab jest juz na liscie (skan X, zmiana Y)": pozycja listy, ktora reprezentuje prace ukruszona
+            for x in sk["prace"]:
+                pozycja = None
+                if sk["aktywny"] and x["decyzja"] in DECYZJE_UKRUSZENIA:
+                    pozycja = po_projekcie.get(x["projekt_id"]) if x["projekt_id"] is not None else po_pracy.get(x["id"])
+                x["na_liscie"] = {k: pozycja[k] for k in ("praca_id", "skan_id", "doba", "zmiana")} if pozycja else None
         return {"data": data, "zmiana": self.zmiana() if data == biezaca_doba else None, "skany": wynik_skany, "liczniki": razem,
                 "decyzje": razem_decyzje, "prac": prac, "do_potwierdzenia": do_potwierdzenia,
                 "do_dofrezowania": [x for x in biezaca if x["doba"] == data], "do_dofrezowania_biezaca": biezaca,
                 "konflikty": self.konflikty(data)}
 
+    def _decyzje_do_utraty(self, skan_id: int) -> dict:
+        """Obowiazujace decyzje o pracach skanu, ktore przestana sie liczyc, gdy skan zostanie zastapiony (kontrakt dla okna)."""
+        decyzje = self._decyzje_skanow([skan_id])
+        lista = [{"praca_id": p["id"], "gniazdo": p["gniazdo"], "rodzaj": decyzje[p["id"]]["rodzaj"], "kuweta": p["kuweta"], "zeby": p["zeby"]}
+                 for p in self._prace_skanow([skan_id]) if p["id"] in decyzje]
+        return {"liczba_decyzji": len(lista), "liczba_ukruszonych": sum(1 for x in lista if x["rodzaj"] in DECYZJE_UKRUSZENIA), "decyzje": lista}
+
     def do_dofrezowania(self, data: str | None = None) -> list[dict]:
         """Lista "do dofrezowania". Bez ``data``: lista BIEZACA - wszystkie otwarte pozycje, takze z poprzednich dob roboczych
-        (pozycja nie znika na granicy doby). Z ``data``: filtr "ta doba" (pozycje, ktore powstaly w tej dobie roboczej).
+        (pozycja nie znika na granicy doby). Z ``data``: filtr "ta doba" (pozycje skanow przyjetych w tej dobie roboczej).
 
-        Pozycja = praca skanu wieczornego aktywnego, ktorej obowiazujaca decyzja to "Ukruszona", o ile jest otwarta: punkt
-        projektu ma stan ``do_dofrezowania`` (zamknie go poranek, A6) albo praca nie ma projektu w indeksie (wtedy nie ma jeszcze
-        czym jej zamknac). Pola: ``kuweta``, ``zeby``, ``krazek`` (None, gdy pracy nie ma w indeksie albo nie ma jednoznacznego
-        wpisu frezowania), plytka, gniazdo, ``sha16`` projektu, kto i kiedy zdecydowal, ``doba`` i ``zmiana`` (z czasu decyzji),
-        ``stan_punktu``.
+        Lista wynika ze ``stan_punktow``: JEDEN punkt projektu w stanie ``do_dofrezowania`` = JEDNA pozycja - praca, na ktora
+        punkt wskazuje (ostatnio oznaczona "Ukruszona" w skanie wieczornym aktywnym). Inne aktywne prace tego samego projektu
+        z "Ukruszona" (ta sama plytka zeskanowana jako nowy wsad, zab dofrezowany i znow ukruszony) nie tworza drugiej pozycji -
+        sa w polu ``powtorzenia``. Punkt zamkniety (poranek, A6) = pozycja znika. Praca bez projektu w indeksie nie ma punktu:
+        jest pozycja sama dla siebie (nie ma jeszcze czym jej zamknac).
+        Pola: ``kuweta``, ``zeby``, ``krazek`` (None, gdy pracy nie ma w indeksie albo nie ma jednoznacznego wpisu frezowania),
+        plytka, gniazdo, ``sha16`` projektu, kto i kiedy zdecydowal, ``doba`` i ``zmiana`` (z chwili PRZYJECIA skanu, nie
+        z czasu decyzji), ``stan_punktu``, ``powtorzenia``.
         """
         aktywne = _znaki(len(STATUSY_AKTYWNE))
         decyzje = _obowiazujace(self.baza.wiersze(
@@ -811,20 +922,27 @@ class Sesja:
                 ORDER BY d.id""", (TRYB_WIECZOR, *STATUSY_AKTYWNE, *DECYZJE_UKRUSZENIA)))
         ukruszone = {praca_id: d for praca_id, d in decyzje.items() if d["rodzaj"] in DECYZJE_UKRUSZENIA}
         skany_ids = sorted({w["skan_id"] for w in self._wiersze_po_id("SELECT id, skan_id FROM prace WHERE id IN ({})", sorted(ukruszone))})
-        numery = {w["id"]: w["numer_plytki"] for w in self._wiersze_po_id("SELECT id, numer_plytki FROM skany WHERE id IN ({})", skany_ids)}
+        skany = {w["id"]: w for w in self._wiersze_po_id("SELECT id, numer_plytki, czas_analizy FROM skany WHERE id IN ({})", skany_ids)}
+        prace = [p for p in self._prace_skanow(skany_ids) if p["id"] in ukruszone]
+
+        def miejsce(p: dict) -> dict:
+            sk = skany[p["skan_id"]]
+            return {"praca_id": p["id"], "skan_id": p["skan_id"], "numer_plytki": sk["numer_plytki"], "gniazdo": p["gniazdo"],
+                    "doba": self.doba(sk["czas_analizy"]), "zmiana": self.zmiana(sk["czas_analizy"])}
+
         lista = []
-        for p in self._prace_skanow(skany_ids):
-            d = ukruszone.get(p["id"])
-            if d is None or not (p["projekt_id"] is None or p["stan_punktu"] == STAN_DO_DOFREZOWANIA):
+        for p in prace:
+            d = ukruszone[p["id"]]
+            if p["projekt_id"] is not None and not (p["stan_punktu"] == STAN_DO_DOFREZOWANIA and p["punkt_praca_id"] == p["id"]):
+                continue  # pozycja projektu to tylko praca wskazana przez punkt; punkt zamkniety = brak pozycji
+            m = miejsce(p)
+            if data is not None and m["doba"] != data:
                 continue
-            doba = self.doba(d["czas"])
-            if data is not None and doba != data:
-                continue
+            powtorzenia = [miejsce(q) for q in prace if p["projekt_id"] is not None and q["projekt_id"] == p["projekt_id"] and q["id"] != p["id"]]
             lista.append({
-                "praca_id": p["id"], "skan_id": p["skan_id"], "numer_plytki": numery[p["skan_id"]], "gniazdo": p["gniazdo"],
-                "sha16": self._przypisany(p), "projekt_id": p["projekt_id"], "kuweta": p["kuweta"], "zeby": p["zeby"], "krazek": p["krazek"],
+                **m, "sha16": self._przypisany(p), "projekt_id": p["projekt_id"], "kuweta": p["kuweta"], "zeby": p["zeby"], "krazek": p["krazek"],
                 "ubytki": p["ubytki"], "ubytek_max_mm": p["ubytek_max_mm"], "decyzja": d["rodzaj"], "operator": d["operator"], "czas": d["czas"],
-                "doba": doba, "zmiana": self.zmiana(d["czas"]), "stan_punktu": p["stan_punktu"] if p["projekt_id"] is not None else None})
+                "stan_punktu": p["stan_punktu"] if p["projekt_id"] is not None else None, "powtorzenia": powtorzenia})
         return lista
 
     def _wiersze_po_id(self, sql: str, ids: list[int], porcja: int = 500) -> list[dict]:

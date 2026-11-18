@@ -224,15 +224,29 @@ class BladBazy(RuntimeError):
 
 # --- sciezki w tekstach: poza cztery tabele z nazwami nie moze wyjsc nazwa folderu zlecenia ---------------------------
 ZNACZNIK_SCIEZKI = "<sciezka>"
-# poczatek sciezki bezwzglednej: litera dysku (C:\ albo C:/), zasob sieciowy (\\serwer) albo /katalog/ na poczatku slowa
-_POCZATEK_SCIEZKI = re.compile(r"[A-Za-z]:[\\/]|\\\\[^\\\s]|(?<![\w.:/<])/(?=[\w.~-]+/)")
+# Poczatek sciezki BEZWZGLEDNEJ: litera dysku (C:\ albo C:/), zasob sieciowy (\\serwer albo //serwer), zmienna srodowiskowa
+# (%USERPROFILE%\, $HOME/), katalog domowy (~/) albo /katalog/ na poczatku slowa.
+_SCIEZKA_BEZWZGLEDNA = (r"[A-Za-z]:[\\/]|\\\\[^\\\s]|(?<![\w:/])//(?=[^/\s])|%\w+%[\\/]|\$\w+[\\/]|(?<![\w.])~[\\/]"
+                        r"|(?<![\w.:/<])/(?=[\w.~-]+/)")
+# Sciezka WZGLEDNA z separatorem: slowo\slowo; slowo/.../slowo (co najmniej dwa ukosniki); slowo/plik.roz (ukosnik i rozszerzenie
+# pliku). Pojedyncze "A/B", "km/h", "0.91/0.95", "17/11" sciezka nie sa.
+_SCIEZKA_WZGLEDNA = r"[\w.~#-]+\\(?=[\w.~#-])|[\w.~#-]+/[\w .~#-]*?/(?=[\w.~#-])|[\w.~#-]+/[\w .~#-]*?\.[A-Za-z]\w{1,3}\b"
+_POCZATEK_SCIEZKI = re.compile(f"(?P<bezwzgledna>{_SCIEZKA_BEZWZGLEDNA})|(?P<wzgledna>{_SCIEZKA_WZGLEDNA})")
+_CUDZYSLOWY = "'\""
+_OGRANICZNIKI = ":;,=([{\n" + _CUDZYSLOWY  # przed sciezka wzgledna: od tego znaku zaczyna sie wycinany kawalek
 
 
 def bez_sciezek(tekst: str) -> str:
-    """Zastepuje sciezki bezwzgledne znacznikiem ``<sciezka>`` (nazwy folderow zlecen zawieraja nazwiska).
+    """Zastepuje sciezki znacznikiem ``<sciezka>`` (nazwy folderow i plikow zlecen zawieraja nazwiska).
 
-    Nazwy folderow maja spacje, wiec konca sciezki nie da sie zgadnac: sciezka w cudzyslowie konczy sie na cudzyslowie,
-    kazda inna - na koncu wiersza (reszta wiersza przepada razem z nia). Sciezek wzglednych funkcja nie rozpoznaje.
+    Rozpoznaje sciezki bezwzgledne (dysk, zasob sieciowy w obu zapisach, zmienne srodowiskowe, katalog domowy) i wzgledne
+    z separatorem. Nazwy folderow maja spacje, wiec granic sciezki nie da sie zgadnac - funkcja wycina z zapasem:
+    - koniec: sciezka w cudzyslowie albo apostrofach konczy sie na zamykajacym znaku, kazda inna na koncu wiersza
+      (reszta wiersza przepada razem z nia);
+    - poczatek sciezki wzglednej: od poprzedniego ogranicznika (``: ; , = ( [ {``, cudzyslow) albo od poczatku wiersza,
+      bo pierwsza czesc sciezki moze miec spacje ("9911 Nazwisko Imie\\plik.stl").
+    ZNANA GRANICA: nazwa folderu albo pliku podana bez separatora sciezki nie jest rozpoznawana - wywolujacy (A2, A3)
+    nie moze podawac nazw zlecen w tekstach przekazywanych do ``session`` i do dziennika.
     """
     czesci, i = [], 0
     while True:
@@ -241,10 +255,16 @@ def bez_sciezek(tekst: str) -> str:
             czesci.append(tekst[i:])
             return "".join(czesci)
         start = m.start()
+        if m.lastgroup == "wzgledna":
+            while start > i and tekst[start - 1] not in _OGRANICZNIKI:
+                start -= 1
+            if not (start > i and tekst[start - 1] in _CUDZYSLOWY):
+                while start < m.start() and tekst[start] == " ":
+                    start += 1
+        cudzyslow = tekst[start - 1] if start > i and tekst[start - 1] in _CUDZYSLOWY else None
         czesci.append(tekst[i:start])
         czesci.append(ZNACZNIK_SCIEZKI)
-        cudzyslow = tekst[start - 1] if start > 0 and tekst[start - 1] in "'\"" else None
-        koniec = tekst.find(cudzyslow, start) if cudzyslow else -1
+        koniec = tekst.find(cudzyslow, max(start, m.end())) if cudzyslow else -1
         if koniec < 0:
             koniec = tekst.find("\n", start)
         i = koniec if koniec >= 0 else len(tekst)

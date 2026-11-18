@@ -81,20 +81,20 @@ def _skrot(wiersze: list[dict], n: int) -> str:
 def importuj(baza: B.Baza, plik: Path, wymus: bool = False) -> dict:
     """Importuje plik decyzji; zwraca liczniki: wiersze pliku, dopisane decyzje, nowe skany i prace, wiersze pominiete (zaimportowane wczesniej).
 
-    Gdy w bazie jest juz import, a plik nie zaczyna sie od zadnego z wczesniej zaimportowanych - ``BladImportu``
-    (chyba ze ``wymus``: wtedy caly plik jest dopisywany).
+    Gdy w bazie jest juz import, plik musi byc przedluzeniem OSTATNIEGO importu (zaczynac sie od wszystkich jego wierszy);
+    inaczej ``BladImportu`` (chyba ze ``wymus``: wtedy caly plik jest dopisywany).
     """
     wiersze = wczytaj(plik)
     pominiete = 0
-    wczesniejsze = baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'import_decyzji'")
-    for z in wczesniejsze:
-        wczesniej = json.loads(z["dane"])
-        n = int(wczesniej.get("wiersze", 0))
-        if pominiete < n <= len(wiersze) and wczesniej.get("skrot") == _skrot(wiersze, n):
-            pominiete = n  # poczatek pliku jest juz w bazie
-    if wczesniejsze and pominiete == 0 and wiersze and not wymus:
-        raise BladImportu(f"{Path(plik).name}: plik nie jest przedluzeniem wczesniejszego importu (w bazie sa juz decyzje z {len(wczesniejsze)} "
-                          f"importu / importow) - dopisanie zdublowaloby decyzje, ktorych nie da sie usunac; swiadomy import calosci: --wymus")
+    wczesniejsze = baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'import_decyzji' ORDER BY id")
+    if wczesniejsze:
+        ostatni = json.loads(wczesniejsze[-1]["dane"])
+        n = int(ostatni.get("wiersze", 0))
+        if n <= len(wiersze) and ostatni.get("skrot") == _skrot(wiersze, n):
+            pominiete = n  # poczatek pliku (caly ostatni import) jest juz w bazie
+        elif wiersze and not wymus:
+            raise BladImportu(f"{Path(plik).name}: plik nie jest przedluzeniem ostatniego importu ({n} wierszy; importow w bazie: {len(wczesniejsze)}) - "
+                              f"dopisanie zdublowaloby decyzje, ktorych nie da sie usunac; swiadomy import calosci: --wymus")
     wynik = {"wiersze": len(wiersze), "decyzje": 0, "skany": 0, "prace": 0, "pominiete": pominiete}
     nowe = wiersze[pominiete:]
     if not nowe:
