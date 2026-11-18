@@ -1,12 +1,14 @@
-"""metryki - metryki odbiorcze stanowiska liczone z bazy programu (E3-A10; runda 2 po recenzji PR #29).
+"""metryki - metryki odbiorcze stanowiska liczone z bazy programu (E3-A10; rundy 2 i 3 po recenzji PR #29).
 
 M1 (plan etapu 3, 3.3; PW "Testy odbiorcze i kryteria"): kazda metryke program liczy sam z wlasnego logu, raport = jedno
 polecenie i jedna strona (``narzedzia/raport_metryk.py``). Zrodla - wylacznie istniejace tabele schematu w wersji 1
 (``skany``, ``prace``, ``decyzje``, ``sesje_pieca``, ``zdarzenia``, indeks ``projekty``) czytane przez publiczne API sesji, zeby
 reguly byly te same co na ekranie: ``Sesja.stan_wieczoru`` (skany aktywne, decyzja obowiazujaca po cofnieciach i zastapieniach,
 propozycje ponownego skanu) i ``SesjaRano.stan_pieca`` (klasa pracy porannej, przypisanie po decyzjach technika, kandydaci
-z indeksem). Proste liczniki statusow i czasy aktywnosci - zapytania SELECT. Caly raport w JEDNEJ transakcji odczytu (spojny
-stan, gdy program w tym czasie pisze). Modul TYLKO CZYTA (baza otwarta ``tylko_odczyt`` wystarcza) i nie zmienia schematu:
+z indeksem). Proste liczniki statusow i czasy aktywnosci - zapytania SELECT. Raport liczy sie na MIGAWCE: najpierw kopia calej
+bazy do pamieci mechanizmem kopii SQLite (blokada odczytu pliku tylko na czas kopii - ms), potem wszystkie zapytania na kopii:
+liczby z jednego stanu bazy, a program stanowiska moze w tym czasie zapisywac bez czekania. Modul TYLKO CZYTA (baza otwarta
+``tylko_odczyt`` wystarcza; zadnych plikow obok bazy) i nie zmienia schematu:
 tabela testow wykrywalnosci (M2) wymaga zmiany schematu - wiersz M2 ma ocene "wymaga zmiany schematu" i nie ma wartosci.
 
 Dane osobowe: wynik (slownik / JSON) i strona maja tylko liczby, daty dob i nazwy metryk - zadnych nazw folderow, plikow,
@@ -31,6 +33,7 @@ Definicje (szczegoly i uzasadnienia: ``opisy_modulow/metryki.md``):
 from __future__ import annotations
 
 import datetime as dt
+import sqlite3
 import statistics
 from bisect import bisect_left
 from typing import Any
@@ -159,6 +162,20 @@ class _SesjaRanoOdczyt(SR.SesjaRano):
 
     def wynik_pieca(self, sesja_pieca_id: int) -> dict | None:
         return None
+
+
+def migawka(baza: B.Baza) -> B.Baza:
+    """Kopia calej bazy w pamieci (``sqlite3.Connection.backup`` jednym krokiem): blokada odczytu pliku trwa tylko tyle co kopia
+    (baza "rok" 2 MB - ok. 1 ms; 200 MB - ok. 0,3 s, ponizej 5 s, ktore program czeka na zajeta baze), a raport liczy sie na
+    kopii bez zadnej blokady pliku i z jednego stanu (recenzja PR #29: D6, runda 3). Zrodlo moze byc otwarte tylko do odczytu."""
+    pamiec = sqlite3.connect(":memory:", isolation_level=None)
+    try:
+        baza.polaczenie.backup(pamiec)
+    except BaseException:
+        pamiec.close()
+        raise
+    pamiec.row_factory = sqlite3.Row
+    return B.Baza(baza.plik, pamiec, dt.datetime.now)
 
 
 # --- czesci raportu ---------------------------------------------------------------------------------------------------
@@ -397,36 +414,34 @@ def policz(baza: B.Baza, od: str, do: str, tryb: str = TRYB_OBA, *, granica_doby
 
     Zwraca zwykle dane (JSON): ``okres``, ``parametry``, ``wieczor`` / ``rano`` (None dla trybu pominietego), ``stabilnosc``,
     ``m2``, ``metryki`` (wiersze strony z ocena wzgledem ``PROGI``), ``ponizej_progu``, ``bez_danych``, ``kod`` (0 / 3 / 4).
-    Baza tylko czytana, w jednej transakcji odczytu (otwarta tu, gdy wywolujacy nie ma swojej). Zly okres albo tryb: ``ValueError``.
+    Baza tylko czytana: liczy sie na migawce w pamieci (``migawka``), plik bazy nie jest blokowany w trakcie liczenia.
+    Zly okres albo tryb: ``ValueError``.
     """
     if tryb not in TRYBY:
         raise ValueError(f"tryb raportu: {', '.join(TRYBY)} (jest {tryb!r})")
     d_od, d_do = sprawdz_okres(od, do)
-    sesja = _SesjaOdczyt(baza, granica_doby_godz=granica_doby_godz, zmiany_start_godz=zmiany_start_godz)  # tylko odczyt (bez operatora)
-    rano = _SesjaRanoOdczyt(sesja, prog_kandydata=prog_kandydata)
     doby = [(d_od + dt.timedelta(days=i)).isoformat() for i in range((d_do - d_od).days + 1)]
     granica = dt.time(granica_doby_godz)  # te same granice co Sesja.doba / _przedzial_doby
     s_start = dt.datetime.combine(d_od, granica).isoformat()
     s_koniec = dt.datetime.combine(d_do + dt.timedelta(days=1), granica).isoformat()
-    wlasna = not baza.polaczenie.in_transaction
-    if wlasna:
-        baza.wykonaj("BEGIN")  # transakcja odczytu (dziala tez na polaczeniu tylko do odczytu): caly raport z jednego stanu bazy
+    kopia = migawka(baza)  # od tej chwili wszystko na kopii w pamieci: plik bazy wolny dla programu stanowiska
     try:
-        punkty = _punkty_aktywnosci(baza, s_start, s_koniec, przerwa_min)
+        sesja = _SesjaOdczyt(kopia, granica_doby_godz=granica_doby_godz, zmiany_start_godz=zmiany_start_godz)  # tylko odczyt (bez operatora)
+        rano = _SesjaRanoOdczyt(sesja, prog_kandydata=prog_kandydata)
+        punkty = _punkty_aktywnosci(kopia, s_start, s_koniec, przerwa_min)
         w: dict[str, Any] = {
-            "wersja": WERSJA, "wygenerowano": teraz or dt.datetime.now().replace(microsecond=0).isoformat(), "schemat_bazy": baza.wersja(),
+            "wersja": WERSJA, "wygenerowano": teraz or dt.datetime.now().replace(microsecond=0).isoformat(), "schemat_bazy": kopia.wersja(),
             "okres": {"od": d_od.isoformat(), "do": d_do.isoformat(), "tryb": tryb, "doby": len(doby)},
             "parametry": {"granica_doby_godz": granica_doby_godz, "zmiany_start_godz": list(zmiany_start_godz),
                           "prog_kandydata": prog_kandydata, "przerwa_min": przerwa_min},
-            "wieczor": (_wieczor(baza, sesja, doby, s_start, s_koniec, punkty[TRYB_WIECZOR], przerwa_min, prog_kandydata)
+            "wieczor": (_wieczor(kopia, sesja, doby, s_start, s_koniec, punkty[TRYB_WIECZOR], przerwa_min, prog_kandydata)
                         if tryb != TRYB_RANO else None),
-            "rano": _rano(baza, rano, d_od.isoformat(), d_do.isoformat(), punkty[TRYB_RANO], przerwa_min) if tryb != TRYB_WIECZOR else None,
-            "stabilnosc": _stabilnosc(baza, sesja, s_start, s_koniec),
+            "rano": _rano(kopia, rano, d_od.isoformat(), d_do.isoformat(), punkty[TRYB_RANO], przerwa_min) if tryb != TRYB_WIECZOR else None,
+            "stabilnosc": _stabilnosc(kopia, sesja, s_start, s_koniec),
             "m2": {"dostepne": False, "powod": POWOD_M2},
         }
     finally:
-        if wlasna and baza.polaczenie.in_transaction:
-            baza.wykonaj("ROLLBACK")  # nic nie bylo zapisywane - zwolnienie blokady odczytu
+        kopia.zamknij()
     w["metryki"] = _wiersze(w)
     w["ponizej_progu"] = [m["klucz"] for m in w["metryki"] if m["ocena"] == OCENA_PONIZEJ]
     w["bez_danych"] = [m["klucz"] for m in w["metryki"] if m["ocena"] in (OCENA_BRAK, OCENA_ZA_KROTKI)]
