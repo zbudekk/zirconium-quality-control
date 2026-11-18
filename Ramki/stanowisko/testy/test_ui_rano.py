@@ -151,6 +151,16 @@ def ekrany():
     gc.collect()  # reszta obiektow Pythona tego testu sprzatana teraz, w watku okna (D7)
 
 
+def zasoby_gui() -> tuple:
+    """(obiekty USER, obiekty GDI) procesu testow - diagnostyka zawieszenia startu procesu silnika (D7); poza Windows ()."""
+    if os.name != "nt":
+        return ()
+    import ctypes
+
+    proces = ctypes.windll.kernel32.GetCurrentProcess()
+    return ctypes.windll.user32.GetGuiResources(proces, 1), ctypes.windll.user32.GetGuiResources(proces, 0)
+
+
 def oczekiwane_gniazda() -> dict:
     """Tabela oczekiwan scenariusza porannego (piec 2): (numer plytki, gniazdo) -> (klasa pracy porannej, projekt w gniezdzie)."""
     from stanowisko import kontroler_api as K
@@ -214,6 +224,155 @@ def test_k1_trzy_plytki_pieca_podpisy_i_kolory_100_proc(atrapa, ekrany):
     stan = atrapa.stan()
     assert stan.rano.plytka(skany[5]).gniazdo(3).praca.konflikt_z == ((6, 11),)
     print(f"\n[kryterium 1] 3 plytki, {gniazd} gniazd: kolor (dane i piksel), kuweta, zab i miniatura zgodne w {gniazd} z {gniazd}")
+
+
+def test_k1_prawdziwy_kontroler_trzy_plytki_przez_skaner_i_petla_okna(tmp_path, ekrany):
+    """Prawdziwa ``Aplikacja``: tryb "Poranek" przyciskiem na pasku, trzy pliki skanow (3 x 23 prace) do folderu skanera, analiza
+    sztuczna w procesie silnika, wynik do sesji pieca (A6). (1) mapa = tabela oczekiwan w 100 % gniazd; potem osoba klika zolte
+    gniazda, wybiera kandydata i potwierdza kuwete (Enter). Przez caly czas (analizy i klikniecia) zegar co 10 ms mierzy
+    najdluzsza przerwe petli okna - prog 200 ms. Na poczatku modulu (D7, raport E3-A7 runda 2): na PC start procesu silnika
+    PO ok. 30 testach z oknami zawisal w ~1/3 przebiegow w ``multiprocessing.popen_spawn_win32`` (proces potomny nie czyta lacza,
+    ``Process.start()`` czeka bez konca) - mimo zerwania cykli okno-ekran i usuwania okien w watku okna; obserwacja ``gc.callbacks``:
+    0 zbieran GC poza watkiem okna takze w przebiegach z zawieszeniem, wiec przyczyna nie jest GC obiektow Qt. Naprawa w silniku
+    (start procesu z limitem czasu) - POTRZEBUJE A2. Diagnostyka zostaje: przy zawieszeniu zrzut watkow, kod wyjscia procesu
+    potomnego, zasoby USER / GDI."""
+    from PySide6.QtCore import QEventLoop, Qt, QTimer
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QWidget
+
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+
+    import threading
+
+    gc.collect()
+    zbierania_poza = []
+
+    def obserwuj_gc(faza, info):  # diagnostyka D7: zbieranie cykli w innym watku niz watek okna
+        if faza == "stop" and threading.current_thread() is not threading.main_thread() and info.get("collected"):
+            zbierania_poza.append((threading.current_thread().name, info["generation"], info["collected"]))
+
+    gc.callbacks.append(obserwuj_gc)
+    zasoby_na_poczatku = zasoby_gui()
+    st = TK.StanowiskoAplikacji(tmp_path)
+    try:
+        st.teraz = RANO_START
+        K.indeks_rano_sztuczny(st.k.sesja.baza, st.k.sesja.teraz())
+        st.k.wybierz_operatora("Technik A")
+        e = ekrany(st.k)
+        e.klik("przycisk_przelacz_tryb")
+        assert st.k.stan().tryb == "rano" and e.okno.rano()
+        czasy_ekranu = []
+        prawdziwe = e.okno.pokaz_stan
+
+        def mierzone(stan):
+            t0 = time.perf_counter()
+            prawdziwe(stan)
+            czasy_ekranu.append(time.perf_counter() - t0)
+
+        e.okno.pokaz_stan = mierzone
+        plan = K.plan_scenariusza_rano()
+        pomiar = {"ostatni": time.perf_counter(), "przerwa": 0.0, "tykniec": 0, "zrobione": set(), "w_kroku": False, "klikaj": False}
+        zolte = {4: 9, 5: 14}
+        petla = QEventLoop()
+
+        def tyk():
+            teraz = time.perf_counter()
+            pomiar["przerwa"] = max(pomiar["przerwa"], teraz - pomiar["ostatni"])
+            pomiar["ostatni"] = teraz
+            pomiar["tykniec"] += 1
+            if pomiar["w_kroku"]:
+                return
+            rano = st.k.stan().rano
+            if not pomiar["klikaj"]:
+                if rano is not None and len(rano.plytki) == 3 and len(e.rano.mapy()) == 3:
+                    petla.quit()  # faza 1: wszystkie plytki policzone i na ekranie
+                return
+            mapy = e.rano.mapy()
+            for p in rano.plytki:
+                nr = zolte.get(p.numer)
+                if nr is not None and p.numer not in pomiar["zrobione"] and p.skan_id in mapy and not e.rano.ochrona_aktywna():
+                    pomiar["w_kroku"] = True
+                    mapa = mapy[p.skan_id]
+                    QTest.mouseClick(mapa, Qt.MouseButton.LeftButton, pos=mapa.srodek_gniazda(nr).toPoint())
+                    b = e.okno.findChild(QWidget, "kandydat_1_wybierz")
+                    if b is not None and b.isEnabled():
+                        QTest.mouseClick(b, Qt.MouseButton.LeftButton)
+                        QTest.keyClick(e.okno, Qt.Key.Key_Return)
+                        pomiar["zrobione"].add(p.numer)
+                    pomiar["w_kroku"] = False
+                    break
+            if pomiar["zrobione"] == {4, 5}:
+                petla.quit()
+
+        zegar = QTimer()
+        zegar.setInterval(10)
+        zegar.timeout.connect(tyk)
+        limit = QTimer()
+        limit.setSingleShot(True)
+        limit.timeout.connect(petla.quit)
+        for numer, (gniazda, projekty) in plan.items():
+            st.zapisz(st.opis_rano(numer, gniazda, projekty, spij=0.8))
+        zegar.start()
+        limit.start(120_000)
+        t0 = time.perf_counter()
+        petla.exec()
+        czas_analiz = time.perf_counter() - t0
+        zegar.stop()  # zegar 10 ms zalewa kolejke Windows - zwykle zegary okna (przygaszenie map 800 ms) czekalyby w nieskonczonosc
+        rano = st.k.stan().rano
+        if rano is None or len(rano.plytki) != 3:  # diagnostyka zawieszenia startu procesu silnika (D7): watki i zbieranie GC poza watkiem okna
+            import faulthandler
+            import sys
+
+            faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
+            print(f"GC poza watkiem okna: {zbierania_poza}", file=sys.stderr)
+            import subprocess
+
+            polecenie = (f"Get-CimInstance Win32_Process -Filter 'ParentProcessId={os.getpid()}' | Format-List ProcessId,Name,CreationDate; "
+                         "Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=(Get-Date).AddMinutes(-5)} -ErrorAction SilentlyContinue "
+                         "| Where-Object { $_.Id -in 1000,1001,1026 } | Format-List TimeCreated,Id,Message")
+            wynik = subprocess.run(["powershell", "-NoProfile", "-Command", polecenie], capture_output=True, text=True, timeout=60)
+            print("procesy potomne i bledy aplikacji:", wynik.stdout, wynik.stderr, sep="\n", file=sys.stderr)
+            print(f"obiekty USER / GDI okna: {zasoby_gui()} (na poczatku testu {zasoby_na_poczatku})", file=sys.stderr)
+            from multiprocessing import popen_spawn_win32
+            import _winapi
+
+            for obiekt in gc.get_objects():  # proces potomny tworzony w zawieszonym ``Process.start()``: kod wyjscia (0xC0000142 = DLL init)
+                if isinstance(obiekt, popen_spawn_win32.Popen) and getattr(obiekt, "_handle", None) is not None:
+                    try:
+                        kod = _winapi.GetExitCodeProcess(int(obiekt._handle))
+                    except OSError as blad:
+                        kod = f"blad {blad}"
+                    print(f"proces potomny pid {obiekt.pid}: kod wyjscia {kod if isinstance(kod, str) else hex(kod & 0xFFFFFFFF)} "
+                          f"(0x103 = dziala)", file=sys.stderr)
+        assert rano.otwarty and [p.numer for p in rano.plytki] == [4, 5, 6] and all(len(p.prace) == 23 for p in rano.plytki), (
+            st.k.stan().kolejka, st.k.silnik.stan() if st.k.silnik is not None else None)
+        skany = {p.numer: p.skan_id for p in rano.plytki}
+        oczekiwane = {k: v for k, v in oczekiwane_gniazda().items() if k != POPRAWKA}  # bez pieca 1: projekt 301 to zwykla praca
+        oczekiwane[POPRAWKA] = ("pewna", 301)
+        prawda = SR.SesjaRano(st.k.sesja).stan_pieca()
+        assert {(s["numer_plytki"], p["gniazdo"]): p["klasa"] for s in prawda["skany"] for p in s["prace"]} == {k: v[0] for k, v in oczekiwane.items()}
+        assert sum(sprawdz_plytke(e, n, skany[n], oczekiwane) for n in (4, 5, 6)) == 72
+        assert st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM skany WHERE tryb = 'rano' AND sesja_pieca_id IS NOT NULL")["n"] == 3
+        # faza 2: osoba rozstrzyga zolte i potwierdza kuwete - nadal pomiar petli okna
+        e.po_ochronie_rano()
+        pomiar["klikaj"], pomiar["ostatni"] = True, time.perf_counter()
+        zegar.start()
+        limit.start(60_000)
+        petla.exec()
+        zegar.stop()
+        print(f"\n[rano, petla okna, prawdziwy kontroler] 3 plytki x 23 prace policzone w {czas_analiz:.1f} s; najdluzsza przerwa "
+              f"{pomiar['przerwa'] * 1000:.0f} ms (prog {UW.PROG_PRZERWY_S * 1000:.0f} ms); odswiezen ekranu {len(czasy_ekranu)}, najdluzsze "
+              f"{max(czasy_ekranu) * 1000:.1f} ms; tykniec {pomiar['tykniec']}")
+        rano = st.k.stan().rano
+        assert pomiar["zrobione"] == {4, 5} and sum(1 for p in rano.plytki for x in p.prace if x.decyzja == "wybor_kandydata") == 2
+        assert sum(1 for k in rano.kuwety if k.potwierdzona) == 2
+        assert pomiar["tykniec"] >= 100 and pomiar["przerwa"] <= UW.PROG_PRZERWY_S
+        assert max(czasy_ekranu) <= UW.PROG_PRZERWY_S / 2
+        print(f"[D7] zbierania GC poza watkiem okna w tescie: {zbierania_poza}; obiekty USER / GDI: {zasoby_na_poczatku} -> {zasoby_gui()}")
+    finally:
+        gc.callbacks.remove(obserwuj_gc)
+        st.koniec()
 
 
 # ----------------------------------------------------------------------------
@@ -981,136 +1140,3 @@ def test_r2_a6r4_nowy_wsad_pytanie_w_oknie_numer_mimo_i_przeniesienie(atrapa, ek
     e.klik("przycisk_cofnij_przeniesienie")  # A6 runda 5: pomylka - skany wracaja do poprzedniego pieca
     e.czekaj(lambda: len(e.mapy()) == 2, 5.0, "poprzedni piec z powrotem")
     assert e.jest("pytanie_nowy_wsad") and not e.jest("przycisk_cofnij_przeniesienie")
-
-
-def test_k1_prawdziwy_kontroler_trzy_plytki_przez_skaner_i_petla_okna(tmp_path, ekrany):
-    """Prawdziwa ``Aplikacja``: tryb "Poranek" przyciskiem na pasku, trzy pliki skanow (3 x 23 prace) do folderu skanera, analiza
-    sztuczna w procesie silnika, wynik do sesji pieca (A6). (1) mapa = tabela oczekiwan w 100 % gniazd; potem osoba klika zolte
-    gniazda, wybiera kandydata i potwierdza kuwete (Enter). Przez caly czas (analizy i klikniecia) zegar co 10 ms mierzy
-    najdluzsza przerwe petli okna - prog 200 ms. Celowo NA KONCU modulu (recenzja PR #26, D7): okna poprzednich testow sa zamkniete
-    i usuniete w watku okna (fixture ``ekrany``), ekran nie ma cykli referencji z oknem - start procesu silnika nie zbiera juz
-    obiektow Qt w watku nadzorcy."""
-    from PySide6.QtCore import QEventLoop, Qt, QTimer
-    from PySide6.QtTest import QTest
-    from PySide6.QtWidgets import QWidget
-
-    from stanowisko import kontroler_api as K
-    from stanowisko import session_rano as SR
-
-    import threading
-
-    gc.collect()
-    zbierania_poza = []
-
-    def obserwuj_gc(faza, info):  # diagnostyka D7: zbieranie cykli w innym watku niz watek okna
-        if faza == "stop" and threading.current_thread() is not threading.main_thread() and info.get("collected"):
-            zbierania_poza.append((threading.current_thread().name, info["generation"], info["collected"]))
-
-    gc.callbacks.append(obserwuj_gc)
-    st = TK.StanowiskoAplikacji(tmp_path)
-    try:
-        st.teraz = RANO_START
-        K.indeks_rano_sztuczny(st.k.sesja.baza, st.k.sesja.teraz())
-        st.k.wybierz_operatora("Technik A")
-        e = ekrany(st.k)
-        e.klik("przycisk_przelacz_tryb")
-        assert st.k.stan().tryb == "rano" and e.okno.rano()
-        czasy_ekranu = []
-        prawdziwe = e.okno.pokaz_stan
-
-        def mierzone(stan):
-            t0 = time.perf_counter()
-            prawdziwe(stan)
-            czasy_ekranu.append(time.perf_counter() - t0)
-
-        e.okno.pokaz_stan = mierzone
-        plan = K.plan_scenariusza_rano()
-        pomiar = {"ostatni": time.perf_counter(), "przerwa": 0.0, "tykniec": 0, "zrobione": set(), "w_kroku": False, "klikaj": False}
-        zolte = {4: 9, 5: 14}
-        petla = QEventLoop()
-
-        def tyk():
-            teraz = time.perf_counter()
-            pomiar["przerwa"] = max(pomiar["przerwa"], teraz - pomiar["ostatni"])
-            pomiar["ostatni"] = teraz
-            pomiar["tykniec"] += 1
-            if pomiar["w_kroku"]:
-                return
-            rano = st.k.stan().rano
-            if not pomiar["klikaj"]:
-                if rano is not None and len(rano.plytki) == 3 and len(e.rano.mapy()) == 3:
-                    petla.quit()  # faza 1: wszystkie plytki policzone i na ekranie
-                return
-            mapy = e.rano.mapy()
-            for p in rano.plytki:
-                nr = zolte.get(p.numer)
-                if nr is not None and p.numer not in pomiar["zrobione"] and p.skan_id in mapy and not e.rano.ochrona_aktywna():
-                    pomiar["w_kroku"] = True
-                    mapa = mapy[p.skan_id]
-                    QTest.mouseClick(mapa, Qt.MouseButton.LeftButton, pos=mapa.srodek_gniazda(nr).toPoint())
-                    b = e.okno.findChild(QWidget, "kandydat_1_wybierz")
-                    if b is not None and b.isEnabled():
-                        QTest.mouseClick(b, Qt.MouseButton.LeftButton)
-                        QTest.keyClick(e.okno, Qt.Key.Key_Return)
-                        pomiar["zrobione"].add(p.numer)
-                    pomiar["w_kroku"] = False
-                    break
-            if pomiar["zrobione"] == {4, 5}:
-                petla.quit()
-
-        zegar = QTimer()
-        zegar.setInterval(10)
-        zegar.timeout.connect(tyk)
-        limit = QTimer()
-        limit.setSingleShot(True)
-        limit.timeout.connect(petla.quit)
-        for numer, (gniazda, projekty) in plan.items():
-            st.zapisz(st.opis_rano(numer, gniazda, projekty, spij=0.8))
-        zegar.start()
-        limit.start(120_000)
-        t0 = time.perf_counter()
-        petla.exec()
-        czas_analiz = time.perf_counter() - t0
-        zegar.stop()  # zegar 10 ms zalewa kolejke Windows - zwykle zegary okna (przygaszenie map 800 ms) czekalyby w nieskonczonosc
-        rano = st.k.stan().rano
-        if rano is None or len(rano.plytki) != 3:  # diagnostyka zawieszenia startu procesu silnika (D7): watki i zbieranie GC poza watkiem okna
-            import faulthandler
-            import sys
-
-            faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
-            print(f"GC poza watkiem okna: {zbierania_poza}", file=sys.stderr)
-            import subprocess
-
-            polecenie = (f"Get-CimInstance Win32_Process -Filter 'ParentProcessId={os.getpid()}' | Format-List ProcessId,Name,CreationDate; "
-                         "Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=(Get-Date).AddMinutes(-5)} -ErrorAction SilentlyContinue "
-                         "| Where-Object { $_.Id -in 1000,1001,1026 } | Format-List TimeCreated,Id,Message")
-            wynik = subprocess.run(["powershell", "-NoProfile", "-Command", polecenie], capture_output=True, text=True, timeout=60)
-            print("procesy potomne i bledy aplikacji:", wynik.stdout, wynik.stderr, sep="\n", file=sys.stderr)
-        assert rano.otwarty and [p.numer for p in rano.plytki] == [4, 5, 6] and all(len(p.prace) == 23 for p in rano.plytki), (
-            st.k.stan().kolejka, st.k.silnik.stan() if st.k.silnik is not None else None)
-        skany = {p.numer: p.skan_id for p in rano.plytki}
-        oczekiwane = {k: v for k, v in oczekiwane_gniazda().items() if k != POPRAWKA}  # bez pieca 1: projekt 301 to zwykla praca
-        oczekiwane[POPRAWKA] = ("pewna", 301)
-        prawda = SR.SesjaRano(st.k.sesja).stan_pieca()
-        assert {(s["numer_plytki"], p["gniazdo"]): p["klasa"] for s in prawda["skany"] for p in s["prace"]} == {k: v[0] for k, v in oczekiwane.items()}
-        assert sum(sprawdz_plytke(e, n, skany[n], oczekiwane) for n in (4, 5, 6)) == 72
-        assert st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM skany WHERE tryb = 'rano' AND sesja_pieca_id IS NOT NULL")["n"] == 3
-        # faza 2: osoba rozstrzyga zolte i potwierdza kuwete - nadal pomiar petli okna
-        e.po_ochronie_rano()
-        pomiar["klikaj"], pomiar["ostatni"] = True, time.perf_counter()
-        zegar.start()
-        limit.start(60_000)
-        petla.exec()
-        zegar.stop()
-        print(f"\n[rano, petla okna, prawdziwy kontroler] 3 plytki x 23 prace policzone w {czas_analiz:.1f} s; najdluzsza przerwa "
-              f"{pomiar['przerwa'] * 1000:.0f} ms (prog {UW.PROG_PRZERWY_S * 1000:.0f} ms); odswiezen ekranu {len(czasy_ekranu)}, najdluzsze "
-              f"{max(czasy_ekranu) * 1000:.1f} ms; tykniec {pomiar['tykniec']}")
-        rano = st.k.stan().rano
-        assert pomiar["zrobione"] == {4, 5} and sum(1 for p in rano.plytki for x in p.prace if x.decyzja == "wybor_kandydata") == 2
-        assert sum(1 for k in rano.kuwety if k.potwierdzona) == 2
-        assert pomiar["tykniec"] >= 100 and pomiar["przerwa"] <= UW.PROG_PRZERWY_S
-        assert max(czasy_ekranu) <= UW.PROG_PRZERWY_S / 2
-        print(f"[D7] zbierania GC poza watkiem okna w tescie: {zbierania_poza}")
-    finally:
-        gc.callbacks.remove(obserwuj_gc)
-        st.koniec()
