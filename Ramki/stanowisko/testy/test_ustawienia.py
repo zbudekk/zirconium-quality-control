@@ -141,8 +141,8 @@ def test_nowe_klucze_maja_domyslne_ze_wzoru(tmp_path):
     ust = UST.wczytaj_ustawienia(p)
     assert ust["inspect"]["pas_brzegu_od"] == "linia_i_plaszczyzna" and ust["synth"]["krawedz_rozmiar_max_mm"] == 0.40
     # wpis w pliku ma pierwszeństwo; zła wartość nadal jest błędem
-    p.write_text(stary.replace("[inspect]", '[inspect]\npas_brzegu_od = "linia"'), encoding="utf-8")
+    p.write_text(stary.replace("\n[inspect]\n", '\n[inspect]\npas_brzegu_od = "linia"\n'), encoding="utf-8")
     assert UST.wczytaj_ustawienia(p)["inspect"]["pas_brzegu_od"] == "linia"
-    p.write_text(stary.replace("[inspect]", '[inspect]\npas_brzegu_od = "obok"'), encoding="utf-8")
+    p.write_text(stary.replace("\n[inspect]\n", '\n[inspect]\npas_brzegu_od = "obok"\n'), encoding="utf-8")
     with pytest.raises(UST.BladUstawien, match="pas_brzegu_od"):
         UST.wczytaj_ustawienia(p)

@@ -771,8 +771,11 @@ class Okno(QMainWindow):
         wynik = z.get("wynik")
         self.wynik_paczki = wynik
         if wynik is None:
-            self._ocena("czerwony", f"Pakowanie nie udało się: {z.get('blad')}. Zebrane pliki są bezpieczne w folderze sesji: {self.sesja.folder}")
+            self._ocena("czerwony", f"Pakowanie nie udało się: {z.get('blad')}. Zebrane pliki są bezpieczne w folderze sesji: {self.sesja.folder}\n"
+                                    "Sesja NIE jest oznaczona jako spakowana (poprzednia paczka, jeśli była, została bez zmian). "
+                                    "Usuń przyczynę i kliknij „Zakończ i spakuj” jeszcze raz.")
             self._dziennik(f"Pakowanie nie udało się: {z.get('blad')}", blad=True)
+            self._odswiez_kroki()
             return
         czesci = "\n".join(f"• {c['sciezka']}  ({R.tekst_rozmiaru(c['rozmiar'])})" for c in wynik["czesci"])
         tekst = (f"Sesja spakowana: {wynik['plikow']} plików, {R.tekst_rozmiaru(wynik['bajtow'])}.\n\nDo wysłania koordynatorowi ({len(wynik['czesci'])} plik(i) ZIP):\n{czesci}\n\n"
@@ -791,6 +794,15 @@ class Okno(QMainWindow):
         self._otworz_folder(self.sesja.folder / R.KATALOG_PACZKI)
 
     def closeEvent(self, ev) -> None:  # noqa: N802
+        # zamkniecie w trakcie pakowania: ostrzezenie; po "Tak" pakowanie jest przerywane bezpiecznie (rdzen: nowe archiwum powstaje pod nazwa
+        # tymczasowa, znaczniki "spakowano" dopiero po sukcesie - sesja zostaje niespakowana, poprzednia paczka nietknieta)
+        if self._pakowanie and self._bezpiecznie(
+                self._pytaj_tak_nie, "Trwa pakowanie sesji",
+                "Program właśnie pakuje sesję (raport, sumy, archiwum ZIP).\n\nJeśli zamkniesz okno teraz, paczka NIE powstanie i sesja nie będzie oznaczona "
+                "jako spakowana. Zebrane pliki zostają w folderze sesji; po ponownym uruchomieniu trzeba kliknąć „Zakończ i spakuj” jeszcze raz.\n\n"
+                "Zamknąć okno mimo to? (Nie = poczekaj na koniec pakowania)", False) is False:
+            ev.ignore()
+            return
         self._bezpiecznie(self._zapisz_teksty)
         self._przerwij_szukanie.set()
         self.zegar.stop()

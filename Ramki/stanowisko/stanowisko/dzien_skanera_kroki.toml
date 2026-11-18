@@ -355,7 +355,8 @@ Ostatni krok. Zabezpiecza wszystko, czego nie widać: pliki zleceń, ustawienia 
 1. W programie skanera zapisz otwarte zlecenie (niczego nie kasuj). Program może zostać otwarty.
 2. Kliknij poniżej „Skopiuj cały folder zleceń skanera”. Okno skopiuje CAŁĄ zawartość obserwowanych folderów. Może to potrwać kilka minut — pasek pokaże postęp.
 3. Jeśli program skanera trzyma dane jeszcze w innym folderze (np. folder z „Order Save Path” jest inny niż obserwowany) — dodaj go przyciskiem „Dodaj folder ręcznie”.
-4. Gdy kopia się skończy, kliknij „Zakończ i spakuj” (na dole po lewej). Powstanie raport i archiwum ZIP do wysłania.
+4. Jeśli okno napisze na czerwono, że kopia jest NIEPEŁNA (plik zajęty, brak miejsca, przerwanie) — usuń przyczynę i kliknij przycisk kopii jeszcze raz. Skopiuje tylko to, czego brakuje.
+5. Gdy kopia się skończy, kliknij „Zakończ i spakuj” (na dole po lewej). Powstanie raport i archiwum ZIP do wysłania. Nie zamykaj okna, dopóki pakowanie trwa.
 
 Dopiero po spakowaniu zamknij program skanera.
 """
