@@ -718,8 +718,10 @@ def test_b2_dwie_rozne_plytki_z_tym_samym_numerem_blokada_i_brak_w_planie(st):
     plan = st.rano.plan_plytek()
     assert stan["zdublowane_plytki"] == [4] and stan["konflikty"] == [] and any("plytka 4" in x for x in stan["blokady"])
     assert plan["plytki"] == {} and plan["pominiete"]["zdublowane_plytki"] == [4] and waliduj_plan(plan)
-    assert odmowa_zamkniecia(st.rano)
-    st.rano.podaj_numer_plytki(b, 5)
+    assert odmowa_zamkniecia(st.rano) and stan["do_potwierdzenia"] == [] and stan["nowy_wsad"]["skany"] == [b]
+    with pytest.raises(SE.BladSesji, match="nowy wsad"):
+        st.rano.podaj_numer_plytki(b, 5)  # r3 P1: inne prace na obu skanach - zmiana numeru tylko swiadomie
+    st.rano.podaj_numer_plytki(b, 5, mimo_nowego_wsadu=True)
     plan = st.rano.plan_plytek()
     assert st.rano.stan_pieca()["blokady"] == [] and sorted(plan["plytki"]) == ["4", "5"] and plan["skany"] == {"4": a, "5": b}
     assert [g.get("kuweta") for g in plan["plytki"]["4"]["gniazda"]] == ["3263", "3263"] and waliduj_plan(plan)
@@ -993,7 +995,7 @@ def test_r2_d4_d5_d6_d7(st):
     # D6: dwie rozne plytki z numerem 6
     st.skan(rano(6, "2026-11-18T10:10:00", [{"g": 2, "k": [["X11", 0.95]]}]))
     st.skan(rano(6, "2026-11-18T10:12:00", [{"g": 2, "k": [["X12", 0.95]]}]))
-    assert any("plytka 6" in x and "wspolnych prac: 0" in x and "rozne plytki" in x for x in st.rano.stan_pieca()["blokady"])
+    assert any("plytka 6" in x and "wspolnych prac: 0" in x and "nowy wsad" in x for x in st.rano.stan_pieca()["blokady"])
     st.rano.pomin_skan(st.rano.stan_pieca()["skany"][-1]["id"])
     assert a and st.rano.stan_pieca()["blokady"] == []
     # D7: okragle plytki nr 9 obu generacji w jednym piecu
@@ -1002,3 +1004,78 @@ def test_r2_d4_d5_d6_d7(st):
     stan = st.rano.stan_pieca()
     assert stan["blokady"] == [] and stan["zdublowane_plytki"] == [] and sum("okragla" in x for x in stan["ostrzezenia"]) >= 2
     st.rano.zamknij_piec()
+
+
+# --- runda 4 (recenzja PR #23 runda 3: raport_recenzenta_PR23_runda3.md, proby R3-S1..S7) --------------
+def test_r3_p1_zapomniany_zamknij_piec_nowy_wsad(st):
+    """R3-S2: piec niezamkniety, nastepny wsad z plytka 4 trafia do tego samego pieca - bez propozycji zastapienia (0 wspolnych prac),
+    blokada radzi najpierw "nowy wsad - zamknij piec", zmiana numeru odmawia, plan bez plytki 4; zamknij_piec_i_przenies zamyka
+    stary wsad bez nowego skanu i otwiera nowy piec, w ktorym plan plytki 4 ma kuwety nowego wsadu."""
+    a = st.skan(rano(4, "2026-11-18T07:00:00", [{"g": 2, "k": [["X11", 0.95]]}, {"g": 3, "k": [["X12", 0.95]]}]))
+    st.skan(rano(5, "2026-11-18T07:05:00", [{"g": 2, "k": [["Y21", 0.95]]}]))
+    nowy = st.skan(rano(4, "2026-11-18T08:30:00", [{"g": 2, "k": [["Z31", 0.95]]}, {"g": 3, "k": [["Q46", 0.95]]}]))
+    stan = st.rano.stan_pieca()
+    assert st.skan_wiersz(nowy)["sesja_pieca_id"] == st.skan_wiersz(a)["sesja_pieca_id"] and stan["do_potwierdzenia"] == []
+    blokada = next(x for x in stan["blokady"] if x.startswith("plytka 4"))
+    assert "to chyba nowy wsad" in blokada and "nie zostal zamkniety" in blokada and "07:00" in blokada and "08:30" in blokada
+    assert stan["nowy_wsad"] == {"plytki": [4], "skany": [nowy]} and "4" not in st.rano.plan_plytek()["plytki"]
+    with pytest.raises(SE.BladSesji, match="nowy wsad"):
+        st.rano.podaj_numer_plytki(nowy, 6)
+    w = st.rano.zamknij_piec_i_przenies([nowy])
+    assert w["zamkniety"]["sesja_pieca_id"] == 1 and braki_skrot(w["zamkniety"]["braki"]) == [
+        ("3263", [("13", "brak_po_piecu")]), ("3301", [("22", "brak_po_piecu")])]
+    assert w["nowy_piec"]["id"] == 2 and st.skan_wiersz(nowy)["sesja_pieca_id"] == 2
+    plan = st.rano.plan_plytek()
+    assert skrot_planu(plan)[0] == {"4": [(2, "zielony", "412"), (3, "zielony", "#1234")]} and waliduj_plan(plan)
+    assert st.liczba("zdarzenia WHERE typ = 'skany_przeniesione_rano'") == 1
+    with pytest.raises(SE.BladSesji, match="nie zostalby zaden skan"):
+        st.rano.zamknij_piec_i_przenies([nowy])
+
+
+def test_r3_p2_ponowny_skan_w_piecu_przez_0600_po_ponad_60_min(st):
+    """R3-S1: plytka 4 o 05:00, plytka 5 o 05:50, ponowny skan plytki 4 o 06:40 - jeden piec, propozycja, zastapienie przyjete
+    (session z A1p: ten sam piec najwyzej 12 h)."""
+    a = st.skan(rano(4, "2026-11-18T05:00:00", [{"g": 2, "k": [["X11", 0.95]]}, {"g": 3, "k": [["X12", 0.95]]}]))
+    st.skan(rano(5, "2026-11-18T05:50:00", [{"g": 2, "k": [["Y21", 0.95]]}]))
+    b = st.skan(rano(4, "2026-11-18T06:40:00", [{"g": 2, "k": [["X11", 0.95]]}, {"g": 3, "k": [["X12", 0.95]]}]))
+    stan = st.rano.stan_pieca()
+    assert [(x["skan_id"], x["poprzedni_id"], x["wspolnych_prac"]) for x in stan["do_potwierdzenia"]] == [(b, a, 2)]
+    st.rano.zastap_skan(b)
+    assert st.skan_wiersz(a)["status"] == "zastapiony" and st.rano.stan_pieca()["blokady"] == []
+
+
+def test_r3_d1_piec_najwyzej_12_h_od_otwarcia(st):
+    """R3-S3: lancuch skanow co 80 min od 18.11 05:00 - piec biezacy najwyzej 12 h od otwarcia (session.PONOWNY_SKAN_PIEC_MAX_H);
+    w tej samej dobie tez: piec z 06:30 nie przyjmuje skanu o 18:45."""
+    assert SE.PONOWNY_SKAN_PIEC_MAX_H == 12
+    piece = []
+    for k in range(11):  # 05:00, 06:20, ..., 17:00 (k = 9, rowno 12 h), 18:20 (k = 10)
+        czas = (dt.datetime(2026, 11, 18, 5, 0) + dt.timedelta(minutes=80 * k)).isoformat()
+        s = st.skan(rano(4 + k % 3, czas, [{"g": 2 + k, "k": [["X11", 0.95]]}]))
+        piece.append(st.skan_wiersz(s)["sesja_pieca_id"])
+    assert piece == [1] * 10 + [2]
+    st.skan(rano(4, "2026-11-19T06:30:00", [{"g": 2, "k": [["Y21", 0.95]]}]))
+    nr = st.rano.otwarty_piec()["id"]
+    s = st.skan(rano(5, "2026-11-19T18:45:00", [{"g": 2, "k": [["Y22", 0.95]]}]))
+    assert st.skan_wiersz(s)["sesja_pieca_id"] == nr + 1
+
+
+def test_r3_d2_aktywnosc_pieca_tylko_ze_skanow_ktore_sie_licza(st):
+    """R3-S7: program w trybie "Poranek" przez noc - plytki wieczorne (zablokowane) co 85 min nie przedluzaja porannego pieca;
+    pierwsza plytka nastepnego ranka trafia do nowego pieca (nie do pieca z poprzedniej doby)."""
+    st.skan(rano(4, "2026-11-18T05:30:00", [{"g": 2, "k": [["X11", 0.95]]}]))  # piec doby 17.11
+    for k in range(1, 4):  # 06:55, 08:20, 09:45 - plytki wieczorne: plytka_nie_z_trybu
+        czas = (dt.datetime(2026, 11, 18, 5, 30) + dt.timedelta(minutes=85 * k)).isoformat()
+        s = st.skan(rano(2, czas, [{"g": 2, "k": [["Y21", 0.95]]}], plytka="wieczorna"))
+        assert st.skan_wiersz(s)["status"] == "plytka_nie_z_trybu"
+    ranek = st.skan(rano(5, "2026-11-18T10:30:00", [{"g": 2, "k": [["X12", 0.95]]}]))
+    piec = st.sesja.baza.wiersz("SELECT * FROM sesje_pieca WHERE id = ?", (st.skan_wiersz(ranek)["sesja_pieca_id"],))
+    assert piec["data"] == "2026-11-18" and piec["id"] != 1
+
+
+def test_r3_d3_piece_doby_pokazuja_piec_przez_0600(st):
+    """R3-S6: wsad 05:50 / 06:05 - piec 2026-11-17-p1 jest na liscie piecow obu dob."""
+    st.skan(rano(4, "2026-11-18T05:50:00", [{"g": 2, "k": [["X11", 0.95]]}]))
+    st.skan(rano(5, "2026-11-18T06:05:00", [{"g": 2, "k": [["X12", 0.95]]}]))
+    assert [(p["plan_id"], p["biezacy"], p["skanow"]) for p in st.rano.piece("2026-11-18")] == [("2026-11-17-p1", True, 2)]
+    assert [p["plan_id"] for p in st.rano.piece("2026-11-17")] == ["2026-11-17-p1"]
