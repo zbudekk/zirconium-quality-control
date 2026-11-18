@@ -1,0 +1,442 @@
+{
+ "skan": "skan_2026-11-17_19-44-09.stl",
+ "plytka": "wieczorna",
+ "plytka_wybor": "auto",
+ "uklad_auto": {
+  "wybrany": "wieczorna",
+  "pewny": true,
+  "powod": "rozstaw stozkow",
+  "kandydaci": [],
+  "czas_s": 2.1
+ },
+ "uklad_zgodny": true,
+ "wspolczynnik": 1.225,
+ "projekty": 16,
+ "foldery_projektow": [
+  "C:/atrapy/projekty"
+ ],
+ "numer": 3,
+ "numer_zrodlo": "podany",
+ "bity": [
+  null,
+  null,
+  null,
+  null
+ ],
+ "numer_z_dolkow": null,
+ "macierz_skan_do_plytki": [
+  [
+   1.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  [
+   0.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  [
+   0.0,
+   0.0,
+   1.0,
+   0.0
+  ],
+  [
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "jakosc_wyrownania": {
+  "punkty": 427190,
+  "stozki_dopasowane": 3,
+  "icp_rmse_mm": 0.079,
+  "uklad_zgodny": true,
+  "czas_s": 2.4
+ },
+ "gniazda": [
+  {
+   "gniazdo": 2,
+   "status_fragmentu": "praca",
+   "punkty": 18025,
+   "srodek": [
+    2.0,
+    -12.8,
+    12.2
+   ],
+   "status": "zielony",
+   "pewnosc": 0.75,
+   "czas_s": 0.8,
+   "uwagi": [],
+   "kandydaci": [
+    {
+     "id": "24b22d4d000947e0",
+     "zeby": [
+      "11"
+     ],
+     "typ": "korona",
+     "pokrycie": 0.91,
+     "rms_mm": 0.0231,
+     "pokrycie_odwrotne": 0.546,
+     "transformacja": [
+      [
+       1.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      [
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      [
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      [
+       0.0,
+       0.0,
+       0.0,
+       1.0
+      ]
+     ],
+     "metoda": "ransac",
+     "filtr_ok": true,
+     "powod_filtru": "",
+     "skala": {
+      "poprawka_proc": -0.12,
+      "zastosowana": true,
+      "powod": "",
+      "ostrzezenie": false,
+      "niepewna": false,
+      "wspolczynnik_puli": 1.225,
+      "wspolczynnik_ze_skanu": 1.22353,
+      "pokrycie_przed": 0.88,
+      "pokrycie_po": 0.91,
+      "punktow": 6800,
+      "punktow_w_pasie_brzegu": 9100,
+      "punktow_w_obszarach": 0,
+      "iteracje": 12,
+      "czas_s": 0.2
+     }
+    },
+    {
+     "id": "a15b5b27bcd59f33",
+     "zeby": [
+      "14"
+     ],
+     "typ": "korona",
+     "pokrycie": 0.16,
+     "rms_mm": 0.0231,
+     "pokrycie_odwrotne": 0.096,
+     "transformacja": [
+      [
+       1.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      [
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      [
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      [
+       0.0,
+       0.0,
+       0.0,
+       1.0
+      ]
+     ],
+     "metoda": "ransac",
+     "filtr_ok": true,
+     "powod_filtru": "",
+     "skala": null
+    }
+   ],
+   "skala": {
+    "poprawka_proc": -0.12,
+    "zastosowana": true,
+    "powod": "",
+    "ostrzezenie": false,
+    "niepewna": false,
+    "wspolczynnik_puli": 1.225,
+    "wspolczynnik_ze_skanu": 1.22353,
+    "pokrycie_przed": 0.88,
+    "pokrycie_po": 0.91,
+    "punktow": 6800,
+    "punktow_w_pasie_brzegu": 9100,
+    "punktow_w_obszarach": 0,
+    "iteracje": 12,
+    "czas_s": 0.2
+   },
+   "inspekcja": {
+    "gniazdo": 2,
+    "projekt": "24b22d4d000947e0",
+    "status": "ok",
+    "pokrycie": 0.9041,
+    "ubytki": [],
+    "plamy": [],
+    "wciecia": [],
+    "drgniecie": {
+     "wykryte": false,
+     "udzial_obszaru": 0.02,
+     "komorek": 220,
+     "udzial_nad": 0.08,
+     "najwieksza_plama": 0.6
+    },
+    "linia_brzegu": {
+     "punktow_linii": 7000,
+     "brak_danych": 90,
+     "udzial_brak_danych": 0.0129,
+     "udzial_ciagly": 0.98,
+     "wciec": 0
+    },
+    "odchylki": {
+     "punkty": 18000,
+     "udzial_pod": 0.03,
+     "udzial_nad": 0.005,
+     "rms_mm": 0.05,
+     "mediana_mm": -0.001
+    },
+    "uwagi": [],
+    "czas_s": 0.9,
+    "brzeg": {
+     "sprawdzony": true,
+     "stan_linii": "wiarygodne",
+     "filarow": 1,
+     "nie_sprawdzono": [],
+     "filary": [],
+     "opis": "",
+     "uwagi_linii": ""
+    },
+    "czas_linii_s": 0.0
+   },
+   "status_gniazda": "zielony"
+  },
+  {
+   "gniazdo": 3,
+   "status_fragmentu": "praca",
+   "punkty": 18025,
+   "srodek": [
+    3.0,
+    -12.8,
+    12.2
+   ],
+   "status": "zielony",
+   "pewnosc": 0.75,
+   "czas_s": 0.8,
+   "uwagi": [],
+   "kandydaci": [
+    {
+     "id": "c0c907be22a5f516",
+     "zeby": [
+      "22"
+     ],
+     "typ": "korona",
+     "pokrycie": 0.91,
+     "rms_mm": 0.0231,
+     "pokrycie_odwrotne": 0.546,
+     "transformacja": [
+      [
+       1.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      [
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      [
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      [
+       0.0,
+       0.0,
+       0.0,
+       1.0
+      ]
+     ],
+     "metoda": "ransac",
+     "filtr_ok": true,
+     "powod_filtru": "",
+     "skala": {
+      "poprawka_proc": -0.12,
+      "zastosowana": true,
+      "powod": "",
+      "ostrzezenie": false,
+      "niepewna": false,
+      "wspolczynnik_puli": 1.225,
+      "wspolczynnik_ze_skanu": 1.22353,
+      "pokrycie_przed": 0.88,
+      "pokrycie_po": 0.91,
+      "punktow": 6800,
+      "punktow_w_pasie_brzegu": 9100,
+      "punktow_w_obszarach": 0,
+      "iteracje": 12,
+      "czas_s": 0.2
+     }
+    },
+    {
+     "id": "24b22d4d000947e0",
+     "zeby": [
+      "11"
+     ],
+     "typ": "korona",
+     "pokrycie": 0.16,
+     "rms_mm": 0.0231,
+     "pokrycie_odwrotne": 0.096,
+     "transformacja": [
+      [
+       1.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      [
+       0.0,
+       1.0,
+       0.0,
+       0.0
+      ],
+      [
+       0.0,
+       0.0,
+       1.0,
+       0.0
+      ],
+      [
+       0.0,
+       0.0,
+       0.0,
+       1.0
+      ]
+     ],
+     "metoda": "ransac",
+     "filtr_ok": true,
+     "powod_filtru": "",
+     "skala": null
+    }
+   ],
+   "skala": {
+    "poprawka_proc": -0.12,
+    "zastosowana": true,
+    "powod": "",
+    "ostrzezenie": false,
+    "niepewna": false,
+    "wspolczynnik_puli": 1.225,
+    "wspolczynnik_ze_skanu": 1.22353,
+    "pokrycie_przed": 0.88,
+    "pokrycie_po": 0.91,
+    "punktow": 6800,
+    "punktow_w_pasie_brzegu": 9100,
+    "punktow_w_obszarach": 0,
+    "iteracje": 12,
+    "czas_s": 0.2
+   },
+   "inspekcja": {
+    "gniazdo": 3,
+    "projekt": "c0c907be22a5f516",
+    "status": "ok",
+    "pokrycie": 0.9041,
+    "ubytki": [],
+    "plamy": [],
+    "wciecia": [],
+    "drgniecie": {
+     "wykryte": false,
+     "udzial_obszaru": 0.02,
+     "komorek": 220,
+     "udzial_nad": 0.08,
+     "najwieksza_plama": 0.6
+    },
+    "linia_brzegu": {
+     "punktow_linii": 7000,
+     "brak_danych": 90,
+     "udzial_brak_danych": 0.0129,
+     "udzial_ciagly": 0.98,
+     "wciec": 0
+    },
+    "odchylki": {
+     "punkty": 18000,
+     "udzial_pod": 0.03,
+     "udzial_nad": 0.005,
+     "rms_mm": 0.05,
+     "mediana_mm": -0.001
+    },
+    "uwagi": [],
+    "czas_s": 0.9,
+    "brzeg": {
+     "sprawdzony": true,
+     "stan_linii": "wiarygodne",
+     "filarow": 1,
+     "nie_sprawdzono": [],
+     "filary": [],
+     "opis": "",
+     "uwagi_linii": ""
+    },
+    "czas_linii_s": 0.0
+   },
+   "status_gniazda": "zielony"
+  }
+ ],
+ "gniazda_puste": [
+  1,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19
+ ],
+ "gniazda_podwojne": [],
+ "poza_gniazdem": 0,
+ "fragmenty_drobne": 0,
+ "czas_s": {
+  "wczytanie": 2.0,
+  "plate": 2.4,
+  "match": 8.6,
+  "razem": 13.9,
+  "pula": 3.5,
+  "inspect": 0.9
+ },
+ "bez_filtru": false,
+ "inspekcja": true,
+ "statusy_gniazd": {
+  "zielony": 2,
+  "czerwony": 0,
+  "zolty": 0,
+  "szary": 0,
+  "pomaranczowy": 0
+ },
+ "ubytki": 0
+}

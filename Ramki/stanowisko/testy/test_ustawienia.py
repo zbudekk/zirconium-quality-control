@@ -102,7 +102,9 @@ def test_opcje_domyslne_z_toml():
 
 def test_toml_parsuje_sie_i_ma_sekcje_z_readme():
     with open(UST.PLIK_USTAWIEN, "rb") as f:
-        assert set(tomllib.load(f)) == {"sciezki", "plytki", "match", "inspect", "synth", "excel", "ramki"}
+        sekcje = set(tomllib.load(f))
+    wymagane = {"sciezki", "plytki", "match", "inspect", "synth", "excel", "ramki"}
+    assert wymagane <= sekcje <= wymagane | set(UST.SEKCJE_OPCJONALNE)  # E3-A1: sekcja [sesja] jest opcjonalna
 
 
 # --- repo: P2, P5 ------------------------------------------------------------------------
@@ -145,4 +147,83 @@ def test_nowe_klucze_maja_domyslne_ze_wzoru(tmp_path):
     assert UST.wczytaj_ustawienia(p)["inspect"]["pas_brzegu_od"] == "linia"
     p.write_text(stary.replace("\n[inspect]\n", '\n[inspect]\npas_brzegu_od = "obok"\n'), encoding="utf-8")
     with pytest.raises(UST.BladUstawien, match="pas_brzegu_od"):
+        UST.wczytaj_ustawienia(p)
+
+
+# --- E3-A1: klucze opcjonalne z wartoscia domyslna (plan etapu 3, sekcja 3.7) ---------------------
+# Klucze WYMAGANE w stanie sprzed etapu 3 (commit fe66217). Etap 3 dodaje wylacznie klucze opcjonalne:
+# stary lokalny ustawienia.toml ma dzialac bez recznych poprawek (R59 pkt 9.1).
+WYMAGANE_PRZED_ETAPEM_3 = {
+    "sciezki": ["baza", "folder_cyrkon", "folder_eksportu_skanera", "folder_millbox", "folder_prywatne", "log_excel"],
+    "plytki": ["poranna", "wieczorna"],
+    "match": ["filtr_objetosc_udzial", "filtr_wymiar_mm", "filtr_wymiar_udzial", "odleglosc_max_mm", "pewnosc_min", "prog_akceptacji_pokrycie",
+              "prog_ostrzezenia_pokrycie", "pula_rano_dni_roboczych", "pula_wieczor_dni", "usun_z_puli_po_dniach"],
+    "inspect": ["drgniecie_odchylka_mm", "drgniecie_udzial_obszaru", "drgniecie_udzial_w_komorce", "krawedz_pas_mm", "linia_min_udzial",
+                "min_punktow_plamy", "pas_brzegu_mm", "poprawka_min_mm", "prog_glebokosci_mm", "srednica_max_mm", "srednica_min_mm",
+                "wciecie_min_mm", "wciecie_pewne_mm"],
+    "synth": ["szum_sigma_mm", "wspolczynnik_max", "wspolczynnik_min"],
+    "excel": ["kolor_rgb", "kolumna_kuwety", "kolumna_nazwy", "kolumna_odhaczenia", "tryb_pytaj_przed_zapisem"],
+    "ramki": ["poranna_host", "port", "wieczorna_host"],
+}
+NOWE_E3_A1 = {"sciezki": {"wyniki": "dane/wyniki"}, "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0}}
+
+
+def test_e3_a1_nie_dodaje_kluczy_wymaganych():
+    wymagane = {s: sorted(set(klucze) - set(UST.DOMYSLNE_NOWYCH.get(s, {}))) for s, klucze in UST.SCHEMAT.items()}
+    assert {s: k for s, k in wymagane.items() if k} == WYMAGANE_PRZED_ETAPEM_3
+    assert set(UST.SEKCJE_OPCJONALNE) == {"sesja"}  # sekcja, ktorej wszystkie klucze maja wartosc domyslna, moze nie istniec w pliku
+    for sekcja, klucze in NOWE_E3_A1.items():
+        for k, v in klucze.items():
+            assert k in UST.SCHEMAT[sekcja] and UST.DOMYSLNE_NOWYCH[sekcja][k] == v, (sekcja, k)
+
+
+def _stary_plik(tmp_path, dopisek: str = ""):
+    """Wzor ustawien cofniety do stanu sprzed E3-A1: bez sekcji [sesja] i bez nowych kluczy."""
+    linie, w_sesji = [], False
+    for linia in UST.PLIK_PRZYKLADU.read_text(encoding="utf-8").splitlines():
+        if linia.startswith("["):
+            w_sesji = linia.startswith("[sesja]")
+        if not w_sesji and linia.split("=")[0].strip() != "wyniki":
+            linie.append(linia)
+    stary = "\n".join(linie) + "\n"
+    assert "[sesja]" not in stary and "operatorzy" not in stary and "wyniki" not in stary and "[ramki]" in stary
+    p = tmp_path / "ustawienia.toml"
+    p.write_text(stary + dopisek, encoding="utf-8")
+    return p
+
+
+def test_k10_stary_plik_ustawien_bez_nowych_kluczy_wczytuje_sie(tmp_path):
+    """Kryterium 10 E3-A1: plik ustawien sprzed etapu 3 wczytuje sie bez bledu, nowe klucze dostaja wartosci domyslne."""
+    p = _stary_plik(tmp_path)
+    ust = UST.wczytaj_ustawienia(p)
+    assert ust["sesja"] == {"operatorzy": [], "przechowuj_skany_dni": 0} and ust["sciezki"]["wyniki"] == "dane/wyniki"
+    assert ust == UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)  # wzor ma nowe klucze wpisane z wartosciami domyslnymi
+    ust["sesja"]["operatorzy"].append("Technik A")  # wartosc domyslna nie jest wspolna miedzy wczytaniami
+    assert UST.wczytaj_ustawienia(p)["sesja"]["operatorzy"] == [] and UST.DOMYSLNE_NOWYCH["sesja"]["operatorzy"] == []
+    # lokalny plik tej maszyny (na PC: kopia sprzed etapu 3) tez przechodzi i ma nowe klucze po wczytaniu
+    lokalny = UST.wczytaj_ustawienia(UST.PLIK_USTAWIEN)
+    assert isinstance(lokalny["sesja"]["operatorzy"], list) and lokalny["sciezki"]["wyniki"]
+
+
+def test_nowe_klucze_wpis_w_pliku_ma_pierwszenstwo(tmp_path):
+    p = _stary_plik(tmp_path, '\n[sesja]\noperatorzy = ["Technik A", "Technik B"]\n')
+    ust = UST.wczytaj_ustawienia(p)
+    assert ust["sesja"] == {"operatorzy": ["Technik A", "Technik B"], "przechowuj_skany_dni": 0}  # brakujacy klucz sekcji: domyslny
+    p = _stary_plik(tmp_path, "\n[sesja]\nprzechowuj_skany_dni = 30\n")
+    assert UST.wczytaj_ustawienia(p)["sesja"] == {"operatorzy": [], "przechowuj_skany_dni": 30}
+
+
+@pytest.mark.parametrize("dopisek,komunikat", [
+    ('[sesja]\noperatorzy = "Technik A"\n', r"\[sesja\] operatorzy: oczekiwano list"),
+    ('[sesja]\noperatorzy = ["Technik A", ""]\n', r"\[sesja\] operatorzy: lista niepustych"),
+    ('[sesja]\noperatorzy = ["Technik A", 7]\n', r"\[sesja\] operatorzy: lista niepustych"),
+    ('[sesja]\noperatorzy = ["Technik A", "Technik A"]\n', r"\[sesja\] operatorzy: lista niepustych"),
+    ("[sesja]\nprzechowuj_skany_dni = -1\n", r"\[sesja\] przechowuj_skany_dni: musi"),
+    ("[sesja]\nprzechowuj_skany_dni = 30.5\n", r"\[sesja\] przechowuj_skany_dni: oczekiwano int"),
+    ('[sesja]\noperator = "Technik A"\n', r"\[sesja\] operator: nieznany klucz"),
+    ('[sesje]\noperatorzy = []\n', r"\[sesje\]: nieznana sekcja"),
+])
+def test_nowe_klucze_zla_wartosc_nadal_jest_bledem(tmp_path, dopisek, komunikat):
+    p = _stary_plik(tmp_path, "\n" + dopisek)
+    with pytest.raises(UST.BladUstawien, match=r"^ustawienia\.toml: " + komunikat):
         UST.wczytaj_ustawienia(p)
