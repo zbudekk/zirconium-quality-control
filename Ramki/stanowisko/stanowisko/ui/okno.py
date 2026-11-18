@@ -147,6 +147,8 @@ class OknoWieczor(QWidget):
         self.pasek.odswiez_pule.connect(lambda: self._polecenie("odswiez_pule"))
         self.pasek.zmien_osobe.connect(self._przelacz_zmiane_osoby)
         self.pasek.przelacz_tryb.connect(self._przelacz_tryb)
+        self.pasek.test_led.connect(lambda: self._polecenie("test_led"))  # E3-A12: ramki
+        self.pasek.przejmij_ramke.connect(lambda rola: self._polecenie("przejmij_ramke", rola))
         korzen.addWidget(self.pasek)
         # E3-A7: dwie strony pod wspolnym paskiem - ekran wieczorny i poranny (``ekran_rano``); pokazana wg ``stan.tryb``
         self._strony = QStackedLayout()

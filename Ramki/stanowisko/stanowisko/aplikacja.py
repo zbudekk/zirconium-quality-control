@@ -16,7 +16,10 @@ oknu stan oraz polecenia opisane w ``kontroler_api`` (kontrakt dla ekranu - pacz
   w oknie testowym); liczba STL liczona w tle; bez projektow skany CZEKAJA (nie dostaja bledu) do "Odswiez pule";
 * zamkniecie: ``scanner.stop()``, potem ``silnik.stop()``, wyniki, ktore zdazyly przyjsc, sa przyjmowane, a zadania
   niezakonczone (w toku, w kolejce, wstrzymane) zapisywane do pliku obok bazy i zlecane ponownie po starcie;
-* akcja "start skanu" (DW5): interfejs ``Scanner.start_skanu`` z atrapa - zadnego automatu klikajacego w programie skanera.
+* akcja "start skanu" (DW5): interfejs ``Scanner.start_skanu`` z atrapa - zadnego automatu klikajacego w programie skanera;
+* ramki i Excel (E3-A12): ``Aplikacja(ust, ramki=True, excel=True)`` (``main``) - klienci ramek z ``[ramki]`` (``utworz_ramki``) i Excel
+  z ``[excel]`` (``utworz_excel``, polaczenie COM leniwe) przy starcie; brak ramki albo Excela = komunikat, praca dalej. Ramka W:
+  Spacja, skan bez Spacji (``znacznik``), start analizy raz na skan, wynik = kolory mapy; zamkniecie: zgaszenie, zatrzymanie, rozlaczenie.
 
 Runda 2 recenzji PR #20: jeden egzemplarz programu na plik bazy (``BlokadaStanowiska``, B1) i twarde odsiewanie wyniku
 o ``sha16`` juz przyjetym w tej samej transakcji co zapis; wynik / blad, ktorego nie da sie zapisac (baza zajeta, dysk),
@@ -54,6 +57,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from . import baza as B
+from . import excel as EX
 from . import kontroler_api as K
 from . import scanner as SC
 from . import session as SE
@@ -110,6 +114,8 @@ class Zlecenie:
     proby: int = 0  # ile razy silnik oddal blad ``plik_niedostepny``
     proby_startu: int = 0  # ile razy silnik oddal blad ``start``
     zastepcze: list = dataclasses.field(default_factory=list)  # P2: (plik, mtime_ns) tej samej tresci pod inna nazwa (przemianowany)
+    znacznik_w: Any = None  # E3-A12: znacznik skanu na ramce wieczornej (``indicate.Znacznik``) albo None
+    analiza_w: bool = False  # E3-A12: "analiza" wyslana do ramki W (raz na skan - recenzja PR #28 D5)
 
     @classmethod
     def ze_zdarzenia(cls, z: Any, tryb: str) -> "Zlecenie":
@@ -317,6 +323,32 @@ def katalog_z_ustawien(ust: dict, klucz: str) -> Path:
     return B.sciezka_z_ustawien(ust, klucz)
 
 
+def utworz_ramki(ust: dict, katalog_danych: str | Path) -> tuple:
+    """E3-A12: klienci ramek z ``[ramki]`` (``indicate.Indicate.z_ustawien``; identyfikator laptopa w ``katalog_danych`` - folder
+    bazy, nie katalog programu). Zwraca (Indicate albo None, ostrzezenia); zle ustawienia ramek = None + ostrzezenie (program
+    dziala bez ramek). Watki klientow startuja dopiero w ``KontrolerSesji.podlacz_ramki``."""
+    from . import indicate as IND  # noqa: PLC0415 - biblioteka standardowa + pakiet ``ramka``
+
+    try:
+        ind = IND.Indicate.z_ustawien(ust, katalog_danych=katalog_danych)
+    except Exception as e:  # noqa: BLE001 - zly klucz, zly host, brak pakietu ramka: praca bez ramek
+        return None, [f"ramki niepodlaczone ({type(e).__name__}): {B.bez_sciezek(str(e))[:200]}"]
+    ostrzezenia: list = []
+    for k in ind.klienci():
+        ostrzezenia += [o for o in k.stan().get("ostrzezenia") or () if o not in ostrzezenia]
+    return ind, ostrzezenia
+
+
+def utworz_excel(ust: dict, baza: B.Baza) -> tuple:
+    """E3-A12: Excel z ``[excel]`` (``excel.Excel.z_ustawien`` z ``baza`` - X4 sprawdzane w ``sesje_pieca``); polaczenie COM dopiero
+    przy pierwszym odczycie arkusza (brak Excela nie przerywa startu). Zwraca (Excel albo None, ostrzezenia)."""
+    try:
+        ex = EX.Excel.z_ustawien(ust, baza=baza)
+    except Exception as e:  # noqa: BLE001
+        return None, [f"Excel niepodlaczony ({type(e).__name__}): {B.bez_sciezek(str(e))[:200]}"]
+    return ex, list(ex.ostrzezenia)
+
+
 class Aplikacja(K.KontrolerSesji):
     """Prawdziwy kontroler programu "Stanowisko". Uzycie (watek okna)::
 
@@ -327,13 +359,16 @@ class Aplikacja(K.KontrolerSesji):
 
     Parametry do testow: ``zegar``, ``funkcja_analizy`` (``"modul:funkcja"`` zamiast ``porownaj``), ``start_skanu`` (akcja
     DW5; domyslnie atrapa ze ``scanner``), ``parametry_scannera`` / ``parametry_silnika`` (nadpisuja wartosci z ustawien).
+    E3-A12: ``ramki`` - True = klienci ramek z ustawien (``main``), obiekt ``indicate.Indicate`` (testy), False / None = bez ramek;
+    ``excel`` - True = Excel z ustawien (COM), ``excel.Excel`` albo zrodlo arkusza (obiekt / funkcja - testy), False / None = bez.
     ``blokada`` - zajeta wczesniej ``BlokadaStanowiska`` (``main``); bez niej konstruktor zajmuje ja sam, ZANIM otworzy baze
     (drugi egzemplarz na tej samej bazie = ``ProgramJuzDziala``, B1), a ``zamknij`` ja zwalnia.
     """
 
     def __init__(self, ust: dict, *, tryb: str | None = None, zegar: Callable[[], dt.datetime] | None = None, start_skanu=None,
                  funkcja_analizy: str = SI.FUNKCJA_ANALIZY, parametry_scannera: dict | None = None, parametry_silnika: dict | None = None,
-                 blokada: BlokadaStanowiska | None = None):
+                 blokada: BlokadaStanowiska | None = None, ramki: Any = False, excel: Any = False):
+        self._ramki_param, self._excel_param = ramki, excel
         self._blokada = blokada if blokada is not None else BlokadaStanowiska(B.sciezka_bazy(ust))
         self._blokada.zajmij()  # B1: przed otwarciem bazy i obserwacja folderu
         try:
@@ -426,7 +461,35 @@ class Aplikacja(K.KontrolerSesji):
         if wznowione:
             self._komunikat("wznowiono", id_="wznowiono", ile=len(wznowione))
         LOG.info("stanowisko: start, zadan wznowionych %d, plikow znanych %d", len(wznowione), len(znane))
+        self._podlacz_ramki_i_excel()
         self._odswiez()
+
+    def _podlacz_ramki_i_excel(self) -> None:
+        """E3-A12: ramki i Excel wg parametrow konstruktora. Blad = ostrzezenie (log + komunikat), program dziala dalej."""
+        ramki, excel = self._ramki_param, self._excel_param
+        try:
+            if ramki is True:
+                ramki, ostrzezenia = utworz_ramki(self.ust, self.katalog_danych)
+                for o in ostrzezenia:
+                    LOG.warning("stanowisko: ramki - %s", o)
+                if ramki is None:
+                    self._komunikat("ramka_blad", id_="ramka_blad:ustawienia", ramka="W / P", powod="; ".join(ostrzezenia))
+            if ramki not in (None, False):
+                self.stan()  # stan gotowy: plan pieca idzie do klienta przed pierwszym kontaktem z ramka
+                self.podlacz_ramki(ramki)
+        except Exception:  # noqa: BLE001
+            LOG.exception("stanowisko: ramek nie da sie podlaczyc")
+        try:
+            if excel is True:
+                excel, ostrzezenia = utworz_excel(self.ust, self.sesja.baza)
+                for o in ostrzezenia:
+                    LOG.warning("stanowisko: excel - %s", o)
+            elif excel not in (None, False) and not isinstance(excel, EX.Excel):
+                excel = EX.Excel.z_ustawien(self.ust, zrodlo=excel, baza=self.sesja.baza)
+            if excel not in (None, False):
+                self.podlacz_excel(excel)
+        except Exception:  # noqa: BLE001
+            LOG.exception("stanowisko: Excela nie da sie podlaczyc")
 
     def _sprzatnij_podglady(self) -> int:
         """P9: przy starcie usuwa z ``dane/podglady`` kopie wynikow silnika (``*_wynik.json`` - zawieraja folder puli; zadna
@@ -645,9 +708,10 @@ class Aplikacja(K.KontrolerSesji):
         self._starty_skanu += 1
         self._ostatni_start_skanu = self._teraz()
         self._czeka_na_skan = udany
-        self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany}, czas=self._ostatni_start_skanu)
+        self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany, "tryb": self.tryb}, czas=self._ostatni_start_skanu)  # tryb: prosba A10
         if not udany:
             return self._odmowa("start_skanu_nieudany")
+        self._ramka_w_spacja()  # E3-A12: ramka wieczorna w stan "skanowanie" (gasi poprzedni wynik)
         if self._usun_komunikat("odmowa:start_skanu_nieudany"):
             self._odswiez()  # stara odmowa znika z komunikatow
         else:
@@ -691,6 +755,7 @@ class Aplikacja(K.KontrolerSesji):
         if t0 - self._ostatnia_kontrola >= OKRES_KONTROLI_S:
             self._ostatnia_kontrola = t0
             zmiany.add(self._kontrola_skanera())
+        obsluzone += self._przetworz_ramki()  # E3-A12: zdarzenia i stan ramek (odswieza stan sama, gdy trzeba)
         if "stan" in zmiany:
             self._odswiez()
         elif "zywe" in zmiany:
@@ -733,6 +798,7 @@ class Aplikacja(K.KontrolerSesji):
             self._czeka_na_skan = False
             self._usun_komunikat("plik_zajety:skaner")
             z = Zlecenie.ze_zdarzenia(dane, self.tryb)
+            z.znacznik_w = self._ramka_w_nowy_skan(z.tryb)  # E3-A12: znacznik Spacji albo skan bez Spacji (ramka gasi stary wynik)
             FILTR_NAZW.zapamietaj(z.plik, z.sha16)  # P5: dalsze wpisy logu z ta nazwa pliku -> sha16
             self.sesja.baza.zdarzenie("scanner", "nowy_skan", {"sha16": z.sha16, "rozmiar": z.rozmiar, "trojkaty": z.trojkaty, "zastany": z.zastany,
                                                                "ponowny": bool(dane.ponowny), "duplikat": bool(dane.duplikat)}, czas=self._teraz())
@@ -840,6 +906,9 @@ class Aplikacja(K.KontrolerSesji):
         if e.typ == "start":
             self._w_toku = e.zadanie_id
             self._analiza = K.Postep(zadanie_id=e.zadanie_id, etap="", udzial=0.0, od=e.czas, sha16=z.sha16)
+            if z.znacznik_w is not None and not z.analiza_w:  # E3-A12: raz na skan (ponowna analiza tego skanu - bez drugiego "analiza")
+                z.analiza_w = True
+                self._ramka_w_analiza(z.znacznik_w)
             return "postep"
         if e.typ == "postep":
             poczatek = self._analiza.od if self._analiza is not None and self._analiza.zadanie_id == e.zadanie_id else e.czas
@@ -934,6 +1003,10 @@ class Aplikacja(K.KontrolerSesji):
                 baza.zdarzenie("silnik", "blad_analizy_rodzaj", {"rodzaj": d.blad_rodzaj}, skan_id=skan_id, czas=self._teraz())
         if jest is None:
             self._po_skanie(z.tryb)  # P2: skan wieczorny moze zmienic stan punktow (lista brakow liczona od nowa)
+            if d.rodzaj == "wynik":  # E3-A12: wynik ostatniego skanu na ramce W (kolory mapy - po zbudowaniu stanu)
+                self._ramka_w_wynik(z.znacznik_w, skan_id)
+            else:
+                self._ramka_w_blad(z.znacznik_w)
         self._usun_komunikat(f"plik_niedostepny:{z.sha16}")
         if d.rodzaj != "wynik":
             return
@@ -1003,6 +1076,7 @@ class Aplikacja(K.KontrolerSesji):
         (w toku, w kolejce, wstrzymane, niezapisane) trafiaja do pliku ``PLIK_ZADAN`` i wracaja po starcie."""
         if self._zamkniety:
             return K.Odpowiedz(True)
+        self._zamknij_ramki_excel()  # E3-A12: ramki zgaszone i zatrzymane (najwyzej ok. 1 s), Excel rozlaczony
         niezakonczone: list[Zlecenie] = []
         if self._uruchomiony:
             self._zamykanie = True
@@ -1187,7 +1261,7 @@ def main(argv: list[str] | None = None) -> int:
         kontroler = None
         try:
             konfiguruj_logi(ust)
-            kontroler = Aplikacja(ust, blokada=blokada)
+            kontroler = Aplikacja(ust, blokada=blokada, ramki=True, excel=True)  # E3-A12: ramki i Excel z ustawien
             kontroler.start()
         except Exception as e:  # noqa: BLE001 - D9: kazdy blad startu = komunikat dla czlowieka i wpis w logu
             LOG.exception("stanowisko: program nie wystartowal")

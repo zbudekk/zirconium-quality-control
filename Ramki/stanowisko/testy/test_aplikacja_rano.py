@@ -837,7 +837,8 @@ def test_k4_spacja_ramka_w_ponizej_1s_kolory_rowne_mapie_i_petla_okna(tmp_path, 
         e.klik("przycisk_ok")  # czerwone -> "OK": zielone na ekranie i na ramce
         plytka = k.stan().plytka(skan)
         UW.mapa_rowna_stanowi(e, plytka)
-        e.czekaj(lambda: kolory_planu_w(plan_na_ramce(ruch, rw), 2) == kolory_mapy_dla_ramki(plytka), 5.0, "kolor po decyzji na ramce W")
+        e.czekaj(lambda: (p := plan_na_ramce(ruch, rw)) is not None and "2" in p["plytki"] and kolory_planu_w(p, 2) == kolory_mapy_dla_ramki(plytka),
+                 5.0, "kolor po decyzji na ramce W")
         # skan zablokowany (niezgodny uklad) -> ramka W ciemna, stary wynik nie wraca
         e.klawisz(Qt.Key.Key_Space)
         k.symuluj_skan("niezgodny_uklad", numer=1)
