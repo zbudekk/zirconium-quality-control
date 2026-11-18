@@ -1,0 +1,389 @@
+{
+ "zlecenia": [
+  {
+   "zrodlo": "cyrkon",
+   "folder": "3263 Testowa Anna",
+   "folder_norm": "3263 testowa anna",
+   "kuweta": "3263",
+   "mtime": 1794900000.0,
+   "dodano": "2026-11-16T08:00:00",
+   "usuniety": 0
+  },
+  {
+   "zrodlo": "cyrkon",
+   "folder": "3301 Przykladowy Jan",
+   "folder_norm": "3301 przykladowy jan",
+   "kuweta": "3301",
+   "mtime": 1794900000.0,
+   "dodano": "2026-11-16T08:00:00",
+   "usuniety": 0
+  },
+  {
+   "zrodlo": "cyrkon",
+   "folder": "0412 Atrapa Ewa",
+   "folder_norm": "0412 atrapa ewa",
+   "kuweta": "0412",
+   "mtime": 1794900000.0,
+   "dodano": "2026-11-16T08:00:00",
+   "usuniety": 0
+  },
+  {
+   "zrodlo": "prywatne",
+   "folder": "#1234 Fikcyjny Piotr",
+   "folder_norm": "#1234 fikcyjny piotr",
+   "kuweta": "#1234",
+   "mtime": 1794900000.0,
+   "dodano": "2026-11-16T08:00:00",
+   "usuniety": 0
+  },
+  {
+   "zrodlo": "cyrkon",
+   "folder": "3350 Zmyslona Maria",
+   "folder_norm": "3350 zmyslona maria",
+   "kuweta": "3350",
+   "mtime": 1794900000.0,
+   "dodano": "2026-11-16T08:00:00",
+   "usuniety": 0
+  }
+ ],
+ "projekty": [
+  {
+   "folder": "3263 Testowa Anna",
+   "plik": "2026-11-16_testowa_anna-11-crown_cad.stl",
+   "sha16": "24b22d4d000947e0",
+   "zeby": "11",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300001,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3263 Testowa Anna",
+   "plik": "2026-11-16_testowa_anna-14-crown_cad.stl",
+   "sha16": "a15b5b27bcd59f33",
+   "zeby": "14",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300002,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3301 Przykladowy Jan",
+   "plik": "2026-11-16_przykladowy_jan-36-crown_cad.stl",
+   "sha16": "8304817b190df8a8",
+   "zeby": "36",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300003,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3301 Przykladowy Jan",
+   "plik": "2026-11-16_przykladowy_jan-46-crown_cad.stl",
+   "sha16": "3ffb08c0a7339797",
+   "zeby": "46",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300004,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3301 Przykladowy Jan",
+   "plik": "2026-11-16_przykladowy_jan-24-crown_cad.stl",
+   "sha16": "db84b5ab47627052",
+   "zeby": "24",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300005,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "0412 Atrapa Ewa",
+   "plik": "2026-11-16_atrapa_ewa-16-crown_cad.stl",
+   "sha16": "e6bef048218bd432",
+   "zeby": "16",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300006,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "0412 Atrapa Ewa",
+   "plik": "2026-11-16_atrapa_ewa-17-crown_cad.stl",
+   "sha16": "2c86f8180da3d3dc",
+   "zeby": "17",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300007,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "0412 Atrapa Ewa",
+   "plik": "2026-11-16_atrapa_ewa-21-crown_cad.stl",
+   "sha16": "7fd29e19a3c61df1",
+   "zeby": "21",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300008,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "#1234 Fikcyjny Piotr",
+   "plik": "2026-11-16_fikcyjny_piotr-12-crown_cad.stl",
+   "sha16": "4cfa9fb536ca0dbd",
+   "zeby": "12",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300009,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "#1234 Fikcyjny Piotr",
+   "plik": "2026-11-16_fikcyjny_piotr-13-crown_cad.stl",
+   "sha16": "7a1f640ce559580c",
+   "zeby": "13",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300010,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "#1234 Fikcyjny Piotr",
+   "plik": "2026-11-16_fikcyjny_piotr-26-27-bridge_cad.stl",
+   "sha16": "d9ab280784306239",
+   "zeby": "26-27",
+   "typ": "most",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300011,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3350 Zmyslona Maria",
+   "plik": "2026-11-16_zmyslona_maria-35-crown_cad.stl",
+   "sha16": "7739f5964b08eafe",
+   "zeby": "35",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300012,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3350 Zmyslona Maria",
+   "plik": "2026-11-16_zmyslona_maria-44-crown_cad.stl",
+   "sha16": "fc893d05fbd7f6af",
+   "zeby": "44",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300013,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3350 Zmyslona Maria",
+   "plik": "2026-11-16_zmyslona_maria-45-crown_cad.stl",
+   "sha16": "e76d9828d7c34bce",
+   "zeby": "45",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300014,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3350 Zmyslona Maria",
+   "plik": "2026-11-16_zmyslona_maria-47-crown_cad.stl",
+   "sha16": "edd5b0481e13a672",
+   "zeby": "47",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300015,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  },
+  {
+   "folder": "3350 Zmyslona Maria",
+   "plik": "2026-11-16_zmyslona_maria-22-crown_cad.stl",
+   "sha16": "c0c907be22a5f516",
+   "zeby": "22",
+   "typ": "korona",
+   "mtime_ns": 1794900000000000000,
+   "rozmiar": 300016,
+   "zaindeksowano": "2026-11-16T08:00:05",
+   "usuniety": 0
+  }
+ ],
+ "frezowania": [
+  {
+   "sha16": "24b22d4d000947e0",
+   "plik_w_raporcie": "2026-11-16_testowa_anna-11-crown_cad.stl",
+   "krazek": "K-1101",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "a15b5b27bcd59f33",
+   "plik_w_raporcie": "2026-11-16_testowa_anna-14-crown_cad.stl",
+   "krazek": "K-1101",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "8304817b190df8a8",
+   "plik_w_raporcie": "2026-11-16_przykladowy_jan-36-crown_cad.stl",
+   "krazek": "K-1101",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "3ffb08c0a7339797",
+   "plik_w_raporcie": "2026-11-16_przykladowy_jan-46-crown_cad.stl",
+   "krazek": "K-1101",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "db84b5ab47627052",
+   "plik_w_raporcie": "2026-11-16_przykladowy_jan-24-crown_cad.stl",
+   "krazek": "K-1101",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "db84b5ab47627052",
+   "plik_w_raporcie": "2026-11-16_przykladowy_jan-24-crown_cad.stl",
+   "krazek": "K-1099",
+   "wspolczynnik": 1.2302,
+   "data": "2026-11-16",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-16T15:00:00"
+  },
+  {
+   "sha16": "e6bef048218bd432",
+   "plik_w_raporcie": "2026-11-16_atrapa_ewa-16-crown_cad.stl",
+   "krazek": "K-1102",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "2c86f8180da3d3dc",
+   "plik_w_raporcie": "2026-11-16_atrapa_ewa-17-crown_cad.stl",
+   "krazek": "K-1102",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "7fd29e19a3c61df1",
+   "plik_w_raporcie": "2026-11-16_atrapa_ewa-21-crown_cad.stl",
+   "krazek": "K-1102",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "4cfa9fb536ca0dbd",
+   "plik_w_raporcie": "2026-11-16_fikcyjny_piotr-12-crown_cad.stl",
+   "krazek": "K-1103",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "7a1f640ce559580c",
+   "plik_w_raporcie": "2026-11-16_fikcyjny_piotr-13-crown_cad.stl",
+   "krazek": "K-1103",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "7739f5964b08eafe",
+   "plik_w_raporcie": "2026-11-16_zmyslona_maria-35-crown_cad.stl",
+   "krazek": "K-1104",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "fc893d05fbd7f6af",
+   "plik_w_raporcie": "2026-11-16_zmyslona_maria-44-crown_cad.stl",
+   "krazek": "K-1104",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "e76d9828d7c34bce",
+   "plik_w_raporcie": "2026-11-16_zmyslona_maria-45-crown_cad.stl",
+   "krazek": "K-1104",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "edd5b0481e13a672",
+   "plik_w_raporcie": "2026-11-16_zmyslona_maria-47-crown_cad.stl",
+   "krazek": "K-1104",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  },
+  {
+   "sha16": "c0c907be22a5f516",
+   "plik_w_raporcie": "2026-11-16_zmyslona_maria-22-crown_cad.stl",
+   "krazek": "K-1104",
+   "wspolczynnik": 1.2251,
+   "data": "2026-11-17",
+   "zrodlo": "csv",
+   "raport_plik": null,
+   "wczytano": "2026-11-17T15:00:00"
+  }
+ ]
+}

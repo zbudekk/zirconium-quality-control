@@ -1,0 +1,75 @@
+{
+ "skan": "skan_2026-11-17_19-50-30.stl",
+ "plytka": "wieczorna",
+ "plytka_wybor": "reczny",
+ "uklad_auto": null,
+ "uklad_zgodny": false,
+ "uklad_komunikat": "plytka nie pasuje do wybranego ukladu wieczorna; rozstaw stozkow w skanie pasuje do ukladu: wieczorna_r54",
+ "uklady_pasujace": [
+  "wieczorna_r54"
+ ],
+ "uklad_podpowiedz": "",
+ "wspolczynnik": 1.225,
+ "projekty": 16,
+ "foldery_projektow": [
+  "C:/atrapy/projekty"
+ ],
+ "numer": null,
+ "numer_zrodlo": "nieznany",
+ "bity": [],
+ "numer_z_dolkow": null,
+ "macierz_skan_do_plytki": [
+  [
+   1.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  [
+   0.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  [
+   0.0,
+   0.0,
+   1.0,
+   0.0
+  ],
+  [
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "jakosc_wyrownania": {
+  "punkty": 427190,
+  "stozki_dopasowane": 3,
+  "uklad_zgodny": false
+ },
+ "gniazda": [],
+ "gniazda_puste": [],
+ "gniazda_podwojne": [],
+ "poza_gniazdem": 0,
+ "fragmenty_drobne": 0,
+ "czas_s": {
+  "wczytanie": 2.0,
+  "plate": 2.6,
+  "match": 0.0,
+  "razem": 4.6,
+  "pula": 3.5,
+  "inspect": 0.0
+ },
+ "bez_filtru": false,
+ "inspekcja": true,
+ "statusy_gniazd": {
+  "zielony": 0,
+  "czerwony": 0,
+  "zolty": 0,
+  "szary": 0,
+  "pomaranczowy": 0
+ },
+ "ubytki": 0
+}
