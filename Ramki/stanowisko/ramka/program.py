@@ -7,7 +7,8 @@ Petla co `okres_s` (10 ms): odczyt czujnikow z odbijaniem (gaszenie od razu, zap
 ustaleniu - P7), klawisze, uplyw czasu (waznosc planu), nowa klatka na matryce tylko przy zmianie.
 Zadanie HTTP zmieniajace stan budzi petle od razu (stan ramki po Spacji na laptopie ponizej 1 s - I6).
 Kazdy wyjatek w obiegu petli (czujniki, klawiatura, matryca, logika) = awaria sprzetu: matryca od
-razu bez gniazd, plan usuniety, zdarzenie blad_sprzetu (P4).
+razu bez gniazd, plan usuniety, zdarzenie blad_sprzetu (P4); sprzet_dziala dopiero po `powrot_sprzetu_s`
+udanych obiegow bez wyjatku (D-N7: awaria przerywana nie daje pary zdarzen co sekunde).
 """
 from __future__ import annotations
 
@@ -37,6 +38,8 @@ class Konfiguracja:
     sprzet: str = "atrapa"               # atrapa albo rpi
     okres_s: float = 0.01                # okres petli sprzetu
     stabilnosc_s: float = 0.03           # odbijanie czujnikow Halla
+    odstep_drgan_s: float = 3.0          # powrot do poprzedniego numeru plytki najwczesniej po tylu s (drgania)
+    powrot_sprzetu_s: float = 3.0        # sprzet_dziala po tylu s udanych obiegow od ostatniego wyjatku
     limit_lacznosci_s: float = 30.0      # po tylu sekundach ciszy laptop uznany za nieobecny
     rodzina: tuple = ()                  # numery plytek ramki; puste = W: 1-3, P: 4-6
     sterowanie_atrapy: bool = False      # zasoby /atrapa/* (tylko atrapa)
@@ -91,7 +94,8 @@ class ProgramRamki:
         self.logika = LogikaRamki(konf.rola, start_id=start_id, teraz=zegar(),
                                   limit_lacznosci_s=konf.limit_lacznosci_s, rodzina=konf.rodzina or None,
                                   program=WERSJA)
-        self.odbijanie = Odbijanie(konf.stabilnosc_s)
+        self.odbijanie = self._nowe_odbijanie()
+        self._awaria_t = float("-inf")  # chwila ostatniego wyjatku w obiegu petli (D-N7)
         self.warunek = threading.Condition(threading.RLock())
         self._pokazana = None
         self._zmiana_pokazana = -1
@@ -105,6 +109,9 @@ class ProgramRamki:
 
     # ------------------------------------------------------------ petla sprzetu
 
+    def _nowe_odbijanie(self) -> Odbijanie:
+        return Odbijanie(self.konf.stabilnosc_s, odstep_powrotu_s=self.konf.odstep_drgan_s)
+
     def krok(self, teraz=None) -> bool:
         """Jedna iteracja petli: czujniki, klawisze, czas, obraz. False = awaria sprzetu (P4):
         wyjatek nie wychodzi z krok(), matryca gasnie od razu, plan usuniety, zdarzenie blad_sprzetu."""
@@ -112,11 +119,13 @@ class ProgramRamki:
         try:
             self._krok(teraz)
         except Exception:  # noqa: BLE001 - kazdy wyjatek obiegu = awaria, ramka ciemna
-            log.exception("blad w petli sprzetu - matryca wygaszona")
+            if not self.logika.awaria:
+                log.exception("blad w petli sprzetu - matryca wygaszona")
             self._awaria(teraz)
             return False
-        if self.logika.awaria:
-            # pierwszy caly udany obieg (odczyt, logika, matryca) po awarii
+        if self.logika.awaria and teraz - self._awaria_t >= self.konf.powrot_sprzetu_s:
+            # D-N7: caly obieg (odczyt, logika, matryca) bez wyjatku przez powrot_sprzetu_s od ostatniego bledu -
+            # awaria przerywana nie daje pary blad_sprzetu / sprzet_dziala w kazdej sekundzie
             with self.warunek:
                 self.logika.koniec_awarii(teraz)
                 self.warunek.notify_all()
@@ -153,13 +162,14 @@ class ProgramRamki:
         """Awaria w petli: stan logiki jak po DELETE + blad_sprzetu, klatka awaryjna (bez gniazd),
         a gdy matryca tez zawodzi - wygaszenie calej matrycy. Brak "ostatniej klatki"."""
         klatka = obraz.Klatka()
+        self._awaria_t = teraz
         with self.warunek:
             try:
                 self.logika.awaria_sprzetu(teraz)
                 klatka = self.logika.obraz(teraz)
             except Exception:  # noqa: BLE001
                 log.exception("blad logiki przy awarii - matryca czarna")
-            self.odbijanie = Odbijanie(self.konf.stabilnosc_s)  # plytka od nowa po powrocie sprzetu
+            self.odbijanie = self._nowe_odbijanie()  # plytka od nowa po powrocie sprzetu
             self._zmiana_pokazana = -1
             self._ostatni_obraz = float("-inf")
             self.warunek.notify_all()
@@ -237,7 +247,8 @@ class ProgramRamki:
                 self._po_zmianie()
 
     def odrzucenie(self, laptop, blad) -> None:
-        """Serwer odrzucil PUT /plan albo PUT /tryb przed logika (zly JSON, 411, 413) - P5."""
+        """Serwer odrzucil polecenie (zly JSON, 411, 413, zly parametr, 404 / 405, 500) - P5, D-N6.
+        Blad juz rozpatrzony przez logike (`obsluzony`) nie gasi drugi raz."""
         with self.warunek:
             try:
                 self.logika.odrzucenie(laptop, blad, self.zegar())

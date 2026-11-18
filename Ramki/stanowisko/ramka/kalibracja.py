@@ -33,7 +33,7 @@ WERSJA_PLIKU = 1
 ROLE_UKLADOW = {"wieczorna": "W", "poranna": "P"}  # pole "plate" w uklad.json -> ramka
 BOK_GNIAZDA = 3            # blok 3 x 3 pod gniazdem okraglym (plan_ramki_v2 9 krok 13)
 WYSOKOSC_RYNIENKI = 3
-WZOR_UKLADU = re.compile(r"^[a-z0-9_]{1,40}$")
+WZOR_UKLADU = re.compile(r"[a-z0-9_]{1,40}")  # tylko fullmatch (D-N9: koncowe "\n" odrzucane)
 ZRODLA = ("geometria", "kalibracja")
 
 
@@ -105,7 +105,7 @@ def sprawdz(dane) -> dict:
         if not isinstance(uklady, dict):
             _blad(sr, "oczekiwano obiektu ukladow")
         for nazwa, wpis in uklady.items():
-            if not isinstance(nazwa, str) or not WZOR_UKLADU.match(nazwa):
+            if not isinstance(nazwa, str) or not WZOR_UKLADU.fullmatch(nazwa):
                 _blad(sr, "niedozwolona nazwa ukladu")
             su = f"{sr}.{nazwa}"
             if not isinstance(wpis, dict) or set(wpis) - {"zrodlo", "gniazda"} or "gniazda" not in wpis:
