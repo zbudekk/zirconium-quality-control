@@ -540,6 +540,95 @@ def test_h_ponowny_skan_pytanie_potwierdzenie_cofniecie_odrzucenie(st):
     assert st.stan().pytania == () and st.stan().plytka(czwarty).moze_zastapic is None
 
 
+def test_e3a1p_nowy_wsad_bez_pytania_i_konfliktu_ponowny_skan_z_pytaniem(st):
+    """E3-A1p: plytki krazace (3 numery) z nowym wsadem co 7-15 min - zadnego pytania o ponowny skan, zadnego konfliktu
+    projektu i zadnych przyciskow potwierdzenia (regula sprzed E3-A1p pytala tu 3 razy); prawdziwy ponowny skan (te same
+    prace w innych gniazdach) - pytanie jak dawniej, po potwierdzeniu bez konfliktow."""
+    assert st.k.wybierz_operatora("Technik A")
+    skany = []
+    for i in range(6):
+        if i:
+            st.przesun(5 + 2 * i)
+        skany.append(st.wrzuc("czysta", numer=i % 3 + 1, gniazda={g: "zielony" for g in range(1, 7)},
+                              projekty={g: 100 * (i + 1) + g for g in range(1, 7)}))
+    s = st.stan()
+    assert len(s.plytki) == 6 and s.pytania == () and s.konflikty == ()
+    assert [k.rodzaj for k in s.komunikaty if k.rodzaj == "konflikt_projektu"] == []
+    assert all(p.moze_zastapic is None and "potwierdz_ponowny_skan" not in p.dozwolone for p in s.plytki)
+    from stanowisko import session as SE  # recenzja PR #22 D5: regula sprzed E3-A1p (prog 0) na tej samej bazie pytala 3 razy
+
+    stara = SE.Sesja(st.k.sesja.baza, operatorzy=("Technik A",), zegar=st.zegar, ponowny_skan_min_wspolnych=0).stan_wieczoru()
+    assert len(stara["do_potwierdzenia"]) == 3
+    st.przesun(4)  # ponowny skan ostatniej plytki (nr 3): te same prace przesuniete o jedno gniazdo
+    ponowny = st.wrzuc("czysta", numer=3, gniazda={g: "zielony" for g in range(2, 8)}, projekty={g + 1: 600 + g for g in range(1, 7)})
+    s = st.stan()
+    assert [(q.rodzaj, q.skan_id, q.poprzedni_id) for q in s.pytania] == [("ponowny_skan", ponowny, skany[5])]
+    assert s.plytka(ponowny).moze_zastapic == skany[5] and len(s.konflikty) == 6  # do potwierdzenia: te same projekty na dwoch skanach
+    assert [k.rodzaj for k in s.komunikaty if k.rodzaj == "konflikt_projektu"] == []  # runda 2: nie na pasku bledow, dopoki czeka
+    assert st.k.potwierdz_ponowny_skan(ponowny)
+    s = st.stan()
+    assert s.pytania == () and s.konflikty == () and s.plytka(skany[5]).status == "zastapiony"
+
+
+def test_e3a1p_konflikt_ze_skanem_do_zastapienia_nie_na_pasku_bledow_dopoki_czeka(st):
+    """E3-A1p runda 2 (decyzja wlasciciela 18.11.2026): gdy skan czeka na odpowiedz "to ponowny skan?", konflikty projektu
+    miedzy nim a skanem, ktory proponuje zastapic, nie trafiaja na pasek bledow (takze po "Pozniej"); konflikt z innym skanem
+    zostaje. Po "Nie, to nowy wsad" konflikty pojawiaja sie normalnie, po "Tak" znikaja (poprzedni skan zastapiony).
+    ``stan.konflikty`` podaje wszystkie konflikty jak dotad."""
+    from stanowisko import kontroler_api as K
+
+    def komunikaty_konfliktu() -> list:
+        return sorted(k.id for k in st.stan().komunikaty if k.rodzaj == "konflikt_projektu")
+
+    assert st.k.wybierz_operatora("Technik A")
+    zielone = {g: "zielony" for g in range(1, 10)}
+    st.wrzuc("czysta", numer=2, gniazda={g: "zielony" for g in (1, 2, 3, 9)}, projekty={1: 201, 2: 202, 3: 203, 9: 700})
+    st.przesun(7)
+    poprzedni = st.wrzuc("czysta", numer=3, gniazda={g: "zielony" for g in range(1, 7)}, projekty={g: 300 + g for g in range(1, 7)})
+    st.przesun(5)  # ponowny skan plytki 3: te same prace przesuniete o gniazdo + praca 700 lezaca tez na plytce 2
+    ponowny = st.wrzuc("czysta", numer=3, gniazda={g: zielone[g] for g in range(2, 10)},
+                       projekty={**{g + 1: 300 + g for g in range(1, 7)}, 8: 801, 9: 700})
+    s = st.stan()
+    q = s.pytania[0]
+    assert [(p.rodzaj, p.skan_id, p.poprzedni_id) for p in s.pytania] == [("ponowny_skan", ponowny, poprzedni)]
+    assert len(s.konflikty) == 7  # stan podaje wszystkie: 6 z poprzednim skanem plytki 3, 1 z plytka 2
+    z_plytka_2 = f"konflikt_projektu:{K.projekt_sztuczny(700)}"
+    assert komunikaty_konfliktu() == [z_plytka_2]
+    assert st.k.zamknij_pytanie(q.id) and st.stan().pytania == ()  # "Pozniej" to nie odpowiedz: konflikty dalej poza paskiem
+    assert komunikaty_konfliktu() == [z_plytka_2]
+    assert st.k.odrzuc_ponowny_skan(ponowny)  # "Nie, to nowy wsad": konflikty z poprzednim skanem wracaja na pasek
+    assert komunikaty_konfliktu() == sorted([z_plytka_2] + [f"konflikt_projektu:{K.projekt_sztuczny(300 + g)}" for g in range(1, 7)])
+    assert st.k.potwierdz_ponowny_skan(ponowny)  # zmiana zdania "Tak": poprzedni skan zastapiony - jego konflikty znikaja
+    s = st.stan()
+    assert s.plytka(poprzedni).status == "zastapiony" and komunikaty_konfliktu() == [z_plytka_2] and len(s.konflikty) == 1
+
+
+def test_e3a1p_trzy_skany_tej_samej_plytki_bez_odpowiedzi_konflikty_poza_paskiem(st):
+    """Recenzja PR #22 P1: ta sama plytka zeskanowana trzy razy bez odpowiedzi (A, B, C - te same prace): czekaja pytania B -> A
+    i C -> B; konflikty miedzy A, B i C (jedna spojna skladowa grafu par czekajacych) nie trafiaja na pasek bledow. "Nie" dla
+    C -> B: C poza skladowa - konflikty wracaja; "Tak" dla B i potem dla C -> 0 konfliktow."""
+    def komunikaty_konfliktu() -> list:
+        return [k.id for k in st.stan().komunikaty if k.rodzaj == "konflikt_projektu"]
+
+    assert st.k.wybierz_operatora("Technik A")
+    prace = {"gniazda": {g: "zielony" for g in range(1, 7)}, "projekty": {g: 400 + g for g in range(1, 7)}}
+    a = st.wrzuc("czysta", numer=4, **prace)
+    st.przesun(5)
+    b = st.wrzuc("czysta", numer=4, **prace)
+    st.przesun(5)
+    c = st.wrzuc("czysta", numer=4, **prace)
+    s = st.stan()
+    assert sorted((q.skan_id, q.poprzedni_id) for q in s.pytania) == [(b, a), (c, b)]
+    assert len(s.konflikty) == 6 and all(len(k["miejsca"]) == 3 for k in s.konflikty) and komunikaty_konfliktu() == []
+    assert st.k.odrzuc_ponowny_skan(c)  # "Nie, to nowy wsad" dla C: konflikty z C wracaja na pasek
+    assert len(komunikaty_konfliktu()) == 6
+    assert st.k.potwierdz_ponowny_skan(b)  # "Tak" dla B: A zastapiony; konflikty B-C dalej na pasku (C odrzucone)
+    assert st.stan().plytka(a).status == "zastapiony" and len(komunikaty_konfliktu()) == 6
+    assert st.k.potwierdz_ponowny_skan(c)  # zmiana zdania "Tak" dla C: B zastapiony - zadnego konfliktu
+    s = st.stan()
+    assert s.plytka(b).status == "zastapiony" and s.konflikty == () and komunikaty_konfliktu() == [] and s.pytania == ()
+
+
 def test_zab_juz_na_liscie(st):
     assert st.k.wybierz_operatora("Technik A")
     pierwszy = st.wrzuc("zwykla", numer=1)

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import time
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFrame, QHBoxLayout, QHeaderView, QLabel, QLayout, QProgressBar, QPushButton,
                                QScrollArea, QSizePolicy, QStackedLayout, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
@@ -351,6 +351,7 @@ class ObszarPaneli(QScrollArea):
         self._widocznych_min = widocznych_min
         self._limit_minimum: int | None = None
         self._szerokosc = 0
+        self._szerokosc_paneli = 0  # szerokosc obszaru widoku (bez paska przewijania pionowego)
 
     def ustaw_limit_minimum(self, piksele: int | None) -> None:
         """Najwyzej tyle pikseli obszar zajmuje "na pewno" (minimum ukladu); reszta paneli jest wtedy przewijana."""
@@ -363,7 +364,9 @@ class ObszarPaneli(QScrollArea):
         return [self.uklad.itemAt(i).widget() for i in range(self.uklad.count()) if self.uklad.itemAt(i).widget() is not None]
 
     def _wysokosc(self, ile: int | None = None) -> int:
-        szer = max(120, self.width())
+        # szerokosc, ktora panele naprawde maja: przy widocznym pasku przewijania pionowego - wezsza (E3-A1p: liczona dla pelnej
+        # szerokosci wysokosc byla za mala, tekst zawijal sie w dodatkowy wiersz i obszar zostawal przyciety z paskiem przewijania)
+        szer = max(120, self.viewport().width() if self.verticalScrollBar().isVisible() else self.width())
         panele = self.panele()
         if ile is not None:
             panele = panele[:ile]
@@ -389,6 +392,14 @@ class ObszarPaneli(QScrollArea):
         if self.width() != self._szerokosc:  # wysokosc paneli zalezy od szerokosci (zawijany tekst, przyciski w wierszach)
             self._szerokosc = self.width()
             self.updateGeometry()
+
+    def viewportEvent(self, zdarzenie) -> bool:  # noqa: N802 - nazwa Qt
+        """Pasek przewijania pionowego pojawil sie albo zniknal (zmienila sie szerokosc paneli, a nie obszaru): wysokosc od nowa."""
+        wynik = super().viewportEvent(zdarzenie)
+        if zdarzenie.type() == QEvent.Type.Resize and self.viewport().width() != getattr(self, "_szerokosc_paneli", None):
+            self._szerokosc_paneli = self.viewport().width()
+            self.updateGeometry()
+        return wynik
 
 
 # ----------------------------------------------------------------------------

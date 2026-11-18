@@ -1802,7 +1802,9 @@ def zbuduj_scene(atrapa, zegar, ekrany, scena: str, rozmiar: tuple) -> Ekran:
     elif scena == "trzy_panele_dwa_bledy":  # proba recenzenta "blad zapisu schowany" (A-P3)
         atrapa.symuluj_skan("zwykla", numer=1, gniazda=PELNA)
         zegar.przesun(15)
-        atrapa.symuluj_skan("do_powtorzenia", numer=1, gniazda={1: "zielony", 2: "skan_ponownie", 7: "blad_inspekcji", 9: "czerwony"},
+        # poruszony skan: rozpoznane tylko 2 prace (reszta szara) - za malo do oceny wsadu, wiec pytanie o ponowny skan jak
+        # dawniej (E3-A1p: przy innych pracach i co najmniej 3 rozpoznanych program juz nie pyta)
+        atrapa.symuluj_skan("do_powtorzenia", numer=1, gniazda={1: "szary", 2: "skan_ponownie", 7: "blad_inspekcji", 9: "szary"},
                             projekty={n: 60 + n for n in range(1, 10)})
         kroki = [("blad_zapisu",), ("skaner",), ("postep",)]
     elif scena == "praca_z_decyzja_bez_osoby_i_bledy":  # najwiecej napisow w widoku pracy naraz + pasek bledow + dlugi pasek stanu
@@ -2096,7 +2098,8 @@ def test_ap3_bledy_programu_na_wlasnym_pasku_poza_limitem_paneli(atrapa, ekrany,
     k.wybierz_operatora("Technik A")
     atrapa.symuluj_skan("zwykla", numer=1, gniazda=PELNA)
     zegar.przesun(15)
-    drugi = atrapa.symuluj_skan("do_powtorzenia", numer=1, gniazda={1: "zielony", 2: "skan_ponownie", 7: "blad_inspekcji", 9: "czerwony"},
+    # poruszony skan: rozpoznane tylko 2 prace (reszta szara) - za malo do oceny wsadu, pytanie jak dawniej (E3-A1p)
+    drugi = atrapa.symuluj_skan("do_powtorzenia", numer=1, gniazda={1: "szary", 2: "skan_ponownie", 7: "blad_inspekcji", 9: "szary"},
                                 projekty={n: 60 + n for n in range(1, 10)})
     e = ekrany(k)
     assert e.okno.pokazana_plytka() == drugi
