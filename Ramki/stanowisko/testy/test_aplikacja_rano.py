@@ -297,12 +297,14 @@ def ekrany():
 
 
 class Petla:
-    """Zegar Qt co 10 ms mierzy najdluzsza przerwe petli okna (prog ``UW.PROG_PRZERWY_S`` = 200 ms)."""
+    """Zegar Qt co 10 ms mierzy najdluzsza przerwe petli okna (prog ``UW.PROG_PRZERWY_S`` = 200 ms) w czasie, gdy program pracuje
+    sam (ruch ramek, zegar okna); ``pauza()`` - czynnosc testu wykonywana synchronicznie w watku okna (symulacja skanu atrapy z
+    plikiem podgladu liczonym w watku okna, klikniecie, odczyt pikseli mapy) - poza pomiarem (czas reakcji na Spacje - osobno)."""
 
     def __init__(self):
         from PySide6.QtCore import QTimer
 
-        self.przerwa, self.tykniec, self._ostatni = 0.0, 0, time.perf_counter()
+        self.przerwa, self.tykniec, self._ostatni = 0.0, 0, None
         self.zegar = QTimer()
         self.zegar.setInterval(10)
         self.zegar.timeout.connect(self._tyk)
@@ -310,9 +312,23 @@ class Petla:
 
     def _tyk(self) -> None:
         teraz = time.perf_counter()
-        self.przerwa = max(self.przerwa, teraz - self._ostatni)
+        if self._ostatni is not None:
+            self.przerwa = max(self.przerwa, teraz - self._ostatni)
+            self.tykniec += 1
         self._ostatni = teraz
-        self.tykniec += 1
+
+    def pauza(self):
+        import contextlib
+
+        @contextlib.contextmanager
+        def wstrzymany():
+            self._ostatni = None
+            try:
+                yield
+            finally:
+                self._ostatni = None  # nastepne tykniecie zaczyna pomiar od nowa
+
+        return wstrzymany()
 
     def stop(self) -> None:
         self.zegar.stop()
@@ -816,33 +832,39 @@ def test_k4_spacja_ramka_w_ponizej_1s_kolory_rowne_mapie_i_petla_okna(tmp_path, 
         czasy, gniazd = [], 0
         for i in range(5):
             t0 = time.perf_counter()
-            e.klawisz(Qt.Key.Key_Space)
+            with petla.pauza():
+                e.klawisz(Qt.Key.Key_Space)
             e.czekaj(lambda: rw.stan()["tryb"] == "skanowanie", 2.0, "atrapa W: skanowanie")
             czasy.append(time.perf_counter() - t0)
-            skan = k.symuluj_skan("zwykla" if i % 2 == 0 else "czysta", numer=1 + i % 3)
+            with petla.pauza():
+                skan = k.symuluj_skan("zwykla" if i % 2 == 0 else "czysta", numer=1 + i % 3)
             e.czekaj(lambda: rw.stan()["tryb"] == "wynik" and plan_na_ramce(ruch, rw) is not None, 5.0, "wynik na atrapie W")
             plytka = k.stan().plytka(skan)
-            if e.okno.pokazana_plytka() != skan:
-                e.klik(f"plytka_{skan}")
-            gniazd += UW.mapa_rowna_stanowi(e, plytka)
+            with petla.pauza():
+                if e.okno.pokazana_plytka() != skan:
+                    e.klik(f"plytka_{skan}")
+                gniazd += UW.mapa_rowna_stanowi(e, plytka)
             plan = plan_na_ramce(ruch, rw)
             assert sorted(plan["plytki"]) == [str(plytka.numer)]  # ramka W: tylko ostatni skan
             assert kolory_planu_w(plan, plytka.numer) == kolory_mapy_dla_ramki(plytka)
         # decyzja zmienia kolor gniazda na ekranie -> ramka dostaje nowy kolor (ten sam skan)
-        skan = k.symuluj_skan("zwykla", numer=2)
+        with petla.pauza():
+            skan = k.symuluj_skan("zwykla", numer=2)
         e.czekaj(lambda: (p := plan_na_ramce(ruch, rw)) is not None and "2" in p["plytki"], 5.0, "wynik plytki 2")
-        if e.okno.pokazana_plytka() != skan:
-            e.klik(f"plytka_{skan}")
-        e.klik_gniazdo(2)
-        e.klik("przycisk_ok")  # czerwone -> "OK": zielone na ekranie i na ramce
-        e.klawisz(Qt.Key.Key_Escape)  # widok pracy zamkniety (wybrane gniazdo nie jest podswietlone przy odczycie pikseli)
-        plytka = k.stan().plytka(skan)
-        UW.mapa_rowna_stanowi(e, plytka)
+        with petla.pauza():
+            if e.okno.pokazana_plytka() != skan:
+                e.klik(f"plytka_{skan}")
+            e.klik_gniazdo(2)
+            e.klik("przycisk_ok")  # czerwone -> "OK": zielone na ekranie i na ramce
+            e.klawisz(Qt.Key.Key_Escape)  # widok pracy zamkniety (wybrane gniazdo nie jest podswietlone przy odczycie pikseli)
+            plytka = k.stan().plytka(skan)
+            UW.mapa_rowna_stanowi(e, plytka)
         e.czekaj(lambda: (p := plan_na_ramce(ruch, rw)) is not None and "2" in p["plytki"] and kolory_planu_w(p, 2) == kolory_mapy_dla_ramki(plytka),
                  5.0, "kolor po decyzji na ramce W")
         # skan zablokowany (niezgodny uklad) -> ramka W ciemna, stary wynik nie wraca
-        e.klawisz(Qt.Key.Key_Space)
-        k.symuluj_skan("niezgodny_uklad", numer=1)
+        with petla.pauza():
+            e.klawisz(Qt.Key.Key_Space)
+            k.symuluj_skan("niezgodny_uklad", numer=1)
         e.czekaj(lambda: rw.stan()["plan_id"] is None and rw.stan()["tryb"] in ("blad", "gotowa"), 5.0, "ramka W ciemna po skanie zablokowanym")
         petla.stop()
         print(f"\n[kryterium 4] Spacja -> stan atrapy W: maks {max(czasy) * 1000:.0f} ms ({len(czasy)} prob, prog 1000 ms); kolory W = mapa "
