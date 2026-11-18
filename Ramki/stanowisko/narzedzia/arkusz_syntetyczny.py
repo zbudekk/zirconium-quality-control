@@ -14,9 +14,12 @@ celowo inaczej (tekst daty, numer seryjny daty, kuweta tekstem z zerami wiodacym
 Pulapki (``PULAPKI``: nazwa -> liczba zapytan przy 200; klasy: ``jeden_wiersz`` / ``juz_odhaczone`` / ``wskaz_wiersz``):
 ta sama kuweta w roznych datach (stare wiersze innych osob - takze w calym tle arkusza), inicjaly zamiast nazwiska, puste H,
 pole B juz zielone, zera wiodace, reklamacja z nowym wierszem, kuweta jako fragment innego numeru, duplikaty, brak wiersza,
-zlecenia prywatne "#1234" (numer w B albo w H), kuweta niejednoznaczna, brak numeru w nazwie folderu.
+zlecenia prywatne "#1234" (numer w B albo w H), kuweta niejednoznaczna, brak numeru w nazwie folderu; po rundzie 1 recenzji
+PR #27 (P6) takze: zlecenie jeszcze niewpisane (stary wiersz kuwety z pustym H, starszy niz limit wieku), reklamacja z nowym
+wierszem wpisanym inaczej (nowszy otwarty wiersz innej nazwy), "#1234" = numer w B zwyklego zlecenia (nie prywatnego) oraz
+wiersz zlecenia dopisany PO odczycie arkusza (``Zestaw.dopisania`` - test dopisuje je po pierwszym odczycie; P1).
 
-Tlo: stare wiersze (ponad ``DNI_TLA_SWIEZEGO`` dni) maja losowe kuwety (takze kuwety scenariuszy - pulapka "ta sama kuweta
+Tlo: stare wiersze (ponad ``DNI_TLA_SWIEZEGO`` dni - wiecej niz limit wieku 60 dni) maja losowe kuwety (takze kuwety scenariuszy - pulapka "ta sama kuweta
 w roznych datach"), swieze wiersze tla - kuwety spoza scenariuszy; nazwiska tla i scenariuszy sa z rozlacznych pul, wiec tlo
 nie zmienia prawdy zadnego zapytania. Nazwiska sa zlozone z wymyslonych czlonow (zadnych prawdziwych osob).
 
@@ -28,7 +31,6 @@ Na ekran narzedzie wypisuje tylko liczby.
 from __future__ import annotations
 
 import argparse
-import copy
 import csv
 import datetime as dt
 import random
@@ -43,7 +45,8 @@ ZIELONY = (198, 239, 206)  # wypelnienie "odhaczone" (plan wdrozenia: RGB 198, 2
 ZOLTY = (255, 235, 156)  # inne wypelnienie pola B (pulapka "pole B w innym kolorze")
 DZIS = dt.date(2026, 11, 18)
 DNI_TLA = 1100  # tlo arkusza: wiersze z ostatnich ok. 3 lat
-DNI_TLA_SWIEZEGO = 30  # swieze wiersze tla nie uzywaja kuwet scenariuszy (prawda scenariuszy nie zalezy od tla)
+DNI_TLA_SWIEZEGO = 90  # swieze wiersze tla nie uzywaja kuwet scenariuszy (prawda scenariuszy nie zalezy od tla); > limit 60 dni
+SKOROSZYT = "Zlecenia_atrapa.xlsx"  # nazwa skoroszytu atrapy (P2: zapis tylko do skoroszytu i arkusza z propozycji)
 
 KLASA_JEDEN = "jeden_wiersz"
 KLASA_JUZ = "juz_odhaczone"
@@ -51,15 +54,15 @@ KLASA_WSKAZ = "wskaz_wiersz"
 
 # pulapka -> (liczba zapytan przy 200, oczekiwana klasa)
 PULAPKI: dict[str, tuple[int, str]] = {
-    "prosty": (14, KLASA_JEDEN),                      # H = nazwa folderu, jedyny wiersz kuwety w ostatnich dniach
-    "ta_sama_kuweta_inne_daty": (14, KLASA_JEDEN),    # + 2-3 stare wiersze tej kuwety (inne osoby, czasem puste H)
-    "zera_wiodace": (10, KLASA_JEDEN),                # folder "Nazwisko 0412", C tekstem "0412" / "00412"
+    "prosty": (10, KLASA_JEDEN),                      # H = nazwa folderu, jedyny wiersz kuwety w ostatnich dniach
+    "ta_sama_kuweta_inne_daty": (10, KLASA_JEDEN),    # + 2-3 stare wiersze tej kuwety (inne osoby, czasem puste H)
+    "zera_wiodace": (8, KLASA_JEDEN),                 # folder "Nazwisko 0412", C tekstem "0412" / "00412"
     "kod_sklejony": (8, KLASA_JEDEN),                 # folder "Nazwisko 1784PG", H "Nazwisko 1784 PG"
-    "inicjal_imienia_w_h": (10, KLASA_JEDEN),         # H "Nazwisko J. 3263" (inne niz folder) - regula 3
+    "inicjal_imienia_w_h": (8, KLASA_JEDEN),          # H "Nazwisko J. 3263" (inne niz folder) - regula 3
     "inicjaly_zamiast_nazwiska": (10, KLASA_WSKAZ),   # H "T.J. 3263 zs" - nazwiska z folderu nie ma w H
     "puste_h": (10, KLASA_JEDEN),                     # H puste, wiersz najnowszy - regula 3
     "puste_h_nowszy_inny": (8, KLASA_WSKAZ),          # H puste, ale nowszy wiersz tej kuwety ma inne nazwisko
-    "pole_b_zielone": (12, KLASA_JUZ),                # poprawka / dofrezowanie zlecenia juz odhaczonego
+    "pole_b_zielone": (10, KLASA_JUZ),               # poprawka / dofrezowanie zlecenia juz odhaczonego
     "reklamacja_nowy_wiersz": (10, KLASA_JEDEN),      # stary wiersz zielony + nowy (nowsza data, B puste) - nowy
     "reklamacja_oba_zielone": (6, KLASA_JUZ),         # stary i nowy wiersz zielone - juz odhaczone (najnowszy)
     "dwa_otwarte_to_samo_h": (6, KLASA_WSKAZ),        # dwa wiersze z ta sama nazwa, oba bez koloru
@@ -67,7 +70,7 @@ PULAPKI: dict[str, tuple[int, str]] = {
     "brak_kuwety_w_arkuszu": (8, KLASA_WSKAZ),        # zadnego wiersza z ta kuweta w C
     "zlecenie_bez_wiersza": (8, KLASA_WSKAZ),         # kuweta jest tylko w wierszach innych osob
     "fragment_kuwety": (8, KLASA_JEDEN),              # nowsze wiersze z C "13263", "3263/2", "3263a" i ta sama nazwa
-    "c_liczba_spacje": (8, KLASA_JEDEN),              # C jako " 3263 ", liczba calkowita, tekst, twarda spacja
+    "c_liczba_spacje": (6, KLASA_JEDEN),              # C jako " 3263 ", liczba calkowita, tekst, twarda spacja
     "data_tekstem": (6, KLASA_JEDEN),                 # A tekstem "dd.mm.rrrr", H puste - regula 3
     "nfd": (6, KLASA_JEDEN),                          # folder z literami NFD (OneDrive), H w NFC
     "wielkosc_liter_spacje": (6, KLASA_JEDEN),        # H wielkimi literami z podwojnymi spacjami
@@ -78,6 +81,11 @@ PULAPKI: dict[str, tuple[int, str]] = {
     "prywatne_numer_w_h": (4, KLASA_JEDEN),           # "#1234": numer w kolumnie H
     "prywatne_zielone": (3, KLASA_JUZ),
     "prywatne_brak": (3, KLASA_WSKAZ),
+    # runda 1 recenzji PR #27 (P6): przypadki P3 i P1
+    "niewpisane_stary_pusty_h": (6, KLASA_WSKAZ),     # zlecenia nie ma w arkuszu; najnowszy wiersz kuwety: puste H, 61-89 dni (limit 60)
+    "reklamacja_inne_h": (4, KLASA_WSKAZ),            # stary wiersz z H = folder + nowszy otwarty "Nazwisko J. 3263 rekl."
+    "prywatne_kolizja_b": (2, KLASA_WSKAZ),           # "#1234": jedyny wiersz z B = 1234 to zwykle zlecenie (kuweta w C)
+    "dopisane_po_odczycie": (4, KLASA_JEDEN),         # wiersz zlecenia dopisany po odczycie; wczesniej tylko stary wiersz z pustym H
 }
 ZAPYTAN_WZOR = sum(n for n, _ in PULAPKI.values())  # 200
 
@@ -124,10 +132,13 @@ class ArkuszWPamieci:
     """Atrapa arkusza (interfejs ``excel.ZrodloArkusza``): wartosci komorek i wypelnienia w pamieci + dziennik operacji.
 
     Wiersz 1 = naglowek. Kolumny numerowane od 1 (A = 1). ``operacje``: kazde wywolanie interfejsu (odczyt, zapis koloru),
-    zeby test mogl sprawdzic, ze zapis dotyka wylacznie koloru jednej komorki."""
+    zeby test mogl sprawdzic, ze zapis dotyka wylacznie koloru jednej komorki. ``skoroszyt`` i ``sciezka`` - nazwa i pelna
+    sciezka skoroszytu (jak ``Workbook.Name`` / ``FullName``), ``nazwa`` - nazwa arkusza."""
 
-    def __init__(self, nazwa: str = "Zlecenia", wiersze=(), naglowek=NAGLOWEK):
+    def __init__(self, nazwa: str = "Zlecenia", wiersze=(), naglowek=NAGLOWEK, skoroszyt: str = SKOROSZYT):
         self.nazwa = nazwa
+        self.skoroszyt = skoroszyt
+        self.sciezka = f"pamiec://{skoroszyt}"
         self._komorki: list[list] = [list(naglowek)] + [list(w) for w in wiersze]
         self._wypelnienia: dict[tuple[int, int], tuple[int, int, int]] = {}
         self.operacje: list[tuple] = []
@@ -180,13 +191,21 @@ class ArkuszWPamieci:
         self._komorki.insert(nr - 1, list(wartosci))
         self._wypelnienia = {((w + 1 if w >= nr else w), k): c for (w, k), c in self._wypelnienia.items()}
 
+    def dopisz(self, wartosci, kolor_b=None) -> int:
+        """Wiersz dopisany na koncu "przez kogos innego" (np. po odczycie arkusza przez program); zwraca jego numer."""
+        self._komorki.append(list(wartosci))
+        if kolor_b is not None:
+            self._wypelnienia[(len(self._komorki), 2)] = tuple(kolor_b)
+        return len(self._komorki)
+
     def zrzut(self) -> tuple[list[list], dict]:
         """Kopia wszystkich wartosci i wypelnien (porownanie "przed" i "po")."""
-        return copy.deepcopy(self._komorki), dict(self._wypelnienia)
+        return [list(w) for w in self._komorki], dict(self._wypelnienia)  # wartosci komorek sa niezmienne
 
-    def kopia(self) -> "ArkuszWPamieci":
-        k = ArkuszWPamieci(self.nazwa)
-        k._komorki = copy.deepcopy(self._komorki)
+    def kopia(self, nazwa: str | None = None, skoroszyt: str | None = None) -> "ArkuszWPamieci":
+        """Kopia (te same wartosci i wypelnienia); ``nazwa`` / ``skoroszyt`` inne = kopia arkusza albo pliku (test P2)."""
+        k = ArkuszWPamieci(nazwa or self.nazwa, skoroszyt=skoroszyt or self.skoroszyt)
+        k._komorki = [list(w) for w in self._komorki]  # wartosci komorek sa niezmienne (liczby, teksty, daty)
         k._wypelnienia = dict(self._wypelnienia)
         return k
 
@@ -222,10 +241,18 @@ class _Wiersz:
 
 @dataclass
 class Zestaw:
-    """Wynik ``zbuduj``: arkusz, zapytania i liczniki budowy (do raportu)."""
+    """Wynik ``zbuduj``: arkusz, zapytania, liczniki budowy (do raportu) i ``dopisania`` - wiersze, ktore pojawiaja sie
+    w arkuszu PO pierwszym odczycie (pulapka ``dopisane_po_odczycie``; prawda zapytan zaklada, ze sa juz dopisane)."""
     arkusz: ArkuszWPamieci
     zapytania: list[Zapytanie]
     liczniki: dict = field(default_factory=dict)
+    dopisania: list = field(default_factory=list)  # [(wartosci A..I, kolor pola B albo None)]
+
+    def dopisz(self, arkusz: ArkuszWPamieci) -> list[int]:
+        """Dopisuje ``dopisania`` na koncu kopii arkusza bazowego (ten sam uklad wierszy); zwraca ich numery."""
+        if arkusz.ostatni_wiersz != self.arkusz.ostatni_wiersz:
+            raise ValueError("dopisania pasuja tylko do kopii arkusza bazowego (ta sama liczba wierszy)")
+        return [arkusz.dopisz(w, kolor) for w, kolor in self.dopisania]
 
 
 def _kolejnosc_pulapek(zapytan: int) -> list[str]:
@@ -275,6 +302,7 @@ def zbuduj(wierszy: int = 30000, zapytan: int = ZAPYTAN_WZOR, seed: int = 0, dzi
 
     numer_b = iter(range(40001, 40001 + 10 * wierszy))
     wiersze: list[_Wiersz] = []
+    dopisane: list[tuple[int, _Wiersz]] = []  # (id zapytania, wiersz dopisany po odczycie)
     zapytania: list[Zapytanie] = []
     rola: dict[int, dict[str, _Wiersz]] = {}  # id zapytania -> {"prawdziwy": wiersz, ...}
 
@@ -314,12 +342,23 @@ def zbuduj(wierszy: int = 30000, zapytan: int = ZAPYTAN_WZOR, seed: int = 0, dzi
         if p in ("prosty", "ta_sama_kuweta_inne_daty", "pole_b_zielone", "pole_b_inny_kolor", "inicjal_imienia_w_h",
                  "inicjaly_zamiast_nazwiska", "puste_h", "puste_h_nowszy_inny", "reklamacja_nowy_wiersz", "reklamacja_oba_zielone",
                  "dwa_otwarte_to_samo_h", "duplikat_ta_sama_data", "zlecenie_bez_wiersza", "c_liczba_spacje", "data_tekstem",
-                 "wielkosc_liter_spacje", "fragment_kuwety"):
+                 "wielkosc_liter_spacje", "fragment_kuwety", "niewpisane_stary_pusty_h", "reklamacja_inne_h", "dopisane_po_odczycie"):
             k = kuweta_duza()
             kuweta, folder = str(k), folder_wzor(nazw, k)
             c = float(k)
             if p == "prosty":
                 r["prawdziwy"] = nowy(dzien(1, 9), c, folder)
+            elif p == "niewpisane_stary_pusty_h":  # zlecenia nie ma w arkuszu; stary wiersz tej kuwety (inna osoba) ponad limit wieku
+                nowy(dzien(61, 89), c, rng.choice(("", None)), kolor=ZIELONY if qid % 2 else None)
+            elif p == "reklamacja_inne_h":  # stary wiersz z H = folder + nowszy otwarty wiersz wpisany inaczej
+                r["stary"] = nowy(dzien(15, 50), c, folder, kolor=ZIELONY if qid % 2 else None)
+                r["prawdziwy"] = nowy(dzien(1, 9), float(k), f"{nazw} {rng.choice('JAPEM')}. {k} rekl.", i="reklamacja")
+            elif p == "dopisane_po_odczycie":  # w chwili odczytu tylko stary wiersz z pustym H (w limicie); zlecenie dopisane potem
+                nowy(dzien(20, 50), c, "", kolor=ZIELONY if qid % 2 else None)
+                w = nowy(dzis, float(k), folder)
+                wiersze.remove(w)
+                dopisane.append((qid, w))
+                r["prawdziwy"] = w  # numer: za ostatnim wierszem arkusza bazowego (po dopisaniu)
             elif p == "ta_sama_kuweta_inne_daty":
                 r["prawdziwy"] = nowy(dzien(1, 9), c, folder)
                 for j in range(rng.randint(2, 3)):
@@ -403,6 +442,8 @@ def zbuduj(wierszy: int = 30000, zapytan: int = ZAPYTAN_WZOR, seed: int = 0, dzi
                 r["prawdziwy"] = nowy(dzien(1, 9), None, f"{nazw} #{n}")
             elif p == "prywatne_zielone":
                 r["prawdziwy"] = nowy(dzien(1, 9), None, nazw, b=float(n), kolor=ZIELONY)
+            elif p == "prywatne_kolizja_b":  # jedyny wiersz z B = n to zwykle zlecenie (kuweta w C) - nie wiersz zlecenia prywatnego
+                nowy(dzien(1, 9), float(kuweta_duza()), inny(), b=float(n))
         else:  # pragma: no cover - nowa pulapka bez budowy
             raise ValueError(f"pulapka bez budowy: {p}")
         rola[qid] = r
@@ -445,6 +486,10 @@ def zbuduj(wierszy: int = 30000, zapytan: int = ZAPYTAN_WZOR, seed: int = 0, dzi
             arkusz.zaznacz(nr, 2, w.kolor_b)
         if nr % 97 == 0:  # inne wypelnienia poza kolumna B (zakreslenia czlowieka) - program ich nie dotyka
             arkusz.zaznacz(nr, 8, ZOLTY)
+    dopisania = []
+    for j, (_, w) in enumerate(dopisane):  # wiersze dopisywane po odczycie: kolejno za ostatnim wierszem bazowym
+        w.nr = arkusz.ostatni_wiersz + 1 + j
+        dopisania.append(([w.a, w.b, w.c, w.d, w.e, w.f, w.g, w.h, w.i], w.kolor_b))
     for z in zapytania:
         r = rola[z.id]
         z.prawdziwy = r["prawdziwy"].nr if "prawdziwy" in r else None
@@ -452,8 +497,8 @@ def zbuduj(wierszy: int = 30000, zapytan: int = ZAPYTAN_WZOR, seed: int = 0, dzi
             z.wiersz = z.prawdziwy
     liczniki = {"wierszy": len(wiersze), "scenariuszy_wierszy": len(wiersze) - tlo, "tlo": tlo, "zapytan": len(zapytania),
                 "klasy": {k: sum(1 for z in zapytania if z.klasa == k) for k in (KLASA_JEDEN, KLASA_JUZ, KLASA_WSKAZ)},
-                "zielonych_b": sum(1 for (_, kol) in arkusz._wypelnienia if kol == 2)}
-    return Zestaw(arkusz=arkusz, zapytania=zapytania, liczniki=liczniki)
+                "zielonych_b": sum(1 for (_, kol) in arkusz._wypelnienia if kol == 2), "dopisanych_po_odczycie": len(dopisania)}
+    return Zestaw(arkusz=arkusz, zapytania=zapytania, liczniki=liczniki, dopisania=dopisania)
 
 
 def main(argv: list[str] | None = None) -> int:

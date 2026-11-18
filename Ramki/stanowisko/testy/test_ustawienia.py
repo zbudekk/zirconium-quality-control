@@ -151,7 +151,8 @@ def test_nowe_klucze_maja_domyslne_ze_wzoru(tmp_path):
 
 
 # --- E3-A9: opcjonalne klucze [excel] (modul excel; sekcja [excel] i jej 5 kluczy sprzed etapu 3 zostaja wymagane) -----
-NOWE_E3_A9 = {"excel": {"kolumna_daty": "A", "pierwszy_wiersz": 2, "skoroszyt": "", "arkusz": "", "tryb": "pytaj", "odswiez_co_min": 5.0}}
+NOWE_E3_A9 = {"excel": {"kolumna_daty": "A", "pierwszy_wiersz": 2, "skoroszyt": "", "arkusz": "", "tryb": "pytaj", "odswiez_co_min": 5.0,
+                        "maks_wiek_dni": 60}}  # maks_wiek_dni: runda 2 recenzji PR #27 (P3)
 
 
 def _plik_bez_kluczy_e3_a9(tmp_path, wstaw: str = ""):
@@ -190,7 +191,10 @@ def test_e3_a9_klucze_excel_opcjonalne(tmp_path):
     ('odswiez_co_min = "5"\n', r"\[excel\] odswiez_co_min: oczekiwano float"),
     ('kolumna_daty = "1"\n', r"\[excel\] kolumna_daty: litera kolumny"),
     ('kolumna_daty = "ABCD"\n', r"\[excel\] kolumna_daty: litera kolumny"),
-    ('kolumna_daty = "C"\n', r"\[excel\] kolumna_daty: kolumny daty, odhaczenia, kuwety i nazwy"),
+    ('kolumna_daty = "XFE"\n', r"\[excel\] kolumna_daty: litera kolumny"),  # D9: Excel konczy sie na XFD
+    ('kolumna_daty = "C"\n', r"\[excel\] kolumna_kuwety: kolumny daty, odhaczenia, kuwety i nazwy"),  # D10: pierwszy powtorzony klucz
+    ("maks_wiek_dni = -1\n", r"\[excel\] maks_wiek_dni: musi"),
+    ("maks_wiek_dni = 30.5\n", r"\[excel\] maks_wiek_dni: oczekiwano int"),
     ("skoroszyt = 5\n", r"\[excel\] skoroszyt: oczekiwano str"),
     ('arkusze = "2026"\n', r"\[excel\] arkusze: nieznany klucz"),
 ])
@@ -201,12 +205,15 @@ def test_e3_a9_zla_wartosc_klucza_excel_jest_bledem(tmp_path, wstaw, komunikat):
 
 @pytest.mark.parametrize("stare, nowe, komunikat", [
     ('kolumna_kuwety = "C"', 'kolumna_kuwety = "3"', r"\[excel\] kolumna_kuwety: litera kolumny"),
-    ('kolumna_nazwy = "H"', 'kolumna_nazwy = "B"', r"\[excel\] kolumna_daty: kolumny daty, odhaczenia, kuwety i nazwy"),
+    ('kolumna_nazwy = "H"', 'kolumna_nazwy = "B"', r"\[excel\] kolumna_nazwy: kolumny daty, odhaczenia, kuwety i nazwy"),
+    ('kolumna_nazwy = "H"', 'kolumna_nazwy = "c"', r"\[excel\] kolumna_nazwy: kolumny daty, odhaczenia, kuwety i nazwy"),
 ])
 def test_e3_a9_kolumny_excela_sprawdzane(tmp_path, stare, nowe, komunikat):
     with pytest.raises(UST.BladUstawien, match=r"^ustawienia\.toml: " + komunikat):
         UST.wczytaj_ustawienia(_zepsuj(tmp_path, stare, nowe))
     assert UST.wczytaj_ustawienia(_zepsuj(tmp_path, 'kolumna_kuwety = "C"', 'kolumna_kuwety = "c"'))["excel"]["kolumna_kuwety"] == "c"
+    assert UST.wczytaj_ustawienia(_zepsuj(tmp_path, 'kolumna_nazwy = "H"', 'kolumna_nazwy = "XFD"'))["excel"]["kolumna_nazwy"] == "XFD"
+    assert UST.wczytaj_ustawienia(_plik_bez_kluczy_e3_a9(tmp_path, "maks_wiek_dni = 0\n"))["excel"]["maks_wiek_dni"] == 0  # 0 = bez limitu
 
 
 # --- E3-A1: klucze opcjonalne z wartoscia domyslna (plan etapu 3, sekcja 3.7) ---------------------
