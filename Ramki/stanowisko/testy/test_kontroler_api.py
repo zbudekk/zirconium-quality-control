@@ -56,6 +56,13 @@ def analiza_sztuczna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, 
     opis = opis_z_pliku(skan)
     if postep is not None:
         postep("wczytanie skanu", 0.2)
+    if opis.get("brama"):  # D13: analiza czeka na plik-brame, ktory tworzy test (zamiast zakladac, ile trwa "spij")
+        koniec, nastepny = time.monotonic() + float(opis.get("brama_limit_s", 300)), 0.0
+        while not Path(opis["brama"]).exists() and time.monotonic() < koniec:
+            if postep is not None and time.monotonic() >= nastepny:
+                postep("identyfikacja i inspekcja gniazd (match + inspect)", 0.3)
+                nastepny = time.monotonic() + 0.25
+            time.sleep(0.02)
     kroki = max(1, int(float(opis.get("spij", 0)) / 0.05))
     for i in range(kroki):
         if opis.get("spij"):
@@ -65,6 +72,13 @@ def analiza_sztuczna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, 
     if opis.get("zabij"):
         os._exit(7)
     projekty = [p for f in foldery for p in sorted(Path(f).rglob("*.stl"))]
+    if opis.get("podglad") and kw.get("podglad") is not None:  # jak porownaj: punkty i odchylki gniazd -> silnik zapisze *_podglad.npz
+        import numpy as np
+
+        for nr in (opis.get("gniazda") or {}):
+            wpis = type("WynikInspekcji", (), {})()
+            wpis._P, wpis._d = np.zeros((20, 3)), np.full(20, -0.05)
+            kw["podglad"][int(nr)] = wpis
     if opis.get("blad"):
         gdzie = f"{projekty[0].parent.name} ({projekty[0]})" if projekty else "?"
         raise ValueError(f"blad sztuczny w projekcie z folderu {gdzie}")
@@ -138,6 +152,16 @@ class Stanowisko:
     def odbierz(self, z) -> None:
         self.sygnaly.append(z)
 
+    def czekaj(self, warunek, limit_s: float = 60.0, co: str = "") -> None:
+        """Wola ``przetworz()`` (jak zegar okna), az warunek bedzie spelniony."""
+        koniec = time.monotonic() + limit_s
+        while True:
+            self.k.przetworz()
+            if warunek():
+                return
+            assert time.monotonic() < koniec, f"nie doczekalem sie: {co}; stan: {self.k.stan().kolejka}, komunikaty {[k.rodzaj for k in self.k.stan().komunikaty]}"
+            time.sleep(0.01)
+
 
 class StanowiskoAtrapy(Stanowisko):
     nazwa = "atrapa"
@@ -148,6 +172,10 @@ class StanowiskoAtrapy(Stanowisko):
 
         self.k = K.AtrapaKontrolera(tmp_path / "atrapa", operatorzy=("Technik A", "Technik B"), zegar=self.zegar)
         self.k.subskrybuj(self.odbierz)
+        self.folder_puli = "(atrapa)"
+
+    def start_nieudany(self) -> None:
+        self.k.symuluj_skaner(start_udany=False)
 
     def wrzuc(self, rodzaj: str = "zwykla", *, numer=1, gniazda=None, projekty=None, uklad=None, poza=0) -> int:
         opis = self.opis(rodzaj, numer, gniazda, projekty, uklad, poza)
@@ -198,7 +226,7 @@ class StanowiskoAplikacji(Stanowisko):
         self.tmp = tmp_path
         self.eksport = tmp_path / "eksport"
         self.eksport.mkdir(parents=True, exist_ok=True)
-        pula_probna(tmp_path)
+        self.folder_puli = str(pula_probna(tmp_path))
         self.ust = parametry.pop("ust", None) or ustawienia_probne(tmp_path)
         self.atrapa_startu = SC.AtrapaStartuSkanu()
         self._nr = len(list(self.eksport.rglob("*.stl")))
@@ -209,14 +237,8 @@ class StanowiskoAplikacji(Stanowisko):
         K.indeks_sztuczny(self.k.sesja.baza, self.k.sesja.teraz())
         self.czekaj(lambda: self.k.stan().pula.liczba_stl is not None, 30.0, "pula policzona")
 
-    def czekaj(self, warunek, limit_s: float = 60.0, co: str = "") -> None:
-        koniec = time.monotonic() + limit_s
-        while True:
-            self.k.przetworz()
-            if warunek():
-                return
-            assert time.monotonic() < koniec, f"nie doczekalem sie: {co}; stan: {self.k.stan().kolejka}, komunikaty {[k.rodzaj for k in self.k.stan().komunikaty]}"
-            time.sleep(0.01)
+    def start_nieudany(self) -> None:
+        self.k.scanner.akcja_startu = lambda: False  # skaner nie odpowiada na "start skanu"
 
     def zapisz(self, opis: dict, podfolder: str = "") -> Path:
         """Zapisuje plik sztucznego skanu do folderu skanera (nie czeka na analize)."""
@@ -600,10 +622,333 @@ def test_g_pula_liczba_stl_i_odswiez(st):
     s = st.stan()
     assert s.pula.liczba_stl > 0 and str(s.pula.liczba_stl) in s.pula.napis and s.pula.odswiezono
     odp = st.k.odswiez_pule()
-    assert odp
-    if st.nazwa == "aplikacja":
-        st.czekaj(lambda: st.stan().pula.stan == "gotowa", 30.0, "pula po odswiezeniu")
+    assert odp and odp.dane == "liczenie" and st.stan().pula.stan == "liczenie"  # P6: atrapa tez liczy "w tle" (wynik w przetworz)
+    st.czekaj(lambda: st.stan().pula.stan == "gotowa", 30.0, "pula po odswiezeniu")
     assert st.stan().pula.stan == "gotowa" and st.stan().pula.liczba_stl == s.pula.liczba_stl
+
+
+# ----------------------------------------------------------------------------
+# runda 2 recenzji PR #20: zmiany kontraktu (P4, P6, P7, P1 / P8, D1, D2, D6, D7, D12)
+# ----------------------------------------------------------------------------
+def test_p4_zielony_tylko_przy_inspekcji_ok_i_znanym_dopasowaniu(st):
+    """P4: kolor gniazda "zielony" z analizy bez inspekcji "ok" (brak inspekcji, pominieta, nowy status inspect) albo przy
+    nieznanym statusie dopasowania - praca NIE jest zielona: status nie_sprawdzono / nieznany, kolor zolty, poza "zielonych"."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    gniazda = {1: "zielony", 2: "zielony_bez_inspekcji", 3: "zielony_pominieto", 4: "zielony_nowa_inspekcja", 5: "zielony_nowe_dopasowanie"}
+    skan_id = st.wrzuc("czysta", numer=2, gniazda=gniazda)
+    p = st.stan().plytka(skan_id)
+    assert {g.nr: g.status for g in p.gniazda if g.prace} == {1: "zielony", 2: "nie_sprawdzono", 3: "nie_sprawdzono", 4: "nieznany", 5: "nieznany"}
+    assert {g.nr: g.kolor for g in p.gniazda if g.prace} == {1: "zielony", 2: "zolty", 3: "zolty", 4: "zolty", 5: "zolty"}
+    assert all(g.rgb != ST.STATUSY["zielony"].hex for g in p.gniazda if g.nr != 1)
+    assert kolory(p) == K.kolory_oczekiwane(st.wynik(st.opis("czysta", 2, gniazda, None, None, 0)))
+    assert p.zielonych == 1 and p.liczniki == {"zielony": 1, "zolty": 4} and st.stan().liczniki == {"zielony": 1, "zolty": 4}
+    assert all(x.dozwolone == ("ukruszona", "ok") for x in p.prace)  # praca do sprawdzenia: technik decyduje
+
+
+def test_p4_tabela_zadna_para_poza_zielony_ok_nie_jest_zielona():
+    """P4 (test tabelaryczny): kazda para (kolor, status inspekcji, status dopasowania) spoza "zielony + ok + znane dopasowanie"
+    daje status spoza ``STATUSY_ZIELONE`` i klase koloru inna niz zielona; nieznane wartosci nigdy nie rzucaja wyjatku."""
+    from stanowisko import porownaj as PO
+    from stanowisko import statusy as ST
+
+    kolory_ = list(ST.KOLORY_PRACY) + [None, "fioletowy", ""]
+    inspekcje = list(PO.INSPECT_NA_STATUS) + [None, "nowy_status_inspect", ""]
+    dopasowania = ["zielony", "zolty", "szary", None, "nowy_status_match", ""]
+    zielonych = 0
+    for kolor in kolory_:
+        for insp in inspekcje:
+            for match in dopasowania:
+                for status_skanu in ("przyjety", "do_powtorzenia", "zastapiony", "blad", "plytka_nie_z_trybu", "nowy_status_skanu"):
+                    klucz = ST.status_pracy(kolor, status_skanu=status_skanu, status_gniazda=kolor, status_inspekcji=insp, status_match=match)
+                    assert klucz in ST.STATUSY, (kolor, insp, match, klucz)
+                    wolno = kolor == "zielony" and insp == "ok" and match in ("zielony", "zolty", None) and status_skanu not in ("plytka_nie_z_trybu",)
+                    if klucz in ST.STATUSY_ZIELONE:
+                        zielonych += 1
+                        assert wolno, (kolor, insp, match, status_skanu)
+                    assert (ST.kolor_pracy(kolor, klucz) == "zielony") == (klucz in ST.STATUSY_ZIELONE), (kolor, insp, match, klucz)
+    assert zielonych > 0
+    assert ST.status_pracy(None, status_skanu="przyjety") == "nieznany" and ST.kolor_pracy(None, "nieznany") == "zolty"  # D3
+    assert ST.kolor_pracy("fioletowy", "nieznany") == "zolty" and ST.kolor_pracy("zielony", "czeka_na_numer") is None
+
+
+def _sekwencja_zgodnosci(st) -> list:
+    """P6: ta sama sekwencja polecen dla atrapy i prawdziwego kontrolera; zwraca (polecenie, ok, kod, dane / stan)."""
+    k, wynik = st.k, []
+
+    def zapisz(opis: str, odp, *dodatki) -> None:
+        wynik.append((opis, odp.ok, odp.kod) + dodatki)
+
+    zapisz("ustaw_pule zly wspolczynnik", k.ustaw_pule(st.folder_puli, 7.5), st.stan().pula.stan)
+    zapisz("ustaw_pule wspolczynnik tekst", k.ustaw_pule(st.folder_puli, "abc"))
+    zapisz("ustaw_pule wspolczynnik nan", k.ustaw_pule(st.folder_puli, float("nan")))
+    zapisz("ustaw_pule wspolczynnik bool", k.ustaw_pule(st.folder_puli, True))
+    zapisz("ustaw_pule folder liczba", k.ustaw_pule(123))
+    odp = k.ustaw_pule(None)
+    zapisz("ustaw_pule None", odp, odp.dane, st.stan().pula.stan, st.stan().pula.folder)
+    odp = k.odswiez_pule()
+    zapisz("odswiez_pule bez folderu", odp, odp.dane, st.stan().pula.stan)
+    odp = k.ustaw_pule(st.folder_puli, "1,22")
+    zapisz("ustaw_pule", odp, odp.dane, st.stan().pula.stan)
+    st.czekaj(lambda: st.stan().pula.stan != "liczenie", 30.0, "pula policzona")
+    zapisz("pula po liczeniu", odp, st.stan().pula.stan, st.stan().pula.wspolczynnik)
+    odp = k.odswiez_pule()
+    zapisz("odswiez_pule", odp, odp.dane, st.stan().pula.stan)
+    st.czekaj(lambda: st.stan().pula.stan != "liczenie", 30.0, "pula policzona")
+    for opis, odp in (("wykonaj bez argumentu", k.wykonaj("ukruszona")), ("wykonaj za duzo argumentow", k.wykonaj("ukruszona", 1, 2)),
+                      ("wykonaj numer bez numeru", k.wykonaj("podaj_numer_plytki", 1)), ("wykonaj nie napis", k.wykonaj(5)),
+                      ("wykonaj nieznane", k.wykonaj("usun_wszystko")), ("ok lista", k.ok([1])), ("ukruszona bool", k.ukruszona(True)),
+                      ("numer za duzy", k.podaj_numer_plytki(1, 10 ** 30)), ("zamknij_pytanie liczba", k.zamknij_pytanie(5)),
+                      ("zamknij_komunikat None", k.zamknij_komunikat(None)), ("zapisz_liste zla doba", k.zapisz_liste(5)),
+                      ("ukruszona bez osoby", k.ukruszona(1)), ("osoba liczba", k.wybierz_operatora(123)),
+                      ("osoba spoza listy", k.wybierz_operatora("Nikt Taki"))):
+        zapisz(opis, odp)
+    zapisz("osoba", k.wybierz_operatora("Technik A"), st.stan().operator)
+    zapisz("ukruszona nieznanej pracy", k.ukruszona(999999))
+    zapisz("wyloguj", k.wybierz_operatora(None), st.stan().operator, st.stan().wymaga_operatora)
+    zapisz("ukruszona po wylogowaniu", k.ukruszona(999999))
+    odp = k.zapisz_liste()
+    zapisz("zapisz_liste", odp, odp.dane)
+    odp = k.zapisz_liste("2026-11-17")
+    zapisz("zapisz_liste doby", odp, odp.dane)
+    odp = k.ponow_zapis()
+    zapisz("ponow_zapis", odp, odp.dane)
+    zapisz("start_skanu", k.start_skanu(), st.stan().skaner.czeka_na_skan)
+    st.start_nieudany()
+    zapisz("start_skanu nieudany", k.start_skanu(), st.stan().skaner.czeka_na_skan, [x.rodzaj for x in st.stan().komunikaty if x.rodzaj == "start_skanu_nieudany"])
+    zapisz("zamknij", k.zamknij())
+    for opis, odp in (("po zamknieciu ustaw_pule", k.ustaw_pule(st.folder_puli)), ("po zamknieciu odswiez_pule", k.odswiez_pule()),
+                      ("po zamknieciu zapisz_liste", k.zapisz_liste()), ("po zamknieciu ponow_zapis", k.ponow_zapis()),
+                      ("po zamknieciu wyloguj", k.wybierz_operatora(None)), ("po zamknieciu zamknij_pytanie", k.zamknij_pytanie("x"))):
+        zapisz(opis, odp)
+    return wynik
+
+
+def test_p6_atrapa_i_prawdziwy_kontroler_daja_te_same_odpowiedzi(tmp_path):
+    """P6: ta sama sekwencja polecen (pula, zle argumenty, osoba, lista, zapis, start skanu, zamkniecie) na atrapie i na
+    prawdziwym kontrolerze daje te same odpowiedzi (ok, kod, dane) i te same stany puli."""
+    if not _jest_aplikacja():
+        pytest.skip("brak modulu stanowisko.aplikacja")
+    atrapa = StanowiskoAtrapy(tmp_path / "a")
+    try:
+        z_atrapy = _sekwencja_zgodnosci(atrapa)
+    finally:
+        atrapa.koniec()
+    aplikacja = StanowiskoAplikacji(tmp_path / "b")
+    try:
+        z_aplikacji = _sekwencja_zgodnosci(aplikacja)
+    finally:
+        aplikacja.koniec()
+    assert [w[:3] for w in z_atrapy] == [w[:3] for w in z_aplikacji]
+    assert z_atrapy == z_aplikacji
+    oczekiwane = {"ustaw_pule zly wspolczynnik": (False, "zly_wspolczynnik", "gotowa"), "ustaw_pule wspolczynnik tekst": (False, "zly_wspolczynnik"),
+                  "ustaw_pule wspolczynnik nan": (False, "zly_wspolczynnik"), "ustaw_pule wspolczynnik bool": (False, "zly_wspolczynnik"),
+                  "ustaw_pule folder liczba": (False, "zle_argumenty"), "ustaw_pule None": (True, "", "nieustawiona", "nieustawiona", None),
+                  "odswiez_pule bez folderu": (True, "", "nieustawiona", "nieustawiona"), "ustaw_pule": (True, "", "liczenie", "liczenie"),
+                  "pula po liczeniu": (True, "", "gotowa", 1.22), "odswiez_pule": (True, "", "liczenie", "liczenie"),
+                  "wykonaj bez argumentu": (False, "zle_argumenty"), "wykonaj za duzo argumentow": (False, "zle_argumenty"),
+                  "wykonaj numer bez numeru": (False, "zle_argumenty"), "wykonaj nie napis": (False, "odmowa"), "wykonaj nieznane": (False, "odmowa"),
+                  "ok lista": (False, "zle_argumenty"), "ukruszona bool": (False, "zle_argumenty"), "numer za duzy": (False, "zle_argumenty"),
+                  "zamknij_pytanie liczba": (False, "zle_argumenty"), "zamknij_komunikat None": (False, "zle_argumenty"),
+                  "zapisz_liste zla doba": (False, "zle_argumenty"), "ukruszona bez osoby": (False, "brak_operatora"),
+                  "osoba liczba": (False, "zle_argumenty"), "osoba spoza listy": (False, "osoba_spoza_listy"), "osoba": (True, "", "Technik A"),
+                  "ukruszona nieznanej pracy": (False, "odmowa"), "wyloguj": (True, "wylogowano", None, True),
+                  "ukruszona po wylogowaniu": (False, "brak_operatora"), "zapisz_liste": (True, "", "do_dofrezowania_biezaca.csv"),
+                  "zapisz_liste doby": (True, "", "do_dofrezowania_2026-11-17.csv"), "ponow_zapis": (True, "", 0), "start_skanu": (True, "", True),
+                  "start_skanu nieudany": (False, "start_skanu_nieudany", False, ["start_skanu_nieudany"]), "zamknij": (True, "")}
+    for w in z_atrapy:
+        if w[0] in oczekiwane:
+            assert w[1:] == oczekiwane[w[0]], w
+        else:
+            assert w[0].startswith("po zamknieciu") and w[1:] == (False, "program_zamkniety"), w
+
+
+def test_p6_atrapa_pokazuje_stany_zywe_prawdziwego_kontrolera(tmp_path):
+    """P6: atrapa umie pokazac oknu stany, ktore ma prawdziwy kontroler: pula nieustawiona / liczenie / pusta / brak folderu /
+    gotowa, skany wstrzymane (z komunikatem), silnik bez startu, skaner niedostepny i plik zajety, nieudany start skanu;
+    liczba_stl=0 startuje jako pula pusta (nie "gotowa, 0 STL")."""
+    from stanowisko import kontroler_api as K
+
+    a = K.AtrapaKontrolera(tmp_path / "atrapa", liczba_stl=0)
+    try:
+        assert a.stan().pula.stan == "pusta" and a.stan().pula.liczba_stl == 0
+        a.symuluj_pule("gotowa", 12)
+        assert (a.stan().pula.stan, a.stan().pula.liczba_stl, a.stan().pula.napis) == ("gotowa", 12, "12 STL w puli")
+        a.symuluj_pule("pusta")
+        a.symuluj_kolejke(wstrzymane=2)
+        s = a.stan()
+        assert s.kolejka.wstrzymane == 2 and s.kolejka.razem == 2 and [k.rodzaj for k in s.komunikaty if k.id == "pula"] == ["pula_pusta"]
+        assert "2" in [k.tekst for k in s.komunikaty if k.id == "pula"][0]
+        a.symuluj_pule("brak_folderu")
+        assert a.stan().pula.stan == "brak_folderu" and [k.rodzaj for k in a.stan().komunikaty if k.id == "pula"] == ["pula_brak_folderu"]
+        a.symuluj_pule("liczenie")
+        assert a.stan().pula.stan == "liczenie" and a.stan().pula.napis
+        a.przetworz()
+        assert a.stan().pula.stan == "liczenie"  # bez "Odswiez pule" liczenie trwa
+        a.symuluj_pule("gotowa", 5)  # pula wrocila: skany wstrzymane ida do analizy, komunikat znika
+        s = a.stan()
+        assert s.kolejka.wstrzymane == 0 and s.kolejka.czeka == 2 and not [k for k in s.komunikaty if k.id == "pula"]
+        a.symuluj_pule("nieustawiona")
+        assert a.stan().pula.stan == "nieustawiona" and a.stan().pula.folder is None
+        assert a.ustaw_pule("(inny folder)") and a.stan().pula.stan == "liczenie"
+        a.przetworz()
+        assert a.stan().pula.stan == "gotowa" and a.stan().pula.liczba_stl == 5 and a.stan().pula.folder == "(inny folder)"
+        a.symuluj_kolejke(wstrzymane=1, silnik_gotowy=False)
+        assert not a.stan().kolejka.silnik_gotowy and [k.rodzaj for k in a.stan().komunikaty if k.id == "silnik"] == ["silnik_nie_startuje"]
+        a.symuluj_kolejke()
+        assert a.stan().kolejka.razem == 0 and not [k for k in a.stan().komunikaty if k.id == "silnik"]
+        a.symuluj_skaner(dostepny=False, zajete=1)
+        s = a.stan()
+        assert not s.skaner.dostepny and s.skaner.zajete == 1
+        assert sorted(k.rodzaj for k in s.komunikaty) == ["folder_skanera_niedostepny", "plik_zajety"]
+        a.symuluj_skaner()
+        assert a.stan().skaner.dostepny and a.stan().komunikaty == ()
+        a.symuluj_skaner(start_udany=False)
+        odp = a.start_skanu()
+        assert not odp and odp.kod == "start_skanu_nieudany" and len(a.starty_skanu) == 1 and not a.stan().skaner.czeka_na_skan
+        a.symuluj_skaner()
+        assert a.start_skanu() and a.stan().skaner.czeka_na_skan and not [k for k in a.stan().komunikaty if k.rodzaj == "start_skanu_nieudany"]
+        with pytest.raises(ValueError):
+            a.symuluj_pule("nie_ma_takiego")
+    finally:
+        a.zamknij()
+
+
+def test_p1_p8_atrapa_pozycje_nie_zapisano_i_komunikat_trwaly(tmp_path):
+    """P1 / P8 (kontrakt): skan policzony, ale niezapisany - pozycja ``stan.niezapisane`` z napisem, komunikat TRWALY o stalym id
+    ``blad_zapisu`` (zostaje do udanego zapisu albo zamkniecia przez technika; zamkniety wraca tylko z nowa pozycja),
+    ``baza_zajeta`` znika sam po zapisie; ``ponow_zapis`` - proba na zadanie."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    a = K.AtrapaKontrolera(tmp_path / "atrapa")
+    try:
+        a.symuluj_blad_zapisu(2)
+        s = a.stan()
+        assert len(s.niezapisane) == 2 and all(isinstance(n, K.Niezapisany) for n in s.niezapisane)
+        assert {(n.przyczyna, n.rodzaj, n.napis) for n in s.niezapisane} == {("blad_zapisu", "wynik", ST.NAPISY_NIEZAPISANE["blad_zapisu"])}
+        assert s.kolejka.niezapisane == 2 and s.kolejka.wstrzymane == 2 and s.plytki == ()
+        k = [x for x in s.komunikaty if x.id == K.ID_BLAD_ZAPISU]
+        assert len(k) == 1 and k[0].rodzaj == "blad_zapisu" and k[0].trwaly and k[0].poziom == "blad" and "2" in k[0].tekst
+        odp = a.ponow_zapis()  # przyczyna trwa: odmowa z kodem przyczyny, pozycje zostaja
+        assert not odp and odp.kod == "blad_zapisu" and odp.dane == 2 and len(a.stan().niezapisane) == 2
+        assert a.zamknij_komunikat(K.ID_BLAD_ZAPISU) and not [x for x in a.stan().komunikaty if x.id == K.ID_BLAD_ZAPISU]
+        a.ponow_zapis()
+        assert not [x for x in a.stan().komunikaty if x.id == K.ID_BLAD_ZAPISU]  # zamkniety nie wraca przy kolejnej probie
+        a.symuluj_blad_zapisu(1)
+        assert [x.tekst for x in a.stan().komunikaty if x.id == K.ID_BLAD_ZAPISU] and len(a.stan().niezapisane) == 3  # nowa pozycja: wraca
+        a.symuluj_blad_zapisu(1, przyczyna="baza_zajeta")
+        assert sorted(x.rodzaj for x in a.stan().komunikaty) == ["baza_zajeta", "blad_zapisu"]
+        a.symuluj_blad_zapisu(0)  # przyczyna ustapila: przetworz zapisuje (jak samoczynne ponowienie)
+        a.przetworz()
+        s = a.stan()
+        assert s.niezapisane == () and len(s.plytki) == 4 and s.komunikaty == () and s.kolejka.niezapisane == 0
+        assert a.ponow_zapis() and a.ponow_zapis().dane == 0
+    finally:
+        a.zamknij()
+
+
+def test_p7_lista_do_dofrezowania_w_pliku_po_kazdej_zmianie(st):
+    """P7 (Z6): kontroler SAM zapisuje liste biezaca do pliku w folderze bazy po kazdej zmianie listy; ``zapisz_liste``
+    (17. polecenie) - na zadanie, takze dla doby. W pliku nie ma nazw zlecen."""
+    import csv
+
+    plik = st.k.sesja.baza.plik.parent / "do_dofrezowania_biezaca.csv"
+
+    def wiersze() -> list:
+        with open(plik, encoding="utf-8", newline="") as f:
+            return list(csv.reader(f, delimiter=";"))
+
+    assert st.k.wybierz_operatora("Technik A")
+    skan_id = st.wrzuc("zwykla", numer=4)
+    assert plik.is_file() and len(wiersze()) == 1 and st.stan().lista_zapisana  # pusta lista: sam naglowek
+    p = st.stan().plytka(skan_id)
+    assert st.k.ukruszona(p.gniazdo(2).praca.praca_id)
+    assert wiersze()[1][:5] == ["9002", str(10 + 2 % 38), "K-1", "4", "2"]  # kuweta, zeby, krazek, plytka, gniazdo
+    assert st.k.ukruszona(p.gniazdo(9).praca.praca_id) and len(wiersze()) == 3
+    assert st.k.cofnij(p.gniazdo(2).praca.praca_id) and len(wiersze()) == 2 and wiersze()[1][4] == "9"
+    plik.unlink()
+    odp = st.k.zapisz_liste()
+    assert odp and odp.dane == "do_dofrezowania_biezaca.csv" and len(wiersze()) == 2 and "do_dofrezowania_biezaca.csv" in odp.tekst
+    odp = st.k.wykonaj("zapisz_liste", st.stan().doba)
+    assert odp and odp.dane == f"do_dofrezowania_{st.stan().doba}.csv" and (plik.parent / odp.dane).is_file()
+    for nazwa in (plik, plik.parent / odp.dane):
+        assert FOLDER_ZLECENIA not in nazwa.read_text(encoding="utf-8") and "Fikcja" not in nazwa.read_text(encoding="utf-8")
+
+
+def test_d1_zle_argumenty_nigdy_wyjatek(st):
+    """D1: kazde polecenie z argumentami zlego typu albo w zlej liczbie zwraca ``Odpowiedz`` (``ok`` False) - nigdy wyjatek."""
+    from stanowisko import kontroler_api as K
+
+    zle = (None, "x", [1], 10 ** 30, -(10 ** 30), 1.5, True, (), {"a": 1}, b"\x00", float("nan"))
+    # jedyne wywolania z tej listy, ktore maja sens (wylogowanie, zamkniecie pozycji o takim id, lista biezaca, pula bez folderu / folder "x")
+    wolno = [("wybierz_operatora", (None,)), ("zamknij_pytanie", ("x",)), ("zamknij_komunikat", ("x",)), ("zapisz_liste", (None,)),
+             ("ustaw_pule", (None,)), ("ustaw_pule", ("x",)), ("ustaw_pule", (None, None))]  # lista: argumenty bywaja niehaszowalne
+    assert st.k.wybierz_operatora("Technik A")
+    for nazwa in K.POLECENIA:
+        if nazwa in ("zamknij", "start_skanu"):
+            continue
+        for argumenty in [(z,) for z in zle] + [(z, z) for z in zle] + [(1, 2, 3, 4)]:
+            odp = st.k.wykonaj(nazwa, *argumenty)
+            assert isinstance(odp, K.Odpowiedz), (nazwa, argumenty)
+            if (nazwa, argumenty) not in wolno:
+                assert not odp and odp.kod, (nazwa, argumenty, odp)
+            if odp.kod == K.KOD_ZLE_ARGUMENTY:
+                assert nazwa in odp.tekst
+            if nazwa == "wybierz_operatora":
+                st.k.wybierz_operatora("Technik A")
+    for funkcja, argumenty in ((st.k.ok, ([1],)), (st.k.podaj_numer_plytki, (1, 10 ** 30)), (st.k.ustaw_pule, (123,)), (st.k.cofnij, ("1",)),
+                               (st.k.dopusc_plytke, (None,)), (st.k.szczegoly_pracy, ("x",))):
+        odp = funkcja(*argumenty)  # wywolanie wprost (nie przez wykonaj)
+        assert odp is None or (isinstance(odp, K.Odpowiedz) and not odp and odp.kod == K.KOD_ZLE_ARGUMENTY), (funkcja.__name__, odp)
+    assert not st.k.stan().zamkniety and st.k.wybierz_operatora("Technik B")
+
+
+def test_d2_stan_tylko_do_odczytu_i_haszowalny(st):
+    """D2: liczniki stanu i plytki, konflikty i szczegoly pracy sa tylko do odczytu (zmiana = ``TypeError``), a sam stan ma
+    ``hash``; porownanie z ``dict``, ``asdict`` i JSON dzialaja jak dotad."""
+    import copy
+
+    from stanowisko import kontroler_api as K
+
+    skan_id = st.wrzuc("zwykla", numer=1)
+    s = st.stan()
+    p = s.plytka(skan_id)
+    for slownik in (s.liczniki, p.liczniki):
+        assert isinstance(slownik, dict) and isinstance(slownik, K.ZamrozonySlownik)
+        for zmiana in (lambda d: d.__setitem__("zielony", 999), lambda d: d.update(zielony=1), lambda d: d.pop("zielony"), lambda d: d.clear(),
+                       lambda d: d.setdefault("x", 1), lambda d: d.__delitem__("zielony"), lambda d: d.popitem()):
+            with pytest.raises(TypeError):
+                zmiana(slownik)
+    assert s.liczniki["zielony"] == 2 and st.stan().liczniki == {"zielony": 2, "czerwony": 2, "zolty": 3, "szary": 1, "pomaranczowy": 1}
+    assert isinstance(hash(s), int) and hash(s) == hash(st.stan()) and copy.deepcopy(s) == s
+    assert json.loads(json.dumps(dataclasses.asdict(s), default=str))["liczniki"]["zielony"] == 2
+    sz = st.k.szczegoly_pracy(p.gniazdo(2).praca.praca_id)
+    with pytest.raises(TypeError):
+        sz.ubytki[0]["srednica_mm"] = 5.0
+    with pytest.raises(TypeError):
+        sz.kandydaci[0]["sha16"] = "x"
+
+
+def test_d6_d7_pytania_otwarte_i_historia_oraz_wylogowanie(st):
+    """D6: ``stan.pytania`` = otwarte; przy plytce pytanie zamkniete ("Pozniej") zostaje z ``ukryte=True`` (to samo komunikaty).
+    D7: ``wybierz_operatora(None)`` = nikt nie jest wybrany - decyzje odmawiane do ponownego wyboru osoby."""
+    skan_id = st.wrzuc("bez_numeru")
+    q = st.stan().pytania[0]
+    assert not q.ukryte and st.k.zamknij_pytanie(q.id)
+    s = st.stan()
+    assert s.pytania == () and [x.ukryte for x in s.plytka(skan_id).pytania] == [True] and s.plytka(skan_id).pytania[0].id == q.id
+    niezgodny = st.wrzuc("niezgodny_uklad")
+    k = [x for x in st.stan().komunikaty if x.skan_id == niezgodny][0]
+    assert st.k.zamknij_komunikat(k.id) and [x.ukryte for x in st.stan().plytka(niezgodny).komunikaty] == [True]
+    assert st.k.wybierz_operatora("Technik A") and st.k.podaj_numer_plytki(skan_id, 2)
+    odp = st.k.wybierz_operatora(None)
+    assert odp and odp.kod == "wylogowano" and odp.tekst and st.stan().operator is None and st.stan().wymaga_operatora
+    praca = st.stan().plytka(skan_id).gniazdo(2).praca
+    odp = st.k.ukruszona(praca.praca_id)
+    assert not odp and odp.kod == "brak_operatora" and st.stan().do_dofrezowania == ()
+    assert st.k.wybierz_operatora("Technik B") and st.k.ukruszona(praca.praca_id)
 
 
 def test_polecenia_i_wykonaj(st):
@@ -696,7 +1041,7 @@ def test_statusy_jedna_tabela_kolorow_i_napisow():
             assert ST.status_pracy(kolor, status_skanu="przyjety", status_gniazda=kolor, status_inspekcji=status_inspekcji) in ST.STATUSY
     assert ST.status("cos_nowego").klucz == "nieznany" and ST.status("cos_nowego").kolor == "zolty"  # nowy status z analizy: nigdy zielony
     assert ST.status_pracy("fioletowy", status_skanu="przyjety") == "nieznany"
-    assert ST.status_pracy("zielony", status_skanu="przyjety", numer_znany=False) == "czeka_na_numer"
+    assert ST.status_pracy("zielony", status_skanu="przyjety", status_inspekcji="ok", numer_znany=False) == "czeka_na_numer"
     assert ST.status_pracy("zolty", status_skanu="do_powtorzenia", status_gniazda="zielony", status_inspekcji="ok") == "skan_do_powtorzenia"
     assert ST.status_pracy(None, status_skanu="plytka_nie_z_trybu") == "plytka_nie_z_trybu" and ST.status_pracy(None, status_skanu="zastapiony") == "nieaktywny"
     assert [ST.odmiana(n, "decyzja", "decyzje", "decyzji") for n in (1, 2, 5, 12, 22, 25)] == ["decyzja", "decyzje", "decyzji", "decyzji", "decyzje", "decyzji"]
@@ -733,6 +1078,8 @@ def test_atrapa_scenariusz_pokazowy_i_sprzatanie(tmp_path):
     podglad = SI.wczytaj_podglad(sz.plik_podgladu)  # ten sam format, co plik z silnika: punkty i odchylki gniazda
     P, d = podglad[2]
     assert P.shape == (600, 3) and d.shape == (600,) and float(d.min()) < -0.1
+    z_kontraktu = K.wczytaj_podglad(sz.plik_podgladu)  # D12: okno czyta obraz odchylek przez kontrakt, bez importu silnika
+    assert sorted(z_kontraktu) == sorted(podglad) and (z_kontraktu[2][1] == d).all()
     a.symuluj_postep(udzial=0.4, czeka=2)
     assert a.stan().analiza.udzial == pytest.approx(0.4) and a.stan().kolejka.razem == 3
     a.symuluj_postep(udzial=None)

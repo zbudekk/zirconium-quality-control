@@ -26,6 +26,8 @@ import logging
 import logging.handlers
 import os
 import re
+import shutil
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -38,6 +40,7 @@ import test_kontroler_api as TK
 from test_kontroler_api import FOLDER_ZLECENIA, STANOWISKO, StanowiskoAplikacji, kolory
 
 PROG_PRZERWY_S = 1.0 if os.environ.get("E3A3_LUZNE") == "1" else 0.2  # kryterium (f): 200 ms
+NAZWISKO_SKANU = "Nazwiskowa Jadwiga"  # P5: fikcyjne nazwisko w nazwie PLIKU skanu (skaner moze nazywac eksport wg zlecenia)
 DANE_REF = os.environ.get("E3A3_DANE_REF")
 PROJEKTY_REF = os.environ.get("E3A3_PROJEKTY")
 BRAK_DANYCH_REF = "wariant na duzych skanach odniesienia: ustaw E3A3_DANE_REF (folder skan_<typ>_n*.stl) i E3A3_PROJEKTY (folder puli)"
@@ -191,8 +194,9 @@ def test_e_zamkniecie_w_trakcie_analizy_i_ponowny_start(stanowiska):
     p = st.stan().plytka(pierwszy)
     assert st.k.ukruszona(p.gniazdo(2).praca.praca_id) and st.k.ok(p.gniazdo(9).praca.praca_id)
     przed = st.stan()
-    for i in range(4):  # 4 plytki naraz: pierwsza w analizie (1 s), trzy w kolejce
-        st.zapisz({"gniazda": {1: "zielony", 2: "czerwony"}, "numer": 3 + i, "projekty": {1: 15 + i, 2: 20 + i}, "spij": 1.0})
+    brama = st.tmp / "brama_e.txt"  # D13: analiza czeka na plik-brame (nie na uplyw czasu) - zawsze trwa przy zamknieciu
+    for i in range(4):  # 4 plytki naraz: pierwsza w analizie, trzy w kolejce
+        st.zapisz({"gniazda": {1: "zielony", 2: "czerwony"}, "numer": 3 + i, "projekty": {1: 15 + i, 2: 20 + i}, "brama": str(brama)})
     st.czekaj(lambda: st.stan().analiza is not None and st.stan().kolejka.razem == 4, 60.0, "analiza w toku i 3 zadania w kolejce")
     odp = st.k.zamknij()
     assert odp and odp.dane == 4  # nic nie zdazylo sie policzyc: 4 zadania niezakonczone
@@ -200,6 +204,7 @@ def test_e_zamkniecie_w_trakcie_analizy_i_ponowny_start(stanowiska):
     zapisane = json.loads(plik_zadan.read_text(encoding="utf-8"))["zadania"]
     assert len(zapisane) == 4 and all(z["sha16"] and z["tryb"] == "wieczor" for z in zapisane)
     assert not st.k.scanner.dziala() and not st.k.silnik.dziala()
+    brama.write_text("otwarta", encoding="utf-8")  # po starcie zadania licza sie bez czekania
     st.zapisz({"gniazda": {5: "zielony"}, "numer": 7, "projekty": {5: 25}})  # skan zapisany, gdy program nie dzialal
 
     st2 = stanowiska()
@@ -230,15 +235,19 @@ def test_e_awaria_bez_zamkniecia_nadrabianie_folderu(stanowiska):
 
     st = stanowiska()
     st.wrzuc("czysta", numer=1)
+    brama = st.tmp / "brama_awaria.txt"  # D13: analizy trwaja do awarii niezaleznie od obciazenia komputera
     for i in range(3):
-        st.zapisz({"gniazda": {1: "zielony"}, "numer": 2 + i, "projekty": {1: 11 + i}, "spij": 1.0})
+        st.zapisz({"gniazda": {1: "zielony"}, "numer": 2 + i, "projekty": {1: 11 + i}, "brama": str(brama)})
     st.czekaj(lambda: st.stan().kolejka.razem == 3, 60.0, "3 zadania w silniku")
-    # symulacja awarii: watki i proces koncza sie, ale kontroler niczego nie zapisuje (jak po zabiciu procesu okna)
+    # symulacja awarii: watki i proces koncza sie, ale kontroler niczego nie zapisuje (jak po zabiciu procesu okna);
+    # system zwalnia blokade jednego egzemplarza razem z procesem (B1) - tu robi to test
     st.k.scanner.stop()
     st.k.silnik.stop()
     st.k.sesja.baza.zamknij()
     st.k._zamkniety = True
+    st.k._blokada.zwolnij()
     assert not (st.tmp / "dane" / AP.PLIK_ZADAN).exists()
+    brama.write_text("otwarta", encoding="utf-8")
 
     st2 = stanowiska()
     st2.czekaj(lambda: len(st2.stan().plytki) == 4 and st2.stan().kolejka.razem == 0, 90.0, "3 skany nadrobione z folderu")
@@ -266,9 +275,13 @@ def test_powtorka_tej_samej_tresci_nie_jest_liczona_dwa_razy(stanowiska):
     dziennik = [w["typ"] for w in st.k.sesja.baza.wiersze("SELECT typ FROM zdarzenia WHERE zrodlo = 'scanner' ORDER BY id")]
     assert dziennik.count("nowy_skan") == 2 and dziennik.count("skan_powtorzony") == 1
 
-    wolny = st.zapisz({"gniazda": {1: "zielony"}, "numer": 5, "spij": 1.2})  # w analizie; ta sama tresc drugi raz trafia na zadanie w kolejce
+    brama = st.tmp / "brama_powtorka.txt"  # D13: analiza trwa, dopoki test nie zobaczy powtorki w kolejce
+    wolny = st.zapisz({"gniazda": {1: "zielony"}, "numer": 5, "brama": str(brama)})  # w analizie; ta sama tresc drugi raz trafia na zadanie w kolejce
     st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza wolnego skanu")
     (st.eksport / "kopia_wolnego.stl").write_bytes(wolny.read_bytes())
+    st.czekaj(lambda: st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE typ = 'skan_powtorzony_w_kolejce'")["n"] == 1, 30.0,
+              "powtorka odsiana w kolejce")
+    brama.write_text("otwarta", encoding="utf-8")
     czekaj_na_pusta_kolejke(st)
     st.czekaj(lambda: len(st.stan().plytki) == 2, 30.0, "drugi skan")
     for _ in range(30):
@@ -388,11 +401,13 @@ def test_g_bez_projektow_skany_czekaja_do_odswiezenia_puli(stanowiska, tmp_path)
 # ----------------------------------------------------------------------------
 def test_plik_zmieniony_przed_analiza(stanowiska):
     st = stanowiska()
-    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "spij": 1.5})
+    brama = st.tmp / "brama_zmieniony.txt"  # D13: drugi skan na pewno czeka w kolejce, gdy jest nadpisywany
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "brama": str(brama)})
     st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza pierwszego skanu")
     drugi = st.zapisz({"gniazda": {1: "zielony"}, "numer": 2, "projekty": {1: 12}})
     st.czekaj(lambda: st.stan().kolejka.razem == 2, 30.0, "drugi skan w kolejce")
     drugi.write_bytes(TK.plik_skanu({"gniazda": {1: "czerwony"}, "numer": 3, "projekty": {1: 13}, "sol": "nowa tresc"}))  # zapis ponowny przed analiza
+    brama.write_text("otwarta", encoding="utf-8")
     czekaj_na_pusta_kolejke(st)
     st.czekaj(lambda: len(st.stan().plytki) == 2, 30.0, "dwa skany w stanie")
     s = st.stan()
@@ -412,11 +427,13 @@ def test_plik_niedostepny_ponawianie_i_blad(stanowiska, tmp_path):
     st = stanowiska(ust=ust)
     assert st.k.silnik.czekaj_na_plik_s == pytest.approx(0.4) and st.k.ponow_plik_niedostepny == 2
 
-    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "spij": 1.0})
+    brama1, brama2 = st.tmp / "brama_n1.txt", st.tmp / "brama_n2.txt"  # D13: plik zablokowany, zanim silnik po niego siegnie
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "brama": str(brama1)})
     st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza pierwszego skanu")
     plik = st.zapisz({"gniazda": {1: "czerwony"}, "numer": 2, "projekty": {1: 12}})
     st.czekaj(lambda: st.stan().kolejka.razem == 2, 30.0, "drugi skan w kolejce")
     uchwyt = SY.otworz_wylacznie(plik, zapis=False)  # jak podglad w programie skanera: nikt inny nie przeczyta pliku
+    brama1.write_text("otwarta", encoding="utf-8")
     try:
         st.czekaj(lambda: any(k.rodzaj == "plik_niedostepny" for k in st.stan().komunikaty), 60.0, "komunikat plik_niedostepny")
         k = [k for k in st.stan().komunikaty if k.rodzaj == "plik_niedostepny"][0]
@@ -427,11 +444,12 @@ def test_plik_niedostepny_ponawianie_i_blad(stanowiska, tmp_path):
     s = st.stan()
     assert [p.status for p in s.plytki] == ["przyjety", "przyjety"] and not [k for k in s.komunikaty if k.rodzaj == "plik_niedostepny"]
 
-    plik = st.zapisz({"gniazda": {1: "zielony"}, "numer": 3, "projekty": {1: 13}, "spij": 0.5})
+    plik = st.zapisz({"gniazda": {1: "zielony"}, "numer": 3, "projekty": {1: 13}, "brama": str(brama2)})
     st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza trzeciego skanu")
     trzymany = st.zapisz({"gniazda": {1: "zielony"}, "numer": 4, "projekty": {1: 14}})
     st.czekaj(lambda: st.stan().kolejka.razem == 2, 30.0, "czwarty skan w kolejce")
     uchwyt = SY.otworz_wylacznie(trzymany, zapis=False)
+    brama2.write_text("otwarta", encoding="utf-8")
     try:
         st.czekaj(lambda: len(st.stan().plytki) == 4 and st.stan().kolejka.razem == 0, 90.0, "skan z bledem po 3 probach")
     finally:
@@ -568,12 +586,328 @@ def test_odrzucona_propozycja_ponownego_skanu_nie_wraca_po_restarcie(stanowiska)
 
 
 # ----------------------------------------------------------------------------
+# runda 2 recenzji PR #20: B1, P1, P2, P3, P8, P9 i dodatkowe punkty awarii kryterium (e)
+# ----------------------------------------------------------------------------
+def _dziennik(st, typ: str) -> int:
+    return st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE typ = ?", (typ,))["n"]
+
+
+def test_b1_drugi_egzemplarz_odmawia_i_nie_dotyka_bazy(stanowiska, tmp_path):
+    """B1: drugi egzemplarz programu na tej samej bazie (dwuklik dwa razy, drugi pulpit) odmawia startu z komunikatem
+    "program juz dziala" i nie dotyka bazy, logu ani folderu skanera; kazdy skan jest liczony raz. Drugi ``main()`` (osobny
+    proces, jak drugi dwuklik): kod wyjscia 3 bez sladu wyjatku."""
+    from stanowisko import aplikacja as AP
+
+    st = stanowiska()
+    baza = st.k.sesja.baza
+    zdarzen = baza.wiersz("SELECT count(*) AS n FROM zdarzenia")["n"]
+    with pytest.raises(AP.ProgramJuzDziala, match="juz dziala"):  # druga Aplikacja w tym samym procesie
+        AP.Aplikacja(st.ust, funkcja_analizy=TK.FUNKCJA_SZTUCZNA, parametry_scannera=TK.PARAMETRY_SCANNERA)
+    plik = _plik_ustawien(tmp_path)  # te same sciezki danych i folderu skanera, co stanowisko probne
+    w = subprocess.run([sys.executable, "-m", "stanowisko.aplikacja", "--ustawienia", str(plik), "--zamknij-po", "5"], cwd=STANOWISKO,
+                       capture_output=True, text=True, timeout=180, env={**os.environ, "QT_QPA_PLATFORM": "offscreen"})
+    assert w.returncode == AP.KOD_PROGRAM_JUZ_DZIALA and "juz dziala" in w.stderr and "Traceback" not in w.stderr, w.stdout + w.stderr
+    assert baza.wiersz("SELECT count(*) AS n FROM zdarzenia")["n"] == zdarzen  # zaden egzemplarz nie dopisal nic do bazy
+    assert not (tmp_path / "dane" / "logi" / AP.PLIK_LOGU).exists()  # drugi main() nie zalozyl nawet logu
+    st.zapisz({"gniazda": {1: "zielony", 2: "czerwony"}, "numer": 1})
+    st.czekaj(lambda: len(st.stan().plytki) == 1, 60.0, "skan")
+    for _ in range(30):
+        st.k.przetworz()
+        time.sleep(0.02)
+    assert len(skany_w_bazie(st)) == 1 and len(st.stan().plytki) == 1 and _dziennik(st, "nowy_skan") == 1
+
+
+def test_b1_blokada_znika_razem_z_procesem(tmp_path):
+    """B1: blokada jest odporna na awarie - program zabity w trakcie pracy (bez zamkniecia) nie zostawia blokady; kolejny
+    start dziala bez recznego sprzatania."""
+    from stanowisko import aplikacja as AP
+    from stanowisko import baza as B
+
+    plik = _plik_ustawien(tmp_path)
+    TK.pula_probna(tmp_path)
+    (tmp_path / "eksport").mkdir()
+    plik_bazy = tmp_path / "dane" / "stanowisko.sqlite"
+    proces = subprocess.Popen([sys.executable, "-m", "stanowisko.aplikacja", "--ustawienia", str(plik), "--zamknij-po", "300"], cwd=STANOWISKO,
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env={**os.environ, "QT_QPA_PLATFORM": "offscreen"})
+    try:
+        koniec = time.monotonic() + 120.0
+        while True:  # pierwszy egzemplarz pracuje: wpis program_start w dzienniku
+            if plik_bazy.exists():
+                try:
+                    with B.otworz(plik_bazy, tylko_odczyt=True) as b:
+                        if b.wiersz("SELECT id FROM zdarzenia WHERE typ = 'program_start'"):
+                            break
+                except B.BladBazy:
+                    pass
+            assert proces.poll() is None and time.monotonic() < koniec, "pierwszy egzemplarz nie wystartowal"
+            time.sleep(0.2)
+        with pytest.raises(AP.ProgramJuzDziala):
+            AP.BlokadaStanowiska(plik_bazy).zajmij()
+        proces.kill()  # awaria: proces znika bez zamkniecia programu
+        proces.wait(60)
+    finally:
+        if proces.poll() is None:
+            proces.kill()
+            proces.wait(60)
+    blokada = AP.BlokadaStanowiska(plik_bazy).zajmij()  # system zwolnil blokade razem z procesem
+    assert blokada.zajeta
+    blokada.zwolnij()
+    k = AP.Aplikacja(TK.ustawienia_probne(tmp_path), funkcja_analizy=TK.FUNKCJA_SZTUCZNA, parametry_scannera=TK.PARAMETRY_SCANNERA)
+    k.zamknij()
+
+
+def test_b1_wynik_skanu_juz_zapisanego_nie_daje_drugiego_skanu(stanowiska):
+    """B1, twarde zabezpieczenie w zapisie: gdy ta sama tresc (``sha16``) dostala wynik w bazie w trakcie analizy (np. drugi
+    program piszacy do tej bazy), wynik kontrolera jest odsiewany w tej samej transakcji co zapis - jeden skan, bez
+    osieroconego pliku podgladu."""
+    from stanowisko import baza as B
+    from stanowisko import kontroler_api as K
+    from stanowisko import session as SE
+
+    st = stanowiska()
+    brama = st.tmp / "brama_b1.txt"
+    plik = st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "brama": str(brama), "podglad": True})
+    st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza w toku")
+    sha16 = st.stan().analiza.sha16
+    with B.otworz(st.k.sesja.baza.plik) as inna:  # "drugi program": osobne polaczenie z ta sama baza
+        SE.Sesja(inna, katalog_wynikow=st.tmp / "dane" / "wyniki_inne", zegar=st.zegar).przyjmij_wynik(
+            {"plik": str(plik), "sha16": sha16, "rozmiar": plik.stat().st_size, "czas_pliku": None}, K.sztuczny_wynik("wieczorna", 1, {1: "zielony"}))
+    brama.write_text("otwarta", encoding="utf-8")
+    czekaj_na_pusta_kolejke(st)
+    st.czekaj(lambda: _dziennik(st, "wynik_powtorzony") == 1, 30.0, "wynik odsiany")
+    assert len(skany_w_bazie(st)) == 1 and len(st.stan().plytki) == 1 and st.stan().niezapisane == ()
+    assert not list(st.k.katalog_podgladow.glob("*")), [p.name for p in st.k.katalog_podgladow.glob("*")]  # P9: podglad odsianego wyniku usuniety
+
+
+def test_p1_blad_zapisu_skan_nie_znika_i_jest_zapisywany_ponownie(stanowiska, monkeypatch):
+    """P1: blad zapisu inny niz "baza zajeta" (pelny dysk: ``database or disk is full``; blad zapisu pliku wyniku: ``OSError``)
+    - skan NIE znika: pozycja "nie zapisano - blad zapisu" i komunikat TRWALY ``blad_zapisu``; zapis ponawiany sam (rosnacy
+    odstep) i na zadanie (``ponow_zapis``); po ustaniu przyczyny skan jest w bazie raz, komunikat znika. Zamkniecie z wynikiem
+    niezapisanym: zadanie wraca do pliku zadan, w ``dane/podglady`` nic nie zostaje."""
+    from stanowisko import aplikacja as AP
+    from stanowisko import kontroler_api as K
+
+    monkeypatch.setattr(AP, "OKRES_KONTROLI_S", 0.2)
+    st = stanowiska()
+    dysk = {"blad": sqlite3.OperationalError("database or disk is full"), "proby": 0}
+
+    def pelny(prawdziwa):
+        def zapis(*a, **kw):
+            if dysk["blad"] is not None:
+                dysk["proby"] += 1
+                raise dysk["blad"]
+            return prawdziwa(*a, **kw)
+        return zapis
+
+    monkeypatch.setattr(st.k.sesja, "przyjmij_wynik", pelny(st.k.sesja.przyjmij_wynik))
+    monkeypatch.setattr(st.k.sesja, "przyjmij_blad", pelny(st.k.sesja.przyjmij_blad))
+    st.zapisz({"gniazda": {1: "zielony", 2: "czerwony"}, "numer": 1, "podglad": True})
+    st.czekaj(lambda: st.stan().niezapisane, 30.0, "pozycja nie zapisano")
+    s = st.stan()
+    assert s.plytki == () and skany_w_bazie(st) == [] and len(s.niezapisane) == 1
+    n = s.niezapisane[0]
+    assert (n.przyczyna, n.rodzaj, n.numer, n.uklad, n.prac) == ("blad_zapisu", "wynik", 1, "wieczorna", 2) and "nie zapisano" in n.napis
+    k = [x for x in s.komunikaty if x.id == K.ID_BLAD_ZAPISU]
+    assert len(k) == 1 and k[0].rodzaj == "blad_zapisu" and k[0].trwaly and k[0].poziom == "blad"
+    assert s.kolejka.niezapisane == 1 and s.kolejka.wstrzymane == 1 and not list(st.k.katalog_podgladow.glob("*_wynik.json"))
+    st.czekaj(lambda: dysk["proby"] >= 3, 30.0, "samoczynne ponowienia")
+    assert st.stan().plytki == () and st.stan().niezapisane[0].proby >= 3
+    odp = st.k.ponow_zapis()
+    assert not odp and odp.kod == "blad_zapisu" and odp.dane == 1
+    dysk["blad"] = None  # dysk zwolniony: nastepne samoczynne ponowienie zapisuje
+    st.czekaj(lambda: len(st.stan().plytki) == 1, 30.0, "zapis po ustaniu przyczyny")
+    s = st.stan()
+    assert s.niezapisane == () and not [x for x in s.komunikaty if x.rodzaj in ("blad_zapisu", "baza_zajeta")] and s.kolejka.razem == 0
+    assert [x["status"] for x in skany_w_bazie(st)] == ["przyjety"] and s.plytki[0].gniazdo(2).status == "czerwony"
+    assert st.k.szczegoly_pracy(s.plytki[0].gniazdo(1).praca.praca_id).plik_podgladu is not None  # podglad powiazany przy zapisie
+
+    monkeypatch.setattr(AP, "OKRES_KONTROLI_S", 600.0)  # samoczynne ponowienie daleko: tylko na zadanie
+    dysk["blad"] = OSError(28, "No space left on device")
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 2, "projekty": {1: 12}})
+    st.czekaj(lambda: st.stan().niezapisane, 30.0, "drugi skan nie zapisany")
+    dysk["blad"] = None
+    odp = st.k.ponow_zapis()
+    assert odp and odp.dane == 0 and len(st.stan().plytki) == 2 and st.stan().niezapisane == ()
+
+    dysk["blad"] = sqlite3.OperationalError("disk I/O error")
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 3, "projekty": {1: 13}, "podglad": True})
+    st.czekaj(lambda: st.stan().niezapisane, 30.0, "trzeci skan nie zapisany")
+    assert st.k.zamknij().dane == 1  # nie przepadl: zadanie wraca do pliku zadan i liczy sie od nowa po starcie
+    assert len(json.loads((st.tmp / "dane" / AP.PLIK_ZADAN).read_text(encoding="utf-8"))["zadania"]) == 1
+    zostalo = sorted(p.name for p in st.k.katalog_podgladow.iterdir())
+    assert len(zostalo) == 1 and zostalo[0].endswith("_podglad.npz"), zostalo  # tylko podglad zapisanego skanu nr 1
+
+
+def test_p2_plik_przemianowany_w_kolejce_przejmuje_zadanie(stanowiska, monkeypatch):
+    """P2: plik skanu przemianowany, gdy czeka w kolejce (zapis pod nazwa robocza, technik poprawia nazwe) - nowa sciezka tej
+    samej tresci przejmuje zadanie: skan przyjety (nie "blad analizy"), w bazie nowa sciezka. Takze gdy silnik zdazyl siegnac
+    po stara sciezke ("brak pliku" - zadanie zlecone ponownie z nowa)."""
+    st = stanowiska()
+    brama = st.tmp / "brama_p2a.txt"
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "brama": str(brama)})
+    st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza pierwszego skanu")
+    b = st.zapisz({"gniazda": {1: "czerwony"}, "numer": 2, "projekty": {1: 12}})
+    st.czekaj(lambda: st.stan().kolejka.razem == 2, 30.0, "drugi skan w kolejce")
+    os.replace(b, st.eksport / "docelowa_nazwa.stl")
+    st.czekaj(lambda: _dziennik(st, "skan_przemianowany") == 1, 30.0, "zadanie przejelo nowa sciezke")
+    brama.write_text("otwarta", encoding="utf-8")
+    czekaj_na_pusta_kolejke(st)
+    st.czekaj(lambda: len(st.stan().plytki) == 2, 30.0, "dwa skany")
+    s = st.stan()
+    assert [p.status for p in s.plytki] == ["przyjety", "przyjety"] and not [k for k in s.komunikaty if k.rodzaj in ("blad_analizy", "skan_juz_jest")]
+    assert Path(skany_w_bazie(st)[1]["plik"]).name == "docelowa_nazwa.stl" and s.plytki[1].gniazdo(1).status == "czerwony"
+
+    monkeypatch.setattr(st.k.silnik, "anuluj", lambda nr: False)  # zadanie juz u silnika: przejecie dopiero po bledzie "brak pliku"
+    brama2 = st.tmp / "brama_p2b.txt"
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 3, "projekty": {1: 13}, "brama": str(brama2)})
+    st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza trzeciego skanu")
+    c = st.zapisz({"gniazda": {1: "zielony"}, "numer": 4, "projekty": {1: 14}})
+    st.czekaj(lambda: st.stan().kolejka.razem == 2, 30.0, "czwarty skan w kolejce")
+    os.replace(c, st.eksport / "docelowa_2.stl")
+    st.czekaj(lambda: _dziennik(st, "skan_powtorzony_w_kolejce") == 2, 30.0, "nowa sciezka zauwazona")
+    brama2.write_text("otwarta", encoding="utf-8")
+    st.czekaj(lambda: len(st.stan().plytki) == 4 and st.stan().kolejka.razem == 0, 60.0, "cztery skany")
+    assert [p.status for p in st.stan().plytki] == ["przyjety"] * 4 and _dziennik(st, "skan_przemianowany") == 2
+    assert Path(skany_w_bazie(st)[3]["plik"]).name == "docelowa_2.stl" and not [k for k in st.stan().komunikaty if k.rodzaj == "blad_analizy"]
+
+
+def test_p3_pula_oprozniona_po_policzeniu_skany_czekaja(stanowiska):
+    """P3: pula policzona przy starcie, potem folder oprozniony: skany NIE dostaja "blad analizy" - pula jest liczona od nowa
+    (przy nowym skanie i po bledzie analizy), stan ``pusta``, licznik 0, skany ``wstrzymane`` z komunikatem; po powrocie
+    plikow i "Odswiez pule" skany sa liczone. Blad analizy przy niepustej puli nadal jest bledem."""
+    st = stanowiska()
+    assert (st.stan().pula.stan, st.stan().pula.liczba_stl) == ("gotowa", 3)
+    for p in Path(st.folder_puli).rglob("*.stl"):
+        p.unlink()
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1})
+    st.zapisz({"gniazda": {1: "czerwony"}, "numer": 2, "projekty": {1: 12}})
+    st.czekaj(lambda: st.stan().kolejka.wstrzymane == 2 and st.stan().pula.stan == "pusta" and st.stan().kolejka.razem == 2, 60.0, "skany czekaja")
+    s = st.stan()
+    assert s.plytki == () and skany_w_bazie(st) == [] and s.pula.liczba_stl == 0 and "0" in s.pula.napis
+    k = [x for x in s.komunikaty if x.id == "pula"]
+    assert [x.rodzaj for x in k] == ["pula_pusta"] and "2" in k[0].tekst and not [x for x in s.komunikaty if x.rodzaj == "blad_analizy"]
+    TK.pula_probna(st.tmp)  # pliki wrocily
+    assert st.k.odswiez_pule()
+    st.czekaj(lambda: len(st.stan().plytki) == 2 and st.stan().kolejka.razem == 0, 60.0, "skany policzone")
+    s = st.stan()
+    assert [p.status for p in s.plytki] == ["przyjety", "przyjety"] and (s.pula.stan, s.pula.liczba_stl) == ("gotowa", 3)
+    assert not [x for x in s.komunikaty if x.id == "pula"]
+    st.zapisz({"gniazda": {}, "blad": True, "numer": 9})
+    st.czekaj(lambda: len(st.stan().plytki) == 3 and st.stan().kolejka.razem == 0, 60.0, "blad analizy po sprawdzeniu puli")
+    assert st.stan().plytki[-1].status == "blad" and [x.rodzaj for x in st.stan().komunikaty if x.rodzaj == "blad_analizy"] == ["blad_analizy"]
+
+
+def test_p8_blad_analizy_przy_zajetej_bazie_ponawiany_bez_ponownej_analizy(stanowiska, monkeypatch):
+    """P8: blad analizy, gdy baza jest zajeta - skan nie czeka bez konca na "Odswiez pule": zapis bledu jest ponawiany sam
+    (rosnacy odstep, bez ponownej analizy), komunikat ``baza_zajeta`` znika po udanym zapisie."""
+    from stanowisko import aplikacja as AP
+    from stanowisko import baza as B
+
+    monkeypatch.setattr(AP, "OKRES_KONTROLI_S", 0.2)
+    st = stanowiska()
+    prawdziwe, proby = st.k.sesja.przyjmij_blad, []
+
+    def zajeta(*a, **kw):
+        proby.append(time.monotonic())
+        if len(proby) <= 2:
+            raise B.BladBazy("stanowisko.sqlite: baza jest zajeta przez inny program")
+        return prawdziwe(*a, **kw)
+
+    monkeypatch.setattr(st.k.sesja, "przyjmij_blad", zajeta)
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "zabij": True})  # proces analizy znika: blad "proces"
+    st.czekaj(lambda: len(proby) >= 1, 60.0, "pierwsza proba zapisu bledu")
+    s = st.stan()
+    assert s.plytki == () and [k.rodzaj for k in s.komunikaty] == ["baza_zajeta"] and [(n.rodzaj, n.przyczyna) for n in s.niezapisane] == [("blad", "baza_zajeta")]
+    st.czekaj(lambda: len(st.stan().plytki) == 1, 30.0, "blad zapisany po zwolnieniu bazy")
+    s = st.stan()
+    assert len(proby) == 3 and s.plytki[0].status == "blad" and [k.rodzaj for k in s.komunikaty] == ["blad_analizy"]
+    assert s.kolejka.razem == 0 and s.niezapisane == () and _dziennik(st, "blad_analizy_rodzaj") == 1 and len(skany_w_bazie(st)) == 1
+
+
+def test_p9_kopie_wynikow_i_podglady_nie_zostaja(stanowiska, monkeypatch):
+    """P9: kopia wyniku z silnika (zawiera folder puli) nie zostaje w ``dane/podglady`` po przyjeciu ani po bledzie przyjecia
+    (wtedy znika tez plik podgladu); pliki osierocone po awarii sa usuwane przy starcie, plik podgladu skanu z bazy zostaje."""
+    st = stanowiska()
+    podglady = st.k.katalog_podgladow
+    st.zapisz({"gniazda": {1: "zielony", 2: "czerwony"}, "numer": 1, "podglad": True})
+    st.czekaj(lambda: len(st.stan().plytki) == 1, 60.0, "pierwszy skan")
+    p = st.stan().plytki[0]
+    podglad = st.k.szczegoly_pracy(p.gniazdo(1).praca.praca_id).plik_podgladu
+    assert podglad is not None and sorted(x.name for x in podglady.iterdir()) == [podglad.name]
+
+    def zly_wynik(*a, **kw):
+        raise ValueError("wynik niezgodny z oczekiwanym")  # blad danych: ponowienie nic nie da
+
+    monkeypatch.setattr(st.k.sesja, "przyjmij_wynik", zly_wynik)
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 2, "projekty": {1: 12}, "podglad": True})
+    st.czekaj(lambda: len(st.stan().plytki) == 2 and st.stan().kolejka.razem == 0, 60.0, "skan z bledem przyjecia")
+    assert st.stan().plytki[1].status == "blad" and sorted(x.name for x in podglady.iterdir()) == [podglad.name]
+    monkeypatch.undo()
+    st.k.zamknij()
+    (podglady / "20261117_190000_aaaaaaaaaaaaaaaa_wynik.json").write_text('{"foldery_projektow": ["X"]}', encoding="utf-8")  # po awarii
+    (podglady / "20261117_190000_bbbbbbbbbbbbbbbb_podglad.npz").write_bytes(b"x")
+    st2 = stanowiska()
+    assert sorted(x.name for x in podglady.iterdir()) == [podglad.name]
+    assert st2.k.szczegoly_pracy(p.gniazdo(1).praca.praca_id).plik_podgladu == podglad
+
+
+def test_e_dodatkowe_punkty_awarii(stanowiska):
+    """Kryterium (e), punkty awarii poza zamknieciem w trakcie analizy (recenzja D14): (1) silnik oddal wynik i zapisal pliki,
+    kontroler go nie przyjal - awaria: po starcie skan liczony raz, pliki osierocone usuniete; (2) awaria przy starcie, po
+    zleceniu zadan, przed usunieciem pliku zadan - zadanie, ktore ma juz wynik, nie jest liczone drugi raz, a nowe - raz."""
+    import hashlib
+
+    from stanowisko import aplikacja as AP
+
+    st = stanowiska()
+    st.wrzuc("czysta", numer=1)
+    brama = st.tmp / "brama_e2.txt"
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 2, "projekty": {1: 12}, "podglad": True, "brama": str(brama)})
+    st.czekaj(lambda: st.stan().analiza is not None, 60.0, "analiza u silnika")
+    brama.write_text("otwarta", encoding="utf-8")  # od teraz bez przetworz(): wynik dojdzie do kolejki silnika, kontroler go nie przyjmie
+    koniec = time.monotonic() + 60.0
+    while not any(e.typ == "wynik" for e in list(st.k.silnik.zdarzenia.queue)):  # wynik czeka w kolejce - kontroler go NIE przyjmuje
+        assert time.monotonic() < koniec, "brak wyniku w kolejce silnika"
+        time.sleep(0.02)
+    assert list(st.k.katalog_podgladow.glob("*_wynik.json")) and list(st.k.katalog_podgladow.glob("*_podglad.npz"))
+    st.k.scanner.stop()  # awaria (jak w test_e_awaria_bez_zamkniecia): nic nie zostaje zapisane, system zwalnia blokade
+    st.k.silnik.stop()
+    st.k.sesja.baza.zamknij()
+    st.k._zamkniety = True
+    st.k._blokada.zwolnij()
+
+    st2 = stanowiska()
+    st2.czekaj(lambda: len(st2.stan().plytki) == 2 and st2.stan().kolejka.razem == 0, 90.0, "skan nadrobiony")
+    skany = skany_w_bazie(st2)
+    assert len(skany) == 2 and len({s["sha16"] for s in skany}) == 2 and {s["status"] for s in skany} == {"przyjety"}
+    assert not list(st2.k.katalog_podgladow.glob("*_wynik.json")) and len(list(st2.k.katalog_podgladow.glob("*_podglad.npz"))) == 1
+    st2.k.zamknij()
+
+    # (2) plik zadan zostal po starcie: jedno zadanie juz ma wynik w bazie (skan nr 2), drugie - skan zapisany potem
+    nowy = st2.zapisz({"gniazda": {1: "zielony"}, "numer": 3, "projekty": {1: 13}})
+    dane, stat = nowy.read_bytes(), nowy.stat()
+    zadania = [{"plik": skany[1]["plik"], "sha16": skany[1]["sha16"], "rozmiar": None, "mtime_ns": None, "trojkaty": 1, "tryb": "wieczor", "numer": None},
+               {"plik": str(nowy), "sha16": hashlib.sha256(dane).hexdigest()[:16], "rozmiar": stat.st_size, "mtime_ns": stat.st_mtime_ns,
+                "trojkaty": 1, "tryb": "wieczor", "numer": None}]
+    (st2.tmp / "dane" / AP.PLIK_ZADAN).write_text(json.dumps({"wersja": 1, "zadania": zadania}), encoding="utf-8")
+    st3 = stanowiska()
+    st3.czekaj(lambda: len(st3.stan().plytki) == 3 and st3.stan().kolejka.razem == 0, 90.0, "zadanie z pliku zadan")
+    for _ in range(30):
+        st3.k.przetworz()
+        time.sleep(0.02)
+    skany = skany_w_bazie(st3)
+    assert len(skany) == 3 and len({s["sha16"] for s in skany}) == 3 and st3.k.scanner.stan()["zdarzen"] == 0
+    assert not (st3.tmp / "dane" / AP.PLIK_ZADAN).exists() and not [k for k in st3.stan().komunikaty if k.rodzaj == "skan_juz_jest"]
+
+
+# ----------------------------------------------------------------------------
 # (i) nazwy zlecen nie wychodza poza 4 tabele
 # ----------------------------------------------------------------------------
 def test_i_fikcyjna_nazwa_folderu_zlecenia_nie_wychodzi(stanowiska, tmp_path, caplog):
     """Kryterium (i): fikcyjna nazwa folderu zlecenia jest nazwa podfolderu puli (pliki projektow) ORAZ podfolderu w folderze
-    skanera (zlecenie w programie skanera); po wieczorze z wynikami, bledami, decyzjami i restartem: 0 wystapien w logach,
-    komunikatach (caly stan), dzienniku, plikach wynikow, podgladach i liscie "do dofrezowania"."""
+    skanera (zlecenie w programie skanera), a fikcyjne nazwisko - nazwa PLIKU skanu (P5: skaner moze nazywac eksport wg
+    zlecenia); po wieczorze z wynikami, bledami, decyzjami i restartem: 0 wystapien w logach (takze wpisy ``scanner``
+    i ``silnik``), komunikatach (caly stan), dzienniku, plikach wynikow, podgladach i liscie "do dofrezowania"."""
     from stanowisko import aplikacja as AP
     from stanowisko import baza as B
 
@@ -589,32 +923,35 @@ def test_i_fikcyjna_nazwa_folderu_zlecenia_nie_wychodzi(stanowiska, tmp_path, ca
         st.zapisz({"gniazda": {}, "blad": True}, FOLDER_ZLECENIA)  # wyjatek analizy z nazwa folderu puli w tresci
         st.zapisz({"gniazda": {1: "zielony"}, "numer": None}, FOLDER_ZLECENIA)
         st.zapisz({"gniazda": {1: "zielony"}, "uklad": "poranna", "numer": 2}, FOLDER_ZLECENIA)
-        (st.eksport / FOLDER_ZLECENIA / "uciety.stl").write_bytes(TK.plik_skanu({"x": 1})[:-7])
-        st.czekaj(lambda: len(st.stan().plytki) == 4 and st.stan().kolejka.razem == 0
-                  and any(k.rodzaj == "plik_odrzucony" for k in st.stan().komunikaty), 90.0, "4 skany i odrzucony plik")
+        nazwisko = st.eksport / FOLDER_ZLECENIA / f"{NAZWISKO_SKANU} plytka 3.stl"  # P5: plik skanu nazwany wg zlecenia
+        nazwisko.write_bytes(TK.plik_skanu({"gniazda": {1: "czerwony", 2: "zielony"}, "numer": 3, "projekty": {1: 13, 2: 14}, "sol": "nazwisko"}))
+        (st.eksport / FOLDER_ZLECENIA / f"{NAZWISKO_SKANU} uciety.stl").write_bytes(TK.plik_skanu({"x": 1})[:-7])
+        st.czekaj(lambda: len(st.stan().plytki) == 5 and st.stan().kolejka.razem == 0
+                  and any(k.rodzaj == "plik_odrzucony" for k in st.stan().komunikaty), 90.0, "5 skanow i odrzucony plik")
         p = next(x for x in st.stan().plytki if x.numer == 1)
         zablokowana = next(x for x in st.stan().plytki if x.status == "plytka_nie_z_trybu")
-        assert sorted(x.status for x in st.stan().plytki) == ["blad", "plytka_nie_z_trybu", "przyjety", "przyjety"]
+        assert sorted(x.status for x in st.stan().plytki) == ["blad", "plytka_nie_z_trybu", "przyjety", "przyjety", "przyjety"]
         assert st.k.ukruszona(p.gniazdo(2).praca.praca_id) and st.k.ok(p.gniazdo(9).praca.praca_id)
+        assert st.k.ukruszona(next(x for x in st.stan().plytki if x.numer == 3).gniazdo(1).praca.praca_id)
         assert not st.k.ukruszona(zablokowana.prace[0].praca_id)  # odmowa sesji (skan zablokowany) jako komunikat
         st.k.szczegoly_pracy(p.gniazdo(7).praca.praca_id)
-        st.k.sesja.zapisz_do_dofrezowania(katalog=tmp_path / "dane")
-        st.zapisz({"gniazda": {1: "zielony"}, "numer": 5, "spij": 2.0}, FOLDER_ZLECENIA)
+        assert st.k.zapisz_liste() and st.k.zapisz_liste(st.stan().doba)  # P7: przez kontroler (plik i tak zapisany samoczynnie)
+        brama = tmp_path / "brama_i.txt"
+        st.zapisz({"gniazda": {1: "zielony"}, "numer": 5, "brama": str(brama)}, FOLDER_ZLECENIA)
         st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza w toku przed zamknieciem")
         st.k.zamknij()
+        brama.write_text("otwarta", encoding="utf-8")
         st2 = stanowiska(ust=ust)
         st2.k.subskrybuj(lambda z: zrzuty.append(json.dumps(dataclasses.asdict(z), ensure_ascii=False, default=str)))
         czekaj_na_pusta_kolejke(st2)
-        assert len(st2.stan().plytki) == 5
+        assert len(st2.stan().plytki) == 6
         stan = json.dumps(dataclasses.asdict(st2.stan()), ensure_ascii=False, default=str)
         zrzut = st2.k.sesja.baza.zrzut()
         st2.k.zamknij()
     finally:
-        for h in list(logging.getLogger().handlers):
-            if isinstance(h, logging.handlers.RotatingFileHandler) and Path(h.baseFilename) == plik_logu:
-                logging.getLogger().removeHandler(h)
-                h.close()
-    szukane = (FOLDER_ZLECENIA, "Zmyslona", "Fikcja", "crown_cad")  # nazwa folderu, jej czlony i rdzen nazw plikow puli
+        AP.odlacz_logi(plik_logu)
+    assert not [h for h in logging.getLogger().handlers if isinstance(h, logging.handlers.RotatingFileHandler) and Path(h.baseFilename) == plik_logu]
+    szukane = (FOLDER_ZLECENIA, "Zmyslona", "Fikcja", "crown_cad", NAZWISKO_SKANU, "Nazwiskowa")  # folder, jego czlony, pliki puli, plik skanu
     miejsca = {"log (caplog)": caplog.text, "stan koncowy": stan, "sygnaly kontrolera": "\n".join(zrzuty),
                "dziennik": json.dumps(zrzut["zdarzenia"], ensure_ascii=False), "decyzje": json.dumps(zrzut["decyzje"], ensure_ascii=False),
                "prace": json.dumps(zrzut["prace"], ensure_ascii=False)}
@@ -624,6 +961,9 @@ def test_i_fikcyjna_nazwa_folderu_zlecenia_nie_wychodzi(stanowiska, tmp_path, ca
         assert not any(s in plik.name for s in szukane), plik.name  # takze nazwy plikow wynikow i podgladow
     assert any(m.startswith("plik dane/logi/stanowisko.log") for m in miejsca) and any("wynik.json" in m for m in miejsca)
     assert "nowy skan" in miejsca["plik dane/logi/stanowisko.log"] and "skan_przyjety" in miejsca["dziennik"]  # miejsca naprawde zawieraja tresc
+    sha_nazwiska = next(s["sha16"] for s in zrzut["skany"] if NAZWISKO_SKANU in (s["plik"] or "") and s["status"] == "przyjety")
+    assert sha_nazwiska in miejsca["log (caplog)"] and "plik pominiety: <plik>" in miejsca["log (caplog)"]  # P5: skrot zamiast nazwy pliku
+    assert any(m.startswith("plik dane/do_dofrezowania_") for m in miejsca)  # lista "do dofrezowania" (P7) tez sprawdzona
     assert "blad_analizy" in miejsca["dziennik"] and len(zrzut["zdarzenia"]) >= 15 and len(zrzuty) >= 10
     wystapienia = {m: [s for s in szukane if s in tekst] for m, tekst in miejsca.items()}
     assert not {m: w for m, w in wystapienia.items() if w}, wystapienia
@@ -644,7 +984,7 @@ def test_kolejnosc_zamykania_scanner_przed_silnikiem(stanowiska, monkeypatch):
     monkeypatch.setattr(st.k.scanner, "stop", lambda *a, **kw: (kolejnosc.append("scanner"), stop_scannera(*a, **kw))[1])
     monkeypatch.setattr(st.k.silnik, "stop", lambda *a, **kw: (kolejnosc.append("silnik"), stop_silnika(*a, **kw))[1])
     monkeypatch.setattr(st.k.sesja.baza, "zamknij", lambda: (kolejnosc.append("baza"), zamknij_baze())[1])
-    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "spij": 1.0})
+    st.zapisz({"gniazda": {1: "zielony"}, "numer": 1, "brama": str(st.tmp / "brama_nigdy.txt")})  # D13: analiza trwa do zamkniecia
     st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza w toku")
     watki_przed = {w.name for w in threading.enumerate()}
     assert {"scanner", "silnik-nadzorca"} <= watki_przed
