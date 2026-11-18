@@ -23,13 +23,16 @@ PRZYSZLY = "przyszły moduł"
 # sekcja → klucz → (typ, moduł czytający)
 SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
     "sciezki": {
-        "folder_eksportu_skanera": (str, PRZYSZLY),
-        "folder_cyrkon": (str, PRZYSZLY),
+        "folder_eksportu_skanera": (str, "aplikacja"),
+        "folder_cyrkon": (str, "aplikacja"),
         "folder_prywatne": (str, PRZYSZLY),
         "folder_millbox": (str, PRZYSZLY),
         "baza": (str, "baza"),
         "log_excel": (str, PRZYSZLY),
         "wyniki": (str, "session"),  # E3-A1, opcjonalny (DOMYSLNE_NOWYCH)
+        "podglady": (str, "aplikacja"),  # E3-A3a, opcjonalne (DOMYSLNE_NOWYCH)
+        "pula_cache": (str, "aplikacja"),
+        "logi": (str, "aplikacja"),
     },
     # dowolne nazwy układów płytek → katalog modeli: wieczorna, poranna, okragla_wieczorna, okragla_poranna (układ R59)
     # oraz wieczorna_r54, poranna_r54, okragla_wieczorna_r54, okragla_poranna_r54 (poprzedni układ R54, stare płytki);
@@ -101,6 +104,21 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "zmiany_start_godz": (list, "session"),
         "ponowny_skan_okno_min": (int, "session"),
     },
+    # E3-A3a (etap 3): sekcje w całości opcjonalne — parametry modułów scanner i silnik (wartości domyślne = stałe tych modułów)
+    "scanner": {
+        "stabilizacja_ms": (float, "aplikacja"),
+        "min_rozmiar_mb": (float, "aplikacja"),
+        "min_trojkatow": (int, "aplikacja"),
+        "wzorzec_pliku": (str, "aplikacja"),
+        "rekurencyjnie": (bool, "aplikacja"),
+        "obserwator": (str, "aplikacja"),
+    },
+    "silnik": {
+        "limit_zadania_s": (float, "aplikacja"),
+        "czekaj_na_plik_s": (float, "aplikacja"),
+        "pamiec_linii": (bool, "aplikacja"),
+        "ponow_plik_niedostepny": (int, "aplikacja"),
+    },
 }
 
 
@@ -125,12 +143,19 @@ DOMYSLNE_NOWYCH = {
     # wczytuje, ale session odrzuca „Ukruszona” / „OK”); przechowuj_skany_dni: po ilu dniach wolno usuwać pliki skanów
     # (DW4; 0 = nie usuwać — tryb cienia); granica_doby_godz: początek doby roboczej (6 = zmiany 1, 2, 3 jednego dnia);
     # zmiany_start_godz: początki zmian; ponowny_skan_okno_min: do ilu minut ta sama płytka to „ponowny skan”, a nie nowy wsad.
-    "sciezki": {"wyniki": "dane/wyniki"},
+    # E3-A3a (17.11.2026): [sciezki] podglady — pliki *_podglad.npz z silnika (punkty i odchyłki gniazd do obrazu odchyłek);
+    # pula_cache — pamięć linii brzegu projektów na dysku (silnik: pamiec_linii); logi — log programu i procesu analizy.
+    # [scanner] i [silnik]: parametry konstruktorów Scanner / Silnik; wartości domyślne równe stałym tych modułów (test).
+    "sciezki": {"wyniki": "dane/wyniki", "podglady": "dane/podglady", "pula_cache": "dane/pula_cache", "logi": "dane/logi"},
     "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22],
               "ponowny_skan_okno_min": 60},
+    "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True,
+                "obserwator": "watchdog"},
+    # pamiec_linii domyslnie False - tak samo jak w silnik (pamiec_linii=None); recenzja PR #20, D11
+    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": False, "ponow_plik_niedostepny": 3},
 }
 
-# Sekcje, których może nie być w pliku: każdy ich klucz ma wartość domyślną (dziś: [sesja]).
+# Sekcje, których może nie być w pliku: każdy ich klucz ma wartość domyślną (dziś: [sesja], [scanner], [silnik]).
 SEKCJE_OPCJONALNE = tuple(s for s, klucze in SCHEMAT.items() if klucze and set(klucze) <= set(DOMYSLNE_NOWYCH.get(s, {})))
 
 
@@ -246,6 +271,15 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(zmiany[0] == d["sesja"]["granica_doby_godz"], "sesja", "zmiany_start_godz",
             f"pierwsza zmiana musi zaczynać się o granicy doby (granica_doby_godz = {d['sesja']['granica_doby_godz']})")
     warunek(d["sesja"]["ponowny_skan_okno_min"] > 0, "sesja", "ponowny_skan_okno_min", "musi być > 0 (minuty)")
+    sc, si = d["scanner"], d["silnik"]
+    warunek(sc["stabilizacja_ms"] >= 0, "scanner", "stabilizacja_ms", "musi być >= 0 (milisekundy)")
+    warunek(sc["min_rozmiar_mb"] >= 0, "scanner", "min_rozmiar_mb", "musi być >= 0 (0 = bez progu)")
+    warunek(sc["min_trojkatow"] >= 1, "scanner", "min_trojkatow", "musi być >= 1")
+    warunek(bool(sc["wzorzec_pliku"].strip()), "scanner", "wzorzec_pliku", "niepusty wzorzec nazwy pliku, np. *.stl")
+    warunek(sc["obserwator"] in ("watchdog", "odpytywanie"), "scanner", "obserwator", "dopuszczalne: watchdog, odpytywanie")
+    warunek(si["limit_zadania_s"] > 0, "silnik", "limit_zadania_s", "musi być > 0 (sekundy)")
+    warunek(si["czekaj_na_plik_s"] >= 0, "silnik", "czekaj_na_plik_s", "musi być >= 0 (sekundy)")
+    warunek(si["ponow_plik_niedostepny"] >= 0, "silnik", "ponow_plik_niedostepny", "musi być >= 0 (liczba ponowień)")
     return d
 
 

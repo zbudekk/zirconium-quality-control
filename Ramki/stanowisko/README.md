@@ -116,6 +116,18 @@ uruchom_okno.bat
 
 Okno „[cytat usuniety]”: dwuklik `uruchom_dzien_skanera.bat` (albo `py -3.12 -m stanowisko.dzien_skanera`). Prowadzi przez 14 kroków testu skanera (lista w `stanowisko/dzien_skanera_kroki.toml`) i samo kopiuje KAŻDY nowy albo zmieniony plik z folderu eksportu skanera (`[sciezki] folder_eksportu_skanera`; w oknie „[cytat usuniety]” albo „[cytat usuniety]”) do sesji `dane/dzien_skanera/<data_godzina>/` — oryginałów nie zmienia. Każdy skan STL dostaje ocenę prostym językiem (zielone / żółte / czerwone „[cytat usuniety]”), z automatycznie rozpoznaną płytką (`plate.rozpoznaj_uklad`); „[cytat usuniety]” dokumentuje ekrany programu skanera; każdy krok można pominąć z powodem. Po awarii albo zamknięciu okno wznawia sesję bez strat. „[cytat usuniety]” tworzy `RAPORT_dzien_skanera.md`, `SHA256SUMS.txt` i archiwum ZIP w `paczka/` (bez projektów `*_cad.stl`). Sprawdzenie otrzymanej paczki: `py -3.12 -m stanowisko.dzien_skanera --sprawdz <folder sesji albo zip>` (kod 0 = komplet, 3 = sumy zgodne, ale brakuje wymaganych kroków, 1 = błąd integralności). Instrukcje dla człowieka: `../sciaga_skaner_DentalScan_2026-11-16.md`, `../dzien_skanera_karta_2026-11-16.md`. Opis modułu: `opisy_modulow/dzien_skanera.md`. Pomiar szczegółowy skanu (narzędzie T10): `narzedzia/pomiar_skanu/`.
 
+## Program „Stanowisko” — rdzeń aplikacji (etap 3, E3‑A3a, 17.11.2026)
+
+Docelowy program: dwuklik `uruchom_stanowisko.bat` (albo `py -3.12 -m stanowisko.aplikacja [--ustawienia PLIK]`). Sam obserwuje folder skanera (`[sciezki] folder_eksportu_skanera`), każdy nowy skan analizuje w osobnym procesie (`silnik`), wynik zapisuje w bazie (`session`) i prowadzi stan wieczoru: mapa płytki z kolorami po decyzjach technika, pytania (ponowny skan tej samej płytki, płytka nie z tego trybu, brak numeru płytki), komunikaty (skan do powtórzenia, płytka niezgodna z układem, plik zajęty, błędy) i lista „do dofrezowania”. Po ponownym uruchomieniu sam dokańcza skany zapisane, gdy nie działał, i zadania, które czekały w kolejce — żaden skan nie ginie i żaden nie jest liczony dwa razy.
+
+- Po E3‑A3a program ma kontroler (`stanowisko/aplikacja.py`), kontrakt dla okna (`stanowisko/kontroler_api.py`) i tabelę statusów (`stanowisko/statusy.py`); **ekran wieczorny buduje paczka A3b** — do tego czasu `uruchom_stanowisko.bat` pokazuje okno zastępcze z tekstem stanu. `py -3.12 -m stanowisko.aplikacja --atrapa` uruchamia program na danych sztucznych, bez skanera i analizy.
+- Przed pierwszym uruchomieniem wpisz w `ustawienia.toml` osoby: `[sesja] operatorzy = ["…", "…"]` — bez wybranej osoby program przyjmuje skany, ale nie zapisuje decyzji. Osobę wybiera się na zmianę (06–14, 14–22, 22–06).
+- Pula projektów na tym etapie: jeden folder (domyślnie `[sciezki] folder_cyrkon`) i współczynnik skurczu wpisany ręcznie albo dobierany przez program; katalog i pule z bazy dojdą w paczkach A4 / A5. Gdy w folderze nie ma plików STL, skany czekają na „Odśwież pulę” (program liczy pule od nowa przy kazdym skanie i po bledzie analizy - folder oprozniony po starcie tez daje "skany czekaja", nie "blad analizy").
+- Start skanu (Spacja) to na razie interfejs z atrapą — program nie klika w programie skanera (decyzja DW5; prawdziwa akcja po próbach na skanerze).
+- Program dziala w jednym egzemplarzu na dana baze: drugie uruchomienie (np. dwuklik dwa razy) konczy sie komunikatem "program juz dziala" (plik `dane/stanowisko.sqlite.blokada`, zwalniany przez system takze po awarii). Wynik, ktorego nie da sie zapisac (pelny dysk, baza zajeta), nie znika: zostaje na ekranie jako "nie zapisano" i jest zapisywany ponownie sam albo przyciskiem.
+- Nowe klucze ustawień są opcjonalne (`[scanner]`, `[silnik]`, `[sciezki] podglady / pula_cache / logi`) — plik sprzed etapu 3 działa bez zmian. Dane programu: `dane/stanowisko.sqlite`, `dane/wyniki/`, `dane/podglady/`, `dane/logi/` (log bez nazw plikow skanow - zamiast nich skrot `sha16`), `dane/do_dofrezowania_biezaca.csv` (lista "do dofrezowania" zapisywana po kazdej zmianie, bez nazw zlecen).
+- Opis, kontrakt dla okna i granice: `opisy_modulow/aplikacja.md`; liczby: `raporty/E3-A3a_2026-11-17.md`.
+
 ## Laptop firmowy — instalacja i test skanera bez Excela i SharePointa
 
 1. **Python 3.12** z python.org (zaznaczyć „Add python.exe to PATH” i „py launcher”). Sprawdzić w wierszu poleceń: `py -3.12 --version`. Inne wersje Pythona nie przeszkadzają — program zawsze woła `py -3.12`.
@@ -157,6 +169,7 @@ Każdy sztuczny skan to `skan_<plytka>_n<numer>_s<seed>.stl` + `.json` z prawdą
 | `opisy_modulow/` | jeden plik na moduł: co robi, wejście, wyjście, kryterium „działa” — czytać przed zmianą kodu |
 | `ustawienia.toml` | jedyny plik ustawień: ścieżki, progi, parametry (lokalny; wzór `ustawienia.przyklad.toml`) |
 | `uruchom_okno.bat` | okno testowe jednym kliknięciem (`py -3.12 -m stanowisko.ui_test`) |
+| `uruchom_stanowisko.bat` | program „Stanowisko” (etap 3) jednym kliknięciem (`py -3.12 -m stanowisko.aplikacja`): `aplikacja` (kontroler: scanner → silnik → session), `kontroler_api` (kontrakt dla okna, atrapa), `statusy` (tabela statusów i kolorów); pod spodem `scanner`, `silnik`, `session`, `baza` |
 | `raporty/` | raporty z sesji naprawczych i testowych |
 | `dane/` | lokalne: STL projektów, raporty MillBox, kopia Excela, skany syntetyczne, wyniki, `decyzje.csv` (poza repozytorium) |
 

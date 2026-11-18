@@ -10,6 +10,9 @@ folder_millbox = "C:/MillBox/raporty"
 baza = "dane/stanowisko.sqlite"                     # plik bazy (SQLite): skany, prace, decyzje; ścieżka względna = od katalogu programu; poza OneDrive
 log_excel = "dane/log_excel.csv"
 wyniki = "dane/wyniki"                              # opcjonalny (etap 3): pliki wyników skanów <skan>_wynik.json zapisywane przez moduł session
+podglady = "dane/podglady"                          # opcjonalny (etap 3): pliki *_podglad.npz z analizy (punkty i odchyłki gniazd — obraz odchyłek w oknie)
+pula_cache = "dane/pula_cache"                      # opcjonalny (etap 3): pamięć linii brzegu projektów na dysku (przyspiesza pierwszą płytkę po starcie)
+logi = "dane/logi"                                  # opcjonalny (etap 3): log programu „Stanowisko” i procesu analizy
 
 [plytki]   # katalogi z uklad.json i plytka_n*.stl, względem katalogu programu (nie cwd)
 wieczorna = "modele_plytek/wieczorna"
@@ -87,3 +90,17 @@ przechowuj_skany_dni = 0            # po ilu dniach wolno usuwać pliki skanów;
 granica_doby_godz = 6               # początek doby roboczej: skany przyjęte od 6:00 do 6:00 następnego dnia (zmiany 1, 2 i 3) należą do jednej doby, nazwanej datą początku
 zmiany_start_godz = [6, 14, 22]     # początki zmian 1, 2, 3 (numer zmiany przy skanie i na liście „do dofrezowania”); godziny rosnące, pierwsza = granica_doby_godz
 ponowny_skan_okno_min = 60          # ta sama płytka przyjęta do tylu minut po poprzednim skanie = pytanie „to ponowny skan?”; później = nowy wsad; musi być > 0
+
+[scanner]  # opcjonalna (etap 3): obserwacja folderu eksportu skanera ([sciezki] folder_eksportu_skanera); wartości jak poniżej = domyślne modułu scanner
+stabilizacja_ms = 300               # tyle bez zmiany rozmiaru i czasu pliku, zanim plik jest oceniany jako zapisany do końca
+min_rozmiar_mb = 0.0                # mniejszy plik nie jest skanem (0 = bez progu; próg dla prawdziwego skanera po pierwszych skanach)
+min_trojkatow = 1                   # plik z mniejszą liczbą trójkątów nie jest skanem
+wzorzec_pliku = "*.stl"             # wzorzec NAZWY pliku skanu (bez rozróżniania wielkości liter)
+rekurencyjnie = true                # czy patrzeć też w podfoldery folderu eksportu
+obserwator = "watchdog"             # "watchdog" albo "odpytywanie" (sam przegląd folderu co 2 s, np. dla dysku sieciowego)
+
+[silnik]   # opcjonalna (etap 3): analiza skanu w osobnym procesie; wartości jak poniżej = domyślne modułu silnik
+limit_zadania_s = 600.0             # analiza jednej płytki dłuższa niż tyle sekund jest przerywana (błąd „analiza trwała za długo”)
+czekaj_na_plik_s = 60.0             # jak długo ponawiać kopiowanie pliku skanu, który trzyma inny program
+pamiec_linii = false                # czy trzymać linie brzegu projektów na dysku ([sciezki] pula_cache); true = szybsza pierwsza plytka po starcie
+ponow_plik_niedostepny = 3          # ile razy program sam ponawia analizę skanu, którego pliku nie dało się odczytać, zanim zgłosi błąd
