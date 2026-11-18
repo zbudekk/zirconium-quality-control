@@ -239,8 +239,9 @@ def migawka(st_: Stanowisko) -> str:
                        "otwarty": st_.rano.otwarty_piec(), "lista": st_.sesja.do_dofrezowania()}, sort_keys=True, default=str)
 
 
-# slowa z fikcyjnych nazw folderow (nazwiska, imiona), pelne nazwy folderow i plikow STL - nie moga wyjsc poza cztery tabele
-SLOWA = sorted({c.lower() for z in SCEN["zlecenia"] for c in z["folder"].split() if c.isalpha() and len(c) >= 4}
+# slowa z fikcyjnych nazw folderow (nazwiska, imiona), pelne nazwy folderow i plikow STL - nie moga wyjsc poza cztery tabele;
+# slowa od 5 liter ("anna" jest czescia slowa "poranna" - nazwy ukladu plytki)
+SLOWA = sorted({c.lower() for z in SCEN["zlecenia"] for c in z["folder"].split() if c.isalpha() and len(c) >= 5}
                | {z["folder"].lower() for z in SCEN["zlecenia"]} | {p["plik"].lower() for p in SCEN["projekty"]})
 
 
