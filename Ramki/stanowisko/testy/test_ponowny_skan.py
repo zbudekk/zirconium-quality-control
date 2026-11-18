@@ -518,6 +518,33 @@ def test_piec_przez_granice_doby_zastapienie_w_tym_samym_piecu(tmp_path):
         w.baza.zamknij()
 
 
+def test_ten_sam_piec_najwyzej_12_h_miedzy_skanami(tmp_path):
+    """Recenzja PR #22 runda 2, P1: piec niezamkniety do nastepnego dnia (plytki 1-3 krazaja z tymi samymi numerami) - para
+    z tym samym ``sesja_pieca_id`` jest przyjmowana bez warunku doby i okna 60 min tylko, gdy skany dzieli najwyzej
+    ``PONOWNY_SKAN_PIEC_MAX_H`` (12) godzin: 1 dzien i 3 dni -> odmowa, 12 h 01 min -> odmowa, 12 h -> przyjete
+    (05:00 / 06:30 - ``test_piec_przez_granice_doby_*``)."""
+    assert SE.PONOWNY_SKAN_PIEC_MAX_H == 12
+    zegar = Zegar("2026-11-18T05:00:00")
+    w = Wieczor(tmp_path, zegar=zegar)
+    try:
+        with w.baza.transakcja():
+            piec = w.baza.wstaw("sesje_pieca", data="2026-11-17", nr_w_dniu=1, otwarto="2026-11-18T04:50:00")
+        skany = {}
+        for nazwa, chwila, od in (("a", "2026-11-18T05:00:00", 950), ("b", "2026-11-18T17:00:00", 960), ("f", "2026-11-18T17:01:00", 970),
+                                  ("c", "2026-11-19T05:00:00", 980), ("d", "2026-11-21T05:00:00", 990)):
+            zegar.t = dt.datetime.fromisoformat(chwila)
+            skany[nazwa] = _skan_poranny(w, 4, len(skany) + 1, {g: od + g for g in range(1, 5)})  # kazdy skan inny wsad
+        with w.baza.transakcja():
+            w.baza.wykonaj(f"UPDATE skany SET sesja_pieca_id = ? WHERE id IN ({', '.join('?' * len(skany))})", (piec, *skany.values()))
+        for nowy, stary in (("f", "a"), ("c", "a"), ("d", "a"), ("d", "c")):  # 12 h 01 min, 1 dzien, 3 dni, 2 dni
+            with pytest.raises(SE.BladSesji, match="musi byc wczesniejszy, aktywny"):
+                w.sesja.zastap_skan(skany[nowy], skany[stary])
+        assert {w.status(s) for s in skany.values()} == {SE.STATUS_PRZYJETY}
+        assert w.sesja.zastap_skan(skany["b"], skany["a"]) == skany["a"] and w.status(skany["a"]) == SE.STATUS_ZASTAPIONY  # 12 h
+    finally:
+        w.baza.zamknij()
+
+
 @pytest.mark.parametrize("prog", [-0.1, 1.01, 2, True, "0.5", None, math.nan, math.inf])
 def test_prog_spoza_zakresu_to_blad_sesji(tmp_path, prog):
     b = B.otworz(tmp_path / "stanowisko.sqlite")
