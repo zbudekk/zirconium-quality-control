@@ -84,6 +84,12 @@ def analiza_sztuczna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, 
         raise ValueError(f"blad sztuczny w projekcie z folderu {gdzie}")
     if not projekty:
         raise SystemExit(f"brak projektow STL w {', '.join(map(str, foldery))}")
+    if opis.get("rano"):  # E3-A7: plytka poranna z kandydatami (``sztuczny_wynik_rano``); JSON: klucze napisami, pary listami
+        wynik = K.sztuczny_wynik_rano(opis.get("uklad", "poranna"), opis.get("numer") if numer is None else numer,
+                                      {int(k): v for k, v in (opis.get("gniazda") or {}).items()}, skan=Path(skan).name,
+                                      projekty={int(k): (tuple(v) if isinstance(v, list) else v) for k, v in (opis.get("projekty") or {}).items()})
+        wynik["foldery_projektow"] = [str(f) for f in foldery]
+        return wynik
     wynik = K.sztuczny_wynik(opis.get("uklad", "wieczorna"), opis.get("numer") if numer is None else numer,
                              {int(k): v for k, v in (opis.get("gniazda") or {}).items()}, uklad_zgodny=opis.get("uklad_zgodny", True),
                              poza_gniazdem=int(opis.get("poza", 0)), skan=Path(skan).name,
@@ -149,6 +155,13 @@ class Stanowisko:
     def stan(self):
         return self.k.stan()
 
+    def poranek(self) -> None:
+        """E3-A7: pula poranna (fikcyjne zlecenia ``indeks_rano_sztuczny``), osoba i tryb "rano"."""
+        from stanowisko import kontroler_api as K
+
+        K.indeks_rano_sztuczny(self.k.sesja.baza, self.k.sesja.teraz())
+        assert self.k.przelacz_tryb("rano") and self.k.wybierz_operatora("Technik A")
+
     def odbierz(self, z) -> None:
         self.sygnaly.append(z)
 
@@ -184,6 +197,9 @@ class StanowiskoAtrapy(Stanowisko):
 
     def starty_skanu(self) -> int:
         return len(self.k.starty_skanu)
+
+    def wrzuc_rano(self, numer, gniazda: dict, projekty: dict | None = None, *, uklad: str = "poranna") -> int:
+        return self.k.symuluj_skan_rano(numer, gniazda, projekty=projekty, uklad=uklad)
 
     def koniec(self) -> None:
         self.k.zamknij()
@@ -251,11 +267,27 @@ class StanowiskoAplikacji(Stanowisko):
         os.replace(tmp, cel)
         return cel
 
+    def _skany(self) -> set:
+        """skan_id plytek w stanie: wieczornych i - w trybie "rano" - plytek pieca (E3-A7)."""
+        s = self.k.stan()
+        return {p.skan_id for p in s.plytki} | ({p.skan_id for p in s.rano.plytki} if s.rano is not None else set())
+
     def wrzuc(self, rodzaj: str = "zwykla", *, numer=1, gniazda=None, projekty=None, uklad=None, poza=0) -> int:
-        przed = {p.skan_id for p in self.k.stan().plytki}
+        przed = self._skany()
         self.zapisz(self.opis(rodzaj, numer, gniazda, projekty, uklad, poza))
-        self.czekaj(lambda: {p.skan_id for p in self.k.stan().plytki} - przed, 90.0, f"skan {rodzaj} w stanie")
-        return max({p.skan_id for p in self.k.stan().plytki} - przed)
+        self.czekaj(lambda: self._skany() - przed, 90.0, f"skan {rodzaj} w stanie")
+        return max(self._skany() - przed)
+
+    @staticmethod
+    def opis_rano(numer, gniazda: dict, projekty: dict | None = None, *, uklad: str = "poranna", spij: float = 0.0) -> dict:
+        """Opis sztucznego skanu plytki porannej (``kontroler_api.sztuczny_wynik_rano`` w procesie silnika)."""
+        return {"rano": True, "uklad": uklad, "numer": numer, "gniazda": gniazda, "projekty": projekty or {}, "poza": 0, "spij": spij}
+
+    def wrzuc_rano(self, numer, gniazda: dict, projekty: dict | None = None, *, uklad: str = "poranna") -> int:
+        przed = self._skany()
+        self.zapisz(self.opis_rano(numer, gniazda, projekty, uklad=uklad))
+        self.czekaj(lambda: self._skany() - przed, 90.0, f"skan poranny plytki {numer} w stanie")
+        return max(self._skany() - przed)
 
     def starty_skanu(self) -> int:
         return len(self.atrapa_startu.wywolania)
@@ -1151,3 +1183,177 @@ def test_atrapa_scenariusz_pokazowy_i_sprzatanie(tmp_path):
     assert katalog.is_dir()
     a.zamknij()
     assert not katalog.exists()
+
+
+# ----------------------------------------------------------------------------
+# poranek (E3-A7, kontrakt w wersji 3): ten sam zestaw dla atrapy i prawdziwej aplikacji
+# ----------------------------------------------------------------------------
+PLYTKA_RANO = {1: "pewna", 2: "pewna", 3: "zolta", 4: "nieznana", 5: "pewna", 6: "dwuznaczna", 7: "brak"}
+PROJEKTY_RANO = {1: 307, 2: 308, 3: (309, 319), 4: 311, 5: 313, 6: (312, 320), 7: 314}  # 3221 = 307-310, 3228 = 311-312, 3235 = 313
+
+
+def klasy_rano(st, skan_id: int) -> dict:
+    return {p.gniazdo: p.klasa for p in st.stan().rano.plytka(skan_id).prace}
+
+
+def test_rano_przelacznik_trybu_i_skan_do_sesji_pieca(st):
+    """Kryterium A6 dla A7 (recenzja A6, D7): w trybie "rano" skan idzie do ``SesjaRano`` - piec otwiera sie sam, ``skany.sesja_pieca_id``;
+    plytka poza stanem wieczoru; klasy prac i kolory = ``session_rano.stan_pieca``; tryb w dzienniku."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+    from stanowisko import statusy as ST
+
+    assert st.stan().tryb == "wieczor" and st.stan().rano is None
+    odp = st.k.przelacz_tryb("rano")  # bez osoby
+    assert odp and odp.dane == "rano" and st.stan().tryb == "rano" and isinstance(st.stan().rano, K.StanRano)
+    assert st.stan().rano.sesja_pieca_id is None and not st.stan().rano.otwarty
+    st.poranek()
+    skan_id = st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    s = st.stan()
+    assert s.plytka(skan_id) is None and s.rano.otwarty and s.rano.plan_id.endswith("-p1")
+    assert st.k.sesja.baza.wiersz("SELECT tryb, sesja_pieca_id FROM skany WHERE id = ?", (skan_id,)) == {"tryb": "rano", "sesja_pieca_id": s.rano.sesja_pieca_id}
+    prawda = SR.SesjaRano(st.k.sesja).stan_pieca()
+    oczekiwane = {p["gniazdo"]: p["klasa"] for x in prawda["skany"] for p in x["prace"]}
+    assert klasy_rano(st, skan_id) == oczekiwane == {1: "pewna", 2: "pewna", 3: "dwuznaczna", 4: "nieznana", 5: "pewna", 6: "dwuznaczna", 7: "nieznana"}
+    plytka = s.rano.plytka(skan_id)
+    for g in plytka.gniazda:
+        if g.praca is None:
+            assert g.status == "pusty"
+            continue
+        w = ST.status_rano(g.praca.klasa)
+        assert (g.rgb, g.kolor, g.praca.status) == (w.hex, SR.KOLOR_KLASY[g.praca.klasa], w.klucz)
+        assert g.podpis == (g.praca.kuweta if g.praca.klasa == "pewna" else w.napis)
+    p1 = plytka.gniazdo(1).praca
+    assert (p1.kuweta, p1.zeby, p1.sha16) == ("3221", K.zab_sztuczny(307), K.projekt_sztuczny(307)) and p1.miniatura.startswith(b"\x89PNG")
+    p3 = plytka.gniazdo(3).praca
+    assert [k.kuweta for k in p3.kandydaci] == ["3221", "3256"] and all(k.miniatura and k.projekt_id for k in p3.kandydaci)
+    assert p3.dozwolone == ("wybierz_kandydata", "przypisz_recznie")
+    assert s.rano.liczniki == {"pewna": 3, "dwuznaczna": 2, "nieznana": 2} and s.rano.nierozstrzygniete == {"dwuznaczne": 2, "nieznane": 2}
+    assert any(k.id == K.ID_RAMKA_PORANNA for k in s.komunikaty)  # ramka poranna niepodlaczona: komunikat, nie awaria
+    assert st.k.przelacz_tryb("wieczor") and st.stan().rano is None
+    wpisy = st.k.sesja.baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'tryb_zmieniony' ORDER BY id")
+    assert [json.loads(w["dane"])["tryb"] for w in wpisy] == ["rano", "wieczor"]
+
+
+def test_rano_decyzje_wybor_przypisanie_cofniecie_i_odmowy(st):
+    from stanowisko import kontroler_api as K
+
+    st.poranek()
+    skan_id = st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    plytka = st.stan().rano.plytka(skan_id)
+    p3, p4 = plytka.gniazdo(3).praca, plytka.gniazdo(4).praca
+    assert st.k.wybierz_kandydata(p3.praca_id, p3.kandydaci[0].sha16)
+    assert klasy_rano(st, skan_id)[3] == "przypisana" and st.stan().rano.plytka(skan_id).gniazdo(3).rgb == plytka.gniazdo(1).rgb
+    projekty = st.k.projekty_kuwety("3228")
+    assert [(x.kuweta, x.zeby, x.stan) for x in projekty] == [("3228", K.zab_sztuczny(311), "oczekuje"), ("3228", K.zab_sztuczny(312), "oczekuje")]
+    assert all(isinstance(x, K.ProjektPuli) and x.miniatura for x in projekty) and st.k.projekty_kuwety(" 03228 ") == projekty
+    assert st.k.projekty_kuwety("1") == () and st.k.projekty_kuwety(None) == ()
+    assert st.k.przypisz_recznie(p4.praca_id, projekty[0].projekt_id)  # nieznana przypisana recznie -> konflikt z gniazdem 5? nie: 311 ma tylko gniazdo 4
+    assert klasy_rano(st, skan_id)[4] == "przypisana"
+    assert st.k.cofnij_przypisanie(p4.praca_id) and klasy_rano(st, skan_id)[4] == "nieznana"
+    assert st.k.przypisz_recznie(p4.praca_id) and klasy_rano(st, skan_id)[4] == "nieznana"  # "bez projektu"
+    d = st.k.sesja.baza.wiersze("SELECT rodzaj, wartosc, operator FROM decyzje WHERE skan_id = ? ORDER BY id", (skan_id,))
+    assert [x["rodzaj"] for x in d] == ["wybor_kandydata", "przypisanie_reczne", "cofniecie", "przypisanie_reczne"] and d[-1]["wartosc"] == ""
+    # odmowy: zly kandydat (session_rano), brak osoby, zle argumenty - odpowiedz, nigdy wyjatek
+    odp = st.k.wybierz_kandydata(p4.praca_id, "0" * 16)
+    assert not odp and odp.kod == "odmowa" and "kandydat" in odp.tekst
+    for zle in ((p4.praca_id, 5), ("x", "y"), (True, p3.kandydaci[0].sha16)):
+        odp = st.k.wykonaj("wybierz_kandydata", *zle)
+        assert not odp and odp.kod == K.KOD_ZLE_ARGUMENTY
+    assert st.k.wykonaj("przypisz_recznie", p4.praca_id, "12").kod == K.KOD_ZLE_ARGUMENTY
+    assert st.k.wykonaj("przelacz_tryb", "noc").kod == K.KOD_ZLE_ARGUMENTY and st.k.wykonaj("ustaw_kolejnosc", "losowo").kod == K.KOD_ZLE_ARGUMENTY
+    assert st.k.wybierz_operatora(None)
+    odp = st.k.cofnij_przypisanie(p3.praca_id)
+    assert not odp and odp.kod == "brak_operatora"
+
+
+def test_rano_kolejnosc_kuwet_wybor_po_numerze_rozkladanie(st):
+    from stanowisko import session_rano as SR
+
+    st.poranek()
+    st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    st.wrzuc_rano(5, {1: "pewna", 2: "pewna", 3: "pewna"}, {1: 310, 2: 315, 3: 316})
+    rano = SR.SesjaRano(st.k.sesja)
+    for kolejnosc in ("liczba", "numer"):
+        assert st.k.ustaw_kolejnosc(kolejnosc)
+        plan = rano.plan_plytek(kolejnosc=kolejnosc)
+        assert [(k.kuweta, k.prac, k.plytki) for k in st.stan().rano.kuwety] == [(k["kuweta"], plan["liczba_prac"][k["kuweta"]], tuple(k["plytki"]))
+                                                                               for k in plan["kuwety"]]
+    assert st.k.ustaw_kolejnosc("liczba")
+    kolejne = [k.kuweta for k in st.stan().rano.kuwety]
+    assert kolejne[0] == "3221" and st.stan().rano.kuweta_biezaca == "3221"
+    assert st.k.wybierz_kuwete(" 03242") and st.stan().rano.kuweta_biezaca == "3242"  # numer wpisany recznie (zera i spacje bez znaczenia)
+    odp = st.k.wybierz_kuwete("9999")
+    assert not odp and "9999" in odp.tekst and st.stan().rano.kuweta_biezaca == "3242"
+    assert st.k.potwierdz_kuwete().dane == "3242"
+    assert st.stan().rano.kuweta_biezaca == "3221" and [k.kuweta for k in st.stan().rano.kuwety if k.potwierdzona] == ["3242"]
+    assert st.k.potwierdz_kuwete().dane == "3221" and st.k.cofnij_kuwete().dane == "3221" and st.stan().rano.kuweta_biezaca == "3221"
+    for _ in kolejne:
+        st.k.potwierdz_kuwete()
+    odp = st.k.potwierdz_kuwete()
+    assert not odp and st.stan().rano.kuweta_biezaca is None
+    wpisy = st.k.sesja.baza.wiersze("SELECT typ, dane FROM zdarzenia WHERE typ LIKE 'kuweta_%' ORDER BY id")
+    assert all(json.loads(w["dane"])["operator"] == "Technik A" and json.loads(w["dane"])["plan_id"] == st.stan().rano.plan_id for w in wpisy)
+
+
+def test_rano_zamknij_piec_wynik_rowny_A6_i_komunikat_excela(st):
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+
+    st.poranek()
+    skan_id = st.wrzuc_rano(4, PLYTKA_RANO, PROJEKTY_RANO)
+    rano = st.stan().rano
+    assert rano.dozwolone == ("zamknij_piec",) and rano.blokady == ()
+    assert [z.kuweta for z in rano.kompletne] == ["3235"] and [z.kuweta for z in rano.braki] == ["3221"]  # prowizorycznie
+    odp = st.k.zamknij_piec()
+    assert odp and isinstance(odp.dane, dict)
+    wynik = SR.SesjaRano(st.k.sesja).wynik_pieca(rano.sesja_pieca_id)
+    assert dict(odp.dane) == wynik or json.loads(json.dumps(odp.dane)) == wynik
+    s = st.stan()
+    assert not s.rano.otwarty and s.rano.wynik is not None and s.rano.dozwolone == ()
+    assert [z.kuweta for z in s.rano.kompletne] == [z["kuweta"] for z in wynik["kompletne"]] == ["3235"]
+    assert [(z.kuweta, [b.zeby for b in z.brakujace]) for z in s.rano.braki] == [(z["kuweta"], [b["zeby"] for b in z["brakujace"]]) for z in wynik["braki"]]
+    assert [z.kuweta for z in s.rano.braki_biezace] == [z["kuweta"] for z in SR.SesjaRano(st.k.sesja).braki()]
+    assert all(b.napis for z in s.rano.braki for b in z.brakujace)
+    assert any(k.id == K.ID_EXCEL and "(1)" in k.tekst for k in s.komunikaty)  # bez Excela: komunikat, program dziala dalej
+    odp = st.k.przypisz_recznie(s.rano.plytka(skan_id).gniazdo(4).praca.praca_id)
+    assert not odp and "zamkniety" in odp.tekst  # piec zamkniety jest zamrozony (A6)
+    assert not st.k.zamknij_piec()
+    nowy = st.wrzuc_rano(5, {1: "pewna"}, {1: 310})
+    assert st.stan().rano.otwarty and st.stan().rano.nr_w_dniu == 2 and st.stan().rano.plytka(nowy) is not None
+
+
+def test_rano_polecenia_plytki_numer_ponowny_skan_konflikt_blokuje(st):
+    st.poranek()
+    bez = st.wrzuc_rano(None, {1: "pewna", 2: "pewna"}, {1: 307, 2: 308})
+    rano = st.stan().rano
+    assert rano.blokady and "numer" in rano.blokady[0].lower() and "zamknij_piec" not in rano.dozwolone
+    assert [q.rodzaj for q in st.stan().pytania] == ["brak_numeru_plytki"] and st.stan().pytania[0].numery == (4, 5, 6)
+    assert st.k.podaj_numer_plytki(bez, 4) and st.stan().rano.plytka(bez).numer == 4 and st.stan().rano.dozwolone == ("zamknij_piec",)
+    st.przesun(2)
+    drugi = st.wrzuc_rano(4, {1: "pewna", 3: "pewna"}, {1: 307, 3: 308})
+    s = st.stan()
+    assert s.rano.plytka(drugi).moze_zastapic == bez and [q.rodzaj for q in s.pytania] == ["ponowny_skan"]
+    assert "konflikt" in " ".join(s.rano.blokady).lower() and len(s.rano.konflikty) == 2
+    assert st.k.potwierdz_ponowny_skan(drugi)
+    s = st.stan()
+    assert s.rano.plytka(bez).status == "zastapiony" and s.rano.konflikty == () and s.rano.dozwolone == ("zamknij_piec",)
+    assert st.k.cofnij_zastapienie(drugi) and st.stan().rano.plytka(bez).status == "przyjety"
+
+
+def test_rano_statusy_jedna_tabela_zgodna_z_session_rano():
+    from stanowisko import session_rano as SR
+    from stanowisko import statusy as ST
+
+    for klasa in SR.KOLOR_KLASY:
+        w = ST.status_rano(klasa)
+        assert (w.kolor, w.ramka) == (SR.KOLOR_KLASY[klasa], SR.KOLOR_RAMKI[klasa]), klasa
+        assert ST.status(w.klucz) is w and w.napis and w.opis
+    assert ST.STATUSY["nieznana_rano"].kolor == ST.KOLOR_BIALY and ST.status_rano("nieznana") is ST.STATUSY["nieznana_rano"]
+    assert ST.status_rano("poprawka") is ST.STATUSY["dofrezowany"]  # Z9: "zab dofrezowany", nie "poprawiana recznie"
+    assert ST.STATUSY_ZIELONE == ("zielony",)  # wiersze poranne nie zmieniaja zielonego wieczoru (P4)
+    assert ST.status_rano("nowa_klasa").kolor == ST.KOLOR_ZOLTY  # nieznana klasa: nigdy zielona
+    for polecenie in ("wybierz_kandydata", "przypisz_recznie", "cofnij_przypisanie", "zamknij_piec", "potwierdz_kuwete", "cofnij_kuwete"):
+        assert ST.PRZYCISKI[polecenie]
+    for rodzaj in ("ramka_niedostepna", "excel_niedostepny"):
+        assert ST.tekst_komunikatu(rodzaj, ile=1)[2]

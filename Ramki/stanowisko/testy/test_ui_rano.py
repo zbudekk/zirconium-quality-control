@@ -1,0 +1,801 @@
+"""ui (E3-A7): ekran poranny - tryb "Poranek" okna ``stanowisko.ui.utworz_okno`` sterowany z testu jak przez osobe
+rozkladajaca piec (klikniecia, klawisze), tryb offscreen, dane sztuczne (pula poranna ``kontroler_api.indeks_rano_sztuczny``).
+
+Kryteria paczki (plan etapu 3, 4.1, E3-A7; raport ``raporty/E3-A7_2026-11-18.md``):
+  (1) 3 plytki jednego pieca -> podpisy (kuweta, zab, miniatura) i kolory zgodne z wynikiem w 100 % gniazd (U2) - atrapa
+      i prawdziwy kontroler; prawda: tabela oczekiwan scenariusza i ``session_rano.stan_pieca`` (A6),
+  (2) klik w zolte pokazuje dwoch kandydatow, wybor zapisuje decyzje (``decyzje``) i zmienia kolor,
+  (3) trzy sposoby kolejnosci kuwet (U7): od najliczniejszej, wedlug numeru (= ``plan_plytek`` A6), numer wpisany recznie,
+  (4) "Zamknij piec" pokazuje zlecenia kompletne i liste brakow rowna wynikowi A6 (``wynik_pieca``, ``braki``),
+  (5) bez ramki i bez Excela program dziala dalej (komunikat, nie awaria),
+  (6) zamiast przegladu z czlowiekiem: szesc zadan porannych T14 sterowaniem z testu i zrzuty PNG dla wlasciciela (G2) -
+      zmienna ``E3_ZRZUTY`` = katalog zrzutow.
+Dodatkowo: przelacznik trybu Wieczor / Poranek (pasek stanu, pamiec po restarcie), nieznana przypisana recznie, konflikt,
+poprawka (Z9), uklad bez obciec przy 1920 x 1080 i 100 / 125 / 150 % (jak ``test_ui_rozdzielczosc``), przerwy petli okna
+ponizej 200 ms przy 3 plytkach x 23 prace (prawdziwy kontroler), okno zmaksymalizowane, 0 sciezek i nazw plikow na ekranie.
+"""
+from __future__ import annotations
+
+import datetime as dt
+import os
+import time
+from pathlib import Path
+
+import pytest
+
+import test_kontroler_api as TK
+import test_ui_wieczor as UW
+
+RANO_START = dt.datetime(2026, 11, 18, 6, 30, 0)  # sroda, zmiana 1
+PELNY_EKRAN = (1920, 1001)  # 1920 x 1080 przy 100 %, okno zmaksymalizowane
+ROZMIARY = (("100proc_ekran", 1920, 1080), ("100proc_zmaksymalizowane", 1920, 1001), ("125proc_ekran", 1536, 864),
+            ("125proc_zmaksymalizowane", 1536, 784), ("150proc_ekran", 1280, 720), ("150proc_zmaksymalizowane", 1280, 642))
+ROZMIARY_ZRZUTOW = (("100proc", 1920, 1080), ("125proc", 1536, 864))
+KONFLIKT = ((5, 3), (6, 11))
+POPRAWKA = (6, 2)
+RODZAJ_NA_KLASE = {"pewna": "pewna", "zolta": "dwuznaczna", "dwuznaczna": "dwuznaczna", "nieznana": "nieznana", "brak": "nieznana"}
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _qt():
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    if UW.FONTY_WINDOWS.is_dir():
+        os.environ.setdefault("QT_QPA_FONTDIR", str(UW.FONTY_WINDOWS))
+    import PySide6.QtCore  # noqa: F401
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication([])
+    assert app.platformName() == "offscreen"
+    UW.czcionka_ekranu()
+    yield app
+
+
+class ZegarRano(UW.Zegar):
+    def __init__(self):
+        self.teraz = RANO_START
+
+
+@pytest.fixture
+def zegar():
+    return ZegarRano()
+
+
+@pytest.fixture
+def atrapa(tmp_path, zegar):
+    from stanowisko import kontroler_api as K
+
+    k = K.AtrapaKontrolera(tmp_path / "atrapa", zegar=zegar)
+    yield k
+    k.zamknij()
+
+
+class Ekran(UW.Ekran):
+    """Okno na kontrolerze ``k`` w trybie porannym: mapy plytek pieca, klikniecia gniazd, klawisze ramki porannej."""
+
+    @property
+    def rano(self):
+        return self.okno.ekran_rano
+
+    def po_ochronie_rano(self) -> None:
+        self.czekaj(lambda: not self.rano.ochrona_aktywna(), 5.0, "koniec przygaszenia map porannych")
+
+    def mapy(self) -> dict:
+        self.zdarzenia()
+        return self.rano.mapy()
+
+    def klik_rano(self, skan_id: int, nr: int) -> None:
+        from PySide6.QtCore import Qt
+        from PySide6.QtTest import QTest
+
+        self.zdarzenia()
+        self.po_ochronie_rano()
+        mapa = self.mapy()[skan_id]
+        QTest.mouseClick(mapa, Qt.MouseButton.LeftButton, pos=mapa.srodek_gniazda(nr).toPoint())
+        self.odczekaj(5)
+
+    def piksele(self, skan_id: int) -> dict:
+        self.zdarzenia()
+        self.po_ochronie_rano()
+        mapa = self.mapy()[skan_id]
+        obraz = mapa.grab().toImage()
+        return {nr: obraz.pixelColor(mapa.punkt_probny(nr).toPoint()).name() for nr in mapa.numery()}
+
+    def wpisz(self, tekst: str) -> None:
+        from PySide6.QtTest import QTest
+
+        QTest.keyClicks(self.okno, tekst)
+        self.odczekaj(5)
+
+    def tabela(self, nazwa: str) -> list:
+        from stanowisko.ui.ekran_rano import teksty_tabeli
+
+        self.zdarzenia()
+        return teksty_tabeli(self.w(nazwa))
+
+    def obraz(self):
+        self.zdarzenia()
+        if self.okno.rano():
+            self.po_ochronie_rano()
+        return self.okno.grab().toImage()
+
+
+@pytest.fixture
+def ekrany():
+    otwarte = []
+
+    def nowy(kontroler, rozmiar: tuple = PELNY_EKRAN) -> Ekran:
+        e = Ekran(kontroler, rozmiar)
+        otwarte.append(e)
+        return e
+
+    yield nowy
+    for e in otwarte:
+        e.zamknij()
+
+
+def oczekiwane_gniazda() -> dict:
+    """Tabela oczekiwan scenariusza porannego (piec 2): (numer plytki, gniazdo) -> (klasa pracy porannej, projekt w gniezdzie)."""
+    from stanowisko import kontroler_api as K
+
+    wynik = {}
+    for numer, (gniazda, projekty) in K.plan_scenariusza_rano().items():
+        for nr, rodzaj in gniazda.items():
+            projekt = projekty[nr][0] if isinstance(projekty[nr], tuple) else projekty[nr]
+            wynik[(numer, nr)] = (RODZAJ_NA_KLASE[rodzaj], projekt)
+    for miejsce in KONFLIKT:
+        wynik[miejsce] = ("konflikt", wynik[miejsce][1])
+    wynik[POPRAWKA] = ("poprawka", wynik[POPRAWKA][1])
+    return wynik
+
+
+def kuweta_projektu() -> dict:
+    from stanowisko import kontroler_api as K
+
+    return {nr: k for k, numery in K.projekty_zlecen_rano().items() for nr in numery}
+
+
+def sprawdz_plytke(e: Ekran, numer: int, skan_id: int, oczekiwane: dict) -> int:
+    """Kolor (dane i piksel), kuweta, zab i miniatura w kazdym gniezdzie plytki = tabela oczekiwan; zwraca liczbe gniazd."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    mapa = e.mapy()[skan_id]
+    kolory, piksele, rysowane = mapa.kolory(), e.piksele(skan_id), mapa.rysowane()
+    kuwety = kuweta_projektu()
+    assert sorted(mapa.numery()) == list(range(1, 25))
+    for nr in range(1, 25):
+        narysowane = {k: rysowane[nr][k] for k in ("kuweta", "zab", "miniatura")}
+        if (numer, nr) not in oczekiwane:  # gniazdo puste
+            assert kolory[nr] == piksele[nr] == ST.STATUSY["pusty"].hex and narysowane == {"kuweta": None, "zab": None, "miniatura": None}
+            continue
+        klasa, projekt = oczekiwane[(numer, nr)]
+        w = ST.status_rano(klasa)
+        assert kolory[nr] == w.hex and piksele[nr] == w.hex, (numer, nr, klasa, kolory[nr], piksele[nr])
+        if klasa in ("pewna", "poprawka", "konflikt"):
+            assert narysowane == {"kuweta": kuwety[projekt], "zab": f"z. {K.zab_sztuczny(projekt)}", "miniatura": K.projekt_sztuczny(projekt)}, (numer, nr)
+        else:
+            assert narysowane == {"kuweta": w.napis, "zab": None, "miniatura": None}, (numer, nr, narysowane)
+    return 24
+
+
+# ----------------------------------------------------------------------------
+# (1) podpisy i kolory w 100 % gniazd
+# ----------------------------------------------------------------------------
+def test_k1_trzy_plytki_pieca_podpisy_i_kolory_100_proc(atrapa, ekrany):
+    from stanowisko import session_rano as SR
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    assert e.okno.rano() and e.jest("ekran_rano")
+    oczekiwane = oczekiwane_gniazda()
+    prawda = SR.SesjaRano(atrapa.sesja).stan_pieca()  # wynik A6 na tej samej bazie
+    assert {(s["numer_plytki"], p["gniazdo"]): p["klasa"] for s in prawda["skany"] for p in s["prace"]} == {k: v[0] for k, v in oczekiwane.items()}
+    assert sorted(e.mapy()) == sorted(skany[n] for n in (4, 5, 6))
+    gniazd = sum(sprawdz_plytke(e, n, skany[n], oczekiwane) for n in (4, 5, 6))
+    assert gniazd == 72  # 3 plytki x 24 gniazda (23 prace + puste): 100 % zgodnych
+    stan = atrapa.stan()
+    assert stan.rano.plytka(skany[5]).gniazdo(3).praca.konflikt_z == ((6, 11),)
+    print(f"\n[kryterium 1] 3 plytki, {gniazd} gniazd: kolor (dane i piksel), kuweta, zab i miniatura zgodne w {gniazd} z {gniazd}")
+
+
+def test_k1_prawdziwy_kontroler_trzy_plytki_przez_skaner(tmp_path, ekrany):
+    """Prawdziwa ``Aplikacja``: tryb "Poranek" przyciskiem na pasku, trzy pliki skanow do folderu skanera, analiza sztuczna
+    w procesie silnika, wynik do sesji pieca (A6) - mapa = tabela oczekiwan w 100 % gniazd."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import session_rano as SR
+
+    st = TK.StanowiskoAplikacji(tmp_path)
+    try:
+        st.teraz = RANO_START
+        K.indeks_rano_sztuczny(st.k.sesja.baza, st.k.sesja.teraz())
+        st.k.wybierz_operatora("Technik A")
+        e = ekrany(st.k)
+        e.klik("przycisk_przelacz_tryb")
+        assert st.k.stan().tryb == "rano" and e.okno.rano()
+        skany = {}
+        for numer, (gniazda, projekty) in K.plan_scenariusza_rano().items():
+            skany[numer] = st.wrzuc_rano(numer, gniazda, projekty)
+        e.czekaj(lambda: len(e.mapy()) == 3, 20.0, "trzy mapy plytek")
+        rano = st.k.stan().rano
+        assert rano.otwarty and [p.numer for p in rano.plytki] == [4, 5, 6] and all(len(p.prace) == 23 for p in rano.plytki)
+        oczekiwane = {k: v for k, v in oczekiwane_gniazda().items() if k != POPRAWKA}  # bez pieca 1: projekt 301 to zwykla praca
+        oczekiwane[POPRAWKA] = ("pewna", 301)
+        prawda = SR.SesjaRano(st.k.sesja).stan_pieca()
+        assert {(s["numer_plytki"], p["gniazdo"]): p["klasa"] for s in prawda["skany"] for p in s["prace"]} == {k: v[0] for k, v in oczekiwane.items()}
+        assert sum(sprawdz_plytke(e, n, skany[n], oczekiwane) for n in (4, 5, 6)) == 72
+        assert st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM skany WHERE tryb = 'rano' AND sesja_pieca_id IS NOT NULL")["n"] == 3
+    finally:
+        st.koniec()
+
+
+# ----------------------------------------------------------------------------
+# (2) dwuznaczna: dwaj kandydaci, wybor = decyzja i zmiana koloru
+# ----------------------------------------------------------------------------
+def test_k2_klik_w_zolte_dwaj_kandydaci_wybor_zapisuje_decyzje_i_zmienia_kolor(atrapa, ekrany):
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    s4 = skany[4]
+    gniazda, projekty = K.plan_scenariusza_rano()[4]
+    dobry, zly = projekty[9]
+    assert e.mapy()[s4].kolory()[9] == ST.status_rano("dwuznaczna").hex
+    e.klik_rano(s4, 9)
+    assert e.jest("kandydat_1") and e.jest("kandydat_2") and not e.jest("kandydat_3")
+    kuwety = kuweta_projektu()
+    for i, projekt in ((1, dobry), (2, zly)):
+        assert e.w(f"kandydat_{i}_kuweta").text() == f"Kuweta {kuwety[projekt]}"
+        assert K.zab_sztuczny(projekt) in e.w(f"kandydat_{i}_zab").text()
+        assert e.w(f"kandydat_{i}_miniatura").sha16 == K.projekt_sztuczny(projekt)  # miniatura kandydata ze stanu
+        assert e.aktywny(f"kandydat_{i}_wybierz")
+    praca_id = e.rano.pokazana_praca().praca_id
+    e.klik("kandydat_1_wybierz")
+    d = atrapa.sesja.baza.wiersz("SELECT * FROM decyzje WHERE praca_id = ? ORDER BY id DESC LIMIT 1", (praca_id,))
+    assert (d["rodzaj"], d["wartosc"], d["operator"]) == ("wybor_kandydata", K.projekt_sztuczny(dobry), "Technik A")
+    assert e.mapy()[s4].kolory()[9] == ST.status_rano("przypisana").hex == e.piksele(s4)[9]
+    assert e.mapy()[s4].rysowane()[9]["kuweta"] == kuwety[dobry]
+    assert e.jest("kandydat_1_wybrany") and e.jest("praca_rano_cofnij")
+    e.klik("praca_rano_cofnij")  # pomylka: cofniecie wyboru - znow zolta
+    assert e.mapy()[s4].kolory()[9] == ST.status_rano("dwuznaczna").hex
+    assert atrapa.sesja.baza.wiersz("SELECT rodzaj FROM decyzje WHERE praca_id = ? ORDER BY id DESC LIMIT 1", (praca_id,))["rodzaj"] == "cofniecie"
+
+
+def test_k2_bez_osoby_wybor_nieaktywny_z_wyjasnieniem(atrapa, ekrany):
+    skany = atrapa.scenariusz_poranny()
+    atrapa.wybierz_operatora(None)
+    e = ekrany(atrapa)
+    e.klik_rano(skany[4], 9)
+    assert e.jest("kandydat_1_wybierz") and not e.aktywny("kandydat_1_wybierz") and e.jest("praca_rano_wyjasnienie")
+    assert e.jest("panel_osoba")
+
+
+# ----------------------------------------------------------------------------
+# (3) trzy sposoby kolejnosci kuwet
+# ----------------------------------------------------------------------------
+def test_k3_trzy_sposoby_kolejnosci_kuwet(atrapa, ekrany):
+    from stanowisko import session_rano as SR
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    rano = SR.SesjaRano(atrapa.sesja)
+    # (a) od najliczniejszej = plan ramki A6
+    plan = rano.plan_plytek(kolejnosc="liczba")
+    assert [w[0] for w in e.tabela("tabela_kuwet")] == [k["kuweta"] for k in plan["kuwety"]]
+    assert [int(w[1]) for w in e.tabela("tabela_kuwet")] == [plan["liczba_prac"][k["kuweta"]] for k in plan["kuwety"]]
+    pierwsza = plan["kuwety"][0]["kuweta"]
+    assert e.w("rano_kuweta_biezaca").text() == f"Kuweta {pierwsza}"
+    # (b) wedlug numeru
+    e.klik("kolejnosc_numer")
+    plan_n = rano.plan_plytek(kolejnosc="numer")
+    assert [w[0] for w in e.tabela("tabela_kuwet")] == [k["kuweta"] for k in plan_n["kuwety"]]
+    assert atrapa.stan().rano.kolejnosc == "numer" and e.w("kolejnosc_numer").isChecked()
+    # (c) numer wpisany recznie (cyfry + Enter, jak na klawiaturze ramki): kuweta biezaca, jej gniazda obwiedzione
+    cel = plan_n["kuwety"][len(plan_n["kuwety"]) // 2]["kuweta"]
+    e.wpisz(cel[:-1])
+    assert e.jest("rano_bufor") and cel[:-1] in e.w("rano_bufor").text()
+    e.wpisz(cel[-1])
+    from PySide6.QtCore import Qt
+
+    e.klawisz(Qt.Key.Key_Return)
+    assert atrapa.stan().rano.kuweta_biezaca == cel and e.w("rano_kuweta_biezaca").text() == f"Kuweta {cel}" and not e.jest("rano_bufor")
+    obwiedzione = {(s, nr) for s, m in e.mapy().items() for nr in m.biezace()}
+    oczekiwane = {(p.skan_id, g.nr) for p in atrapa.stan().rano.plytki for g in p.gniazda if g.praca is not None and g.praca.kuweta == cel
+                  and g.praca.klasa in ("pewna", "przypisana", "poprawka") and p.aktywna}
+    assert obwiedzione == oczekiwane and len(oczekiwane) == plan_n["liczba_prac"][cel]  # gniazda kuwety = te same, co w planie ramki
+    # numer spoza pieca: odmowa (komunikat), nic sie nie psuje
+    e.wpisz("9999")
+    e.klawisz(Qt.Key.Key_Return)
+    assert atrapa.stan().rano.kuweta_biezaca == cel and "9999" in e.tekst()
+    assert len(e.mapy()) == 3 and skany
+
+
+def test_k3_rozkladanie_enter_i_cofniecie_backspace(atrapa, ekrany):
+    """Kuweta po kuwecie wedlug ekranu: Enter = rozlozona (wpis w dzienniku, biezaca = nastepna), Backspace = cofnij pomylke."""
+    from PySide6.QtCore import Qt
+
+    atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    kolejne = [k.kuweta for k in atrapa.stan().rano.kuwety]
+    e.klawisz(Qt.Key.Key_Return)
+    e.klawisz(Qt.Key.Key_Return)
+    rano = atrapa.stan().rano
+    assert [k.kuweta for k in rano.kuwety if k.potwierdzona] == kolejne[:2] and rano.kuweta_biezaca == kolejne[2]
+    assert e.tabela("tabela_kuwet")[0][3] == "rozłożona"
+    e.klawisz(Qt.Key.Key_Backspace)
+    rano = atrapa.stan().rano
+    assert [k.kuweta for k in rano.kuwety if k.potwierdzona] == kolejne[:1] and rano.kuweta_biezaca == kolejne[1]
+    wpisy = atrapa.sesja.baza.wiersze("SELECT typ FROM zdarzenia WHERE typ IN ('kuweta_potwierdzona', 'kuweta_cofnieta') ORDER BY id")
+    assert [w["typ"] for w in wpisy] == ["kuweta_potwierdzona", "kuweta_potwierdzona", "kuweta_cofnieta"]
+    e.klik("rano_potwierdz_kuwete")  # przycisk = Enter
+    assert [k.kuweta for k in atrapa.stan().rano.kuwety if k.potwierdzona] == kolejne[:2]
+
+
+# ----------------------------------------------------------------------------
+# (4) "Zamknij piec": kompletne i braki = wynik A6
+# ----------------------------------------------------------------------------
+def rozstrzygnij_konflikt(e: Ekran, atrapa, skany: dict) -> None:
+    e.klik_rano(skany[6], 11)
+    assert e.jest("praca_rano_konflikt")
+    e.klik("praca_rano_bez_projektu")
+
+
+def test_k4_zamknij_piec_kompletne_i_braki_rowne_wynikowi_A6(atrapa, ekrany):
+    from stanowisko import session_rano as SR
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    assert e.jest("przycisk_zamknij_piec") and not e.aktywny("przycisk_zamknij_piec") and e.jest("rano_blokady")
+    rozstrzygnij_konflikt(e, atrapa, skany)
+    assert e.aktywny("przycisk_zamknij_piec") and not e.jest("rano_blokady")
+    e.klik("przycisk_zamknij_piec")
+    rano = SR.SesjaRano(atrapa.sesja)
+    piec = atrapa.stan().rano
+    wynik = rano.wynik_pieca(piec.sesja_pieca_id)
+    assert wynik is not None and not piec.otwarty and e.w("rano_strona_wynik").isChecked() and e.jest("tabela_kompletne")
+    kompletne = e.tabela("tabela_kompletne")
+    braki = e.tabela("tabela_braki")
+    assert [w[0] for w in kompletne] == [z["kuweta"] for z in wynik["kompletne"]] and len(kompletne) > 5
+    assert [w[1] for w in kompletne] == [f"{z['rozpoznane']} z {z['punktow']}" for z in wynik["kompletne"]]
+    assert [(w[0], w[1]) for w in braki] == [(z["kuweta"], ", ".join(b["zeby"] for b in z["brakujace"])) for z in wynik["braki"]]
+    assert len(braki) >= 3
+    biezace = e.tabela("tabela_braki_biezace")
+    assert [w[0] for w in biezace] == [z["kuweta"] for z in rano.braki()]
+    poprawki = e.w("rano_poprawki").text()
+    assert "3200" in poprawki and len(wynik["poprawki"]) == 1
+    print(f"\n[kryterium 4] kompletne {len(kompletne)} = A6 {len(wynik['kompletne'])}; braki {len(braki)} = A6 {len(wynik['braki'])}; "
+          f"lista brakow biezaca {len(biezace)} = A6 {len(rano.braki())}")
+
+
+# ----------------------------------------------------------------------------
+# (5) bez ramki i Excela: komunikat, nie awaria
+# ----------------------------------------------------------------------------
+def test_k5_bez_ramki_i_excela_komunikat_program_dziala_dalej(atrapa, ekrany):
+    from stanowisko import statusy as ST
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    assert e.jest("komunikat_ramka_niedostepna") and ST.KOMUNIKATY["ramka_niedostepna"].tytul in e.tekst()
+    assert not atrapa.stan().rano.ramka and not atrapa.stan().rano.excel
+    rozstrzygnij_konflikt(e, atrapa, skany)
+    e.klik("przycisk_zamknij_piec")
+    assert e.jest("komunikat_excel_niedostepny")
+    n = len(atrapa.stan().rano.kompletne)
+    assert f"({n})" in e.tekst_elementu("komunikat_excel_niedostepny")
+    # program dziala dalej: nastepny skan otwiera nowy piec, ekran pokazuje plytke, komunikat ramki zostaje
+    nowy = atrapa.symuluj_skan_rano(4, {1: "pewna", 2: "zolta"}, projekty={1: 380, 2: (381, 382)})
+    e.czekaj(lambda: list(e.mapy()) == [nowy], 5.0, "plytka nowego pieca")
+    rano = atrapa.stan().rano
+    assert rano.otwarty and rano.nr_w_dniu == 3 and e.jest("komunikat_ramka_niedostepna") and e.w("rano_strona_rozkladanie").isChecked()
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QPushButton
+
+    zamknij = e.w("komunikat_ramka_niedostepna").findChild(QPushButton, "zamknij_komunikat")  # komunikat ramki mozna zamknac
+    QTest.mouseClick(zamknij, Qt.MouseButton.LeftButton)
+    assert not e.jest("komunikat_ramka_niedostepna") and atrapa.przetworz() == 0 and atrapa.stan().rano.otwarty
+
+
+# ----------------------------------------------------------------------------
+# przypadki szczegolne: nieznana, konflikt, poprawka (Z9), plytka bez numeru, ponowny skan
+# ----------------------------------------------------------------------------
+def test_nieznana_przypisana_recznie_po_numerze_kuwety(atrapa, ekrany):
+    from PySide6.QtTest import QTest
+
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    gniazda, projekty = K.plan_scenariusza_rano()[6]
+    projekt = projekty[20]
+    kuweta = kuweta_projektu()[projekt]
+    assert e.mapy()[skany[6]].kolory()[20] == ST.STATUSY["nieznana_rano"].hex
+    e.klik_rano(skany[6], 20)
+    e.klik("praca_rano_przypisz")
+    pole = e.w("praca_rano_przypisz_kuweta")
+    pole.setFocus()
+    QTest.keyClicks(pole, kuweta)
+    e.klik("praca_rano_przypisz_pokaz")
+    pid = atrapa.sesja.baza.wiersz("SELECT id FROM projekty WHERE sha16 = ?", (K.projekt_sztuczny(projekt),))["id"]
+    assert e.jest(f"projekt_{pid}") and e.w(f"projekt_{pid}_miniatura").sha16 == K.projekt_sztuczny(projekt)
+    assert atrapa.stan().rano.kuweta_biezaca is not None and not e.rano.bufor()  # cyfry w polu nie ida do numeru kuwety
+    e.klik(f"projekt_{pid}")
+    praca = atrapa.stan().rano.plytka(skany[6]).gniazdo(20).praca
+    assert (praca.klasa, praca.decyzja, praca.projekt_id, praca.kuweta) == ("przypisana", "przypisanie_reczne", pid, kuweta)
+    assert e.mapy()[skany[6]].kolory()[20] == ST.status_rano("przypisana").hex == e.piksele(skany[6])[20]
+
+
+def test_konflikt_blokuje_zamkniecie_poprawka_bursztyn_z9(atrapa, ekrany):
+    from stanowisko import statusy as ST
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    blokady = e.w("rano_blokady").text()
+    assert "konflikt" in blokady.lower() and not e.aktywny("przycisk_zamknij_piec")
+    e.klik_rano(skany[5], 3)
+    assert "Płytka 6, gniazdo 11" in e.w("praca_rano_konflikt").text()
+    # Z9: zab dofrezowany do zlecenia juz odhaczonego - bursztyn i napis inny niz "poprawiana recznie"
+    kolor = e.mapy()[skany[6]].kolory()[2]
+    assert kolor == ST.STATUSY["dofrezowany"].hex == e.piksele(skany[6])[2] and kolor != ST.STATUSY["pomaranczowy"].hex
+    e.klik_rano(skany[6], 2)
+    assert e.w("praca_rano_status").text() == ST.STATUSY["dofrezowany"].napis != ST.STATUSY["pomaranczowy"].napis
+    assert e.jest("praca_rano_poprawka")
+    legenda = e.tekst_elementu("rano_legenda")
+    assert ST.STATUSY["dofrezowany"].napis in legenda and ST.STATUSY["nieznana_rano"].napis in legenda
+
+
+def test_plytka_bez_numeru_ponowny_skan_i_plytka_wieczorna_rano(atrapa, ekrany, zegar):
+    from stanowisko import kontroler_api as K
+
+    atrapa.przelacz_tryb("rano")
+    atrapa.wybierz_operatora("Technik A")
+    K.indeks_rano_sztuczny(atrapa.sesja.baza, atrapa.sesja.teraz())
+    e = ekrany(atrapa)
+    bez = atrapa.symuluj_skan_rano(None, {1: "pewna", 2: "pewna"}, projekty={1: 305, 2: 306})
+    e.czekaj(lambda: e.jest("pytanie_brak_numeru_plytki"), 5.0, "pytanie o numer plytki")
+    assert not e.aktywny("przycisk_zamknij_piec") and "numer" in e.w("rano_blokady").text().lower()
+    e.klik("odp_podaj_numer_plytki_5")
+    assert atrapa.stan().rano.plytka(bez).numer == 5 and e.aktywny("przycisk_zamknij_piec")
+    zegar.przesun(2)
+    drugi = atrapa.symuluj_skan_rano(5, {1: "pewna", 2: "pewna"}, projekty={1: 305, 2: 306})
+    e.czekaj(lambda: e.jest("pytanie_ponowny_skan"), 5.0, "pytanie o ponowny skan")
+    assert len(e.mapy()) == 2
+    e.klik("odp_potwierdz_ponowny_skan")
+    assert list(e.mapy()) == [drugi] and e.jest("rano_nieaktywne")
+    wieczorna = atrapa.symuluj_skan("nie_z_trybu", numer=1, gniazda={1: "zielony"})
+    e.czekaj(lambda: e.jest("pytanie_plytka_nie_z_trybu"), 5.0, "pytanie o plytke nie z trybu")
+    assert atrapa.stan().rano.plytka(wieczorna).status == "plytka_nie_z_trybu"
+
+
+# ----------------------------------------------------------------------------
+# przelacznik trybu
+# ----------------------------------------------------------------------------
+def test_przelacznik_trybu_wieczor_poranek_i_pamiec_po_restarcie(tmp_path, zegar, ekrany):
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    katalog = tmp_path / "stanowisko"
+    a = K.AtrapaKontrolera(katalog, zegar=zegar)
+    try:
+        e = ekrany(a)
+        assert a.stan().tryb == "wieczor" and not e.okno.rano() and e.w("przycisk_przelacz_tryb").text() == "→ Poranek"
+        e.klik("przycisk_przelacz_tryb")  # bez wybranej osoby tez dziala
+        assert a.stan().tryb == "rano" and e.okno.rano() and e.w("napis_tryb").text() == ST.NAZWY_TRYBOW["rano"]
+        assert e.w("przycisk_przelacz_tryb").text() == "→ Wieczór" and e.jest("rano_bez_plytek")
+        a.wybierz_operatora("Technik A")
+        rano = a.symuluj_skan_rano(4, {1: "pewna"}, projekty={1: 305})
+        assert a.stan().rano.plytka(rano) is not None and a.stan().plytka(rano) is None  # skan poranny poza stanem wieczoru
+        e.klik("przycisk_przelacz_tryb")
+        assert a.stan().tryb == "wieczor" and not e.okno.rano() and e.jest("lista_plytek") and a.stan().rano is None
+        wieczorny = a.symuluj_skan("czysta", numer=1)
+        assert a.stan().plytka(wieczorny) is not None
+        e.klik("przycisk_przelacz_tryb")
+        e.zamknij()
+    finally:
+        a.zamknij()
+    b = K.AtrapaKontrolera(katalog, zegar=zegar)  # restart programu na tej samej bazie: tryb ostatnio wybrany
+    try:
+        assert b.stan().tryb == "rano" and b.stan().rano.plytka(rano) is not None
+        wpisy = b.sesja.baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'tryb_zmieniony' ORDER BY id")
+        assert len(wpisy) == 3
+    finally:
+        b.zamknij()
+
+
+def test_okno_zmaksymalizowane_w_trybie_rano(atrapa, monkeypatch):
+    from PySide6.QtCore import Qt
+
+    from stanowisko import kontroler_api as K
+    from stanowisko import ui
+    from stanowisko.ui import okno
+
+    atrapa.scenariusz_poranny()
+    monkeypatch.setattr(okno, "okno_zmaksymalizowane", lambda platforma, dostepne=None: True)
+    lacznik = K.lacznik_qt(atrapa)
+    w = ui.utworz_okno(atrapa, lacznik)
+    try:
+        assert w.windowState() & Qt.WindowState.WindowMaximized and w.rano()
+    finally:
+        w.close()
+        lacznik.zatrzymaj()
+
+
+# ----------------------------------------------------------------------------
+# uklad bez obciec: laptop 1920 x 1080 przy 100 / 125 / 150 %
+# ----------------------------------------------------------------------------
+SCENY = ("piec_z_kolorami", "dwuznaczna_kandydaci", "nieznana_przypisana", "konflikt", "zamknij_piec_wynik", "poprawka_bursztyn")
+
+
+def zbuduj_scene(atrapa, ekrany, scena: str, rozmiar: tuple) -> Ekran:
+    from stanowisko import kontroler_api as K
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa, rozmiar)
+    if scena == "dwuznaczna_kandydaci":
+        e.klik_rano(skany[4], 9)
+    elif scena == "nieznana_przypisana":
+        projekt = K.plan_scenariusza_rano()[6][1][20]
+        pid = atrapa.sesja.baza.wiersz("SELECT id FROM projekty WHERE sha16 = ?", (K.projekt_sztuczny(projekt),))["id"]
+        atrapa.przypisz_recznie(atrapa.stan().rano.plytka(skany[6]).gniazdo(20).praca.praca_id, pid)
+        e.klik_rano(skany[6], 20)
+    elif scena == "konflikt":
+        e.klik_rano(skany[5], 3)
+    elif scena == "zamknij_piec_wynik":
+        atrapa.przypisz_recznie(atrapa.stan().rano.plytka(skany[6]).gniazdo(11).praca.praca_id, None)
+        e.klik("przycisk_zamknij_piec")
+    elif scena == "poprawka_bursztyn":
+        e.klik_rano(skany[6], 2)
+    e.zdarzenia()
+    return e
+
+
+def usterki_rano(e: Ekran, rozmiar: tuple) -> list:
+    """``test_ui_wieczor.sprawdz_uklad`` + kontrolki poza oknem, pasek przewijania poziomego, mapy i "Zamknij piec" w calosci."""
+    from PySide6.QtWidgets import QAbstractScrollArea, QWidget
+
+    usterki = UW.sprawdz_uklad(e, rozmiar)
+    okno = e.okno
+    ramka = okno.rect().adjusted(-1, -1, 1, 1)
+    for w in okno.findChildren(QWidget):
+        if w.isVisibleTo(okno) and not UW._w_obszarze_przewijanym(okno, w) and not ramka.contains(UW._w_oknie(okno, w)):
+            usterki.append(f"kontrolka poza oknem: {w.objectName() or type(w).__name__} {UW._w_oknie(okno, w)}")
+    for obszar in okno.findChildren(QAbstractScrollArea):
+        if obszar.isVisibleTo(okno) and obszar.horizontalScrollBar().isVisibleTo(okno):
+            usterki.append(f"pasek przewijania poziomego: {obszar.objectName() or type(obszar).__name__}")
+    for skan_id, mapa in e.mapy().items():
+        if UW._widoczny_wycinek(okno, mapa) != UW._w_oknie(okno, mapa):
+            usterki.append(f"mapa {skan_id} przycieta")
+        if mapa.height() < mapa.minimumHeight() or mapa.width() < mapa.minimumWidth():
+            usterki.append(f"mapa {skan_id} mniejsza niz minimum")
+    for nazwa in ("przycisk_zamknij_piec", "rano_potwierdz_kuwete", "przycisk_przelacz_tryb", "kandydat_1_wybierz", "kandydat_2_wybierz"):
+        w = okno.findChild(QWidget, nazwa)
+        if w is not None and w.isVisibleTo(okno) and not UW._w_obszarze_przewijanym(okno, w) and UW._widoczny_wycinek(okno, w) != UW._w_oknie(okno, w):
+            usterki.append(f"przyciety {nazwa}")
+    return usterki
+
+
+@pytest.mark.parametrize("scena", SCENY)
+def test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec(atrapa, ekrany, scena):
+    """Kazda scena z zrzutow przy kazdym rozmiarze z ``ROZMIARY`` (i z powrotem): zero usterek ukladu; przy 1920 x 1080 /
+    1001 uklad zwykly, ponizej progu - zwarty. Z ``E3_ZRZUTY``: zrzuty PNG dla wlasciciela (1920 x 1080 i 1536 x 864)."""
+    from PySide6.QtGui import QGuiApplication
+
+    from stanowisko.ui import styl
+
+    e = zbuduj_scene(atrapa, ekrany, scena, PELNY_EKRAN)
+    dpr = QGuiApplication.primaryScreen().devicePixelRatio()
+    zrzuty = Path(os.environ["E3_ZRZUTY"]) if os.environ.get("E3_ZRZUTY") else None
+    wyniki = []
+    for nazwa, szer, wys in ROZMIARY + tuple(reversed(ROZMIARY[:-1])):
+        usterki = usterki_rano(e, (szer, wys))
+        assert e.okno.rano()
+        assert e.okno.zwarty() == (szer < styl.PROG_ZWARTEGO[0] or wys < styl.PROG_ZWARTEGO[1])
+        promien = min((m._ksztalt(nr)[2] for m in e.mapy().values() for nr in m.numery() if nr != 1), default=0)
+        wyniki.append(f"{nazwa} {szer}x{wys}: usterek {len(usterki)}, promien gniazda {promien:.0f} px")
+        assert not usterki, f"{scena} {nazwa} {szer}x{wys} (dpr {dpr}):\n" + "\n".join(usterki)
+    if zrzuty is not None:
+        zrzuty.mkdir(parents=True, exist_ok=True)
+        for nazwa, szer, wys in ROZMIARY_ZRZUTOW:
+            e.okno.resize(szer, wys)
+            for _ in range(3):
+                e.zdarzenia()
+                e.odczekaj(20)
+            e.obraz().save(str(zrzuty / f"rano_{scena}_{nazwa}_{szer}x{wys}_dpr{dpr:g}.png"))
+    print(f"\n[uklad poranny {scena}, dpr {dpr:g}]\n  " + "\n  ".join(wyniki))
+
+
+def test_przy_100_proc_w_gniezdzie_kuweta_zab_i_miniatura(atrapa, ekrany):
+    """Przy 1920 x 1001 (100 %) kazde gniazdo okragle z praca rozpoznana ma narysowana kuwete, zab i miniature; przy 150 %
+    (1280 x 642) - co najmniej kuwete."""
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    for rozmiar, wymagane in ((PELNY_EKRAN, ("kuweta", "zab", "miniatura")), ((1280, 642), ("kuweta",))):
+        UW.sprawdz_uklad(e, rozmiar)
+        for numer in (4, 5, 6):
+            mapa = e.mapy()[skany[numer]]
+            plytka = atrapa.stan().rano.plytka(skany[numer])
+            for g in plytka.gniazda:
+                if g.praca is not None and g.praca.klasa in ("pewna", "poprawka", "konflikt"):
+                    assert all(mapa.rysowane()[g.nr][k] for k in wymagane), (rozmiar, numer, g.nr, mapa.rysowane()[g.nr])
+
+
+# ----------------------------------------------------------------------------
+# czas: odswiezenie ekranu i petla okna przy 3 plytkach x 23 prace
+# ----------------------------------------------------------------------------
+def test_odswiezenie_ekranu_rano_3_plytki_x_23_prace(atrapa, ekrany):
+    from PySide6.QtCore import Qt
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    czasy = []
+    prawdziwe = e.okno.pokaz_stan
+
+    def mierzone(stan):
+        t0 = time.perf_counter()
+        prawdziwe(stan)
+        czasy.append(time.perf_counter() - t0)
+
+    e.okno.pokaz_stan = mierzone
+    for _ in range(3):
+        e.klik_rano(skany[4], 9)
+        e.klik("kandydat_1_wybierz")
+        e.klik("praca_rano_cofnij")
+        e.klawisz(Qt.Key.Key_Return)
+        e.klawisz(Qt.Key.Key_Backspace)
+    for i in range(50):
+        atrapa.symuluj_postep(udzial=(i % 100) / 100)
+    e.odczekaj(30)
+    print(f"\n[rano, atrapa] odswiezen ekranu {len(czasy)}, najdluzsze {max(czasy) * 1000:.1f} ms")
+    assert len(czasy) >= 10 and max(czasy) <= UW.PROG_PRZERWY_S / 2
+
+
+def test_petla_okna_bez_przerw_3_plytki_x_23_prace_prawdziwy_kontroler(tmp_path, ekrany):
+    """Prawdziwy kontroler w trybie "Poranek": trzy plytki po 23 prace liczone w procesie silnika; osoba w trakcie klika
+    zolte gniazda i wybiera kandydata, potwierdza kuwety. Zegar co 10 ms mierzy najdluzsza przerwe petli okna (< 200 ms)."""
+    from PySide6.QtCore import QEventLoop, Qt, QTimer
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QWidget
+
+    from stanowisko import kontroler_api as K
+
+    st = TK.StanowiskoAplikacji(tmp_path)
+    try:
+        st.teraz = RANO_START
+        K.indeks_rano_sztuczny(st.k.sesja.baza, st.k.sesja.teraz())
+        st.k.wybierz_operatora("Technik A")
+        st.k.przelacz_tryb("rano")
+        e = ekrany(st.k)
+        czasy_ekranu = []
+        prawdziwe = e.okno.pokaz_stan
+
+        def mierzone(stan):
+            t0 = time.perf_counter()
+            prawdziwe(stan)
+            czasy_ekranu.append(time.perf_counter() - t0)
+
+        e.okno.pokaz_stan = mierzone
+        plan = K.plan_scenariusza_rano()
+        for numer, (gniazda, projekty) in plan.items():
+            st.zapisz(st.opis_rano(numer, gniazda, projekty, spij=0.3))
+        pomiar = {"ostatni": time.perf_counter(), "przerwa": 0.0, "tykniec": 0, "zrobione": set(), "w_kroku": False}
+        zolte = {4: 9, 5: 14}
+        petla = QEventLoop()
+
+        def tyk():
+            teraz = time.perf_counter()
+            pomiar["przerwa"] = max(pomiar["przerwa"], teraz - pomiar["ostatni"])
+            pomiar["ostatni"] = teraz
+            pomiar["tykniec"] += 1
+            if pomiar["w_kroku"]:
+                return
+            rano = st.k.stan().rano
+            mapy = e.rano.mapy()
+            for p in (rano.plytki if rano is not None else ()):
+                nr = zolte.get(p.numer)
+                if nr is not None and p.numer not in pomiar["zrobione"] and p.skan_id in mapy and not e.rano.ochrona_aktywna():
+                    pomiar["w_kroku"] = True
+                    mapa = mapy[p.skan_id]
+                    QTest.mouseClick(mapa, Qt.MouseButton.LeftButton, pos=mapa.srodek_gniazda(nr).toPoint())
+                    b = e.okno.findChild(QWidget, "kandydat_1_wybierz")
+                    if b is not None and b.isEnabled():
+                        QTest.mouseClick(b, Qt.MouseButton.LeftButton)
+                        QTest.keyClick(e.okno, Qt.Key.Key_Return)
+                        pomiar["zrobione"].add(p.numer)
+                    pomiar["w_kroku"] = False
+                    break
+            if rano is not None and len(rano.plytki) == 3 and pomiar["zrobione"] == {4, 5}:
+                petla.quit()
+
+        zegar = QTimer()
+        zegar.setInterval(10)
+        zegar.timeout.connect(tyk)
+        QTimer.singleShot(180_000, petla.quit)
+        zegar.start()
+        t0 = time.perf_counter()
+        petla.exec()
+        czas = time.perf_counter() - t0
+        zegar.stop()
+        print(f"\n[rano, petla okna] 3 plytki x 23 prace w {czas:.1f} s; najdluzsza przerwa {pomiar['przerwa'] * 1000:.0f} ms "
+              f"(prog {UW.PROG_PRZERWY_S * 1000:.0f} ms); odswiezen ekranu {len(czasy_ekranu)}, najdluzsze {max(czasy_ekranu) * 1000:.1f} ms; "
+              f"tykniec {pomiar['tykniec']}")
+        rano = st.k.stan().rano
+        assert len(rano.plytki) == 3 and all(len(p.prace) == 23 for p in rano.plytki) and pomiar["zrobione"] == {4, 5}
+        assert sum(1 for p in rano.plytki for x in p.prace if x.decyzja == "wybor_kandydata") == 2
+        assert pomiar["tykniec"] >= 100 and pomiar["przerwa"] <= UW.PROG_PRZERWY_S
+        assert max(czasy_ekranu) <= UW.PROG_PRZERWY_S / 2
+    finally:
+        st.koniec()
+
+
+# ----------------------------------------------------------------------------
+# dane osobowe i (6) szesc zadan porannych T14
+# ----------------------------------------------------------------------------
+def test_zero_sciezek_i_nazw_plikow_na_ekranie_porannym(atrapa, ekrany):
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    for numer in (4, 5, 6):
+        for nr in (1, 2, 3, 9, 11, 14, 20, 22):
+            e.klik_rano(skany[numer], nr)
+            UW.bez_sciezek(e, zakazane=("Fikcja",))
+    e.klik_rano(skany[6], 20)
+    e.klik("praca_rano_przypisz")
+    e.rano.widok.szukaj("3256")
+    UW.bez_sciezek(e, zakazane=("Fikcja", "crown_cad"))
+    e.klik("rano_strona_wynik")
+    assert UW.bez_sciezek(e, zakazane=("Fikcja", "crown_cad")) > 50
+
+
+def test_t14_szesc_zadan_porannych(atrapa, ekrany, zegar):
+    """T14 (czesc poranna) sterowaniem z testu - test czyta tylko ekran: (1) zeskanuj 2 plytki pieca, (2) rozstrzygnij dwuznaczna,
+    (3) rozloz jedna kuwete wedlug ekranu, (4) cofnij pomylke, (5) znajdz kuwete po numerze, (6) zamknij piec i odczytaj braki."""
+    from PySide6.QtCore import Qt
+
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    atrapa.wybierz_operatora("Technik B")
+    e = ekrany(atrapa)
+    e.klik("przycisk_przelacz_tryb")
+    K.indeks_rano_sztuczny(atrapa.sesja.baza, atrapa.sesja.teraz())
+    # (1) dwie plytki pieca
+    p4 = atrapa.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "zolta", 4: "pewna", 5: "pewna"},
+                                  projekty={1: 307, 2: 308, 3: (309, 320), 4: 311, 5: 312})
+    zegar.przesun(1)
+    p5 = atrapa.symuluj_skan_rano(5, {1: "pewna", 2: "pewna", 3: "pewna"}, projekty={1: 310, 2: 313, 3: 314})
+    e.czekaj(lambda: sorted(e.mapy()) == sorted([p4, p5]), 5.0, "dwie plytki na ekranie")
+    zadania = ["skan 2 plytek"]
+    # (2) dwuznaczna: zolte gniazdo -> kandydat 1
+    zolte = [nr for nr, kolor in e.mapy()[p4].kolory().items() if kolor == ST.status_rano("dwuznaczna").hex]
+    assert zolte == [3]
+    e.klik_rano(p4, 3)
+    e.klik("kandydat_1_wybierz")
+    assert e.mapy()[p4].kolory()[3] == ST.status_rano("przypisana").hex
+    zadania.append("dwuznaczna")
+    # (3) jedna kuweta wedlug ekranu: biezaca kuweta i jej gniazda, Enter
+    biezaca = e.w("rano_kuweta_biezaca").text().split()[-1]
+    obwiedzione = [nr for m in e.mapy().values() for nr in m.biezace()]
+    assert obwiedzione and all(e.mapy()[s].rysowane()[nr]["kuweta"] == biezaca for s in e.mapy() for nr in e.mapy()[s].biezace())
+    e.klawisz(Qt.Key.Key_Return)
+    assert e.tabela("tabela_kuwet")[[w[0] for w in e.tabela("tabela_kuwet")].index(biezaca)][3] == "rozłożona"
+    zadania.append("kuweta wedlug ekranu")
+    # (4) pomylka: druga kuweta potwierdzona za wczesnie -> Backspace
+    druga = e.w("rano_kuweta_biezaca").text().split()[-1]
+    e.klawisz(Qt.Key.Key_Return)
+    e.klawisz(Qt.Key.Key_Backspace)
+    assert e.w("rano_kuweta_biezaca").text().split()[-1] == druga
+    zadania.append("cofniecie pomylki")
+    # (5) kuweta po numerze
+    e.wpisz("3221")
+    e.klawisz(Qt.Key.Key_Return)
+    assert e.w("rano_kuweta_biezaca").text() == "Kuweta 3221"
+    zadania.append("kuweta po numerze")
+    # (6) zamknij piec i odczytaj braki
+    e.klik("przycisk_zamknij_piec")
+    braki = {w[0]: w[1] for w in e.tabela("tabela_braki")}
+    kompletne = [w[0] for w in e.tabela("tabela_kompletne")]
+    # zlecenia: 3221 = projekty 307-310 (4 z 4 w piecu), 3228 = 311-312, 3235 = 313, 3242 = 314-316 (w piecu tylko 314)
+    assert kompletne == ["3221", "3228", "3235"] and braki == {"3242": f"{K.zab_sztuczny(315)}, {K.zab_sztuczny(316)}"}
+    zadania.append("zamknij piec i braki")
+    assert len(zadania) == 6
+    print(f"\n[T14 rano] {len(zadania)} z 6 zadan: {', '.join(zadania)}")
