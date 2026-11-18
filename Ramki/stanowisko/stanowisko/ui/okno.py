@@ -23,6 +23,7 @@ Zasady (kontrakt ``kontroler_api`` / ``opisy_modulow/aplikacja.md``):
   N = nastepna praca do obejrzenia, Esc = zamknij widok pracy, strzalki = kursor gniazda na mapie, Enter = otworz gniazdo
   pod kursorem; Tab przechodzi po przyciskach i kafelkach (Enter klika element z fokusem, Spacja - nigdy);
 * uklad (A-P1): od ``styl.PROG_ZWARTEGO`` w dol uklad zwarty (``styl.ZWARTE``); najmniejsze okno ``styl.MINIMUM_OKNA``;
+  okno startuje zawsze zmaksymalizowane (E3-A1p, ``okno_zmaksymalizowane``);
   przewijane sa tylko listy (plytki, "do dofrezowania") i obszary paneli, gdy paneli jest wiecej, niz sie miesci.
 
 Wlasny stan okna to tylko wybor technika: pokazana plytka, wybrane gniazdo, kursor klawiatury, filtr listy, otwarty panel
@@ -56,6 +57,13 @@ def otwarte(pozycje) -> list:
     """Pytania / komunikaty do pokazania: bez pozycji zamknietych przez technika (``ukryte=True``, kontrakt w wersji 2 - D6).
     ``stan.pytania`` i ``stan.komunikaty`` sa juz otwarte; filtr chroni ekran, gdyby pozycja ukryta jednak tam trafila."""
     return [x for x in pozycje if not x.ukryte]
+
+
+def okno_zmaksymalizowane(platforma: str) -> bool:
+    """Czy okno startuje zmaksymalizowane: ZAWSZE na prawdziwym ekranie, niezaleznie od jego wielkosci i skalowania (decyzja
+    wlasciciela 18.11.2026, E3-A1p: wczesniej tylko ekran mniejszy niz 1640 x 960 punktow, przy 100 % okno mialo 1600 x 900).
+    Tryb offscreen (testy i zrzuty): nie - rozmiar ustawia wolajacy."""
+    return platforma != "offscreen"
 
 
 def blad_programu(komunikat) -> bool:
@@ -123,14 +131,9 @@ class OknoWieczor(QWidget):
         self.pokaz_stan(kontroler.stan())
 
     def _dopasuj_do_ekranu(self) -> None:
-        """Ekran mniejszy niz 1600 x 900 punktow (np. laptop ze skalowaniem 125-150 %): okno zmaksymalizowane, uklad zwarty."""
-        if QGuiApplication.platformName() == "offscreen":  # testy i zrzuty: rozmiar ustawia wolajacy
-            return
-        ekran = QGuiApplication.primaryScreen()
-        if ekran is None:
-            return
-        dostepne = ekran.availableGeometry()
-        if dostepne.width() < 1640 or dostepne.height() < 960:
+        """Okno startuje zmaksymalizowane (``okno_zmaksymalizowane``); na mniejszym ekranie (laptop 1920 x 1080 ze skalowaniem
+        125-150 %) uklad przechodzi sam na zwarty (``resizeEvent``)."""
+        if okno_zmaksymalizowane(QGuiApplication.platformName()):
             self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
 
     # --- budowa ----------------------------------------------------------------------------------
