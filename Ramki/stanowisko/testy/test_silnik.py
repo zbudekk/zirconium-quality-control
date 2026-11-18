@@ -30,6 +30,7 @@ import math
 import os
 import re
 import signal
+import sqlite3  # noqa: F401 - E3-A2p runda 2: DLL ladowane PRZED pierwszym uzyciem silnika (jak Qt w _qt_przed_silnikiem; raport)
 import subprocess
 import sys
 import threading
@@ -1214,10 +1215,13 @@ def _pidy_potomkow(rekordy) -> list[int]:
 
 
 @pytest.mark.skipif(os.name != "nt", reason="zapis do lacza w popen_spawn_win32 - tylko Windows")
-def test_a2p_prawdziwy_spawn_zawieszony_start_potomek_zabity_i_wynik(tmp_path, zawieszony_start, caplog):
-    """Prawdziwy spawn: pierwszy proces potomny staje przed odczytem danych startowych (5 KB+ ustawien - wiecej niz bufor lacza),
+@pytest.mark.parametrize("balast", [3000, 100_000])
+def test_a2p_prawdziwy_spawn_zawieszony_start_potomek_zabity_i_wynik(tmp_path, zawieszony_start, caplog, balast):
+    """Prawdziwy spawn: pierwszy proces potomny staje przed odczytem danych startowych (wiecej niz bufor lacza 4 KB),
     ``Process.start()`` stoi w ``popen_spawn_win32``. Po ``limit_uruchomienia_s``: potomek zabity, zapis anulowany (watek
-    ``silnik-start`` konczy sie), druga proba - wynik. Opis potomka w logu: dziala, malo modulow (nie doszedl do odczytu)."""
+    ``silnik-start`` konczy sie), druga proba - wynik. Opis potomka w logu: dziala, malo modulow (nie doszedl do odczytu).
+    ``balast`` 3000 B = dane ok. 4,6 KB jak w programie (caly zapis w ``close()`` -> ``flush()``, jedno anulowanie);
+    100 KB - zapis staje juz w ``reduction.dump`` (dwa anulowania; runda 2, D6)."""
     import logging
 
     from stanowisko import silnik as SI
@@ -1228,7 +1232,7 @@ def test_a2p_prawdziwy_spawn_zawieszony_start_potomek_zabity_i_wynik(tmp_path, z
     p.write_bytes(b"dobry")
     przed = set(_watki_startu())  # watki porzucone przez wczesniejsze testy atrapy (konczone w ich ``finally``) - nie te
     odb = Odbior()
-    s = SI.Silnik(ust={"balast": "x" * 100_000}, funkcja=FUNKCJA_PROBNA, na_zdarzenie=odb, limit_uruchomienia_s=3.0)
+    s = SI.Silnik(ust={"balast": "x" * balast}, funkcja=FUNKCJA_PROBNA, na_zdarzenie=odb, limit_uruchomienia_s=3.0)
     t0 = time.monotonic()
     s.start()
     try:
@@ -1306,14 +1310,16 @@ def test_a2p_proces_roboczy_ma_wlasna_konsole(tmp_path, silnik_probny):
 @pytest.mark.skipif(os.name != "nt", reason="konsola procesu i CREATE_NO_WINDOW - tylko Windows")
 @pytest.mark.parametrize("wlasna_konsola", [True, False])
 def test_a2p_konsola_procesu_okna_nie_przyjmuje_potomkow(tmp_path, zawieszony_start, monkeypatch, wlasna_konsola):
-    """D7 odtworzone: kazdy potomek podlaczony do konsoli procesu testow ginie przy starcie z 0xC0000142 (jak na PC po
-    kilkudziesieciu testach z oknami). Z wlasna konsola procesu roboczego (E3-A2p) silnik startuje za pierwszym razem; bez
-    niej (jak przed E3-A2p, ``FLAGI_PROCESU_ROBOCZEGO = 0``) kazda proba ginie - blad ``start`` z kodem w opisie zamiast
+    """Symulacja objawu D7 (nie odtworzenie stanu Windows): kazdy potomek podlaczony do konsoli procesu testow ginie zaraz po
+    starcie interpretera z kodem 0xC0000142 (na PC po kilkudziesieciu testach z oknami ginely juz przy inicjalizacji DLL;
+    dowodem na PC sa serie 4-5 z raportu). Z wlasna konsola procesu roboczego (E3-A2p) silnik startuje za pierwszym razem;
+    bez niej (jak przed E3-A2p, ``FLAGI_PROCESU_ROBOCZEGO = 0``) kazda proba ginie - blad ``start`` z kodem w opisie zamiast
     zawieszenia ``Process.start()`` bez konca."""
     from stanowisko import silnik as SI
 
     if not _procesy_konsoli():
         pytest.skip("proces testow bez konsoli - potomek nie ma do czego sie podlaczyc")
+    assert SI.FLAGI_PROCESU_ROBOCZEGO == 0x08000000  # CREATE_NO_WINDOW (niewidoczna), nie CREATE_NEW_CONSOLE (okno) - runda 2, D7
     if not wlasna_konsola:
         monkeypatch.setattr(SI, "FLAGI_PROCESU_ROBOCZEGO", 0)
     zawieszony_start(1000, "konsola")
@@ -1336,6 +1342,153 @@ def test_a2p_konsola_procesu_okna_nie_przyjmuje_potomkow(tmp_path, zawieszony_st
         print(f"\n[E3-A2p] konsola procesu okna nie przyjmuje potomkow, wlasna konsola {wlasna_konsola}: {z.typ} po {czas:.1f} s")
     finally:
         s.stop()
+
+
+def nic_w_potomku() -> None:
+    """Cel procesow ``multiprocessing`` uruchamianych w testach pelnomocnika (proces potomny nic nie robi)."""
+
+
+class WinapiPodglad:
+    """``_winapi`` pod pelnomocnikiem silnika: zapisuje (watek, flagi) kazdego ``CreateProcess`` i pid potomka; w watku
+    ``silnik-start`` moze czekac ``opoznienie_s`` przed utworzeniem procesu (jak antywirus wstrzymujacy ``CreateProcess``)."""
+
+    def __init__(self, winapi, opoznienie_s: float = 0.0):
+        self._winapi, self.opoznienie_s = winapi, opoznienie_s
+        self.wpisy, self.pidy = [], []
+        self.zamek = threading.Lock()
+
+    def __getattr__(self, nazwa):
+        return getattr(self._winapi, nazwa)
+
+    def CreateProcess(self, *argumenty, **nazwane):  # noqa: N802
+        if self.opoznienie_s and threading.current_thread().name == "silnik-start":
+            time.sleep(self.opoznienie_s)
+        wynik = self._winapi.CreateProcess(*argumenty, **nazwane)
+        with self.zamek:
+            self.wpisy.append((threading.current_thread().name, argumenty[5]))
+            self.pidy.append(wynik[2])
+        return wynik
+
+
+@pytest.fixture
+def podglad_winapi(monkeypatch):
+    """Funkcja ``wstaw(opoznienie_s=0) -> WinapiPodglad`` pod pelnomocnikiem ``_winapi`` silnika (przywracany po tescie)."""
+    from multiprocessing import popen_spawn_win32
+
+    from stanowisko import silnik as SI
+
+    def wstaw(opoznienie_s: float = 0.0) -> WinapiPodglad:
+        assert SI._winapi_z_flagami()
+        pelnomocnik = popen_spawn_win32._winapi
+        podglad = WinapiPodglad(pelnomocnik._winapi, opoznienie_s)
+        monkeypatch.setattr(pelnomocnik, "_winapi", podglad)
+        return podglad
+
+    return wstaw
+
+
+@pytest.mark.skipif(os.name != "nt", reason="pelnomocnik _winapi multiprocessing - tylko Windows")
+def test_a2p_wolny_createprocess_porzucona_proba_bez_sierot(tmp_path, zawieszony_start, podglad_winapi, monkeypatch):
+    """Runda 2, P1: ``CreateProcess`` trwa dluzej niz limit + przerywanie (3 s przy limicie 1 s + 0,5 s), a potomek sam by
+    stal (jak w D7 z wstrzyknietymi DLL). Proba jest porzucana z bledem ``start``; gdy ``CreateProcess`` wreszcie wroci,
+    pelnomocnik zabija potomka od razu (przed zapisem danych startowych) - po wszystkim 0 zywych potomkow i 0 watkow startu.
+    Przed poprawka potomek zostawal sierota (poza obiektem zadania, takze po zamknieciu programu)."""
+    from stanowisko import silnik as SI
+
+    monkeypatch.setattr(SI, "CZEKAJ_NA_PRZERWANIE_S", 0.5)
+    podglad = podglad_winapi(3.0)
+    zawieszony_start(1000)
+    p = tmp_path / "a.stl"
+    p.write_bytes(b"dobry")
+    przed = set(_watki_startu())
+    odb = Odbior()
+    s = SI.Silnik(ust={"balast": "x" * 3000}, funkcja=FUNKCJA_PROBNA, na_zdarzenie=odb, limit_uruchomienia_s=1.0, proby_uruchomienia=1)
+    s.start()
+    try:
+        nr = s.zlec(_zadanie(p))
+        z = odb.czekaj_na_koncowe(1, 60.0)[0]
+        assert (z.typ, z.rodzaj, z.zadanie_id) == ("blad", "start", nr), (z.typ, z.blad)
+        assert "proces potomny jeszcze nie utworzony" in z.szczegoly
+        t0 = time.monotonic()
+        while (not podglad.pidy or set(_watki_startu()) - przed) and time.monotonic() - t0 < 20.0:
+            time.sleep(0.1)
+        time.sleep(0.5)
+        assert podglad.pidy, "CreateProcess porzuconej proby nie wrocil w 20 s"
+        assert not set(_watki_startu()) - przed
+        assert not [pid for pid in podglad.pidy if _proces_zyje(pid)], podglad.pidy
+    finally:
+        s.stop()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="pelnomocnik _winapi multiprocessing - tylko Windows")
+def test_a2p_flaga_tylko_w_watku_silnika_przy_rownoleglych_startach(tmp_path, podglad_winapi):
+    """Runda 2, P2: procesy ``multiprocessing`` uruchamiane rownolegle z innych watkow (3 watki za bariera, w trakcie startu
+    procesu roboczego) nie dostaja flagi ``CREATE_NO_WINDOW``; dostaje ja tylko ``CreateProcess`` z watku ``silnik-start``."""
+    import multiprocessing
+
+    from stanowisko import silnik as SI
+
+    podglad = podglad_winapi()
+    ctx = multiprocessing.get_context("spawn")
+    bariera = threading.Barrier(4)
+    kody = []
+
+    def inny() -> None:
+        proces = ctx.Process(target=nic_w_potomku)
+        bariera.wait(30.0)
+        proces.start()
+        proces.join(60.0)
+        kody.append(proces.exitcode)
+
+    watki = [threading.Thread(target=inny, name=f"inny-{i}") for i in range(3)]
+    for w in watki:
+        w.start()
+    odb = Odbior()
+    s = SI.Silnik(ust={}, funkcja=FUNKCJA_PROBNA, na_zdarzenie=odb)
+    bariera.wait(30.0)
+    s.start()
+    try:
+        assert odb.czekaj(lambda: any(z.typ == "gotowy" for z in odb.wszystkie), 60.0)
+        for w in watki:
+            w.join(60.0)
+        flagi = {nazwa: f for nazwa, f in podglad.wpisy}
+        assert {n for n in flagi if n.startswith("inny-")} == {"inny-0", "inny-1", "inny-2"} and kody == [0, 0, 0], (podglad.wpisy, kody)
+        assert all(f == 0 for n, f in podglad.wpisy if n.startswith("inny-")), podglad.wpisy
+        assert [f for n, f in podglad.wpisy if n == "silnik-start"] == [0x08000000], podglad.wpisy
+    finally:
+        s.stop()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="pelnomocnik _winapi multiprocessing - tylko Windows")
+def test_a2p_pelnomocnik_przekazuje_wywolania_bez_zmian(monkeypatch, caplog):
+    """Runda 2, P2: watek bez proby startu - ``CreateProcess`` z dowolnymi argumentami (takze nazwanymi) przekazany bez zmian;
+    watek proby z nieznana postacia wywolania - bez flagi i jedno ostrzezenie w logu (nie blad)."""
+    import logging
+
+    from stanowisko import silnik as SI
+
+    caplog.set_level(logging.WARNING, logger="stanowisko.silnik")
+    monkeypatch.setattr(SI, "_OSTRZEZENIE_WINAPI", [])
+    wywolania = []
+
+    class Atrapa:
+        def CreateProcess(self, *a, **kw):  # noqa: N802
+            wywolania.append((a, kw))
+            return None  # nieznana postac wyniku: pelnomocnik nie rusza potomka
+
+    pelnomocnik = SI._WinapiZFlagami(Atrapa())
+    pelnomocnik.CreateProcess("a", "b", c=1)
+    pelnomocnik.CreateProcess(*range(9))
+    SI._PROBA_STARTU.proba = SI.ProbaStartu(0x08000000)
+    try:
+        pelnomocnik.CreateProcess(*range(8), nowy=True)
+        pelnomocnik.CreateProcess(*range(10))
+        pelnomocnik.CreateProcess(*range(9))
+    finally:
+        SI._PROBA_STARTU.proba = None
+    assert wywolania[:4] == [(("a", "b"), {"c": 1}), (tuple(range(9)), {}), (tuple(range(8)), {"nowy": True}), (tuple(range(10)), {})]
+    assert wywolania[4] == ((0, 1, 2, 3, 4, 5 | 0x08000000, 6, 7, 8), {})
+    assert len([r for r in caplog.records if "nieznana postac wywolania CreateProcess" in r.getMessage()]) == 1
 
 
 @pytest.mark.skipif(os.name != "nt", reason="zapis do lacza w popen_spawn_win32 - tylko Windows")

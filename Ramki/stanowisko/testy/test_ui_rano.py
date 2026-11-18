@@ -1107,8 +1107,11 @@ def test_k1_prawdziwy_kontroler_trzy_plytki_przez_skaner_i_petla_okna(tmp_path, 
             import subprocess
 
             for opis, flagi in (("w konsoli procesu testow", 0), ("z wlasna konsola (CREATE_NO_WINDOW)", 0x08000000))[: 2 if os.name == "nt" else 0]:  # E3-A2p
-                kod = subprocess.run([sys.executable, "-c", "pass"], creationflags=flagi, timeout=60).returncode & 0xFFFFFFFF
-                print(f"proces potomny {opis}: kod wyjscia 0x{kod:08X} (0xC0000142 = blad inicjalizacji DLL przy starcie)", file=sys.stderr)
+                try:
+                    kod = subprocess.run([sys.executable, "-c", "pass"], creationflags=flagi, timeout=60).returncode & 0xFFFFFFFF
+                    print(f"proces potomny {opis}: kod wyjscia 0x{kod:08X} (0xC0000142 = blad inicjalizacji DLL przy starcie)", file=sys.stderr)
+                except subprocess.TimeoutExpired:  # runda 2, D8: potomek stoi - reszta diagnostyki i wlasciwy assert zostaja
+                    print(f"proces potomny {opis}: stoi dluzej niz 60 s (zabity)", file=sys.stderr)
             print(f"obiekty USER / GDI okna: {zasoby_gui()} (na poczatku testu {zasoby_na_poczatku})", file=sys.stderr)
             from multiprocessing import popen_spawn_win32
             import _winapi

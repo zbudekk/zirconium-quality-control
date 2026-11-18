@@ -73,10 +73,13 @@ wiec smierc potomka zapisu nie konczy, a `limit_startu_s` liczyl sie dopiero po 
 `silnik-start`, nadzorca czeka najwyzej `limit_uruchomienia_s` (30 s; normalnie start trwa ulamek sekundy - potomek
 importuje tylko modul glowny programu), a co 0,5 s sprawdza, czy potomek jeszcze zyje (martwy juz nie przeczyta danych -
 proba konczy sie od razu, z kodem wyjscia w opisie). Po przekroczeniu albo smierci potomka: opis potomka do logu (kod
-wyjscia albo "dziala", czas CPU, uchwyty, zaladowane moduly), zabicie potomka (`Popen` z ramki zawieszonego watku -
-`Process` dostaje go dopiero po `start()`), anulowanie zawieszonego zapisu (`CancelSynchronousIo` na uchwycie watku),
-zamkniecie obu koncow `Pipe` i kolejna proba po 0,5 s. Watek, ktorego nie da sie odblokowac w 3 s (np. stoi w samym `CreateProcess`), zostaje
-porzucony; jesli jego `start()` kiedys sie skonczy, sam zabija swoj proces. Wyjatek z `start()` (np. blad
+wyjscia albo "dziala", czas CPU, uchwyty, zaladowane moduly), zabicie potomka, anulowanie zawieszonego zapisu
+(`CancelSynchronousIo` na uchwycie watku), zamkniecie obu koncow `Pipe` i kolejna proba po 0,5 s. Potomka nadzorca zna
+z `ProbaStartu` (runda 2, P1): pelnomocnik `_winapi` (nizej) zaraz po `CreateProcess`, jeszcze przed zapisem danych
+startowych, wklada potomka do obiektu zadania procesu okna (D-N5 - ginie z procesem okna takze po porzuceniu proby)
+i przekazuje nadzorcy `pid` oraz kopie uchwytu procesu. Watek, ktorego nie da sie odblokowac w 3 s (np. stoi w samym
+`CreateProcess` - antywirus), zostaje porzucony: potomek z `CreateProcess`, ktory wroci po porzuceniu, jest zabijany od
+razu (start konczy sie wyjatkiem przed zapisem), a proces, ktorego `start()` skonczy sie mimo to - zaraz po nim. Wyjatek z `start()` (np. blad
 `CreateProcess`) to tez nieudana proba - przedtem wracal do petli nadzorcy co 0,2 s bez zadnego zdarzenia. Po
 `proby_uruchomienia` (3) nieudanych probach: `blad` rodzaju `start` pierwszego zadania z kolejki (tekst "proces silnika
 nie wystartowal: 3 proby uruchomienia nieudane (ostatnia: ...)", w `szczegoly` - kazda proba z opisem potomka); aplikacja
@@ -91,10 +94,19 @@ wyjsciem), takze 5-240 s pozniej, a startowaly procesy bez tej konsoli (`DETACHE
 pythonw.exe). Wyczerpanie sterty pulpitu tego nie daje (zmierzone: 945 okien do bledu, potomkowie startuja). Dlatego
 proces roboczy startuje z wlasna, niewidoczna konsola (`CREATE_NO_WINDOW`, stala `FLAGI_PROCESU_ROBOCZEGO`): biblioteka
 standardowa wola `CreateProcess` z flagami 0, wiec `multiprocessing.popen_spawn_win32._winapi` jest zastapione
-pelnomocnikiem (`_WinapiZFlagami`), ktory dodaje flage tylko w watku `silnik-start` (lokalna zmienna watku). Skutki:
-wyjscie procesu roboczego bez `plik_logu` nie trafia juz do konsoli okna (w programie i tak idzie do `silnik.log`),
-Ctrl+C w konsoli okna nie dociera do procesu roboczego, a program uruchomiony bez konsoli (pythonw) nie otwiera okna
-konsoli dla procesu roboczego; dodatkowy proces conhost.exe na czas zycia procesu roboczego.
+pelnomocnikiem (`_WinapiZFlagami`), ktory dodaje flage tylko w watku `silnik-start` (lokalna zmienna watku) i tylko przy
+znanej postaci wywolania (9 argumentow pozycyjnych; inaczej bez flagi i jedno ostrzezenie w logu). Wywolania z innych
+watkow ida bez zmian, z dowolnymi argumentami (runda 2, P2). Skutki: wyjscie procesu roboczego nie trafia juz do konsoli
+okna. Po przekierowaniu w `_robotnik` program pisze je do `silnik.log` jak dotad; ginie wyjscie SPRZED przekierowania
+(import modulu glownego programu jako `__mp_main__` w `spawn_main`, rozpakowanie argumentow, bledy krytyczne
+interpretera) - przedtem widoczne w oknie `uruchom_stanowisko.bat`, w logach nigdy; zostaje kod wyjscia w logu nadzorcy
+(runda 2, D1: przekierowanie juz w `CreateProcess` wymagaloby dziedziczenia uchwytu pliku logu przez `STARTUPINFO`
+z lista uchwytow - poza zakresem; przy kodzie wyjscia potomka przy starcie sprawdzic recznie
+`py -3.12 -c "import stanowisko.aplikacja"`). Ctrl+C w konsoli okna nie dociera do procesu roboczego. Program uruchomiony
+przez pythonw - bez zmian (proces roboczy to wtedy pythonw.exe, bez konsoli; flaga nic nie zmienia). Dodatkowy proces
+conhost.exe na czas zycia procesu roboczego. Znany wyciek biblioteki standardowej (runda 2, D3): kazda nieudana proba
+zostawia w procesie okna 1 uchwyt (kopia konca `Pipe` dla potomka, ktory mial ja "ukrasc", a zginal wczesniej) - najwyzej
+kilka na awarie (proby ogranicza logika A3).
 
 Proces roboczy pilnuje sie sam (P6, `Straznik`): watek sprawdza co 0,5 s, czy zyje proces okna
 (`multiprocessing.parent_process()`), i konczy proces roboczy od razu, gdy go nie ma (zmierzone: 0,4 s po zabiciu procesu
