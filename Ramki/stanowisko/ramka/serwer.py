@@ -9,10 +9,13 @@ Zasoby (szczegoly i kody bledow: README.md, "Protokol v1"):
 Tylko atrapa uruchomiona z flaga sterowania (nigdy na Raspberry Pi):
   GET /atrapa/klatka, PUT /atrapa/plytka, PUT /atrapa/klawisz
 
-Logi: metoda, nazwa zasobu (znanego) i status - nigdy tresc zadania ani nieznana sciezka.
+Klucz (P6): gdy konfiguracja ramki ma `klucz`, kazde zadanie (takze GET) bez zgodnego naglowka
+X-Ramka-Klucz dostaje 401 bez tresci i nic nie zmienia (porownanie hmac.compare_digest).
+Logi: metoda, nazwa zasobu (znanego) i status - nigdy tresc zadania, klucz ani nieznana sciezka.
 """
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -22,6 +25,8 @@ from . import WERSJA, protokol
 from .protokol import BladProtokolu
 
 log = logging.getLogger("ramka.serwer")
+NAGLOWEK_KLUCZA = "X-Ramka-Klucz"
+GASZACE_PUT = ("/plan", "/tryb")  # odrzucenie tresci od wlasciciela gasi obraz (P5)
 
 TRASY = {
     "/stan": ("GET",),
@@ -50,7 +55,7 @@ def _int_param(q: dict, nazwa: str, domyslna: int, lo: int, hi: int) -> int:
     v = _parametr(q, nazwa)
     if v is None:
         return domyslna
-    if not v.isdigit() or len(v) > 15:
+    if not protokol.cyfry(v) or len(v) > 15:
         raise BladProtokolu(400, "zly_parametr", f"parametr {nazwa}: liczba calkowita {lo}..{hi}")
     n = int(v)
     if not (lo <= n <= hi):
@@ -83,6 +88,19 @@ class ObslugaRamki(BaseHTTPRequestHandler):
     def log_error(self, format, *args):  # noqa: A002
         log.warning("blad polaczenia HTTP od %s", self.client_address[0])
 
+    def setup(self):
+        # P1: chwila przyjecia polaczenia - PUT /plan odebrany przed poleceniem gaszacym jest odrzucany
+        self.t_odbioru = self.server.program.zegar()
+        super().setup()
+
+    def _klucz_zgodny(self, klucz: str) -> bool:
+        if not klucz:
+            return True
+        podany = self.headers.get(NAGLOWEK_KLUCZA)
+        if podany is None:
+            return False
+        return hmac.compare_digest(podany.encode("latin-1", "replace"), klucz.encode("ascii"))
+
     def do_GET(self):
         self._obsluz("GET")
 
@@ -107,7 +125,7 @@ class ObslugaRamki(BaseHTTPRequestHandler):
         if dl is None:
             return None, None
         dl = dl.strip()
-        if not dl.isdigit():
+        if not protokol.cyfry(dl):
             return None, BladProtokolu(400, "zla_dlugosc", "naglowek Content-Length")
         n = int(dl)
         if n > protokol.MAX_TRESC:
@@ -131,6 +149,11 @@ class ObslugaRamki(BaseHTTPRequestHandler):
         status, odp = 500, None
         try:
             tresc, blad_tresci = self._czytaj_tresc()
+            if not self._klucz_zgodny(program.konf.klucz):
+                # P6: bez zgodnego klucza 401 bez tresci, przed jakimkolwiek dzialaniem
+                log.info("%s %s ? -> 401", self.client_address[0], metoda)
+                self._odpowiedz(401, None)
+                return
             url = urlsplit(self.path)
             trasy = dict(TRASY)
             if program.konf.sterowanie_atrapy:
@@ -150,16 +173,12 @@ class ObslugaRamki(BaseHTTPRequestHandler):
                 raise BladProtokolu(400, "brak_laptopa", "naglowek X-Laptop-Id jest wymagany")
             dane = None
             if metoda == "PUT":
-                if blad_tresci is not None:
-                    raise blad_tresci
-                if tresc is None:
-                    raise BladProtokolu(411, "brak_dlugosci", "naglowek Content-Length jest wymagany")
                 try:
-                    dane = json.loads(tresc.decode("utf-8"))
-                except (UnicodeDecodeError, ValueError, RecursionError):
-                    raise BladProtokolu(400, "zly_json", "tresc nie jest poprawnym JSON (UTF-8)") from None
-                if not isinstance(dane, dict):
-                    raise BladProtokolu(400, "zly_json", "tresc nie jest obiektem JSON")
+                    dane = self._dane_json(tresc, blad_tresci)
+                except BladProtokolu as b:
+                    if trasa in GASZACE_PUT:
+                        program.odrzucenie(laptop, b)  # P5: zla tresc od wlasciciela gasi obraz
+                    raise
             elif blad_tresci is not None and blad_tresci.status == 413:
                 raise blad_tresci
             status, odp = self._wykonaj(program, metoda, trasa, q, laptop, dane)
@@ -174,6 +193,20 @@ class ObslugaRamki(BaseHTTPRequestHandler):
                 "%s %s %s -> %d", self.client_address[0], metoda, trasa, status)
         self._odpowiedz(status, odp)
 
+    @staticmethod
+    def _dane_json(tresc, blad_tresci) -> dict:
+        if blad_tresci is not None:
+            raise blad_tresci
+        if tresc is None:
+            raise BladProtokolu(411, "brak_dlugosci", "naglowek Content-Length jest wymagany")
+        try:
+            dane = json.loads(tresc.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError, RecursionError):
+            raise BladProtokolu(400, "zly_json", "tresc nie jest poprawnym JSON (UTF-8)") from None
+        if not isinstance(dane, dict):
+            raise BladProtokolu(400, "zly_json", "tresc nie jest obiektem JSON")
+        return dane
+
     def _wykonaj(self, program, metoda, trasa, q, laptop, dane):
         if trasa == "/stan":
             return 200, program.stan(laptop)
@@ -182,9 +215,11 @@ class ObslugaRamki(BaseHTTPRequestHandler):
             czekaj = _float_param(q, "czekaj", 0.0)
             limit = _int_param(q, "limit", 100, 1, protokol.LIMIT_ZDARZEN_MAX)
             start_id = _parametr(q, "start_id")
+            if start_id is None:  # D9: laptop zawsze porownuje start ramki (restart = kursor od zera)
+                raise BladProtokolu(400, "zly_parametr", "parametr start_id jest wymagany (z GET /stan)")
             return 200, program.zdarzenia(laptop, od, czekaj, limit, start_id)
         if trasa == "/plan" and metoda == "PUT":
-            return 200, program.plan(laptop, dane)
+            return 200, program.plan(laptop, dane, self.t_odbioru)
         if trasa == "/plan" and metoda == "DELETE":
             plan_id = _parametr(q, "plan_id")
             if plan_id is not None and not protokol.WZOR_ID.match(plan_id):
@@ -204,7 +239,8 @@ class ObslugaRamki(BaseHTTPRequestHandler):
         cialo = json.dumps(odp, ensure_ascii=True, separators=(",", ":")).encode("ascii") if odp is not None else b""
         try:
             self.send_response(status)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
+            if cialo:
+                self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(cialo)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("Connection", "close")

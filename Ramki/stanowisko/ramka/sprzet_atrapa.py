@@ -4,7 +4,8 @@
 - `nacisnij(klawisz)` - klawiatura ramki porannej (nazwy z protokol.KLAWISZE),
 - `klatka` - ostatnia klatka wyslana do "matrycy", `historia` - (czas, plytka, klatka) kazdej
   wyslanej klatki, `zmiany_plytki` - (czas, n) kazdego polozenia / zdjecia,
-- `czekaj(warunek, timeout)` - czeka, az warunek(atrapa) bedzie prawdziwy (po kazdej klatce).
+- `czekaj(warunek, timeout)` - czeka, az warunek(atrapa) bedzie prawdziwy (po kazdej klatce),
+- `wygaszenia` - ile razy program wygasil matryce awaryjnie (`wygas`, P4).
 Tylko biblioteka standardowa.
 """
 from __future__ import annotations
@@ -12,6 +13,7 @@ from __future__ import annotations
 import threading
 import time
 
+from .obraz import Klatka
 from .protokol import KLAWISZE
 from .sprzet import Sprzet
 
@@ -28,6 +30,7 @@ class SprzetAtrapa(Sprzet):
         self.max_historii = max_historii
         self.temp_c = None
         self.zamknieta = False
+        self.wygaszenia = 0
 
     # ------------------------------------------------------------ sterowanie z testow
 
@@ -77,13 +80,20 @@ class SprzetAtrapa(Sprzet):
         return k
 
     def pokaz(self, klatka) -> None:
-        kopia = klatka.kopia()
+        self._zapisz(klatka.kopia())
+
+    def _zapisz(self, kopia) -> None:
         with self._warunek:
             self.klatka = kopia
             self.historia.append((self._zegar(), self._plytka, kopia))
             if len(self.historia) > self.max_historii:
                 del self.historia[: len(self.historia) - self.max_historii]
             self._warunek.notify_all()
+
+    def wygas(self) -> None:
+        """Wygaszenie awaryjne: czarna klatka bez udzialu pokaz() (dziala, gdy pokaz zawodzi)."""
+        self.wygaszenia += 1
+        self._zapisz(Klatka())
 
     def temperatura(self):
         return self.temp_c

@@ -2,15 +2,18 @@
 
 Do testow strony laptopa (indicate, A12) i do pracy bez ramek:
   python narzedzia/atrapa_ramki.py --rola P [--port 8765] [--host 127.0.0.1] [--sterowanie]
+                                   [--konfiguracja plik.json]
 Wypisuje jedna linie "ATRAPA_RAMKI port=<port> start_id=<id> rola=<W|P>" i czyta polecenia
 ze standardowego wejscia: "plytka <n>", "klawisz <nazwa>", "stan", "koniec". Koniec wejscia
 (EOF) = koniec programu (proces potomny testu nie zostaje po tescie). --bez-konsoli: dziala do
 Ctrl+C. --sterowanie wlacza zasoby /atrapa/klatka, /atrapa/plytka, /atrapa/klawisz (zdalne
-sterowanie atrapa z innego procesu). Domyslnie slucha tylko na 127.0.0.1.
+sterowanie atrapa z innego procesu). Domyslnie slucha tylko na 127.0.0.1. --konfiguracja:
+lokalny plik ramki (format jak `python -m ramka`), z ktorego atrapa bierze tylko `klucz`
+(naglowek X-Ramka-Klucz wymagany w kazdym zadaniu, takze /atrapa/*).
 
 Z kodu (ten sam proces):
   from atrapa_ramki import uruchom_atrape
-  program, atrapa = uruchom_atrape("P", port=0); ...; program.zatrzymaj()
+  program, atrapa = uruchom_atrape("P", port=0, klucz=""); ...; program.zatrzymaj()
 """
 from __future__ import annotations
 
@@ -25,8 +28,8 @@ STANOWISKO = Path(__file__).resolve().parent.parent
 if str(STANOWISKO) not in sys.path:
     sys.path.insert(0, str(STANOWISKO))
 
-from ramka.program import Konfiguracja, ProgramRamki  # noqa: E402
-from ramka.protokol import KLAWISZE  # noqa: E402
+from ramka.program import Konfiguracja, ProgramRamki, wczytaj_konfiguracje  # noqa: E402
+from ramka.protokol import KLAWISZE, cyfry  # noqa: E402
 from ramka.sprzet_atrapa import SprzetAtrapa  # noqa: E402
 
 
@@ -45,7 +48,7 @@ def _polecenie(linia: str, program, atrapa) -> bool:
         return True
     if czesci[0] == "koniec":
         return False
-    if czesci[0] == "plytka" and len(czesci) == 2 and czesci[1].isdigit() and int(czesci[1]) <= 7:
+    if czesci[0] == "plytka" and len(czesci) == 2 and cyfry(czesci[1]) and int(czesci[1]) <= 7:
         atrapa.poloz_plytke(int(czesci[1]))
     elif czesci[0] == "klawisz" and len(czesci) == 2 and czesci[1] in KLAWISZE:
         atrapa.nacisnij(czesci[1])
@@ -64,9 +67,12 @@ def main(argv=None) -> int:
     p.add_argument("--sterowanie", action="store_true", help="zasoby /atrapa/* do sterowania z innego procesu")
     p.add_argument("--bez-konsoli", action="store_true", help="nie czytaj polecen; dzialaj do Ctrl+C")
     p.add_argument("--limit-lacznosci", type=float, default=30.0)
+    p.add_argument("--konfiguracja", help="lokalny plik JSON ramki - atrapa bierze z niego tylko klucz")
     a = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    program, atrapa = uruchom_atrape(a.rola, a.port, a.host, a.sterowanie, limit_lacznosci_s=a.limit_lacznosci)
+    klucz = wczytaj_konfiguracje(a.konfiguracja).klucz if a.konfiguracja else ""
+    program, atrapa = uruchom_atrape(a.rola, a.port, a.host, a.sterowanie, limit_lacznosci_s=a.limit_lacznosci,
+                                     klucz=klucz)
     _, port = program.serwer.server_address[:2]
     print(f"ATRAPA_RAMKI port={port} start_id={program.logika.start_id} rola={a.rola}", flush=True)
     koniec = threading.Event()
