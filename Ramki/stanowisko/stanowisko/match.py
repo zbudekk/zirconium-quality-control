@@ -77,6 +77,7 @@ SKALA_DOKLADNOSC_PROC = 0.05  # dokładność estymaty skali (cel z testów T7, 
 WSTEPNY_PELNYCH = 4  # najwyzej tylu kandydatow po filtrze dostaje pelne dopasowanie (FPFH + RANSAC + ICP) w jednej turze
 WSTEPNY_MARGINES = 0.15  # do pelnego dopasowania ida kandydaci z oceną wstepna >= najlepsza - tyle (i najwyzej WSTEPNY_PELNYCH)
 WSTEPNY_TUR = 3  # gdy najlepszy po pelnym dopasowaniu ma pokrycie < prog_ostrzezenia_pokrycie: kolejna tura (nastepni z rankingu), najwyzej tyle tur
+WSTEPNY_RATUNEK_WSZYSTKIE = 24  # ratunek (nikt nie przeszedl filtru) w puli do tylu geometrii: pelne dopasowanie wszystkich, jak w puli z folderu
 WSTEPNY_PUNKTOW = 300  # punkty fragmentu do oceny wstepnej (z chmury 0,5 mm, wybor staly)
 WSTEPNY_VOXEL_PROJEKTU = 0.3  # mm: chmura projektu do oceny wstepnej (punkty + normalne; czesc lekka, na dysku)
 WSTEPNY_OBROTOW = 8  # hipotezy obrotu wokol z (co 45 st., jak zgrubne_obroty); KAZDA dostaje krotkie ICP (przeglad bez ICP mylil obrot - pomiar E3-A5)
@@ -953,7 +954,8 @@ def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed:
     wstepny (``ocena_wstepna``) i pelne dopasowanie tylko najlepszych (ocena >= najlepsza - WSTEPNY_MARGINES, najwyzej
     WSTEPNY_PELNYCH); gdy najlepszy z nich ma pokrycie < prog_ostrzezenia_pokrycie - kolejna tura z rankingu (najwyzej
     WSTEPNY_TUR tur). Pozostali: ``metoda = wstepny``, pokrycie 0 (jak odrzuceni filtrem). Ratunek (nikt nie przeszedl
-    filtru) idzie ta sama droga po calej puli."""
+    filtru) idzie ta sama droga po calej puli - chyba ze pula ma najwyzej WSTEPNY_RATUNEK_WSZYSTKIE geometrii (wtedy pelne
+    dopasowanie wszystkich, jak w puli z folderu: prace lezace bokiem, ktorych ocena wstepna nie rozumie)."""
     m = ust["match"]
     lekkie = pula.lekkie
     wyn_filtru = {kl: filtr(fr, lk, ust) for kl, lk in lekkie.items()}
@@ -967,7 +969,7 @@ def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed:
     kandydaci = {kl: _kandydat_puli(pula, kl, filtr_ok=False, powod_filtru=powod, metoda="filtr")
                  for kl, (_, powod) in wyn_filtru.items() if kl not in w_zbiorze}
     wstepne: dict[str, float] = {}
-    if pula.ranking_wstepny and len(zbior) > WSTEPNY_PELNYCH:
+    if pula.ranking_wstepny and len(zbior) > WSTEPNY_PELNYCH and not (ust_pary is not ust and len(zbior) <= WSTEPNY_RATUNEK_WSZYSTKIE):
         wstepne = {kl: ocena_wstepna(fr, lekkie[kl]) for kl in zbior}
         kolejka = sorted(zbior, key=lambda kl: (-wstepne[kl], kl))
         tura = [kl for kl in kolejka[:WSTEPNY_PELNYCH] if wstepne[kl] >= wstepne[kolejka[0]] - WSTEPNY_MARGINES]

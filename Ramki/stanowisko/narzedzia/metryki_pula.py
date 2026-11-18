@@ -352,7 +352,11 @@ def _skan_r59(arg) -> dict:
            "prac": mt["prac_prawda"], "top1": mt["top1"], "prac_dobrze": prac_dobrze, "top1_bledny_dobrze": dobrze["top1_bledny"],
            "prace_cale": mi["razem"]["prac_calych"], "prace_cale_z_czerwonym": mi["razem"]["prace_cale_z_czerwonym"],
            "prace_cale_z_alarmem": mi["razem"]["prace_cale_z_alarmem"], "ubytkow": mi["razem"]["ubytkow"], "wykryte_dowolny": mi["razem"]["wykryte"]["dowolny"],
-           "statusy_gniazd": wynik["statusy_gniazd"], "statusy_match": mt["statusy"], "czas_s": wynik["czas_s"]}
+           "statusy_gniazd": wynik["statusy_gniazd"], "statusy_match": mt["statusy"], "czas_s": wynik["czas_s"],
+           "gniazda": [{"gniazdo": g["gniazdo"], "status": g["status"], "status_gniazda": g["status_gniazda"],
+                        "projekt": (g["kandydaci"][0]["id"] if g["kandydaci"] else None),
+                        "projekt_prawda": next((x.projekt for x in prawda.prace if x.gniazdo == g["gniazdo"]), None),
+                        "scenariusz": next((PO.scenariusz(x) for x in prawda.prace if x.gniazdo == g["gniazdo"]), None)} for g in wynik["gniazda"]]}
     rek["linia"] = (f"{p.name}: wyr {rek['wyrownanie_mm']:.4f} top1 {rek['top1']}/{rek['prac']} dobrze bledne {rek['top1_bledny_dobrze']}/{prac_dobrze} "
                     f"cale z czerwonym {rek['prace_cale_z_czerwonym']}/{rek['prace_cale']} {wynik['czas_s']['razem']} s")
     return rek

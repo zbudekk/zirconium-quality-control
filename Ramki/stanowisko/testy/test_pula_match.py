@@ -334,7 +334,8 @@ def test_ranking_wstepny_ogranicza_pelne_dopasowania(stl, pula_obu, plytka, ust,
 
 
 def test_ratunek_bez_filtru_tez_przez_ranking(pula_obu, plytka, ust, monkeypatch):
-    """Zaden projekt nie przechodzi filtru wymiarow: duza pula nie jest dopasowywana w calosci (ranking wstepny)."""
+    """Zaden projekt nie przechodzi filtru wymiarow: mala pula (do WSTEPNY_RATUNEK_WSZYSTKIE geometrii) dopasowana w calosci
+    jak pula z folderu; duza pula - przez ranking wstepny (nie 400 pelnych dopasowan)."""
     pula, wp, _ = pula_obu
     _, wyr, prawda = plytka
     f = wyr.fragmenty[0]
@@ -342,10 +343,17 @@ def test_ratunek_bez_filtru_tez_przez_ranking(pula_obu, plytka, ust, monkeypatch
     wywolania = []
     oryg = match.dopasuj_pare
     monkeypatch.setattr(match, "dopasuj_pare", lambda *a, **k: wywolania.append(1) or oryg(*a, **k))
+    assert len(pula) <= match.WSTEPNY_RATUNEK_WSZYSTKIE
+    r = match.dopasuj(f.punkty, f.normalne, pula, ust_z, f.gniazdo)
+    assert any("dopasowano wszystkie" in u for u in r.uwagi) and len(wywolania) == len(pula)
+    prawda_f = {x.gniazdo: x for x in prawda.prace}[f.gniazdo].projekt
+    assert r.najlepszy.id == prawda_f
+    wywolania.clear()
+    monkeypatch.setattr(match, "WSTEPNY_RATUNEK_WSZYSTKIE", 4)  # jak pula kilkuset wpisow
     r = match.dopasuj(f.punkty, f.normalne, pula, ust_z, f.gniazdo)
     assert any("dopasowano wszystkie" in u for u in r.uwagi)
     assert len(wywolania) <= 2 * match.WSTEPNY_PELNYCH < len(pula)
-    assert r.najlepszy.id == {x.gniazdo: x for x in prawda.prace}[f.gniazdo].projekt
+    assert r.najlepszy.id == prawda_f
 
 
 def test_stara_pula_bez_rankingu_wstepnego(stl, plytka, ust, monkeypatch):
