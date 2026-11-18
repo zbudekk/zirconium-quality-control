@@ -697,6 +697,8 @@ class Aplikacja(K.KontrolerSesji):
             self._odswiez_zywe()
         elif "postep" in zmiany:
             self._odswiez_zywe("postep")
+        else:
+            self._sprawdz_zajetosc()  # rano: limit czasu skanowania minal - "Zamknij piec" znow dostepne (P3)
         return obsluzone
 
     def _bezpiecznie(self, funkcja: Callable[..., str], *argumenty: Any) -> str:
@@ -923,11 +925,15 @@ class Aplikacja(K.KontrolerSesji):
                 else:
                     skan_id = self.sesja.przyjmij_wynik(zdarzenie, self._wynik_do_sesji(d.zdarzenie.wynik, z), z.tryb)
                 self._zapisz_podglad(skan_id, (d.zdarzenie.pliki or {}).get("podglad"))
-            elif z.tryb == SE.TRYB_RANO:
-                skan_id = self.rano.przyjmij_blad(zdarzenie, f"{d.blad_rodzaj}: {d.blad_opis}")
             else:
-                skan_id = self.sesja.przyjmij_blad(zdarzenie, f"{d.blad_rodzaj}: {d.blad_opis}", z.tryb)
+                if z.tryb == SE.TRYB_RANO:
+                    skan_id = self.rano.przyjmij_blad(zdarzenie, f"{d.blad_rodzaj}: {d.blad_opis}")
+                else:
+                    skan_id = self.sesja.przyjmij_blad(zdarzenie, f"{d.blad_rodzaj}: {d.blad_opis}", z.tryb)
+                # rodzaj bledu takze dla skanu porannego (recenzja PR #26, D5: metryki A10, komunikat z rada)
                 baza.zdarzenie("silnik", "blad_analizy_rodzaj", {"rodzaj": d.blad_rodzaj}, skan_id=skan_id, czas=self._teraz())
+        if jest is None:
+            self._po_skanie(z.tryb)  # P2: skan wieczorny moze zmienic stan punktow (lista brakow liczona od nowa)
         self._usun_komunikat(f"plik_niedostepny:{z.sha16}")
         if d.rodzaj != "wynik":
             return

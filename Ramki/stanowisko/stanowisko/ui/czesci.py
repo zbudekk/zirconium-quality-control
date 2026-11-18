@@ -670,7 +670,7 @@ def panel_pytania(pytanie, stan, typ_plytki: str | None, plytka: str = "", r: st
     for odp in pytanie.odpowiedzi:
         potrzebuje_osoby = odp.polecenie not in BEZ_OSOBY
         wymaga = wymaga or potrzebuje_osoby
-        cyfra = odp.polecenie == "podaj_numer_plytki"
+        cyfra = odp.polecenie == "podaj_numer_plytki" and len(odp.argumenty) == 2  # (skan, numer); rano "mimo to" - zwykly przycisk
         nazwa = nazwa_obiektu("odp", odp.polecenie) + (f"_{odp.argumenty[-1]}" if cyfra else "")
         przyciski.append((nazwa, odp.napis, odp.polecenie, odp.argumenty, jest_osoba or not potrzebuje_osoby, "cyfra" if cyfra else None))
     tekst, ostrzezenie, rada = pytanie.tekst, "", ""

@@ -8,7 +8,12 @@ gdy ``stan.tryb == "rano"``. Zasady jak na ekranie wieczornym (kontrakt ``kontro
 * panele (wybor osoby, pytania plytek porannych, komunikaty) nad plytkami, bledy programu na wlasnym pasku; prawa kolumna
   (rozkladanie kuwet i widok pracy / kompletne i braki) ma stale miejsce;
 * plytki pieca obok siebie (do 3 w wierszu), w gniezdzie kuweta, zab i miniatura (``mapa_rano.MapaRano``); gniazda biezacej
-  kuwety obwiedzione; po zmianie zestawu plytek mapy sa przez ``OCHRONA_MS`` przygaszone i nie przyjmuja klikniec;
+  kuwety obwiedzione (``StanRano.obwodka`` z kontrolera); po zmianie zestawu plytek mapy sa przez ``OCHRONA_MS`` przygaszone
+  i nie przyjmuja klikniec;
+* polecenia rozkladania niosa kuwete POKAZANA na ekranie (Enter / "Rozlozona" - ``kuweta_biezaca``, Backspace / "Cofnij" -
+  ``kuweta_do_cofniecia``): gdy w kontrolerze jest juz inna, odmowa bez zapisu (recenzja PR #26, B1);
+* panele i okno nie trzymaja sie nawzajem silnymi referencjami (``weakref``) - okno znika bez zbierania cykli przez GC
+  w przypadkowym watku (recenzja PR #26, D7);
 * klawiatura jak na ramce porannej: cyfry (i "#") = numer kuwety, Enter = wybierz wpisana kuwete albo potwierdz biezaca
   ("rozlozona"), Backspace = popraw numer albo cofnij ostatnie potwierdzenie, Esc = wyczysc numer albo zamknij widok pracy;
   Spacja (start skanu) obsluguje okno.
@@ -16,6 +21,8 @@ Wlasny stan ekranu to wybor osoby: pokazana praca (plytka, gniazdo), strona praw
 panel numeru plytki.
 """
 from __future__ import annotations
+
+import weakref
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage
@@ -43,6 +50,17 @@ PYTANE = {"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "pom
 
 def blad_programu(komunikat) -> bool:
     return komunikat.poziom == ST.POZIOM_BLAD or komunikat.trwaly
+
+
+def slaba(metoda):
+    """Funkcja wolajaca metode obiektu przez slaba referencje (bez cyklu widzet -> ekran -> widzet; D7). Obiekt usuniety = None."""
+    ref = weakref.WeakMethod(metoda)
+
+    def wywolaj(*argumenty, **nazwane):
+        m = ref()
+        return m(*argumenty, **nazwane) if m is not None else None
+
+    return wywolaj
 
 
 def tabela(nazwa: str, kolumny: tuple, r: styl.Rozmiary) -> QTableWidget:
@@ -99,7 +117,8 @@ class KartaPlytki(QFrame):
         self.akcje = UkladPlynny(odstep_poziomy=6, odstep_pionowy=3)
         self._u.addLayout(self.akcje)
         self.mapa = MapaRano(skan_id)
-        self.mapa.klik.connect(lambda nr: ekran._klik_gniazdo(skan_id, nr))
+        klik = slaba(ekran._klik_gniazdo)
+        self.mapa.klik.connect(lambda nr: klik(skan_id, nr))
         self._u.addWidget(self.mapa, 1)
         self.poza = etykieta("", "slaby", f"rano_plytka_{skan_id}_poza")
         self.poza.setVisible(False)
@@ -121,7 +140,7 @@ class PanelKuwet(QFrame):
         super().__init__()
         self.setObjectName("rano_kuwety")
         self.setProperty("rola", "panel")
-        self.ekran = ekran
+        self._ekran = weakref.ref(ekran)
         self._u = u = QVBoxLayout(self)
         wiersz = QHBoxLayout()
         self.tytul = etykieta("", "naglowek", "rano_kuwety_tytul")
@@ -130,7 +149,7 @@ class PanelKuwet(QFrame):
         self.kolejnosc = UkladPlynny(odstep_poziomy=6, odstep_pionowy=4)
         self.przyciski_kolejnosci = {}
         for k in K.KOLEJNOSCI_KUWET:
-            b = przycisk(ST.NAZWY_KOLEJNOSCI[k], f"kolejnosc_{k}", None, lambda k=k: ekran._polecenie("ustaw_kolejnosc", k))
+            b = przycisk(ST.NAZWY_KOLEJNOSCI[k], f"kolejnosc_{k}", None, lambda k=k: self._wyslij("_polecenie", "ustaw_kolejnosc", k))
             b.setCheckable(True)
             self.przyciski_kolejnosci[k] = b
             self.kolejnosc.addWidget(b)
@@ -143,8 +162,8 @@ class PanelKuwet(QFrame):
         self.bufor.setVisible(False)
         u.addWidget(self.bufor)
         self.przyciski = UkladPlynny(odstep_poziomy=8, odstep_pionowy=4)
-        self.potwierdz = przycisk(NR.POTWIERDZ_SKROT, "rano_potwierdz_kuwete", "glowny", lambda: ekran._polecenie("potwierdz_kuwete"))
-        self.cofnij = przycisk(NR.COFNIJ_SKROT, "rano_cofnij_kuwete", None, lambda: ekran._polecenie("cofnij_kuwete"))
+        self.potwierdz = przycisk(NR.POTWIERDZ_SKROT, "rano_potwierdz_kuwete", "glowny", lambda: self._wyslij("potwierdz_kuwete"))
+        self.cofnij = przycisk(NR.COFNIJ_SKROT, "rano_cofnij_kuwete", None, lambda: self._wyslij("cofnij_kuwete"))
         self.przyciski.addWidget(self.potwierdz)
         self.przyciski.addWidget(self.cofnij)
         u.addLayout(self.przyciski)
@@ -156,6 +175,15 @@ class PanelKuwet(QFrame):
         self._kuwety: tuple = ()
         self._r = styl.ZWYKLE
         self.ustaw_tryb(styl.ZWYKLE)
+
+    @property
+    def ekran(self):
+        return self._ekran()
+
+    def _wyslij(self, metoda: str, *argumenty) -> None:
+        ekran = self._ekran()
+        if ekran is not None:
+            getattr(ekran, metoda)(*argumenty)
 
     def ustaw_tryb(self, r: styl.Rozmiary) -> None:
         self._r = r
@@ -169,8 +197,8 @@ class PanelKuwet(QFrame):
     def ustaw(self, stan, bufor: str) -> None:
         rano = stan.rano
         sygnatura = (rano.kuwety if rano is not None else None, rano.kolejnosc if rano is not None else None,
-                     rano.otwarty if rano is not None else None, rano.sesja_pieca_id if rano is not None else None, stan.operator, bufor,
-                     self._r.zwarty)
+                     rano.otwarty if rano is not None else None, rano.sesja_pieca_id if rano is not None else None,
+                     rano.kuweta_do_cofniecia if rano is not None else None, stan.operator, bufor, self._r.zwarty)
         if sygnatura == getattr(self, "_sygnatura", None):
             return
         self._sygnatura = sygnatura
@@ -196,7 +224,7 @@ class PanelKuwet(QFrame):
         self.bufor.setVisible(bool(bufor))
         otwarty = rano is not None and rano.otwarty
         self.potwierdz.setEnabled(otwarty and biezaca is not None and jest_osoba)
-        self.cofnij.setEnabled(otwarty and any(x.potwierdzona for x in kuwety) and jest_osoba)
+        self.cofnij.setEnabled(otwarty and rano.kuweta_do_cofniecia is not None and jest_osoba)
         wiersze = []
         for x in kuwety:
             stan_k = (NR.KUWETA_STAN_BIEZACA if x.biezaca else NR.KUWETA_STAN_ROZLOZONA if x.potwierdzona else
@@ -209,50 +237,59 @@ class PanelKuwet(QFrame):
 
     def _klik(self, wiersz: int, _kolumna: int) -> None:
         if 0 <= wiersz < len(self._kuwety):
-            self.ekran._polecenie("wybierz_kuwete", self._kuwety[wiersz].kuweta)
+            self._wyslij("_polecenie", "wybierz_kuwete", self._kuwety[wiersz].kuweta)
 
 
 class PanelWyniku(QScrollArea):
     """Zlecenia kompletne (do odhaczenia w Excelu) i braki pieca - prowizoryczne w otwartym piecu, z zapisu "Zamknij piec"
     w zamknietym; lista brakow ze wszystkich piecow (klikniecie zlecenia = reczne zamkniecie brakujacego punktu z powodem,
-    A6 runda 2; ostatnie zamkniecie mozna cofnac); poprawki (tylko log)."""
+    A6 runda 2; ostatnie zamkniecie mozna cofnac); poprawki (tylko log; zlecenie odhaczone i zab juz rozpoznany - osobno, Z9).
+    ``ostatni`` True = strona "Ostatni zamkniety piec" (wynik pieca ``StanRano.ostatni_zamkniety``, bez listy brakow biezacej;
+    nazwy obiektow z przedrostkiem ``ostatni_`` - P1)."""
 
-    def __init__(self, ekran: "EkranRano | None" = None):
+    def __init__(self, ekran: "EkranRano | None" = None, ostatni: bool = False):
         super().__init__()
-        self.ekran = ekran
+        self._ekran = weakref.ref(ekran) if ekran is not None else (lambda: None)
+        self._ostatni_piec = ostatni
+        n = (lambda nazwa: f"ostatni_{nazwa}") if ostatni else (lambda nazwa: nazwa)
         self._wybrane: int | None = None  # zlecenie_id z listy brakow wybrane do recznego zamkniecia
         self._ostatnie: tuple | None = None  # (projekt_id, kuweta, zab) ostatnio zamknietego recznie punktu (do cofniecia)
         self._biezace: tuple = ()
-        self.setObjectName("rano_wynik")
+        self.setObjectName(n("rano_wynik"))
         self.setWidgetResizable(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         wnetrze = QFrame()
-        wnetrze.setObjectName("rano_wynik_wnetrze")
+        wnetrze.setObjectName(n("rano_wynik_wnetrze"))
         wnetrze.setProperty("rola", "panel")
         self._u = u = QVBoxLayout(wnetrze)
-        self.tytul = etykieta("", "naglowek", "rano_wynik_tytul", zawijaj=True)
+        self.tytul = etykieta("", "naglowek", n("rano_wynik_tytul"), zawijaj=True)
         u.addWidget(self.tytul)
-        self.kompletne_tytul = etykieta("", "duzy", "rano_kompletne_tytul", zawijaj=True)
+        self.kompletne_tytul = etykieta("", "duzy", n("rano_kompletne_tytul"), zawijaj=True)
         u.addWidget(self.kompletne_tytul)
-        self.kompletne = tabela("tabela_kompletne", NR.KOLUMNY_KOMPLETNE, styl.ZWYKLE)
+        self.kompletne = tabela(n("tabela_kompletne"), NR.KOLUMNY_KOMPLETNE, styl.ZWYKLE)
         u.addWidget(self.kompletne)
-        self.braki_tytul = etykieta("", "duzy", "rano_braki_tytul", zawijaj=True)
+        self.braki_tytul = etykieta("", "duzy", n("rano_braki_tytul"), zawijaj=True)
         u.addWidget(self.braki_tytul)
-        self.braki = tabela("tabela_braki", NR.KOLUMNY_BRAKI, styl.ZWYKLE)
+        self.braki = tabela(n("tabela_braki"), NR.KOLUMNY_BRAKI, styl.ZWYKLE)
         u.addWidget(self.braki)
-        self.nierozstrzygniete = etykieta("", "uwaga", "rano_nierozstrzygniete", zawijaj=True)
+        self.nierozstrzygniete = etykieta("", "uwaga", n("rano_nierozstrzygniete"), zawijaj=True)
         u.addWidget(self.nierozstrzygniete)
-        self.poprawki = etykieta("", "informacja", "rano_poprawki", zawijaj=True)
+        self.poprawki = etykieta("", "informacja", n("rano_poprawki"), zawijaj=True)
         u.addWidget(self.poprawki)
-        self.biezace_tytul = etykieta("", "duzy", "rano_braki_biezace_tytul", zawijaj=True)
+        self.juz_rozpoznane = etykieta("", "uwaga", n("rano_juz_rozpoznane"), zawijaj=True)
+        u.addWidget(self.juz_rozpoznane)
+        self.biezace_tytul = etykieta("", "duzy", n("rano_braki_biezace_tytul"), zawijaj=True)
         u.addWidget(self.biezace_tytul)
-        self.biezace = tabela("tabela_braki_biezace", NR.KOLUMNY_BRAKI_BIEZACE, styl.ZWYKLE)
+        self.biezace = tabela(n("tabela_braki_biezace"), NR.KOLUMNY_BRAKI_BIEZACE, styl.ZWYKLE)
         self.biezace.cellClicked.connect(self._klik_braku)
         u.addWidget(self.biezace)
+        if ostatni:  # strona ostatniego zamknietego pieca: bez listy brakow biezacej (jest na stronie "Kompletne i braki")
+            self.biezace_tytul.setVisible(False)
+            self.biezace.setVisible(False)
         self.reczne = QWidget()
-        self.reczne.setObjectName("rano_brak_reczny")
+        self.reczne.setObjectName(n("rano_brak_reczny"))
         self._reczne = QVBoxLayout(self.reczne)
         self._reczne.setContentsMargins(0, 0, 0, 0)
         u.addWidget(self.reczne)
@@ -269,6 +306,10 @@ class PanelWyniku(QScrollArea):
             self._sygnatura = None
             if self._stan is not None:
                 self.ustaw(self._stan.rano, self._stan)
+
+    @property
+    def ekran(self):
+        return self._ekran()
 
     def _zamknij(self, z, b, powod: str) -> None:
         odpowiedz = self.ekran._polecenie("zamknij_brak_recznie", b.projekt_id, powod) if self.ekran is not None else None
@@ -313,7 +354,7 @@ class PanelWyniku(QScrollArea):
             b = przycisk(ST.PRZYCISKI["cofnij_zamkniecie_reczne"], f"brak_cofnij_{projekt_id}", None, self._cofnij)
             b.setEnabled(jest_osoba)
             self._reczne.addWidget(b)
-        self.reczne.setVisible(self._reczne.count() > 0)
+        self.reczne.setVisible(self._reczne.count() > 0 and not self._ostatni_piec)
 
     def ustaw_tryb(self, r: styl.Rozmiary) -> None:
         self._r = r
@@ -338,6 +379,9 @@ class PanelWyniku(QScrollArea):
         r = self._r
         if rano is None or rano.sesja_pieca_id is None:
             self.tytul.setText(NR.WYNIK_BRAK)
+        elif self._ostatni_piec:
+            self.tytul.setText(NR.WYNIK_TYTUL_OSTATNI.format(nr=rano.nr_w_dniu, doba=dzien(rano.data), godzina=godzina(rano.zamknieto),
+                                                             osoba=rano.zamknal or NR.BRAK_DANYCH))
         elif rano.otwarty:
             self.tytul.setText(NR.WYNIK_TYTUL_OTWARTY.format(nr=rano.nr_w_dniu))
         else:
@@ -355,10 +399,17 @@ class PanelWyniku(QScrollArea):
         self.nierozstrzygniete.setText(tekst)
         self.nierozstrzygniete.setVisible(bool(tekst))
         poprawki = rano.poprawki if rano is not None else ()
-        self.poprawki.setText(NR.POPRAWKI_TYTUL.format(lista=", ".join(f"{x.kuweta or NR.BRAK_DANYCH} ({NR.ZAB_KROTKO.format(zab=x.zeby or NR.BRAK_DANYCH)})"
-                                                                     for x in poprawki)) if poprawki else "")
-        self.poprawki.setVisible(bool(poprawki))
-        biezace = rano.braki_biezace if rano is not None else ()
+
+        def lista(pozycje) -> str:
+            return ", ".join(f"{x.kuweta or NR.BRAK_DANYCH} ({NR.ZAB_KROTKO.format(zab=x.zeby or NR.BRAK_DANYCH)})" for x in pozycje)
+
+        odhaczone = [x for x in poprawki if x.zlecenie_odhaczone]  # Z9 / A6 D2: dwa znaczenia bursztynu - dwa napisy (P5)
+        rozpoznane = [x for x in poprawki if not x.zlecenie_odhaczone]
+        self.poprawki.setText(NR.POPRAWKI_TYTUL.format(lista=lista(odhaczone)) if odhaczone else "")
+        self.poprawki.setVisible(bool(odhaczone))
+        self.juz_rozpoznane.setText(NR.JUZ_ROZPOZNANE_TYTUL.format(lista=lista(rozpoznane)) if rozpoznane else "")
+        self.juz_rozpoznane.setVisible(bool(rozpoznane))
+        biezace = rano.braki_biezace if rano is not None and not self._ostatni_piec else ()
         self._biezace = tuple(biezace)
         self.biezace_tytul.setText(NR.BRAKI_BIEZACE_TYTUL.format(n=len(biezace)))
         wypelnij(self.biezace, [[z.kuweta or NR.BRAK_DANYCH, self._brakuje(z), self._stany(z), str(z.ostatni_piec or NR.BRAK_DANYCH)]
@@ -375,7 +426,7 @@ class EkranRano(QWidget):
     def __init__(self, okno):
         super().__init__()
         self.setObjectName("ekran_rano")
-        self.okno = okno
+        self._okno = weakref.ref(okno)  # D7: bez cyklu okno <-> ekran
         self.k = okno.k
         self._r = styl.ZWYKLE
         self._stan = None
@@ -392,6 +443,10 @@ class EkranRano(QWidget):
         self._ochrona.setInterval(OCHRONA_MS)
         self._ochrona.timeout.connect(self._koniec_ochrony)
         self._zbuduj()
+
+    @property
+    def okno(self):
+        return self._okno()
 
     # --- budowa ------------------------------------------------------------------------------------------------------
     def _zbuduj(self) -> None:
@@ -430,6 +485,9 @@ class EkranRano(QWidget):
         u.addWidget(self.zamknij_piec, 0, Qt.AlignmentFlag.AlignVCenter)
         self.otworz_piec = przycisk(ST.PRZYCISKI["otworz_piec_ponownie"], "przycisk_otworz_piec", None, self._otworz_piec)
         u.addWidget(self.otworz_piec, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.cofnij_przeniesienie = przycisk(ST.PRZYCISKI["cofnij_przeniesienie"], "przycisk_cofnij_przeniesienie", "lacze",
+                                             lambda: self._polecenie_pieca("cofnij_przeniesienie"))
+        u.addWidget(self.cofnij_przeniesienie, 0, Qt.AlignmentFlag.AlignVCenter)
         lewa.addWidget(naglowek)
         self.plytki = QWidget()
         self.plytki.setObjectName("rano_plytki")
@@ -458,7 +516,9 @@ class EkranRano(QWidget):
         self._strony_przyciski = UkladPlynny(odstep_poziomy=6, odstep_pionowy=4)
         self.przycisk_rozkladanie = przycisk(NR.STRONA_ROZKLADANIE, "rano_strona_rozkladanie", None, lambda: self._pokaz_strone("rozkladanie"))
         self.przycisk_wynik = przycisk(NR.STRONA_WYNIK, "rano_strona_wynik", None, lambda: self._pokaz_strone("wynik"))
-        for b in (self.przycisk_rozkladanie, self.przycisk_wynik):
+        self.przycisk_ostatni = przycisk(NR.STRONA_OSTATNI, "rano_strona_ostatni", None, lambda: self._pokaz_strone("ostatni"))
+        self.przycisk_ostatni.setVisible(False)
+        for b in (self.przycisk_rozkladanie, self.przycisk_wynik, self.przycisk_ostatni):
             b.setCheckable(True)
             self._strony_przyciski.addWidget(b)
         pu.addLayout(self._strony_przyciski)
@@ -470,14 +530,16 @@ class EkranRano(QWidget):
         su.setSpacing(8)
         self.kuwety = PanelKuwet(self)
         su.addWidget(self.kuwety)
-        self.widok = WidokPracyRano(self.k.projekty_kuwety, self._obraz)
+        self.widok = WidokPracyRano(self.k.projekty_kuwety, slaba(self._obraz))
         self.widok.polecenie.connect(lambda nazwa, argumenty: self._polecenie(nazwa, *argumenty))
         self.widok.zamknij.connect(self._zamknij_prace)
-        self.widok.po_zmianie(self._odswiez)
+        self.widok.po_zmianie(slaba(self._odswiez))
         su.addWidget(self.widok, 1)
         self._stos.addWidget(strona)
         self.wynik = PanelWyniku(self)
         self._stos.addWidget(self.wynik)
+        self.ostatni = PanelWyniku(self, ostatni=True)
+        self._stos.addWidget(self.ostatni)
         pu.addLayout(self._stos, 1)
         korzen.addWidget(prawa)
 
@@ -490,7 +552,7 @@ class EkranRano(QWidget):
         self._naglowek_uklad.setContentsMargins(*((8, 3, 8, 3) if r.zwarty else (12, 6, 12, 6)))
         self._siatka.setSpacing(r.odstep)
         self.zamknij_piec.setMinimumHeight(r.wysokosc_skanuj)
-        for b in (self.przycisk_rozkladanie, self.przycisk_wynik):
+        for b in (self.przycisk_rozkladanie, self.przycisk_wynik, self.przycisk_ostatni):
             b.setMinimumHeight(r.wysokosc_przycisku)
         self.uwagi.uklad.setSpacing(4 if r.zwarty else 6)
         self.bledy.uklad.setSpacing(4 if r.zwarty else 6)
@@ -499,6 +561,7 @@ class EkranRano(QWidget):
         self.kuwety.ustaw_tryb(r)
         self.widok.ustaw_tryb(r)
         self.wynik.ustaw_tryb(r)
+        self.ostatni.ustaw_tryb(r)
         self._sygnatury.clear()
         if self._stan is not None:
             self._odswiez()
@@ -569,10 +632,18 @@ class EkranRano(QWidget):
         else:
             self.widok.ustaw(stan, plytka, gniazdo, praca, rano.otwarty)
         self.kuwety.ustaw(stan, self._bufor)
-        self.wynik.ustaw(rano, stan)
+        ostatni = rano.ostatni_zamkniety if rano is not None else None
+        if self._strona == "ostatni" and ostatni is None:
+            self._strona = "wynik"
+        if self._strona == "wynik":  # D13: strona ukryta nie jest przebudowywana (dostanie stan przy pokazaniu)
+            self.wynik.ustaw(rano, stan)
+        elif self._strona == "ostatni":
+            self.ostatni.ustaw(ostatni, stan)
+        self.przycisk_ostatni.setVisible(ostatni is not None)
         self.przycisk_rozkladanie.setChecked(self._strona == "rozkladanie")
         self.przycisk_wynik.setChecked(self._strona == "wynik")
-        self._stos.setCurrentIndex(0 if self._strona == "rozkladanie" else 1)
+        self.przycisk_ostatni.setChecked(self._strona == "ostatni")
+        self._stos.setCurrentIndex({"rozkladanie": 0, "wynik": 1, "ostatni": 2}[self._strona])
 
     def _odswiez_karty(self, stan, rano, plytki: list) -> None:
         zestaw = tuple(p.skan_id for p in plytki)
@@ -596,7 +667,6 @@ class EkranRano(QWidget):
                 self._ochrona.start()
                 for karta in self._karty.values():
                     karta.mapa.przygas(True)
-        biezaca = rano.kuweta_biezaca if rano is not None else None
         pytane = {(q.skan_id, PYTANE.get(q.rodzaj)) for q in stan.pytania if not q.ukryte}
         for p in plytki:
             karta = self._karty[p.skan_id]
@@ -607,7 +677,7 @@ class EkranRano(QWidget):
                 for sha, dane in ((pr.sha16, pr.miniatura), *((k.sha16, k.miniatura) for k in pr.kandydaci)):
                     self._obraz(sha, dane)
             wybrane = self._wybor[1] if self._wybor is not None and self._wybor[0] == p.skan_id else None
-            karta.mapa.ustaw_rano(p, geometria, wybrane, biezaca, self._obrazy)
+            karta.mapa.ustaw_rano(p, geometria, wybrane, rano.obwodka(p.skan_id), self._obrazy)  # P4: gniazda kuwety z kontrolera
             akcje = tuple(a for a in ("podaj_numer_plytki", "cofnij_zastapienie", "cofnij_dopuszczenie", "pomin_skan", "cofnij_pominiecie")
                           if a in p.dozwolone and (p.skan_id, a) not in pytane)
             podpis = (akcje, p.numer, stan.operator, self._r.zwarty)
@@ -665,20 +735,19 @@ class EkranRano(QWidget):
                     z.setToolTip(w.opis)
                     self.liczniki.addWidget(z)
             self._liczniki_widzet.updateGeometry()
-        blokady = tuple(rano.blokady) if rano is not None else ()
-        analiza = rano is not None and rano.otwarty and stan.kolejka.razem > 0  # A6 runda 2 (D11): wynik po zamknieciu otworzylby nowy piec
-        if analiza:
-            blokady += (ST.tekst_komunikatu("analiza_trwa")[2],)
+        blokady = tuple(rano.blokady) if rano is not None else ()  # z kontrolera - takze "trwa analiza / skanowanie" (D1, P3)
         self.blokady.setText(NR.BLOKADY_TYTUL + " " + " ".join(blokady) if blokady else "")
         self.blokady.setVisible(bool(blokady))
         ostrzezenia = tuple(rano.ostrzezenia) if rano is not None else ()
         self.ostrzezenia.setText(" ".join(ostrzezenia))
         self.ostrzezenia.setVisible(bool(ostrzezenia))
         self.zamknij_piec.setVisible(rano is not None and rano.otwarty)
-        self.zamknij_piec.setEnabled(rano is not None and "zamknij_piec" in rano.dozwolone and stan.operator is not None and not analiza)
+        self.zamknij_piec.setEnabled(rano is not None and "zamknij_piec" in rano.dozwolone and stan.operator is not None)
         self.zamknij_piec.setToolTip(" ".join(blokady))
         self.otworz_piec.setVisible(rano is not None and "otworz_piec_ponownie" in rano.dozwolone)
         self.otworz_piec.setEnabled(stan.operator is not None)
+        self.cofnij_przeniesienie.setVisible(rano is not None and "cofnij_przeniesienie" in rano.dozwolone)  # A6 runda 5
+        self.cofnij_przeniesienie.setEnabled(stan.operator is not None)
 
     def _zamknij_piec(self) -> None:
         """"Zamknij piec" POKAZANEGO pieca (A6 runda 2, P3: spoznione klikniecie nie zamknie nastepnego pieca)."""
@@ -687,9 +756,13 @@ class EkranRano(QWidget):
             self._polecenie("zamknij_piec", rano.sesja_pieca_id)
 
     def _otworz_piec(self) -> None:
+        self._polecenie_pieca("otworz_piec_ponownie")
+
+    def _polecenie_pieca(self, nazwa: str) -> None:
+        """Polecenie dla POKAZANEGO pieca (jawny ``sesja_pieca_id``)."""
         rano = self._stan.rano if self._stan is not None else None
         if rano is not None and rano.sesja_pieca_id is not None:
-            self._polecenie("otworz_piec_ponownie", rano.sesja_pieca_id)
+            self._polecenie(nazwa, rano.sesja_pieca_id)
 
     def _odswiez_uwagi(self, stan, rano) -> None:
         r = self._r
@@ -763,7 +836,22 @@ class EkranRano(QWidget):
 
     # --- wybor osoby ---------------------------------------------------------------------------------------------------
     def _polecenie(self, nazwa: str, *argumenty):
-        return self.okno._polecenie(nazwa, *argumenty)
+        okno = self.okno
+        return okno._polecenie(nazwa, *argumenty) if okno is not None else None
+
+    def potwierdz_kuwete(self) -> None:
+        """Enter / "Rozlozona": polecenie z kuweta POKAZANA na ekranie (B1 - kontroler odmowi, gdy biezaca jest juz inna)."""
+        rano = self._stan.rano if self._stan is not None else None
+        self._polecenie("potwierdz_kuwete", (rano.kuweta_biezaca if rano is not None else None) or "")
+
+    def cofnij_kuwete(self) -> None:
+        """Backspace / "Cofnij": cofa POKAZANA ostatnia potwierdzona kuwete; w panelu napis, co cofnieto (D3)."""
+        rano = self._stan.rano if self._stan is not None else None
+        kuweta = (rano.kuweta_do_cofniecia if rano is not None else None) or ""
+        odpowiedz = self._polecenie("cofnij_kuwete", kuweta)
+        if odpowiedz is not None and odpowiedz.ok and self.okno is not None:
+            self.okno._informacja = NR.KUWETA_COFNIETA.format(kuweta=odpowiedz.dane)
+            self._odswiez()
 
     def numer_podany(self) -> None:
         """Panel numeru plytki zamkniety (numer podany albo "Bez zmian")."""
@@ -826,14 +914,14 @@ class EkranRano(QWidget):
                 self._polecenie("wybierz_kuwete", bufor)
                 self._odswiez()
             else:
-                self._polecenie("potwierdz_kuwete")
+                self.potwierdz_kuwete()
             return True
         if klawisz == Qt.Key.Key_Backspace:
             if self._bufor:
                 self._bufor = self._bufor[:-1]
                 self._odswiez()
             elif not zdarzenie.isAutoRepeat():
-                self._polecenie("cofnij_kuwete")
+                self.cofnij_kuwete()
             return True
         if klawisz == Qt.Key.Key_Escape:
             if self._bufor:
