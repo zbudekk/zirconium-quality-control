@@ -95,6 +95,8 @@ ZRODLA_RAMEK = {"W": "ramka_w", "P": "ramka_p"}  # kolumna ``zdarzenia.zrodlo`` 
 ZDARZENIA_KUWET_RAMKI = ("potwierdzenie", "cofniecie", "kuweta_wybrana")
 CZAS_NA_POLACZENIE_RAMEK_S = 2.0  # komunikat "ramka nie odpowiada" dopiero po tylu sekundach od podlaczenia (recenzja PR #30 D7)
 OKRES_PONOWIENIA_PLANU_S = 2.0  # P2: plan ramki porannej, ktorego nie dalo sie zbudowac - ponowienie co tyle sekund
+OKRES_PONOWIENIA_ZDARZEN_S = 1.0  # r3 D-N1: zdarzenia ramki odlozone przy zajetej bazie - ponowienie najczesciej co tyle sekund
+CZEKAJ_ZDARZENIA_MS = 250  # r3 D-N1: zapis zdarzen ramki czeka na zajeta baze najwyzej tyle (nie 5 s) - potem ponowienie
 ZALEGLE_EXCELA_H = 48  # P5: piece zamkniete w ostatnich tylu godzinach z niezalatwionymi zleceniami Excela - przypomnienie przy starcie
 ZALEGLE_EXCELA_PIECE = 5
 MAX_PROJEKTOW_KUWETY = 60  # najwyzej tyle projektow zwraca ``projekty_kuwety``
@@ -1174,7 +1176,9 @@ class KontrolerSesji(Kontroler):
         self._plan_p_ponow = False  # P2: planu nie dalo sie zbudowac - ponowienie
         self._plan_p_ponow_od = 0.0
         self._plany_czekaja: dict = {}  # P7: plan_id pieca zamknietego -> wersja planu laptopa w chwili zamkniecia
-        self._zdarzenia_ponow: list = []  # D2: zdarzenia ramki niezapisane (baza zajeta) - ponowienie w nastepnym obiegu
+        self._zdarzenia_ponow: list = []  # D2: zdarzenia ramki niezapisane (baza zajeta) - ponowienie
+        self._zdarzenia_ponow_od = 0.0  # r3 D-N1: najwczesniej wtedy kolejna proba
+        self._excel_jawnie = False  # r3 P-N3: okno pokazane jawnie (``excel_pokaz``) - widoczne takze bez pozycji, gdy sa zalegle piece
         self._odswiez_potrzebne = False
         self._ramki_od = 0.0
         self._ramki_po_czasie = False
@@ -1982,18 +1986,23 @@ class KontrolerSesji(Kontroler):
             return n
         pelne, zywe = self._odswiez_potrzebne, False
         self._odswiez_potrzebne = False
-        zalegle, self._zdarzenia_ponow = self._zdarzenia_ponow, []
-        odebrane = list(zalegle)
+        odebrane = []
         for k in self._klienci():
             try:
                 odebrane += k.odbierz_zdarzenia()
             except Exception:  # noqa: BLE001
                 LOG.exception("kontroler: zdarzen ramki nie da sie odebrac")
-        if odebrane:
-            n += len(odebrane)
-            wynik, self._zdarzenia_ponow = self._zdarzenia_ramki(odebrane)
-            pelne = wynik or pelne
         teraz = time.monotonic()
+        if self._zdarzenia_ponow and teraz < self._zdarzenia_ponow_od:  # r3 D-N1: odlozone czekaja (kolejnosc: nowe za nimi)
+            self._zdarzenia_ponow += odebrane
+        elif self._zdarzenia_ponow or odebrane:
+            do_zapisu, self._zdarzenia_ponow = self._zdarzenia_ponow + odebrane, []
+            n += len(do_zapisu)
+            with self._krotkie_czekanie_na_baze():
+                wynik, self._zdarzenia_ponow = self._zdarzenia_ramki(do_zapisu)
+            if self._zdarzenia_ponow:
+                self._zdarzenia_ponow_od = teraz + OKRES_PONOWIENIA_ZDARZEN_S
+            pelne = wynik or pelne
         if teraz >= self._ramki_kontrola:
             self._ramki_kontrola = teraz + OKRES_STANU_RAMEK_S
             if self._test_led_do and teraz >= self._test_led_do:  # koniec testu diod: plan pieca ponownie
@@ -2025,6 +2034,32 @@ class KontrolerSesji(Kontroler):
         return n
 
     # --- dziennik zdarzen ramek z kluczem unikalnym (wymaganie indicate.md, pkt 4 API) -------------
+    def _krotkie_czekanie_na_baze(self):
+        """r3 D-N1: zapis zdarzen ramki czeka na baze zajeta przez inny program najwyzej ``CZEKAJ_ZDARZENIA_MS`` (zamiast
+        ``busy_timeout`` 5 s - okno nie stoi), potem zdarzenia czekaja na ponowienie co ``OKRES_PONOWIENIA_ZDARZEN_S``."""
+        import contextlib  # noqa: PLC0415
+
+        baza = self.sesja.baza
+
+        @contextlib.contextmanager
+        def czekanie():
+            ustawione = False
+            try:
+                baza.polaczenie.execute(f"PRAGMA busy_timeout = {int(CZEKAJ_ZDARZENIA_MS)}")
+                ustawione = True
+            except Exception:  # noqa: BLE001 - bez krotkiego czekania zapis i tak sie uda (dluzej)
+                pass
+            try:
+                yield
+            finally:
+                if ustawione:
+                    try:
+                        baza.polaczenie.execute(f"PRAGMA busy_timeout = {int(getattr(baza, 'czekaj_ms', B.CZEKAJ_NA_BLOKADE_MS))}")
+                    except Exception:  # noqa: BLE001
+                        LOG.exception("kontroler: nie da sie przywrocic czasu czekania na baze")
+
+        return czekanie()
+
     def _zdarzenia_ramki(self, zdarzenia: list) -> tuple:
         """Zdarzenia jednego odbioru, w kolejnosci: kolejne zdarzenia bez skutku w sesji zapisywane w JEDNEJ transakcji (jeden zapis
         na dysk), "Zamknij piec" - osobno. Blad serii = wycofanie i zapis po jednym. Baza zajeta = to zdarzenie i nastepne czekaja
@@ -2119,18 +2154,23 @@ class KontrolerSesji(Kontroler):
 
     def _kuweta_z_ramki(self, z: dict, plan_id: str) -> tuple:
         """Decyzja wlasciciela (runda 2): Enter / Backspace na ramce porannej = takze kuweta rozlozona / cofnieta na ekranie.
-        Kuweta jest rozlozona, gdy ramka ma ja potwierdzona na WSZYSTKICH plytkach planu, na ktorych lezy (lustro potwierdzen
-        klienta ``potwierdzone()``); cofniecie na ramce kuwety rozlozonej - znow do rozlozenia. Zwraca ("kuweta_rozlozona" /
-        "kuweta_cofnieta", kuweta) albo (None, None)."""
+        Kuweta jest rozlozona, gdy ramka ma ja potwierdzona na WSZYSTKICH plytkach, na ktorych lezy wedlug EKRANU (lista kuwet
+        ``KuwetaRano.plytki``, lustro potwierdzen klienta ``potwierdzone()``); kuweta z praca na plytce poza planem ramki (okragla)
+        - bez automatu, rozlozenie potwierdza osoba na ekranie (r3 P-N1). Cofniecie na ramce kuwety rozlozonej - znow do
+        rozlozenia (biezaca kuweta laptopa bez zmian - r3 D-N3). Zwraca ("kuweta_rozlozona" / "kuweta_cofnieta", kuweta) albo
+        (None, None)."""
         kuweta, k = z.get("kuweta"), self._klient("P")
         if not isinstance(kuweta, str) or k is None or plan_id != self._plan_p or self._plan_p_dane is None:
             return None, None
         stos = self._rozlozone(plan_id)
         if z.get("typ") == "cofniecie":
             return ("kuweta_cofnieta", kuweta) if kuweta in stos else (None, None)
-        plytki = next((set(x.get("plytki") or ()) for x in self._plan_p_dane.get("kuwety") or () if x.get("kuweta") == kuweta), None)
-        if not plytki or kuweta in stos:
-            return None, None
+        w_planie = next((set(x.get("plytki") or ()) for x in self._plan_p_dane.get("kuwety") or () if x.get("kuweta") == kuweta), None)
+        rano = self._stan.rano if self._stan is not None else None
+        na_ekranie = next((set(x.plytki) for x in (rano.kuwety if rano is not None else ()) if x.kuweta == kuweta), None)
+        plytki = na_ekranie if na_ekranie else w_planie
+        if not plytki or kuweta in stos or not plytki <= (w_planie or set()):
+            return None, None  # r3 P-N1: praca kuwety na plytce poza ramka (okragla) - rozlozenie potwierdza osoba na ekranie
         try:
             potwierdzone = {(int(p), kw) for p, kw in k.potwierdzone()}
         except Exception:  # noqa: BLE001
@@ -2182,8 +2222,7 @@ class KontrolerSesji(Kontroler):
             return True
         if kuweta[0] == "kuweta_cofnieta":
             stos = self._rozlozone(plan_id)
-            del stos[len(stos) - 1 - stos[::-1].index(kuweta[1])]
-            self._kuweta_biezaca[plan_id] = kuweta[1]
+            del stos[len(stos) - 1 - stos[::-1].index(kuweta[1])]  # r3 D-N3: biezaca kuweta laptopa zostaje (wybor osoby przy laptopie)
             return True
         return False
 
@@ -2556,11 +2595,15 @@ class KontrolerSesji(Kontroler):
         self._excel_odloz_biezacy(sid)
         self._excel_piec = (sid, wynik.get("nr_w_dniu"), wynik.get("data"))
         self._excel_pozycje, self._excel_blad, self._excel_widoczne, self._excel_bledy = [], None, False, bledy
+        self._excel_jawnie = False
         try:
             pozycje = ex.propozycje({**wynik, "kompletne": kompletne}) if kompletne else []
         except EX.BladExcela as e:
             self._excel_blad_kroku(sid, str(e))
             return
+        for poz, zl in zip(pozycje, kompletne):  # r3 P-N2: pozycja z bledem jednego zlecenia (``zlecenie_id`` None) - tozsamosc
+            if poz.zlecenie_id is None and _jest_liczba(zl.get("zlecenie_id")):  # z kompletne (ta sama kolejnosc): mozna ja pominac,
+                poz.zlecenie_id = zl["zlecenie_id"]  # a wpis logu ma zlecenie (tryb "cien" nie dopisuje go przy kazdym pokazaniu)
         self._usun_komunikat(ID_EXCEL)
         if self._excel_zalegle.pop(sid, None) is not None:
             self._usun_komunikat(f"excel_zalegle:{sid}")
@@ -2635,7 +2678,8 @@ class KontrolerSesji(Kontroler):
             ostrzezenia = ()
         zalegle = tuple((s, n, d, ile) for s, (n, d, ile) in sorted(self._excel_zalegle.items()) if s != sid)
         return StanExcel(tryb=self.excel.tryb, sesja_pieca_id=sid, nr_w_dniu=nr, data=data, pozycje=tuple(pozycje),
-                         widoczne=self._excel_widoczne and do > 0, blad=self._excel_blad, ostrzezenia=ostrzezenia, do_zalatwienia=do,
+                         widoczne=self._excel_widoczne and (do > 0 or (self._excel_jawnie and bool(zalegle))), blad=self._excel_blad,
+                         ostrzezenia=ostrzezenia, do_zalatwienia=do,
                          w_toku=len(self._excel_kolejka), zalegle=zalegle)
 
     def _pozycja_excela(self, sesja_pieca_id: int, zlecenie_id: int):
@@ -2707,14 +2751,16 @@ class KontrolerSesji(Kontroler):
         return self._polecenie(wykonaj, nazwa="excel_pomin", liczby=(sesja_pieca_id, zlecenie_id), punkty=False)
 
     def _excel_pokaz_piec(self, sid: int) -> int:
+        """Okno Excela dla pieca ``sid`` (jawny wybor osoby): widoczne, gdy sa pozycje do zalatwienia ALBO inne zalegle piece
+        (r3 P-N3 - przyciski zaleglych w oknie, takze gdy pokazany piec jest zalatwiony)."""
         if (self._excel_piec is not None and self._excel_piec[0] == sid and self._excel_blad is None
                 and any(not p.zalatwiona for p in self._excel_pozycje)):
-            self._excel_widoczne = True
+            pass
         else:
             self._excel_krok_piec(sid)
             if self._excel_blad:
                 raise SE.BladSesji(self._excel_blad)
-            self._excel_widoczne = any(not p.zalatwiona for p in self._excel_pozycje)
+        self._excel_widoczne, self._excel_jawnie = True, True
         return sum(1 for p in self._excel_pozycje if not p.zalatwiona)
 
     def excel_odswiez(self) -> Odpowiedz:
