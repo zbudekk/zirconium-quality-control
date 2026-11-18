@@ -127,7 +127,9 @@ def test_k1_zero_zapisow_w_zlym_wierszu(zestaw, tmp_path):
     assert w1 == w0  # zadna wartosc komorki sie nie zmienila
     assert zmienione == {(nr, KOL_B) for nr in oczekiwane} and all(k1[kl] == ZIELONY for kl in zmienione)
     assert zle == [] and len(_zapisy(ark)) == len(oczekiwane)
-    assert sum(wyniki.values()) == 200 and len(_log(tmp_path)) == 200
+    log = Counter(w["wynik"] for w in _log(tmp_path))
+    # 200 wpisow koncowych + 4 odmowy "pole B w innym kolorze" (proba zapisu po wskazaniu - wpis "blad", potem "pominieto")
+    assert sum(wyniki.values()) == 200 and log == {**wyniki, EX.WYNIK_BLAD: 4}
 
 
 # --- kryterium 2: wyszukanie ponizej 50 ms -------------------------------------------------------------------------
