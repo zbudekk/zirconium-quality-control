@@ -300,6 +300,11 @@ class Przerwano(Exception):
     """Kopiowanie przerwane (zamykanie programu)."""
 
 
+class PaczkaNiespojna(OSError):
+    """Pakowanie nie udalo sie przy zamianie archiwow i poprzedniej paczki nie dalo sie przywrocic w calosci: pliki ZIP w folderze
+    ``paczka`` moga byc niekompletne albo pomieszane (czesc nazw ``*.zip.stara``) - nie wysylac, spakowac ponownie."""
+
+
 def wolne_miejsce(folder) -> int:
     p = Path(folder)
     while not p.exists() and p.parent != p:
@@ -465,17 +470,28 @@ def stan_kopii_folderow(m: dict, krok: str | None = None) -> list[dict]:
     for id_kroku, k in ostatnie.items():
         plikow, juz = int(k.get("plikow", 0)), int(k.get("juz_byly", 0))
         stan = k.get("stan", "w_toku")
+        kopie_kroku = [w for w in m.get("pliki", []) if w.get("rodzaj") == "kopia_folderu" and w.get("krok") == id_kroku]  # tylko oceniany krok
         if stan == "w_toku":  # liczby koncowe nie zostaly zapisane: liczymy wpisy plikow dodane od poczatku tej kopii
-            skopiowane = sum(1 for w in m.get("pliki", []) if w.get("rodzaj") == "kopia_folderu" and w.get("id", 0) >= k.get("pierwszy_id", 0))
+            skopiowane = sum(1 for w in kopie_kroku if w.get("id", 0) >= k.get("pierwszy_id", 0))
         else:
             skopiowane = int(k.get("skopiowane", 0))
-        w_manifescie = sum(1 for w in m.get("pliki", []) if w.get("rodzaj") == "kopia_folderu")
-        jest = min(juz + skopiowane, w_manifescie)  # "porownanie z lista": wpisow nie moze byc mniej, niz kopia podaje
+        jest = min(juz + skopiowane, len(kopie_kroku))  # "porownanie z lista": wpisow w tym kroku nie moze byc mniej, niz kopia podaje
         wynik.append({"krok": id_kroku, "stan": stan, "pelna": stan == "pelna" and jest >= plikow, "jest": jest, "plikow": plikow,
                       "skopiowane": skopiowane, "juz_byly": juz, "bledy": int(k.get("bledy", 0)),
                       "pominiete": int(k.get("pominiete", 0)) if stan != "w_toku" else max(0, plikow - juz - skopiowane),
-                      "niedostepne_katalogi": int(k.get("niedostepne_katalogi", 0)), "powod": k.get("powod", "")})
+                      "niedostepne_katalogi": int(k.get("niedostepne_katalogi", 0)), "powod": k.get("powod", ""),
+                      "nieskopiowane": list(k.get("nieskopiowane", []))})
     return wynik
+
+
+def _nazwy_nieskopiowanych(k: dict, ile: int = 3) -> str:
+    """Nazwy plikow, ktorych kopia calego folderu nie skopiowala (do komunikatu): pierwsze ``ile`` i liczba pozostalych."""
+    nazwy = [Path(n).name for n in k.get("nieskopiowane", [])]
+    return ", ".join(nazwy[:ile]) + (f" i {k['bledy'] - ile} innych" if k.get("bledy", 0) > ile else "")
+
+
+CO_ROBIC_Z_ZAJETYM_PLIKIEM = ("jeśli to pliki zajęte przez program skanera: spakuj mimo to, a kopię dokończ po zamknięciu programu skanera "
+                              "(kliknij kopię jeszcze raz i spakuj ponownie)")
 
 
 def brak_kopii_folderow(m: dict, krok: str) -> str | None:
@@ -485,12 +501,13 @@ def brak_kopii_folderow(m: dict, krok: str) -> str | None:
             return None
         if k["stan"] == "w_toku":
             return f"kopia całego folderu nie została dokończona: w sesji jest {k['jest']} z {k['plikow']} plików — jeśli nic się teraz nie kopiuje, kliknij kopię jeszcze raz"
-        szczegoly = [f"nie udało się: {k['bledy']}"] if k["bledy"] else []
+        nazwy = _nazwy_nieskopiowanych(k)
+        szczegoly = [f"nie udało się: {k['bledy']}" + (f" — {nazwy}" if nazwy else "")] if k["bledy"] else []
         szczegoly += [f"nie zdążono: {k['pominiete']}"] if k["pominiete"] else []
         szczegoly += [f"niedostępne podfoldery: {k['niedostepne_katalogi']}"] if k["niedostepne_katalogi"] else []
         szczegoly += [k["powod"]] if k["powod"] else []
         return (f"kopia całego folderu NIEPEŁNA: w sesji jest {k['jest']} z {k['plikow']} plików" + (f" ({'; '.join(szczegoly)})" if szczegoly else "")
-                + " — kliknij kopię jeszcze raz (skopiuje tylko brakujące pliki)")
+                + " — kliknij kopię jeszcze raz (skopiuje tylko brakujące pliki)" + (f"; {CO_ROBIC_Z_ZAJETYM_PLIKIEM}" if k["bledy"] else ""))
     return None
 
 
@@ -625,7 +642,8 @@ class Sesja:
 
     @staticmethod
     def lista(katalog: Path | None = None) -> list[dict]:
-        """Sesje w katalogu, od najnowszej: {folder, nazwa, utworzono, zakonczono, plikow}."""
+        """Sesje w katalogu, od najnowszej: {folder, nazwa, utworzono, zakonczono, plikow, zmieniono_po_spakowaniu, nieudane_pakowanie}.
+        ``nieudane_pakowanie``: None albo {czas, blad, paczka_niespojna} - ostatnia proba pakowania sie nie udala."""
         katalog = Path(katalog) if katalog is not None else KATALOG_SESJI
         wynik = []
         if not katalog.is_dir():
@@ -636,7 +654,8 @@ class Sesja:
             for nazwa in (PLIK_MANIFESTU, PLIK_MANIFESTU + ".bak"):
                 try:
                     m = json.loads((p / nazwa).read_text(encoding="utf-8"))
-                    wynik.append({"folder": p, "nazwa": p.name, "utworzono": m.get("utworzono"), "zakonczono": m.get("zakonczono"), "plikow": len(m.get("pliki", []))})
+                    wynik.append({"folder": p, "nazwa": p.name, "utworzono": m.get("utworzono"), "zakonczono": m.get("zakonczono"), "plikow": len(m.get("pliki", [])),
+                                  "zmieniono_po_spakowaniu": bool(m.get("zmieniono_po_spakowaniu")), "nieudane_pakowanie": m.get("nieudane_pakowanie") or None})
                     break
                 except (OSError, ValueError):
                     continue
@@ -887,12 +906,13 @@ class Sesja:
             self.zdarzenie("kopia calych folderow", krok=krok, plikow=int(plikow), bajtow=int(bajtow), juz_byly=int(juz_byly), zrodla=wpis["zrodla"])
             return wpis
 
-    def zakoncz_kopie_folderow(self, wpis: dict, skopiowane: int, bledy: int, pominiete: int, powod: str = "") -> dict:
-        """Wynik kopii calych folderow: liczby i stan ``pelna`` | ``niepelna`` (bledy, niedostepne podkatalogi) | ``przerwana`` (``powod``)."""
+    def zakoncz_kopie_folderow(self, wpis: dict, skopiowane: int, bledy: int, pominiete: int, powod: str = "", nieskopiowane: list | None = None) -> dict:
+        """Wynik kopii calych folderow: liczby i stan ``pelna`` | ``niepelna`` (bledy, niedostepne podkatalogi) | ``przerwana`` (``powod``).
+        ``nieskopiowane``: sciezki (w kopii) plikow, ktorych nie udalo sie odczytac - do komunikatu dla czlowieka (najwyzej 20)."""
         with self._zamek:
             caly = not bledy and not pominiete and not wpis.get("niedostepne_katalogi")
             wpis.update({"koniec": teraz_iso(), "stan": "pelna" if caly else ("przerwana" if powod else "niepelna"), "powod": powod,
-                         "skopiowane": int(skopiowane), "bledy": int(bledy), "pominiete": int(pominiete)})
+                         "skopiowane": int(skopiowane), "bledy": int(bledy), "pominiete": int(pominiete), "nieskopiowane": list(nieskopiowane or [])[:20]})
             self.zdarzenie("kopia calych folderow: koniec", krok=wpis["krok"], stan=wpis["stan"], plikow=wpis["plikow"], juz_byly=wpis["juz_byly"],
                            skopiowane=int(skopiowane), bledy=int(bledy), pominiete=int(pominiete), powod=powod)
             return wpis
@@ -901,7 +921,8 @@ class Sesja:
         """Wznowienie: kopia calych folderow, ktora zostala "w toku" (program zabity w jej trakcie), dostaje stan ``przerwana`` z liczbami z manifestu."""
         for k in self.m.get("kopie_folderow", []):
             if k.get("stan") == "w_toku":
-                skopiowane = sum(1 for w in self.m["pliki"] if w.get("rodzaj") == "kopia_folderu" and w["id"] >= k.get("pierwszy_id", 0))
+                skopiowane = sum(1 for w in self.m["pliki"] if w.get("rodzaj") == "kopia_folderu" and w.get("krok") == k.get("krok")
+                                 and w["id"] >= k.get("pierwszy_id", 0))
                 pominiete = max(0, int(k.get("plikow", 0)) - int(k.get("juz_byly", 0)) - skopiowane)
                 self.log(f"kopia calych folderow nr {k.get('nr')} byla w toku przy zamknieciu programu: skopiowane {skopiowane}, brakuje {pominiete}")
                 self.zakoncz_kopie_folderow(k, skopiowane, 0, pominiete, "program został zamknięty w trakcie kopii" if pominiete else "")
@@ -1628,6 +1649,7 @@ class Zbieracz:
         if not kopia:
             self.sesja.zdarzenie("dodano recznie", krok=krok, plikow=len(lista), bajtow=razem, zrodla=[skroc_sciezke(s) for s in sciezki])
         zrobione, skopiowane, bledy, powod = 0, 0, 0, ""
+        nieskopiowane: list[str] = []
         for zrodlo, rel, roz, _ in do_kopii:
             if self._stop.is_set():
                 powod = "zamykanie programu"
@@ -1644,6 +1666,7 @@ class Zbieracz:
                 break
             except OSError as e:
                 bledy += 1
+                nieskopiowane.append(rel)
                 self.sesja.log(f"nie skopiowano {zrodlo}: {type(e).__name__}: {e}")
                 zrobione += roz
                 continue
@@ -1653,7 +1676,7 @@ class Zbieracz:
             self._po_skopiowaniu(wpis, kontrola=not kopia, cicho=len(do_kopii) >= 20)
         pominiete = len(do_kopii) - skopiowane - bledy
         if rejestr is not None:  # slad w manifescie takze po przerwaniu: skopiowane / bledy / pominiete (zapis na dysk)
-            self.sesja.zakoncz_kopie_folderow(rejestr, skopiowane, bledy, pominiete, powod)
+            self.sesja.zakoncz_kopie_folderow(rejestr, skopiowane, bledy, pominiete, powod, nieskopiowane)
         elif bledy or pominiete:
             self.sesja.zdarzenie("dodano recznie: niepelne", krok=krok, plikow=len(lista), skopiowane=skopiowane, bledy=bledy, pominiete=pominiete, powod=powod)
         else:
@@ -1668,11 +1691,14 @@ class Zbieracz:
     def _zglos_niepelna_kopie(self, krok: str) -> None:
         for k in stan_kopii_folderow(self.sesja.m, krok):
             self.sesja.log(f"kopia calych folderow NIEPELNA: {k}")
+            nazwy = _nazwy_nieskopiowanych(k)
             self._zdarzenie("blad", tekst=f"Kopia całego folderu jest NIEPEŁNA: w sesji jest {k['jest']} z {k['plikow']} plików"
-                                          + (f", nie udało się: {k['bledy']}" if k["bledy"] else "") + (f", nie zdążono: {k['pominiete']}" if k["pominiete"] else "")
+                                          + (f", nie udało się: {k['bledy']}" + (f" ({nazwy})" if nazwy else "") if k["bledy"] else "")
+                                          + (f", nie zdążono: {k['pominiete']}" if k["pominiete"] else "")
                                           + (f", niedostępne podfoldery: {k['niedostepne_katalogi']}" if k["niedostepne_katalogi"] else "")
-                                          + (f" ({k['powod']})" if k["powod"] else "") + ". Lista w log.txt. Gdy przeszkoda zniknie, kliknij "
-                                          "„Skopiuj cały folder zleceń skanera” jeszcze raz — skopiuję tylko brakujące pliki.")
+                                          + (f" ({k['powod']})" if k["powod"] else "") + ". Lista w log.txt. Kliknij „Skopiuj cały folder zleceń "
+                                          "skanera” jeszcze raz — skopiuję tylko brakujące pliki"
+                                          + (f"; {CO_ROBIC_Z_ZAJETYM_PLIKIEM}." if k["bledy"] else "."))
 
     def _postep(self, nazwa: str, przed: int = 0, razem: int | None = None):
         stan = {"t": 0.0}
@@ -1863,6 +1889,10 @@ class Zbieracz:
         except Przerwano:
             self.sesja.log("pakowanie przerwane: program jest zamykany")
             self._zdarzenie("spakowano", wynik=None, blad="pakowanie przerwane (zamykanie programu) — sesja nie jest oznaczona jako spakowana")
+            return
+        except PaczkaNiespojna as e:  # zamiana archiwow nie udala sie i poprzedniej paczki nie dalo sie przywrocic: okno ma to powiedziec wprost
+            self.sesja.log_wyjatku("spakuj", e)
+            self._zdarzenie("spakowano", wynik=None, blad=str(e), paczka_niespojna=True)
             return
         except BrakMiejsca as e:
             self._zdarzenie("brak_miejsca", tekst=str(e), potrzeba=e.potrzeba, wolne=e.wolne)
@@ -2057,19 +2087,35 @@ def czy_projekt_exocad(wpis: dict) -> bool:
 
 
 def bez_nazw_projektow(tekst: str, zamiany: dict | None = None) -> str:
-    """``tekst`` (log, stan obserwatora, manifest jako JSON) bez nazw projektow exocad: nazwy z ``zamiany`` zastapione swoimi znacznikami,
-    a kazda inna nazwa pliku pasujaca do wzoru projektu (np. plik zastany w folderze skanera, znany tylko obserwatorowi, albo plik,
-    ktorego nie udalo sie skopiowac) - znacznikiem ogolnym. Nazwa siega wstecz do najblizszego ukosnika, cudzyslowu albo poczatku linii."""
+    """Zwykly ``tekst`` (wiersze logu, jeden napis z manifestu) bez nazw projektow exocad: nazwy z ``zamiany`` zastapione swoimi
+    znacznikami, a kazda inna nazwa pliku pasujaca do wzoru projektu (np. plik zastany w folderze skanera, znany tylko obserwatorowi,
+    plik, ktorego nie udalo sie skopiowac, nazwa wpisana w notatce) - znacznikiem ogolnym. Nazwa siega wstecz do najblizszego ukosnika,
+    cudzyslowu, tabulatora albo poczatku linii.
+
+    NIE dla tekstu JSON: cofanie do ukosnika wstecznego rozcina tam sekwencje ``\\n`` / ``\\t`` i zostawia niepoprawny JSON (recenzja PR #13,
+    runda 2, P-n1). Dane strukturalne (manifest, stan obserwatora) czysci ``bez_nazw_projektow_w_danych`` - napis po napisie."""
     for nazwa, znacznik in sorted((zamiany or {}).items(), key=lambda p: -len(p[0])):
         tekst = tekst.replace(nazwa, znacznik)
     kawalki, koniec = [], 0
     for dop in WZOR_PROJEKTU_W_TEKSCIE.finditer(tekst):
         if dop.start() < koniec:
             continue
-        poczatek = max(tekst.rfind(znak, koniec, dop.start()) for znak in '/\\"\n') + 1
+        poczatek = max(tekst.rfind(znak, koniec, dop.start()) for znak in '/\\"\n\r\t') + 1
         kawalki += [tekst[koniec:max(poczatek, koniec)], ZNACZNIK_PROJEKTU]
         koniec = dop.end()
     return "".join(kawalki) + tekst[koniec:] if kawalki else tekst
+
+
+def bez_nazw_projektow_w_danych(dane, zamiany: dict | None = None):
+    """Kopia struktury danych (slowniki, listy, napisy, liczby - to, co daje ``json.loads``) z nazwami projektow exocad usunietymi
+    w KAZDYM napisie osobno, takze w kluczach slownikow (``bez_nazw_projektow``). Wynik zawsze da sie zapisac jako poprawny JSON."""
+    if isinstance(dane, str):
+        return bez_nazw_projektow(dane, zamiany)
+    if isinstance(dane, dict):
+        return {(bez_nazw_projektow(k, zamiany) if isinstance(k, str) else k): bez_nazw_projektow_w_danych(v, zamiany) for k, v in dane.items()}
+    if isinstance(dane, (list, tuple)):
+        return [bez_nazw_projektow_w_danych(v, zamiany) for v in dane]
+    return dane
 
 
 def _pliki_sesji(sesja: Sesja) -> list[tuple[str, str]]:
@@ -2096,8 +2142,8 @@ def manifest_bez_projektow(m: dict, pominiete: set) -> tuple[dict, dict]:
     """Kopia manifestu do paczki: wpisy plikow pominietych (projekty exocad) bez nazw - nazwa pliku moze byc nazwiskiem.
 
     Zwraca (manifest, zamiany: nazwa pliku -> znacznik ``projekt_pominiety_<SHA-16>``); nazwy sa tez usuwane z reszty
-    manifestu (zdarzenia, uwagi), razem z kazda inna nazwa pasujaca do wzoru projektu (``bez_nazw_projektow``).
-    Manifest w folderze sesji zostaje bez zmian."""
+    manifestu (zdarzenia, uwagi, notatki), razem z kazda inna nazwa pasujaca do wzoru projektu. Zamiana idzie po strukturze, napis
+    po napisie (``bez_nazw_projektow_w_danych``), nigdy po tekscie JSON. Manifest w folderze sesji zostaje bez zmian."""
     zamiany: dict[str, str] = {}
     for w in m["pliki"]:
         if w["cel"] in pominiete:
@@ -2105,11 +2151,7 @@ def manifest_bez_projektow(m: dict, pominiete: set) -> tuple[dict, dict]:
             for pole in ("cel", "zrodlo", "wzgledna"):
                 if w.get(pole):
                     zamiany[Path(w[pole]).name] = znacznik
-    surowy = json.dumps(m, ensure_ascii=False)
-    tekst = bez_nazw_projektow(surowy, {json.dumps(nazwa, ensure_ascii=False)[1:-1]: znacznik for nazwa, znacznik in zamiany.items()})
-    if tekst == surowy:
-        return m, zamiany
-    m2 = json.loads(tekst)
+    m2 = bez_nazw_projektow_w_danych(m, zamiany)
     for w, w2 in zip(m["pliki"], m2["pliki"]):
         if w["cel"] in pominiete:
             w2["pominiety_w_paczce"] = True
@@ -2194,7 +2236,9 @@ def spakuj(sesja: Sesja, postep=None, limit: int = LIMIT_ZIP, wolne=wolne_miejsc
     Kolejnosc jest odporna na awarie: nowe archiwa powstaja pod nazwami tymczasowymi (``*.zip.czesc``), a dopiero gdy WSZYSTKIE sa gotowe,
     zastepuja stare; potem zapisywane sa raport i sumy, a na samym koncu znaczniki ``zakonczono`` / ``spakowano`` w manifescie. Nieudane
     albo przerwane pakowanie (wyjatek, brak miejsca, ``przerwij()`` = True -> ``Przerwano``, zabicie programu) zostawia wiec sesje
-    NIEoznaczona jako spakowana, a poprzednia paczke - nietknieta.
+    NIEoznaczona jako spakowana, a poprzednia paczke - nietknieta. Zamiana archiwow ma cofniecie (stare czesci czekaja jako
+    ``*.zip.stara``); gdy cofniecie sie nie uda - ``PaczkaNiespojna``. Kazda nieudana proba zostawia w manifescie znacznik
+    ``nieudane_pakowanie`` {czas, blad, paczka_niespojna} (usuwany przez udane pakowanie).
     """
     def krok_postepu(zrobione: int, razem: int, co: str) -> None:
         if postep is not None:
@@ -2216,6 +2260,7 @@ def spakuj(sesja: Sesja, postep=None, limit: int = LIMIT_ZIP, wolne=wolne_miejsc
             m_po["zakonczono"] = czas
             m_po["spakowano"] = list(m_po.get("spakowano") or []) + [czas]
             m_po["zmieniono_po_spakowaniu"] = False
+            m_po.pop("nieudane_pakowanie", None)  # znacznik wczesniejszej nieudanej proby: po udanym pakowaniu go nie ma
             m_po["zdarzenia"].append({"czas": czas, "co": "zakoncz i spakuj"})
         braki, pominiete_kroki = braki_wymaganych(m_po)
         wszystkie = _pliki_sesji(sesja)
@@ -2244,6 +2289,11 @@ def spakuj(sesja: Sesja, postep=None, limit: int = LIMIT_ZIP, wolne=wolne_miejsc
                         migawki[rel] = f.read()
                     tekst = migawki[rel].decode("utf-8", errors="replace")
                     czysty = bez_nazw_projektow(tekst, zamiany)
+                    if czysty != tekst and rel == PLIK_OBSERWATORA:  # to JSON: zamiana po strukturze, zeby w paczce zostal poprawny JSON
+                        try:
+                            czysty = json.dumps(bez_nazw_projektow_w_danych(json.loads(tekst), zamiany), ensure_ascii=False)
+                        except ValueError:
+                            pass  # stan obserwatora nieczytelny: zostaje zamiana w tekscie (nazwy i tak znikaja)
                     if czysty != tekst:
                         migawki[rel] = czysty.encode("utf-8")
                 sumy[rel] = hashlib.sha256(migawki[rel]).hexdigest()
@@ -2277,9 +2327,24 @@ def spakuj(sesja: Sesja, postep=None, limit: int = LIMIT_ZIP, wolne=wolne_miejsc
         # 3) archiwum: wszystkie czesci pod nazwami tymczasowymi; stara paczka zostaje nietknieta, dopoki nowa nie jest cala
         kat = sesja.sciezka(KATALOG_PACZKI)
         os.makedirs(_io(kat), exist_ok=True)
-        for stary in os.listdir(_io(kat)):
+        kat_io = _io(kat)
+        zastane = os.listdir(kat_io)
+        # odlozone czesci poprzedniej paczki wracaja na miejsce, gdy zamiana nie zostala cofnieta (znacznik) albo program zostal zabity,
+        # zanim wstawil choc jedna nowa czesc (w folderze nie ma zadnego archiwum); inaczej *.zip.stara to smiec po udanej zamianie
+        przywracaj = bool((sesja.m.get("nieudane_pakowanie") or {}).get("paczka_niespojna")) or not any(
+            n.startswith(nazwa) and n.lower().endswith(".zip") for n in zastane)
+        for stary in zastane:
+            sciezka = os.path.join(kat_io, stary)
             if stary.startswith(nazwa) and stary.endswith(".zip.czesc"):  # pozostalosc po pakowaniu przerwanym zabiciem programu (wytwor programu)
-                os.unlink(os.path.join(_io(kat), stary))
+                os.unlink(sciezka)
+            elif stary.startswith(nazwa) and stary.endswith(".zip.stara"):  # pozostalosc po zamianie archiwow (wytwor programu)
+                try:
+                    if przywracaj and not os.path.exists(sciezka[:-len(".stara")]):
+                        os.replace(sciezka, sciezka[:-len(".stara")])  # nieprzywrocona czesc poprzedniej paczki wraca na miejsce
+                    else:
+                        os.unlink(sciezka)
+                except OSError:
+                    pass
         for nazwa_zip, zawartosc in zip(nazwy_zip, czesci):
             tmp = _io(str(kat / nazwa_zip) + ".czesc")
             tymczasowe.append(tmp)
@@ -2299,17 +2364,41 @@ def spakuj(sesja: Sesja, postep=None, limit: int = LIMIT_ZIP, wolne=wolne_miejsc
                     zrobione += os.path.getsize(p)
                     krok_postepu(zrobione, 2 * razem, nazwa_zip)
         sprawdz_przerwanie()
-        # 4) nowa paczka jest cala: zamiana (te same nazwy sa zastepowane), potem usuniecie starych czesci o innych nazwach
-        wynik_czesci = []
-        for tmp, nazwa_zip in zip(list(tymczasowe), nazwy_zip):
-            cel = kat / nazwa_zip
-            os.replace(tmp, _io(cel))
-            tymczasowe.remove(tmp)
-            wynik_czesci.append({"plik": f"{KATALOG_PACZKI}/{nazwa_zip}", "sciezka": str(cel), "rozmiar": os.path.getsize(_io(cel)), "sha256": sha256_pliku(cel)})
-        nowe = {n.lower() for n in nazwy_zip}
-        for stary in os.listdir(_io(kat)):
-            if stary.startswith(nazwa) and stary.lower().endswith(".zip") and stary.lower() not in nowe:
-                os.unlink(os.path.join(_io(kat), stary))
+        # 4) nowa paczka jest cala: WSZYSTKIE stare czesci sa odkladane pod nazwy *.zip.stara, potem nowe wchodza na miejsce. Blad w trakcie
+        #    (Windows: plik otwarty w innym programie, antywirus) = cofniecie: nowe czesci znikaja, stare wracaja - poprzednia paczka zostaje
+        #    cala. Gdy cofniecie sie nie uda - PaczkaNiespojna (komunikat i znacznik mowia prawde). Stare czesci sa kasowane dopiero po sukcesie.
+        odlozone, ustawione = [], []
+        try:
+            for stary in sorted(os.listdir(kat_io)):
+                if stary.startswith(nazwa) and stary.lower().endswith(".zip"):
+                    os.replace(os.path.join(kat_io, stary), os.path.join(kat_io, stary + ".stara"))
+                    odlozone.append(stary)
+            for tmp, nazwa_zip in zip(list(tymczasowe), nazwy_zip):
+                os.replace(tmp, _io(kat / nazwa_zip))
+                tymczasowe.remove(tmp)
+                ustawione.append(nazwa_zip)
+        except BaseException as e:
+            cofniete = True
+            for nazwa_zip in ustawione:
+                try:
+                    os.unlink(_io(kat / nazwa_zip))
+                except OSError:
+                    cofniete = False
+            for stary in odlozone:
+                try:
+                    os.replace(os.path.join(kat_io, stary + ".stara"), os.path.join(kat_io, stary))
+                except OSError:
+                    cofniete = False
+            if not cofniete or any(n.startswith(nazwa) and n.endswith(".zip.stara") for n in os.listdir(kat_io)):
+                raise PaczkaNiespojna(f"nie udało się zamienić archiwów ({type(e).__name__}: {e}) ani przywrócić poprzedniej paczki — pliki ZIP w folderze "
+                                      f"„{KATALOG_PACZKI}” są niespójne") from e
+            raise
+        for stary in odlozone:
+            try:
+                os.unlink(os.path.join(kat_io, stary + ".stara"))
+            except OSError:
+                pass  # zostanie usuniety przy nastepnym pakowaniu
+        wynik_czesci = [{"plik": f"{KATALOG_PACZKI}/{n}", "sciezka": str(kat / n), "rozmiar": os.path.getsize(_io(kat / n)), "sha256": sha256_pliku(kat / n)} for n in nazwy_zip]
         zapisz_atomowo(sesja.folder / PLIK_RAPORTU, raport)
         zapisz_atomowo(sesja.folder / PLIK_SUM, tresc_sum)
         try:
@@ -2328,6 +2417,7 @@ def spakuj(sesja: Sesja, postep=None, limit: int = LIMIT_ZIP, wolne=wolne_miejsc
             sesja.m["zakonczono"] = czas
             sesja.m.setdefault("spakowano", []).append(czas)
             sesja.m["zmieniono_po_spakowaniu"] = zmieniona
+            sesja.m.pop("nieudane_pakowanie", None)
             sesja.m["zdarzenia"].append({"czas": czas, "co": "zakoncz i spakuj"})
             if zmieniona:
                 sesja._uniewaznij_sumy()
@@ -2343,8 +2433,24 @@ def spakuj(sesja: Sesja, postep=None, limit: int = LIMIT_ZIP, wolne=wolne_miejsc
                 os.unlink(tmp)
             except OSError:
                 pass
+        niespojna = isinstance(e, PaczkaNiespojna)
         sesja.log(f"pakowanie: {'przerwane' if isinstance(e, Przerwano) else 'nieudane'} ({type(e).__name__}) - sesja nie jest oznaczona jako spakowana, "
-                  "poprzednia paczka (jesli byla) zostaje bez zmian")
+                  + ("poprzedniej paczki NIE udalo sie przywrocic: pliki ZIP w folderze paczki sa niespojne" if niespojna
+                     else "poprzednia paczka (jesli byla) zostaje bez zmian"))
+        try:  # slad nieudanej proby w manifescie (addytywny klucz): okno przy starcie nie powie "zakonczona i spakowana" bez zastrzezenia
+            with sesja._zamek:
+                sesja.m["nieudane_pakowanie"] = {"czas": teraz_iso(), "paczka_niespojna": niespojna,
+                                                 "blad": ("przerwane (zamykanie programu)" if isinstance(e, Przerwano) else f"{type(e).__name__}: {e}")[:300]}
+                if niespojna and sesja.m.get("spakowano"):  # po paczce, ktora byla dobra, zostaly pomieszane pliki: sumy i "Spakowano" juz nie obowiazuja
+                    sesja.m["zmieniono_po_spakowaniu"] = True
+                    sesja._uniewaznij_sumy()
+                sesja._pakowanie = True  # sam znacznik nieudanej proby nie jest "zmiana po spakowaniu": poprzednia paczka nadal odpowiada sesji
+                try:
+                    sesja.zapisz()
+                finally:
+                    sesja._pakowanie = False
+        except Exception as e2:  # noqa: BLE001 - np. brak miejsca takze na manifest
+            sesja.log(f"pakowanie: nie udalo sie zapisac znacznika nieudanej proby ({type(e2).__name__}: {e2})")
         raise
 
 

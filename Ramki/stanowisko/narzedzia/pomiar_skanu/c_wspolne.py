@@ -4,7 +4,6 @@
 import math
 import warnings
 import time
-from pathlib import Path
 
 import numpy as np
 import open3d as o3d
@@ -15,8 +14,7 @@ from scipy.spatial import cKDTree
 
 from stanowisko import match as M, inspect as I
 
-PRACE = Path(r"<PC>\Desktop\Prace_test")
-W5 = ["3d091aaa646d9c32", "91c1dea0b2060be3", "a823e3b4aff6b60e", "d8d245b4c01ae11b", "ea47d2adbe45456e"]
+W5 =["3d091aaa646d9c32", "91c1dea0b2060be3", "a823e3b4aff6b60e", "d8d245b4c01ae11b", "ea47d2adbe45456e"]
 PROJ_STROJENIE = ["3d091aaa646d9c32", "91c1dea0b2060be3"]
 PROJ_OCENA = ["a823e3b4aff6b60e", "d8d245b4c01ae11b", "ea47d2adbe45456e"]
 KATY = [float(a) for a in range(0, 360, 36)]
@@ -432,5 +430,6 @@ class DetektorC:
         return wykrycia, info
 
 
-def wczytaj_pule():
-    return M.Pula(PRACE, 1.22)
+def wczytaj_pule(prace):
+    """Pula projektow z folderu ``prace`` - folder podaje wywolujacy (bez stalej sciezki konkretnego konta)."""
+    return M.Pula(prace, 1.22)

@@ -354,6 +354,11 @@ class Okno(QMainWindow):
         if self.sesja.m.get("spakowano"):
             html += ("<br><b>Sesja zmieniona po spakowaniu — spakuj ponownie.</b>" if self.sesja.m.get("zmieniono_po_spakowaniu")
                      else f"<br>Spakowano: {self.sesja.m['spakowano'][-1]}")
+        nieudane = self.sesja.m.get("nieudane_pakowanie")
+        if nieudane:  # takze po ponownym otwarciu sesji: ostatnia proba pakowania sie nie udala
+            html += (f"<br><span style='color:#b00020'><b>Ostatnie pakowanie nie udało się ({str(nieudane.get('czas', ''))[11:]})"
+                     + (" — pliki ZIP w folderze „paczka” są niespójne, nie wysyłaj ich" if nieudane.get("paczka_niespojna") else "")
+                     + ". Kliknij „Zakończ i spakuj” jeszcze raz.</b></span>")
         self.etykieta_kompletnosci.setText(html)
         self.braki_wymaganych = braki
 
@@ -771,9 +776,10 @@ class Okno(QMainWindow):
         wynik = z.get("wynik")
         self.wynik_paczki = wynik
         if wynik is None:
+            paczka = ("UWAGA: poprzedniej paczki nie udało się przywrócić — pliki ZIP w folderze „paczka” są teraz niespójne. NIE wysyłaj ich. "
+                      if z.get("paczka_niespojna") else "Sesja NIE jest oznaczona jako spakowana (poprzednia paczka, jeśli była, została bez zmian). ")
             self._ocena("czerwony", f"Pakowanie nie udało się: {z.get('blad')}. Zebrane pliki są bezpieczne w folderze sesji: {self.sesja.folder}\n"
-                                    "Sesja NIE jest oznaczona jako spakowana (poprzednia paczka, jeśli była, została bez zmian). "
-                                    "Usuń przyczynę i kliknij „Zakończ i spakuj” jeszcze raz.")
+                                    + paczka + "Usuń przyczynę i kliknij „Zakończ i spakuj” jeszcze raz.")
             self._dziennik(f"Pakowanie nie udało się: {z.get('blad')}", blad=True)
             self._odswiez_kroki()
             return
@@ -826,9 +832,22 @@ def wybierz_sesje(a, ust: dict | None, pytaj=None) -> R.Sesja:
     sesje = [] if a.nowa else R.Sesja.lista(katalog)
     if sesje:
         ost = sesje[0]
+        nieudane = ost.get("nieudane_pakowanie")  # ostatnia proba pakowania sie nie udala (znacznik w manifescie)
+        nieudane_tekst = (f"Ostatnie pakowanie tej sesji ({str(nieudane.get('czas', ''))[:16].replace('T', ' ')}) nie udało się"
+                          + (" — pliki ZIP w folderze „paczka” są niespójne, nie wysyłaj ich" if nieudane.get("paczka_niespojna") else "") + ".") if nieudane else ""
         if ost["zakonczono"] is None:
-            if pytaj is None or pytaj("Niedokończona sesja", f"Znaleziono niedokończoną sesję z {ost['utworzono']} ({ost['plikow']} plików).\n\n"
+            if pytaj is None or pytaj("Niedokończona sesja", f"Znaleziono niedokończoną sesję z {ost['utworzono']} ({ost['plikow']} plików).\n"
+                                      + (nieudane_tekst + " Po wznowieniu kliknij „Zakończ i spakuj” jeszcze raz.\n" if nieudane else "") + "\n"
                                       "Wznowić ją? (Tak = dalszy ciąg tej samej sesji, nic nie ginie; Nie = zupełnie nowa sesja)"):
+                return R.Sesja.wznow(ost["folder"])
+        elif nieudane or ost.get("zmieniono_po_spakowaniu"):
+            # sesja byla spakowana, ale paczka na dysku nie odpowiada juz sesji: nie wolno mowic "zakonczona i spakowana"
+            if pytaj is not None and pytaj(
+                    "Ostatnia sesja: paczka jest nieaktualna",
+                    f"Ostatnia sesja ({ost['utworzono']}, {ost['plikow']} plików) była spakowana, ale paczka w jej folderze jest nieaktualna:\n"
+                    + (nieudane_tekst + " Paczka pochodzi z wcześniejszego pakowania.\n" if nieudane else "")
+                    + ("Sesja została zmieniona po spakowaniu.\n" if ost.get("zmieniono_po_spakowaniu") else "")
+                    + "\nOtworzyć ją, żeby spakować ponownie? (Nie = nowa sesja; tej paczki wtedy nie wysyłaj bez sprawdzenia)"):
                 return R.Sesja.wznow(ost["folder"])
         elif pytaj is not None and pytaj("Ostatnia sesja jest spakowana", f"Ostatnia sesja ({ost['utworzono']}, {ost['plikow']} plików) jest zakończona i spakowana.\n\n"
                                          "Otworzyć ją ponownie, żeby coś dodać? (Nie = nowa sesja)"):

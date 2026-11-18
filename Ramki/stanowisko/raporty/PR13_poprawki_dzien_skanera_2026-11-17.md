@@ -118,8 +118,10 @@ uklad przez `plate.rozpoznaj_uklad` (od `502212e`).
    pliku. Drugie klikniecie przycisku kopiuje tylko brakujace pliki (dawniej: wszystko jeszcze raz z dopiskiem `__2`).
 3. Instrukcja kroku 14 w oknie (`dzien_skanera_kroki.toml`) ma nowy punkt 4 (co zrobic przy kopii niepelnej) i zdanie
    "Nie zamykaj okna, dopoki pakowanie trwa"; dawny punkt 4 jest punktem 5.
-4. Nieudane pakowanie: komunikat mowi, ze sesja nie jest spakowana; przy nastepnym starcie okno pyta o wznowienie
-   niedokonczonej sesji (a nie "ostatnia sesja jest spakowana").
+4. Nieudane pakowanie: komunikat mowi, ze sesja nie jest spakowana. Przy nastepnym starcie okno pyta o wznowienie
+   niedokonczonej sesji - ale tylko po nieudanym PIERWSZYM pakowaniu (`zakonczono` puste). Po nieudanym PONOWNYM
+   pakowaniu stan rundy 1 dawal pytanie "ostatnia sesja jest zakonczona i spakowana" (poprawione w rundzie 2, D-n3:
+   pytanie "paczka jest nieaktualna ... ostatnie pakowanie nie udalo sie").
 5. "Zakoncz i spakuj" moze poczekac do 20 s, gdy w folderze skanera wlasnie pojawil sie plik (komunikat na liscie).
 6. Karta (`Ramki/dzien_skanera_karta_2026-11-16.md`, wiersz 14 i zdanie o czekaniu na koniec kopii i pakowania) jest
    nadal prawdziwa; nie wspomina o komunikacie "NIEPELNA" ani o pytaniu przy zamykaniu.
@@ -136,4 +138,73 @@ uklad przez `plate.rozpoznaj_uklad` (od `502212e`).
 - Przerwanie pakowania dziala miedzy plikami; przy jednym bardzo duzym pliku zamkniecie okna czeka do 10 s i konczy
   proces - zostaje wtedy plik `*.zip.czesc` (usuwany przy nastepnym pakowaniu), stan sesji jest poprawny.
 - Awaria dokladnie miedzy zamiana czesci archiwum wieloczesciowego a zapisem znacznikow: sesja jest "niespakowana",
-  a w `paczka/` moga lezec juz nowe czesci - bezpieczny kierunek (trzeba spakowac ponownie).
+  a w `paczka/` moga lezec juz nowe czesci (trzeba spakowac ponownie). Blad samej zamiany w polowie czesci zostawial
+  w rundzie 1 mieszanke starych i nowych czesci przy komunikacie "poprzednia paczka zostala bez zmian" - poprawione
+  w rundzie 2 (D-n2).
+
+## 7. Runda 2 (po recenzji przyrostowej `Ramki/recenzja/raport_recenzenta_PR13_runda2.md`)
+
+Galaz `przed-skanerem-p2` po scaleniu `origin/przed-skanerem` @ `4cd7c3e`. Zmienione te same pliki co w rundzie 1.
+Obliczenia na PC wg limitow z 17.11 (1 proces python, `run.cmd` z limitem watkow, wolny RAM 16 GB przed startem),
+tylko `testy\test_dzien_skanera.py`; pelnego pytest w tej rundzie nie uruchamialem (robi go koordynator po scaleniu).
+
+| Uwaga | Stan | Na kodzie przed poprawka | Test |
+|---|---|---|---|
+| P-n1 | zrobione | czerwony: `JSONDecodeError: Invalid \escape` | `test_notatka_z_nazwa_projektu_exocad_nie_psuje_pakowania` |
+| D-n2 | zrobione (wariant z cofnieciem) | czerwony: po bledzie zamiany 2. czesci czesc 1 byla nowa | `test_blad_zamiany_czesci_archiwum_przywraca_stara_paczke` |
+| D-n3 | zrobione | z czytania (test padal na braku znacznika `nieudane_pakowanie`) | `test_pytanie_startowe_po_zmianie_i_po_nieudanym_pakowaniu`, dopisane asercje w `test_okno_zamkniecie_w_trakcie_pakowania_pyta_i_nieudane_pakowanie_nie_jest_spakowane` |
+| D-n6 | zrobione | czerwony: 2 wpisy z innego kroku dawaly `jest` = 2, `pelna` | `test_stan_kopii_folderow_liczy_pliki_tylko_z_ocenianego_kroku` |
+| D-n7 | zrobione | z czytania (test padal na braku pola `nieskopiowane`) | `test_niepelna_kopia_podaje_nazwy_plikow_i_co_zrobic` |
+| D-n4, nazwa folderu projektu | NIE w tej rundzie | - | dopisane do znanych (nizej i w opisie modulu) |
+
+**P-n1.** Nazwy projektow sa usuwane po strukturze danych: `bez_nazw_projektow_w_danych` przechodzi rekurencyjnie po
+slownikach i listach i wola `bez_nazw_projektow` na kazdym napisie osobno (klucze slownikow tez). `manifest_bez_projektow`
+nie serializuje juz manifestu do tekstu; stan obserwatora w paczce jest czyszczony tak samo (po `json.loads`), wiec zostaje
+poprawnym JSON-em. Tekstowa wersja zostala tylko dla logu. Separatorem nazwy jest teraz takze tabulator i `\r`. Test:
+notatki wielowierszowa, z tabulatorem, z cudzyslowem i ukosnikami, nazwa `_cad` nieobecna w manifescie - pakowanie
+dziala, `--sprawdz` folderu i ZIP = 0, w ZIP 0 wystapien nazwy, pozostale wiersze notatki zostaja.
+
+**D-n2.** Zamiana archiwow z cofnieciem: gdy wszystkie nowe czesci sa zbudowane, WSZYSTKIE stare czesci sa
+przemianowywane na `*.zip.stara`, potem nowe wchodza na miejsce; blad w trakcie = nowe czesci sa usuwane, stare wracaja
+i wyjatek idzie dalej (stara paczka cala, komunikat "zostala bez zmian" jest prawdziwy). Gdy cofniecie sie nie uda -
+wyjatek `PaczkaNiespojna`, okno pisze "pliki ZIP w folderze paczka sa teraz niespojne. NIE wysylaj ich", manifest dostaje
+`zmieniono_po_spakowaniu` i znacznik; nastepne pakowanie najpierw przywraca nieprzywrocone czesci. `*.zip.stara` sa
+kasowane po sukcesie. Waska granica, ktora zostaje: zabicie programu w trakcie samej zamiany (milisekundy). Jesli
+zadna nowa czesc nie zdazyla wejsc, w `paczka/` leza same `*.zip.stara` i nastepne pakowanie je przywraca; jesli czesc
+nowych juz weszla, zostaje mieszanka przy starych znacznikach sesji - `--sprawdz` archiwum to wykrywa (kod 1), ponowne
+pakowanie naprawia. Tego przypadku (zabicie procesu) test nie obejmuje.
+
+**D-n3.** Nowy, addytywny klucz manifestu `nieudane_pakowanie` {`czas`, `blad`, `paczka_niespojna`}: zapisywany przy
+kazdym nieudanym albo przerwanym pakowaniu, usuwany przez udane (w manifescie paczki nigdy go nie ma). `Sesja.lista`
+oddaje go razem z `zmieniono_po_spakowaniu`. Pytanie startowe: sesja spakowana, ale zmieniona po spakowaniu albo
+z nieudana ostatnia proba -> "Ostatnia sesja: paczka jest nieaktualna ... Otworzyc ja, zeby spakowac ponownie?";
+sesja niedokonczona z nieudana proba -> dopisek o nieudanym pakowaniu. Panel po lewej: "Ostatnie pakowanie nie udalo sie
+(godzina). Kliknij Zakoncz i spakuj jeszcze raz".
+
+**D-n6.** `stan_kopii_folderow` i domykanie kopii przy wznowieniu licza wpisy `kopia_folderu` tylko z ocenianego kroku.
+Skutek uboczny: plik kopii przeniesiony recznie do innego kroku obniza licznik i kopia pokaze sie jako niepelna.
+
+**D-n7.** Wpis kopii ma nowe pole `nieskopiowane` (do 20 sciezek plikow, ktorych nie udalo sie odczytac); komunikat
+NIEPELNA i brak w panelu podaja nazwy (pierwsze 3) i mowia wprost: plik zajety przez program skanera = spakuj mimo to,
+kopie dokoncz po zamknieciu programu skanera (kliknij kopie jeszcze raz i spakuj ponownie). Instrukcja kroku 14 mowi to
+samo (punkty 4-6) - zniknela sprzecznosc "usun przyczyne" kontra "program skanera zamknij dopiero po spakowaniu".
+
+**Znane, niepoprawione (do nastepnej paczki okna).**
+- D-n4 (a): nazwa FOLDERU projektu exocad w sciezkach innych plikow tego folderu i nazwy pozostalych plikow projektu
+  (wzor lapie tylko `*_cad.stl`) trafiaja do paczki, gdy taki folder znajdzie sie w folderze obserwowanym albo zostanie
+  dodany recznie.
+- D-n4 (b): `paczka/paczka.json` (obok ZIP, nie w nim) zawiera pelne nazwy pominietych projektow i sciezki z nazwa konta.
+- Znacznik `nieudane_pakowanie.blad` i nazwy w `nieskopiowane` zostaja w manifescie lokalnym; do paczki ida po usunieciu
+  nazw projektow (`nieskopiowane`) albo wcale (`nieudane_pakowanie`).
+
+**Co widzi technik inaczej po rundzie 2** (karta i sciaga nietkniete): (1) instrukcja kroku 14 w oknie - punkt 4
+rozbity na dwa przypadki, nowy punkt 6 (zamknij program skanera po spakowaniu; przy zajetych plikach kopia i pakowanie
+jeszcze raz); (2) komunikat i brak "kopia NIEPELNA" z nazwami plikow i zdaniem "spakuj mimo to ..."; (3) po nieudanym
+pakowaniu czerwony wiersz "Ostatnie pakowanie nie udalo sie" w panelu, takze po ponownym otwarciu; (4) przy starcie
+pytanie "Ostatnia sesja: paczka jest nieaktualna" zamiast "jest spakowana", gdy sesja byla zmieniona po spakowaniu albo
+ostatnie pakowanie sie nie udalo; (5) rzadki komunikat o niespojnych plikach ZIP.
+
+**Testy rundy 2.** `testy/test_dzien_skanera.py`: 71 -> 76 testow. Przed poprawka (kod `4cd7c3e`, log PC
+`p2\ds_r2_czerwone.log`): 5 nowych testow i rozszerzony test okna czerwone. Po poprawce (log `p2\ds_r2_koniec.log`):
+**76 passed, 0 failed** (85 s, 1 proces). Proby recznej z wiersza polecen w tej rundzie nie powtarzalem - `--sprawdz`
+folderu i ZIP = 0 sprawdza test P-n1 na sesji kompletnej.
