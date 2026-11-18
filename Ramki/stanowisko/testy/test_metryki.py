@@ -52,7 +52,6 @@ import datetime as dt
 import hashlib
 import io
 import json
-import re
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -503,10 +502,10 @@ def test_raport_tylko_odczyt_i_schemat_bez_zmian(plik_bazy, raport):
         assert baza.wersja() == B.WERSJA_SCHEMATU
     for plik in (STANOWISKO / "stanowisko" / "metryki.py", STANOWISKO / "narzedzia" / "raport_metryk.py"):
         kod = plik.read_text(encoding="utf-8")
-        for slowo in ("CREATE ", "ALTER ", "INSERT ", "UPDATE ", "DELETE ", "DROP ", ".wstaw(", ".zdarzenie(", "MIGRACJE"):
+        for slowo in ("CREATE ", "ALTER ", "INSERT ", "UPDATE ", "DELETE ", "DROP ", ".wstaw(", ".wykonaj(", ".zdarzenie(", "MIGRACJE"):
             assert slowo not in kod, (plik.name, slowo)
-        # runda 2 (D6): jedyne polecenia przez Baza.wykonaj to otwarcie i zwolnienie transakcji odczytu
-        assert set(re.findall(r"\.wykonaj\(([^)]*)\)", kod)) <= {'"BEGIN"', '"ROLLBACK"'}, plik.name
+    # runda 3: zadnych plikow obok bazy (dziennik transakcji, WAL) - raport tylko kopiuje baze do pamieci
+    assert not [x.name for x in plik_bazy.parent.iterdir() if x.name.endswith(("-journal", "-wal", "-shm"))]
 
 
 UST_PRZYKLAD = ["--ustawienia", str(STANOWISKO / "ustawienia.przyklad.toml")]  # doba 6:00, zmiany 6/14/22, prog 0,6 - niezaleznie od ustawienia.toml
@@ -725,16 +724,38 @@ def test_d4_awaria_ostatniej_doby_po_ponownym_starcie(tmp_path):
     assert (st["dni_pracy"], st["dni_z_awaria"], st["obecna_seria"], st["uruchomiony_na_koniec"]) == (1, 0, 1, True)
 
 
-def test_d6_jedna_transakcja_odczytu(plik_bazy):
-    """D6: caly raport w jednej transakcji odczytu (spojny stan, gdy program w tym czasie pisze); po raporcie zadnej otwartej."""
+def test_d6_zapis_programu_w_trakcie_raportu_bez_blokady(plik_bazy, tmp_path, monkeypatch):
+    """D6 (runda 3): raport liczy sie na migawce w pamieci, wiec program moze zapisywac w trakcie liczenia: zapis z drugiego
+    polaczenia (czekanie na blokade tylko 50 ms) w polowie raportu przechodzi bez "baza zajeta", a raport pokazuje stan z chwili
+    kopii (silnik_nie_startuje 1, nie 2); nastepny raport widzi juz nowy wpis. Bez plikow -journal / -wal po raporcie."""
+    import shutil
+
+    kopia = tmp_path / "stanowisko.sqlite"
+    shutil.copy2(plik_bazy, kopia)
+    zapisy: list[int] = []
+    oryginal = M._SesjaOdczyt.stan_wieczoru
+
+    def z_zapisem(self, data=None):
+        if not zapisy:  # program stanowiska zapisuje w trakcie liczenia raportu
+            with B.otworz(kopia, czekaj_ms=50) as program:
+                zapisy.append(program.zdarzenie("silnik", "silnik_nie_startuje", {"opis": "test"}, czas="2026-11-18T20:30:00"))
+        return oryginal(self, data)
+
+    monkeypatch.setattr(M._SesjaOdczyt, "stan_wieczoru", z_zapisem)
+    assert policz(kopia)["stabilnosc"]["silnik_nie_startuje"] == 1 and len(zapisy) == 1
+    monkeypatch.undo()
+    assert policz(kopia)["stabilnosc"]["silnik_nie_startuje"] == 2
+    assert not [x.name for x in tmp_path.iterdir() if x.name.endswith(("-journal", "-wal", "-shm"))]
+
+
+def test_d6_raport_nie_pyta_pliku_bazy_po_kopii(plik_bazy):
+    """D6 (runda 3): na polaczeniu z plikiem bazy raport nie wykonuje zadnego zapytania - tylko kopia do pamieci (backup)."""
     with B.otworz(plik_bazy, tylko_odczyt=True) as baza:
         polecenia: list[str] = []
         baza.polaczenie.set_trace_callback(polecenia.append)
         M.policz(baza, OD, DO, teraz="2026-11-18T20:00:00")
         baza.polaczenie.set_trace_callback(None)
-        assert polecenia[0].strip().upper() == "BEGIN" and polecenia[-1].strip().upper() == "ROLLBACK"
-        assert sum(1 for x in polecenia if x.strip().upper() == "BEGIN") == 1
-        assert not baza.polaczenie.in_transaction
+        assert polecenia == [] and not baza.polaczenie.in_transaction
 
 
 def test_d7_uszkodzona_baza_kod_2(tmp_path):
