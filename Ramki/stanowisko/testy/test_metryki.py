@@ -52,6 +52,7 @@ import datetime as dt
 import hashlib
 import io
 import json
+import re
 import sys
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -502,8 +503,10 @@ def test_raport_tylko_odczyt_i_schemat_bez_zmian(plik_bazy, raport):
         assert baza.wersja() == B.WERSJA_SCHEMATU
     for plik in (STANOWISKO / "stanowisko" / "metryki.py", STANOWISKO / "narzedzia" / "raport_metryk.py"):
         kod = plik.read_text(encoding="utf-8")
-        for slowo in ("CREATE ", "ALTER ", "INSERT ", "UPDATE ", "DELETE ", "DROP ", ".wstaw(", ".wykonaj(", ".zdarzenie(", "MIGRACJE"):
+        for slowo in ("CREATE ", "ALTER ", "INSERT ", "UPDATE ", "DELETE ", "DROP ", ".wstaw(", ".zdarzenie(", "MIGRACJE"):
             assert slowo not in kod, (plik.name, slowo)
+        # runda 2 (D6): jedyne polecenia przez Baza.wykonaj to otwarcie i zwolnienie transakcji odczytu
+        assert set(re.findall(r"\.wykonaj\(([^)]*)\)", kod)) <= {'"BEGIN"', '"ROLLBACK"'}, plik.name
 
 
 UST_PRZYKLAD = ["--ustawienia", str(STANOWISKO / "ustawienia.przyklad.toml")]  # doba 6:00, zmiany 6/14/22, prog 0,6 - niezaleznie od ustawienia.toml

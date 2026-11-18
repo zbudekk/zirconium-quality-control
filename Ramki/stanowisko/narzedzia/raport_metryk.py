@@ -11,14 +11,17 @@ i prog pracy dwuznacznej: z ustawienia.toml (--ustawienia albo plik domyslny; sa
 domyslne 6:00, zmiany 6/14/22, prog 0,6).
 
 Na stdout strona do 60 linii (same liczby - bez nazw folderow, plikow i osob); --json: te same pola w pliku JSON.
-Kod wyjscia: 0 - kazda metryka z danymi w progu odbioru; 3 - co najmniej jedna ponizej progu; 2 - blad (argumenty,
-ustawienia, baza). Definicje metryk: opisy_modulow/metryki.md.
+Kod wyjscia: 0 - kazda metryka z danymi w progu odbioru; 3 - co najmniej jedna ponizej progu; 4 - zadna metryka nie dala
+sie ocenic (brak danych w okresie - zla baza albo zly okres nie "przechodzi" odbioru); 2 - blad (argumenty, ustawienia, baza -
+takze uszkodzony plik). Raport czyta baze w jednej transakcji odczytu: na czas raportu program stanowiska czeka z zapisem
+(do 5 s, potem "baza zajeta" i ponowienie) - dlugi okres (rok) uruchamiac poza praca stanowiska. Definicje: opisy_modulow/metryki.md.
 """
 from __future__ import annotations
 
 import argparse
 import datetime as dt
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -70,6 +73,8 @@ def main(argv: list[str] | None = None) -> int:
             wynik = M.policz(baza, od, do, a.tryb, **parametry)
     except (B.BladBazy, ValueError) as e:
         return _blad(str(e))
+    except sqlite3.Error as e:  # np. uszkodzony plik albo goracy dziennik po zabitym programie (odczyt nie moze go wycofac)
+        return _blad(f"blad odczytu bazy ({type(e).__name__}: {e}) - otworz ja programem stanowiska albo sprawdz plik: {sciezka}")
     print("\n".join(M.strona(wynik)))
     if a.json is not None:
         try:
