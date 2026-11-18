@@ -48,7 +48,23 @@ def _qt_przed_silnikiem():
 
     app = QApplication.instance() or QApplication([])
     assert app.platformName() == "offscreen"
+    czcionka_ekranu()
     yield app
+
+
+def czcionka_ekranu() -> None:
+    """Czcionka ekranu (Segoe UI) w trybie offscreen takze wtedy, gdy QApplication utworzyl wczesniej inny plik testow bez
+    QT_QPA_FONTDIR (pelny pytest: offscreen nie ma wtedy zadnej czcionki systemu). Pomiary ukladu (A-P1: napis uciety,
+    elementy na sobie) zaleza od metryk czcionki - bez tego roznia sie od pomiarow na prawdziwym ekranie Windows."""
+    from PySide6.QtGui import QFontDatabase
+
+    from stanowisko.ui import styl
+
+    if styl.CZCIONKA in QFontDatabase.families() or not FONTY_WINDOWS.is_dir():
+        return
+    for plik in sorted(FONTY_WINDOWS.glob("segoeui*.ttf")) + sorted(FONTY_WINDOWS.glob("seguisb*.ttf")) + sorted(FONTY_WINDOWS.glob("seguisym*.ttf")):
+        QFontDatabase.addApplicationFont(str(plik))
+    assert styl.CZCIONKA in QFontDatabase.families(), "brak czcionki ekranu w trybie offscreen"
 
 
 # ----------------------------------------------------------------------------
