@@ -58,6 +58,10 @@ ZMIANY_START_GODZ = (6, 14, 22)
 PONOWNY_SKAN_OKNO_MIN = 60
 PONOWNY_SKAN_MIN_WSPOLNYCH = 0.5  # E3-A1p: |N & S| / min(|N|, |S|) projektow rozpoznanych nowego i poprzedniego skanu plytki (0 = bez warunku)
 PONOWNY_SKAN_MIN_ROZPOZNANYCH = 3  # mniej projektow rozpoznanych w nowym albo poprzednim skanie = brak podstaw do oceny wsadu: pytanie jak dawniej
+# rano: skan tego samego pieca (``skany.sesja_pieca_id``) mozna zastapic bez warunku doby i okna 60 min (rozladunek pieca przez 06:00),
+# o ile skany dzieli najwyzej tyle godzin - piec niezamkniety do nastepnego dnia to juz inny wsad tych samych numerow plytek
+# (recenzja PR #22 runda 2, P1; rozladunek pieca trwa godziny, nie doby)
+PONOWNY_SKAN_PIEC_MAX_H = 12
 # podstawa propozycji "to ponowny skan?" (pole ``podstawa`` wpisu ``do_potwierdzenia``)
 PODSTAWA_TEN_SAM_PLIK = "ten_sam_plik"
 PODSTAWA_TE_SAME_PRACE = "te_same_prace"
@@ -711,10 +715,15 @@ class Sesja:
 
         Liczone z roznicy czasow lokalnych bez strefy (znana granica: przy zmianie czasu i przy cofnietym zegarze roznica
         jest przeklamana o godzine albo ujemna - wtedy brak propozycji; zastapienie wprost dziala)."""
+        minut = self._minut_miedzy(wczesniejszy, pozniejszy)
+        return minut is not None and 0 <= minut <= self.ponowny_skan_okno_min
+
+    @staticmethod
+    def _minut_miedzy(wczesniejszy: dict, pozniejszy: dict) -> float | None:
+        """Minuty miedzy przyjeciem skanow (``czas_analizy``; ujemne przy cofnietym zegarze); None, gdy ktorys czasu nie ma."""
         if not wczesniejszy["czas_analizy"] or not pozniejszy["czas_analizy"]:
-            return False
-        minut = (dt.datetime.fromisoformat(pozniejszy["czas_analizy"]) - dt.datetime.fromisoformat(wczesniejszy["czas_analizy"])).total_seconds() / 60
-        return 0 <= minut <= self.ponowny_skan_okno_min
+            return None
+        return (dt.datetime.fromisoformat(pozniejszy["czas_analizy"]) - dt.datetime.fromisoformat(wczesniejszy["czas_analizy"])).total_seconds() / 60
 
     def _projekty_rozpoznane(self, skan_id: int) -> set[str]:
         """Zbior ``sha16`` projektow top-1 prac rozpoznanych skanu (jak ``_przypisany``: bez prac szarych i bez kandydata);
@@ -794,9 +803,12 @@ class Sesja:
                                     f"(ostatni skan tej samej plytki sprzed najwyzej {self.ponowny_skan_okno_min} min z tymi samymi pracami)")
             else:
                 poprzedni = self._skan(poprzedni_id)
-                # ten sam piec (sesja poranna): bez warunku czasu - tak samo, jak proponuje sesja poranna (piec rozladowany przez
-                # granice doby 06:00, recenzja PR #23 D10); inaczej ta sama doba robocza albo okno ponownego skanu
-                ten_sam_piec = poprzedni["sesja_pieca_id"] is not None and poprzedni["sesja_pieca_id"] == nowy["sesja_pieca_id"]
+                # ten sam piec (sesja poranna): bez warunku doby i okna - tak, jak proponuje sesja poranna (piec rozladowany przez
+                # granice doby 06:00, recenzja PR #23 D10), ale najwyzej PONOWNY_SKAN_PIEC_MAX_H od siebie (piec niezamkniety do
+                # nastepnego dnia - recenzja PR #22 runda 2, P1); inaczej ta sama doba robocza albo okno ponownego skanu
+                minut = self._minut_miedzy(poprzedni, nowy)
+                ten_sam_piec = (poprzedni["sesja_pieca_id"] is not None and poprzedni["sesja_pieca_id"] == nowy["sesja_pieca_id"]
+                                and minut is not None and 0 <= minut <= PONOWNY_SKAN_PIEC_MAX_H * 60)
                 blisko = poprzedni["tryb"] == nowy["tryb"] and (ten_sam_piec or (
                     bool(poprzedni["czas_analizy"]) and bool(nowy["czas_analizy"])
                     and (self.doba(poprzedni["czas_analizy"]) == self.doba(nowy["czas_analizy"]) or self._w_oknie_ponownego_skanu(poprzedni, nowy))))
