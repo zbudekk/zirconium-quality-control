@@ -809,8 +809,10 @@ class Excel:
         (``tylko_log``). ``wiersz``: wybor czlowieka z ``dopasowanie.kandydaci`` (wymagany dla "wskaz wiersz").
 
         Kazda proba (do ``PONOWIENIA_ZAPISU``) to caly krok na swiezym odczycie: ten sam skoroszyt i arkusz co przy propozycji,
-        wiersz i sasiedzi rowni migawce, pole B, propozycja policzona od nowa rowna pierwotnej, kolor; odrzucony zapis COM =
-        przerwa i nastepna proba od odczytu. Po zapisie: kontrola wierszy N-1..N+1 i koloru.
+        wiersz i sasiedzi rowni migawce, pole B, propozycja policzona od nowa rowna pierwotnej, kolor. Blad wywolania zapisu COM:
+        najpierw odczyt koloru komorki (N, B) - zielona = zapis doszedl mimo bledu (dalej kontrola po zapisie), pusta = przerwa
+        i nastepna proba od odczytu, odczyt niemozliwy albo inny kolor = "zapis mogl dojsc - sprawdz recznie" (wpis ``blad``,
+        pozycja zalatwiona). Po zapisie: kontrola wierszy N-1..N+1 i koloru.
         Odmowa (``BladExcela``; wpis ``blad`` w logu, gdy doszlo do sprawdzenia arkusza): brak osoby, pozycja juz zalatwiona,
         X4 (pozycja bez zamknietego pieca), "wskaz wiersz" bez wyboru, wiersz spoza kandydatow, skoroszyt / arkusz inny, arkusz
         zmieniony, pole B w innym kolorze, nieudany zapis. Pole B juz zielone = wpis ``juz_odhaczone`` bez zapisu (regula 4).
@@ -835,8 +837,12 @@ class Excel:
             self._sprawdz_piec(pozycja.sesja_pieca_id)
 
         def odmowa(tekst: str, e: BaseException | None = None):
-            self._loguj(pozycja, osoba, nr, regula, WYNIK_BLAD)
-            raise BladExcela(tekst + (f": {_tekst_bledu(e)}" if e else "")) from e
+            tekst = tekst + (f": {_tekst_bledu(e)}" if e else "")
+            try:
+                self._loguj(pozycja, osoba, nr, regula, WYNIK_BLAD)
+            except BladExcela as bl:  # D5 (runda 3): powod odmowy nie ginie, gdy wpis "blad" sie nie uda
+                raise BladExcela(f"{tekst} [wpis 'blad' w logu nie powiodl sie: {bl}]") from (e or bl)
+            raise BladExcela(tekst) from e
 
         for proba in range(PONOWIENIA_ZAPISU):
             # 1. swiezy odczyt calego arkusza - ten sam skoroszyt i arkusz (P1, P2)
@@ -867,16 +873,31 @@ class Excel:
                        f"zapisano; zaproponuj ponownie")
             if self.tryb == TRYB_CIEN:
                 return self._zalatw(pozycja, osoba, nr, regula, WYNIK_TYLKO_LOG)  # tryb cien: nic nie zapisuje w Excelu
-            # 5. zapis - jedna proba COM; odrzucona = przerwa i caly krok od nowa (B1)
+            # 5. zapis - jedna proba COM; odrzucona = przerwa i caly krok od nowa (B1) - ale tylko, gdy kolor NA PEWNO nie doszedl
             self._sprawdz_log()  # log musi dac sie dopisac, zanim zmieni sie kolor
             try:
                 z.ustaw_wypelnienie(nr, self._kol_b, self.konf.kolor)
             except Exception as e:
+                # runda 3 (P1): wywolanie moglo zapisac kolor i dopiero potem zwrocic blad (zerwane polaczenie, Excel zamkniety) -
+                # najpierw odczyt komorki (N, B): zielona = zapis doszedl -> kontrola po zapisie; pusta = mozna ponowic
+                try:
+                    po_bledzie = self._kolor_b(nr)
+                except BladExcela:
+                    pozycja.zalatwiona = True  # bez drugiego zapisu - stan komorki nieznany
+                    odmowa(f"zapis koloru pola B (wiersz {nr}) zwrocil blad, a odczyt koloru tez sie nie udal - zapis mogl dojsc: "
+                           f"sprawdz recznie wiersze {nr - 1}-{nr + 1}", e)
+                if po_bledzie == self.konf.kolor:
+                    break  # kolor zapisany mimo bledu wywolania - dalej jak po udanym zapisie (kontrola N-1..N+1)
+                if po_bledzie is not None:
+                    pozycja.zalatwiona = True
+                    odmowa(f"zapis koloru pola B (wiersz {nr}) zwrocil blad, a pole ma teraz inne wypelnienie - zapis mogl dojsc: sprawdz "
+                           f"recznie wiersze {nr - 1}-{nr + 1}", e)
                 if proba + 1 < PONOWIENIA_ZAPISU:
                     self._czekaj(PRZERWA_PONOWIENIA_S)
                     continue
                 self._po_bledzie_com()
-                odmowa(f"zapis koloru pola B (wiersz {nr}) nie powiodl sie po {PONOWIENIA_ZAPISU} probach - nic nie zapisano", e)
+                odmowa(f"zapis koloru pola B (wiersz {nr}) nie powiodl sie po {PONOWIENIA_ZAPISU} probach - pole B bez wypelnienia, "
+                       f"kolor nie zostal zapisany", e)
             break
         # 6. po zapisie: wiersze N-1..N+1 i kolor czytane ponownie
         pozycja.zalatwiona = True  # od tej chwili zadnego drugiego zapisu tej pozycji
@@ -906,9 +927,13 @@ class Excel:
 
     def zaloguj_juz_odhaczone(self, pozycja: Pozycja, operator: str | None) -> dict:
         """"Juz odhaczone" (regula 4) - tylko wpis w logu po sprawdzeniu, ze pole B nadal jest zielone; ta metoda nie ma drogi
-        zapisu koloru (A12 moze ja wolac bez pytania, gdy ``dopasowanie.do_sprawdzenia`` jest False)."""
+        zapisu koloru (A12 moze ja wolac bez pytania). Pozycja ``do_sprawdzenia`` (wybor bez zgodnej nazwy) = odmowa: wtedy
+        czlowiek zatwierdza ``zatwierdz`` po obejrzeniu wiersza (runda 3, D2)."""
         if pozycja.dopasowanie.klasa != KLASA_JUZ_ODHACZONE:
             raise BladExcela("zaloguj_juz_odhaczone tylko dla pozycji 'juz odhaczone' - inne zatwierdza czlowiek")
+        if pozycja.dopasowanie.do_sprawdzenia:
+            raise BladExcela(f"wiersz {pozycja.dopasowanie.wiersz} wybrany bez zgodnej nazwy (do sprawdzenia) - 'juz odhaczone' zatwierdza "
+                             f"czlowiek po obejrzeniu wiersza (zatwierdz)")
         return self.zatwierdz(pozycja, operator)
 
     def pomin(self, pozycja: Pozycja, operator: str | None) -> dict:
