@@ -1,4 +1,4 @@
-# excel - wybor wiersza arkusza zlecen, log, tryby "pytaj" i "cien" (E3-A9, 18.11.2026; runda 2 po recenzji PR #27)
+# excel - wybor wiersza arkusza zlecen, log, tryby "pytaj" i "cien" (E3-A9, 18.11.2026; rundy 2 i 3 po recenzji PR #27)
 
 Pliki: `stanowisko/excel.py` (reguly, log, zapis przez interfejs arkusza - tylko biblioteka standardowa),
 `stanowisko/excel_com.py` (COM do otwartego Excela, pywin32 - NAPISANA, w E3-A9 NIEURUCHAMIANA na prawdziwym Excelu),
@@ -85,9 +85,13 @@ wiersz wskazany recznie z listy kandydatow. Potem do `PONOWIENIA_ZAPISU` (3) pro
 skoroszyt (nazwa + pelna sciezka) i arkusz co przy propozycji (P2 - kopia arkusza, kopia pliku, "Zapisz jako" = odmowa);
 wiersze N-1..N+1 rowne migawce; pole B (zielone = `juz_odhaczone`, inny kolor = odmowa); propozycja policzona od nowa rowna
 pierwotnej (nowy wiersz kuwety, zmiana C / H innego wiersza = odmowa); plik logu da sie dopisac; kolor - jedno wywolanie COM;
-odrzucone = przerwa 0,5 s i caly krok od nowa. Po zapisie: wiersze N-1..N+1 i kolor czytane ponownie; roznica = wpis `blad`
-i komunikat "kolor zapisany, ale wiersz N zmienil sie w trakcie - sprawdz recznie wiersze N-1..N+1" (pozycja zalatwiona).
-Kazda odmowa po odczycie arkusza = wpis `blad` w logu. Zapis = `ustaw_wypelnienie` jednej komorki B.
+wywolanie zwrocilo blad = najpierw odczyt koloru komorki (N, B) (runda 3, P1 - wywolanie moglo zapisac kolor i dopiero potem
+zwrocic blad): zielona = zapis doszedl, dalej jak po udanym zapisie; pusta = przerwa 0,5 s i caly krok od nowa; inny kolor
+albo odczyt niemozliwy = wpis `blad`, komunikat "zapis mogl dojsc - sprawdz recznie wiersze N-1..N+1", pozycja zalatwiona
+(nigdy "nic nie zapisano"). Po zapisie: wiersze N-1..N+1 i kolor czytane ponownie; roznica = wpis `blad` i komunikat
+"kolor zapisany, ale wiersz N zmienil sie w trakcie - sprawdz recznie wiersze N-1..N+1" (pozycja zalatwiona). Kazda odmowa po
+odczycie arkusza = wpis `blad` w logu; gdy i ten wpis sie nie uda, komunikat podaje oba powody. Zapis = `ustaw_wypelnienie`
+jednej komorki B.
 
 ## API dla A12 (spiecie poranka)
 
@@ -109,7 +113,7 @@ Wynik `zatwierdz` / `pomin` / `zaloguj_*` / `zapisz_cien` (`POLA_WYNIKU`, P4): `
 `klasa`, `wynik`, `regula`, `tryb`, `zlecenie_id`, `sesja_pieca_id` - BEZ nazwy folderu i nazwisk (mozna go zapisac w dzienniku).
 
 Wymagania dla A12: (1) w trybie "pytaj" `zatwierdz` tylko po kliknieciu czlowieka (modul nie zna okna); `zaloguj_juz_odhaczone`
-mozna wolac bez pytania tylko przy `do_sprawdzenia = False`; (2) `operator` = osoba wybrana na zmianie (`[sesja] operatorzy`);
+mozna wolac bez pytania - przy `do_sprawdzenia = True` sama odmawia (runda 3, D2), wtedy `zatwierdz` po decyzji czlowieka; (2) `operator` = osoba wybrana na zmianie (`[sesja] operatorzy`);
 (3) kazdy `BladExcela` pokazac jako komunikat i pracowac dalej (brak Excela, arkusz zmieniony - wtedy `propozycje` ponownie;
 po bledzie COM `rozlacz()`); (4) `ex.tryb` i `ex.ostrzezenia` widoczne w oknie (w tym skoroszyt / arkusz uzyte, gdy nie sa
 w ustawieniach - przed pierwszym zatwierdzeniem); (5) `kandydaci_do_okna[i]["nazwa"]` (H) i `Pozycja.folder` tylko na ekranie,
@@ -135,7 +139,10 @@ skoroszytu i arkusza do `ustawienia.toml`; unikalnosc numeru w B (kontrola sasia
 (`GetActiveObject` zwraca jedna); scalone komorki w B; zapis COM czysci stos "Cofnij" uzytkownika laptopa; zawieszony Excel
 blokuje watek (brak limitu czasu); format pliku (.xls - paleta 56 kolorow, kolor odczytany inny niz zapisany = komunikat);
 kolory pola B uzywane przez ludzi (pytanie 3); wiek wierszy zlecen w chwili "Zamknij piec" (`maks_wiek_dni`); jak czesto H ma
-same inicjaly (pytanie 2); `pywin32` w `requirements.txt` laptopa; po zamknieciu Excela czy EXCEL.EXE nie zostaje w tle.
+same inicjaly (pytanie 2); `pywin32` w `requirements.txt` laptopa; po zamknieciu Excela czy EXCEL.EXE nie zostaje w tle;
+(runda 3, D3) udzial wierszy z pustym H wsrod wierszy z ostatnich 60 dni i wiek wiersza zlecenia w chwili "Zamknij piec" dla
+50 kuwet - gdy pustych H jest wiecej niz pojedyncze sztuki: osobny, krotszy limit wieku dla reguly 3 (decyzja wlasciciela);
+czesciowy sukces zapisu COM (kolor zapisany, wywolanie zwraca blad - np. zamkniecie Excela w trakcie) - zachowanie na zywo.
 
 ## Ustawienia `[excel]`
 
@@ -150,7 +157,7 @@ i zatwierdzenie czytaja zawsze), `maks_wiek_dni` (60; 0 = bez limitu). Walidacja
 Arkusz sztuczny 30 000 wierszy A-I (fikcyjne nazwy), 200 zapytan z 31 pulapek (110 jeden wiersz / 19 juz odhaczone /
 71 wskaz wiersz), w tym przypadki P1 (wiersz zlecenia dopisany po odczycie) i P3 (zlecenie niewpisane - stary wiersz z pustym H,
 reklamacja z innym H, "#1234" = B zwyklego zlecenia). Pelny przebieg "pytaj": zapisy z wyboru programu i zapisy wierszy
-wskazanych przez test (czlowiek w oknie "wskaz wiersz") liczone osobno. Plus: 39 przypadkow regul na malym arkuszu, B1 na
+wskazanych przez test (czlowiek w oknie "wskaz wiersz") liczone osobno. Plus: 40 przypadkow regul na malym arkuszu, B1 na
 atrapie COM (odrzucony zapis + wstawiony wiersz, wiersz zmieniony po zapisie), P2 (kopia arkusza / pliku, "Zapisz jako"),
 P5 (zajety plik logu), X4, D1, D2, D5, D8, D9, D10.
 
@@ -162,3 +169,10 @@ P5 (zajety plik logu), X4, D1, D2, D5, D8, D9, D10.
 - Brak "cofnij zapis": pomylke po zapisie poprawia czlowiek w Excelu (log zostaje).
 - Zlecenie niewpisane do arkusza + najnowszy wiersz kuwety z ostatnich `maks_wiek_dni` z pustym H = propozycja tego wiersza
   (`do_sprawdzenia`) - reguly tego nie odroznia; chroni tylko czlowiek w trybie "pytaj".
+- Znane granice z rundy 2 recenzji (bez zmian kodu, kierunek bezpieczny): D1 - wiersz dopisany na koncu arkusza po propozycji
+  blokuje zatwierdzenie OSTATNIEGO wiersza (sasiad N+1 byl pusty) - falszywa odmowa albo falszywe "sprawdz recznie" po zapisie;
+  po ponownej propozycji przechodzi. D6 - czas ponownego odczytu (13 ms) jest z atrapy, ktora przy niezmienionym arkuszu oddaje
+  te same krotki; COM zwraca za kazdym razem nowe obiekty - czas pelnego `Range.Value` A-I przy kazdej propozycji i probie
+  zatwierdzenia do zmierzenia w D2 (powyzej ok. 1 s: odczyt tylko kolumn A, B, C, H albo watek roboczy). D7 - bez bazy X4 przepuszcza
+  kazde niepuste `sesja_pieca_id` (testy) - w programie `Excel` zawsze z `baza`. D8 - ostrzezenie o logu poza `dane/` sprawdza tylko,
+  czy w sciezce jest katalog `dane` (np. `.../OneDrive/dane/log.csv` przejdzie).
