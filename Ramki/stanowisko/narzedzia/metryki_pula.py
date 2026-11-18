@@ -6,6 +6,9 @@ Uzycie (z katalogu stanowisko/, na PC przez run.cmd):
     py -3.12 narzedzia/metryki_pula.py czas --katalog <W> --pamiec <W/pamiec> [--linie <W/linie>] [--plytek 5] [--nazwa czas_zimna]
     py -3.12 narzedzia/metryki_pula.py jakosc --katalog <W> --pamiec <W/pamiec> [--linie <W/linie>] [--procesy 6]
     py -3.12 narzedzia/metryki_pula.py r59 --skany <dane/syntetyczne_R59_P2> <..._P3a> --projekty <Prace_test> --wyjscie <W> [--procesy 6]
+        [--rozpraszacze <W/pula_400.csv>] [--wzor <metryki_P3a.json>]
+    py -3.12 narzedzia/metryki_pula.py pamiec --projekty <Prace_test> --rozpraszacze <W/pula_400.csv> --pamiec <P> [--wspolczynniki 1.0 1.22] [--procesy 4]
+    py -3.12 narzedzia/metryki_pula.py ranking --katalog <W> --pamiec <W/pamiec> [--plytek 10]
 
 ``przygotuj``: w ``<W>/stl`` warianty projektow (te same prace, skala anizotropowa 0,97-1,03 - nowe pliki, podobny ksztalt)
 i atrapy koron / mostow o losowych wymiarach; ``<W>/pula_<n>.csv`` = wpisy puli (``porownaj --wpisy``): kazdy projekt
@@ -15,7 +18,12 @@ testowy i 10 atrap "plytkowych" na OBU krazkach (1,20 i 1,25), warianty i pozost
 kolejnych plytek (``porownaj`` z pula wpisow), czas kazdej, szczyt pamieci procesu (peak working set); pierwszy przebieg z
 pustym katalogiem ``--pamiec`` = pamiec zimna, kolejny = ciepla. ``jakosc``: kryterium 2 na puli ``pula_<n>.csv`` (wynik
 wskazuje wpis krazka prawdy) i kryterium 1 na puli bez blizniakow (prace plytki tylko ze swoim krazkiem + rozpraszacze do
-``n`` wpisow). ``r59``: zestawy R59 (40 skanow) jak ``metryki_P3a.py``, ale pula z wpisow (projekt x wspolczynnik prawdy).
+``n`` wpisow). ``r59``: zestawy R59 (40 skanow) jak ``metryki_P3a.py``, ale pula z wpisow (projekt x wspolczynnik prawdy);
+z ``--rozpraszacze`` pula ok. 400 wpisow (projekty + warianty i atrapy z ``przygotuj`` z tym samym wspolczynnikiem + drugi
+krazek x 1,025), liczniki per scenariusz i "zielony ze zlym projektem", z ``--wzor`` porownanie gniazdo po gniezdzie.
+``pamiec``: wypelnia pamiec podreczna wpisami ``r59`` (rownolegle). ``ranking``: kandydaci po filtrze, miejsce wlasciwego
+projektu w rankingu wstepnym, margines i czas oceny wstepnej (liczby rankingu w raporcie E3-A5). ``czas`` podaje tez
+rozmiar katalogu pamieci na dysku.
 
 Pliki CSV puli zawieraja sciezki projektow (nazwy folderow) - zostaja w katalogu roboczym PC; wyniki JSON i stdout tylko ze
 skrotami. Sztuczne skany sa danymi do pomiaru kodu, nie skanera.
@@ -254,9 +262,59 @@ def czas(a) -> None:
               f"prac {oc['prac']}, top1 projekt {oc['top1_projekt']}, wpis {oc['top1_wpis']}, zielone {oc['zielone']}, szczyt {szczyt_pamieci_mb()} MB, {st}", flush=True)
     rek["szczyt_mb"] = szczyt_pamieci_mb()
     rek["statystyka"] = dict(pam.statystyka)
+    rek["pamiec_dysk_mb"] = round(sum(f.stat().st_size for f in pam.pliki()) / 2**20, 1)  # rozmiar katalogu pamieci (D3)
+    rek["pamiec_dysk_plikow"] = len(pam.pliki())
     a.wyjscie.mkdir(parents=True, exist_ok=True)
     (a.wyjscie / f"{a.nazwa}.json").write_text(json.dumps(rek, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"szczyt pamieci procesu {rek['szczyt_mb']} MB; {a.wyjscie / (a.nazwa + '.json')}")
+
+
+def ranking(a) -> None:
+    """Ranking wstepny na plytkach (D3 recenzji PR #25): kandydatow po filtrze, miejsce wlasciwej geometrii w rankingu, ocena
+    wlasciwej / najlepszej / najlepszej obcej, kandydatow w marginesie, czas oceny wstepnej na fragment."""
+    import trimesh
+
+    from stanowisko import plate as PL
+    ust = UST.wczytaj_ustawienia(a.ustawienia)
+    wpisy = wpisy_puli(a.katalog, a.wpisow)
+    pam = PP.PamiecPuli(a.pamiec)
+    pula = M.Pula.z_wpisow(wpisy, None, pamiec=pam)
+    wiersze = []
+    for p in plytki(a.katalog, a.plytek):
+        prawda = S.wczytaj_prawde(p.with_suffix(".json"))
+        uk = U.wczytaj(prawda.plytka, UST.katalog_plytki(ust, prawda.plytka))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            wyr = PL.wyrownaj(trimesh.load(p, force="mesh"), uk)
+        praw = {x.gniazdo: x for x in prawda.prace}
+        for f in wyr.fragmenty:
+            if f.status == "drobny" or f.gniazdo not in praw:
+                continue
+            x = praw[f.gniazdo]
+            fr = M.FragmentDoDopasowania.z_punktow(f.punkty, f.normalne)
+            przeszly = [kl for kl, lk in pula.lekkie.items() if M.filtr(fr, lk, ust)[0]]
+            t0 = time.time()
+            oc = {kl: M.ocena_wstepna(fr, pula.lekkie[kl]) for kl in przeszly}
+            t_w = time.time() - t0
+            kl_pr = next((kl for kl, lk in pula.lekkie.items() if lk.id == x.projekt and abs(lk.wspolczynnik - x.wspolczynnik) < 1e-6), None)
+            kolejka = sorted(oc, key=lambda k: -oc[k])
+            najl = oc[kolejka[0]] if kolejka else 0.0
+            wiersze.append({"skan": p.name, "gniazdo": f.gniazdo, "po_filtrze": len(przeszly),
+                            "miejsce": (kolejka.index(kl_pr) + 1) if kl_pr in oc else None, "ocena_prawdy": round(oc.get(kl_pr, -1.0), 3),
+                            "najlepsza": round(najl, 3), "obca_max": round(max((oc[k] for k in oc if pula.lekkie[k].id != x.projekt), default=-1.0), 3),
+                            "w_marginesie": sum(1 for k in oc if oc[k] >= najl - M.WSTEPNY_MARGINES), "t_wstepny_s": round(t_w, 3)})
+            print(json.dumps(wiersze[-1]), flush=True)
+    m_ = [w["miejsce"] for w in wiersze]
+    zb = {"fragmentow": len(wiersze), "miejsce_1": sum(1 for v in m_ if v == 1), "miejsce_2_4": sum(1 for v in m_ if v and 2 <= v <= 4),
+          "miejsce_dalej_albo_brak": sum(1 for v in m_ if v is None or v > 4),
+          "prawda_poza_marginesem": sum(1 for w in wiersze if w["ocena_prawdy"] < w["najlepsza"] - M.WSTEPNY_MARGINES),
+          "po_filtrze_srednio": round(float(np.mean([w["po_filtrze"] for w in wiersze])), 1),
+          "w_marginesie_srednio": round(float(np.mean([w["w_marginesie"] for w in wiersze])), 2),
+          "w_marginesie_wiecej_niz_pelnych": sum(1 for w in wiersze if w["w_marginesie"] > M.WSTEPNY_PELNYCH),
+          "t_wstepny_srednio_s": round(float(np.mean([w["t_wstepny_s"] for w in wiersze])), 3), "t_wstepny_max_s": max(w["t_wstepny_s"] for w in wiersze)}
+    a.wyjscie.mkdir(parents=True, exist_ok=True)
+    (a.wyjscie / f"{a.nazwa}.json").write_text(json.dumps({"fragmenty": wiersze, "zbiorczo": zb}, ensure_ascii=False, indent=1), encoding="utf-8")
+    print("ZBIORCZO:", json.dumps(zb, ensure_ascii=False))
 
 
 # ----------------------------------------------------------------------------
@@ -331,13 +389,52 @@ def jakosc(a) -> None:
 # ----------------------------------------------------------------------------
 # regresja R59 przez pule wpisow
 # ----------------------------------------------------------------------------
+BLIZNIAK_R59 = 1.025  # P5: drugi krazek projektow R59 i atrap "plytkowych" w duzej puli (wspolczynnik plytki x tyle)
+
+
+def wpisy_r59(projekty, w: float, rozpraszacze: Path | None = None) -> list[dict]:
+    """Wpisy puli dla skanu R59: projekty (17) ze wspolczynnikiem plytki ``w``; z ``rozpraszacze`` (``pula_<n>.csv`` z
+    ``przygotuj``, P5 recenzji PR #25) dodatkowo wszystkie pozostale pliki tej puli (warianty, atrapy) TAKZE z ``w`` oraz
+    drugi krazek (``w`` x BLIZNIAK_R59) projektow i atrap plytkowych - razem ok. 400 wpisow."""
+    pliki = [str(q) for d in projekty for q in S.pliki_projektow(d)]
+    wpisy = [{"plik": q, "wspolczynnik": w, "krazek": "K", "frezowanie_id": i + 1, "projekt_id": i + 1} for i, q in enumerate(pliki)]
+    if rozpraszacze is None:
+        return wpisy
+    inne = sorted({x["plik"] for x in PO.wczytaj_wpisy(rozpraszacze)} - set(pliki))
+    plik_pl = rozpraszacze.parent / "plytkowe.json"
+    plytkowe = set(json.loads(plik_pl.read_text(encoding="utf-8"))["projekty"]) if plik_pl.is_file() else set()
+    for q in inne:
+        wpisy.append({"plik": q, "wspolczynnik": w, "krazek": "K", "frezowanie_id": len(wpisy) + 1, "projekt_id": len(wpisy) + 1})
+    pid = {x["plik"]: x["projekt_id"] for x in wpisy}
+    for q in pliki + [q for q in inne if q in plytkowe]:
+        wpisy.append({"plik": q, "wspolczynnik": round(w * BLIZNIAK_R59, 4), "krazek": "K2", "frezowanie_id": len(wpisy) + 1, "projekt_id": pid[q]})
+    return wpisy
+
+
+def _pamiec_czesc(arg) -> dict:
+    wpisy, katalog = arg
+    pam = PP.PamiecPuli(katalog)
+    M.Pula.z_wpisow(wpisy, None, pamiec=pam)
+    return dict(pam.statystyka)
+
+
+def pamiec(a) -> None:
+    """Wypelnienie pamieci podrecznej wpisami puli R59 (``wpisy_r59``) dla podanych wspolczynnikow - rownolegle po czesciach."""
+    t0 = time.time()
+    wszystkie = [x for w in a.wspolczynniki for x in wpisy_r59(a.projekty, w, a.rozpraszacze)]
+    czesci = [(wszystkie[i::a.procesy], a.pamiec) for i in range(a.procesy)]
+    with mp.Pool(a.procesy) as pool:
+        st = pool.map(_pamiec_czesc, czesci)
+    print(f"wpisow {len(wszystkie)}, policzone {sum(x['lekkie_policzone'] for x in st)}, z dysku {sum(x['lekkie_z_dysku'] for x in st)}, "
+          f"{time.time() - t0:.0f} s ({a.procesy} procesy)")
+
+
 def _skan_r59(arg) -> dict:
-    p, projekty = arg
+    p, projekty, rozpraszacze = arg
     ust, pam = _STAN["ust"], _STAN["pamiec"]
     prawda = S.wczytaj_prawde(p.with_suffix(".json"))
     w = float(np.mean([x.wspolczynnik for x in prawda.prace])) if prawda.prace else 1.0  # jak metryki_P3a
-    pliki = [q for d in projekty for q in S.pliki_projektow(d)]
-    wpisy = [{"plik": str(q), "wspolczynnik": w, "krazek": "K", "frezowanie_id": i + 1, "projekt_id": i + 1} for i, q in enumerate(pliki)]
+    wpisy = wpisy_r59(projekty, w, rozpraszacze)
     pula = M.Pula.z_wpisow(wpisy, None, pamiec=pam)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -352,12 +449,15 @@ def _skan_r59(arg) -> dict:
            "prac": mt["prac_prawda"], "top1": mt["top1"], "prac_dobrze": prac_dobrze, "top1_bledny_dobrze": dobrze["top1_bledny"],
            "prace_cale": mi["razem"]["prac_calych"], "prace_cale_z_czerwonym": mi["razem"]["prace_cale_z_czerwonym"],
            "prace_cale_z_alarmem": mi["razem"]["prace_cale_z_alarmem"], "ubytkow": mi["razem"]["ubytkow"], "wykryte_dowolny": mi["razem"]["wykryte"]["dowolny"],
-           "statusy_gniazd": wynik["statusy_gniazd"], "statusy_match": mt["statusy"], "czas_s": wynik["czas_s"],
+           "statusy_gniazd": wynik["statusy_gniazd"], "statusy_match": mt["statusy"], "czas_s": wynik["czas_s"], "wpisow": len(wpisy),
+           "scenariusze": {s: {"top1_bledny": v["top1_bledny"], "prace_cale_z_czerwonym": v["prace_cale_z_czerwonym"]} for s, v in mi["scenariusze"].items()},
            "gniazda": [{"gniazdo": g["gniazdo"], "status": g["status"], "status_gniazda": g["status_gniazda"],
                         "projekt": (g["kandydaci"][0]["id"] if g["kandydaci"] else None),
                         "projekt_prawda": next((x.projekt for x in prawda.prace if x.gniazdo == g["gniazdo"]), None),
                         "scenariusz": next((PO.scenariusz(x) for x in prawda.prace if x.gniazdo == g["gniazdo"]), None)} for g in wynik["gniazda"]]}
-    rek["linia"] = (f"{p.name}: wyr {rek['wyrownanie_mm']:.4f} top1 {rek['top1']}/{rek['prac']} dobrze bledne {rek['top1_bledny_dobrze']}/{prac_dobrze} "
+    for g in rek["gniazda"]:
+        g["zielony_zly"] = g["status"] == "zielony" and g["projekt_prawda"] is not None and g["projekt"] != g["projekt_prawda"]
+    rek["linia"] = (f"{p.name}: wpisow {len(wpisy)} wyr {rek['wyrownanie_mm']:.4f} top1 {rek['top1']}/{rek['prac']} dobrze bledne {rek['top1_bledny_dobrze']}/{prac_dobrze} "
                     f"cale z czerwonym {rek['prace_cale_z_czerwonym']}/{rek['prace_cale']} {wynik['czas_s']['razem']} s")
     return rek
 
@@ -367,7 +467,7 @@ def r59(a) -> None:
     t0 = time.time()
     wyniki = []
     with mp.Pool(a.procesy, initializer=_init, initargs=(a.pamiec, a.linie, a.ustawienia)) as pool:
-        for r in pool.imap(_skan_r59, [(q, tuple(a.projekty)) for q in skany]):
+        for r in pool.imap(_skan_r59, [(q, tuple(a.projekty), a.rozpraszacze) for q in skany]):
             print(r["linia"], flush=True)
             wyniki.append(r)
     ok = [r for r in wyniki if not r.get("niezgodny")]
@@ -380,6 +480,25 @@ def r59(a) -> None:
           "statusy_gniazd": {s: sum(r["statusy_gniazd"][s] for r in ok) for s in PO.STATUSY_GNIAZDA},
           "statusy_match": {s: sum(r["statusy_match"][s] for r in ok) for s in M.STATUSY}, "czas_calosci_s": round(time.time() - t0, 1)}
     zb["top1_dobrze"] = zb["prac_dobrze"] - zb["top1_bledny_dobrze"]
+    zb["wpisow_srednio"] = round(float(np.mean([r["wpisow"] for r in ok])), 1)
+    zb["zielony_ze_zlym_projektem"] = sum(1 for r in ok for g in r["gniazda"] if g["zielony_zly"])
+    zb["per_scenariusz"] = {}
+    for s_ in PO.SCENARIUSZE:
+        gn = [g for r in ok for g in r["gniazda"] if g["scenariusz"] == s_]
+        zb["per_scenariusz"][s_] = {"prac": len(gn), "top1_bledny": sum(r["scenariusze"][s_]["top1_bledny"] for r in ok),
+                                    "zielony_ze_zlym": sum(1 for g in gn if g["zielony_zly"]),
+                                    "statusy_gniazd": {k: sum(1 for g in gn if g["status_gniazda"] == k) for k in PO.STATUSY_GNIAZDA}}
+    if a.wzor is not None:  # porownanie gniazdo po gniezdzie z przebiegiem metryki_P3a (np. baza na main)
+        wz = {r["skan"]: r for r in json.loads(a.wzor.read_text(encoding="utf-8"))["skany"]}
+        rozne = []
+        for r in ok:
+            for i, g in enumerate(r["gniazda"]):
+                gw = wz[r["skan"]]["gniazda"][i] if r["skan"] in wz and i < len(wz[r["skan"]]["gniazda"]) else None
+                if gw is None or (gw["status_gniazda"], gw["projekt"]) != (g["status_gniazda"], g["projekt"]):
+                    rozne.append({"skan": r["skan"], "gniazdo": g["gniazdo"], "scenariusz": g["scenariusz"], "wzor": gw and [gw["status"], gw["status_gniazda"], gw["projekt"] == gw["projekt_prawda"]],
+                                  "teraz": [g["status"], g["status_gniazda"], g["projekt"] == g["projekt_prawda"]]})
+        zb["rozne_od_wzoru"] = len(rozne)
+        zb["rozne_od_wzoru_lista"] = rozne
     a.wyjscie.mkdir(parents=True, exist_ok=True)
     (a.wyjscie / f"{a.nazwa}.json").write_text(json.dumps({"skany": wyniki, "zbiorczo": zb}, ensure_ascii=False, indent=1), encoding="utf-8")
     print("ZBIORCZO:", json.dumps(zb, ensure_ascii=False))
@@ -388,7 +507,7 @@ def r59(a) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="tryb", required=True)
-    for nazwa in ("przygotuj", "czas", "jakosc", "r59"):
+    for nazwa in ("przygotuj", "czas", "jakosc", "r59", "ranking", "pamiec"):
         s = sub.add_parser(nazwa)
         s.add_argument("--ustawienia", type=Path, default=None)
         s.add_argument("--wpisow", type=int, default=400)
@@ -399,18 +518,24 @@ def main() -> None:
         s.add_argument("--nazwa", default=f"metryki_pula_{nazwa}")
         s.add_argument("--seed", type=int, default=1)
         s.add_argument("--limit", type=int, default=None)
-        if nazwa in ("przygotuj", "r59"):
+        if nazwa in ("przygotuj", "r59", "pamiec"):
             s.add_argument("--projekty", type=Path, nargs="+", required=True)
+        if nazwa in ("r59", "pamiec"):
+            s.add_argument("--rozpraszacze", type=Path, default=None, help="pula_<n>.csv z przygotuj: duza pula R59 (ok. 400 wpisow, P5)")
+        if nazwa == "pamiec":
+            s.add_argument("--wspolczynniki", type=float, nargs="+", default=[1.0, 1.22])
+            s.add_argument("--wyjscie", type=Path, default=Path("."))
         if nazwa == "r59":
             s.add_argument("--skany", type=Path, nargs="+", required=True)
             s.add_argument("--wyjscie", type=Path, required=True)
-        else:
+            s.add_argument("--wzor", type=Path, default=None, help="JSON metryki_P3a do porownania gniazdo po gniezdzie (kolory, projekt)")
+        elif nazwa != "pamiec":
             s.add_argument("--katalog", type=Path, required=True)
             s.add_argument("--wyjscie", type=Path, default=None)
     a = ap.parse_args()
     if getattr(a, "wyjscie", None) is None:
         a.wyjscie = a.katalog / "wyniki"
-    {"przygotuj": przygotuj, "czas": czas, "jakosc": jakosc, "r59": r59}[a.tryb](a)
+    {"przygotuj": przygotuj, "czas": czas, "jakosc": jakosc, "r59": r59, "ranking": ranking, "pamiec": pamiec}[a.tryb](a)
 
 
 if __name__ == "__main__":

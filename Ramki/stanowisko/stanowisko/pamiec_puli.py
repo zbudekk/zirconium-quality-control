@@ -1,7 +1,8 @@
 """pamiec_puli - pamiec podreczna projektow puli per praca (E3-A5): projekt STL x wspolczynnik na dysku i w procesie.
 
 Po co: pula wieczorna ma kilkaset wpisow (projekt x wspolczynnik krazka), a budowa ``match.Projekt`` z pliku STL to ok.
-0,2-0,4 s (wczytanie, orientacja, 40 tys. punktow, FPFH, scena promieni). ``match.Pula.z_wpisow`` potrzebuje dla kazdej
+0,1-0,3 s (wczytanie, orientacja, 40 tys. punktow, FPFH, scena promieni), profil glebokosci 0,2-0,5 s;
+na PC pelna budowa puli 400 nowych wpisow jednym procesem: 0,9 s na wpis (z liczeniem skrotu i zapisem). ``match.Pula.z_wpisow`` potrzebuje dla kazdej
 geometrii tylko czesci lekkiej (``match.ProjektLekki``: cechy filtra z profilem glebokosci, chmura 0,3 mm do rankingu
 wstepnego); pelny projekt powstaje dopiero dla kandydatow po filtrze i rankingu. Obie czesci sa liczone raz i zapisane na
 dysk (jeden plik ``.npz`` na geometrie), wiec po starcie programu pula wczytuje sie w sekundy, a pelne projekty kandydatow
@@ -9,7 +10,8 @@ w milisekundy.
 
 Klucz wpisu: skrot SHA-256 ZAWARTOSCI pliku (16 znakow, jak ``synth.skrot_pliku``) + wspolczynnik (6 miejsc) + orientacja
 (argument i znacznik: ``e`` = nazwa exocad, brzeg na dole z konwencji eksportu; ``h`` = heurystyka z siatki) + odcisk
-algorytmu (``odcisk()``: wersja formatu, stale match wplywajace na dane, wersje open3d i trimesh). Uniewaznianie: inna
+algorytmu (``odcisk()``: wersja formatu, zrodla funkcji liczacych dane - wczytanie, orientacja, cechy, probka, FPFH,
+profil, zapis / odczyt - stale match wplywajace na dane, wersje open3d, trimesh, numpy, scipy). Uniewaznianie: inna
 zawartosc pliku = inny skrot = inny wpis (plik zmieniony po indeksowaniu nie dostanie starych danych); zmiana algorytmu
 albo bibliotek = inny odcisk; plik pamieci uszkodzony albo niezgodny z kluczem = liczony od nowa (licznik
 ``bledy_odczytu``); ``sprzataj(dni)`` usuwa wpisy nieuzywane od ``dni`` dni (uzycie odswieza czas pliku).
@@ -42,14 +44,47 @@ LIMIT_LEKKICH = 4000  # czesci lekkich w procesie (ok. 0,1-0,3 MB kazda)
 POLA_LEKKIE = ("l_profil", "l_pts", "l_nrm")
 
 
+def funkcje_odcisku() -> list:
+    """Kod wszystkich etapow, ktore licza dane pamieci (wczytanie, orientacja, cechy, centrowanie i probka, FPFH, profil,
+    zapis / odczyt) - pobierany z modulow przy kazdym wywolaniu (podmiana albo zmiana funkcji = inny odcisk; P2 recenzji PR #25)."""
+    from . import katalog as K
+
+    return [S.wczytaj_projekt, S.orientacja_brzegiem_do_gory, S.brzeg_z_heurystyki, S.strona_brzegu, S.plik_exocad, S.skrot_pliku,
+            K.cechy, K.typ_i_zeby_z_nazwy, M.Projekt.__init__, M.Projekt._zbuduj_scene, M.Projekt.lekki, M.Projekt.do_tablic,
+            M.Projekt.z_tablic, M._fpfh, M._chmura]
+
+
 def odcisk() -> str:
-    """Odcisk algorytmu: zmiana stalych match wplywajacych na dane pamieci albo wersji bibliotek = nowe wpisy (stare nieuzywane)."""
+    """Odcisk algorytmu: zrodla funkcji z ``funkcje_odcisku``, wzorzec nazwy exocad, stale match wplywajace na dane pamieci
+    i wersje bibliotek (open3d, trimesh, numpy, scipy). Inny odcisk = nowe wpisy (stare nieuzywane, do ``sprzataj``)."""
+    import inspect
+
     import open3d as o3d
+    import scipy
     import trimesh
 
+    h = hashlib.sha256()
+    for f in funkcje_odcisku():
+        try:
+            zrodlo = inspect.getsource(f)
+        except (OSError, TypeError):  # brak zrodel (program zamrozony): nazwa funkcji - zmiane wymusza wtedy WERSJA
+            zrodlo = getattr(f, "__qualname__", repr(f))
+        h.update(zrodlo.encode("utf-8"))
     dane = {"wersja": WERSJA, "punkty": M.PUNKTY_KANDYDATA, "voxel_fpfh": M.VOXEL_FPFH, "voxel_zgrubne": M.VOXEL_ZGRUBNE, "krok_profilu": M.KROK_PROFILU,
-            "voxel_wstepny": M.WSTEPNY_VOXEL_PROJEKTU, "open3d": o3d.__version__, "trimesh": trimesh.__version__}
+            "voxel_wstepny": M.WSTEPNY_VOXEL_PROJEKTU, "exocad": getattr(getattr(S, "WZOR_EXOCAD", None), "pattern", ""),
+            "open3d": o3d.__version__, "trimesh": trimesh.__version__, "numpy": np.__version__, "scipy": scipy.__version__, "kod": h.hexdigest()}
     return hashlib.sha256(json.dumps(dane, sort_keys=True).encode("ascii")).hexdigest()[:8]
+
+
+def _projekt_z_pliku(plik: Path, wspolczynnik: float, orientacja: str) -> M.Projekt:
+    """``match.Projekt`` z pliku BEZ ostrzezen (``synth.wczytaj_projekt`` ostrzega z nazwa pliku = nazwisko; zasada A4 - ostrzezenia
+    przy wczytywaniu sa wyciszane, P3 recenzji PR #25); blad odczytu = ``ValueError`` bez sciezki (tylko typ wyjatku)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        try:
+            return M.Projekt(plik, wspolczynnik, orientacja)
+        except OSError as e:
+            raise ValueError(f"pliku projektu nie da sie odczytac ({type(e).__name__})") from None
 
 
 def znacznik_orientacji(plik: Path, orientacja: str) -> str:
@@ -117,7 +152,7 @@ class PamiecPuli:
                 self.statystyka["lekkie_z_dysku"] += 1
             else:
                 t0 = time.time()
-                pr = M.Projekt(plik, wspolczynnik, orientacja)
+                pr = _projekt_z_pliku(plik, wspolczynnik, orientacja)
                 lk = pr.lekki()
                 lk.klucz_pamieci = kl
                 self.statystyka["lekkie_policzone"] += 1
@@ -147,11 +182,11 @@ class PamiecPuli:
                 if opis.get("klucz") != kl or opis.get("id") != sha16 or abs(float(opis.get("wspolczynnik", -1)) - round(float(wspolczynnik), 6)) > 1e-9:
                     raise ValueError("wpis pamieci niezgodny z kluczem")
                 prof, pts, nrm = (np.array(d[n], dtype=np.float64) for n in POLA_LEKKIE)
-        except (OSError, KeyError, ValueError, EOFError, zipfile.BadZipFile):
+            lk = M.ProjektLekki(opis["id"], float(opis["wspolczynnik"]), [float(v) for v in opis["obrys_xy"]], float(opis["wysokosc"]), float(opis["hull"]),
+                                prof.reshape(-1, 3), pts, nrm, opis["cechy"].get("zeby", []), opis["cechy"].get("typ", ""))
+        except (OSError, KeyError, ValueError, TypeError, AttributeError, EOFError, zipfile.BadZipFile):  # D7: niespojny wpis = liczenie od nowa
             self.statystyka["bledy_odczytu"] += 1
             return None
-        lk = M.ProjektLekki(opis["id"], float(opis["wspolczynnik"]), [float(v) for v in opis["obrys_xy"]], float(opis["wysokosc"]), float(opis["hull"]),
-                            prof.reshape(-1, 3), pts, nrm, opis["cechy"].get("zeby", []), opis["cechy"].get("typ", ""))
         lk.klucz_pamieci = kl
         self._dotknij(plik)
         self.statystyka["czas_odczytu_s"] = round(self.statystyka["czas_odczytu_s"] + time.time() - t0, 3)
@@ -166,6 +201,7 @@ class PamiecPuli:
         if pr is not None:
             self._ciezkie.move_to_end(kl)
             self.statystyka["ciezkie_z_pamieci"] += 1
+            self._profil_z_lekkiego(pr, lk)  # D9: takze projekt zbudowany przy liczeniu czesci lekkiej (bez dysku)
             return pr
         pr = self._czytaj_ciezki(kl, lk)
         if pr is not None:
@@ -175,7 +211,7 @@ class PamiecPuli:
                 raise ValueError(f"projekt {lk.id}: brak pliku do wczytania")
             plik, orientacja = lk.zrodlo
             t0 = time.time()
-            pr = M.Projekt(plik, lk.wspolczynnik, orientacja)
+            pr = _projekt_z_pliku(plik, lk.wspolczynnik, orientacja)
             self.statystyka["czas_liczenia_s"] = round(self.statystyka["czas_liczenia_s"] + time.time() - t0, 3)
             if pr.id != lk.id:
                 raise ValueError(f"projekt {lk.id}: plik zmienil sie od zbudowania puli (teraz {pr.id})")
@@ -183,10 +219,16 @@ class PamiecPuli:
             p = self._plik(kl)
             if p is not None and not p.is_file():
                 self._zapisz(kl, pr, lk)
-        if not pr._profil:  # profil filtra z czesci lekkiej (te same liczby) - filtr w dopasuj_pare nie liczy otoczek drugi raz
-            pr._profil = {k: ([float(a), float(b)], float(h)) for k, (a, b, h) in enumerate(lk.profil, start=1)}
+        self._profil_z_lekkiego(pr, lk)
         self._wstaw_ciezki(kl, pr)
         return pr
+
+    @staticmethod
+    def _profil_z_lekkiego(pr: M.Projekt, lk: M.ProjektLekki) -> None:
+        """Profil filtra pelnego projektu z czesci lekkiej (te same liczby): filtr w ``dopasuj_pare`` nie liczy otoczek drugi
+        raz i daje te same decyzje co filtr na czesci lekkiej (D9)."""
+        if not pr._profil:
+            pr._profil = {k: ([float(a), float(b)], float(h)) for k, (a, b, h) in enumerate(lk.profil, start=1)}
 
     def _czytaj_ciezki(self, kl: str, lk: M.ProjektLekki) -> M.Projekt | None:
         plik = self._plik(kl)
@@ -199,10 +241,10 @@ class PamiecPuli:
                 if opis.get("klucz") != kl or opis.get("id") != lk.id:
                     raise ValueError("wpis pamieci niezgodny z kluczem")
                 tab = {n: d[n] for n in ("V", "F", "T0", "pts", "nrm", "fpfh_pts", "fpfh_nrm", "fpfh")}
-        except (OSError, KeyError, ValueError, EOFError, zipfile.BadZipFile):
+            pr = M.Projekt.z_tablic(tab, opis, lk.zrodlo[0] if lk.zrodlo else None)
+        except (OSError, KeyError, ValueError, TypeError, AttributeError, IndexError, EOFError, zipfile.BadZipFile):  # D7
             self.statystyka["bledy_odczytu"] += 1
             return None
-        pr = M.Projekt.z_tablic(tab, opis, lk.zrodlo[0] if lk.zrodlo else None)
         self.statystyka["czas_odczytu_s"] = round(self.statystyka["czas_odczytu_s"] + time.time() - t0, 3)
         return pr
 

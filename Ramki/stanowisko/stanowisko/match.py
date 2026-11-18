@@ -76,7 +76,7 @@ SKALA_DOKLADNOSC_PROC = 0.05  # dokładność estymaty skali (cel z testów T7, 
 # pula per praca (E3-A5): ranking wstepny i wybor wpisu wsrod wariantow tego samego STL (parametry robocze, nie progi [match])
 WSTEPNY_PELNYCH = 4  # najwyzej tylu kandydatow po filtrze dostaje pelne dopasowanie (FPFH + RANSAC + ICP) w jednej turze
 WSTEPNY_MARGINES = 0.15  # do pelnego dopasowania ida kandydaci z oceną wstepna >= najlepsza - tyle (i najwyzej WSTEPNY_PELNYCH)
-WSTEPNY_TUR = 3  # gdy najlepszy po pelnym dopasowaniu ma pokrycie < prog_ostrzezenia_pokrycie: kolejna tura (nastepni z rankingu), najwyzej tyle tur
+WSTEPNY_TUR = 3  # kolejne tury: najpierw pozostali w marginesie oceny wstepnej, potem (gdy najlepsze pokrycie < prog_akceptacji) nastepni z rankingu
 WSTEPNY_RATUNEK_WSZYSTKIE = 24  # ratunek (nikt nie przeszedl filtru) w puli do tylu geometrii: pelne dopasowanie wszystkich, jak w puli z folderu
 WSTEPNY_PUNKTOW = 300  # punkty fragmentu do oceny wstepnej (z chmury 0,5 mm, wybor staly)
 WSTEPNY_VOXEL_PROJEKTU = 0.3  # mm: chmura projektu do oceny wstepnej (punkty + normalne; czesc lekka, na dysku)
@@ -88,6 +88,9 @@ WSTEPNY_ICP_ODL = (0.6, 0.4, 0.25, 0.25, 0.25)  # mm: odrzucanie par w krokach d
 WSTEPNY_ODL_SASIADA = 0.35  # mm: punkt liczy sie do oceny, gdy najblizszy punkt chmury projektu jest blizej niz tyle ...
 WSTEPNY_PROG_MM = 0.1  # mm: ... i odleglosc od plaszczyzny stycznej projektu jest nie wieksza niz tyle
 WARIANT_REMIS_POKRYCIA = 0.02  # warianty tego samego STL o pokryciach blizej niz tyle: rozstrzyga estymata skali (albo sa nierozroznialne)
+WARIANT_ROZROZNIENIE_PROC = 0.2  # punkty proc.: warianty tego samego STL, ktorych odleglosc od estymaty skali rozni sie mniej niz tyle, sa nierozroznialne.
+# >= zmierzone MAKSIMUM bledu estymaty "wiarygodnej" (czesc A, pomiary koncowe 17.11.2026 pkt 5.2: max 0,174 %, p95 <= 0,031 %) - nie
+# SKALA_DOKLADNOSC_PROC (cel / p95, granica okna): wybrany wpis jest wtedy zawsze wlasciwy albo wynik jest niejednoznaczny (recenzja PR #25, B1)
 UWAGA_RATUNEK = "żaden projekt nie przeszedł filtru wymiarów — dopasowano wszystkie"
 
 
@@ -949,13 +952,27 @@ def _pelne_dopasowanie(fr: FragmentDoDopasowania, pula: Pula, kl: str, ust: dict
     return _kandydat_puli(pula, kl, k=dopasuj_pare(fr, pr, ust, seed))
 
 
-def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed: int, uwagi: list[str]) -> list[Kandydat]:
+def _koryguj_bezpiecznie(P: np.ndarray, fr: FragmentDoDopasowania, k: Kandydat, pula: Pula, m: dict, bez_korekty: str, uwagi: list[str]) -> None:
+    """``koryguj_skale`` z ochrona jak ``_pelne_dopasowanie``: pelnego projektu nie da sie wczytac (pula per praca: plik
+    usuniety / zmieniony po budowie puli i brak go w pamieci) = kandydat bez korekty z uwaga, plytka liczona dalej (D12)."""
+    try:
+        pr = pula.projekty[k.klucz]
+    except (ValueError, OSError) as e:
+        k.skala = KorektaSkali(powod=f"projektu nie da sie wczytac ({type(e).__name__})", pokrycie_przed=k.pokrycie)
+        uwagi.append(f"projekt {k.id}: korekta skali pominieta - projektu nie da sie wczytac ({type(e).__name__})")
+        return
+    koryguj_skale(P, fr, k, pr, m, bez_korekty)
+
+
+def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed: int, uwagi: list[str]) -> tuple[list[Kandydat], int]:
     """Filtr wymiarow na czesci lekkiej kazdej geometrii; gdy po filtrze zostaje wiecej niz WSTEPNY_PELNYCH - ranking
-    wstepny (``ocena_wstepna``) i pelne dopasowanie tylko najlepszych (ocena >= najlepsza - WSTEPNY_MARGINES, najwyzej
-    WSTEPNY_PELNYCH); gdy najlepszy z nich ma pokrycie < prog_ostrzezenia_pokrycie - kolejna tura z rankingu (najwyzej
-    WSTEPNY_TUR tur). Pozostali: ``metoda = wstepny``, pokrycie 0 (jak odrzuceni filtrem). Ratunek (nikt nie przeszedl
-    filtru) idzie ta sama droga po calej puli - chyba ze pula ma najwyzej WSTEPNY_RATUNEK_WSZYSTKIE geometrii (wtedy pelne
-    dopasowanie wszystkich, jak w puli z folderu: prace lezace bokiem, ktorych ocena wstepna nie rozumie)."""
+    wstepny (``ocena_wstepna``) i pelne dopasowanie w turach po WSTEPNY_PELNYCH (najwyzej WSTEPNY_TUR tur): najpierw
+    kandydaci z ocena >= najlepsza - WSTEPNY_MARGINES (margines), a gdy margines wyczerpany, a najlepsze pokrycie jest
+    < prog_akceptacji_pokrycie - nastepni z rankingu. Blizniacy (ten sam STL, inny wspolczynnik) najlepszego kandydata
+    dostaja pelne dopasowanie zawsze. Pozostali: ``metoda = wstepny``, pokrycie 0 (jak odrzuceni filtrem). Zwraca
+    (kandydaci, liczba kandydatow z marginesu BEZ pelnego dopasowania) - dopasuj nie daje wtedy statusu zielonego (P1).
+    Ratunek (nikt nie przeszedl filtru) idzie ta sama droga po calej puli - chyba ze pula ma najwyzej
+    WSTEPNY_RATUNEK_WSZYSTKIE geometrii (wtedy pelne dopasowanie wszystkich, jak w puli z folderu)."""
     m = ust["match"]
     lekkie = pula.lekkie
     wyn_filtru = {kl: filtr(fr, lk, ust) for kl, lk in lekkie.items()}
@@ -969,59 +986,83 @@ def _kandydaci_per_praca(fr: FragmentDoDopasowania, pula: Pula, ust: dict, seed:
     kandydaci = {kl: _kandydat_puli(pula, kl, filtr_ok=False, powod_filtru=powod, metoda="filtr")
                  for kl, (_, powod) in wyn_filtru.items() if kl not in w_zbiorze}
     wstepne: dict[str, float] = {}
+    pozostali: list[str] = []
+    prog_marg = -math.inf
     if pula.ranking_wstepny and len(zbior) > WSTEPNY_PELNYCH and not (ust_pary is not ust and len(zbior) <= WSTEPNY_RATUNEK_WSZYSTKIE):
         wstepne = {kl: ocena_wstepna(fr, lekkie[kl]) for kl in zbior}
-        kolejka = sorted(zbior, key=lambda kl: (-wstepne[kl], kl))
-        tura = [kl for kl in kolejka[:WSTEPNY_PELNYCH] if wstepne[kl] >= wstepne[kolejka[0]] - WSTEPNY_MARGINES]
+        pozostali = sorted(zbior, key=lambda kl: (-wstepne[kl], kl))
+        prog_marg = wstepne[pozostali[0]] - WSTEPNY_MARGINES
+        prog_akc = m["prog_akceptacji_pokrycie"]
+        najl = 0.0
+        for _ in range(WSTEPNY_TUR):
+            w_marg = [kl for kl in pozostali if wstepne[kl] >= prog_marg]
+            tura = (w_marg if w_marg else (pozostali if najl < prog_akc else []))[:WSTEPNY_PELNYCH]
+            if not tura:
+                break
+            for kl in tura:
+                kandydaci[kl] = _pelne_dopasowanie(fr, pula, kl, ust_pary, seed, uwagi)
+                pozostali.remove(kl)
+            najl = max((kandydaci[kl].pokrycie for kl in zbior if kl in kandydaci), default=0.0)
+        pelne = [kl for kl in zbior if kl in kandydaci]
+        if pelne:  # blizniacy najlepszego (ten sam STL, inny wspolczynnik) - zawsze w pelni (wybor wpisu ich potrzebuje, P4)
+            id1 = lekkie[max(pelne, key=lambda kl: kandydaci[kl].pokrycie)].id
+            for kl in [kl for kl in pozostali if lekkie[kl].id == id1]:
+                kandydaci[kl] = _pelne_dopasowanie(fr, pula, kl, ust_pary, seed, uwagi)
+                pozostali.remove(kl)
     else:
-        kolejka, tura = list(zbior), list(zbior)
-    w_turze = set(tura)
-    reszta = [kl for kl in kolejka if kl not in w_turze]
-    for nr in range(1, WSTEPNY_TUR + 1):
-        for kl in tura:
+        for kl in zbior:
             kandydaci[kl] = _pelne_dopasowanie(fr, pula, kl, ust_pary, seed, uwagi)
-        najl = max((kandydaci[kl].pokrycie for kl in zbior if kl in kandydaci), default=0.0)
-        if najl >= m["prog_ostrzezenia_pokrycie"] or not reszta or nr == WSTEPNY_TUR:
-            break
-        tura, reszta = reszta[:WSTEPNY_PELNYCH], reszta[WSTEPNY_PELNYCH:]
-    for kl in reszta:
+    niepewne = sum(1 for kl in pozostali if wstepne[kl] >= prog_marg)
+    for kl in pozostali:
         kandydaci[kl] = _kandydat_puli(pula, kl, metoda="wstepny")
     for kl, w in wstepne.items():
         kandydaci[kl].pokrycie_wstepne = round(w, 4)
-    return [kandydaci[kl] for kl in lekkie if kl in kandydaci]
+    return [kandydaci[kl] for kl in lekkie if kl in kandydaci], niepewne
 
 
 def _wybierz_wariant(P: np.ndarray, fr: FragmentDoDopasowania, kandydaci: list[Kandydat], pula: Pula, m: dict, bez_korekty: str,
                      uwagi: list[str]) -> None:
     """Ten sam STL w puli z kilkoma wspolczynnikami (krazkami): wpis = wariant o wspolczynniku najblizszym estymacie ze skanu
     (``KorektaSkali.wspolczynnik_ze_skanu``), o ile jego pokrycie nie jest nizsze niz najlepszego o wiecej niz
-    WARIANT_REMIS_POKRYCIA. Warianty blizej siebie niz dokladnosc estymaty (SKALA_DOKLADNOSC_PROC) albo - bez estymaty -
-    o pokryciach blizej niz WARIANT_REMIS_POKRYCIA sa nierozroznialne: ich wpisy ida razem do ``wpisy`` najlepszego
-    kandydata, a ``frezowanie_id`` / ``krazek`` zostaja puste (program nie zgaduje)."""
+    WARIANT_REMIS_POKRYCIA. Wynik NIEJEDNOZNACZNY (wpisy razem w ``wpisy`` najlepszego kandydata, ``frezowanie_id`` /
+    ``krazek`` puste, uwaga - program nie zgaduje), gdy: (1) odleglosci wariantow od estymaty roznia sie mniej niz
+    WARIANT_ROZROZNIENIE_PROC (B1); (2) estymata wskazuje inny wariant niz pokrycie (P4a); (3) wariant nie ma pelnego
+    dopasowania (pominiety rankingiem albo nie do wczytania, P4b); (4) bez estymaty - pokrycia blizej niz WARIANT_REMIS_POKRYCIA."""
     k1 = kandydaci[0]
     if k1.transformacja is None:
         return
     grupa = [k for k in kandydaci if k.id == k1.id and k.transformacja is not None]
-    najl, rowne = k1, []
+    bez_pelnego = [k for k in kandydaci if k.id == k1.id and k is not k1 and k.transformacja is None and k.metoda in ("wstepny", "blad")]
+    najl, rowne = k1, list(bez_pelnego)
+    powody = ["wariant bez pelnego dopasowania"] if bez_pelnego else []
     if len(grupa) > 1:
         est = next((k.skala.wspolczynnik_ze_skanu for k in grupa
                     if k.skala is not None and k.skala.wspolczynnik_ze_skanu is not None and not k.skala.niepewna), None)
         if est is not None:
             odl = {k.klucz: abs(est / k.wspolczynnik - 1.0) * 100.0 for k in grupa}
             grupa.sort(key=lambda k: (odl[k.klucz], -k.pokrycie))
-            if grupa[0] is not k1:
-                if grupa[0].skala is None:
-                    koryguj_skale(P, fr, grupa[0], pula.projekty[grupa[0].klucz], m, bez_korekty)
-                if grupa[0].pokrycie >= k1.pokrycie - WARIANT_REMIS_POKRYCIA:
-                    najl = grupa[0]
-                    kandydaci.remove(najl)
-                    kandydaci.insert(0, najl)
-            rowne = [k for k in grupa if k is not najl and abs(odl[k.klucz] - odl[najl.klucz]) < SKALA_DOKLADNOSC_PROC]
+            wsk = grupa[0]  # wariant wskazany przez estymate skali
+            if wsk is not k1 and wsk.skala is None:
+                _koryguj_bezpiecznie(P, fr, wsk, pula, m, bez_korekty, uwagi)
+            if wsk is k1 or wsk.pokrycie >= k1.pokrycie - WARIANT_REMIS_POKRYCIA:
+                najl = wsk
+                kandydaci.remove(najl)
+                kandydaci.insert(0, najl)
+            else:
+                rowne.append(wsk)
+                powody.append("estymata skali i pokrycie wskazuja rozne wpisy")
+            blisko = [k for k in grupa if k is not najl and k not in rowne and odl[k.klucz] - odl[wsk.klucz] < WARIANT_ROZROZNIENIE_PROC]
+            if blisko:
+                powody.append(f"wspolczynniki blizsze niz rozroznienie estymaty skali ({WARIANT_ROZROZNIENIE_PROC:g} %)")
+            rowne += blisko
         else:
-            rowne = [k for k in grupa if k is not k1 and k.pokrycie >= k1.pokrycie - WARIANT_REMIS_POKRYCIA]
+            blisko = [k for k in grupa if k is not k1 and k.pokrycie >= k1.pokrycie - WARIANT_REMIS_POKRYCIA]
+            if blisko:
+                powody.append("brak estymaty skali, pokrycia rowne")
+            rowne += blisko
     if rowne:
         _wpisy_kandydata(najl, najl.wpisy + [w for k in rowne for w in k.wpisy])
-        uwagi.append(f"ten sam projekt w puli z {len(rowne) + 1} wspolczynnikami blizszymi niz dokladnosc estymaty skali - wpisu (krazka) nie rozstrzygnieto")
+        uwagi.append(f"ten sam projekt w puli z {len(rowne) + 1} wspolczynnikami - wpisu (krazka) nie rozstrzygnieto: {'; '.join(powody)}")
     elif len(najl.wpisy) > 1:
         uwagi.append(f"ten sam projekt w {len(najl.wpisy)} wpisach puli o tym samym wspolczynniku - krazek albo zlecenie do wskazania")
 
@@ -1039,8 +1080,9 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
         return WynikDopasowania(gniazdo, [], 0.0, "szary", 0.0, int(len(P)), ["za mało punktów" if len(P) < 50 else "pusta pula"])
     fr = FragmentDoDopasowania.z_punktow(P, N)
     per_praca = getattr(pula, "per_praca", False)
+    niepewne = 0
     if per_praca:
-        kandydaci = _kandydaci_per_praca(fr, pula, ust, seed, uwagi)
+        kandydaci, niepewne = _kandydaci_per_praca(fr, pula, ust, seed, uwagi)
     else:
         kandydaci = [dopasuj_pare(fr, pr, ust, seed) for pr in pula.projekty.values()]
         if not any(k.filtr_ok for k in kandydaci):
@@ -1054,7 +1096,7 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
     # błędzie współczynnika); obcy projekt dostaje skalę poza oknem i zostaje bez korekty (T7: 1,36–1,46 zamiast 1,22)
     for i, k in enumerate(list(kandydaci[:SKALA_KANDYDATOW])):
         if k.transformacja is not None and (i == 0 or k.pokrycie >= SKALA_REMIS * kandydaci[0].pokrycie):
-            koryguj_skale(P, fr, k, pula.projekty[k.klucz], m, bez_korekty)
+            _koryguj_bezpiecznie(P, fr, k, pula, m, bez_korekty, uwagi)
     kandydaci.sort(key=lambda k: (-k.pokrycie, k.rms_mm))
     if per_praca:
         _wybierz_wariant(P, fr, kandydaci, pula, m, bez_korekty, uwagi)
@@ -1075,6 +1117,9 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
         status = "zolty"
     else:
         status = "szary"
+    if niepewne and status == "zielony":  # P1: kandydaci z marginesu oceny wstepnej bez pelnego dopasowania - pewnosc nieznana
+        status = "zolty"
+        uwagi.append(f"ranking wstepny: {niepewne} kandydatow o ocenie bliskiej najlepszej bez pelnego dopasowania - wynik niepewny")
     return WynikDopasowania(gniazdo, kandydaci, pewnosc, status, round(time.time() - t0, 2), int(len(P)), uwagi)
 
 

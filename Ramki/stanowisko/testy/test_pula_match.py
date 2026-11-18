@@ -309,28 +309,137 @@ def test_ta_sama_geometria_w_dwoch_wpisach_bez_zgadywania(stl, plytka, ust, tmp_
 
 
 # --- ranking wstepny (duza pula) --------------------------------------------------------------------------------------
-def test_ranking_wstepny_ogranicza_pelne_dopasowania(stl, pula_obu, plytka, ust, monkeypatch):
+def _fragment_trzonowca(stl, pula_obu, plytka, ust):
+    """Fragment trzonowca (3 rozpraszacze podobnych wymiarow x 2 krazki + blizniak = 8 kandydatow po filtrze) i wpis prawdy."""
     pula, wp, _ = pula_obu
     _, wyr, prawda = plytka
     mapa = {x.gniazdo: x for x in prawda.prace}
-    sha_trzonowy = synth.skrot_pliku(stl[NAZWY[2]])  # trzonowiec: 3 rozpraszacze podobnych wymiarow x 2 krazki = ranking wstepny
+    sha_trzonowy = synth.skrot_pliku(stl[NAZWY[2]])
     f = next(fr for fr in wyr.fragmenty if mapa[fr.gniazdo].projekt == sha_trzonowy)
     fr = match.FragmentDoDopasowania.z_punktow(f.punkty, f.normalne)
     przeszly = [kl for kl, lk in pula.lekkie.items() if match.filtr(fr, lk, ust)[0]]
-    if len(przeszly) <= match.WSTEPNY_PELNYCH:
-        pytest.skip(f"za malo kandydatow po filtrze ({len(przeszly)}) - ranking wstepny nieaktywny dla tego fragmentu")
-    wynik_wstepny = {kl: match.ocena_wstepna(fr, pula.lekkie[kl]) for kl in przeszly}
+    assert len(przeszly) > match.WSTEPNY_PELNYCH  # ranking wstepny aktywny (D11: test nie moze sie pominac)
     wl = wpis_prawdy(mapa[f.gniazdo], wp)
     kl_wl = next(kl for kl in przeszly if pula.lekkie[kl].id == wl.sha16 and pula.lekkie[kl].wspolczynnik == wl.wspolczynnik)
-    assert wynik_wstepny[kl_wl] == max(wynik_wstepny.values()) and wynik_wstepny[kl_wl] >= 0.8, wynik_wstepny
+    return f, fr, przeszly, wl, kl_wl
+
+
+def _licz_pelne(monkeypatch) -> list:
     wywolania = []
     oryg = match.dopasuj_pare
-    monkeypatch.setattr(match, "dopasuj_pare", lambda *a, **k: wywolania.append(a[1]) or oryg(*a, **k))
+    monkeypatch.setattr(match, "dopasuj_pare", lambda *a, **k: wywolania.append((a[1].id, a[1].wspolczynnik)) or oryg(*a, **k))
+    return wywolania
+
+
+def test_ranking_wstepny_ogranicza_pelne_dopasowania(stl, pula_obu, plytka, ust, monkeypatch):
+    pula = pula_obu[0]
+    f, fr, przeszly, wl, kl_wl = _fragment_trzonowca(stl, pula_obu, plytka, ust)
+    wynik_wstepny = {kl: match.ocena_wstepna(fr, pula.lekkie[kl]) for kl in przeszly}
+    assert wynik_wstepny[kl_wl] == max(wynik_wstepny.values()) and wynik_wstepny[kl_wl] >= 0.8, wynik_wstepny
+    w_marg = {kl for kl in przeszly if wynik_wstepny[kl] >= max(wynik_wstepny.values()) - match.WSTEPNY_MARGINES}
+    blizniak = {kl for kl in przeszly if pula.lekkie[kl].id == wl.sha16}  # wlasciwy STL na drugim krazku: zawsze w pelni (P4b)
+    wywolania = _licz_pelne(monkeypatch)
     r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
-    assert len(wywolania) <= match.WSTEPNY_PELNYCH
+    oczekiwane = {(pula.lekkie[kl].id, pula.lekkie[kl].wspolczynnik) for kl in w_marg | blizniak}
+    assert set(wywolania) == oczekiwane and len(wywolania) == len(oczekiwane) <= 3 * match.WSTEPNY_PELNYCH + 1, (wywolania, wynik_wstepny)
     assert r.najlepszy.frezowanie_id == wl.frezowanie_id and r.status == "zielony"
-    wstepne = [k for k in r.kandydaci if k.metoda == "wstepny"]
-    assert wstepne and all(k.pokrycie == 0.0 and k.pokrycie_wstepne is not None for k in wstepne)
+    for k in r.kandydaci:
+        if k.metoda == "wstepny":  # bez pelnego dopasowania tylko kandydaci spoza marginesu
+            assert k.pokrycie == 0.0 and k.pokrycie_wstepne < max(wynik_wstepny.values()) - match.WSTEPNY_MARGINES
+
+
+def test_p1_wlasciwy_piaty_w_rankingu_druga_tura(stl, pula_obu, plytka, ust, monkeypatch):
+    """P1 (recenzja PR #25): wlasciwy projekt 5. w rankingu wstepnym (4 obce z ocena o 0,01 wyzsza) - druga tura z marginesu
+    dopasowuje go w pelni; wynik = wlasciwy wpis, zielony (nie obcy z zawyzona pewnoscia)."""
+    pula = pula_obu[0]
+    f, fr, przeszly, wl, kl_wl = _fragment_trzonowca(stl, pula_obu, plytka, ust)
+    oceny = {kl: (0.99 if kl == kl_wl else 0.98 if pula.lekkie[kl].id == wl.sha16 else 1.0) for kl in przeszly}
+    monkeypatch.setattr(match, "ocena_wstepna", lambda fr_, lk: next(v for kl, v in oceny.items() if pula.lekkie[kl] is lk))
+    wywolania = _licz_pelne(monkeypatch)
+    r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
+    assert len(wywolania) == len(przeszly) and r.najlepszy.frezowanie_id == wl.frezowanie_id and r.status == "zielony"
+
+
+def test_p1_kandydaci_w_marginesie_bez_pelnego_dopasowania_to_nie_zielony(stl, pula_obu, plytka, ust, monkeypatch):
+    """P1: gdy w marginesie oceny wstepnej zostaja kandydaci bez pelnego dopasowania (limit tur), wynik nie jest zielony,
+    nawet gdy najlepszy z dopasowanych to wlasciwy projekt (pewnosc wzgledem niedopasowanych jest nieznana)."""
+    pula = pula_obu[0]
+    f, fr, przeszly, wl, kl_wl = _fragment_trzonowca(stl, pula_obu, plytka, ust)
+    monkeypatch.setattr(match, "ocena_wstepna", lambda fr_, lk: 1.0 if lk is pula.lekkie[kl_wl] else 0.99)
+    monkeypatch.setattr(match, "WSTEPNY_PELNYCH", 1)
+    monkeypatch.setattr(match, "WSTEPNY_TUR", 1)
+    r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
+    assert r.najlepszy.id == wl.sha16 and r.najlepszy.pokrycie >= 0.85
+    assert r.status == "zolty" and any("ranking wstepny" in u for u in r.uwagi), (r.status, r.uwagi)
+
+
+def test_p4b_blizniak_poza_rankingiem_dopasowany_w_pelni(stl, pula_obu, plytka, ust, monkeypatch):
+    """P4b: blizniak wlasciwego STL (drugi krazek) z ocena wstepna poza marginesem i tak dostaje pelne dopasowanie - wybor
+    wpisu porownuje oba warianty (tu 1,20 / 1,25: wlasciwy wpis z pokrycia i estymaty)."""
+    pula = pula_obu[0]
+    f, fr, przeszly, wl, kl_wl = _fragment_trzonowca(stl, pula_obu, plytka, ust)
+    monkeypatch.setattr(match, "ocena_wstepna", lambda fr_, lk: 1.0 if lk is pula.lekkie[kl_wl] else 0.0 if lk.id == wl.sha16 else 0.5)
+    r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
+    blizniak = next(k for k in r.kandydaci if k.id == wl.sha16 and k.klucz != kl_wl)
+    assert blizniak.metoda in ("ransac", "obroty") and blizniak.pokrycie_wstepne == 0.0
+    assert r.najlepszy.frezowanie_id == wl.frezowanie_id
+
+
+def _kandydat_wariantu(w: float, fid: int, est: float, pokrycie: float = 0.9, sha: str = "a" * 16) -> match.Kandydat:
+    k = match.Kandydat(id=sha, zeby=[], typ="korona", klucz=f"{sha}@{match.tekst_wspolczynnika(w)}", wspolczynnik=w, pokrycie=pokrycie,
+                       rms_mm=0.02, transformacja=np.eye(4).tolist(), metoda="ransac",
+                       skala=match.KorektaSkali(wspolczynnik_ze_skanu=est, poprawka_proc=(est / w - 1) * 100, zastosowana=True))
+    match._wpisy_kandydata(k, [{"frezowanie_id": fid, "projekt_id": 7, "krazek": f"K-{fid}", "wspolczynnik": w}])
+    return k
+
+
+@pytest.mark.parametrize("luka", [0.05, 0.10, 0.16, 0.20, 0.30, -0.10, -0.30])
+@pytest.mark.parametrize("blad", [-0.174, -0.11, -0.05, 0.0, 0.05, 0.11, 0.174])
+@pytest.mark.parametrize("prawda_pierwsza", [True, False])
+def test_b1_blizniaki_luka_0_05_do_0_30_proc_nigdy_zly_wpis(luka, blad, prawda_pierwsza):
+    """B1 (recenzja PR #25): ten sam STL na krazkach o wspolczynnikach rozniacych sie o 0,05-0,30 %, estymata skali z bledem do
+    0,174 % (max zmierzony, czesc A pkt 5.2), rowne pokrycia: wynik wskazuje wlasciwy wpis albo jest niejednoznaczny (oba wpisy,
+    frezowanie_id puste, uwaga) - nigdy zly krazek. Bez bledu i z luka >= prog rozroznienia - wlasciwy wpis."""
+    w_prawda = 1.2215
+    w_inny = w_prawda * (1 + luka / 100)
+    est = w_prawda * (1 + blad / 100)
+    a, b = _kandydat_wariantu(w_prawda, 1, est), _kandydat_wariantu(w_inny, 2, est)
+    kandydaci = [a, b] if prawda_pierwsza else [b, a]
+    uwagi = []
+    match._wybierz_wariant(None, None, kandydaci, None, {}, "", uwagi)
+    k = kandydaci[0]
+    assert k.frezowanie_id in (1, None), (luka, blad, k.frezowanie_id)
+    if k.frezowanie_id is None:
+        assert sorted(x["frezowanie_id"] for x in k.wpisy) == [1, 2] and k.krazek is None and k.projekt_id == 7
+        assert any("nie rozstrzygnieto" in u for u in uwagi)
+    if blad == 0.0 and abs(luka) >= 1.05 * match.WARIANT_ROZROZNIENIE_PROC:  # bez bledu estymaty i z luka ponad prog - wlasciwy wpis
+        assert k.frezowanie_id == 1
+    if abs(luka) < match.WARIANT_ROZROZNIENIE_PROC:  # luka ponizej progu - zawsze niejednoznaczny (|odl A - odl B| <= luka)
+        assert k.frezowanie_id is None
+    assert match.WARIANT_ROZROZNIENIE_PROC >= 0.174  # prog >= max bledu estymaty z pomiaru (nie p95)
+
+
+def test_p4a_estymata_i_pokrycie_wskazuja_rozne_wpisy_niejednoznaczny():
+    """P4a: estymata wskazuje wariant B (luka 0,29 %), a pokrycie B jest o > 0,02 nizsze niz A - wynik niejednoznaczny;
+    przy roznicy pokryc <= 0,02 - wpis B."""
+    w_a, w_b = 1.2215, 1.2215 * 1.0029
+    for pok_b, oczekiwany in ((0.86, None), (0.89, 2)):
+        a, b = _kandydat_wariantu(w_a, 1, w_b, pokrycie=0.90), _kandydat_wariantu(w_b, 2, w_b, pokrycie=pok_b)
+        kandydaci, uwagi = [a, b], []
+        match._wybierz_wariant(None, None, kandydaci, None, {}, "", uwagi)
+        assert kandydaci[0].frezowanie_id == oczekiwany, (pok_b, kandydaci[0].frezowanie_id)
+        if oczekiwany is None:
+            assert sorted(x["frezowanie_id"] for x in kandydaci[0].wpisy) == [1, 2] and any("rozne wpisy" in u for u in uwagi)
+
+
+def test_p4b_blizniak_bez_pelnego_dopasowania_niejednoznaczny():
+    """P4b: wariant tego samego STL bez pelnego dopasowania (np. plik nie do wczytania) - wpis nierozstrzygniety."""
+    a = _kandydat_wariantu(1.2215, 1, 1.2215)
+    b = match.Kandydat(id="a" * 16, zeby=[], typ="korona", klucz="a" * 16 + "@1.25", wspolczynnik=1.25, metoda="blad")
+    match._wpisy_kandydata(b, [{"frezowanie_id": 2, "projekt_id": 7, "krazek": "K-2", "wspolczynnik": 1.25}])
+    kandydaci, uwagi = [a, b], []
+    match._wybierz_wariant(None, None, kandydaci, None, {}, "", uwagi)
+    assert kandydaci[0].frezowanie_id is None and any("bez pelnego dopasowania" in u for u in uwagi)
 
 
 def test_ratunek_bez_filtru_tez_przez_ranking(pula_obu, plytka, ust, monkeypatch):
@@ -436,3 +545,76 @@ def test_kontrakt_pula_wieczorna_z_katalogu(tmp_path):
         assert pula2.liczniki["brak_pliku"] == sum(1 for w in pw.wpisy if w.projekt_id == pw.wpisy[0].projekt_id) and len(pula2) < 4
     finally:
         baza.zamknij()
+
+
+# --- runda 2 recenzji PR #25: odcisk pamieci (P2), nazwy plikow (P3), dwa procesy na jednym katalogu (D11) ------------
+def test_p2_zmiana_kodu_albo_bibliotek_daje_nowe_wpisy_pamieci(stl, tmp_path, monkeypatch):
+    kat = tmp_path / "pamiec"
+    p = stl[NAZWY[0]]
+    wp = [wpis(p, 1.22, 1, 1)]
+    match.Pula.z_wpisow(wp, {1: p}, pamiec=PP.PamiecPuli(kat))
+    pam = PP.PamiecPuli(kat)
+    match.Pula.z_wpisow(wp, {1: p}, pamiec=pam)
+    assert pam.statystyka["lekkie_z_dysku"] == 1  # ten sam kod: z dysku
+    oryg = synth.orientacja_brzegiem_do_gory
+
+    def orientacja_poprawiona(m, orientacja="auto", nazwa=""):  # "poprawka heurystyki" (inne zrodlo funkcji)
+        return oryg(m, orientacja, nazwa)
+
+    monkeypatch.setattr(synth, "orientacja_brzegiem_do_gory", orientacja_poprawiona)
+    pam2 = PP.PamiecPuli(kat)
+    assert pam2.odcisk != pam.odcisk
+    match.Pula.z_wpisow(wp, {1: p}, pamiec=pam2)
+    assert pam2.statystyka["lekkie_policzone"] == 1 and pam2.statystyka["lekkie_z_dysku"] == 0
+    monkeypatch.undo()
+    monkeypatch.setattr(np, "__version__", "0.0.1")  # inna wersja numpy = inny odcisk
+    assert PP.PamiecPuli(kat).odcisk not in (pam.odcisk, pam2.odcisk)
+    assert {f.__qualname__ for f in PP.funkcje_odcisku()} >= {"wczytaj_projekt", "orientacja_brzegiem_do_gory", "cechy", "Projekt.__init__",
+                                                            "Projekt.lekki", "_fpfh"}
+
+
+def test_p3_brak_nazw_plikow_przy_zlym_i_usunietym_stl(stl, plytka, ust, tmp_path):
+    """P3: pusty STL w puli wpisow i plik usuniety po budowie puli (pamiec bez dysku, limit 1 projektu) - nazwy plikow nie
+    trafiaja do ostrzezen, uwag ani wyniku (ostrzezenia przy wczytywaniu wyciszone jak w A4)."""
+    skan, _, prawda = plytka
+    d = tmp_path / "stl"
+    d.mkdir()
+    sciezki, wp = {}, []
+    for i, x in enumerate(prawda.prace, start=1):
+        src = next(v for v in stl.values() if synth.skrot_pliku(v) == x.projekt)
+        cel = d / f"2026-11-17_nowakowskatest{i}-{36 if i == 1 else 11}-crown_cad.stl"
+        shutil.copy(src, cel)
+        sciezki[i] = cel
+        wp.append(wpis(cel, x.wspolczynnik, i, i))
+    pusty = d / "2026-11-17_kowalczyktest-46-crown_cad.stl"
+    pusty.write_bytes(b"")
+    sciezki[99] = pusty
+    wp.append(PL.Wpis(sha16=None, wspolczynnik=1.22, krazek=None, frezowanie_id=99, projekt_id=99, kuweta=None, zeby=None, typ=None,
+                      zrodlo_wspolczynnika="csv"))
+    with warnings.catch_warnings(record=True) as ostrz:
+        warnings.simplefilter("always")
+        pula = match.Pula.z_wpisow(wp, sciezki, pamiec=PP.PamiecPuli(None, limit_ciezkich=1))
+        assert pula.liczniki["pominiete"] == 1 and len(pula) == len(prawda.prace)
+        sciezki[1].unlink()  # D17: plik zniknal po budowie puli (folder usuniety)
+        plik_skanu = tmp_path / "skan_okragla_wieczorna.stl"
+        skan.export(plik_skanu)
+        wynik = PO.porownaj(plik_skanu, [], PO.AUTO, ust, None, None, "auto", False, pula)
+    tekst = (json.dumps(wynik, ensure_ascii=False) + " ".join(str(o.message) for o in ostrz)).lower()
+    assert not any(n in tekst for n in ("nowakowskatest", "kowalczyktest")), [str(o.message) for o in ostrz]
+    assert any("pominiety" in u for g in wynik["gniazda"] for u in g["uwagi"])
+
+
+def test_d11_dwa_procesy_zapisuja_ten_sam_wpis(stl, tmp_path):
+    """Dwa procesy (dwie pamieci) licza i zapisuja ten sam wpis do jednego katalogu: plik zostaje poprawny (zapis atomowy),
+    trzecia pamiec czyta go z dysku; drugi zapis na istniejacy plik nie psuje odczytu."""
+    kat = tmp_path / "pamiec"
+    p = stl[NAZWY[1]]
+    wp = [wpis(p, 1.22, 1, 1)]
+    pa, pb = PP.PamiecPuli(kat), PP.PamiecPuli(kat)
+    la = pa.lekki(p, synth.skrot_pliku(p), 1.22)
+    pr = match.Projekt(p, 1.22)
+    pb._zapisz(la.klucz_pamieci, pr, pr.lekki())  # drugi proces zapisuje ten sam wpis jeszcze raz
+    pc = PP.PamiecPuli(kat)
+    pula = match.Pula.z_wpisow(wp, {1: p}, pamiec=pc)
+    assert pc.statystyka["lekkie_z_dysku"] == 1 and pc.statystyka["bledy_odczytu"] == 0 and len(pc.pliki()) == 1
+    assert pula.projekty[next(iter(pula.lekkie))].id == pr.id and pc.statystyka["ciezkie_z_dysku"] == 1
