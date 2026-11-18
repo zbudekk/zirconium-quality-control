@@ -1966,13 +1966,8 @@ class KontrolerSesji(Kontroler):
             except Exception:  # noqa: BLE001
                 LOG.exception("kontroler: zdarzen ramki nie da sie odebrac")
                 continue
-            for z in zdarzenia:
-                n += 1
-                try:
-                    pelne = self._zdarzenie_ramki(z) or pelne
-                except Exception:  # noqa: BLE001 - blad jednego zdarzenia nie zatrzymuje programu
-                    LOG.exception("kontroler: blad obslugi zdarzenia ramki")
-                    pelne = True
+            n += len(zdarzenia)
+            pelne = self._zdarzenia_ramki(zdarzenia) or pelne
         teraz = time.monotonic()
         if teraz >= self._ramki_kontrola:
             self._ramki_kontrola = teraz + OKRES_STANU_RAMEK_S
@@ -1996,6 +1991,54 @@ class KontrolerSesji(Kontroler):
         return n
 
     # --- dziennik zdarzen ramek z kluczem unikalnym (wymaganie indicate.md, pkt 4 API) -------------
+    def _zdarzenia_ramki(self, zdarzenia: list) -> bool:
+        """Zdarzenia jednego odbioru: kolejne zdarzenia bez skutku w sesji (potwierdzenia, plytka, plan przyjety ...) zapisywane
+        w JEDNEJ transakcji (jeden zapis na dysk zamiast kilku - petla okna), "Zamknij piec" - osobno. Blad serii = wycofanie
+        i zapis zdarzen po jednym. Zwraca True, gdy trzeba odswiezyc caly stan."""
+        pelne, seria = False, []
+
+        def zapisz_serie() -> bool:
+            if not seria:
+                return False
+            if len(seria) > 1:
+                for zrodlo in {ZRODLA_RAMEK.get(z.get("rola")) for z in seria} - {None}:
+                    self._klucze_zrodla(zrodlo)  # pamiec kluczy z dziennika wczytana przed seria
+                znane = {(ZRODLA_RAMEK.get(z.get("rola")), f"{z.get('start_id')}:{z.get('nr')}") for z in seria
+                         if f"{z.get('start_id')}:{z.get('nr')}" in self._klucze_ramek.get(ZRODLA_RAMEK.get(z.get("rola")), ())}
+                try:
+                    with self.sesja.baza.transakcja():
+                        wynik = False
+                        for z in seria:
+                            wynik = self._zdarzenie_ramki(z) or wynik
+                    return wynik
+                except Exception:  # noqa: BLE001 - seria wycofana: klucze z pamieci precz, zapis po jednym
+                    LOG.exception("kontroler: serii zdarzen ramki nie da sie zapisac - zapis po jednym")
+                    for z in seria:  # tylko klucze dopisane w tej serii (zapisane wczesniej zostaja)
+                        zrodlo, klucz = ZRODLA_RAMEK.get(z.get("rola")), f"{z.get('start_id')}:{z.get('nr')}"
+                        if zrodlo in self._klucze_ramek and (zrodlo, klucz) not in znane:
+                            self._klucze_ramek[zrodlo].discard(klucz)
+            wynik = False
+            for z in seria:
+                try:
+                    wynik = self._zdarzenie_ramki(z) or wynik
+                except Exception:  # noqa: BLE001 - blad jednego zdarzenia nie zatrzymuje programu
+                    LOG.exception("kontroler: blad obslugi zdarzenia ramki")
+                    wynik = True
+            return wynik
+
+        for z in zdarzenia:
+            if z.get("rola") == "P" and z.get("typ") == "zamknij_piec":
+                pelne = zapisz_serie() or pelne
+                seria = []
+                try:
+                    pelne = self._zdarzenie_ramki(z) or pelne
+                except Exception:  # noqa: BLE001
+                    LOG.exception("kontroler: blad obslugi zdarzenia ramki")
+                    pelne = True
+            else:
+                seria.append(z)
+        return zapisz_serie() or pelne
+
     def _klucze_zrodla(self, zrodlo: str) -> set:
         """Klucze (start_id:nr) zdarzen ramki ``zrodlo`` z dziennika: ostatnie ``ZDARZEN_RAMKI_W_PAMIECI`` wpisow (ramka powtarza
         najwyzej 2000 ostatnich zdarzen), czytane raz; ``_klucze_od`` - najwyzszy id dziennika w chwili odczytu."""

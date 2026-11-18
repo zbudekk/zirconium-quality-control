@@ -835,6 +835,7 @@ def test_k4_spacja_ramka_w_ponizej_1s_kolory_rowne_mapie_i_petla_okna(tmp_path, 
             e.klik(f"plytka_{skan}")
         e.klik_gniazdo(2)
         e.klik("przycisk_ok")  # czerwone -> "OK": zielone na ekranie i na ramce
+        e.klawisz(Qt.Key.Key_Escape)  # widok pracy zamkniety (wybrane gniazdo nie jest podswietlone przy odczycie pikseli)
         plytka = k.stan().plytka(skan)
         UW.mapa_rowna_stanowi(e, plytka)
         e.czekaj(lambda: (p := plan_na_ramce(ruch, rw)) is not None and "2" in p["plytki"] and kolory_planu_w(p, 2) == kolory_mapy_dla_ramki(plytka),

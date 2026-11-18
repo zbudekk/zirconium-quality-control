@@ -54,3 +54,8 @@ Rozmiary (A-P1): okno od 1500 x 860 punktow (np. 1600 x 900 przy skalowaniu 100 
 - Znacznik plytki dopuszczonej nie podaje osoby, ktora dopuscila - kontrakt jej nie podaje (POTRZEBUJE w raporcie). Czy start skanu z programu dziala, kontrakt nie mowi - przycisk skanu zaklada atrape do B2 (`czesci.START_SKANU_ATRAPA`).
 - Reguly pytania o ponowny skan (60 min i od E3-A1p te same prace, `session.md`) i konflikty projektu sa w `session` / kontrolerze - ekran pokazuje to, co podaje stan.
 - Ekran poranny, ustawienia na ekranie, wybor folderu puli i wspolczynnika (`ustaw_pule`), rozstrzyganie konfliktu projektu - poza paczka.
+- E3-A12 (ramki): na pasku stanu pole "Ramki" (`napis_ramki`: "W: gotowa, P: brak polaczenia", plytka na ramce; podpowiedz -
+  komunikaty i ostrzezenia klientow), przycisk "Test LED" (`przycisk_test_led`, polecenie `test_led`) i "Przejmij ramke"
+  (`przycisk_przejmij_ramke`, `przejmij_ramke(rola)`) przy ramce wstrzymanej - tylko gdy program ma ramki (`stan.ramki`). Spacja
+  przelacza ramke wieczorna w "skanowanie" (kontroler), po analizie ramka dostaje kolory gniazd mapy; bez ramki komunikat
+  `ramka_wieczorna_niedostepna` i praca wedlug ekranu.

@@ -63,6 +63,70 @@ Okno zbudowane na wersji 1 dziala bez zmian; ponizsze trzeba obsluzyc, zeby poka
 
 **Atrapa**: `indeks_rano_sztuczny(baza, czas)` (38 fikcyjnych zlecen, kuwety 3200-3445, "#1234", "#1301", miniatury `miniatura_sztuczna`), `sztuczny_wynik_rano(...)` (rodzaje `RODZAJE_PRAC_RANO`: pewna, zolta, dwuznaczna, nieznana, brak, podwojny), `symuluj_skan_rano(numer, gniazda, projekty=...)`, `scenariusz_poranny()` (piec 1 zamkniety, piec 2: 3 plytki x 23 prace - `plan_scenariusza_rano`); `py -3.12 -m stanowisko.aplikacja --atrapa --rano` pokazuje okno na tych danych. Testy: `test_kontroler_api.py::test_rano_*` (atrapa i prawdziwa aplikacja; runda 2: `test_rano_r2_*` - B1, P1-P4, A6 r4/r5, D13 i test prawdziwej `Aplikacja`: przelaczenie trybu w trakcie analizy, blad skanu porannego, restart w trybie rano), `test_ui_rano.py`; ekran: `ui_rano.md`.
 
+## Ramki i Excel - kontrakt w wersji 4 (E3-A12, 18.11.2026; wszystko addytywne)
+
+**Podlaczenie.** `Aplikacja(ust, ramki=True, excel=True)` (tak wola `main()`): przy `start()` klienci ramek z `[ramki]`
+(`aplikacja.utworz_ramki` -> `indicate.Indicate.z_ustawien`, identyfikator laptopa w folderze bazy) i Excel z `[excel]`
+(`aplikacja.utworz_excel` -> `excel.Excel.z_ustawien(ust, baza=...)`, polaczenie COM dopiero przy pierwszym odczycie arkusza).
+Domyslnie (`ramki=False`, `excel=False`) - bez ramek i Excela (testy, atrapa). Testy podaja obiekt `Indicate` i zrodlo arkusza
+(`ArkuszWPamieci`). Wspolna czesc obu kontrolerow: `KontrolerSesji.podlacz_ramki(indicate)` / `podlacz_excel(excel)` - plan pieca
+idzie do klienta PRZED pierwszym kontaktem z ramka (potwierdzenia kuwet z bazy, gdy ramka planu juz nie ma), potem `uruchom()`.
+Zle ustawienia ramek / brak Excela = ostrzezenie (log, komunikat), program dziala dalej (kryterium 5).
+
+**Stan.** `stan.ramki` (`StanRamek`: `wieczorna` / `poranna` = `StanRamki` - `polaczona`, `blad`, `komunikat`, `plytka`, `tryb_ramki`,
+`plan_przyjety`, `wstrzymane`, `potwierdzone`, `ostrzezenia`; `test_led`) - czytany z klientow co `OKRES_STANU_RAMEK_S` (0,25 s)
+w `przetworz()`; zmiana polaczenia / bledu = pelny stan (komunikaty, `StanRano.ramka`), reszta = czesc "zywa". `stan.excel`
+(`StanExcel`: `tryb`, piec, `pozycje` = `PozycjaExcel` - kuweta, klasa, wiersz, regula, powod, `do_sprawdzenia`, data,
+`kandydatow`, `zalatwiona`, `wynik`; `widoczne`, `blad`, `ostrzezenia`, `do_zalatwienia`) - bez nazw folderow i kolumny H;
+te okno dostaje zapytaniem `excel_szczegoly(nr) -> SzczegolyExcel` (folder, `KandydatExcel` z H) - tylko na ekran.
+`StanRano.ramka` = ramka poranna polaczona i bez bledu, `StanRano.excel` = program ma Excel. Komunikaty: `ramka_niedostepna`
+(rano), `ramka_wieczorna_niedostepna` (wieczor, staly id `ID_RAMKA_WIECZORNA`), `ramka_blad` (zly klucz, drugi laptop, awaria),
+`ramka_piec_zamkniety`, `ramka_zamknij_odmowa`, `ramka_zamknij_nieaktualne`, `ramki_test_led`, `excel_blad` / `excel_cien` /
+`excel_niedostepny` (staly id `ID_EXCEL`). Teksty nowych komunikatow: `kontroler_api.KOMUNIKATY_A12` (do przeniesienia do
+`statusy.py` - plik spoza paczki).
+
+**Zdarzenia ramek (zegar okna -> `przetworz()`).** Kazde zdarzenie odebrane z `odbierz_zdarzenia()` (takze pominiete i odrzucone)
+trafia do dziennika `zdarzenia` (zrodlo `ramka_p` / `ramka_w`, typ = typ zdarzenia, dane: `klucz` = `start_id:nr`
+(`indicate.klucz_zdarzenia`), `z_historii`, `nieaktualne`, numery plytki / kuwety / planu, `skutek`). Klucz jest sprawdzany
+w TEJ SAMEJ transakcji co skutek (pamiec ostatnich 4000 kluczy z dziennika + wpisy dopisane po jej odczycie) - historia ramki po
+restarcie programu nie daje duplikatow ani drugiego skutku; bez zmiany schematu (klucz w danych). Kolejne zdarzenia bez skutku
+w sesji - jedna transakcja na serie. `potwierdzenie` / `cofniecie` / `kuweta_wybrana` - wpis (`skutek` "zapisano" albo
+"inny_piec"). `zamknij_piec` - `session_rano.zamknij_piec(plan_id=...)` TYLKO gdy `nieaktualne` False, `plan_id` = otwarty piec
+biezacy, nie trwa analiza / skanowanie i jest wybrana osoba; inaczej wpis z `skutek` "nieaktualne" / "inny_piec" / "analiza_trwa"
+/ "skanowanie_trwa" / "odmowa" (z powodem sesji) i komunikat. Potwierdzenia ramki sa dziennikiem - nie zmieniaja rozkladania kuwet
+na ekranie (pytanie do wlasciciela w raporcie E3-A12).
+
+**Plan ramki porannej.** Po kazdym pelnym zbudowaniu stanu w trybie `rano`: gdy zmienil sie piec na ekranie (plytki, prace,
+braki, kolejnosc kuwet z ekranu) - `SesjaRano.plan_plytek(sesja_pieca_id, kolejnosc)` -> `poranna.ustaw_plan_rano(...)`; brak
+otwartego pieca biezacego = `zgas()`. Pierwszy plan pieca w uruchomieniu niesie potwierdzenia z dziennika ramki (lustro: potwierdzenie
+dopisuje, cofniecie usuwa).
+
+**Ramka wieczorna.** Spacja (udany `start_skanu`, tryb `wieczor`) -> `skanowanie()`; plik skanu -> znacznik Spacji albo
+`znacznik()` (skan bez Spacji = nowy skan, ramka gasi poprzedni wynik); pierwszy `start` analizy skanu -> `analiza()` raz na skan
+i tylko dla ostatniego skanu (recenzja PR #28 D5: ponowna analiza tego samego skanu - bez drugiego `analiza()`); wynik zapisany ->
+po zbudowaniu stanu `wynik(numer, uklad, {gniazdo: ramka_protokol.kolor_ramki(Gniazdo.status)}, znacznik)` - te same statusy, co
+mapa na ekranie, wysylane ponownie po decyzji / podaniu numeru; skan zablokowany albo blad analizy -> `blad()`. "Test LED" -
+`tryb("test_led")` obu ramek; po 8,5 s plan pieca ponownie.
+
+**Excel po "Zamknij piec"** (przycisk albo klawisz ramki; takze `zamknij_piec_i_przenies`): bez Excela - komunikat z lista kuwet
+(A7); tryb "pytaj" - `excel.propozycje(wynik)` (swiezy odczyt), poprawki do logu (`zaloguj_poprawki`), "juz odhaczone" bez
+watpliwosci - `zaloguj_juz_odhaczone` bez pytania, reszta czeka w `stan.excel` na okno "Excel: wskaz wiersz"; tryb "cien" -
+`zapisz_cien` (sam log) i komunikat `excel_cien`. `BladExcela` (Excel nie uruchomiony, arkusz zmieniony) = `rozlacz()`, komunikat
+`excel_blad` z lista kuwet i praca dalej. Polecenia (`POLECENIA_A12`): `excel_zatwierdz(nr, wiersz=None)` (tylko po kliknieciu;
+osoba = wybrana na zmianie), `excel_pomin(nr)`, `excel_odswiez()`, `excel_pokaz(sesja_pieca_id=None)` (takze po restarcie: zlecenia
+kompletne bez wpisu w `excel_zapisy` tego pieca), `excel_zamknij()` ("Pozniej"), `test_led()`, `przejmij_ramke(rola)` (`wznow()`
+po "drugi laptop" / "zly klucz" - decyzja osoby). `otworz_piec_ponownie` czysci propozycje tego pieca.
+
+**Zamkniecie.** `zamknij()` najpierw: `zgas()` obu ramek, `Indicate.zatrzymaj()` (najwyzej ok. 1 s; zgaszenie, ktore nie doszlo -
+ostrzezenie w logu), `excel.rozlacz()`. Zdarzenia nieodebrane do chwili zamkniecia wracaja po starcie jako historia (`zamknij_piec`
+z historii - tylko wpis i komunikat).
+
+**Wymaganie dla dalszych paczek (recenzja PR #26, D1, D2).** Kazda zmiana stanu punktow zlecen w procesie programu idzie przez
+polecenie kontrolera (`_polecenie`) albo konczy sie `_uniewaznij_punkty()` (tak robi "Zamknij piec" z ramki); `_polecenie`
+uniewaznia pamiec brakow takze po nieoczekiwanym wyjatku (mogl wypasc po zapisie).
+
+**Dziennik `start_skanu`** (prosba A10): dane `{"udany", "tryb"}`.
+
 ## Jak dziala `Aplikacja`
 
 - **Jeden egzemplarz (B1):** `Aplikacja(ust)` (i wczesniej `main()`) zajmuje `BlokadaStanowiska` - plik `<baza>.blokada` obok bazy zablokowany przez caly czas pracy (`msvcrt.locking`; poza Windows `fcntl.flock`), ZANIM otworzy baze, log i folder skanera. Drugi egzemplarz na tej samej bazie: `ProgramJuzDziala` - `main()` pokazuje "program juz dziala" i konczy sie kodem 3, niczego nie zapisujac. Blokade trzyma system: znika razem z procesem (awaria, zabicie) - nie ma czego sprzatac recznie; `zamknij()` zwalnia ja na koncu. Dodatkowo kazdy zapis wyniku sprawdza w tej samej transakcji (`BEGIN IMMEDIATE`), czy ta sama tresc (`sha16`) nie ma juz wyniku - wtedy wynik jest odsiewany (wpis `wynik_powtorzony`), wiec nawet dwa programy piszace do jednej bazy nie dadza dwoch skanow.
@@ -103,7 +167,7 @@ Komunikaty, stan, sygnaly, dziennik, log programu (takze wpisy `scanner` i `siln
 
 ## Zalozenia i granice
 
-- Od E3-A7 tryb `wieczor` i `rano` (opis wyzej); ramki i Excel to A12. Stan pokazuje biezaca dobe robocza (06:00-06:00) - o 6:00 plytki znikaja z mapy, lista biezaca "do dofrezowania" zostaje.
+- Od E3-A7 tryb `wieczor` i `rano` (opis wyzej); od E3-A12 ramki i Excel (opis wyzej). Stan pokazuje biezaca dobe robocza (06:00-06:00) - o 6:00 plytki znikaja z mapy, lista biezaca "do dofrezowania" zostaje.
 - Nie ma polecenia "analizuj ten skan ponownie" (np. po zmianie wspolczynnika): ta sama tresc pliku ma juz wynik i jest odsiewana - plytke trzeba zeskanowac jeszcze raz. Do decyzji, czy dodac.
 - Rozstrzygniecie konfliktu projektu (ten sam projekt w dwoch gniazdach), `wybor_kandydata` i `przypisanie_reczne` nie sa obslugiwane przez `session` - stan podaje `konflikty` i komunikat, bez polecenia.
 - Liczba STL to liczba plikow w folderze, nie liczba projektow, ktore analiza zdola wczytac; folder sieciowy z tysiacami plikow jest listowany przy kazdym odswiezeniu (w tle) i przez silnik przy kazdym zadaniu - pomiar na prawdziwym folderze: A4 / A5.
