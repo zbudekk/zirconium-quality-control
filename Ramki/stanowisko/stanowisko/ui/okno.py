@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QStackedLayout, QVBoxLayout, QWidget
 
 from .. import kontroler_api as K
 from .. import statusy as ST
@@ -43,6 +43,7 @@ from .czesci import (LOKALNE_NUMER_BEZ_ZMIAN, LOKALNE_ZAMKNIJ_INFORMACJE, LOKALN
                      ListaPlytek, ObszarPaneli, PanelOsoby, PasekStanu, UkladPlynny, WidokPracy, do_obejrzenia, dzien, etykieta, godzina,
                      napis_dopuszczenia, nazwa_plytki, panel_informacji, panel_komunikatu, panel_numeru, panel_odmowy, panel_pytania, przycisk,
                      stan_obejrzenia, styl_znaczka_poziomu, wyczysc)
+from .ekran_rano import EkranRano
 from .mapa import MapaPlytki, geometria_ukladu
 from .obraz import WczytywaczObrazow
 
@@ -146,10 +147,17 @@ class OknoWieczor(QWidget):
         self.pasek.skanuj.connect(self._start_skanu)
         self.pasek.odswiez_pule.connect(lambda: self._polecenie("odswiez_pule"))
         self.pasek.zmien_osobe.connect(self._przelacz_zmiane_osoby)
+        self.pasek.przelacz_tryb.connect(self._przelacz_tryb)
         korzen.addWidget(self.pasek)
-        self._calosc = calosc = QHBoxLayout()
+        # E3-A7: dwie strony pod wspolnym paskiem - ekran wieczorny i poranny (``ekran_rano``); pokazana wg ``stan.tryb``
+        self._strony = QStackedLayout()
+        korzen.addLayout(self._strony, 1)
+        self.strona_wieczor = QWidget()
+        self.strona_wieczor.setObjectName("strona_wieczor")
+        self._strony.addWidget(self.strona_wieczor)
+        self._calosc = calosc = QHBoxLayout(self.strona_wieczor)
+        calosc.setContentsMargins(0, 0, 0, 0)
         calosc.setSpacing(10)
-        korzen.addLayout(calosc, 1)
         self._lewa = lewa = QVBoxLayout()
         lewa.setSpacing(8)
         calosc.addLayout(lewa, 1)
@@ -228,6 +236,8 @@ class OknoWieczor(QWidget):
         self.lista.zapisz.connect(self._zapisz_liste)
         u.addWidget(self.lista, 4)
         calosc.addWidget(prawa)
+        self.ekran_rano = EkranRano(self)
+        self._strony.addWidget(self.ekran_rano)
 
     def _ustaw_tryb(self, zwarty: bool) -> None:
         """Uklad zwykly / zwarty (A-P1): czcionki pomocnicze, odstepy, wysokosci przyciskow, szerokosci kolumn, minimum mapy."""
@@ -249,6 +259,7 @@ class OknoWieczor(QWidget):
         self.dopuszczenie.setStyleSheet(styl_znaczka_poziomu("ostrzezenie", r.znaczek))
         for czesc in (self.pasek, self.lista_plytek, self.widok, self.lista, self.legenda):
             czesc.ustaw_tryb(r)
+        self.ekran_rano.ustaw_tryb(r)
         self._sygnatury.clear()
         self._odswiez()
 
@@ -262,6 +273,15 @@ class OknoWieczor(QWidget):
     def zwarty(self) -> bool:
         """Uklad zwarty (male okno) - do testow i kontroli."""
         return self._r.zwarty
+
+    def rano(self) -> bool:
+        """Pokazany ekran poranny (``stan.tryb == "rano"``, E3-A7)."""
+        return self._strony.currentWidget() is self.ekran_rano
+
+    def _przelacz_tryb(self) -> None:
+        """Przelacznik trybu na pasku stanu: wieczor <-> rano (polecenie ``przelacz_tryb``; ekran zmienia sie ze stanem)."""
+        if self._stan is not None:
+            self._polecenie("przelacz_tryb", K.TRYB_WIECZOR if self._stan.tryb == K.TRYB_RANO else K.TRYB_RANO)
 
     # --- sygnaly kontrolera ----------------------------------------------------------------------
     def _na_stan(self, stan) -> None:
@@ -292,6 +312,13 @@ class OknoWieczor(QWidget):
         self._wybierz_plytke(stan)
         if self._wstrzymaj:
             return
+        rano = stan.tryb == K.TRYB_RANO
+        if rano != self.rano():  # E3-A7: zmiana trybu - druga strona okna; ekran wieczorny przebudowany od nowa po powrocie
+            self._strony.setCurrentWidget(self.ekran_rano if rano else self.strona_wieczor)
+            self._sygnatury.clear()
+            self._mapa_podpis = None
+            if not self._w_poleceniu:
+                self.setFocus(Qt.FocusReason.OtherFocusReason)
         self._odswiez()
 
     def pokazana_plytka(self) -> int | None:
@@ -470,6 +497,7 @@ class OknoWieczor(QWidget):
             self._informacja = ""
             if odpowiedz.ok and nazwa == "podaj_numer_plytki":
                 self._podaj_numer = False
+                self.ekran_rano.numer_podany()
             if stan.wersja == self._stan.wersja:
                 if not self._wstrzymaj:
                     self._odswiez()  # polecenie bez nowego stanu (odmowa bez komunikatu): pokaz tekst odpowiedzi
@@ -509,7 +537,17 @@ class OknoWieczor(QWidget):
     # --- klawiatura ------------------------------------------------------------------------------
     def keyPressEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
         klawisz = zdarzenie.key()
-        kierunek = {Qt.Key.Key_Left: (-1, 0), Qt.Key.Key_Right: (1, 0), Qt.Key.Key_Up: (0, -1), Qt.Key.Key_Down: (0, 1)}
+        if self.rano():  # E3-A7: klawisze ramki porannej (cyfry, Enter, Backspace, Esc) ma ekran poranny; Spacja = start skanu
+            if self.ekran_rano.klawisz(zdarzenie):
+                zdarzenie.accept()
+            elif klawisz == Qt.Key.Key_Space:
+                if not zdarzenie.isAutoRepeat():
+                    self._start_skanu()
+                zdarzenie.accept()
+            else:
+                super().keyPressEvent(zdarzenie)
+            return
+        kierunek ={Qt.Key.Key_Left: (-1, 0), Qt.Key.Key_Right: (1, 0), Qt.Key.Key_Up: (0, -1), Qt.Key.Key_Down: (0, 1)}
         for k, (dx, dy) in kierunek.items():
             if klawisz == k:  # strzalki takze z autopowtarzaniem (przytrzymana strzalka przesuwa kursor dalej)
                 self._ruch_kursora(dx, dy)
@@ -570,6 +608,9 @@ class OknoWieczor(QWidget):
         if stan is None:
             return
         self.pasek.ustaw(stan)
+        if self.rano():  # E3-A7: ekran poranny pokazuje sam swoje czesci; wieczorny (niewidoczny) nie jest przebudowywany
+            self.ekran_rano.pokaz(stan)
+            return
         plytka = self._plytka()
         gniazdo, praca = self._wybor()
         if self._praca_widoku is not None and (praca is None or praca.praca_id != self._praca_widoku):
@@ -783,7 +824,10 @@ class OknoWieczor(QWidget):
         self.bledy.odswiez()
 
     def _polecenie_panelu(self, nazwa: str, argumenty: tuple) -> None:
-        if nazwa == LOKALNE_NUMER_BEZ_ZMIAN:
+        if nazwa == LOKALNE_NUMER_BEZ_ZMIAN and self.rano():
+            self.ekran_rano.numer_podany()
+            self._odswiez()
+        elif nazwa == LOKALNE_NUMER_BEZ_ZMIAN:
             self._przelacz_numer()
         elif nazwa == LOKALNE_ZAMKNIJ_ODPOWIEDZ:
             self._odmowa = ""

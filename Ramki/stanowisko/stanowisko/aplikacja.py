@@ -330,7 +330,7 @@ class Aplikacja(K.KontrolerSesji):
     (drugi egzemplarz na tej samej bazie = ``ProgramJuzDziala``, B1), a ``zamknij`` ja zwalnia.
     """
 
-    def __init__(self, ust: dict, *, tryb: str = SE.TRYB_WIECZOR, zegar: Callable[[], dt.datetime] | None = None, start_skanu=None,
+    def __init__(self, ust: dict, *, tryb: str | None = None, zegar: Callable[[], dt.datetime] | None = None, start_skanu=None,
                  funkcja_analizy: str = SI.FUNKCJA_ANALIZY, parametry_scannera: dict | None = None, parametry_silnika: dict | None = None,
                  blokada: BlokadaStanowiska | None = None):
         self._blokada = blokada if blokada is not None else BlokadaStanowiska(B.sciezka_bazy(ust))
@@ -917,8 +917,13 @@ class Aplikacja(K.KontrolerSesji):
             if jest is not None:
                 baza.zdarzenie("silnik", "wynik_powtorzony", {"sha16": z.sha16, "rodzaj": d.rodzaj}, skan_id=jest["id"], czas=self._teraz())
             elif d.rodzaj == "wynik":
-                skan_id = self.sesja.przyjmij_wynik(zdarzenie, self._wynik_do_sesji(d.zdarzenie.wynik, z), z.tryb)
+                if z.tryb == SE.TRYB_RANO:  # E3-A7: skan poranny do sesji pieca (A6) - piec otwiera sie sam
+                    skan_id = self.rano.przyjmij_wynik(zdarzenie, self._wynik_do_sesji(d.zdarzenie.wynik, z))
+                else:
+                    skan_id = self.sesja.przyjmij_wynik(zdarzenie, self._wynik_do_sesji(d.zdarzenie.wynik, z), z.tryb)
                 self._zapisz_podglad(skan_id, (d.zdarzenie.pliki or {}).get("podglad"))
+            elif z.tryb == SE.TRYB_RANO:
+                skan_id = self.rano.przyjmij_blad(zdarzenie, f"{d.blad_rodzaj}: {d.blad_opis}")
             else:
                 skan_id = self.sesja.przyjmij_blad(zdarzenie, f"{d.blad_rodzaj}: {d.blad_opis}", z.tryb)
                 baza.zdarzenie("silnik", "blad_analizy_rodzaj", {"rodzaj": d.blad_rodzaj}, skan_id=skan_id, czas=self._teraz())
@@ -1139,6 +1144,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="stanowisko.aplikacja", description='Program "Stanowisko": kontrola prac z cyrkonu po skanie plytki.')
     parser.add_argument("--ustawienia", type=Path, default=None, help="plik ustawien (domyslnie ustawienia.toml w katalogu programu)")
     parser.add_argument("--atrapa", action="store_true", help="dane sztuczne bez skanera i silnika (pokaz okna)")
+    parser.add_argument("--rano", action="store_true", help="z --atrapa: pokaz trybu Poranek (piec z trzema plytkami porannymi)")
     parser.add_argument("--zamknij-po", type=float, default=None, metavar="S", help="zamknij program po S sekundach (proba uruchomienia)")
     args = parser.parse_args(argv)
 
@@ -1152,7 +1158,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.atrapa:
         kontroler: K.Kontroler = K.AtrapaKontrolera()
-        kontroler.scenariusz_pokazowy()
+        if args.rano:
+            kontroler.scenariusz_poranny()
+        else:
+            kontroler.scenariusz_pokazowy()
     else:
         try:
             ust = UST.wczytaj_ustawienia(args.ustawienia)
