@@ -412,3 +412,48 @@ def test_e3_a3a_zla_wartosc_nowego_klucza_jest_bledem(tmp_path, dopisek, komunik
     p = _plik_sprzed_etapu_3(tmp_path, "\n" + dopisek)
     with pytest.raises(UST.BladUstawien, match=r"^ustawienia\.toml: " + komunikat):
         UST.wczytaj_ustawienia(p)
+
+
+# --- E3-A8i: klucze strony laptopa ramek (indicate) - wylacznie opcjonalne -------------------------------------------
+# [ramki] klucz - wspolny klucz laptopa i ramki (naglowek X-Ramka-Klucz; ramka/README.md "Siec i klucz"), tylko w lokalnym
+# pliku, wzor bez wartosci; [ramki] odpytywanie_s - najdluzsze czekanie w GET /zdarzenia (plan 3.7); [sciezki]
+# kalibracja_ramek - lokalny plik kalibracji diod (DW9, plan 3.6).
+NOWE_E3_A8I = {"ramki": {"klucz": "", "odpytywanie_s": 25.0}, "sciezki": {"kalibracja_ramek": "dane/kalibracja_ramek.json"}}
+
+
+def _plik_bez_kluczy_a8i(tmp_path, dopisek_ramki: str = ""):
+    """Wzor ustawien bez kluczy E3-A8i (jak lokalny plik sprzed E3-A8i); `dopisek_ramki` - wiersze do sekcji [ramki]."""
+    nowe = {k for kl in NOWE_E3_A8I.values() for k in kl}
+    linie = [linia for linia in UST.PLIK_PRZYKLADU.read_text(encoding="utf-8").splitlines() if linia.split("=")[0].strip() not in nowe]
+    tekst = "\n".join(linie) + "\n"
+    assert "kalibracja_ramek =" not in tekst and "odpytywanie_s =" not in tekst and "\n[ramki]\n" in tekst
+    p = tmp_path / "ustawienia.toml"
+    p.write_text(tekst.replace("\n[ramki]\n", "\n[ramki]\n" + dopisek_ramki), encoding="utf-8")
+    return p
+
+
+def test_e3_a8i_klucze_ramek_sa_opcjonalne(tmp_path):
+    for sekcja, klucze in NOWE_E3_A8I.items():
+        for k, v in klucze.items():
+            assert k in UST.SCHEMAT[sekcja] and UST.DOMYSLNE_NOWYCH[sekcja][k] == v and UST.SCHEMAT[sekcja][k][1] == "indicate", (sekcja, k)
+    ust = UST.wczytaj_ustawienia(_plik_bez_kluczy_a8i(tmp_path))
+    assert ust == UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)  # wzor ma klucze z wartosciami domyslnymi, klucz pusty
+    assert (ust["ramki"]["klucz"], ust["ramki"]["odpytywanie_s"], ust["sciezki"]["kalibracja_ramek"]) == ("", 25.0, "dane/kalibracja_ramek.json")
+    klucz = "0123456789abcdef" * 3
+    ust = UST.wczytaj_ustawienia(_plik_bez_kluczy_a8i(tmp_path, f'klucz = "{klucz}"\nodpytywanie_s = 5\n'))
+    assert ust["ramki"]["klucz"] == klucz and ust["ramki"]["odpytywanie_s"] == 5
+    assert UST.wczytaj_ustawienia(UST.PLIK_USTAWIEN)["ramki"]["odpytywanie_s"] > 0  # lokalny plik tej maszyny
+
+
+@pytest.mark.parametrize("dopisek, komunikat", [
+    ('klucz = "krotki"\n', r"\[ramki\] klucz: pusty"),
+    ('klucz = "klucz z odstepem 0123456789"\n', r"\[ramki\] klucz: pusty"),
+    ("klucz = 1234567890123456\n", r"\[ramki\] klucz: oczekiwano str"),
+    ("odpytywanie_s = 0\n", r"\[ramki\] odpytywanie_s: sekundy"),
+    ("odpytywanie_s = 30\n", r"\[ramki\] odpytywanie_s: sekundy"),
+    ('odpytywanie_s = "25"\n', r"\[ramki\] odpytywanie_s: oczekiwano float"),
+])
+def test_e3_a8i_zla_wartosc_klucza_ramek_jest_bledem(tmp_path, dopisek, komunikat):
+    with pytest.raises(UST.BladUstawien, match=r"^ustawienia\.toml: " + komunikat) as e:
+        UST.wczytaj_ustawienia(_plik_bez_kluczy_a8i(tmp_path, dopisek))
+    assert "odstepem" not in str(e.value) and "1234567890123456" not in str(e.value)  # wartosc klucza nie trafia do komunikatu
