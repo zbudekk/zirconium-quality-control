@@ -28,7 +28,8 @@ KOLOR_SZARY = "szary"
 KOLOR_POMARANCZOWY = "pomaranczowy"
 KOLOR_ZATWIERDZONA_OK = "zatwierdzona_ok"
 KOLOR_BURSZTYNOWY = "bursztynowy"  # rano (A6): zab dofrezowany do zlecenia juz odhaczonego
-KOLORY_PRACY = (KOLOR_ZIELONY, KOLOR_CZERWONY, KOLOR_ZOLTY, KOLOR_SZARY, KOLOR_POMARANCZOWY, KOLOR_ZATWIERDZONA_OK)
+KOLOR_BIALY = "bialy"  # rano (A6 / E3-A7): praca nieznana - przymiarka na modelach albo przypisanie reczne
+KOLORY_PRACY =(KOLOR_ZIELONY, KOLOR_CZERWONY, KOLOR_ZOLTY, KOLOR_SZARY, KOLOR_POMARANCZOWY, KOLOR_ZATWIERDZONA_OK)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -76,6 +77,9 @@ _WIERSZE = (
        "Kształt pracy różni się gładko od projektu (ręczna poprawka) — obejrzyj ją."),
     _s("dofrezowany", KOLOR_BURSZTYNOWY, (255, 191, 0), "bursztyn", "ząb dofrezowany",
        "Ząb dofrezowany do zlecenia, które było już odhaczone."),
+    # rano (E3-A7, uwaga A6; klucz wg koordynatora): praca nieznana - na ekranie i na ramce biala
+    _s("nieznana_rano", KOLOR_BIALY, (250, 250, 250), "bialy", "nieznana",
+       "Program nie rozpoznał tej pracy — przymierz ją na modelach albo przypisz ręcznie do projektu."),
     # gniazda bez koloru pracy
     _s("pusty", None, (235, 235, 235), None, "", "Puste gniazdo."),
     _s("podwojny", None, (170, 80, 200), "zolty", "dwie prace", "W gnieździe leżą dwie prace — rozłóż je i zeskanuj płytkę ponownie."),
@@ -87,6 +91,31 @@ _WIERSZE = (
     _s("nieznany", KOLOR_ZOLTY, (240, 200, 40), "zolty", "sprawdź", "Nieznany status z analizy — obejrzyj pracę."),
 )
 STATUSY: dict[str, Status] = {w.klucz: w for w in _WIERSZE}
+
+# --- poranek (E3-A7): klasa pracy porannej z ``session_rano`` -> wiersz tabeli ------------------------------------------
+# Rano zielone znaczy "praca rozpoznana, kuweta znana" (nie "sprawdzona, cala" jak wieczorem), dlatego wiersze poranne sa
+# osobne (klucze ``rano_*``) i NIE wchodza do ``STATUSY_ZIELONE``; kolor ekranu i diod = wiersz, ktory podaje ``session_rano``
+# (``STATUS_KLASY``: zielony / zolty / czerwony; zgodnosc pilnuje test_kontroler_api). Praca nieznana = wiersz ``nieznana_rano``,
+# poprawka = ``dofrezowany`` (Z9) albo - gdy zlecenie wciaz ma braki (A6 runda 2, D2) - ``rano_juz_rozpoznany`` (ten sam bursztyn,
+# inny napis), skan do powtorzenia = ``skan_do_powtorzenia``.
+_WIERSZE_RANO = (
+    _s("rano_pewna", KOLOR_ZIELONY, (60, 180, 75), "zielony", "rozpoznana", "Praca rozpoznana — pod gniazdem jej kuweta i ząb."),
+    _s("rano_przypisana", KOLOR_ZIELONY, (60, 180, 75), "zielony", "przypisana",
+       "Praca przypisana decyzją osoby (wybór kandydata albo przypisanie ręczne)."),
+    _s("rano_dwuznaczna", KOLOR_ZOLTY, (240, 200, 40), "zolty", "wybierz",
+       "Program waha się między dwoma projektami — kliknij gniazdo i wybierz właściwy projekt."),
+    _s("rano_konflikt", KOLOR_CZERWONY, (220, 50, 50), "czerwony", "konflikt",
+       "Ten sam projekt pasuje do dwóch prac — dla jednej z nich wybierz inny projekt albo „bez projektu”. "
+       "Do tego czasu „Zamknij piec” jest zablokowane."),
+    _s("rano_juz_rozpoznany", KOLOR_BURSZTYNOWY, (255, 191, 0), "bursztyn", "ząb już rozpoznany",
+       "Ten ząb wyszedł już z wcześniejszego pieca, a zlecenie wciąż ma braki — sprawdź, czy to nie pomyłka (tylko wpis w logu)."),
+)
+STATUSY_RANO_WIERSZE: dict[str, Status] = {w.klucz: w for w in _WIERSZE_RANO}
+STATUSY_RANO: dict[str, Status] = {  # klasa pracy porannej (session_rano.KLASA_*) -> wiersz
+    "pewna": STATUSY_RANO_WIERSZE["rano_pewna"], "przypisana": STATUSY_RANO_WIERSZE["rano_przypisana"],
+    "dwuznaczna": STATUSY_RANO_WIERSZE["rano_dwuznaczna"], "nieznana": STATUSY["nieznana_rano"], "poprawka": STATUSY["dofrezowany"],
+    "konflikt": STATUSY_RANO_WIERSZE["rano_konflikt"], "do_powtorzenia": STATUSY["skan_do_powtorzenia"]}
+KLASY_RANO_Z_KUWETA = ("pewna", "przypisana", "poprawka", "konflikt")  # podpis gniazda rano = numer kuwety
 
 STATUSY_ZIELONE = tuple(k for k, w in STATUSY.items() if w.kolor == KOLOR_ZIELONY)  # tylko to wolno pokazac jako "sprawdzona, cala"
 # status inspekcji (``prace.status_inspekcji``) -> dokladny status zoltego gniazda
@@ -109,8 +138,15 @@ ZIELONE_BEZ_NUMERU_PLYTKI = False
 
 
 def status(klucz: str | None) -> Status:
-    """Wiersz tabeli; klucz nieznany tej wersji programu (nowy status z analizy) = zolty "sprawdz", nigdy blad i nigdy zielony."""
-    return STATUSY.get(klucz or "", STATUSY["nieznany"])
+    """Wiersz tabeli (takze poranny ``rano_*``); klucz nieznany tej wersji programu (nowy status z analizy) = zolty "sprawdz",
+    nigdy blad i nigdy zielony."""
+    return STATUSY.get(klucz or "") or STATUSY_RANO_WIERSZE.get(klucz or "") or STATUSY["nieznany"]
+
+
+def status_rano(klasa: str | None) -> Status:
+    """Wiersz dla klasy pracy porannej (``session_rano``: pewna / przypisana / dwuznaczna / nieznana / poprawka / konflikt /
+    do_powtorzenia). Klasa nieznana tej wersji programu = zolty "sprawdz" (nigdy zielony)."""
+    return STATUSY_RANO.get(klasa or "", STATUSY["nieznany"])
 
 
 def status_pracy(kolor: str | None, *, status_skanu: str, status_gniazda: str | None = None, status_inspekcji: str | None = None,
@@ -201,7 +237,48 @@ PRZYCISKI = {
     "zamknij": "Zamknij program",
     "zapisz_liste": "Zapisz listę do pliku",
     "ponow_zapis": "Ponów zapis",
+    # poranek (E3-A7)
+    "przelacz_tryb": "Przełącz tryb",
+    "wybierz_kandydata": "To ten projekt",
+    "przypisz_recznie": "Przypisz ręcznie",
+    "cofnij_przypisanie": "Cofnij wybór",
+    "zamknij_piec": "Zamknij piec",
+    "ustaw_kolejnosc": "Kolejność kuwet",
+    "wybierz_kuwete": "Wybierz kuwetę",
+    "potwierdz_kuwete": "Rozłożona",
+    "cofnij_kuwete": "Cofnij",
+    # poranek - runda 2 sesji porannej (A6)
+    "pomin_skan": "Pomiń skan",
+    "cofnij_pominiecie": "Cofnij pominięcie",
+    "zamknij_brak_recznie": "Zamknij brak ręcznie",
+    "cofnij_zamkniecie_reczne": "Cofnij zamknięcie ręczne",
+    "otworz_piec_ponownie": "Otwórz piec ponownie",
+    # poranek - runda 4 sesji porannej (A6): zapomniany "Zamknij piec"
+    "zamknij_piec_i_przenies": "Tak, zamknij piec i przenieś nowe skany",
+    "cofnij_przeniesienie": "Cofnij przeniesienie",
 }
+PRZYCISK_NUMER_MIMO = "Zmień numer na {numer} mimo to"  # A6 runda 4: zmiana numeru plytki przy nowym wsadzie - tylko swiadomie
+PRZYCISK_NUMER_BEZ_ZMIANY = "Nie zmieniaj"
+ZLECENIA_ODMIANA = ("zlecenie", "zlecenia", "zleceń")
+I_INNYCH = " i {n} innych"
+# powod recznego zamkniecia braku (kody ``session_rano.POWODY_ZAMKNIECIA``) -> napis przycisku
+POWODY_ZAMKNIECIA = {"nie_praca_z_cyrkonu": "to nie praca z cyrkonu", "zaginiona": "praca zaginęła", "wydana_bez_skanu": "wydana bez skanu",
+                     "inny": "inny powód", "nie_bedzie_dofrezowany": "nie będzie dofrezowany"}
+POWOD_DOFREZOWANIE = "nie_bedzie_dofrezowany"  # = session_rano.POWOD_DOFREZOWANIE: jedyny powod dla punktu do_dofrezowania (A6 runda 3)
+
+
+def powody_zamkniecia(stan_punktu: str | None) -> dict:
+    """Powody recznego zamkniecia dozwolone dla punktu w stanie ``stan_punktu`` (A6 runda 3): zab do dofrezowania zamyka tylko
+    "nie bedzie dofrezowany", inny punkt - kazdy powod poza nim."""
+    if stan_punktu == "do_dofrezowania":
+        return {POWOD_DOFREZOWANIE: POWODY_ZAMKNIECIA[POWOD_DOFREZOWANIE]}
+    return {k: v for k, v in POWODY_ZAMKNIECIA.items() if k != POWOD_DOFREZOWANIE}
+NAPIS_POMINIETEJ = "pominięta (nie liczy się)"  # skan poranny pominiety przez osobe (A6 runda 2)
+PRZYCISK_BEZ_PROJEKTU = "Bez projektu"  # przypisz_recznie(praca, None): praca nieznana (przymiarka na modelach), rozstrzygniecie konfliktu
+NAZWY_KOLEJNOSCI = {"liczba": "Od najliczniejszej", "numer": "Według numeru"}  # U7 (trzeci sposob: numer wpisany recznie)
+# stan punktu zlecenia (``stan_punktow.stan``) na liscie brakow
+STANY_PUNKTU = {"oczekuje": "czeka", "do_dofrezowania": "dofrezowywany (ukruszony wieczorem)", "brak_po_piecu": "nie wyszedł z pieca",
+                "rozpoznany": "rozpoznany", "zamkniety_recznie": "zamknięty ręcznie"}
 PRZYCISK_ZESKANUJE_WLASCIWA = "Zeskanuję właściwą płytkę"  # odpowiedz "nie dopuszczam" na pytanie o plytke nie z trybu
 PRZYCISK_WYLOGUJ = "Odchodzę od stanowiska"  # wybierz_operatora(None): nikt nie jest wybrany, decyzje niedostepne (D7)
 
@@ -294,6 +371,28 @@ KOMUNIKATY: dict[str, Wzor] = {
                                "program spróbuje ponownie przy następnej zmianie listy (albo kliknij „Zapisz listę do pliku”)."),
     "lista_zapisana": Wzor(POZIOM_INFO, "Lista zapisana", "Lista „do dofrezowania” zapisana do pliku {plik} w folderze danych programu."),
     "wylogowano": Wzor(POZIOM_INFO, "Nikt nie jest wybrany", "Osoba odeszła od stanowiska — wybierz osobę, żeby zapisywać decyzje."),
+    # poranek (E3-A7): ramka i Excel jeszcze niepodlaczone (A12) - program dziala dalej wedlug ekranu
+    "ramka_niedostepna": Wzor(POZIOM_INFO, "Ramka poranna nie jest podłączona",
+                              "Program działa bez ramki — rozkładaj prace według ekranu: kuweta po kuwecie (Enter = rozłożona, "
+                              "Backspace = cofnij, cyfry i Enter = wybór kuwety)."),
+    "excel_niedostepny": Wzor(POZIOM_OSTRZEZENIE, "Excel nie jest podłączony",
+                              "Program nie zapisuje jeszcze do Excela — odhacz w Excelu zlecenia kompletne pieca nr {nr} z {doba} "
+                              "(zamknięty {godzina}; {ile}): {kuwety}. Lista jest też w zakładce „Ostatni zamknięty piec”."),
+    "kuweta_spoza_pieca": Wzor(POZIOM_OSTRZEZENIE, "Nie ma takiej kuwety w piecu", "Kuwety {kuweta} nie ma na płytkach tego pieca."),
+    "kuwety_rozlozone": Wzor(POZIOM_INFO, "Wszystko rozłożone", "Wszystkie kuwety tego pieca są już rozłożone."),
+    "brak_kuwety_do_cofniecia": Wzor(POZIOM_INFO, "Nic do cofnięcia", "Nie ma rozłożonej kuwety do cofnięcia."),
+    "brak_pieca": Wzor(POZIOM_OSTRZEZENIE, "Nie ma otwartego pieca",
+                       "Nie ma otwartego pieca — piec otwiera pierwszy skan płytki porannej."),
+    "analiza_trwa": Wzor(POZIOM_INFO, "Trwa analiza skanu",
+                         "Trwa analiza skanu płytki — poczekaj na wynik, potem zamknij piec (wynik po zamknięciu otworzyłby nowy piec)."),
+    "skanowanie_trwa": Wzor(POZIOM_INFO, "Trwa skanowanie",
+                            "Trwa skanowanie płytki — poczekaj, aż skan trafi do programu, potem zamknij piec (skan po zamknięciu "
+                            "otworzyłby nowy piec)."),
+    "kuweta_zmienila_sie": Wzor(POZIOM_OSTRZEZENIE, "Bieżąca kuweta jest inna",
+                                "Bieżąca kuweta to teraz {kuweta}, a nie {podana} — sprawdź ekran; nic nie zapisano."),
+    "rano_niedostepny": Wzor(POZIOM_BLAD, "Stanu pieca nie da się odczytać",
+                             "Część poranna ekranu pokazuje ostatni odczytany stan. Spróbuj ponownie za chwilę; jeśli to się powtarza, "
+                             "zgłoś awarię."),
 }
 # napis pozycji "nie zapisano" (``StanAplikacji.niezapisane``) wg przyczyny
 NAPISY_NIEZAPISANE = {"blad_zapisu": "nie zapisano — błąd zapisu", "baza_zajeta": "nie zapisano — baza zajęta"}
@@ -307,12 +406,21 @@ PYTANIA: dict[str, Wzor] = {
     "brak_numeru_plytki": Wzor(POZIOM_OSTRZEZENIE, "Podaj numer płytki",
                                "Program nie odczytał numeru płytki ze skanu. Podaj numer wybity na płytce — do tego czasu "
                                "żadna praca na niej nie jest pokazana jako zielona."),
+    # poranek (A6 runda 4): nastepny wsad przy niezamknietym piecu
+    "nowy_wsad": Wzor(POZIOM_OSTRZEZENIE, "Poprzedni piec nie został zamknięty",
+                      "Poprzedni piec nie został zamknięty. Zamknąć go i przenieść nowe skany (płytki {plytki}; skanów: {skanow}) "
+                      "do nowego pieca?"),
+    "numer_nowy_wsad": Wzor(POZIOM_OSTRZEZENIE, "Zmienić numer płytki mimo to?",
+                            "Płytka {stary} ma drugi skan z innymi pracami — to chyba nowy wsad przy niezamkniętym piecu: lepiej "
+                            "zamknąć poprzedni piec i przenieść nowe skany. Zmień numer na {numer} tylko wtedy, gdy na pewno jest zły."),
 }
 PLIK_NIEDOSTEPNY_PONOWIENIE = "Program próbuje ponownie (próba {proba} z {prob})."
 PLIK_NIEDOSTEPNY_KONIEC = "Zamknij podgląd w programie skanera i zeskanuj płytkę ponownie."
 SKUTEK_BEZ_DECYZJI = "Poprzedni skan nie ma jeszcze żadnych decyzji."
 SKUTEK_Z_DECYZJAMI = ("Po potwierdzeniu przestanie obowiązywać {n} {decyzji} z poprzedniego skanu (w tym „Ukruszona”: {u}) — "
                       "trzeba je będzie zaznaczyć od nowa.")
+SKUTEK_Z_DECYZJAMI_RANO = ("Po potwierdzeniu przestanie obowiązywać {n} {decyzji} z poprzedniego skanu (wybór kandydata, przypisanie) — "
+                           "trzeba je będzie podjąć od nowa.")
 JAKA_PLYTKA = {"wieczorna": "płytka wieczorna", "poranna": "płytka poranna", None: "płytka o nieznanym układzie"}
 NAZWY_TRYBOW = {"wieczor": "Wieczór", "rano": "Poranek"}
 POWODY_POWTORZENIA = {
@@ -346,6 +454,20 @@ STANY_PULI = {
     "pusta": "brak plików projektów",
     "brak_folderu": "brak folderu projektów",
 }
+# poranek (E3-A7): dlaczego "Zamknij piec" jest teraz niemozliwe (reguly session_rano)
+BLOKADA_BEZ_NUMERU = "Podaj numer płytki ({skany}) — rano numer jest potrzebny przed „Zamknij piec”."
+SKAN_Z_GODZINY = "skan z {godzina}"
+BLOKADA_KONFLIKT = ("Rozstrzygnij konflikty ({n}): ten sam projekt w kilku gniazdach — dla jednej z prac wybierz inny projekt "
+                    "albo „Bez projektu”.")
+BLOKADA_DWA_SKANY = "Płytka {numer}: dwa skany z tym samym numerem — potwierdź ponowny skan, popraw numer albo pomiń jeden skan."
+BLOKADA_NOWY_WSAD = ("Płytka {numer}: drugi skan z innymi pracami — to chyba nowy wsad: poprzedni piec nie został zamknięty. "
+                     "Zamknij go i przenieś nowe skany (pytanie nad płytkami).")
+# podstawa propozycji ponownego skanu (``session.PODSTAWA_*``, A6 runda 4: ``do_potwierdzenia[].podstawa``)
+PODSTAWY_PONOWNEGO_SKANU = {"ten_sam_plik": "Ten sam plik skanu.", "te_same_prace": "Na obu skanach są te same prace.",
+                            "za_malo_rozpoznanych": "Za mało rozpoznanych prac, żeby porównać skany.",
+                            "regula_wylaczona": "Porównanie prac wyłączone w ustawieniach."}
+PLYTKA_W_BLOKADZIE = "płytka {numer}"
+PLYTKA_BEZ_NUMERU_W_BLOKADZIE = "płytka bez numeru"
 
 
 def tekst_komunikatu(rodzaj: str, **pola) -> tuple[str, str, str]:
