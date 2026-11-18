@@ -13,6 +13,7 @@ wyniki = "dane/wyniki"                              # opcjonalny (etap 3): pliki
 podglady = "dane/podglady"                          # opcjonalny (etap 3): pliki *_podglad.npz z analizy (punkty i odchyłki gniazd — obraz odchyłek w oknie)
 pula_cache = "dane/pula_cache"                      # opcjonalny (etap 3): pamięć linii brzegu projektów na dysku (przyspiesza pierwszą płytkę po starcie)
 logi = "dane/logi"                                  # opcjonalny (etap 3): log programu „Stanowisko” i procesu analizy
+kalibracja_ramek = "dane/kalibracja_ramek.json"    # opcjonalny (E3-A8i): lokalny plik kalibracji diod ramek (blok pikseli pod kazdym gniazdem, plik od paczki C2); brak pliku = wartosci startowe z geometrii plytek
 
 [plytki]   # katalogi z uklad.json i plytka_n*.stl, względem katalogu programu (nie cwd)
 wieczorna = "modele_plytek/wieczorna"
@@ -83,6 +84,8 @@ tryb_pytaj_przed_zapisem = true
 port = 8765
 wieczorna_host = "ramka-w.local"
 poranna_host = "ramka-p.local"
+klucz = ""                          # opcjonalny (E3-A8i): wspolny klucz laptopa i ramek (naglowek X-Ramka-Klucz) - WPISZ tylko w lokalnym pliku ustawien, ten sam co klucz w pliku konfiguracji ramki (16-256 znakow bez odstepu); pusty = bez klucza: wolno tylko w sieci, w ktorej sa wylacznie laptop i ramki
+odpytywanie_s = 25.0                # opcjonalny (E3-A8i): najdluzsze czekanie na zdarzenia ramki w jednym zapytaniu, sekundy 0.5-25 (ramka i tak skraca)
 
 [sesja]    # opcjonalna (etap 3): plik ustawień sprzed etapu 3 nie ma tej sekcji i działa — brakujące klucze dostają wartości jak poniżej
 operatorzy = []                     # WPISZ osoby do wyboru na początku zmiany, np. ["Technik A", "Technik B"]; wybrana osoba trafia do kolumny „operator” przy każdej decyzji; przy pustej liście program działa i przyjmuje skany, ale decyzji „Ukruszona” / „OK” nie zapisuje

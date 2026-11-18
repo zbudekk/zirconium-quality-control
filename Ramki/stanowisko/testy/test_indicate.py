@@ -626,21 +626,25 @@ def test_k6_restart_ramki_laptop_wysyla_plan_ponownie_do_5_s(kal, sprzataj):
     atr.klawisz("enter")
     potw = [[4, "3263"], [4, "3301"]]
     assert czekaj_na(lambda: k.potwierdzone() == potw, 5.0), k.stan()
-    czasy = []
+    czasy, od_zabicia = [], []
     for _ in range(3):
         stary = atr.stan()["start_id"]
+        t_zabicia = time.perf_counter()
         atr.zabij()
         atr = AtrapaProces("P", port=port)
-        t0 = atr.t_start
+        t0 = atr.t_start   # linia ATRAPA_RAMKI (port nasluchu otwarty chwile wczesniej)
         assert czekaj_na(lambda: atr.stan()["plan_id"] == PLAN_ID, 8.0, 0.02), k.stan()
-        czasy.append(time.perf_counter() - t0)
+        teraz = time.perf_counter()
+        czasy.append(teraz - t0)
+        od_zabicia.append(teraz - t_zabicia)   # gorne ograniczenie: razem z uruchomieniem nowego procesu ramki
         s = atr.stan()
         assert s["start_id"] != stary and s["potwierdzone"] == potw
     atr.plytka(4)
     ocz = piksele(kal, "P", "poranna", {**{i: "bursztyn" for i in KUWETY_K1[2][1]}, **BEZ_KUWETY_K1})
     assert czekaj_klatka(atr.klatka, ocz) == []
-    print(f"POMIAR K6: 3 restarty ramki, plan ponownie po {', '.join(f'{c:.2f}' for c in czasy)} s od startu ramki")
-    assert max(czasy) <= 5.0, czasy
+    print(f"POMIAR K6: 3 restarty ramki, plan ponownie po {', '.join(f'{c:.2f}' for c in czasy)} s od startu ramki, "
+          f"{', '.join(f'{c:.2f}' for c in od_zabicia)} s od zabicia poprzedniego procesu ramki")
+    assert max(od_zabicia) <= 5.0, od_zabicia
 
 
 # ----------------------------------------------------------------------------- K7: Spacja -> stan ramki W
@@ -656,6 +660,7 @@ def test_k7_spacja_zmienia_stan_ramki_w_ponizej_1_s_dwa_procesy(kal, sprzataj):
     czasy = []
     for i in range(10):
         kol = kolory_wieczor(kal, przesuniecie=i)
+        plytka = 2 + i % 2   # na zmiane 2 i 3: powrot A -> 0 -> A ramka ustala dopiero po 3 s (drgania czujnikow)
         atr.plytka(0)
         assert czekaj_na(lambda: atr.stan()["plytka"] == 0, 3.0)
         assert czekaj_na(lambda: k.kursor[1] == atr.stan()["nr_zdarzenia"], 3.0)
@@ -665,8 +670,8 @@ def test_k7_spacja_zmienia_stan_ramki_w_ponizej_1_s_dwa_procesy(kal, sprzataj):
         czasy.append(time.perf_counter() - t0)
         k.analiza()
         assert czekaj_na(lambda: atr.stan()["tryb"] == "analiza", 3.0)
-        assert k.wynik(2, "wieczorna", kol, z) == "wyslany"
-        atr.plytka(2)
+        assert k.wynik(plytka, "wieczorna", kol, z) == "wyslany"
+        atr.plytka(plytka)
         assert czekaj_klatka(atr.klatka, piksele(kal, "W", "wieczorna", swiecace(kol))) == [], f"cykl {i}"
     s = sorted(czasy)
     print(f"POMIAR K7: 10 Spacji, stan ramki W po: mediana {s[5] * 1000:.0f} ms, maks {s[-1] * 1000:.0f} ms")
@@ -698,22 +703,25 @@ def test_w1_laptop_odebral_zdjecie_plytki_i_nie_wysyla_starego_wyniku(kal, sprza
     ocz = piksele(kal, "W", "wieczorna", swiecace(kol))
     assert atrapa.czekaj(lambda a: roznice_plytki(a.klatka, ocz) == [], 3.0)
     atrapa.poloz_plytke(0)                       # technik zdejmuje plytke (nowe prace)
+    assert czekaj_na(lambda: program.logika.plytka == 0, 2.0)
     assert _odebral_wszystko(k, program)
     put = d.liczba("PUT", "/plan")
     kol2 = kolory_wieczor(kal, przesuniecie=3)   # np. decyzja technika zmienia kolor - ale to nadal stary skan
     assert k.wynik(2, "wieczorna", kol2, z) == "niewazny"
     atrapa.poloz_plytke(2)
-    time.sleep(0.5)
+    assert czekaj_na(lambda: program.logika.plytka == 2 and program.logika.plytka_pewna, 6.0)  # powrot A-0-A: po 3 s
+    time.sleep(0.2)
     assert roznice_plytki(atrapa.klatka, {}) == [] and d.liczba("PUT", "/plan") == put
     assert program.logika.stan(program.zegar())["plytki_planu"] == []
     # nowy skan tej plytki (laptop odebral zdjecie przed Spacja) - wynik swieci
     atrapa.poloz_plytke(0)
+    assert czekaj_na(lambda: program.logika.plytka == 0, 2.0)
     assert _odebral_wszystko(k, program)
     z2 = k.skanowanie()
     assert k.wynik(2, "wieczorna", kol2, z2) == "wyslany"
     atrapa.poloz_plytke(2)
     ocz2 = piksele(kal, "W", "wieczorna", swiecace(kol2))
-    assert atrapa.czekaj(lambda a: roznice_plytki(a.klatka, ocz2) == [], 3.0)
+    assert atrapa.czekaj(lambda a: roznice_plytki(a.klatka, ocz2) == [], 6.0)
 
 
 def test_w2_po_wygasnieciu_planu_wynik_sprzed_przerwy_nie_wraca(kal, sprzataj):
@@ -737,7 +745,7 @@ def test_w2_po_wygasnieciu_planu_wynik_sprzed_przerwy_nie_wraca(kal, sprzataj):
     atrapa.poloz_plytke(0)
     assert czekaj_na(lambda: program.logika.plytka == 0, 2.0)
     atrapa.poloz_plytke(2)
-    assert czekaj_na(lambda: program.logika.plytka == 2, 2.0)
+    assert czekaj_na(lambda: program.logika.plytka == 2, 6.0)   # powrot A -> 0 -> A ramka ustala po 3 s
     proxy.awaria = False
     assert _odebral_wszystko(k, program, 5.0)
     typy = [z_["typ"] for z_ in k.odbierz_zdarzenia()]
@@ -797,7 +805,8 @@ def test_w4_plan_sprzed_zdjecia_plytki_409_laptop_odbiera_i_wysyla_bez_tej_plytk
     assert [sorted(p["plytki"]) for p in plany] == [["1", "2"], ["1"]]
     assert plany[1]["wersja"] > plany[0]["wersja"] and plany[1]["zdarzenia_do"] > plany[0]["zdarzenia_do"]
     atrapa.poloz_plytke(2)
-    time.sleep(0.3)
+    assert czekaj_na(lambda: program.logika.plytka == 2 and program.logika.plytka_pewna, 6.0)  # powrot A-0-A: po 3 s
+    time.sleep(0.2)
     assert roznice_plytki(atrapa.klatka, {}) == []
     assert k.wynik(2, "wieczorna", kol2, z2) == "niewazny"
     atrapa.poloz_plytke(1)
