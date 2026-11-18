@@ -670,7 +670,7 @@ def test_b1_wynik_skanu_juz_zapisanego_nie_daje_drugiego_skanu(stanowiska):
     st.czekaj(lambda: st.stan().analiza is not None, 30.0, "analiza w toku")
     sha16 = st.stan().analiza.sha16
     with B.otworz(st.k.sesja.baza.plik) as inna:  # "drugi program": osobne polaczenie z ta sama baza
-        SE.Sesja(inna, katalog_wynikow=st.tmp / "dane" / "wyniki_inne").przyjmij_wynik(
+        SE.Sesja(inna, katalog_wynikow=st.tmp / "dane" / "wyniki_inne", zegar=st.zegar).przyjmij_wynik(
             {"plik": str(plik), "sha16": sha16, "rozmiar": plik.stat().st_size, "czas_pliku": None}, K.sztuczny_wynik("wieczorna", 1, {1: "zielony"}))
     brama.write_text("otwarta", encoding="utf-8")
     czekaj_na_pusta_kolejke(st)
