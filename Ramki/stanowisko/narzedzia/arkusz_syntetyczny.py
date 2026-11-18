@@ -142,11 +142,18 @@ class ArkuszWPamieci:
         self._komorki: list[list] = [list(naglowek)] + [list(w) for w in wiersze]
         self._wypelnienia: dict[tuple[int, int], tuple[int, int, int]] = {}
         self.operacje: list[tuple] = []
+        self._wersja = 0  # zmiana wartosci komorek (ustaw_wartosc, wstaw_wiersz, dopisz) - uniewaznia pamiec odczytu
+        self._pamiec_odczytu: tuple | None = None
 
     # --- interfejs excel.ZrodloArkusza ---
     def odczytaj(self, pierwszy_wiersz: int, ostatnia_kolumna: int) -> list[tuple]:
+        """Wartosci wierszy (krotki). Niezmieniony arkusz zwraca te same krotki co poprzednio (jak tani odczyt - testy robia
+        setki odczytow 30 tys. wierszy)."""
         self.operacje.append(("odczytaj", pierwszy_wiersz, ostatnia_kolumna))
-        return [self._wiersz(nr, ostatnia_kolumna) for nr in range(pierwszy_wiersz, len(self._komorki) + 1)]
+        klucz = (self._wersja, len(self._komorki), pierwszy_wiersz, ostatnia_kolumna)
+        if self._pamiec_odczytu is None or self._pamiec_odczytu[0] != klucz:
+            self._pamiec_odczytu = (klucz, [self._wiersz(nr, ostatnia_kolumna) for nr in range(pierwszy_wiersz, len(self._komorki) + 1)])
+        return list(self._pamiec_odczytu[1])
 
     def wiersz(self, nr: int, ostatnia_kolumna: int) -> tuple:
         self.operacje.append(("wiersz", nr, ostatnia_kolumna))
@@ -178,6 +185,7 @@ class ArkuszWPamieci:
         w = self._komorki[nr - 1]
         w.extend([None] * (kolumna - len(w)))
         w[kolumna - 1] = wartosc
+        self._wersja += 1
 
     def zaznacz(self, nr: int, kolumna: int, rgb) -> None:
         """Wypelnienie ustawione "przez czlowieka" (budowa arkusza, wspoledycja) - nie trafia do ``operacje``."""
@@ -190,10 +198,12 @@ class ArkuszWPamieci:
         """Wstawienie wiersza przed wierszem ``nr`` "przez kogos innego": nizsze wiersze i ich wypelnienia przesuwaja sie o 1."""
         self._komorki.insert(nr - 1, list(wartosci))
         self._wypelnienia = {((w + 1 if w >= nr else w), k): c for (w, k), c in self._wypelnienia.items()}
+        self._wersja += 1
 
     def dopisz(self, wartosci, kolor_b=None) -> int:
         """Wiersz dopisany na koncu "przez kogos innego" (np. po odczycie arkusza przez program); zwraca jego numer."""
         self._komorki.append(list(wartosci))
+        self._wersja += 1
         if kolor_b is not None:
             self._wypelnienia[(len(self._komorki), 2)] = tuple(kolor_b)
         return len(self._komorki)
