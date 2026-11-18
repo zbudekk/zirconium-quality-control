@@ -26,6 +26,8 @@ import pytest
 
 import test_kontroler_api as TK
 import test_ui_wieczor as UW
+from stanowisko import statusy as ST  # bez Qt (napisy ekranu - plik testow jest ASCII)
+from stanowisko.ui import napisy_rano as NR
 
 RANO_START = dt.datetime(2026, 11, 18, 6, 30, 0)  # sroda, zmiana 1
 PELNY_EKRAN = (1920, 1001)  # 1920 x 1080 przy 100 %, okno zmaksymalizowane
@@ -402,7 +404,7 @@ def test_k3_rozkladanie_enter_i_cofniecie_backspace(atrapa, ekrany):
     e.klawisz(Qt.Key.Key_Return)
     rano = atrapa.stan().rano
     assert [k.kuweta for k in rano.kuwety if k.potwierdzona] == kolejne[:2] and rano.kuweta_biezaca == kolejne[2]
-    assert e.tabela("tabela_kuwet")[0][3] == "rozłożona"
+    assert e.tabela("tabela_kuwet")[0][3] == NR.KUWETA_STAN_ROZLOZONA
     e.klawisz(Qt.Key.Key_Backspace)
     rano = atrapa.stan().rano
     assert [k.kuweta for k in rano.kuwety if k.potwierdzona] == kolejne[:1] and rano.kuweta_biezaca == kolejne[1]
@@ -515,7 +517,7 @@ def test_konflikt_blokuje_zamkniecie_poprawka_bursztyn_z9(atrapa, ekrany):
     blokady = e.w("rano_blokady").text()
     assert "konflikt" in blokady.lower() and not e.aktywny("przycisk_zamknij_piec")
     e.klik_rano(skany[5], 3)
-    assert "Płytka 6, gniazdo 11" in e.w("praca_rano_konflikt").text()
+    assert NR.KONFLIKT_MIEJSCE.format(plytka=NR.PLYTKA_NR.format(numer=6), gniazdo=11) in e.w("praca_rano_konflikt").text()
     # Z9: zab dofrezowany do zlecenia juz odhaczonego - bursztyn i napis inny niz "poprawiana recznie"
     kolor = e.mapy()[skany[6]].kolory()[2]
     assert kolor == ST.STATUSY["dofrezowany"].hex == e.piksele(skany[6])[2] and kolor != ST.STATUSY["pomaranczowy"].hex
@@ -550,7 +552,7 @@ def test_plytka_bez_numeru_ponowny_skan_i_plytka_wieczorna_rano(atrapa, ekrany, 
     assert e.jest("odp_pomin_skan") and not e.jest("odp_dopusc_plytke")  # rano plytki nie z trybu sie nie dopuszcza (A6 runda 2)
     e.klik("odp_pomin_skan")
     assert atrapa.stan().rano.plytka(wieczorna).pominieta and e.aktywny("przycisk_zamknij_piec")
-    assert "pominięta" in e.w(f"rano_plytka_{wieczorna}_tytul").text() and e.jest(f"rano_plytka_{wieczorna}_cofnij_pominiecie")
+    assert ST.NAPIS_POMINIETEJ in e.w(f"rano_plytka_{wieczorna}_tytul").text() and e.jest(f"rano_plytka_{wieczorna}_cofnij_pominiecie")
     e.klik(f"rano_plytka_{wieczorna}_cofnij_pominiecie")
     assert not atrapa.stan().rano.plytka(wieczorna).pominieta and not e.aktywny("przycisk_zamknij_piec")
 
@@ -599,10 +601,10 @@ def test_przelacznik_trybu_wieczor_poranek_i_pamiec_po_restarcie(tmp_path, zegar
     a = K.AtrapaKontrolera(katalog, zegar=zegar)
     try:
         e = ekrany(a)
-        assert a.stan().tryb == "wieczor" and not e.okno.rano() and e.w("przycisk_przelacz_tryb").text() == "→ Poranek"
+        assert a.stan().tryb == "wieczor" and not e.okno.rano() and e.w("przycisk_przelacz_tryb").text() == NR.PRZELACZ_NA.format(tryb=ST.NAZWY_TRYBOW["rano"])
         e.klik("przycisk_przelacz_tryb")  # bez wybranej osoby tez dziala
         assert a.stan().tryb == "rano" and e.okno.rano() and e.w("napis_tryb").text() == ST.NAZWY_TRYBOW["rano"]
-        assert e.w("przycisk_przelacz_tryb").text() == "→ Wieczór" and e.jest("rano_bez_plytek")
+        assert e.w("przycisk_przelacz_tryb").text() == NR.PRZELACZ_NA.format(tryb=ST.NAZWY_TRYBOW["wieczor"]) and e.jest("rano_bez_plytek")
         a.wybierz_operatora("Technik A")
         rano = a.symuluj_skan_rano(4, {1: "pewna"}, projekty={1: 305})
         assert a.stan().rano.plytka(rano) is not None and a.stan().plytka(rano) is None  # skan poranny poza stanem wieczoru
@@ -819,7 +821,7 @@ def test_t14_szesc_zadan_porannych(atrapa, ekrany, zegar):
     obwiedzione = [nr for m in e.mapy().values() for nr in m.biezace()]
     assert obwiedzione and all(e.mapy()[s].rysowane()[nr]["kuweta"] == biezaca for s in e.mapy() for nr in e.mapy()[s].biezace())
     e.klawisz(Qt.Key.Key_Return)
-    assert e.tabela("tabela_kuwet")[[w[0] for w in e.tabela("tabela_kuwet")].index(biezaca)][3] == "rozłożona"
+    assert e.tabela("tabela_kuwet")[[w[0] for w in e.tabela("tabela_kuwet")].index(biezaca)][3] == NR.KUWETA_STAN_ROZLOZONA
     zadania.append("kuweta wedlug ekranu")
     # (4) pomylka: druga kuweta potwierdzona za wczesnie -> Backspace
     druga = e.w("rano_kuweta_biezaca").text().split()[-1]

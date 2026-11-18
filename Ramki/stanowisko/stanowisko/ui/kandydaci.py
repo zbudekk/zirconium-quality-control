@@ -68,7 +68,7 @@ class KartaKandydata(QFrame):
         kolumna.setSpacing(0 if r.zwarty else 2)
         kolumna.addWidget(etykieta(NR.KANDYDAT_NR.format(nr=nr), "podpis"))
         kolumna.addWidget(etykieta(f"{NR.KUWETA} {kandydat.kuweta or NR.BRAK_DANYCH}", "duzy", f"kandydat_{nr}_kuweta", zawijaj=True))
-        opis = " · ".join(x for x in (f"{NR.ZAB} {kandydat.zeby}" if kandydat.zeby else "", kandydat.typ or "") if x)
+        opis = NR.KROPKA.join(x for x in (f"{NR.ZAB} {kandydat.zeby}" if kandydat.zeby else "", kandydat.typ or "") if x)
         kolumna.addWidget(etykieta(opis or NR.BRAK_DANYCH, nazwa=f"kandydat_{nr}_zab", zawijaj=True))
         if kandydat.pokrycie is not None:
             kolumna.addWidget(etykieta(NR.KANDYDAT_POKRYCIE.format(procent=round(100 * kandydat.pokrycie)), "slaby"))
@@ -271,7 +271,7 @@ class WidokPracyRano(QFrame):
             linia.addWidget(mini)
             napis = NR.PRZYPISZ_PROJEKT.format(zab=projekt.zeby or NR.BRAK_DANYCH, typ=projekt.typ or NR.BRAK_DANYCH,
                                                stan=ST.STANY_PUNKTU.get(projekt.stan, projekt.stan or ""))
-            b = przycisk(f"{NR.KUWETA} {projekt.kuweta} · {napis}", f"projekt_{projekt.projekt_id}", "lacze",
+            b = przycisk(f"{NR.KUWETA} {projekt.kuweta}{NR.KROPKA}{napis}", f"projekt_{projekt.projekt_id}", "lacze",
                          lambda pid=projekt.projekt_id, p=praca.praca_id: self.polecenie.emit("przypisz_recznie", (p, pid)))
             b.setEnabled(projekt.projekt_id != praca.projekt_id)
             linia.addWidget(b, 1)

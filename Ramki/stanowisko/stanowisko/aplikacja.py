@@ -9,7 +9,8 @@ oknu stan oraz polecenia opisane w ``kontroler_api`` (kontrakt dla ekranu - pacz
   z ``znane=ZnanePliki(...)`` - skany zapisane, gdy program nie dzialal, sa nadrabiane, a juz przyjete nie wracaja;
 * kazdy skan: powtorka tej samej tresci (``sha16``) wobec skanu, ktory MA wynik w bazie, albo wobec zadania czekajacego
   w kolejce nie jest liczona drugi raz; samo zobaczenie pliku niczego nie zapisuje (awaria przed wynikiem nie gubi skanu);
-* wynik: ``session.przyjmij_wynik``; blad analizy: ``session.przyjmij_blad`` + komunikat; ``plik_zmieniony`` - tylko
+* wynik: ``session.przyjmij_wynik`` (tryb "rano" - E3-A7: ``session_rano.SesjaRano.przyjmij_wynik``, piec otwiera sie sam);
+  blad analizy: ``session.przyjmij_blad`` (rano: ``SesjaRano.przyjmij_blad``) + komunikat; ``plik_zmieniony`` - tylko
   informacja (nowa tresc ma wlasne zdarzenie); ``plik_niedostepny`` - ponawianie (``[silnik] ponow_plik_niedostepny``);
 * pula projektow na poziomie 1 planu: jeden folder + wspolczynnik wpisany recznie (None = domyslny dla typu plytki, jak
   w oknie testowym); liczba STL liczona w tle; bez projektow skany CZEKAJA (nie dostaja bledu) do "Odswiez pule";

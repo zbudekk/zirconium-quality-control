@@ -600,7 +600,7 @@ class EkranRano(QWidget):
         pytane = {(q.skan_id, PYTANE.get(q.rodzaj)) for q in stan.pytania if not q.ukryte}
         for p in plytki:
             karta = self._karty[p.skan_id]
-            karta.tytul.setText(nazwa_plytki(p.numer) + ("" if p.aktywna else f" — {p.napis}"))
+            karta.tytul.setText(nazwa_plytki(p.numer) + ("" if p.aktywna else NR.ODSTEP_NAPISU + p.napis))
             karta.godzina.setText(NR.SKAN_Z.format(godzina=godzina(p.czas)) if p.czas else "")
             geometria = geometria_ukladu(self.k, p.uklad) if p.gniazda and (p.aktywna or p.prace) else None
             for pr in p.prace:
@@ -650,7 +650,7 @@ class EkranRano(QWidget):
             self.tytul.setText(NR.PIEC_BRAK)
         elif rano.otwarty:
             tytul = NR.PIEC_OTWARTY.format(nr=rano.nr_w_dniu, doba=dzien(rano.data), godzina=godzina(rano.otwarto))
-            self.tytul.setText(tytul + (f" — {NR.PIEC_Z_WCZORAJ}" if rano.z_poprzedniej_doby else ""))
+            self.tytul.setText(tytul + (NR.ODSTEP_NAPISU + NR.PIEC_Z_WCZORAJ if rano.z_poprzedniej_doby else ""))
         else:
             self.tytul.setText(NR.PIEC_ZAMKNIETY.format(nr=rano.nr_w_dniu, doba=dzien(rano.data), godzina=godzina(rano.zamknieto),
                                                         osoba=rano.zamknal or NR.BRAK_DANYCH))
