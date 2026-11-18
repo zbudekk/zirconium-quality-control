@@ -13,6 +13,8 @@ decyzja 4 (nazwy w czterech tabelach) = `test_k8_...`; `test_p5_...` = doba robo
 60 min, lista biezaca (korekty wlasciciela do P5); `test_blokada_...` = plytka nie z tego trybu (wymaganie wlasciciela z 17.11).
 Runda 3 (recenzja przyrostowa PR #16): `test_p1r3_...` = jedna pozycja listy na punkt, `test_p2r3_...` = plik wyniku nigdy
 nie jest kasowany, `test_dNr3_...` = uwagi drobne D1, D2, D4, D5, D6, D7, D10.
+Runda 4 (recenzja PR #16 runda 3): `test_p1r4_...` = decyzje tylko na skanach `wieczor` (skan poranny nie zabiera zeba z listy),
+`test_dNr4_...` = D1, D2 (nazwa pliku wyniku), D4 (ponowny import), D5 (punkt na najnowszej "Ukruszona"); D3 -> test_baza.py.
 
 Dane: `testy/dane_sesji` - wyniki w formacie `porownaj.porownaj` zbudowane recznie (male, w pelni sztuczne: projekty to skroty
 `sha16` wymyslonych nazw, zlecenia maja fikcyjne nazwy folderow). Zgodnosc formatu z prawdziwym silnikiem pilnuje
@@ -958,6 +960,7 @@ def test_p2r3_plik_wyniku_nigdy_nie_jest_kasowany_ani_nadpisywany(tmp_path):
     stary = s.sciezka_wyniku(sid)
     tresc = stary.read_bytes()
     assert sid == 1 and ZDARZENIA["wynik_plytka1"]["sha16"] in stary.name and "20261117_1900" in stary.name  # nazwa: czas przyjecia + sha16 skanu
+    assert re.fullmatch(rf"20261117_1900\d\d_{ZDARZENIA['wynik_plytka1']['sha16']}_wynik\.json", stary.name)  # i nic wiecej (D1 rundy 4)
     assert sorted(x.name for x in katalog.iterdir()) == sorted(["notatka.txt", "skan000001_skan_przerwany_wynik.json", stary.name])
     # (B1) baza zalozona od nowa przy tym samym katalogu wynikow: numery skanow sie powtarzaja, plik starej bazy zostaje
     s.baza.zamknij()
@@ -967,6 +970,7 @@ def test_p2r3_plik_wyniku_nigdy_nie_jest_kasowany_ani_nadpisywany(tmp_path):
         nowy_id = przyjmij(s, "wynik_plytka1")
         nowy = s.sciezka_wyniku(nowy_id)
         assert nowy_id == sid and nowy != stary and stary.read_bytes() == tresc and nowy.exists()
+        assert nowy.name == stary.name.replace("_wynik.json", "_2_wynik.json")  # ten sam czas i sha16: przyrostek, bez nadpisania
         assert len(list(katalog.glob("*_wynik.json"))) == 3
         assert s.osierocone_wyniki() == sorted([katalog / "skan000001_skan_przerwany_wynik.json", stary])  # wypisane, nie usuniete
         # (B2) baza przywrocona z kopii: plik wyniku skanu sprzed przywrocenia zostaje
@@ -1048,15 +1052,19 @@ def _niezmienniki(s: SE.Sesja) -> None:
     assert len({x["praca_id"] for x in lista}) == len(lista)
     assert sorted((x["projekt_id"], x["praca_id"]) for x in lista if x["projekt_id"] is not None) == sorted(punkty.items())  # 1 punkt = 1 pozycja
     prace = s.baza.wiersze("SELECT p.id, p.projekt_id FROM prace p JOIN skany k ON k.id = p.skan_id WHERE k.tryb = 'wieczor' AND k.status IN ('przyjety', 'do_powtorzenia')")
-    ukruszone = {}
+    ukruszone, najnowsza = {}, {}  # praca -> projekt; projekt -> (id najnowszej obowiazujacej "Ukruszona", praca)
     for w in prace:
         decyzje = s.baza.wiersze("SELECT id, rodzaj, wartosc FROM decyzje WHERE praca_id = ? ORDER BY id", (w["id"],))
         cofniete = {int(d["wartosc"]) for d in decyzje if d["rodzaj"] == "cofniecie"}
-        obowiazuje = [d["rodzaj"] for d in decyzje if d["rodzaj"] != "cofniecie" and d["id"] not in cofniete]
-        if obowiazuje and obowiazuje[-1] in ("ukruszona", "ukruszona_niewykryta"):
+        obowiazuje = [d for d in decyzje if d["rodzaj"] != "cofniecie" and d["id"] not in cofniete]
+        if obowiazuje and obowiazuje[-1]["rodzaj"] in ("ukruszona", "ukruszona_niewykryta"):
             ukruszone[w["id"]] = w["projekt_id"]
+            najnowsza[w["projekt_id"]] = max(najnowsza.get(w["projekt_id"], (0, None)), (obowiazuje[-1]["id"], w["id"]))
     for projekt, praca_id in punkty.items():  # punkt wskazuje prace z obowiazujaca "Ukruszona" w skanie aktywnym
         assert ukruszone.get(praca_id) == projekt, (projekt, praca_id)
+        assert najnowsza[projekt][1] == praca_id, (projekt, praca_id, najnowsza[projekt])  # D5 rundy 4: te z NAJNOWSZA decyzja
+    assert s.baza.wiersz("SELECT count(*) AS n FROM decyzje d JOIN prace p ON p.id = d.praca_id JOIN skany k ON k.id = p.skan_id "
+                         "WHERE k.tryb = 'rano'")["n"] == 0  # P1 rundy 4: do A6 zadnych decyzji o pracach skanow porannych
     assert {x for x in ukruszone.values() if x is not None} == set(punkty)  # kazdy ukruszony projekt ma punkt
     assert sorted(x["praca_id"] for x in lista if x["projekt_id"] is None) == sorted(i for i, pr in ukruszone.items() if pr is None)
     for x in lista:  # powtorzenia = pozostale ukruszone prace tego samego projektu
@@ -1087,7 +1095,11 @@ def test_p1r3_losowe_sekwencje_lista_zgodna_ze_stanem_punktow(tmp_path):
                         w["numer"] = los.choice((1, 2, 3))
                         if los.random() < 0.15:
                             w["plytka"] = "poranna"  # plytka nie z trybu
-                        s.przyjmij_wynik({"plik": f"C:/Skany/skan_{ziarno}_{krok}.stl", "sha16": f"{ziarno:08x}{krok:08x}", "rozmiar": 1, "czas_pliku": None}, w)
+                        tryb = "rano" if los.random() < 0.1 else "wieczor"  # P1 rundy 4: skan poranny tych samych projektow
+                        if tryb == "rano":
+                            w["plytka"] = "poranna"
+                        s.przyjmij_wynik({"plik": f"C:/Skany/skan_{ziarno}_{krok}.stl", "sha16": f"{ziarno:08x}{krok:08x}", "rozmiar": 1, "czas_pliku": None},
+                                         w, tryb=tryb)
                     elif ruch == "ukruszona":
                         s.ukruszona(los.choice(prace))
                     elif ruch == "ok":
@@ -1270,6 +1282,163 @@ def test_d10r3_propozycja_ponownego_skanu_podaje_decyzje_ktore_przestana_obowiaz
     assert (p["poprzedni_id"], p["liczba_decyzji"], p["liczba_ukruszonych"], p["decyzje"]) == (bez, 0, 0, [])
 
 
+# --- runda 4 (recenzja PR #16 runda 3: P1, D1-D5) ------------------------------------------------------
+def lista_pozycji(s: SE.Sesja) -> list[tuple]:
+    """Lista biezaca jako (praca pozycji, prace w `powtorzenia`)."""
+    return [(x["praca_id"], [y["praca_id"] for y in x["powtorzenia"]]) for x in s.do_dofrezowania()]
+
+
+def punkty_do_dofrezowania(s: SE.Sesja) -> int:
+    return s.baza.wiersz("SELECT count(*) AS n FROM stan_punktow WHERE stan = 'do_dofrezowania'")["n"]
+
+
+def test_p1r4_skan_poranny_nie_przyjmuje_decyzji_i_nie_rusza_punktu(sesja, zegar):
+    """P1 (proba P1-5 recenzenta): "Ukruszona" na pracy skanu `rano` tego samego projektu zabierala zeba z listy wieczoru (punkt
+    przechodzil na prace poranna, a po cofnieciu - do `oczekuje`). Do A6 decyzje o pracach przyjmuje tylko skan `wieczor`;
+    skan poranny jest przyjmowany do bazy, a zmiany jego statusu nie ruszaja punktow."""
+    zegar.ustaw(f"{DATA}T15:00:00")
+    s1 = przyjmij(sesja, "wynik_plytka1")
+    p1 = praca(sesja, s1, 2)  # zab 14 z kuwety 3263
+    sesja.ukruszona(p1)
+    assert lista_pozycji(sesja) == [(p1, [])]
+    zegar.ustaw("2026-11-18T07:00:00")
+    w = wynik("wynik_plytka1")
+    w["plytka"] = "poranna"
+    rano = sesja.przyjmij_wynik({**ZDARZENIA["wynik_plytka1"], "sha16": "e" * 16}, w, tryb="rano")
+    assert (skan(sesja, rano)["status"], skan(sesja, rano)["tryb"]) == ("przyjety", "rano")  # skan poranny nadal mozna przyjac
+    p_rano = praca(sesja, rano, 2)
+    projekt = sesja.baza.wiersz("SELECT projekt_id FROM prace WHERE id = ?", (p1,))["projekt_id"]
+    assert sesja.baza.wiersz("SELECT projekt_id FROM prace WHERE id = ?", (p_rano,))["projekt_id"] == projekt  # ten sam projekt
+    punkty, decyzje = sesja.baza.zrzut(["stan_punktow"])["stan_punktow"], liczba(sesja, "decyzje")
+    for proba in (lambda: sesja.ukruszona(p_rano), lambda: sesja.ok(p_rano), lambda: sesja.decyzja(p_rano, "ukruszona_niewykryta"),
+                  lambda: sesja.cofnij(p_rano), lambda: sesja.decyzja(p_rano, "cofniecie")):
+        with pytest.raises(SE.BladSesji, match="sesja poranna"):
+            proba()
+    assert liczba(sesja, "decyzje") == decyzje and sesja.baza.zrzut(["stan_punktow"])["stan_punktow"] == punkty
+    assert lista_pozycji(sesja) == [(p1, [])] and sesja.pozycja_projektu(p_rano)["praca_id"] == p1
+    # ponowny skan poranny (zastapienie i cofniecie) i dopuszczenie plytki wieczornej w trybie rano: punkty bez zmian
+    rano2 = sesja.przyjmij_wynik({**ZDARZENIA["wynik_plytka1"], "sha16": "f" * 16}, w, tryb="rano")
+    assert sesja.zastap_skan(rano2, rano) == rano
+    sesja.cofnij_zastapienie(rano2)
+    blok = sesja.przyjmij_wynik({**ZDARZENIA["wynik_plytka1"], "sha16": "d" * 16}, wynik("wynik_plytka1"), tryb="rano")
+    assert skan(sesja, blok)["status"] == "plytka_nie_z_trybu"
+    sesja.dopusc_plytke(blok)
+    with pytest.raises(SE.BladSesji, match="sesja poranna"):
+        sesja.ukruszona(praca(sesja, blok, 2))
+    sesja.cofnij_dopuszczenie(blok)
+    assert sesja.baza.zrzut(["stan_punktow"])["stan_punktow"] == punkty and lista_pozycji(sesja) == [(p1, [])]
+    pk = stan_punktu(sesja, SHA["3263", "14"])
+    assert (pk["stan"], pk["praca_id"]) == ("do_dofrezowania", p1)
+    assert sesja.stan_wieczoru(DATA)["do_dofrezowania"][0]["praca_id"] == p1 and sesja.stan_wieczoru("2026-11-18")["skany"] == []
+
+
+def test_d1r4_nazwa_pliku_wyniku_bez_nazwy_pliku_skanu(sesja, tmp_path):
+    """D1: skaner moze nazywac pliki wg zlecenia (nazwisko) - nazwa pliku wyniku to tylko czas przyjecia i `sha16` skanu.
+    Znana granica (do rozstrzygniecia po pierwszych skanach): nazwa pliku skanu zostaje w `skany.plik` i w polu `plik` skanu
+    w `stan_wieczoru` (pole dla okna) - nigdzie poza nimi."""
+    plik_skanu = "D:/Skaner/9911 Fikcyjny Pacjent/Fikcyjny Pacjent <gora>?.stl"
+    sid = sesja.przyjmij_wynik({**ZDARZENIA["wynik_plytka1"], "plik": plik_skanu}, wynik("wynik_plytka1"))
+    sesja.ukruszona(praca(sesja, sid, 2))
+    sk = skan(sesja, sid)
+    czas = dt.datetime.fromisoformat(sk["czas_analizy"]).strftime("%Y%m%d_%H%M%S")
+    assert sesja.sciezka_wyniku(sid).name == f"{czas}_{ZDARZENIA['wynik_plytka1']['sha16']}_wynik.json"
+    assert sk["plik"] == plik_skanu and "pacjent" not in sk["wynik_json"].lower()  # kolumna z planu zostaje (znana granica)
+    stan = sesja.stan_wieczoru(DATA)
+    assert [x["plik"] for x in stan["skany"]] == [plik_skanu]
+    bez_pola = {**stan, "skany": [{k: v for k, v in x.items() if k != "plik"} for x in stan["skany"]]}
+    assert "pacjent" not in json.dumps(bez_pola).lower()
+    lista = sesja.do_dofrezowania()
+    assert len(lista) == 1 and "pacjent" not in json.dumps(lista).lower()
+    assert "pacjent" not in sesja.zapisz_do_dofrezowania(katalog=tmp_path / "listy").read_text(encoding="utf-8").lower()
+    assert not any("pacjent" in t.lower() for t in teksty_poza_tabelami_nazw(sesja.baza) if t != plik_skanu)
+    assert [x.name for x in sesja.katalog_wynikow.iterdir()] == [sesja.sciezka_wyniku(sid).name]
+
+
+def test_d2r4_bardzo_dluga_nazwa_pliku_skanu_nie_gubi_skanu(sesja):
+    """D2: nazwa pliku skanu dluzsza niz 211 znakow dawala nazwe pliku wyniku > 255 znakow (OSError) - skan znikal w calosci."""
+    for n in (215, 240, 400):
+        plik = "C:/Skany/" + "x" * n + ".stl"
+        sid = sesja.przyjmij_wynik({**ZDARZENIA["wynik_plytka2"], "plik": plik, "sha16": f"{n:016x}"}, wynik("wynik_plytka2"))
+        wyn = sesja.sciezka_wyniku(sid)
+        assert skan(sesja, sid)["plik"] == plik and wyn.exists() and len(wyn.name) <= 45
+    assert liczba(sesja, "skany") == 3 and len(list(sesja.katalog_wynikow.glob("*_wynik.json"))) == 3
+
+
+def test_d4r4_ponowny_import_pliku_w_calosci_w_bazie_i_wymus_bez_dubli(sesja, tmp_path, capsys):
+    """D4 (proba D6 recenzenta): starszy plik, ktory jest juz w calosci w bazie = "nic do zaimportowania" (kod 0, bez rady
+    `--wymus`); `--wymus` dopisuje tylko wiersze, ktorych nie ma w bazie (identyczne pomija, liczac sztuki)."""
+    wiersze = PLIK_DECYZJI.read_text(encoding="utf-8").splitlines()
+    a, b, c, d = (tmp_path / f"{x}.csv" for x in "abcd")
+    a.write_text("\n".join(wiersze[:4]) + "\n", encoding="utf-8")  # naglowek + 3 wiersze
+    b.write_text("\n".join(wiersze[:6]) + "\n", encoding="utf-8")  # przedluzenie a: + 2 wiersze
+    assert IMP.importuj(sesja.baza, a)["decyzje"] == 3
+    assert IMP.importuj(sesja.baza, b)["decyzje"] == 2 and liczba(sesja, "decyzje") == 5
+    zdarzen = liczba(sesja, "zdarzenia")
+    assert IMP.importuj(sesja.baza, a) == {"wiersze": 3, "decyzje": 0, "skany": 0, "prace": 0, "pominiete": 3}  # starsza kopia: nic do zrobienia
+    assert IMP.importuj(sesja.baza, a, wymus=True) == {"wiersze": 3, "decyzje": 0, "skany": 0, "prace": 0, "pominiete": 3}
+    assert liczba(sesja, "decyzje") == 5 and liczba(sesja, "zdarzenia") == zdarzen
+    # plik ze zmienionym wierszem: bez --wymus odmowa; z --wymus dopisany tylko zmieniony wiersz
+    c.write_text(b.read_text(encoding="utf-8").replace("2026-11-10T18:01:40", "2026-11-10T18:01:41"), encoding="utf-8")
+    with pytest.raises(IMP.BladImportu, match="nie jest przedluzeniem.*--wymus"):
+        IMP.importuj(sesja.baza, c)
+    assert IMP.importuj(sesja.baza, c, wymus=True) == {"wiersze": 5, "decyzje": 1, "skany": 0, "prace": 0, "pominiete": 4}
+    assert liczba(sesja, "decyzje") == 6
+    # caly plik okna (dwa identyczne wiersze na koncu - podwojne klikniecie): --wymus dopisuje obie sztuki, ktorych w bazie nie bylo
+    d.write_bytes(PLIK_DECYZJI.read_bytes())
+    assert IMP.importuj(sesja.baza, d, wymus=True) == {"wiersze": 7, "decyzje": 2, "skany": 0, "prace": 0, "pominiete": 5}
+    assert IMP.importuj(sesja.baza, d) == {"wiersze": 7, "decyzje": 0, "skany": 0, "prace": 0, "pominiete": 7}
+    assert liczba(sesja, "decyzje") == 8
+    # z wiersza polecen: kod 0, "nic do zaimportowania", bez rady --wymus
+    sciezka_bazy = sesja.baza.plik
+    sesja.baza.zamknij()
+    capsys.readouterr()
+    for plik in (a, b, d):
+        assert IMP.main(["--plik", str(plik), "--baza", str(sciezka_bazy)]) == 0
+        wy = capsys.readouterr()
+        assert "nic do zaimportowania" in wy.out and "--wymus" not in wy.out + wy.err, wy
+    sesja.baza = B.otworz(sciezka_bazy)  # do zamkniecia przez fixture
+    assert liczba(sesja, "decyzje") == 8
+
+
+def test_d5r4_punkt_wskazuje_najnowsza_obowiazujaca_ukruszona(sesja, zegar):
+    """D5 (proba P1-4 recenzenta): po cofnieciu zastapienia, cofnieciu decyzji i ponownym dopuszczeniu punkt (= pozycja listy)
+    wskazuje prace z NAJNOWSZA obowiazujaca "Ukruszona" (raport 8.3.1); starsza jest w `powtorzenia`, pozycja zostaje jedna."""
+    zegar.ustaw(f"{DATA}T15:00:00")
+    a = _plytka(sesja, 7, "a" * 16)
+    pa = praca(sesja, a, 4)  # zab 16 z kuwety 0412
+    sesja.ukruszona(pa)
+    zegar.ustaw(f"{DATA}T17:05:00")  # ta sama plytka po ponad 60 min: nowy wsad
+    b = _plytka(sesja, 7, "b" * 16)
+    pb = praca(sesja, b, 4)
+    sesja.ukruszona(pb)  # nowsza decyzja
+    assert lista_pozycji(sesja) == [(pb, [pa])]
+    # (a) zastapienie skanu a skanem b i cofniecie: wraca starszy skan, punkt zostaje na nowszej decyzji
+    assert sesja.zastap_skan(b, a) == a and lista_pozycji(sesja) == [(pb, [])]
+    sesja.cofnij_zastapienie(b)
+    assert lista_pozycji(sesja) == [(pb, [pa])] and punkty_do_dofrezowania(sesja) == 1
+    # (b) cofniecie najnowszej decyzji pracy, ktora ma starsza "Ukruszona": najnowsza obowiazujaca jest na innej pracy
+    sesja.ukruszona(pa)
+    assert lista_pozycji(sesja) == [(pa, [pb])]
+    sesja.cofnij(pa)  # pa nadal "Ukruszona" (pierwsza decyzja), ale nowsza jest decyzja na pb
+    assert lista_pozycji(sesja) == [(pb, [pa])] and punkty_do_dofrezowania(sesja) == 1
+    # (c) cofniecie i ponowne dopuszczenie skanu plytki nie z trybu ze starsza "Ukruszona" tego zeba
+    zegar.ustaw(f"{DATA}T18:30:00")
+    w = wynik("wynik_plytka2")
+    w["plytka"], w["numer"] = "poranna", 8
+    c = sesja.przyjmij_wynik({**ZDARZENIA["wynik_plytka2"], "sha16": "c" * 16}, w)
+    sesja.dopusc_plytke(c)
+    pc = praca(sesja, c, 4)
+    sesja.ukruszona(pc)
+    sesja.ukruszona(pb)  # najnowsza
+    assert lista_pozycji(sesja) == [(pb, [pa, pc])]
+    sesja.cofnij_dopuszczenie(c)
+    assert lista_pozycji(sesja) == [(pb, [pa])]
+    sesja.dopusc_plytke(c)
+    assert lista_pozycji(sesja) == [(pb, [pa, pc])] and punkty_do_dofrezowania(sesja) == 1
+    pk = stan_punktu(sesja, SHA["0412", "16"])
+    assert (pk["stan"], pk["praca_id"]) == ("do_dofrezowania", pb)
+
+
 # --- kryterium 9 ------------------------------------------------------------------------------
 def _wiersze_pliku(plik: Path) -> list[list[str]]:
     return [linia.split(";") for linia in plik.read_text(encoding="utf-8").splitlines()[1:] if linia.strip()]
@@ -1335,14 +1504,16 @@ def test_d7_import_pliku_ktory_nie_jest_przedluzeniem_wczesniejszego_importu(ses
     with pytest.raises(IMP.BladImportu, match="nie jest przedluzeniem"):
         IMP.importuj(sesja.baza, zmieniony)
     assert liczba(sesja, "decyzje") == 7
-    assert IMP.importuj(sesja.baza, zmieniony, wymus=True)["decyzje"] == 7 and liczba(sesja, "decyzje") == 14  # swiadomie, przelacznik --wymus
+    # swiadomie, przelacznik --wymus: dopisany zmieniony wiersz; 6 wierszy identycznych z baza pominietych (D4 rundy 4 - wczesniej dublowane)
+    assert IMP.importuj(sesja.baza, zmieniony, wymus=True) == {"wiersze": 7, "decyzje": 1, "skany": 0, "prace": 0, "pominiete": 6}
+    assert liczba(sesja, "decyzje") == 8
     sciezka_bazy = sesja.baza.plik
     sesja.baza.zamknij()
     zmieniony.write_text(zmieniony.read_text(encoding="utf-8").replace("2026-11-10T18:01:03", "2026-11-10T18:01:04"), encoding="utf-8")
     assert IMP.main(["--plik", str(zmieniony), "--baza", str(sciezka_bazy)]) == 1 and "--wymus" in capsys.readouterr().err
     assert IMP.main(["--plik", str(zmieniony), "--baza", str(sciezka_bazy), "--wymus"]) == 0
     sesja.baza = B.otworz(sciezka_bazy)  # do zamkniecia przez fixture
-    assert liczba(sesja, "decyzje") == 21
+    assert liczba(sesja, "decyzje") == 9  # 8 + jeden znow zmieniony wiersz
 
 
 @pytest.mark.parametrize("zmiana,komunikat", [

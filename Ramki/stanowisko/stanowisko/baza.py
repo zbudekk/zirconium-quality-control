@@ -224,14 +224,23 @@ class BladBazy(RuntimeError):
 
 # --- sciezki w tekstach: poza cztery tabele z nazwami nie moze wyjsc nazwa folderu zlecenia ---------------------------
 ZNACZNIK_SCIEZKI = "<sciezka>"
-# Poczatek sciezki BEZWZGLEDNEJ: litera dysku (C:\ albo C:/), zasob sieciowy (\\serwer albo //serwer), zmienna srodowiskowa
-# (%USERPROFILE%\, $HOME/), katalog domowy (~/) albo /katalog/ na poczatku slowa.
-_SCIEZKA_BEZWZGLEDNA = (r"[A-Za-z]:[\\/]|\\\\[^\\\s]|(?<![\w:/])//(?=[^/\s])|%\w+%[\\/]|\$\w+[\\/]|(?<![\w.])~[\\/]"
-                        r"|(?<![\w.:/<])/(?=[\w.~-]+/)")
-# Sciezka WZGLEDNA z separatorem: slowo\slowo; slowo/.../slowo (co najmniej dwa ukosniki); slowo/plik.roz (ukosnik i rozszerzenie
-# pliku). Pojedyncze "A/B", "km/h", "0.91/0.95", "17/11" sciezka nie sa.
-_SCIEZKA_WZGLEDNA = r"[\w.~#-]+\\(?=[\w.~#-])|[\w.~#-]+/[\w .~#-]*?/(?=[\w.~#-])|[\w.~#-]+/[\w .~#-]*?\.[A-Za-z]\w{1,3}\b"
-_POCZATEK_SCIEZKI = re.compile(f"(?P<bezwzgledna>{_SCIEZKA_BEZWZGLEDNA})|(?P<wzgledna>{_SCIEZKA_WZGLEDNA})")
+_ZNAK = r"[\w.~#-]"  # znak nazwy pliku albo folderu (bez spacji)
+_PLIK = r"[\w~#-][\w.~#-]*\.[A-Za-z]\w{1,3}\b"  # nazwa pliku z rozszerzeniem (litera po kropce: "0.95", "godz." to nie pliki)
+# Poczatek sciezki BEZWZGLEDNEJ: litera dysku (C:\ albo C:/, nie w srodku slowa - "https://" to nie dysk), zasob sieciowy (\\serwer
+# albo //serwer), zmienna srodowiskowa (%USERPROFILE%\, $HOME/), katalog domowy (~/) albo \ lub / na poczatku slowa, po ktorym
+# jest folder z kolejnym separatorem albo nazwa pliku z rozszerzeniem (/katalog/..., \Cyrkon\..., /plik.stl).
+_SCIEZKA_BEZWZGLEDNA = (r"(?<!\w)[A-Za-z]:[\\/]|\\\\[^\\\s]|(?<![\w:/])//(?=[^/\s])|%\w+%[\\/]|\$\w+[\\/]|(?<![\w.])~[\\/]"
+                        rf"|(?<![\w.:/\\<])[\\/](?=[\w.~-]+[\\/]|{_PLIK})")
+# Sciezka WZGLEDNA (runda 4, D3): slowo\slowo (odwrotny ukosnik zawsze); ukosnik, po ktorym jest nazwa pliku z rozszerzeniem
+# (".../a.stl"); folder z ukosnikiem na koncu ("a/b c/" przed spacja, koncem wiersza albo znakiem zamykajacym). Zwykly tekst
+# z ukosnikami nie jest sciezka: daty 17/11/2026, ulamki 3/5 i 4/5, 1/2/3, zielony/zolty/czerwony, "linia/plaszczyzna wg plik.toml".
+_SCIEZKA_WZGLEDNA = (rf"{_ZNAK}+\\(?={_ZNAK})"
+                     rf"|{_ZNAK}/(?={_PLIK})"
+                     rf"|{_ZNAK}/{_ZNAK}[\w .~#-]*/(?=[\s'\"),;\]]|$)")
+# Tekst w apostrofach albo cudzyslowie (otwierajacy znak na poczatku slowa, zamykajacy w tym samym wierszu) z separatorem miedzy
+# znakami nazw = sciezka, takze wzgledna bez rozszerzenia ('Cyrkon/9911 Nazwisko'); wycinana jest zawartosc, znaki zostaja.
+_W_CUDZYSLOWIE = (rf"(?<![^\s:;,=(\[{{])(?P<q>['\"])(?:(?!(?P=q))[^\n])*?{_ZNAK}[\\/]+{_ZNAK}(?:(?!(?P=q))[^\n])*?(?P=q)")
+_POCZATEK_SCIEZKI = re.compile(f"(?P<cytat>{_W_CUDZYSLOWIE})|(?P<bezwzgledna>{_SCIEZKA_BEZWZGLEDNA})|(?P<wzgledna>{_SCIEZKA_WZGLEDNA})")
 _CUDZYSLOWY = "'\""
 _OGRANICZNIKI = ":;,=([{\n" + _CUDZYSLOWY  # przed sciezka wzgledna: od tego znaku zaczyna sie wycinany kawalek
 
@@ -239,14 +248,23 @@ _OGRANICZNIKI = ":;,=([{\n" + _CUDZYSLOWY  # przed sciezka wzgledna: od tego zna
 def bez_sciezek(tekst: str) -> str:
     """Zastepuje sciezki znacznikiem ``<sciezka>`` (nazwy folderow i plikow zlecen zawieraja nazwiska).
 
-    Rozpoznaje sciezki bezwzgledne (dysk, zasob sieciowy w obu zapisach, zmienne srodowiskowe, katalog domowy) i wzgledne
-    z separatorem. Nazwy folderow maja spacje, wiec granic sciezki nie da sie zgadnac - funkcja wycina z zapasem:
+    Rozpoznaje (runda 4, D3):
+    - sciezki bezwzgledne: dysk, zasob sieciowy w obu zapisach, zmienne srodowiskowe, katalog domowy, ``\\`` albo ``/`` na
+      poczatku slowa (z folderem i kolejnym separatorem albo z nazwa pliku z rozszerzeniem);
+    - tekst w apostrofach albo cudzyslowie, w ktorym jest separator (``\\`` albo ``/``) miedzy znakami nazw;
+    - sciezki wzgledne: z odwrotnym ukosnikiem, z ukosnikiem i nazwa pliku z rozszerzeniem (``.../a.stl``) albo z ukosnikiem
+      na koncu (folder ``a/b c/``).
+    Zwykly tekst z ukosnikami zostaje: daty (``17/11/2026``, ``2026/11/17``), ulamki (``3/5 i 4/5``, ``0.91/0.95``), ``1/2/3``,
+    ``zielony/zolty/czerwony``, ``linia/plaszczyzna wg ustawienia.toml``, adres ``https://...`` bez nazwy pliku.
+    Nazwy folderow maja spacje, wiec granic sciezki nie da sie zgadnac - funkcja wycina z zapasem:
     - koniec: sciezka w cudzyslowie albo apostrofach konczy sie na zamykajacym znaku, kazda inna na koncu wiersza
       (reszta wiersza przepada razem z nia);
     - poczatek sciezki wzglednej: od poprzedniego ogranicznika (``: ; , = ( [ {``, cudzyslow) albo od poczatku wiersza,
       bo pierwsza czesc sciezki moze miec spacje ("9911 Nazwisko Imie\\plik.stl").
-    ZNANA GRANICA: nazwa folderu albo pliku podana bez separatora sciezki nie jest rozpoznawana - wywolujacy (A2, A3)
-    nie moze podawac nazw zlecen w tekstach przekazywanych do ``session`` i do dziennika.
+    ZNANE GRANICE: nazwa folderu albo pliku podana bez separatora sciezki nie jest rozpoznawana; tak samo sciezka wzgledna
+    z samymi ukosnikami ``/`` poza cudzyslowem, bez nazwy pliku z rozszerzeniem i bez ukosnika na koncu (``Cyrkon/9911 Nazwisko``)
+    oraz nazwa pliku ze spacja po ostatnim ukosniku - nie da sie jej odroznic od zwyklego tekstu. Wywolujacy (A2, A3) nie moze
+    podawac nazw zlecen w tekstach przekazywanych do ``session`` i do dziennika.
     """
     czesci, i = [], 0
     while True:
@@ -255,6 +273,11 @@ def bez_sciezek(tekst: str) -> str:
             czesci.append(tekst[i:])
             return "".join(czesci)
         start = m.start()
+        if m.lastgroup == "cytat":  # zawartosc miedzy znakami cudzyslowu; znaki zostaja
+            czesci.append(tekst[i:start + 1])
+            czesci.append(ZNACZNIK_SCIEZKI)
+            i = m.end() - 1
+            continue
         if m.lastgroup == "wzgledna":
             while start > i and tekst[start - 1] not in _OGRANICZNIKI:
                 start -= 1
