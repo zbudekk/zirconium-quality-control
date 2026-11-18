@@ -32,6 +32,12 @@ SPRAWY_OSOBY = ("brak_operatora", "nowa_zmiana", "pusta_lista_operatorow", "osob
 PANELI = 3  # tyle pytan i komunikatow naraz (pierwsze: pokazana plytka, potem ogolne od najnowszego); reszta czeka na zamkniecie
 
 
+def otwarte(pozycje) -> list:
+    """Pytania / komunikaty do pokazania: bez pozycji zamknietych przez technika (``ukryte=True``, kontrakt w wersji 2 - D6).
+    ``stan.pytania`` i ``stan.komunikaty`` sa juz otwarte; filtr chroni ekran, gdyby pozycja ukryta jednak tam trafila."""
+    return [x for x in pozycje if not x.ukryte]
+
+
 class OknoWieczor(QWidget):
     def __init__(self, kontroler, lacznik):
         super().__init__()
@@ -294,7 +300,7 @@ class OknoWieczor(QWidget):
         odpowiedz = self.k.wykonaj(nazwa, *argumenty)  # kontrakt: polecenia nie rzucaja wyjatkow (zle dane = odmowa ``zle_argumenty``)
         stan = self.k.stan()
         tekst = odpowiedz.tekst if not odpowiedz.ok else ""
-        self._odmowa = tekst if tekst and all(k.tekst != tekst for k in stan.komunikaty) else ""
+        self._odmowa = tekst if tekst and all(k.tekst != tekst for k in otwarte(stan.komunikaty)) else ""
         if odpowiedz.ok and nazwa == "podaj_numer_plytki":
             self._podaj_numer = False
         if stan.wersja == self._stan.wersja:
@@ -386,7 +392,7 @@ class OknoWieczor(QWidget):
         plytka = self._plytka()
         widoczne = [p for p in stan.plytki if self._pokaz_wczesniejsze or p.zmiana in (None, stan.zmiana) or p.skan_id == self._plytka_id]
         wczesniejszych = sum(1 for p in stan.plytki if p.zmiana not in (None, stan.zmiana))
-        self.lista_plytek.ustaw(widoczne, self._plytka_id, self._nieobejrzane, {q.skan_id for q in stan.pytania}, wczesniejszych,
+        self.lista_plytek.ustaw(widoczne, self._plytka_id, self._nieobejrzane, {q.skan_id for q in otwarte(stan.pytania)}, wczesniejszych,
                                 self._pokaz_wczesniejsze, stan.niezapisane)
         gniazdo, praca = self._wybor()
         if gniazdo is None and praca is None:
@@ -414,7 +420,7 @@ class OknoWieczor(QWidget):
             self.podnaglowek.setText(N.MAPA_GODZINA.format(godzina=godzina(plytka.czas)) if plytka.czas else "")
         # polecenia plytki ze stanu (``Plytka.dozwolone``); te, o ktore wlasnie pyta otwarte pytanie, sa tylko w panelu pytania
         pytane = {"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "dopusc_plytke"}
-        w_pytaniach = {pytane.get(q.rodzaj) for q in stan.pytania if plytka is not None and q.skan_id == plytka.skan_id}
+        w_pytaniach = {pytane.get(q.rodzaj) for q in otwarte(stan.pytania) if plytka is not None and q.skan_id == plytka.skan_id}
         akcje = tuple(a for a in ("podaj_numer_plytki", "dopusc_plytke", "cofnij_zastapienie", "cofnij_dopuszczenie")
                       if plytka is not None and a in plytka.dozwolone and a not in w_pytaniach and a in ST.PRZYCISKI)
         if self._zmienione("akcje", (plytka.skan_id if plytka else None, akcje, stan.operator)):
@@ -443,17 +449,18 @@ class OknoWieczor(QWidget):
         """Pod paskiem stanu, nad lista plytek i mapa: wybor osoby, tekst odmowy spoza stanu, reczny numer plytki, otwarte pytania
         pokazanej plytki (``stan.pytania``), jej komunikaty, komunikaty ogolne (bledy pierwsze, potem od najnowszego; jednakowe razem)."""
         pokaz_osobe = stan.wymaga_operatora or self._zmiana_osoby
+        wszystkie = otwarte(stan.komunikaty)  # pozycje ukryte przez technika (``ukryte``) nie wracaja na ekran
         if not stan.operatorzy:
             teksty = [ST.tekst_komunikatu("pusta_lista_operatorow")[2]]
         elif stan.wymaga_operatora:
-            teksty = [k.tekst for k in stan.komunikaty if k.rodzaj == "nowa_zmiana"][-1:] + [ST.tekst_komunikatu("brak_operatora")[2]]
+            teksty = [k.tekst for k in wszystkie if k.rodzaj == "nowa_zmiana"][-1:] + [ST.tekst_komunikatu("brak_operatora")[2]]
         else:
             teksty = []
-        pytania = [q for q in stan.pytania if plytka is not None and q.skan_id == plytka.skan_id]
-        komunikaty = [k for k in stan.komunikaty if plytka is not None and k.skan_id == plytka.skan_id]
+        pytania = [q for q in otwarte(stan.pytania) if plytka is not None and q.skan_id == plytka.skan_id]
+        komunikaty = [k for k in wszystkie if plytka is not None and k.skan_id == plytka.skan_id]
         numer = (plytka is not None and self._podaj_numer and "podaj_numer_plytki" in plytka.dozwolone
                  and not any(q.rodzaj == "brak_numeru_plytki" for q in pytania))
-        ogolne = [k for k in stan.komunikaty
+        ogolne = [k for k in wszystkie
                   if (k.skan_id is None or stan.plytka(k.skan_id) is None) and not (pokaz_osobe and k.rodzaj in SPRAWY_OSOBY)]
         # bledy przed reszta (np. trwaly blad zapisu nie chowa sie pod "i jeszcze n"), w kazdej grupie od najnowszego
         ogolne.sort(key=lambda k: (0 if k.poziom == ST.POZIOM_BLAD else 1, -self._nr_komunikatow.get(k.id, 0)))

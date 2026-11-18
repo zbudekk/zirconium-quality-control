@@ -218,7 +218,7 @@ class PasekStanu(QFrame):
         else:
             self.analiza.setText(N.ANALIZA_CZEKA if kol.razem else N.ANALIZA_BRAK)
         czesci = [N.KOLEJKA.format(n=kol.czeka)] if kol.czeka else []
-        niezapisane = getattr(kol, "niezapisane", 0)  # czesc ``wstrzymane``: policzone, czekaja na zapis w bazie
+        niezapisane = kol.niezapisane  # czesc ``wstrzymane``: policzone, czekaja na zapis w bazie (kontrakt w wersji 2)
         if kol.wstrzymane - niezapisane > 0:  # skany wstrzymane CZEKAJA (na pule projektow albo na analize) - to nie blad
             czeka_na_pule = stan.pula.stan != "gotowa"
             czesci.append((N.WSTRZYMANE_PULA if czeka_na_pule else N.WSTRZYMANE_ANALIZA).format(n=kol.wstrzymane - niezapisane))

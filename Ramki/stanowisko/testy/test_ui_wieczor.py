@@ -751,6 +751,42 @@ def test_4_brak_numeru_pozniej_i_bez_osoby(atrapa, ekrany):
     assert not e.jest("panel_numer_plytki") and atrapa.stan().plytka(skan_id).numer == 3
 
 
+def test_4_pozycje_ukryte_nie_sa_pokazywane(atrapa, ekrany):
+    """D6: pytanie i komunikat zamkniete przez technika zostaja przy plytce z ``ukryte=True`` (``Plytka.pytania`` /
+    ``Plytka.komunikaty``) - ekran ich nie pokazuje (ani panelu, ani znaczka "czeka na odpowiedz"), takze gdyby pozycja
+    ukryta trafila do ``stan.pytania`` / ``stan.komunikaty``."""
+    import dataclasses
+
+    from stanowisko.ui import napisy as N
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    bez_numeru = atrapa.symuluj_skan("bez_numeru")
+    niezgodny = atrapa.symuluj_skan("niezgodny_uklad", numer=2)
+    e = ekrany(k)
+    e.klik(f"plytka_{bez_numeru}")
+    assert e.jest("pytanie_brak_numeru_plytki") and N.PLYTKA_PYTANIE in e.tekst_elementu(f"plytka_{bez_numeru}")
+    e.klik("odp_zamknij_pytanie")  # "Pozniej"
+    assert k.polecenia[-1] == ("zamknij_pytanie", (f"brak_numeru_plytki:{bez_numeru}",))
+    e.klik(f"plytka_{niezgodny}")
+    assert e.jest("komunikat_niezgodny_uklad")
+    e.klik("zamknij_komunikat")
+    assert k.polecenia[-1] == ("zamknij_komunikat", (f"niezgodny_uklad:{niezgodny}",))
+    stan = atrapa.stan()
+    pytanie = next(q for q in stan.plytka(bez_numeru).pytania if q.rodzaj == "brak_numeru_plytki")
+    komunikat = next(x for x in stan.plytka(niezgodny).komunikaty if x.rodzaj == "niezgodny_uklad")
+    assert pytanie.ukryte and komunikat.ukryte and pytanie not in stan.pytania and komunikat not in stan.komunikaty
+    assert not e.jest("komunikat_niezgodny_uklad") and N.PLYTKA_PYTANIE not in e.tekst_elementu(f"plytka_{bez_numeru}")
+    e.klik(f"plytka_{bez_numeru}")
+    assert not e.jest("pytanie_brak_numeru_plytki") and e.aktywny("plytka_podaj_numer_plytki")  # numer nadal pod reka
+    # ochrona ekranu: pozycje ukryte w stan.* (kontrakt mowi, ze ich tam nie ma) tez nie sa pokazywane
+    e.okno.pokaz_stan(dataclasses.replace(stan, wersja=stan.wersja + 1, pytania=stan.pytania + (pytanie,),
+                                          komunikaty=stan.komunikaty + (komunikat,)))
+    assert not e.jest("pytanie_brak_numeru_plytki") and N.PLYTKA_PYTANIE not in e.tekst_elementu(f"plytka_{bez_numeru}")
+    e.klik(f"plytka_{niezgodny}")
+    assert not e.jest("komunikat_niezgodny_uklad")
+
+
 def test_4_plytka_niezgodna_z_ukladem(atrapa, ekrany):
     from stanowisko import statusy as ST
 
@@ -975,6 +1011,53 @@ def test_4_blad_zapisu_komunikat_trwaly_pozycje_nie_zapisano_i_ponow_zapis(atrap
     bez_sciezek(e)
 
 
+def test_4_blad_zapisu_prawdziwy_kontroler_ponow_zapis(stanowiska, ekrany, monkeypatch):
+    """Prawdziwy kontroler (P1, polecenie ``ponow_zapis``): wyniku nie da sie zapisac (pelny dysk) - na ekranie komunikat trwaly
+    ``blad_zapisu``, pozycja "nie zapisano" z napisem ze stanu i "Ponow zapis"; klikniecie przy trwajacej przyczynie = jedna
+    proba, pozycja zostaje, jeden panel (tekst odmowy = komunikat ze stanu); po zwolnieniu dysku klikniecie zapisuje skan -
+    plytka na liscie i mapie, komunikat i pozycja znikaja."""
+    import sqlite3
+
+    from stanowisko import aplikacja as AP
+    from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
+
+    st = stanowiska()
+    monkeypatch.setattr(AP, "OKRES_KONTROLI_S", 600.0)  # samoczynne ponowienie daleko: zapis tylko z przycisku na ekranie
+    dysk = {"blad": sqlite3.OperationalError("database or disk is full"), "proby": 0}
+    prawdziwa = st.k.sesja.przyjmij_wynik
+
+    def zapis(*a, **kw):
+        if dysk["blad"] is not None:
+            dysk["proby"] += 1
+            raise dysk["blad"]
+        return prawdziwa(*a, **kw)
+
+    monkeypatch.setattr(st.k.sesja, "przyjmij_wynik", zapis)
+    k = Szpieg(st.k)
+    e = ekrany(k)
+    e.klik("osoba_0")
+    st.zapisz(st.opis("zwykla", 1, None, None, None, 0))
+    e.czekaj(lambda: e.jest("niezapisany_0"), 90.0, "pozycja nie zapisano")
+    stan = st.stan()
+    assert stan.plytki == () and len(stan.niezapisane) == 1 and stan.kolejka.niezapisane == 1
+    assert e.jest("komunikat_blad_zapisu") and ST.NAPISY_NIEZAPISANE["blad_zapisu"] in e.tekst_elementu("niezapisany_0")
+    assert stan.niezapisane[0].napis in e.tekst_elementu("niezapisany_0") and N.WSTRZYMANE_ZAPIS.format(n=1) in e.w("napis_kolejka").text()
+    assert e.w("przycisk_ponow_zapis").text() == ST.PRZYCISKI["ponow_zapis"] == e.w("komunikat_ponow_zapis").text()
+    proby = dysk["proby"]
+    k.polecenia.clear()
+    e.klik("przycisk_ponow_zapis")  # przyczyna trwa: odmowa, pozycja zostaje
+    assert k.polecenia == [("ponow_zapis", ())] and dysk["proby"] == proby + 1
+    assert e.jest("niezapisany_0") and e.jest("komunikat_blad_zapisu") and not e.jest("komunikat_odpowiedz") and e.plytki() == []
+    dysk["blad"] = None  # dysk zwolniony
+    e.klik("komunikat_ponow_zapis")
+    assert k.polecenia[-1] == ("ponow_zapis", ()) and st.stan().niezapisane == () and len(st.stan().plytki) == 1
+    e.czekaj(lambda: len(e.plytki()) == 1, 10.0, "plytka po zapisie")
+    assert not e.jest("niezapisany_0") and not e.jest("komunikat_blad_zapisu") and not e.jest("przycisk_ponow_zapis")
+    assert mapa_rowna_stanowi(e, st.stan().plytki[0]) > 0 and not e.jest("napis_kolejka")
+    bez_sciezek(e)
+
+
 def test_4_praca_bez_inspekcji_albo_o_nieznanym_statusie_nie_jest_zielona(atrapa, ekrany):
     """P4 rdzenia: zielone na ekranie jest tylko to, co stan nazywa zielonym; praca bez inspekcji, z inspekcja pominieta albo
     o statusie nieznanym tej wersji programu jest zolta z napisem ze stanu."""
@@ -990,6 +1073,9 @@ def test_4_praca_bez_inspekcji_albo_o_nieznanym_statusie_nie_jest_zielona(atrapa
     piksele = e.kolory_pikseli()
     assert piksele[6] in zielone and all(piksele[nr] not in zielone for nr in (2, 3, 4, 5))
     assert [plytka.gniazdo(nr).status for nr in (2, 3, 4, 5)] == ["nie_sprawdzono", "nie_sprawdzono", "nieznany", "nieznany"]
+    for nr in (2, 3, 4, 5):  # klasa koloru ze stanu = ``statusy.kolor_pracy`` dla zielonego z sesji; ekran rysuje ``rgb`` tej klasy
+        g = plytka.gniazdo(nr)
+        assert g.kolor == ST.kolor_pracy(ST.KOLOR_ZIELONY, g.status) == ST.KOLOR_ZOLTY and piksele[nr] == g.rgb, (nr, g.kolor, g.status)
     assert e.w(f"plytka_{skan_id}").liczniki() == {"zielony": 1, "zolty": 4}
     e.klik_gniazdo(4)
     assert ST.STATUSY["nieznany"].opis in e.tekst_elementu("widok_pracy") and e.aktywny("przycisk_ukruszona") and e.aktywny("przycisk_ok")
@@ -1010,19 +1096,24 @@ def test_4_wylogowanie_osoby(atrapa, ekrany):
     k.polecenia.clear()
     e.klik("osoba_wyloguj")
     assert k.polecenia == [("wybierz_operatora", (None,))] and atrapa.stan().operator is None
+    assert not e.jest("komunikat_odpowiedz")  # ``Odpowiedz(ok=True, kod="wylogowano")`` to nie odmowa: bez panelu odmowy
     assert e.jest("panel_osoba") and not e.jest("osoba_wyloguj") and not e.aktywny("przycisk_ukruszona")
     assert e.w("praca_wyjasnienie").text() == ST.tekst_komunikatu("brak_operatora")[2]
     e.klik("osoba_1")
     assert atrapa.stan().operator == "Technik B" and e.aktywny("przycisk_ukruszona")
 
 
-def test_4_zle_argumenty_tekst_odpowiedzi_na_ekranie(atrapa, ekrany):
-    """Kazde polecenie moze zwrocic ``Odpowiedz(ok=False, kod="zle_argumenty")``: ekran pokazuje tekst odpowiedzi, nic nie rzuca."""
+@pytest.mark.parametrize("kod", ["zle_argumenty", "blad_polecenia"])
+def test_4_zle_argumenty_tekst_odpowiedzi_na_ekranie(atrapa, ekrany, kod):
+    """Kazde polecenie moze zwrocic ``Odpowiedz(ok=False, kod="zle_argumenty")`` albo ``kod="blad_polecenia"`` (D1): ekran
+    pokazuje tekst odpowiedzi, nic nie rzuca. Odmowa z komunikatem w stanie (prawdziwa ``zle_argumenty`` atrapy) = jeden panel
+    komunikatu ze stanu, bez drugiego panelu z tym samym tekstem."""
     from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
 
     atrapa.wybierz_operatora("Technik A")
     skan_id = atrapa.symuluj_skan("zwykla")
-    k = Podstawiony(atrapa, {"ukruszona": K.Odpowiedz(False, "Tego polecenia nie da sie wykonac - tekst z kontrolera.", "zle_argumenty")})
+    k = Podstawiony(atrapa, {"ukruszona": K.Odpowiedz(False, "Tego polecenia nie da sie wykonac - tekst z kontrolera.", kod)})
     e = ekrany(k)
     e.klik_gniazdo(2)
     e.klik("przycisk_ukruszona")
@@ -1031,6 +1122,11 @@ def test_4_zle_argumenty_tekst_odpowiedzi_na_ekranie(atrapa, ekrany):
     assert e.jest("widok_pracy") and e.lista() == []
     e.klik("przycisk_ok")  # nastepne polecenie przyjete: odmowa znika
     assert not e.jest("komunikat_odpowiedz")
+    odp = atrapa.wykonaj("ok", "nie liczba")  # prawdziwa odmowa kontraktu: komunikat ``zle_argumenty`` w stanie
+    assert not odp and odp.kod == "zle_argumenty"
+    e.odczekaj()
+    assert e.jest("komunikat_zle_argumenty") and odp.tekst in e.tekst_elementu("komunikat_zle_argumenty")
+    assert ST.KOMUNIKATY["zle_argumenty"].tytul in e.tekst_elementu("komunikat_zle_argumenty") and not e.jest("komunikat_odpowiedz")
 
 
 def test_4_komunikat_i_status_nieznane_tej_wersji_ekranu(atrapa, ekrany):
