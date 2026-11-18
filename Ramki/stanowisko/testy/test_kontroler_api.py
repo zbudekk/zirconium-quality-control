@@ -540,6 +540,31 @@ def test_h_ponowny_skan_pytanie_potwierdzenie_cofniecie_odrzucenie(st):
     assert st.stan().pytania == () and st.stan().plytka(czwarty).moze_zastapic is None
 
 
+def test_e3a1p_nowy_wsad_bez_pytania_i_konfliktu_ponowny_skan_z_pytaniem(st):
+    """E3-A1p: plytki krazace (3 numery) z nowym wsadem co 7-15 min - zadnego pytania o ponowny skan, zadnego konfliktu
+    projektu i zadnych przyciskow potwierdzenia (regula sprzed E3-A1p pytala tu 3 razy); prawdziwy ponowny skan (te same
+    prace w innych gniazdach) - pytanie jak dawniej, po potwierdzeniu bez konfliktow."""
+    assert st.k.wybierz_operatora("Technik A")
+    skany = []
+    for i in range(6):
+        if i:
+            st.przesun(5 + 2 * i)
+        skany.append(st.wrzuc("czysta", numer=i % 3 + 1, gniazda={g: "zielony" for g in range(1, 7)},
+                              projekty={g: 100 * (i + 1) + g for g in range(1, 7)}))
+    s = st.stan()
+    assert len(s.plytki) == 6 and s.pytania == () and s.konflikty == ()
+    assert [k.rodzaj for k in s.komunikaty if k.rodzaj == "konflikt_projektu"] == []
+    assert all(p.moze_zastapic is None and "potwierdz_ponowny_skan" not in p.dozwolone for p in s.plytki)
+    st.przesun(4)  # ponowny skan ostatniej plytki (nr 3): te same prace przesuniete o jedno gniazdo
+    ponowny = st.wrzuc("czysta", numer=3, gniazda={g: "zielony" for g in range(2, 8)}, projekty={g + 1: 600 + g for g in range(1, 7)})
+    s = st.stan()
+    assert [(q.rodzaj, q.skan_id, q.poprzedni_id) for q in s.pytania] == [("ponowny_skan", ponowny, skany[5])]
+    assert s.plytka(ponowny).moze_zastapic == skany[5] and len(s.konflikty) == 6  # do potwierdzenia: te same projekty na dwoch skanach
+    assert st.k.potwierdz_ponowny_skan(ponowny)
+    s = st.stan()
+    assert s.pytania == () and s.konflikty == () and s.plytka(skany[5]).status == "zastapiony"
+
+
 def test_zab_juz_na_liscie(st):
     assert st.k.wybierz_operatora("Technik A")
     pierwszy = st.wrzuc("zwykla", numer=1)
