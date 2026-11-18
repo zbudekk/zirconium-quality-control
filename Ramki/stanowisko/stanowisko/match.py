@@ -97,9 +97,12 @@ RATUNEK_FPFH_PROJEKTU = 800  # deskryptory FPFH projektu w czesci lekkiej (wybor
 RATUNEK_FPFH_FRAGMENTU = 300  # deskryptory FPFH fragmentu do oceny (wybor staly)
 RATUNEK_PELNYCH = 4  # pelnych dopasowan (sam RANSAC + ICP, bez przegladu obrotow wokol z) w jednej turze ratunku
 RATUNEK_TUR = 12  # najwyzej tyle tur na fragment (48 kandydatow wg deskryptorow FPFH; pomiar: wlasciwy w pierwszej 48 w 114 / 114)
-RATUNEK_PLYTKA_MAX = 120  # najwyzej tyle pelnych dopasowan ratunku na cala plytke (ok. 0,1-0,2 s kazde)
-RATUNEK_BUDZET_S = 36.0  # s: ratunek konczy sie, gdy od poczatku analizy plytki minie tyle (minus zapas na inspekcje)
-RATUNEK_ZAPAS_INSPEKCJI_S = 0.4  # s na fragment: zapas na inspekcje po ratunku
+RATUNEK_PLYTKA_MAX = 60  # BUDZET ratunku: pelnych dopasowan na cala plytke (staly - wynik powtarzalny; ok. 0,1-0,2 s kazde, pomiar R59: raport E3-A5)
+RATUNEK_LIMIT_CZASU_S = 38.0  # s: AWARYJNY limit zegara (time.monotonic) od poczatku analizy plytki, minus zapas na inspekcje; przerwanie = uwaga
+RATUNEK_ZAPAS_INSPEKCJI_S = 0.4  # s na fragment: zapas na inspekcje po ratunku (tylko w limicie awaryjnym)
+UWAGA_RATUNEK_CZAS = "ratunek przerwany: limit czasu"
+UWAGA_RATUNEK_LIMIT = "ratunek przerwany: limit dopasowan plytki"
+UWAGA_RATUNEK_WYZSZY = "ratunek: zwyciezca nie spelnia reguly 'fragment nie wyzszy niz projekt' - wynik niepewny"
 RATUNEK_FPFH_UWAGA = "praca nie przeszla filtru wymiarow (lezy bokiem albo jest czesciowo widoczna) - pelne dopasowanie tylko czesci puli (ranking wg deskryptorow FPFH) - wynik niepewny"
 UWAGA_RATUNEK = "żaden projekt nie przeszedł filtru wymiarów — dopasowano wszystkie"
 
@@ -1077,23 +1080,20 @@ def _wybierz_wariant(P: np.ndarray, fr: FragmentDoDopasowania, kandydaci: list[K
                      uwagi: list[str]) -> None:
     """Ten sam STL w puli z kilkoma wspolczynnikami (krazkami): wpis = wariant o wspolczynniku najblizszym estymacie ze skanu
     (``KorektaSkali.wspolczynnik_ze_skanu``), o ile jego pokrycie nie jest nizsze niz najlepszego o wiecej niz
-    WARIANT_REMIS_POKRYCIA. Warianty bez pelnego dopasowania (pominiete rankingiem) sa oceniane po samym wspolczynniku:
+    WARIANT_REMIS_POKRYCIA. Warianty bez transformacji (pominiete rankingiem, odrzucone filtrem, bez wyniku RANSAC, nie do
+    wczytania) sa oceniane po samym wspolczynniku:
     estymata je wyklucza, gdy ich odleglosc od estymaty jest wieksza o co najmniej WARIANT_ROZROZNIENIE_PROC. Wynik
     NIEJEDNOZNACZNY (wpisy razem w ``wpisy`` najlepszego kandydata, ``frezowanie_id`` / ``krazek`` puste, uwaga - program nie
     zgaduje), gdy: (1) odleglosci wariantow od estymaty roznia sie mniej niz WARIANT_ROZROZNIENIE_PROC (B1); (2) estymata
-    wskazuje inny wariant niz pokrycie albo wariant bez pelnego dopasowania (P4a); (3) wariant nie dal sie wczytac albo -
-    bez estymaty - nie ma pelnego dopasowania (P4b); (4) bez estymaty - pokrycia blizej niz WARIANT_REMIS_POKRYCIA."""
+    wskazuje inny wariant niz pokrycie albo wariant bez pelnego dopasowania (P4a); (3) bez estymaty - wariant bez
+    transformacji (P4b) albo pokrycia blizej niz WARIANT_REMIS_POKRYCIA (4)."""
     k1 = kandydaci[0]
     if k1.transformacja is None:
         return
     grupa = [k for k in kandydaci if k.id == k1.id and k.transformacja is not None]
-    bez_pelnego = [k for k in kandydaci if k.id == k1.id and k is not k1 and k.transformacja is None and k.metoda in ("wstepny", "blad")]
+    # P1 (runda 2 recenzji): KAZDY wariant tego samego STL bez transformacji (wstepny, filtr, ransac_brak, blad) oceniany po wspolczynniku
+    wstepni = [k for k in kandydaci if k.id == k1.id and k is not k1 and k.transformacja is None]
     najl, rowne, powody = k1, [], []
-    blad = [k for k in bez_pelnego if k.metoda == "blad"]
-    if blad:
-        rowne += blad
-        powody.append("wariantu nie da sie wczytac")
-    wstepni = [k for k in bez_pelnego if k.metoda == "wstepny"]
     est = next((k.skala.wspolczynnik_ze_skanu for k in grupa
                 if k.skala is not None and k.skala.wspolczynnik_ze_skanu is not None and not k.skala.niepewna), None)
     if est is None:
@@ -1152,7 +1152,8 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
     if per_praca:
         kandydaci, niepewne = _kandydaci_per_praca(fr, pula, ust, seed, uwagi)
         stan = {"fr": fr, "surowi": [copy.copy(k) for k in kandydaci], "uwagi": list(uwagi), "niepewne": list(niepewne), "seed": seed,
-                "bez_korekty": bez_korekty}
+                "bez_korekty": bez_korekty,
+                "wyzszy": {kl: True for kl, ok_p in _za_wysoki(fr, pula, ust).items() if ok_p}}
     else:
         kandydaci = [dopasuj_pare(fr, pr, ust, seed) for pr in pula.projekty.values()]
         if not any(k.filtr_ok for k in kandydaci):
@@ -1167,6 +1168,16 @@ def dopasuj(P: np.ndarray, N: np.ndarray, pula: Pula, ust: dict, gniazdo: int | 
     return wynik
 
 
+def _za_wysoki(fr: FragmentDoDopasowania, pula: Pula, ust: dict) -> dict:
+    """Geometrie, dla ktorych fragment jest WYZSZY niz projekt + tolerancja (fizyczna regula filtra - D6 recenzji PR #25)."""
+    m = ust["match"]
+    out = {}
+    for kl, lk in pula.lekkie.items():
+        tol = max(m["filtr_wymiar_mm"], m["filtr_wymiar_udzial"] * lk.wysokosc)
+        out[kl] = fr.wysokosc - lk.wysokosc > tol
+    return out
+
+
 def _ograniczenie(niepewne: list, uwagi: list[str]) -> str:
     """Powod, dla ktorego wynik nie moze byc zielony (pewnosc wzgledem kandydatow bez pelnego dopasowania nieznana) albo ""."""
     if niepewne:
@@ -1175,7 +1186,7 @@ def _ograniczenie(niepewne: list, uwagi: list[str]) -> str:
 
 
 def _zakoncz(P: np.ndarray, fr: FragmentDoDopasowania, kandydaci: list[Kandydat], pula: Pula, ust: dict, bez_korekty: str, uwagi: list[str],
-             ograniczenie: str, gniazdo: int | None, t0: float) -> WynikDopasowania:
+             ograniczenie: str, gniazdo: int | None, t0: float, bez_zielonego: dict | None = None) -> WynikDopasowania:
     """Sortowanie, korekta skali, wybor wpisu (pula per praca), pewnosc i status - wspolne dla dopasuj i ratuj. ``ograniczenie``
     (niepusty powod): status najwyzej zolty - pewnosc wzgledem kandydatow bez pelnego dopasowania jest nieznana (P1)."""
     m = ust["match"]
@@ -1210,82 +1221,117 @@ def _zakoncz(P: np.ndarray, fr: FragmentDoDopasowania, kandydaci: list[Kandydat]
         status = "zolty"
         if ograniczenie not in uwagi:
             uwagi.append(ograniczenie)
+    if bez_zielonego and status == "zielony" and kandydaci[0].klucz in bez_zielonego:  # D6: ratunek bez filtra - regula wysokosci
+        status = "zolty"
+        uwagi.append(UWAGA_RATUNEK_WYZSZY)
     return WynikDopasowania(gniazdo, kandydaci, pewnosc, status, round(time.time() - t0, 2), int(len(P)), uwagi)
 
 
-def ratuj(wynik: WynikDopasowania, P: np.ndarray, pula: Pula, ust: dict, termin: float, limit: int = RATUNEK_PLYTKA_MAX) -> tuple[WynikDopasowania, int]:
+def ratuj(wynik: WynikDopasowania, P: np.ndarray, pula: Pula, ust: dict, limit: int = RATUNEK_PLYTKA_MAX,
+          termin: float = math.inf) -> tuple[WynikDopasowania, int, str]:
     """Rozszerzony ratunek fragmentu z puli per praca (runda 3): praca nierozpoznana albo niepewna (status inny niz zielony)
     - kandydaci bez pelnego dopasowania (ranking wstepny, filtr wymiarow - oba zakladaja prace brzegiem do gory) w kolejnosci
     ``ocena_fpfh`` (niezalezna od obrotu pracy), pelne dopasowanie (sam RANSAC + ICP, bez filtra i bez przegladu obrotow) po
-    RATUNEK_PELNYCH, najwyzej RATUNEK_TUR tur, ``limit`` dopasowan i do chwili ``termin`` (time.time()). Koniec: pokrycie >=
-    prog_akceptacji_pokrycie; praca juz rozpoznana (>= prog_ostrzezenia_pokrycie) - jeszcze jedna tura (sprawdzenie
-    konkurentow) i koniec. Zwraca (nowy wynik albo ten sam, liczba pelnych dopasowan)."""
+    RATUNEK_PELNYCH, najwyzej RATUNEK_TUR tur i ``limit`` dopasowan (budzet - wynik powtarzalny); ``termin``
+    (``time.monotonic()``) to tylko AWARYJNY limit zegara. Koniec: pokrycie >= prog_akceptacji_pokrycie; praca juz rozpoznana
+    (>= prog_ostrzezenia_pokrycie) - jeszcze jedna tura (sprawdzenie konkurentow) i koniec. Zwyciezca, dla ktorego fragment
+    jest wyzszy niz projekt (filtr wylaczony w ratunku), jest najwyzej zolty (D6). Zwraca (nowy wynik albo ten sam, liczba
+    pelnych dopasowan, powod przerwania: "" / "limit" / "czas")."""
     st = getattr(wynik, "stan_ratunku", None)
     m = ust["match"]
-    if st is None or wynik.status == "zielony" or limit <= 0 or time.time() >= termin:
-        return wynik, 0
+    if st is None or wynik.status == "zielony":
+        return wynik, 0, ""
     t0 = time.time()
     fr = st["fr"]
     kand = {k.klucz: copy.copy(k) for k in st["surowi"]}
     pozostali = [kl for kl, k in kand.items() if k.transformacja is None and k.metoda in ("wstepny", "filtr")]
     if not pozostali:
-        return wynik, 0
+        return wynik, 0, ""
+    if limit <= 0:
+        return wynik, 0, "limit"
+    if time.monotonic() >= termin:
+        return wynik, 0, "czas"
     oceny = ocena_fpfh(fr, [pula.lekkie[kl] for kl in pozostali])
     kolejka = [pozostali[i] for i in np.argsort(oceny, kind="stable") if np.isfinite(oceny[i])]
     ust_bez = {**ust, "match": {**m, "filtr_wymiar_mm": 1e9, "filtr_objetosc_udzial": 1e9}}
     uwagi = list(st["uwagi"])
     zrobione = 0
+    powod = ""
     najl = max((k.pokrycie for k in kand.values()), default=0.0)
     zostalo_tur = 1 if najl >= m["prog_ostrzezenia_pokrycie"] else RATUNEK_TUR
-    while kolejka and zostalo_tur > 0 and zrobione < limit and time.time() < termin:
+    while kolejka and zostalo_tur > 0:
+        if zrobione >= limit:
+            powod = "limit"
+            break
+        if time.monotonic() >= termin:
+            powod = "czas"
+            break
         zostalo_tur -= 1
         tura, kolejka = kolejka[:RATUNEK_PELNYCH], kolejka[RATUNEK_PELNYCH:]
-        for kl in tura:
-            if zrobione >= limit or time.time() >= termin:
+        for nr, kl in enumerate(tura):
+            if zrobione >= limit or time.monotonic() >= termin:
+                powod = "limit" if zrobione >= limit else "czas"
+                kolejka = tura[nr:] + kolejka
+                zostalo_tur += 1  # tura niedokonczona
                 break
             k = _pelne_dopasowanie(fr, pula, kl, ust_bez, st["seed"], uwagi, obroty=False)
             k.pokrycie_wstepne = kand[kl].pokrycie_wstepne
             kand[kl] = k
             zrobione += 1
+        if powod:
+            break
         nowe = max(k.pokrycie for k in kand.values())
         if nowe >= m["prog_akceptacji_pokrycie"]:
             break
         if nowe >= m["prog_ostrzezenia_pokrycie"] and najl < m["prog_ostrzezenia_pokrycie"]:
             zostalo_tur = min(zostalo_tur, 1)  # praca rozpoznana w ratunku: jeszcze jedna tura (konkurenci) i koniec
         najl = nowe
+    if powod and not (kolejka and zostalo_tur > 0):
+        powod = ""  # przerwanie bez skutku: nie bylo juz nic do dopasowania
     if zrobione == 0:
-        return wynik, 0
+        return wynik, 0, powod
     niepewne = [kl for kl in st["niepewne"] if kand[kl].transformacja is None and kand[kl].metoda == "wstepny"]
     uwagi.append(f"ratunek: pelne dopasowanie {zrobione} kandydatow wg deskryptorow FPFH (praca nierozpoznana albo niepewna)")
     bez_pelnego = sum(1 for k in kand.values() if k.transformacja is None and k.metoda in ("wstepny", "filtr"))
     ogr = _ograniczenie(niepewne, uwagi) or (f"ratunek: {bez_pelnego} kandydatow bez pelnego dopasowania - wynik niepewny" if bez_pelnego else "")
-    nowy = _zakoncz(P, fr, list(kand.values()), pula, ust, st["bez_korekty"], uwagi, ogr, wynik.gniazdo, t0)
+    nowy = _zakoncz(P, fr, list(kand.values()), pula, ust, st["bez_korekty"], uwagi, ogr, wynik.gniazdo, t0, bez_zielonego=st.get("wyzszy"))
     nowy.czas_s = round(wynik.czas_s + nowy.czas_s, 2)
-    return nowy, zrobione
+    return nowy, zrobione, powod
 
 
-def ratuj_plytke(punkty: list, wyniki: list, pula: Pula, ust: dict, start: float, budzet_s: float = RATUNEK_BUDZET_S,
-                 limit: int = RATUNEK_PLYTKA_MAX) -> dict:
+def ratuj_plytke(punkty: list, wyniki: list, pula: Pula, ust: dict, start: float | None = None, limit: int = RATUNEK_PLYTKA_MAX,
+                 limit_czasu_s: float = RATUNEK_LIMIT_CZASU_S) -> dict:
     """Ratunek fragmentow plytki PO zwyklym dopasowaniu wszystkich (najpierw zwykle fragmenty): fragmenty ze statusem innym
-    niz zielony, najpierw nierozpoznane (pokrycie < prog_ostrzezenia_pokrycie), potem niepewne; ``wyniki`` (lista
-    WynikDopasowania, ``punkty`` - punkty tych fragmentow) podmieniane w miejscu. Budzet: do ``start`` + ``budzet_s`` minus
-    RATUNEK_ZAPAS_INSPEKCJI_S na fragment i najwyzej ``limit`` pelnych dopasowan na plytke. Zwraca liczby do wyniku."""
+    niz zielony, najpierw nierozpoznane (pokrycie < prog_ostrzezenia_pokrycie), potem niepewne, w kolejnosci fragmentow;
+    ``wyniki`` (lista WynikDopasowania, ``punkty`` - punkty tych fragmentow) podmieniane w miejscu.
+
+    BUDZET = ``limit`` pelnych dopasowan na plytke (RATUNEK_PLYTKA_MAX) - ten sam skan daje ten sam wynik niezaleznie od
+    obciazenia komputera. ``start`` (``time.monotonic()`` poczatku analizy plytki) + ``limit_czasu_s`` minus
+    RATUNEK_ZAPAS_INSPEKCJI_S na fragment to tylko AWARYJNY limit zegara. Fragment, ktorego ratunek przerwal albo pominal limit,
+    dostaje uwage UWAGA_RATUNEK_LIMIT albo UWAGA_RATUNEK_CZAS. Zwraca liczby do wyniku (pole ``ratunek``)."""
     m = ust["match"]
-    termin = start + budzet_s - RATUNEK_ZAPAS_INSPEKCJI_S * len(wyniki)
+    start = time.monotonic() if start is None else start
+    termin = start + limit_czasu_s - RATUNEK_ZAPAS_INSPEKCJI_S * len(wyniki)
     trudne = [i for i, r in enumerate(wyniki) if getattr(r, "stan_ratunku", None) is not None and r.status != "zielony"]
     trudne.sort(key=lambda i: (wyniki[i].najlepszy.pokrycie if wyniki[i].najlepszy else 0.0) >= m["prog_ostrzezenia_pokrycie"])
     zrobione = przetworzone = zmienione = 0
-    przed_ratunkiem = round(time.time() - start, 2)
+    przerwane = {"limit": 0, "czas": 0}
+    przed_ratunkiem = round(time.monotonic() - start, 2)
     for i in trudne:
-        if time.time() >= termin or zrobione >= limit:
-            break
         przed = wyniki[i].najlepszy.klucz if wyniki[i].najlepszy else None
-        wyniki[i], n = ratuj(wyniki[i], punkty[i], pula, ust, termin, limit - zrobione)
+        nowy, n, powod = ratuj(wyniki[i], punkty[i], pula, ust, limit - zrobione, termin)
+        if powod:
+            przerwane[powod] += 1
+            uw = UWAGA_RATUNEK_LIMIT if powod == "limit" else UWAGA_RATUNEK_CZAS
+            if uw not in nowy.uwagi:
+                nowy.uwagi.append(uw)
+        wyniki[i] = nowy
         zrobione += n
-        przetworzone += 1
-        zmienione += n > 0 and (wyniki[i].najlepszy.klucz if wyniki[i].najlepszy else None) != przed
-    return {"fragmentow_trudnych": len(trudne), "przetworzonych": przetworzone, "pelnych_dopasowan": zrobione, "zmieniony_top1": zmienione,
-            "budzet_wyczerpany": przetworzone < len(trudne), "czas_przed_ratunkiem_s": przed_ratunkiem, "czas_od_startu_s": round(time.time() - start, 2)}
+        przetworzone += n > 0
+        zmienione += n > 0 and (nowy.najlepszy.klucz if nowy.najlepszy else None) != przed
+    return {"fragmentow_trudnych": len(trudne), "z_ratunkiem": przetworzone, "pelnych_dopasowan": zrobione, "zmieniony_top1": zmienione,
+            "przerwane_limit_dopasowan": przerwane["limit"], "przerwane_limit_czasu": przerwane["czas"],
+            "czas_przed_ratunkiem_s": przed_ratunkiem, "czas_od_startu_s": round(time.monotonic() - start, 2)}
 
 
 def blad_pozy(transformacja: np.ndarray, prawda: np.ndarray, siatka: trimesh.Trimesh) -> dict:

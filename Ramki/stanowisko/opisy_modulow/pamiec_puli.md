@@ -20,6 +20,7 @@ puli); `skrot(plik)` (skrot zawartosci, w procesie zapamietany po sciezce, rozmi
 `czas_odczytu_s`); `odcisk()`.
 
 **Klucz i uniewaznianie.**
+- `WERSJA` formatu pliku = 2 (od rundy 3: deskryptory FPFH czesci lekkiej `l_fpfh`); zmiana formatu = nowy numer.
 - Odcisk obejmuje ZRODLA funkcji liczacych dane (`funkcje_odcisku`: `synth.wczytaj_projekt`, `orientacja_brzegiem_do_gory`,
   `brzeg_z_heurystyki`, `strona_brzegu`, `plik_exocad`, `skrot_pliku`, `katalog.cechy`, `typ_i_zeby_z_nazwy`, `Projekt.__init__`,
   `_zbuduj_scene`, `lekki`, `do_tablic`, `z_tablic`, `_fpfh`, `_chmura`), wzorzec nazwy exocad, stale `match` i wersje open3d,
@@ -58,3 +59,6 @@ wczytuje wszystko z dysku; projekt z pamieci = projekt z pliku: punkty, normalne
   podlacza pule wpisow do silnika / aplikacji, musi: wolac `sprzataj(dni)` (przy starcie albo przy odswiezeniu puli), ustalic
   limit rozmiaru katalogu (najstarsze `mtime` pierwsze) i rozwazyc float32 dla siatki, probki i FPFH (ok. polowa miejsca;
   wymaga nowej `WERSJA` i pomiaru zgodnosci). `porownaj --wpisy` bez `--pamiec-puli` pisze do `dane/pula_cache/projekty`.
+  Kazda zmiana kodu z `funkcje_odcisku` (takze komentarza) albo wersji bibliotek uniewaznia cala pamiec: pierwszy start po
+  aktualizacji to zimna pula (ok. 0,9 s na wpis) - budowac ja w tle po aktualizacji programu, a `sprzataj` wolac przy
+  starcie i od razu usuwac pliki ze starym odciskiem (D4 rundy 2 recenzji PR #25).

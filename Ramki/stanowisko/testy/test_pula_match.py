@@ -454,14 +454,20 @@ def test_p4a_estymata_i_pokrycie_wskazuja_rozne_wpisy_niejednoznaczny():
             assert sorted(x["frezowanie_id"] for x in kandydaci[0].wpisy) == [1, 2] and any("rozne wpisy" in u for u in uwagi)
 
 
-def test_p4b_blizniak_bez_pelnego_dopasowania_niejednoznaczny():
-    """P4b: wariant tego samego STL bez pelnego dopasowania (np. plik nie do wczytania) - wpis nierozstrzygniety."""
-    a = _kandydat_wariantu(1.2215, 1, 1.2215)
-    b = match.Kandydat(id="a" * 16, zeby=[], typ="korona", klucz="a" * 16 + "@1.25", wspolczynnik=1.25, metoda="blad")
-    match._wpisy_kandydata(b, [{"frezowanie_id": 2, "projekt_id": 7, "krazek": "K-2", "wspolczynnik": 1.25}])
-    kandydaci, uwagi = [a, b], []
-    match._wybierz_wariant(None, None, kandydaci, None, {}, "", uwagi)
-    assert kandydaci[0].frezowanie_id is None and any("nie da sie wczytac" in u for u in uwagi)
+@pytest.mark.parametrize("metoda", ["wstepny", "filtr", "ransac_brak", "blad"])
+def test_p1_r2_kazdy_wariant_bez_transformacji_oceniany_po_wspolczynniku(metoda):
+    """P1 (runda 2 recenzji, proba recenzenta): A (1,2215, pokrycie 0,90) i blizniak B (1,2230 - prawda, estymata 1,2230) bez
+    transformacji z dowolnej przyczyny (wstepny / filtr / ransac_brak / blad): wynik niejednoznaczny, nigdy krazek A bez uwagi.
+    Blizniak daleko od estymaty (1,25 przy estymacie 1,2215) - wykluczony po wspolczynniku, wpis A."""
+    for w_b, est, oczekiwany in ((1.2230, 1.2230, None), (1.25, 1.2215, 1)):
+        a = _kandydat_wariantu(1.2215, 1, est)
+        b = match.Kandydat(id="a" * 16, zeby=[], typ="korona", klucz="a" * 16 + "@" + match.tekst_wspolczynnika(w_b), wspolczynnik=w_b, metoda=metoda)
+        match._wpisy_kandydata(b, [{"frezowanie_id": 2, "projekt_id": 7, "krazek": "K-2", "wspolczynnik": w_b}])
+        kandydaci, uwagi = [a, b], []
+        match._wybierz_wariant(None, None, kandydaci, None, {}, "", uwagi)
+        assert kandydaci[0].frezowanie_id == oczekiwany, (metoda, w_b, kandydaci[0].frezowanie_id, uwagi)
+        if oczekiwany is None:
+            assert sorted(x["frezowanie_id"] for x in kandydaci[0].wpisy) == [1, 2] and any("nie rozstrzygnieto" in u for u in uwagi)
 
 
 def test_ratunek_bez_filtru_tez_przez_ranking(pula_obu, plytka, ust, monkeypatch):
@@ -511,7 +517,7 @@ def test_porownaj_z_pula_wpisow_i_cli(pula_obu, plytka, ust, tmp_path):
     skan.export(plik_skanu)
     wynik = PO.porownaj(plik_skanu, [], PO.AUTO, ust, None, None, "auto", False, pula)  # auto, bez wspolczynnika: pula wpisow zostaje
     assert wynik["wspolczynnik"] is None and wynik["pula_wpisy"]["wpisow"] == len(wp) and wynik["projekty"] == len(pula)
-    assert {"fragmentow_trudnych", "pelnych_dopasowan", "budzet_wyczerpany"} <= set(wynik["ratunek"])  # runda 3: liczby ratunku plytki
+    assert {"fragmentow_trudnych", "pelnych_dopasowan", "przerwane_limit_dopasowan", "przerwane_limit_czasu"} <= set(wynik["ratunek"])  # liczby ratunku plytki
     mapa = {x.gniazdo: x for x in prawda.prace}
     for g in wynik["gniazda"]:
         k = g["kandydaci"][0]
@@ -694,12 +700,11 @@ def test_r3_ratunek_znajduje_prace_pominieta_przez_ranking(stl, pula_obu, plytka
     monkeypatch.setattr(match, "ocena_wstepna", lambda fr_, lk: 0.0 if lk.id == wl.sha16 else 1.0)
     r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
     assert r.najlepszy.id != wl.sha16 and r.status != "zielony" and r.stan_ratunku is not None
-    st = match.ratuj_plytke([f.punkty], [r], pula, ust, start=time.time() - 1000)  # budzet wyczerpany: bez ratunku
-    assert st["przetworzonych"] == 0 and st["budzet_wyczerpany"]
     wyniki = [r]
-    st = match.ratuj_plytke([f.punkty], wyniki, pula, ust, start=time.time())
+    st = match.ratuj_plytke([f.punkty], wyniki, pula, ust, start=time.monotonic())
     r2 = wyniki[0]
-    assert st["przetworzonych"] == 1 and st["pelnych_dopasowan"] >= 1 and st["zmieniony_top1"] == 1
+    assert st["z_ratunkiem"] == 1 and st["pelnych_dopasowan"] >= 1 and st["zmieniony_top1"] == 1
+    assert st["przerwane_limit_czasu"] == 0 and st["przerwane_limit_dopasowan"] == 0
     assert r2.najlepszy.id == wl.sha16 and r2.najlepszy.frezowanie_id == wl.frezowanie_id and r2.najlepszy.pokrycie >= 0.85
     assert any("ratunek: pelne dopasowanie" in u for u in r2.uwagi) and r2.status in ("zielony", "zolty")
 
@@ -716,3 +721,71 @@ def test_r3_ratunek_w_duzej_puli_nie_daje_zielonego_bez_sprawdzenia_puli(stl, pu
     r = match.dopasuj(f.punkty, f.normalne, pula, ust_z, f.gniazdo)
     assert len(wywolania) == match.WSTEPNY_PELNYCH and r.status != "zielony"
     assert r.najlepszy.id == {x.gniazdo: x for x in prawda.prace}[f.gniazdo].projekt
+
+
+# --- runda 4: budzet ratunku w liczbie dopasowan (wynik powtarzalny), awaryjny limit zegara, regula wysokosci ------------
+def _wynik_ratunku(stl, pula_obu, plytka, ust, **kw):
+    pula = pula_obu[0]
+    f, fr, przeszly, wl, kl_wl = _fragment_trzonowca(stl, pula_obu, plytka, ust)
+    r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
+    assert r.status != "zielony"
+    wyniki = [r]
+    st = match.ratuj_plytke([f.punkty], wyniki, pula, ust, **kw)
+    k = wyniki[0].najlepszy
+    return (k.klucz, k.frezowanie_id, wyniki[0].status, st["pelnych_dopasowan"]), st, wyniki[0], wl
+
+
+def test_r4_ten_sam_skan_przy_spowolnionym_dopasowaniu_ten_sam_wynik(stl, pula_obu, plytka, ust, monkeypatch):
+    """P2 (runda 2 recenzji): budzet ratunku to liczba dopasowan, nie zegar - dopasowanie sztucznie spowolnione (0,2 s na pare,
+    bez przekroczenia limitu awaryjnego) daje identyczny wynik: ten sam wpis, status i liczba pelnych dopasowan."""
+    pula = pula_obu[0]
+    wl_sha = synth.skrot_pliku(stl[NAZWY[2]])
+    monkeypatch.setattr(match, "ocena_wstepna", lambda fr_, lk: 0.0 if lk.id == wl_sha else 1.0)
+    zwykly, st1, _, wl = _wynik_ratunku(stl, pula_obu, plytka, ust, limit=3)
+    oryg = match.dopasuj_pare
+    monkeypatch.setattr(match, "dopasuj_pare", lambda *a, **k: (time.sleep(0.2), oryg(*a, **k))[1])
+    wolny, st2, _, _ = _wynik_ratunku(stl, pula_obu, plytka, ust, limit=3)
+    assert zwykly == wolny, (zwykly, wolny)
+    assert st1["przerwane_limit_czasu"] == st2["przerwane_limit_czasu"] == 0
+
+
+def test_r4_limit_dopasowan_i_awaryjny_limit_czasu_daja_uwage(stl, pula_obu, plytka, ust, monkeypatch):
+    """Przerwanie ratunku: limitem dopasowan plytki (uwaga 'limit dopasowan') i awaryjnym limitem zegara (uwaga 'limit czasu')
+    - rozroznione w uwagach i liczbach."""
+    wl_sha = synth.skrot_pliku(stl[NAZWY[2]])
+    monkeypatch.setattr(match, "ocena_wstepna", lambda fr_, lk: 0.0 if lk.id == wl_sha else 1.0)
+    _, st, w, _ = _wynik_ratunku(stl, pula_obu, plytka, ust, limit=0)
+    assert st["przerwane_limit_dopasowan"] == 1 and st["pelnych_dopasowan"] == 0 and match.UWAGA_RATUNEK_LIMIT in w.uwagi
+    _, st, w, _ = _wynik_ratunku(stl, pula_obu, plytka, ust, start=time.monotonic() - 1000)
+    assert st["przerwane_limit_czasu"] == 1 and st["pelnych_dopasowan"] == 0 and match.UWAGA_RATUNEK_CZAS in w.uwagi
+
+
+def test_r4_zwyciezca_ratunku_wyzszy_niz_projekt_najwyzej_zolty(pula_obu, plytka):
+    """D6: ratunek dopasowuje bez filtra wymiarow; zwyciezca, dla ktorego fragment jest wyzszy niz projekt + tolerancja (regula
+    fizyczna), jest najwyzej zolty. ``_za_wysoki``: fragment siekacza (ok. 12 mm) wyzszy niz przedtrzonowce (ok. 9,6 mm)."""
+    pula = pula_obu[0]
+    _, wyr, prawda = plytka
+    ust = UST.wczytaj_ustawienia()
+    mapa = {x.gniazdo: x for x in prawda.prace}
+    for f in wyr.fragmenty:
+        fr = match.FragmentDoDopasowania.z_punktow(f.punkty, f.normalne)
+        wyz = match._za_wysoki(fr, pula, ust)
+        assert not any(v for kl, v in wyz.items() if pula.lekkie[kl].id == mapa[f.gniazdo].projekt)  # wlasny projekt: regula spelniona
+    siekacz = max(wyr.fragmenty, key=lambda f: float(np.ptp(f.punkty[:, 2])))
+    fr = match.FragmentDoDopasowania.z_punktow(siekacz.punkty, siekacz.normalne)
+    assert any(match._za_wysoki(fr, pula, ust).values())
+
+    class BrakProjektow:
+        def __getitem__(self, klucz):
+            raise ValueError("bez pelnych projektow")  # korekta skali pominieta (_koryguj_bezpiecznie)
+
+    class PulaAtrapa:
+        per_praca = True
+        projekty = BrakProjektow()
+
+    k = _kandydat_wariantu(1.2215, 1, 1.2215, pokrycie=0.92)
+    uwagi = []
+    w = match._zakoncz(np.zeros((60, 3)), None, [k], PulaAtrapa(), ust, "", uwagi, "", 1, time.time(), bez_zielonego={k.klucz: True})
+    assert w.status == "zolty" and match.UWAGA_RATUNEK_WYZSZY in w.uwagi
+    w2 = match._zakoncz(np.zeros((60, 3)), None, [_kandydat_wariantu(1.2215, 1, 1.2215, pokrycie=0.92)], PulaAtrapa(), ust, "", [], "", 1, time.time())
+    assert w2.status == "zielony"

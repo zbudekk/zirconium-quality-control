@@ -37,7 +37,7 @@ from . import match as M
 from . import synth as S
 from . import ustawienia as UST
 
-WERSJA = 1  # format pliku pamieci; zmiana tresci = nowy numer
+WERSJA = 2  # format pliku pamieci; zmiana tresci = nowy numer (2: deskryptory FPFH czesci lekkiej, runda 3)
 PODKATALOG = "projekty"  # w [sciezki] pula_cache (obok linii brzegu z krawedz)
 LIMIT_CIEZKICH = 64  # pelnych projektow trzymanych w procesie (ok. 10-30 MB kazdy); najdawniej uzyte wypadaja (zostaja na dysku)
 LIMIT_LEKKICH = 4000  # czesci lekkich w procesie (ok. 0,1-0,3 MB kazda)
