@@ -103,6 +103,7 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "granica_doby_godz": (int, "session"),
         "zmiany_start_godz": (list, "session"),
         "ponowny_skan_okno_min": (int, "session"),
+        "ponowny_skan_min_wspolnych": (float, "session"),  # E3-A1p (18.11.2026)
     },
     # E3-A3a (etap 3): sekcje w całości opcjonalne — parametry modułów scanner i silnik (wartości domyślne = stałe tych modułów)
     "scanner": {
@@ -143,12 +144,14 @@ DOMYSLNE_NOWYCH = {
     # wczytuje, ale session odrzuca „Ukruszona” / „OK”); przechowuj_skany_dni: po ilu dniach wolno usuwać pliki skanów
     # (DW4; 0 = nie usuwać — tryb cienia); granica_doby_godz: początek doby roboczej (6 = zmiany 1, 2, 3 jednego dnia);
     # zmiany_start_godz: początki zmian; ponowny_skan_okno_min: do ilu minut ta sama płytka to „ponowny skan”, a nie nowy wsad.
+    # E3-A1p (18.11.2026): ponowny_skan_min_wspolnych - pytanie o ponowny skan tylko, gdy co najmniej taki udzial prac
+    # rozpoznanych nowego skanu ma projekt z prac rozpoznanych poprzedniego (0 = bez tego warunku, regula sprzed E3-A1p).
     # E3-A3a (17.11.2026): [sciezki] podglady — pliki *_podglad.npz z silnika (punkty i odchyłki gniazd do obrazu odchyłek);
     # pula_cache — pamięć linii brzegu projektów na dysku (silnik: pamiec_linii); logi — log programu i procesu analizy.
     # [scanner] i [silnik]: parametry konstruktorów Scanner / Silnik; wartości domyślne równe stałym tych modułów (test).
     "sciezki": {"wyniki": "dane/wyniki", "podglady": "dane/podglady", "pula_cache": "dane/pula_cache", "logi": "dane/logi"},
     "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22],
-              "ponowny_skan_okno_min": 60},
+              "ponowny_skan_okno_min": 60, "ponowny_skan_min_wspolnych": 0.5},
     "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True,
                 "obserwator": "watchdog"},
     # pamiec_linii domyslnie False - tak samo jak w silnik (pamiec_linii=None); recenzja PR #20, D11
@@ -271,6 +274,8 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(zmiany[0] == d["sesja"]["granica_doby_godz"], "sesja", "zmiany_start_godz",
             f"pierwsza zmiana musi zaczynać się o granicy doby (granica_doby_godz = {d['sesja']['granica_doby_godz']})")
     warunek(d["sesja"]["ponowny_skan_okno_min"] > 0, "sesja", "ponowny_skan_okno_min", "musi być > 0 (minuty)")
+    warunek(0 <= d["sesja"]["ponowny_skan_min_wspolnych"] <= 1, "sesja", "ponowny_skan_min_wspolnych",
+            "udzial z [0, 1] (0 = pytanie o ponowny skan bez warunku zgodnosci prac)")
     sc, si = d["scanner"], d["silnik"]
     warunek(sc["stabilizacja_ms"] >= 0, "scanner", "stabilizacja_ms", "musi być >= 0 (milisekundy)")
     warunek(sc["min_rozmiar_mb"] >= 0, "scanner", "min_rozmiar_mb", "musi być >= 0 (0 = bez progu)")
