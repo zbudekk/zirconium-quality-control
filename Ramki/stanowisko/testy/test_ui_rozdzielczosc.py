@@ -175,3 +175,42 @@ def test_ekran_1920x1080_przy_100_125_150_proc_10_plytek_x_19_prac_z_pytaniem(at
         print(f"\n[E3-A1p ekran, mnoznik pikseli {dpr:g}]\n  " + "\n  ".join(wyniki))
     finally:
         e.zamknij()
+
+
+@pytest.mark.parametrize("dostepne", [(1920, 1032), (2560, 1392), (1600, 860), (1536, 816), (1280, 672)])
+def test_okno_startuje_zmaksymalizowane_na_kazdym_ekranie(dostepne):
+    """E3-A1p runda 2 (decyzja wlasciciela 18.11.2026): okno startuje zmaksymalizowane zawsze - takze na ekranie 1920 x 1080
+    przy 100 % (wczesniej 1600 x 900, gdy ekran mial co najmniej 1640 x 960 punktow); w trybie offscreen rozmiar ustawia test."""
+    from PySide6.QtCore import QSize
+
+    from stanowisko.ui import okno
+
+    assert okno.okno_zmaksymalizowane("windows", QSize(*dostepne)) is True
+    assert okno.okno_zmaksymalizowane("offscreen", QSize(*dostepne)) is False
+
+
+def test_okno_z_utworz_okno_ma_stan_zmaksymalizowany(atrapa, monkeypatch):
+    """Droga startu programu (``ui.utworz_okno`` jak w ``aplikacja.main``, potem ``show()``): okno ma juz stan
+    "zmaksymalizowane", gdy decyzja dla ekranu brzmi "tak" (tu wymuszona - offscreen sam jej nie daje)."""
+    from PySide6.QtCore import Qt
+
+    from stanowisko import kontroler_api as K
+    from stanowisko import ui
+    from stanowisko.ui import okno
+
+    monkeypatch.setattr(okno, "okno_zmaksymalizowane", lambda platforma, dostepne=None: True)
+    lacznik = K.lacznik_qt(atrapa)
+    w = ui.utworz_okno(atrapa, lacznik)
+    try:
+        assert w.windowState() & Qt.WindowState.WindowMaximized
+    finally:
+        w.close()
+        lacznik.zatrzymaj()
+    monkeypatch.undo()
+    lacznik = K.lacznik_qt(atrapa)
+    w = ui.utworz_okno(atrapa, lacznik)  # offscreen bez wymuszenia: rozmiar ustawia test (1600 x 900 z konstruktora)
+    try:
+        assert not w.windowState() & Qt.WindowState.WindowMaximized and (w.width(), w.height()) == (1600, 900)
+    finally:
+        w.close()
+        lacznik.zatrzymaj()

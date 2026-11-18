@@ -440,7 +440,8 @@ def test_kontroler_36_plytek_bez_pytan_i_konfliktow_a_ponowny_skan_z_pytaniem(tm
         s = k.stan()
         assert [(q.rodzaj, q.skan_id, q.poprzedni_id) for q in s.pytania] == [("ponowny_skan", ponowny, skany[-1])]
         assert s.plytka(ponowny).moze_zastapic == skany[-1] and "potwierdz_ponowny_skan" in s.plytka(ponowny).dozwolone
-        assert s.konflikty  # do potwierdzenia te same projekty leza na dwoch aktywnych skanach (jak dawniej)
+        assert s.konflikty  # do potwierdzenia te same projekty leza na dwoch aktywnych skanach (stan podaje je jak dawniej) ...
+        assert [x.rodzaj for x in s.komunikaty if x.rodzaj == "konflikt_projektu"] == []  # ... ale nie na pasku bledow (runda 2)
         assert k.potwierdz_ponowny_skan(ponowny)
         s = k.stan()
         assert s.pytania == () and s.konflikty == () and s.plytka(skany[-1]).status == SE.STATUS_ZASTAPIONY
