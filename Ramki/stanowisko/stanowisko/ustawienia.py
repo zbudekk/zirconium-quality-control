@@ -12,6 +12,7 @@ from __future__ import annotations
 import copy
 import functools
 import math
+import re
 import tomllib
 from pathlib import Path
 
@@ -33,6 +34,7 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "podglady": (str, "aplikacja"),  # E3-A3a, opcjonalne (DOMYSLNE_NOWYCH)
         "pula_cache": (str, "aplikacja"),
         "logi": (str, "aplikacja"),
+        "kalibracja_ramek": (str, "indicate"),  # E3-A8i, opcjonalny (DOMYSLNE_NOWYCH)
     },
     # dowolne nazwy układów płytek → katalog modeli: wieczorna, poranna, okragla_wieczorna, okragla_poranna (układ R59)
     # oraz wieczorna_r54, poranna_r54, okragla_wieczorna_r54, okragla_poranna_r54 (poprzedni układ R54, stare płytki);
@@ -100,9 +102,11 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "maks_wiek_dni": (int, "excel"),  # runda 2 recenzji PR #27 (P3): bezpiecznik wieku wybranego wiersza
     },
     "ramki": {
-        "port": (int, PRZYSZLY),
-        "wieczorna_host": (str, PRZYSZLY),
-        "poranna_host": (str, PRZYSZLY),
+        "port": (int, "indicate"),
+        "wieczorna_host": (str, "indicate"),
+        "poranna_host": (str, "indicate"),
+        "klucz": (str, "indicate"),  # E3-A8i, opcjonalny: wspolny klucz laptopa i ramek (tajny - wartosc nie trafia do komunikatow)
+        "odpytywanie_s": (float, "indicate"),  # E3-A8i, opcjonalny
     },
     # E3-A1 (etap 3): sekcja w całości opcjonalna — wszystkie klucze mają wartość w DOMYSLNE_NOWYCH, plik sprzed etapu 3 jej nie ma
     "sesja": {
@@ -162,7 +166,12 @@ DOMYSLNE_NOWYCH = {
     # E3-A3a (17.11.2026): [sciezki] podglady — pliki *_podglad.npz z silnika (punkty i odchyłki gniazd do obrazu odchyłek);
     # pula_cache — pamięć linii brzegu projektów na dysku (silnik: pamiec_linii); logi — log programu i procesu analizy.
     # [scanner] i [silnik]: parametry konstruktorów Scanner / Silnik; wartości domyślne równe stałym tych modułów (test).
-    "sciezki": {"wyniki": "dane/wyniki", "podglady": "dane/podglady", "pula_cache": "dane/pula_cache", "logi": "dane/logi"},
+    "sciezki": {"wyniki": "dane/wyniki", "podglady": "dane/podglady", "pula_cache": "dane/pula_cache", "logi": "dane/logi",
+                "kalibracja_ramek": "dane/kalibracja_ramek.json"},
+    # E3-A8i (18.11.2026): [ramki] klucz - wspolny klucz laptopa i ramek (naglowek X-Ramka-Klucz, ramka/README.md "Siec i klucz"),
+    # tylko w lokalnym pliku, pusty = bez klucza; odpytywanie_s - najdluzsze czekanie w GET /zdarzenia; [sciezki] kalibracja_ramek -
+    # lokalny plik kalibracji diod ramek (DW9).
+    "ramki": {"klucz": "", "odpytywanie_s": 25.0},
     "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22],
               "ponowny_skan_okno_min": 60, "ponowny_skan_min_wspolnych": 0.5},
     "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True,
@@ -203,6 +212,10 @@ def uzupelnij_uklady_wbudowane(d: dict) -> list[str]:
     return dopisane
 
 
+# Klucze tajne: wartosc nie trafia do komunikatu bledu (E3-A8i).
+TAJNE = {("ramki", "klucz")}
+
+
 class BladUstawien(ValueError):
     """Zły plik ustawień; komunikat zaczyna się od nazwy pliku i klucza."""
 
@@ -237,7 +250,8 @@ def _waliduj(d: dict, plik: Path) -> dict:
                 raise blad(f"[{sekcja}] {k}", "brak klucza")
             v = d[sekcja][k]
             if not _typ_zgodny(v, typ):
-                raise blad(f"[{sekcja}] {k}", f"oczekiwano {typ.__name__}, jest {v!r} ({type(v).__name__})")
+                jest = type(v).__name__ if (sekcja, k) in TAJNE else f"{v!r} ({type(v).__name__})"
+                raise blad(f"[{sekcja}] {k}", f"oczekiwano {typ.__name__}, jest {jest}")
             if isinstance(v, float) and not math.isfinite(v):
                 raise blad(f"[{sekcja}] {k}", f"wartość nieskończona/NaN: {v!r}")
 
@@ -274,6 +288,10 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(0 <= m["korekta_skali_ostrzezenie_proc"] <= m["korekta_skali_okno_proc"], "match", "korekta_skali_ostrzezenie_proc", "próg ostrzeżenia z [0, korekta_skali_okno_proc]")
     warunek(m["korekta_skali_pas_brzegu_mm"] >= 0, "match", "korekta_skali_pas_brzegu_mm", "musi być >= 0")
     warunek(1 <= d["ramki"]["port"] <= 65535, "ramki", "port", "port 1…65535")
+    klucz = d["ramki"]["klucz"]
+    if klucz and not re.fullmatch(r"[!-~]{16,256}", klucz):  # jak ramka/protokol.py WZOR_KLUCZA; bez wartosci w komunikacie
+        raise blad("[ramki] klucz", "pusty (bez klucza) albo 16-256 drukowalnych znakow ASCII bez odstepu")
+    warunek(0.5 <= d["ramki"]["odpytywanie_s"] <= 25, "ramki", "odpytywanie_s", "sekundy z [0.5, 25] (najdluzsze czekanie na zdarzenia ramki)")
     rgb = d["excel"]["kolor_rgb"]
     warunek(len(rgb) == 3 and all(_typ_zgodny(c, int) and 0 <= c <= 255 for c in rgb), "excel", "kolor_rgb", "trzy liczby 0…255")
     e = d["excel"]  # E3-A9: kolumny arkusza, tryb (DW10), odczyt
