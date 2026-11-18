@@ -589,8 +589,12 @@ def plan_k4(kal_, logika=None):
 
 def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     """K4 w czasie rzeczywistym (watek petli, zegar Windows). Kryterium < 100 ms dowodzi
-    deterministycznie `test_k4_..._czas_sztuczny`; tu (runda 2, D10) mediana < 100 ms i zapas na
-    obciazenie pelnego pytest: najdluzsze przelaczenie < 250 ms."""
+    deterministycznie `test_k4_..._czas_sztuczny` (takze z nierownymi obiegami petli); tu (runda 2, D10)
+    mediana < 100 ms i zapas na obciazenie pelnego pytest: najdluzsze przelaczenie < 250 ms.
+    E3-A8p: czas przelaczenia wg kryterium - od zmiany odczytu czujnikow do pierwszej klatki z wlasciwym
+    obrazem wyslanej na matryce (zegar atrapy), bez budzenia watku testu i porownania pikseli; czas
+    widziany przez watek testu tylko w wydruku POMIAR. Zdarzenia 4, 0, 5, 0 nie zaleza od rozstawu obiegow
+    petli (odbijanie czujnikow, E3-A8p) - wczesniej przy nierownych obiegach ginelo zdarzenie 0."""
     prog, atrapa, port = ramka_p
     lap = Laptop(port)
     lap.stan()
@@ -600,18 +604,29 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     assert st == 200, odp
     o4 = oczekiwane_piksele(plan, 4, set(P4_K4))
     o5 = oczekiwane_piksele(plan, 5, set(P5_K4))
+    oczekiwany = {4: o4, 0: {}, 5: o5}
     n0 = prog.logika.nr
-    czasy = []
+    czasy_testu = []
     for _ in range(10):
-        for n, ocz in ((4, o4), (0, {}), (5, o5), (0, {})):
+        for n in (4, 0, 5, 0):
             t0 = time.perf_counter()
             atrapa.poloz_plytke(n)
-            ok = atrapa.czekaj(lambda a, o=ocz: a.klatka is not None and porownaj_obszar_plytki(a.klatka, o) == [], 2.0)
-            czasy.append(time.perf_counter() - t0)
+            ok = atrapa.czekaj(lambda a, o=oczekiwany[n]: a.klatka is not None
+                               and porownaj_obszar_plytki(a.klatka, o) == [], 2.0)
+            czasy_testu.append(time.perf_counter() - t0)
             assert ok, f"plytka {n}: brak wlasciwego obrazu"
-    s = sorted(czasy)
+    zmiany = atrapa.zmiany_plytki
+    assert len(zmiany) == 40
+    czasy = []
+    for c, n in zmiany:
+        t_klatki = next(czas for czas, _, k in atrapa.historia
+                        if czas >= c and porownaj_obszar_plytki(k, oczekiwany[n]) == [])
+        czasy.append(t_klatki - c)
+    s, s_testu = sorted(czasy), sorted(czasy_testu)
     mediana = s[len(s) // 2]
-    print(f"POMIAR K4: {len(s)} przelaczen, mediana {mediana * 1000:.0f} ms, maks {s[-1] * 1000:.0f} ms")
+    print(f"POMIAR K4: {len(s)} przelaczen (czujniki -> klatka na matrycy), mediana {mediana * 1000:.0f} ms, "
+          f"maks {s[-1] * 1000:.0f} ms; z budzeniem watku testu: mediana {s_testu[len(s_testu) // 2] * 1000:.0f} ms, "
+          f"maks {s_testu[-1] * 1000:.0f} ms")
     assert mediana < 0.100, f"mediana przelaczenia {mediana * 1000:.0f} ms"
     assert max(czasy) < 0.250, f"najdluzsze przelaczenie {max(czasy) * 1000:.0f} ms"
     # runda 2 (P7): obraz gasnie od razu, a zdarzenie "plytka 0" przychodzi po ustaleniu odczytu (30 ms)
@@ -620,8 +635,6 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     assert [z["plytka"] for z in zd if z["typ"] == "plytka"] == [4, 0, 5, 0] * 10
     # stary plan nie swieci pod nowa plytka: ZADNA klatka wyslana po polozeniu plytki 5 (do nastepnej
     # zmiany) nie ma pikseli planu plytki 4, a ostatnia z nich to plan plytki 5 (niezalezne od czasu)
-    zmiany = atrapa.zmiany_plytki
-    assert len(zmiany) == 40
     sprawdzone = 0
     for i, (c, n) in enumerate(zmiany):
         if n != 5:
@@ -1364,6 +1377,63 @@ def test_odbijanie_czujnikow_krotkie_zaklocenie_ignorowane():
     assert o.podaj(0, 0.101) == 0
 
 
+def test_odbijanie_zdjecie_przed_nowym_numerem_przy_nierownych_odczytach():
+    """E3-A8p: 5 -> 0 (krocej niz 30 ms) -> 4 z rozstawem odczytow zapisanym na PC (zegar Windows): 12 + 16 + 16 ms.
+    Wczesniej progi "odczyt nieustalony 30 ms" i "4 stale 30 ms" mijaly w tym samym odczycie, wygrywalo
+    ustalenie i zdarzenie 0 ginelo (5 -> 4); po dwoch takich skokach powrot do 4 byl wstrzymany na 3 s."""
+    o = Odbijanie(0.03, odstep_powrotu_s=3.0)
+    for t in (0.000, 0.016, 0.031):
+        o.podaj(5, t)
+    assert (o.stabilna, o.pewna) == (5, True)
+    zmiany = [(t, o.podaj(r, t)) for t, r in ((0.0472, 0), (0.0595, 4), (0.0759, 4), (0.0917, 4), (0.1066, 4))]
+    assert [(t, z) for t, z in zmiany if z is not None] == [(0.0917, 0), (0.1066, 4)]
+    assert (o.stabilna, o.pewna) == (4, True)
+    # dwa szybkie przelozenia pod rzad (4 -> 0 -> 5 -> 0 -> 4): kazde z zdarzeniem 0, plytka 4 bez 3 s ciemnosci
+    zd = []
+    for t, r in ((0.122, 0), (0.135, 5), (0.151, 5), (0.167, 5), (0.183, 5),
+                 (0.198, 0), (0.211, 4), (0.227, 4), (0.243, 4), (0.259, 4)):
+        z = o.podaj(r, t)
+        if z is not None:
+            zd.append(z)
+    assert zd == [0, 5, 0, 4] and (o.stabilna, o.pewna) == (4, True)
+
+
+def test_odbijanie_k4_losowy_rozstaw_odczytow_zawsze_4_0_5_0():
+    """E3-A8p: zdarzenia 4 -> 0 -> 5 -> 0 nie zaleza od rozstawu odczytow (5-40 ms, 300 serii po 10 cykli),
+    zdjecie widziane tylko w jednym odczycie (jak w tescie K4 w czasie rzeczywistym). Nowa plytka ustala sie
+    najpozniej jeden odczyt po odczycie, w ktorym jej numer jest staly 30 ms (wtedy, gdy najpierw wypada 0)."""
+    rng = random.Random(8)
+    for seria in range(300):
+        o = Odbijanie(0.03, odstep_powrotu_s=3.0)
+        t = 0.0
+        zd = []
+
+        def odczyt(n):
+            nonlocal t
+            t += rng.uniform(0.005, 0.040)
+            z = o.podaj(n, t)
+            if z is not None:
+                zd.append(z)
+
+        for _ in range(10):
+            for n in (4, 0, 5, 0):
+                if n == 0:
+                    odczyt(0)
+                    assert not o.pewna, (seria, t)  # gaszenie w pierwszym odczycie
+                    continue
+                t1 = None
+                po_ustaleniu = 0
+                while not (o.pewna and o.stabilna == n):
+                    odczyt(n)
+                    t1 = t if t1 is None else t1
+                    if t - t1 >= 0.03 - 1e-9:
+                        po_ustaleniu += 1
+                    assert po_ustaleniu <= 2, (seria, n, zd)
+        while o.stabilna != 0:
+            odczyt(0)
+        assert zd == [4, 0, 5, 0] * 10, (seria, zd)
+
+
 # ----------------------------------------------------------------------------- kalibracja i test LED
 
 def test_kalibracja_domyslna_z_ukladow_waliduje_sie_i_nie_zmienia_ukladow():
@@ -2007,6 +2077,35 @@ def test_k4_zmiana_plytki_czas_sztuczny_ponizej_100_ms_bez_starego_planu(kal):
                     break
             assert porownaj_obszar_plytki(sp.klatka, ocz) == [], n
             assert zegar.t - t0 <= (0.015 if n == 0 else 0.045), (n, zegar.t - t0)
+
+
+def test_k4_czas_sztuczny_nierowne_obiegi_petli_zdarzenia_i_ponizej_100_ms(kal):
+    """E3-A8p: K4 na petli programu z nierownym rozstawem obiegow 10-20 ms (zegar Windows ok. 15,6 ms,
+    obciazenie; Raspberry Pi 10 ms), nowa plytka zaraz po zgaszeniu (jak test w czasie rzeczywistym):
+    zawsze zdarzenia 4, 0, 5, 0, przelaczenie (zmiana czujnikow -> klatka planu) ponizej 100 ms."""
+    rng = random.Random(4)
+    for seria in range(20):
+        prog, sp, zegar, kroki = program_sztuczny("P")
+        plan = plan_k4(kal, prog.logika)
+        assert prog.plan(LAPTOP, plan)["wynik"] == "przyjety"
+        o4 = oczekiwane_piksele(plan, 4, set(P4_K4))
+        o5 = oczekiwane_piksele(plan, 5, set(P5_K4))
+        n0 = prog.logika.nr
+        for _ in range(10):
+            for n, ocz in ((4, o4), (0, {}), (5, o5), (0, {})):
+                sp.poloz_plytke(n)
+                t0 = zegar.t
+                for _ in range(20):
+                    kroki(1, rng.uniform(0.010, 0.020))
+                    if n == 5:
+                        assert not (set(gniazda_na_matrycy(sp)) & set(o4))
+                    if porownaj_obszar_plytki(sp.klatka, ocz) == []:
+                        break
+                assert porownaj_obszar_plytki(sp.klatka, ocz) == [], (seria, n)
+                assert zegar.t - t0 < (0.021 if n == 0 else 0.100), (seria, n, zegar.t - t0)
+        kroki(10, 0.015)
+        zd, _ = prog.logika.zdarzenia_od(n0)
+        assert [z["plytka"] for z in zd if z["typ"] == "plytka"] == [4, 0, 5, 0] * 10, seria
 
 
 # ----------------------------------------------------------------------------- decyzje robocze

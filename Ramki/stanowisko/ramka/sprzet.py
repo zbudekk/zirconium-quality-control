@@ -57,6 +57,11 @@ class Odbijanie:
       odstep, gniazda ciemne do tego czasu. Zdjecie plytki (zmiana na 0) i zmiana na INNY numer (4 -> 0 -> 5)
       bez opoznienia. Bez tego drgajacy czujnik dawalby ok. 20 zdarzen na sekunde, a plan (przyjmowany
       tylko z `zdarzenia_do` = numer ostatniego zdarzenia) nie mialby szans.
+    - E3-A8p (wynik niezalezny od rozstawu odczytow): przy gestym probkowaniu zdjecie (prog: pierwszy inny
+      odczyt + `stabilnosc_s`) zawsze wypada przed ustaleniem nowego numeru (prog: poczatek nowego odczytu
+      + `stabilnosc_s`). Przy rzadszych obiegach petli (zegar Windows ok. 15,6 ms, obciazenie) oba progi
+      mijaja w jednym odczycie - wtedy tez najpierw 0, nowy numer w nastepnym odczycie. Wczesniej wygrywalo
+      ustalenie: zdarzenie 0 ginelo (4 -> 5), a 5 -> 0 -> 4 po takim skoku bylo wstrzymane jak powrot (3 s).
     Wymaganie I5: zmiana ponizej 100 ms - domyslnie 30 ms.
     """
 
@@ -93,14 +98,18 @@ class Odbijanie:
         self.pewna = False
         if self._inna_od is None:
             self._inna_od = teraz
+        if self.stabilna != 0 and self._uplynelo(self._inna_od, teraz) and (
+                not staly or (surowa != 0 and self._ostatnia_od > self._inna_od)):
+            # plytka odeszla, a odczyt sie nie ustalil: jak brak plytki (ciemno do ustalenia odczytu).
+            # E3-A8p: takze gdy w tym samym odczycie ustalil sie juz nowy numer, ale zaczal sie PO pierwszym
+            # odczycie innym niz `stabilna` (4 -> 0 -> 5) - zdjecie przed nowym numerem, ktory ustala sie
+            # w nastepnym odczycie (kolejnosc progow niezalezna od rozstawu obiegow petli)
+            self._inna_od = None if surowa == 0 else teraz
+            return self._zmien(0, teraz)
         if staly:
             if surowa != 0 and surowa == self._poprzednia and teraz - self._zmiana_t < self.odstep_powrotu_s:
                 return None  # drgania: powrot do poprzedniego numeru wstrzymany (gniazda ciemne)
             self.pewna = True
             self._inna_od = None
             return self._zmien(surowa, teraz)
-        if self.stabilna != 0 and self._uplynelo(self._inna_od, teraz):
-            # plytka odeszla, a odczyt sie nie ustalil: jak brak plytki (ciemno do ustalenia odczytu)
-            self._inna_od = None if surowa == 0 else teraz
-            return self._zmien(0, teraz)
         return None
