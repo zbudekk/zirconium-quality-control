@@ -589,6 +589,8 @@ class PasekStanu(QFrame):
             czesci.append(NR.RAMKA_STAN.format(rola=x.rola, stan=NR.RAMKA_STANY.get(klucz, NR.RAMKA_STANY["inny"]))
                           + (NR.RAMKA_PLYTKA.format(n=x.plytka) if x.plytka else ""))
             podpowiedz += [t for t in ((x.komunikat or ""),) + tuple(x.ostrzezenia) if t and t not in podpowiedz]
+            if getattr(x, "utracone", 0):  # recenzja PR #30 D7: utracone zdarzenia ramki (dziennik ramki przepelniony w przerwie)
+                podpowiedz.append(NR.RAMKA_UTRACONE.format(rola=x.rola, n=x.utracone))
             dobrze = dobrze and klucz in ("gotowa", "test")
             if przejecie is None and (x.wstrzymane or x.blad in ("inny_laptop", "zly_klucz")):
                 przejecie = x.rola

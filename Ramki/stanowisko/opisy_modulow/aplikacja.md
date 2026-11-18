@@ -82,8 +82,7 @@ te okno dostaje zapytaniem `excel_szczegoly(nr) -> SzczegolyExcel` (folder, `Kan
 `StanRano.ramka` = ramka poranna polaczona i bez bledu, `StanRano.excel` = program ma Excel. Komunikaty: `ramka_niedostepna`
 (rano), `ramka_wieczorna_niedostepna` (wieczor, staly id `ID_RAMKA_WIECZORNA`), `ramka_blad` (zly klucz, drugi laptop, awaria),
 `ramka_piec_zamkniety`, `ramka_zamknij_odmowa`, `ramka_zamknij_nieaktualne`, `ramki_test_led`, `excel_blad` / `excel_cien` /
-`excel_niedostepny` (staly id `ID_EXCEL`). Teksty nowych komunikatow: `kontroler_api.KOMUNIKATY_A12` (do przeniesienia do
-`statusy.py` - plik spoza paczki).
+`excel_niedostepny` (staly id `ID_EXCEL`). Teksty komunikatow i bledow ramek (`BLEDY_RAMEK`): `statusy.py` (runda 2, D4).
 
 **Zdarzenia ramek (zegar okna -> `przetworz()`).** Kazde zdarzenie odebrane z `odbierz_zdarzenia()` (takze pominiete i odrzucone)
 trafia do dziennika `zdarzenia` (zrodlo `ramka_p` / `ramka_w`, typ = typ zdarzenia, dane: `klucz` = `start_id:nr`
@@ -93,8 +92,7 @@ restarcie programu nie daje duplikatow ani drugiego skutku; bez zmiany schematu 
 w sesji - jedna transakcja na serie. `potwierdzenie` / `cofniecie` / `kuweta_wybrana` - wpis (`skutek` "zapisano" albo
 "inny_piec"). `zamknij_piec` - `session_rano.zamknij_piec(plan_id=...)` TYLKO gdy `nieaktualne` False, `plan_id` = otwarty piec
 biezacy, nie trwa analiza / skanowanie i jest wybrana osoba; inaczej wpis z `skutek` "nieaktualne" / "inny_piec" / "analiza_trwa"
-/ "skanowanie_trwa" / "odmowa" (z powodem sesji) i komunikat. Potwierdzenia ramki sa dziennikiem - nie zmieniaja rozkladania kuwet
-na ekranie (pytanie do wlasciciela w raporcie E3-A12).
+/ "skanowanie_trwa" / "odmowa" (z powodem sesji) i komunikat. Enter / Backspace na ramce = takze kuweta rozlozona / cofnieta na ekranie (decyzja, runda 2): kuweta potwierdzona na WSZYSTKICH plytkach planu, na ktorych lezy (lustro `potwierdzone()` klienta) - pole `kuweta_rozlozona` / `kuweta_cofnieta` we wpisie zdarzenia (`_rozlozone` czyta je obok wpisow ekranu).
 
 **Plan ramki porannej.** Po kazdym pelnym zbudowaniu stanu w trybie `rano`: gdy zmienil sie piec na ekranie (plytki, prace,
 braki, kolejnosc kuwet z ekranu) - `SesjaRano.plan_plytek(sesja_pieca_id, kolejnosc)` -> `poranna.ustaw_plan_rano(...)`; brak
@@ -112,8 +110,8 @@ mapa na ekranie, wysylane ponownie po decyzji / podaniu numeru; skan zablokowany
 (A7); tryb "pytaj" - `excel.propozycje(wynik)` (swiezy odczyt), poprawki do logu (`zaloguj_poprawki`), "juz odhaczone" bez
 watpliwosci - `zaloguj_juz_odhaczone` bez pytania, reszta czeka w `stan.excel` na okno "Excel: wskaz wiersz"; tryb "cien" -
 `zapisz_cien` (sam log) i komunikat `excel_cien`. `BladExcela` (Excel nie uruchomiony, arkusz zmieniony) = `rozlacz()`, komunikat
-`excel_blad` z lista kuwet i praca dalej. Polecenia (`POLECENIA_A12`): `excel_zatwierdz(nr, wiersz=None)` (tylko po kliknieciu;
-osoba = wybrana na zmianie), `excel_pomin(nr)`, `excel_odswiez()`, `excel_pokaz(sesja_pieca_id=None)` (takze po restarcie: zlecenia
+`excel_blad` z lista kuwet i praca dalej. Polecenia (`POLECENIA_A12`): `excel_zatwierdz(sesja_pieca_id, zlecenie_id, wiersz=None)` (tylko po kliknieciu;
+osoba = wybrana na zmianie), `excel_pomin(sesja_pieca_id, zlecenie_id)`, `excel_odswiez()`, `excel_pokaz(sesja_pieca_id=None)` (takze po restarcie: zlecenia
 kompletne bez wpisu w `excel_zapisy` tego pieca), `excel_zamknij()` ("Pozniej"), `test_led()`, `przejmij_ramke(rola)` (`wznow()`
 po "drugi laptop" / "zly klucz" - decyzja osoby). `otworz_piec_ponownie` czysci propozycje tego pieca.
 
@@ -125,7 +123,27 @@ z historii - tylko wpis i komunikat).
 polecenie kontrolera (`_polecenie`) albo konczy sie `_uniewaznij_punkty()` (tak robi "Zamknij piec" z ramki); `_polecenie`
 uniewaznia pamiec brakow takze po nieoczekiwanym wyjatku (mogl wypasc po zapisie).
 
-**Dziennik `start_skanu`** (prosba A10): dane `{"udany", "tryb"}`.
+**Dziennik `start_skanu`** (prosba A10): dane `{"udany", "tryb"}`. Powrot procesu silnika po `silnik_nie_startuje` = wpis
+`silnik_wrocil` (A10 D-R2).
+
+**Runda 2 (recenzja PR #30).** B1: okno Excela - "Zatwierdz" / "Pomin" tylko dla pozycji wybranej kliknieciem; po zapisie nieaktywne
+do nastepnego klikniecia, `do_sprawdzenia` wymaga wskazania wiersza. P1: Excel po "Zamknij piec" odroczony (`stan.excel.w_toku`):
+najpierw `zgas` ramki P i ekran, potem kroki z zegara okna - propozycje (jeden odczyt arkusza), poprawki (jeden), "juz odhaczone"
+(po jednym na obieg); tryb "cien" = log z odczytu propozycji (`excel.zapisz_cien_bez_odczytu`, bez odczytu na pozycje). P2: kazdy
+blad `plan_plytek` = ramka P zgaszona, komunikat `ramka_plan_blad`, ponowienie co `OKRES_PONOWIENIA_PLANU_S`. P3: zamkniecie pieca
+(przycisk, ramka, w kazdym trybie) gasi ramke P od razu; w trybie "wieczor" plan sie nie zmienia, ale zamkniety piec nie swieci
+(D10). P4: polecenia Excela adresowane tozsamoscia `excel_zatwierdz(sesja_pieca_id, zlecenie_id, wiersz=None)`,
+`excel_pomin(sesja_pieca_id, zlecenie_id)`, `excel_szczegoly(sesja_pieca_id, zlecenie_id)` - lista zmieniona = odmowa bez zapisu.
+P5: niezalatwione pozycje poprzedniego pieca nie znikaja - `StanExcel.zalegle` (przyciski w oknie, `excel_pokaz`), komunikat
+`excel_zalegle`; przy starcie piece zamkniete w ostatnich `ZALEGLE_EXCELA_H` godzinach. P6: znacznik ramki W dopiero dla skanu
+zleconego do analizy (nie dla powtorki ani pliku przemianowanego). P7: "Zamknij piec" z ramki dla pieca zamknietego / otwartego
+ponownie - nieaktualne do przyjecia planu nowej wersji (`plan_przyjety` z wyzsza `wersja`). P8: kazdy wyjatek kroku Excela =
+komunikat `excel_blad` z lista kuwet. D1: `_klucze_od` przesuwany po wlasnych wpisach. D2: zdarzenia ramek przy zajetej bazie
+czekaja na ponowienie (nie gina), blad ramek / Excela nie przerywa `przetworz`, blad klawisza "Zamknij piec" = komunikat. D3:
+`cofnij_przeniesienie` czysci propozycje, ponowne zamkniecie bez dubli w logu. D7: komunikaty "ramka nie odpowiada" po
+`CZAS_NA_POLACZENIE_RAMEK_S`, utracone zdarzenia w podpowiedzi paska. D8: `podlacz_excel` tylko z baza programu. D9: poprzednia
+proba z bledem (`PozycjaExcel.poprzedni_blad`, `poprzedni_wiersz`) pokazana w oknie. D6 ("Przejmij ramke" bez pytania) - bez zmian
+(raport).
 
 ## Jak dziala `Aplikacja`
 

@@ -755,7 +755,10 @@ class Aplikacja(K.KontrolerSesji):
         if t0 - self._ostatnia_kontrola >= OKRES_KONTROLI_S:
             self._ostatnia_kontrola = t0
             zmiany.add(self._kontrola_skanera())
-        obsluzone += self._przetworz_ramki()  # E3-A12: zdarzenia i stan ramek (odswieza stan sama, gdy trzeba)
+        try:
+            obsluzone += self._przetworz_ramki()  # E3-A12: krok Excela, zdarzenia i stan ramek (odswieza stan sama, gdy trzeba)
+        except Exception:  # noqa: BLE001 - recenzja PR #30 D2: blad ramek / Excela nie przerywa obiegu
+            LOG.exception("stanowisko: blad obslugi ramek / Excela")
         if "stan" in zmiany:
             self._odswiez()
         elif "zywe" in zmiany:
@@ -798,7 +801,6 @@ class Aplikacja(K.KontrolerSesji):
             self._czeka_na_skan = False
             self._usun_komunikat("plik_zajety:skaner")
             z = Zlecenie.ze_zdarzenia(dane, self.tryb)
-            z.znacznik_w = self._ramka_w_nowy_skan(z.tryb)  # E3-A12: znacznik Spacji albo skan bez Spacji (ramka gasi stary wynik)
             FILTR_NAZW.zapamietaj(z.plik, z.sha16)  # P5: dalsze wpisy logu z ta nazwa pliku -> sha16
             self.sesja.baza.zdarzenie("scanner", "nowy_skan", {"sha16": z.sha16, "rozmiar": z.rozmiar, "trojkaty": z.trojkaty, "zastany": z.zastany,
                                                                "ponowny": bool(dane.ponowny), "duplikat": bool(dane.duplikat)}, czas=self._teraz())
@@ -845,6 +847,7 @@ class Aplikacja(K.KontrolerSesji):
                     x.zastepcze.append((z.plik, z.mtime_ns))
                 self._przejmij_przemianowany(x)
             return
+        z.znacznik_w = self._ramka_w_nowy_skan(z.tryb)  # E3-A12: znacznik dopiero dla skanu zleconego (recenzja PR #30 P6)
         self._zlec(z)
         self._policz_pule(ciche=True)  # P3: pula sprawdzana przy kazdym nowym skanie (w tle; pusta = kolejne skany czekaja)
 
@@ -892,6 +895,7 @@ class Aplikacja(K.KontrolerSesji):
             self._silnik_gotowy = True
             if self._silnik_nie_startuje:  # proces jednak wystartowal: skany wstrzymane ida do analizy
                 self._silnik_nie_startuje = False
+                self.sesja.baza.zdarzenie("silnik", "silnik_wrocil", {"wstrzymane": len(self._wstrzymane)}, czas=self._teraz())  # A10 D-R2
                 self._usun_komunikat("silnik")
                 self._zwolnij_wstrzymane()
                 return "stan"
