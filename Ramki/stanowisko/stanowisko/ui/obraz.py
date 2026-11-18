@@ -89,6 +89,8 @@ class _Zadanie(QRunnable):
                 obraz = rysuj_odchylki(P, d, self.ubytki)
         except Exception as e:  # noqa: BLE001 - brak obrazu to napis na ekranie, nie awaria
             LOG.warning("obraz odchylek: nie udalo sie przygotowac obrazu (%s)", type(e).__name__)
+        if self.wczytywacz.koniec:  # A-D14: okno sie zamyka - bez sygnalu do obiektu w trakcie usuwania
+            return
         try:
             self.wczytywacz.gotowy.emit(self.klucz, obraz)
         except RuntimeError:  # okno zamkniete w trakcie liczenia
@@ -108,6 +110,7 @@ class WczytywaczObrazow(QObject):
         self._pliki: collections.OrderedDict = collections.OrderedDict()  # uzywane tylko w watku pomocniczym (jest jeden)
         self._obrazy: collections.OrderedDict = collections.OrderedDict()
         self._zlecone: set = set()
+        self.koniec = False
         self.gotowy.connect(self._zapamietaj)
 
     def obraz(self, klucz):
@@ -139,5 +142,6 @@ class WczytywaczObrazow(QObject):
                 self._obrazy.popitem(last=False)
 
     def zakoncz(self) -> None:
+        self.koniec = True
         self._pula.clear()
         self._pula.waitForDone(3000)

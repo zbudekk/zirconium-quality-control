@@ -3,15 +3,24 @@ lista "do dofrezowania".
 
 Kazdy element dostaje gotowe dane ze stanu kontrolera (``ustaw(...)``) i oddaje wybor technika sygnalem - sam nie wola
 kontrolera i niczego nie liczy. Kolory i napisy statusow pochodza z pol stanu (``rgb``, ``podpis``, ``opis``, ``napis``)
-i ze ``statusy``; pozostale napisy z ``napisy``. Zaden element nie przyjmuje klawiatury (``NoFocus``) - klawisze
-obsluguje okno, dzieki czemu Spacja jest zawsze startem skanu, a nie "kliknieciem" ostatnio uzytego przycisku.
+i ze ``statusy``; pozostale napisy z ``napisy``.
+
+Klawiatura: przyciski i kafelki plytek przyjmuja fokus TYLKO klawiszem Tab (nie kliknieciem) - Enter "klika" przycisk
+z fokusem; Spacja, U / O / C / N, Esc i strzalki zawsze ida do okna (``PrzyciskEkranu``), dzieki czemu Spacja jest zawsze
+startem skanu, a nie "kliknieciem" przycisku. Klikniecie mysza oddaje fokus oknu.
+
+Rozmiary (A-P1): przyciski stoja w ukladzie "plynacym" (``UkladPlynny`` - gdy brakuje szerokosci, przechodza do nastepnego
+wiersza zamiast byc ucinane), panele uwag w obszarze przewijanym o wysokosci z zawartosci (``ObszarPaneli``); kazdy element
+ma ``ustaw_tryb(rozmiary)`` dla ukladu zwykle / zwarte (``styl``).
 """
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt, Signal
+import time
+
+from PySide6.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import (QAbstractItemView, QFrame, QHBoxLayout, QHeaderView, QLabel, QProgressBar, QPushButton, QScrollArea,
-                               QSizePolicy, QStackedLayout, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QFrame, QHBoxLayout, QHeaderView, QLabel, QLayout, QProgressBar, QPushButton,
+                               QScrollArea, QSizePolicy, QStackedLayout, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from .. import statusy as ST
 from . import napisy as N
@@ -22,7 +31,15 @@ BEZ_OSOBY = ("zamknij_pytanie", "zamknij_komunikat", "odswiez_pule", "start_skan
 # "polecenia" przyciskow, ktore obsluguje samo okno (nie ida do kontrolera)
 LOKALNE_NUMER_BEZ_ZMIAN = "_numer_bez_zmian"
 LOKALNE_ZAMKNIJ_ODPOWIEDZ = "_zamknij_odpowiedz"
+LOKALNE_ZAMKNIJ_INFORMACJE = "_zamknij_informacje"
 KLASY_LICZNIKOW = (ST.KOLOR_CZERWONY, ST.KOLOR_ZOLTY, ST.KOLOR_POMARANCZOWY, ST.KOLOR_SZARY, ST.KOLOR_ZATWIERDZONA_OK, ST.KOLOR_ZIELONY)
+SKAN_PRZYJETY = "przyjety"  # klucz ``statusy.STATUSY_PLYTKI`` skanu, ktory sie liczy i przyjmuje decyzje
+# Start skanu z programu jest atrapa do dnia skanera (kontrakt: ``aplikacja.md`` "Start skanu (DW5)"; stan nie mowi, czy
+# akcja startu cokolwiek uruchamia - POTRZEBUJE w raporcie). Do tego czasu przycisk mowi technikowi, ze skan uruchamia
+# w programie skanera, a Spacja tylko oznacza "czekam na plik".
+START_SKANU_ATRAPA = True
+LIMIT_LICZENIA_PULI_S = 15.0  # A-D5: po tylu sekundach liczenia "Odswiez pule" znow jest aktywne (liczenie moglo zawisnac)
+BLYSK_MS = 1500
 
 
 # ----------------------------------------------------------------------------
@@ -41,9 +58,57 @@ def etykieta(tekst: str = "", rola: str | None = None, nazwa: str | None = None,
     return e
 
 
+def _klawisze_okna() -> frozenset:
+    k = Qt.Key
+    return frozenset((k.Key_Space, k.Key_U, k.Key_O, k.Key_C, k.Key_N, k.Key_Escape, k.Key_Left, k.Key_Right, k.Key_Up, k.Key_Down))
+
+
+def _do_okna(widzet: QWidget, zdarzenie) -> bool:
+    """Klawisz nalezacy do okna (Spacja, U, O, C, N, Esc, strzalki) - przekazany oknu, nawet gdy fokus ma przycisk w obszarze
+    przewijanym (ten zjadlby strzalki)."""
+    if zdarzenie.key() not in _klawisze_okna():
+        return False
+    okno = widzet.window()
+    if okno is not widzet:
+        okno.keyPressEvent(zdarzenie)
+    zdarzenie.accept()
+    return True
+
+
+def _fokus_do_okna(widzet: QWidget) -> None:
+    """Klikniecie mysza oddaje klawiature oknu: Enter nie "kliknie" pozniej przycisku, do ktorego technik doszedl Tabem."""
+    okno = widzet.window()
+    if okno is not widzet and okno.focusWidget() is not okno:
+        okno.setFocus(Qt.FocusReason.MouseFocusReason)
+
+
+class PrzyciskEkranu(QPushButton):
+    """Przycisk ekranu: fokus tylko Tabem; Enter = klikniecie; Spacja i skroty okna ida do okna (nigdy "klik")."""
+
+    def keyPressEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+        if _do_okna(self, zdarzenie):
+            return
+        if zdarzenie.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if not zdarzenie.isAutoRepeat() and self.isEnabled():
+                self.click()
+            zdarzenie.accept()
+            return
+        super().keyPressEvent(zdarzenie)
+
+    def keyReleaseEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+        if zdarzenie.key() == Qt.Key.Key_Space:
+            zdarzenie.accept()
+            return
+        super().keyReleaseEvent(zdarzenie)
+
+    def mousePressEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+        _fokus_do_okna(self)
+        super().mousePressEvent(zdarzenie)
+
+
 def przycisk(tekst: str, nazwa: str | None = None, rola: str | None = None, po_kliknieciu=None, wysokosc: int | None = None) -> QPushButton:
-    b = QPushButton(tekst)
-    b.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # klawiatura nalezy do okna (Spacja = start skanu)
+    b = PrzyciskEkranu(tekst)
+    b.setFocusPolicy(Qt.FocusPolicy.TabFocus)  # fokus tylko klawiszem Tab; Spacja = start skanu (``PrzyciskEkranu``)
     b.setAutoDefault(False)
     b.setCursor(Qt.CursorShape.PointingHandCursor)
     if rola:
@@ -67,11 +132,18 @@ def ramka(rola: str = "panel", nazwa: str | None = None) -> QFrame:
 
 
 def wyczysc(uklad) -> None:
-    """Usuwa wszystko z ukladu od razu (widzety odlaczone od okna, zanim Qt je skasuje)."""
+    """Usuwa wszystko z ukladu od razu (widzety odlaczone od okna, zanim Qt je skasuje). Gdy fokus mial usuwany przycisk,
+    fokus wraca do okna - nie przeskakuje na przycisk nowego panelu (Enter nie potwierdzi przypadkiem pytania)."""
+    fokus = QApplication.focusWidget()
     while uklad.count():
         pozycja = uklad.takeAt(0)
         w = pozycja.widget()
         if w is not None:
+            if fokus is not None and (w is fokus or w.isAncestorOf(fokus)):
+                okno = w.window()
+                if okno is not w:
+                    okno.setFocus(Qt.FocusReason.OtherFocusReason)
+                fokus = None
             w.setParent(None)
             w.deleteLater()
         elif pozycja.layout() is not None:
@@ -82,8 +154,27 @@ def znaczek(tekst: str, hex_: str, nazwa: str | None = None, rozmiar_px: int = 1
     """Maly prostokat w kolorze ``hex_`` (kolor podaje wolajacy - ze stanu albo ze ``statusy``) z napisem."""
     e = etykieta(tekst, nazwa=nazwa)
     e.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    e.setStyleSheet(f"background: {hex_}; color: {styl.tekst_na(hex_)}; border: 1px solid #3a4047; border-radius: 5px; "
-                    f"padding: 2px 8px; font-size: {rozmiar_px}px; font-weight: 700;")
+    e.setStyleSheet(_styl_znaczka(hex_, rozmiar_px))
+    return e
+
+
+def _styl_znaczka(hex_: str, rozmiar_px: int) -> str:
+    dopelnienie = "1px 5px" if rozmiar_px <= 13 else "2px 8px"
+    return (f"background: {hex_}; color: {styl.tekst_na(hex_)}; border: 1px solid #3a4047; border-radius: 5px; "
+            f"padding: {dopelnienie}; font-size: {rozmiar_px}px; font-weight: 700;")
+
+
+def styl_znaczka_poziomu(poziom: str, rozmiar_px: int) -> str:
+    tlo, pasek, kolor = styl.POZIOMY.get(poziom, styl.POZIOMY["info"])
+    return (f"background: {tlo}; color: {kolor}; border: 2px solid {pasek}; border-radius: 5px; padding: 1px 6px; "
+            f"font-size: {rozmiar_px}px; font-weight: 700;")
+
+
+def znaczek_poziomu(tekst: str, poziom: str, nazwa: str | None = None, rozmiar_px: int = 13) -> QLabel:
+    """Znaczek w barwach poziomu komunikatu (``styl.POZIOMY``) - np. "plytka poranna - dopuszczona swiadomie"."""
+    e = etykieta(tekst, nazwa=nazwa)
+    e.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    e.setStyleSheet(styl_znaczka_poziomu(poziom, rozmiar_px))
     return e
 
 
@@ -112,11 +203,201 @@ def nazwa_plytki(numer) -> str:
     return N.PLYTKA_NR.format(numer=numer) if numer is not None else N.PLYTKA_BEZ_NUMERU
 
 
+def do_obejrzenia(plytka) -> list:
+    """Prace plytki, ktore technik ma jeszcze obejrzec: bez decyzji, z dozwolona decyzja i w klasie koloru innej niz zielona
+    (czerwone, zolte, szare, pomaranczowe, nieznane - klasa ``Praca.kolor`` ze stanu). Prace bez koloru (plytka bez numeru:
+    zielone czekaja na numer) sie nie licza. Uzywaja tego: napis stanu plytki, "Nastepna" (N) i regula przelaczania ekranu
+    na nowa plytke (A-P2)."""
+    if plytka is None:
+        return []
+    return [p for p in plytka.prace
+            if p.decyzja is None and "ukruszona" in p.dozwolone and p.kolor is not None and p.kolor not in (ST.KOLOR_ZIELONY, ST.KOLOR_ZATWIERDZONA_OK)]
+
+
+def stan_obejrzenia(plytka) -> str:
+    """Napis stanu plytki na ekranie (A-P5 poz. 1). Skan przyjety ma w ``statusy`` napis "przeanalizowana"; ekran mowi
+    dokladniej: "do obejrzenia: n", dopoki sa prace do obejrzenia, a "sprawdzona" dopiero, gdy wszystkie czerwone i zolte
+    maja decyzje (i plytka ma numer). Kazdy inny napis ze stanu (inny status skanu, napis nieznany tej wersji ekranu) -
+    bez zmian."""
+    if plytka is None:
+        return ""
+    if not plytka.aktywna or plytka.napis != ST.napis_plytki(SKAN_PRZYJETY):
+        return plytka.napis
+    n = len(do_obejrzenia(plytka))
+    if n:
+        return N.PLYTKA_DO_OBEJRZENIA.format(n=n)
+    if plytka.numer is None or not any(p.dozwolone for p in plytka.prace):
+        return plytka.napis  # bez numeru zielone nie sa potwierdzone; bez decyzji (np. inny tryb) - napis ze stanu
+    return N.PLYTKA_SPRAWDZONA
+
+
+def napis_dopuszczenia(plytka) -> str:
+    """Staly znacznik plytki dopuszczonej swiadomie (plytka poranna wieczorem): "plytka poranna - dopuszczona swiadomie"."""
+    if plytka is None or not plytka.dopuszczona:
+        return ""
+    return N.PLYTKA_DOPUSZCZONA.format(jaka=ST.JAKA_PLYTKA.get(plytka.typ, ST.JAKA_PLYTKA[None]))
+
+
+# ----------------------------------------------------------------------------
+# uklady
+# ----------------------------------------------------------------------------
+class UkladPlynny(QLayout):
+    """Elementy w wierszu od lewej; gdy brakuje szerokosci - nastepny wiersz. Element nigdy nie jest zwezany ponizej
+    ``sizeHint`` (napis przycisku nie jest ucinany); wysokosc zalezy od szerokosci (``heightForWidth``)."""
+
+    def __init__(self, rodzic=None, odstep_poziomy: int = 8, odstep_pionowy: int = 6):
+        super().__init__(rodzic)
+        self._elementy: list = []
+        self._poziomy, self._pionowy = odstep_poziomy, odstep_pionowy
+        self.setContentsMargins(0, 0, 0, 0)
+
+    def ustaw_odstepy(self, poziomy: int, pionowy: int) -> None:
+        self._poziomy, self._pionowy = poziomy, pionowy
+        self.invalidate()
+
+    def addItem(self, element) -> None:  # noqa: N802 - nazwa Qt
+        self._elementy.append(element)
+
+    def count(self) -> int:
+        return len(self._elementy)
+
+    def itemAt(self, i: int):  # noqa: N802 - nazwa Qt
+        return self._elementy[i] if 0 <= i < len(self._elementy) else None
+
+    def takeAt(self, i: int):  # noqa: N802 - nazwa Qt
+        return self._elementy.pop(i) if 0 <= i < len(self._elementy) else None
+
+    def expandingDirections(self):  # noqa: N802 - nazwa Qt
+        return Qt.Orientation.Horizontal
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 - nazwa Qt
+        return True
+
+    def heightForWidth(self, szerokosc: int) -> int:  # noqa: N802 - nazwa Qt
+        return self._uloz(QRect(0, 0, szerokosc, 0), test=True)
+
+    def setGeometry(self, prostokat) -> None:  # noqa: N802 - nazwa Qt
+        super().setGeometry(prostokat)
+        zapas = prostokat.height() - self._uloz(prostokat, test=True)
+        self._uloz(prostokat.translated(0, zapas // 2) if zapas > 1 else prostokat, test=False)  # wiersze wysrodkowane w pionie
+
+    def _widoczne(self) -> list:
+        return [e for e in self._elementy if not e.isEmpty()]
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - nazwa Qt
+        m = self.contentsMargins()
+        widoczne = self._widoczne()
+        if not widoczne:
+            return QSize(m.left() + m.right(), m.top() + m.bottom())
+        szer = sum(e.sizeHint().width() for e in widoczne) + self._poziomy * (len(widoczne) - 1)
+        wys = max(e.sizeHint().height() for e in widoczne)
+        return QSize(szer + m.left() + m.right(), wys + m.top() + m.bottom())
+
+    def minimumSize(self) -> QSize:  # noqa: N802 - nazwa Qt
+        m = self.contentsMargins()
+        widoczne = self._widoczne()
+        if not widoczne:
+            return QSize(m.left() + m.right(), m.top() + m.bottom())
+        return QSize(max(e.sizeHint().width() for e in widoczne) + m.left() + m.right(),
+                     max(e.sizeHint().height() for e in widoczne) + m.top() + m.bottom())
+
+    def _uloz(self, prostokat, test: bool) -> int:
+        m = self.contentsMargins()
+        obszar = prostokat.adjusted(m.left(), m.top(), -m.right(), -m.bottom())
+        widoczne = self._widoczne()
+        if not widoczne:
+            return m.top() + m.bottom()
+        x, y, wys_wiersza, wiersz = obszar.x(), obszar.y(), 0, []
+
+        def rozmiesc() -> None:
+            for element, x0, hint in wiersz:
+                element.setGeometry(QRect(QPoint(x0, y + (wys_wiersza - hint.height()) // 2), hint))
+
+        for element in widoczne:
+            hint = element.sizeHint()
+            if wiersz and x + hint.width() > obszar.x() + obszar.width():
+                if not test:
+                    rozmiesc()
+                y += wys_wiersza + self._pionowy
+                x, wys_wiersza, wiersz = obszar.x(), 0, []
+            wiersz.append((element, x, hint))
+            x += hint.width() + self._poziomy
+            wys_wiersza = max(wys_wiersza, hint.height())
+        if not test:
+            rozmiesc()
+        return y + wys_wiersza - prostokat.y() + m.bottom()
+
+
+class ObszarPaneli(QScrollArea):
+    """Panele (pytania, komunikaty) jeden pod drugim. Wysokosc = suma paneli, gdy jest miejsce; gdy brakuje - najmniej
+    ``widocznych_min`` pierwszych paneli w calosci, reszta jest przewijana (nic nie jest uciete). Pusty obszar jest ukryty."""
+
+    def __init__(self, nazwa: str, widocznych_min: int = 1, odstep: int = 6):
+        super().__init__()
+        self.setObjectName(nazwa)
+        self.setWidgetResizable(True)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        self.wnetrze = QWidget()
+        self.wnetrze.setObjectName(f"{nazwa}_wnetrze")
+        # arkusz z selektorem: arkusz bez selektora przeszedlby na wszystkie panele i przyciski (np. bez tla zaznaczonej osoby)
+        self.wnetrze.setStyleSheet(f"QWidget#{nazwa}_wnetrze {{ background: transparent; }}")
+        self.uklad = QVBoxLayout(self.wnetrze)
+        self.uklad.setContentsMargins(0, 0, 0, 0)
+        self.uklad.setSpacing(odstep)
+        self.setWidget(self.wnetrze)
+        self._widocznych_min = widocznych_min
+        self._limit_minimum: int | None = None
+        self._szerokosc = 0
+
+    def ustaw_limit_minimum(self, piksele: int | None) -> None:
+        """Najwyzej tyle pikseli obszar zajmuje "na pewno" (minimum ukladu); reszta paneli jest wtedy przewijana."""
+        if piksele != self._limit_minimum:
+            self._limit_minimum = piksele
+            self.updateGeometry()
+
+    def panele(self) -> list:
+        """Wszystkie panele obszaru (takze dopiero dodane - Qt pokazuje je w nastepnym obiegu petli)."""
+        return [self.uklad.itemAt(i).widget() for i in range(self.uklad.count()) if self.uklad.itemAt(i).widget() is not None]
+
+    def _wysokosc(self, ile: int | None = None) -> int:
+        szer = max(120, self.width())
+        panele = self.panele()
+        if ile is not None:
+            panele = panele[:ile]
+        if not panele:
+            return 0
+        wys = [p.heightForWidth(szer) if p.hasHeightForWidth() else p.sizeHint().height() for p in panele]
+        return sum(max(h, p.minimumSizeHint().height()) for h, p in zip(wys, panele)) + self.uklad.spacing() * (len(panele) - 1)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - nazwa Qt
+        return QSize(super().sizeHint().width(), self._wysokosc())
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - nazwa Qt
+        wys = self._wysokosc(self._widocznych_min)
+        return QSize(0, wys if self._limit_minimum is None else min(wys, self._limit_minimum))
+
+    def odswiez(self) -> None:
+        """Po wymianie paneli: widocznosc i wysokosc obszaru."""
+        self.setVisible(bool(self.panele()))
+        self.updateGeometry()
+
+    def resizeEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+        super().resizeEvent(zdarzenie)
+        if self.width() != self._szerokosc:  # wysokosc paneli zalezy od szerokosci (zawijany tekst, przyciski w wierszach)
+            self._szerokosc = self.width()
+            self.updateGeometry()
+
+
 # ----------------------------------------------------------------------------
 # pasek stanu
 # ----------------------------------------------------------------------------
 class PasekStanu(QFrame):
-    """Tryb, doba robocza i zmiana, osoba, pula projektow z "Odswiez pule", skaner, analiza z postepem i kolejka, "Skanuj"."""
+    """Tryb, doba robocza i zmiana, osoba, kolejka (wiersz 1); folder projektow z "Odswiez pule", folder skanera, analiza
+    z postepem (wiersz 2); po prawej "Skanuj". Dwa STALE wiersze "podpis: wartosc": wysokosc paska nie zalezy od tresci,
+    wiec nic pod nim (zwlaszcza przyciski decyzji) nie przesuwa sie, gdy zmienia sie kolejka albo stan skanera."""
 
     skanuj = Signal()
     odswiez_pule = Signal()
@@ -125,13 +406,26 @@ class PasekStanu(QFrame):
     def __init__(self):
         super().__init__()
         self.setProperty("rola", "pasek")
+        self.setProperty("blysk", "false")
         self.setObjectName("pasek_stanu")
-        uklad = QHBoxLayout(self)
-        uklad.setContentsMargins(14, 8, 14, 8)
-        uklad.setSpacing(22)
-        self.tryb = self._pole(uklad, N.TRYB, "napis_tryb")
-        self.doba = self._pole(uklad, N.DOBA, "napis_doba")
-        self.osoba = self._pole(uklad, N.OSOBA, "napis_osoba", przycisk(N.ZMIEN_OSOBE, "przycisk_zmien_osobe", "lacze", self.zmien_osobe.emit))
+        self._uklad = QHBoxLayout(self)
+        self._uklad.setContentsMargins(14, 6, 14, 6)
+        self._uklad.setSpacing(14)
+        siatka = QVBoxLayout()
+        siatka.setSpacing(2)
+        self._wiersze = (QHBoxLayout(), QHBoxLayout())
+        for wiersz in self._wiersze:
+            wiersz.setSpacing(22)
+            siatka.addLayout(wiersz)
+        self._uklad.addLayout(siatka, 1)
+        w1, w2 = self._wiersze
+        self.tryb = self._pole(w1, N.TRYB, "napis_tryb")
+        self.doba = self._pole(w1, N.DOBA, "napis_doba")
+        self.przycisk_osoby = przycisk(N.ZMIEN_OSOBE, "przycisk_zmien_osobe", "lacze", self.zmien_osobe.emit)
+        self.osoba = self._pole(w1, N.OSOBA, "napis_osoba", self.przycisk_osoby)
+        self.kolejka = etykieta("", "slaby", "napis_kolejka")
+        w1.addWidget(self.kolejka)
+        w1.addStretch(1)
         self.przycisk_puli = przycisk(ST.PRZYCISKI["odswiez_pule"], "przycisk_odswiez_pule", None, self.odswiez_pule.emit)
         self.postep_puli = QProgressBar()  # liczenie puli trwa: pasek bez konca, przycisk nieaktywny
         self.postep_puli.setObjectName("pasek_puli")
@@ -139,46 +433,65 @@ class PasekStanu(QFrame):
         self.postep_puli.setTextVisible(False)
         self.postep_puli.setFixedWidth(70)
         self.postep_puli.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.pula = self._pole(uklad, N.PULA, "napis_pula", self.przycisk_puli, self.postep_puli)
-        self.skaner = self._pole(uklad, N.SKANER, "napis_skaner")
-        kolumna = QVBoxLayout()
-        kolumna.setSpacing(2)
-        kolumna.addWidget(etykieta(N.ANALIZA, "podpis"))
-        wiersz = QHBoxLayout()
-        wiersz.setSpacing(8)
-        self.analiza = etykieta("", "wartosc", "napis_analiza")
+        self.pula = self._pole(w2, N.PULA, "napis_pula", self.przycisk_puli, self.postep_puli)
+        self.skaner = self._pole(w2, N.SKANER, "napis_skaner")
         self.postep = QProgressBar()
         self.postep.setObjectName("pasek_postepu")
         self.postep.setRange(0, 100)
         self.postep.setTextVisible(False)  # procent jest w napisie obok
         self.postep.setFixedWidth(120)
         self.postep.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.kolejka = etykieta("", "slaby", "napis_kolejka")
-        wiersz.addWidget(self.analiza)
-        wiersz.addWidget(self.postep)
-        wiersz.addWidget(self.kolejka)
-        wiersz.addStretch(1)
-        kolumna.addLayout(wiersz)
-        uklad.addLayout(kolumna, 1)
-        self.przycisk_skanuj = przycisk(ST.PRZYCISKI["start_skanu"], "przycisk_skanuj", "glowny", self.skanuj.emit, 52)
-        self.przycisk_skanuj.setMinimumWidth(190)
-        uklad.addWidget(self.przycisk_skanuj)
+        self.analiza = self._pole(w2, N.ANALIZA, "napis_analiza", self.postep)
+        w2.addStretch(1)
+        tekst = N.SKANUJ_ATRAPA if START_SKANU_ATRAPA else ST.PRZYCISKI["start_skanu"]
+        self.przycisk_skanuj = przycisk(tekst, "przycisk_skanuj", "glowny", self.skanuj.emit, styl.ZWYKLE.wysokosc_skanuj)
+        if START_SKANU_ATRAPA:
+            self.przycisk_skanuj.setToolTip(N.SKANUJ_ATRAPA_OPIS)
+        self._uklad.addWidget(self.przycisk_skanuj, 0, Qt.AlignmentFlag.AlignVCenter)
+        for w in (self.przycisk_osoby, self.postep_puli, self.postep):  # ukryte zachowuja miejsce: pasek nie zmienia wysokosci ani ukladu
+            polityka = w.sizePolicy()
+            polityka.setRetainSizeWhenHidden(True)
+            w.setSizePolicy(polityka)
         self._sygnatura = None
+        self._liczenie_od: float | None = None
+        self._blysk = QTimer(self)
+        self._blysk.setSingleShot(True)
+        self._blysk.timeout.connect(lambda: self._ustaw_blysk(False))
 
     @staticmethod
-    def _pole(uklad: QHBoxLayout, podpis: str, nazwa: str, *dodatki: QWidget) -> QLabel:
-        kolumna = QVBoxLayout()
-        kolumna.setSpacing(2)
-        kolumna.addWidget(etykieta(podpis, "podpis"))
-        wiersz = QHBoxLayout()
-        wiersz.setSpacing(10)
+    def _pole(wiersz: QHBoxLayout, podpis: str, nazwa: str, *dodatki: QWidget) -> QLabel:
+        pole = QWidget()
+        pole.setObjectName(f"pole_{nazwa}")
+        uklad = QHBoxLayout(pole)
+        uklad.setContentsMargins(0, 0, 0, 0)
+        uklad.setSpacing(6)
+        uklad.addWidget(etykieta(N.PODPIS_POLA.format(podpis=podpis), "podpis"))
         wartosc = etykieta("", "wartosc", nazwa)
-        wiersz.addWidget(wartosc)
+        uklad.addWidget(wartosc)
         for dodatek in dodatki:
-            wiersz.addWidget(dodatek)
-        kolumna.addLayout(wiersz)
-        uklad.addLayout(kolumna)
+            uklad.addSpacing(4)
+            uklad.addWidget(dodatek)
+        wiersz.addWidget(pole)
         return wartosc
+
+    def ustaw_tryb(self, r: styl.Rozmiary) -> None:
+        self._uklad.setContentsMargins(*((8, 3, 8, 3) if r.zwarty else (14, 6, 14, 6)))
+        self._uklad.setSpacing(10 if r.zwarty else 14)
+        for wiersz in self._wiersze:
+            wiersz.setSpacing(14 if r.zwarty else 22)
+        self.przycisk_skanuj.setMinimumHeight(r.wysokosc_skanuj)
+        self.postep.setFixedWidth(90 if r.zwarty else 120)
+        self.postep_puli.setFixedWidth(56 if r.zwarty else 70)
+
+    def blysk(self) -> None:
+        """Krotki sygnal na pasku (A-P2): nowy wynik plytki, na ktora ekran sie nie przelaczyl - pasek na chwile w kolorze akcentu."""
+        self._ustaw_blysk(True)
+        self._blysk.start(BLYSK_MS)
+
+    def _ustaw_blysk(self, wlaczony: bool) -> None:
+        self.setProperty("blysk", "true" if wlaczony else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
 
     def ustaw(self, stan) -> None:
         sk, kol, an = stan.skaner, stan.kolejka, stan.analiza
@@ -191,13 +504,18 @@ class PasekStanu(QFrame):
         self.tryb.setText(ST.NAZWY_TRYBOW.get(stan.tryb, stan.tryb))
         self.doba.setText(N.DOBA_I_ZMIANA.format(doba=dzien(stan.doba, rok=True), zmiana=stan.zmiana))
         self.osoba.setText(stan.operator or N.OSOBA_BRAK)
-        self._rola(self.osoba, "wartosc" if stan.operator else "uwaga")
-        self.findChild(QPushButton, "przycisk_zmien_osobe").setVisible(stan.operator is not None)
+        self._rola(self.osoba, "wartosc" if stan.operator else "wartosc_uwaga")
+        self.przycisk_osoby.setVisible(stan.operator is not None)
         # napis puli ze stanu (takze dla stanu, ktorego ta wersja ekranu nie zna); folder puli jest ustawieniem i nie jest pokazywany
         self.pula.setText(stan.pula.napis or ST.STANY_PULI.get(stan.pula.stan, ""))
-        self._rola(self.pula, "wartosc" if stan.pula.stan in ("gotowa", "liczenie") else "uwaga")
+        self._rola(self.pula, "wartosc" if stan.pula.stan in ("gotowa", "liczenie") else "wartosc_uwaga")
         liczenie = stan.pula.stan == "liczenie"
-        self.przycisk_puli.setEnabled(not liczenie)  # odswiezanie trwa: drugie klikniecie nic by nie dalo
+        if liczenie and self._liczenie_od is None:
+            self._liczenie_od = time.monotonic()
+            QTimer.singleShot(int(LIMIT_LICZENIA_PULI_S * 1000) + 50, self, self._sprawdz_liczenie)
+        elif not liczenie:
+            self._liczenie_od = None
+        self._sprawdz_liczenie()
         self.postep_puli.setVisible(liczenie)
         if not sk.dostepny:
             self.skaner.setText(N.SKANER_BRAK_FOLDERU)
@@ -209,7 +527,7 @@ class PasekStanu(QFrame):
             self.skaner.setText(N.SKANER_CZEKA)
         else:
             self.skaner.setText(N.SKANER_GOTOWY)
-        self._rola(self.skaner, "wartosc" if sk.dostepny and sk.dziala else "uwaga")
+        self._rola(self.skaner, "wartosc" if sk.dostepny and sk.dziala else "wartosc_uwaga")
         self.postep.setVisible(an is not None)
         if an is not None:
             procent = max(0, min(100, round(an.udzial * 100)))
@@ -218,14 +536,20 @@ class PasekStanu(QFrame):
         else:
             self.analiza.setText(N.ANALIZA_CZEKA if kol.razem else N.ANALIZA_BRAK)
         czesci = [N.KOLEJKA.format(n=kol.czeka)] if kol.czeka else []
-        niezapisane = getattr(kol, "niezapisane", 0)  # czesc ``wstrzymane``: policzone, czekaja na zapis w bazie
+        niezapisane = kol.niezapisane  # czesc ``wstrzymane``: policzone, czekaja na zapis w bazie (kontrakt w wersji 2)
         if kol.wstrzymane - niezapisane > 0:  # skany wstrzymane CZEKAJA (na pule projektow albo na analize) - to nie blad
             czeka_na_pule = stan.pula.stan != "gotowa"
             czesci.append((N.WSTRZYMANE_PULA if czeka_na_pule else N.WSTRZYMANE_ANALIZA).format(n=kol.wstrzymane - niezapisane))
         if niezapisane:
             czesci.append(N.WSTRZYMANE_ZAPIS.format(n=niezapisane))
-        self.kolejka.setText(", ".join(czesci))
+        self.kolejka.setText(N.ODSTEP_KOLEJKI.join(czesci))
         self.kolejka.setVisible(bool(czesci))
+
+    def _sprawdz_liczenie(self) -> None:
+        """"Odswiez pule" nieaktywne w trakcie liczenia; po ``LIMIT_LICZENIA_PULI_S`` znowu aktywne (A-D5: liczenie moglo zawisnac
+        na folderze sieciowym - nowe klikniecie uruchamia nowe liczenie)."""
+        trwa = self._liczenie_od is not None and time.monotonic() - self._liczenie_od < LIMIT_LICZENIA_PULI_S
+        self.przycisk_puli.setEnabled(not trwa)
 
     @staticmethod
     def _rola(pole: QLabel, rola: str) -> None:
@@ -245,29 +569,32 @@ class PanelOsoby(QFrame):
     bez_zmian = Signal()
     wyloguj = Signal()
 
-    def __init__(self, operatorzy: tuple, obecna: str | None, teksty: list, zmiana_osoby: bool, wylogowanie: bool = True):
+    def __init__(self, operatorzy: tuple, obecna: str | None, teksty: list, zmiana_osoby: bool, wylogowanie: bool = True,
+                 r: styl.Rozmiary = styl.ZWYKLE):
         super().__init__()
         self.setObjectName("panel_osoba")
         tlo, pasek, _ = styl.POZIOMY["info" if zmiana_osoby else "ostrzezenie"]
         self.setStyleSheet(f"QFrame#panel_osoba {{ background: {tlo}; border: 1px solid {pasek}; border-left: 10px solid {pasek}; border-radius: 6px; }}")
         uklad = QHBoxLayout(self)
-        uklad.setContentsMargins(18, 10, 14, 10)
-        uklad.setSpacing(16)
+        uklad.setContentsMargins(*((14, 5, 10, 5) if r.zwarty else (18, 10, 14, 10)))
+        uklad.setSpacing(10 if r.zwarty else 16)
         kolumna = QVBoxLayout()
         kolumna.setSpacing(2)
         kolumna.addWidget(etykieta(N.ZMIANA_OSOBY if zmiana_osoby else N.KTO_PRACUJE, "naglowek"))
         for tekst in teksty:
             kolumna.addWidget(etykieta(tekst, zawijaj=True))
         uklad.addLayout(kolumna, 1)
+        przyciski = UkladPlynny(odstep_poziomy=8, odstep_pionowy=6)
         for i, osoba in enumerate(operatorzy):
             b = przycisk(osoba, f"osoba_{i}", "osoba", lambda o=osoba: self.wybrano.emit(o))
             b.setCheckable(True)
             b.setChecked(osoba == obecna)
-            uklad.addWidget(b)
+            przyciski.addWidget(b)
         if zmiana_osoby:
             if wylogowanie:
-                uklad.addWidget(przycisk(ST.PRZYCISK_WYLOGUJ, "osoba_wyloguj", "lacze", self.wyloguj.emit))
-            uklad.addWidget(przycisk(N.ZOSTAW_OSOBE, "osoba_bez_zmian", "lacze", self.bez_zmian.emit))
+                przyciski.addWidget(przycisk(ST.PRZYCISK_WYLOGUJ, "osoba_wyloguj", "lacze", self.wyloguj.emit))
+            przyciski.addWidget(przycisk(N.ZOSTAW_OSOBE, "osoba_bez_zmian", "lacze", self.bez_zmian.emit))
+        uklad.addLayout(przyciski)
 
 
 # ----------------------------------------------------------------------------
@@ -275,25 +602,25 @@ class PanelOsoby(QFrame):
 # ----------------------------------------------------------------------------
 class PanelUwagi(QFrame):
     """Jedno pytanie albo komunikat ze stanu: tytul, tekst, opcjonalnie rada, ostrzezenie i wyjasnienie, przyciski.
-    ``przyciski``: lista (nazwa obiektu, napis, polecenie, argumenty, aktywny, rola); klikniecie = sygnal ``polecenie``."""
+    ``przyciski``: lista (nazwa obiektu, napis, polecenie, argumenty, aktywny, rola); klikniecie = sygnal ``polecenie``.
+    Przyciski stoja obok tekstu (do dwoch) albo pod nim; przy waskim panelu przechodza do nastepnego wiersza."""
 
     polecenie = Signal(str, tuple)
 
     def __init__(self, nazwa: str, poziom: str, tytul: str, tekst: str, przyciski: list, *, rada: str = "", ostrzezenie: str = "",
-                 wyjasnienie: str = "", przyciski_pod_tekstem: bool = False):
+                 wyjasnienie: str = "", przyciski_pod_tekstem: bool = False, r: styl.Rozmiary = styl.ZWYKLE):
         super().__init__()
         self.setObjectName(nazwa)
         tlo, pasek, _ = styl.POZIOMY.get(poziom, styl.POZIOMY["ostrzezenie"])
         self.setStyleSheet(f"QFrame#{nazwa} {{ background: {tlo}; border: 1px solid {pasek}; border-left: 10px solid {pasek}; border-radius: 6px; }}")
         uklad = QHBoxLayout(self)
-        uklad.setContentsMargins(18, 8, 12, 8)
-        uklad.setSpacing(14)
+        uklad.setContentsMargins(*((14, 4, 8, 4) if r.zwarty else (18, 8, 12, 8)))
+        uklad.setSpacing(10 if r.zwarty else 14)
         kolumna = QVBoxLayout()
-        kolumna.setSpacing(3)
-        kolumna.addWidget(etykieta(tytul, "naglowek"))
+        kolumna.setSpacing(1 if r.zwarty else 3)
+        kolumna.addWidget(etykieta(tytul, "naglowek", zawijaj=True))
         if rada:
-            e = etykieta(rada, "duzy", zawijaj=True)
-            kolumna.addWidget(e)
+            kolumna.addWidget(etykieta(rada, "duzy", zawijaj=True))
         if tekst:
             kolumna.addWidget(etykieta(tekst, zawijaj=True))
         if ostrzezenie:
@@ -301,16 +628,14 @@ class PanelUwagi(QFrame):
         if wyjasnienie:
             kolumna.addWidget(etykieta(wyjasnienie, "slaby", zawijaj=True))
         uklad.addLayout(kolumna, 1)
-        miejsce = QHBoxLayout()
-        miejsce.setSpacing(8)
+        miejsce = UkladPlynny(odstep_poziomy=8, odstep_pionowy=6 if not r.zwarty else 4)
         for nazwa_b, napis, polecenie, argumenty, aktywny, rola in przyciski:
             b = przycisk(napis, nazwa_b, rola, lambda p=polecenie, a=tuple(argumenty): self.polecenie.emit(p, a))
             b.setEnabled(aktywny)
             if rola not in ("cyfra", "lacze"):
-                b.setMinimumHeight(styl.WYSOKOSC_PRZYCISKU)
-            miejsce.addWidget(b, 0, Qt.AlignmentFlag.AlignVCenter)
+                b.setMinimumHeight(r.wysokosc_przycisku)
+            miejsce.addWidget(b)
         if przyciski_pod_tekstem:
-            miejsce.addStretch(1)
             kolumna.addLayout(miejsce)
         else:
             uklad.addLayout(miejsce)
@@ -320,7 +645,7 @@ def tytul_plytki(nazwa_plytki_: str, tytul: str) -> str:
     return N.UWAGA_PLYTKI.format(plytka=nazwa_plytki_, tytul=tytul) if nazwa_plytki_ else tytul
 
 
-def panel_pytania(pytanie, stan, typ_plytki: str | None, plytka: str = "") -> PanelUwagi:
+def panel_pytania(pytanie, stan, typ_plytki: str | None, plytka: str = "", r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
     """Panel pytania ze stanu: przyciski z ``pytanie.odpowiedzi``; polecenia wymagajace osoby nieaktywne bez niej (z wyjasnieniem)."""
     jest_osoba = stan.operator is not None
     przyciski, wymaga = [], False
@@ -342,26 +667,35 @@ def panel_pytania(pytanie, stan, typ_plytki: str | None, plytka: str = "") -> Pa
     if wymaga and not jest_osoba:
         wyjasnienie = ST.tekst_komunikatu("brak_operatora" if stan.operatorzy else "pusta_lista_operatorow")[2]
     return PanelUwagi(nazwa_obiektu("pytanie", pytanie.rodzaj), pytanie.poziom, tytul_plytki(plytka, pytanie.tytul), tekst, przyciski, rada=rada,
-                      ostrzezenie=ostrzezenie, wyjasnienie=wyjasnienie, przyciski_pod_tekstem=len(przyciski) > 2)
+                      ostrzezenie=ostrzezenie, wyjasnienie=wyjasnienie, przyciski_pod_tekstem=len(przyciski) > 2, r=r)
 
 
-def panel_numeru(skan_id: int, numery: tuple, obecny, jest_osoba: bool, wyjasnienie: str, plytka: str = "") -> PanelUwagi:
-    """Reczne podanie albo poprawienie numeru plytki (polecenie ``podaj_numer_plytki`` z ``Plytka.dozwolone``)."""
+def panel_numeru(skan_id: int, numery: tuple, obecny, jest_osoba: bool, wyjasnienie: str, plytka: str = "",
+                 r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
+    """Reczne podanie albo poprawienie numeru plytki (polecenie ``podaj_numer_plytki`` z ``Plytka.dozwolone``). Plytka bez
+    numeru: tytul "Podaj numer plytki" bez przedrostka; z numerem: "Plytka n: zmien numer plytki"."""
     przyciski = [(f"odp_podaj_numer_plytki_{n}", str(n), "podaj_numer_plytki", (skan_id, n), jest_osoba and n != obecny, "cyfra") for n in numery]
     przyciski.append(("numer_bez_zmian", N.ZOSTAW_OSOBE, LOKALNE_NUMER_BEZ_ZMIAN, (), True, "lacze"))
-    return PanelUwagi("panel_numer_plytki", "info", tytul_plytki(plytka, ST.PRZYCISKI["podaj_numer_plytki"]), N.NUMER_PLYTKI_TEKST, przyciski,
-                      wyjasnienie="" if jest_osoba else wyjasnienie, przyciski_pod_tekstem=True)
+    tytul = ST.PRZYCISKI["podaj_numer_plytki"] if obecny is None else tytul_plytki(plytka, N.ZMIEN_NUMER_TYTUL)
+    return PanelUwagi("panel_numer_plytki", "info", tytul, N.NUMER_PLYTKI_TEKST, przyciski,
+                      wyjasnienie="" if jest_osoba else wyjasnienie, przyciski_pod_tekstem=True, r=r)
 
 
-def panel_odmowy(tekst: str) -> PanelUwagi:
+def panel_odmowy(tekst: str, r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
     """Odmowa polecenia, ktorej nie ma w komunikatach stanu (np. ``zle_argumenty``): tekst odpowiedzi kontrolera."""
     return PanelUwagi("komunikat_odpowiedz", ST.KOMUNIKATY["odmowa"].poziom, ST.KOMUNIKATY["odmowa"].tytul, tekst,
-                      [("zamknij_odpowiedz", ST.PRZYCISKI["zamknij_komunikat"], LOKALNE_ZAMKNIJ_ODPOWIEDZ, (), True, "lacze")])
+                      [("zamknij_odpowiedz", ST.PRZYCISKI["zamknij_komunikat"], LOKALNE_ZAMKNIJ_ODPOWIEDZ, (), True, "lacze")], r=r)
 
 
-def panel_komunikatu(komunikaty: tuple, plytka: str = "") -> PanelUwagi:
+def panel_informacji(tekst: str, r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
+    """Informacja samego ekranu (np. widok pracy zamkniety, bo pracy nie ma juz w stanie) - nie komunikat kontrolera."""
+    return PanelUwagi("informacja_ekranu", "info", N.INFORMACJA, tekst,
+                      [("zamknij_informacje", ST.PRZYCISKI["zamknij_komunikat"], LOKALNE_ZAMKNIJ_INFORMACJE, (), True, "lacze")], r=r)
+
+
+def panel_komunikatu(komunikaty: tuple, plytka: str = "", dodatek: str = "", r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
     """Panel komunikatu ze stanu; ``komunikaty`` - jeden albo kilka jednakowych (ten sam rodzaj i tekst: jeden panel z licznikiem,
-    "Zamknij" zamyka wszystkie)."""
+    "Zamknij" zamyka wszystkie). ``dodatek`` - dopisek ekranu ze stanu (np. gniazda konfliktu projektu)."""
     komunikat = komunikaty[0]
     przyciski = []
     if komunikat.rodzaj in ("pula_pusta", "pula_brak_folderu"):
@@ -375,51 +709,65 @@ def panel_komunikatu(komunikaty: tuple, plytka: str = "") -> PanelUwagi:
     if len(komunikaty) > 1:
         tytul = N.KILKA_RAZY.format(tytul=tytul, n=len(komunikaty))
     return PanelUwagi(nazwa_obiektu("komunikat", komunikat.rodzaj), komunikat.poziom, tytul, komunikat.tekst, przyciski,
-                      przyciski_pod_tekstem=False)
+                      wyjasnienie=dodatek, przyciski_pod_tekstem=False, r=r)
 
 
 # ----------------------------------------------------------------------------
 # lista plytek
 # ----------------------------------------------------------------------------
 class KafelekPlytki(QFrame):
-    """Jedna plytka na liscie: numer, godzina skanu, status skanu (napis ze stanu) i liczniki prac wg koloru."""
+    """Jedna plytka na liscie: numer, godzina skanu, stan plytki (napis ze stanu albo "do obejrzenia: n" / "sprawdzona"),
+    znaczniki (NOWA, plytka dopuszczona, czeka na odpowiedz, ma komunikat) i liczniki prac wg koloru (z podpowiedzia)."""
 
     wybrano = Signal(int)
 
-    def __init__(self, plytka, wybrana: bool, nowa: bool, z_pytaniem: bool):
+    def __init__(self, plytka, wybrana: bool, nowa: bool, z_pytaniem: bool, z_komunikatem: bool = False, r: styl.Rozmiary = styl.ZWYKLE):
         super().__init__()
         self.setObjectName(f"plytka_{plytka.skan_id}")
         self.setProperty("rola", "kafelek")
         self.setProperty("wybrany", "true" if wybrana else "false")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self._skan_id = plytka.skan_id
         self._liczniki = {k: n for k, n in plytka.liczniki.items() if n}
         uklad = QVBoxLayout(self)
-        uklad.setContentsMargins(10, 6, 10, 8)
-        uklad.setSpacing(3)
+        uklad.setContentsMargins(*((7, 3, 7, 5) if r.zwarty else (10, 6, 10, 8)))
+        uklad.setSpacing(2 if r.zwarty else 3)
         wiersz = QHBoxLayout()
-        wiersz.addWidget(etykieta(nazwa_plytki(plytka.numer), "naglowek"))
-        wiersz.addStretch(1)
-        if nowa:
-            wiersz.addWidget(znaczek(N.PLYTKA_NOWA, styl.AKCENT, rozmiar_px=13))
-        wiersz.addWidget(etykieta(godzina(plytka.czas), "slaby"))
+        wiersz.addWidget(etykieta(nazwa_plytki(plytka.numer), "naglowek", zawijaj=True), 1)  # "Plytka bez numeru" w waskiej liscie: 2 wiersze
+        wiersz.addWidget(etykieta(godzina(plytka.czas), "slaby"), 0, Qt.AlignmentFlag.AlignTop)
         uklad.addLayout(wiersz)
-        uklad.addWidget(etykieta(plytka.napis, "slaby", zawijaj=True))
+        stan = stan_obejrzenia(plytka)
+        uklad.addWidget(etykieta(stan, "slaby", "plytka_stan", zawijaj=True))
+        if napis_dopuszczenia(plytka):  # dluzszy napis: wlasny wiersz z zawijaniem (waska lista)
+            dopuszczona = etykieta(napis_dopuszczenia(plytka), nazwa="plytka_znacznik_dopuszczona", zawijaj=True)
+            dopuszczona.setStyleSheet(styl_znaczka_poziomu("ostrzezenie", r.znaczek))
+            uklad.addWidget(dopuszczona)
+        znaczniki = UkladPlynny(odstep_poziomy=5, odstep_pionowy=3)
+        if nowa:
+            znaczniki.addWidget(znaczek(N.PLYTKA_NOWA, styl.AKCENT, "plytka_znacznik_nowa", rozmiar_px=r.znaczek))
         if z_pytaniem:
-            uklad.addWidget(etykieta(N.PLYTKA_PYTANIE, "uwaga"))
-        wiersz = QHBoxLayout()
-        wiersz.setSpacing(5)
-        for klasa in KLASY_LICZNIKOW:  # kolor znaczka: kolor ekranu statusu tej klasy ze ``statusy``
+            znaczniki.addWidget(etykieta(N.PLYTKA_PYTANIE, "uwaga"))
+        if z_komunikatem:
+            znaczniki.addWidget(etykieta(N.PLYTKA_KOMUNIKAT, "uwaga"))
+        if znaczniki.count():
+            uklad.addLayout(znaczniki)
+        liczniki = UkladPlynny(odstep_poziomy=5, odstep_pionowy=3)
+        for klasa in KLASY_LICZNIKOW:  # kolor znaczka: kolor ekranu statusu tej klasy ze ``statusy``; podpowiedz z napisem statusu
             if self._liczniki.get(klasa):
-                wiersz.addWidget(znaczek(str(self._liczniki[klasa]), ST.status(ST.STATUS_WG_KOLORU[klasa]).hex))
+                wiersz_st = ST.status(ST.STATUS_WG_KOLORU[klasa])
+                z = znaczek(str(self._liczniki[klasa]), wiersz_st.hex, rozmiar_px=r.znaczek)
+                z.setToolTip(N.LICZNIK_OPIS.format(napis=wiersz_st.napis, n=self._liczniki[klasa]))
+                liczniki.addWidget(z)
         for klasa, n in self._liczniki.items():
             if klasa not in KLASY_LICZNIKOW:  # klasa koloru nieznana tej wersji ekranu: kolor "nieznany" ze ``statusy``
-                wiersz.addWidget(znaczek(str(n), ST.status(None).hex))
-        if not self._liczniki:
-            wiersz.addWidget(etykieta(N.PLYTKA_BEZ_PRAC if plytka.aktywna else "", "slaby"))
-        wiersz.addStretch(1)
-        uklad.addLayout(wiersz)
+                z = znaczek(str(n), ST.status(None).hex, rozmiar_px=r.znaczek)
+                z.setToolTip(N.LICZNIK_OPIS.format(napis=ST.status(None).napis, n=n))
+                liczniki.addWidget(z)
+        if not self._liczniki and plytka.aktywna:
+            liczniki.addWidget(etykieta(N.PLYTKA_BEZ_PRAC, "slaby"))
+        if liczniki.count():
+            uklad.addLayout(liczniki)
 
     def liczniki(self) -> dict:
         """Klasa koloru -> liczba pokazana na kafelku."""
@@ -427,25 +775,35 @@ class KafelekPlytki(QFrame):
 
     def mousePressEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
         if zdarzenie.button() == Qt.MouseButton.LeftButton:
+            _fokus_do_okna(self)
             self.wybrano.emit(self._skan_id)
+
+    def keyPressEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+        if _do_okna(self, zdarzenie):
+            return
+        if zdarzenie.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if not zdarzenie.isAutoRepeat():
+                self.wybrano.emit(self._skan_id)
+            zdarzenie.accept()
+            return
+        super().keyPressEvent(zdarzenie)
 
 
 class KafelekNiezapisany(QFrame):
     """Skan policzony, ale jeszcze niezapisany (``StanAplikacji.niezapisane``): numer plytki, napis ze stanu, liczba prac.
     Nie da sie go otworzyc - prace pojawia sie po udanym zapisie."""
 
-    def __init__(self, nr: int, pozycja):
+    def __init__(self, nr: int, pozycja, r: styl.Rozmiary = styl.ZWYKLE):
         super().__init__()
         self.setObjectName(f"niezapisany_{nr}")
         tlo, pasek, _ = styl.POZIOMY["blad"]
         self.setStyleSheet(f"QFrame#niezapisany_{nr} {{ background: {tlo}; border: 2px dashed {pasek}; border-radius: 8px; }}")
         uklad = QVBoxLayout(self)
-        uklad.setContentsMargins(10, 6, 10, 8)
-        uklad.setSpacing(3)
+        uklad.setContentsMargins(*((7, 3, 7, 5) if r.zwarty else (10, 6, 10, 8)))
+        uklad.setSpacing(2 if r.zwarty else 3)
         wiersz = QHBoxLayout()
-        wiersz.addWidget(etykieta(nazwa_plytki(pozycja.numer), "naglowek"))
-        wiersz.addStretch(1)
-        wiersz.addWidget(etykieta(godzina(pozycja.od), "slaby"))
+        wiersz.addWidget(etykieta(nazwa_plytki(pozycja.numer), "naglowek", zawijaj=True), 1)
+        wiersz.addWidget(etykieta(godzina(pozycja.od), "slaby"), 0, Qt.AlignmentFlag.AlignTop)
         uklad.addLayout(wiersz)
         uklad.addWidget(etykieta(pozycja.napis, "duzy", zawijaj=True))
         if pozycja.prac is not None:
@@ -454,50 +812,77 @@ class KafelekNiezapisany(QFrame):
 
 class ListaPlytek(QFrame):
     """Plytki biezacej zmiany (kafelki, najnowsza na gorze); wczesniejsze zmiany tej doby na zadanie. Na samej gorze skany
-    policzone, ktorych wyniku nie udalo sie jeszcze zapisac ("nie zapisano") z przyciskiem "Ponow zapis"."""
+    policzone, ktorych wyniku nie udalo sie jeszcze zapisac ("nie zapisano") z przyciskiem "Ponow zapis". Pod naglowkiem
+    (poza przewijaniem) przycisk "Pokaz nowy wynik" - plytki, na ktore ekran sie nie przelaczyl (A-P2)."""
 
     wybrano = Signal(int)
     przelacz_wczesniejsze = Signal()
     ponow_zapis = Signal()
+    pokaz_nowa = Signal()
 
     def __init__(self):
         super().__init__()
         self.setProperty("rola", "panel")
         self.setObjectName("lista_plytek")
-        self.setFixedWidth(styl.SZEROKOSC_LISTY_PLYTEK)
-        uklad = QVBoxLayout(self)
-        uklad.setContentsMargins(8, 8, 8, 8)
-        uklad.setSpacing(6)
-        uklad.addWidget(etykieta(N.PLYTKI_ZMIANY, "naglowek"))
+        self.setFixedWidth(styl.ZWYKLE.szerokosc_listy_plytek)
+        self._uklad = QVBoxLayout(self)
+        self._uklad.setContentsMargins(8, 8, 8, 8)
+        self._uklad.setSpacing(6)
+        self._uklad.addWidget(etykieta(N.PLYTKI_ZMIANY, "naglowek"))
+        self.przycisk_nowa = przycisk("", "przycisk_nowa_plytka", "nowa", self.pokaz_nowa.emit)
+        self.przycisk_nowa.setVisible(False)
+        self._uklad.addWidget(self.przycisk_nowa)
+        self._nowe = None
         self._przewijanie = QScrollArea()
         self._przewijanie.setWidgetResizable(True)
         self._przewijanie.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._przewijanie.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         wnetrze = QWidget()
-        wnetrze.setStyleSheet("background: transparent;")
+        wnetrze.setObjectName("lista_plytek_wnetrze")
+        wnetrze.setStyleSheet("QWidget#lista_plytek_wnetrze { background: transparent; }")  # tylko to tlo, nie kafelki (zaznaczenie)
         self._kafelki = QVBoxLayout(wnetrze)
         self._kafelki.setContentsMargins(0, 0, 0, 0)
         self._kafelki.setSpacing(6)
         self._przewijanie.setWidget(wnetrze)
-        uklad.addWidget(self._przewijanie, 1)
+        self._uklad.addWidget(self._przewijanie, 1)
+        self._sygnatura = None
+        self._r = styl.ZWYKLE
+
+    def ustaw_tryb(self, r: styl.Rozmiary) -> None:
+        self._r = r
+        self.setFixedWidth(r.szerokosc_listy_plytek)
+        self._uklad.setContentsMargins(*((5, 5, 5, 5) if r.zwarty else (8, 8, 8, 8)))
+        self._uklad.setSpacing(4 if r.zwarty else 6)
+        self._kafelki.setSpacing(4 if r.zwarty else 6)
         self._sygnatura = None
 
+    def ustaw_nowe(self, plytka: str | None, ile: int) -> None:
+        """"Pokaz nowy wynik: Plytka n" - najnowsza plytka, na ktora ekran sie nie przelaczyl (``ile`` takich plytek)."""
+        nowe = (plytka, ile)
+        if nowe == self._nowe:
+            return
+        self._nowe = nowe
+        if plytka is not None:
+            self.przycisk_nowa.setText(N.NOWA_PLYTKA.format(plytka=plytka) if ile <= 1 else N.NOWE_PLYTKI.format(n=ile, plytka=plytka))
+        self.przycisk_nowa.setVisible(plytka is not None)
+
     def ustaw(self, plytki: list, wybrana: int | None, nowe: set, z_pytaniem: set, wczesniejszych: int, pokazane_wczesniejsze: bool,
-              niezapisane: tuple = ()) -> None:
-        sygnatura = (tuple((p.skan_id, p.numer, p.napis, p.czas, p.aktywna, tuple(sorted(p.liczniki.items()))) for p in plytki), wybrana,
-                     frozenset(nowe), frozenset(z_pytaniem), wczesniejszych, pokazane_wczesniejsze, tuple(niezapisane))
+              niezapisane: tuple = (), z_komunikatem: set = frozenset()) -> None:
+        sygnatura = (tuple((p.skan_id, p.numer, p.napis, p.czas, p.aktywna, p.dopuszczona, p.typ, tuple(sorted(p.liczniki.items())), stan_obejrzenia(p))
+                           for p in plytki), wybrana, frozenset(nowe), frozenset(z_pytaniem), frozenset(z_komunikatem), wczesniejszych,
+                     pokazane_wczesniejsze, tuple(niezapisane))
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
         wyczysc(self._kafelki)
         for nr, pozycja in enumerate(reversed(niezapisane)):
-            self._kafelki.addWidget(KafelekNiezapisany(nr, pozycja))
+            self._kafelki.addWidget(KafelekNiezapisany(nr, pozycja, self._r))
         if niezapisane:
             self._kafelki.addWidget(przycisk(ST.PRZYCISKI["ponow_zapis"], "przycisk_ponow_zapis", None, self.ponow_zapis.emit))
         if not plytki and not niezapisane:
             self._kafelki.addWidget(etykieta(N.PLYTKI_BRAK, "slaby", zawijaj=True))
         for p in reversed(plytki):  # najnowsza na gorze
-            kafelek = KafelekPlytki(p, p.skan_id == wybrana, p.skan_id in nowe, p.skan_id in z_pytaniem)
+            kafelek = KafelekPlytki(p, p.skan_id == wybrana, p.skan_id in nowe, p.skan_id in z_pytaniem, p.skan_id in z_komunikatem, self._r)
             kafelek.wybrano.connect(self.wybrano.emit)
             self._kafelki.addWidget(kafelek)
         if wczesniejszych:
@@ -516,7 +901,7 @@ class ObrazPracy(QLabel):
         super().__init__()
         self.setObjectName("praca_obraz")
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setMinimumSize(300, 110)
+        self.setMinimumSize(300, styl.ZWYKLE.obraz_min)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.setStyleSheet(f"background: #ffffff; border: 1px solid {styl.RAMKA}; border-radius: 4px; color: {styl.TEKST_SLABY};")
         self._oryginal: QPixmap | None = None
@@ -533,7 +918,7 @@ class ObrazPracy(QLabel):
     def _dopasuj(self) -> None:
         if self._oryginal is None:
             return
-        cel = QSize(max(300, self.width() - 4), max(100, self.height() - 4))
+        cel = QSize(max(100, self.width() - 4), max(40, self.height() - 4))
         self.setPixmap(self._oryginal.scaled(cel, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
 
     def resizeEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
@@ -542,8 +927,9 @@ class ObrazPracy(QLabel):
 
 
 class WidokPracy(QFrame):
-    """Widok jednej pracy: status i opis ze stanu, kuweta / zab / krazek, rozmiar najwiekszego ubytku i liczba ubytkow, obraz
-    odchylek, "ten zab jest juz na liscie", duze przyciski decyzji. Gdy nic nie jest wybrane - podpowiedz, co kliknac."""
+    """Widok jednej pracy: naglowek "Plytka n - gniazdo m" (duzy - A-P2), status i opis ze stanu, kuweta / zab / krazek,
+    rozmiar najwiekszego ubytku i liczba ubytkow, obraz odchylek, "ten zab jest juz na liscie", duze przyciski decyzji.
+    Gdy nic nie jest wybrane - podpowiedz, co kliknac. ``praca_id`` - praca, ktorej dane sa pokazane (do niej idzie decyzja)."""
 
     decyzja = Signal(str)  # ukruszona / ok / cofnij
     zamknij = Signal()
@@ -554,33 +940,37 @@ class WidokPracy(QFrame):
         super().__init__()
         self.setProperty("rola", "panel")
         self.setObjectName("ramka_pracy")
+        self.praca_id: int | None = None
+        self._r = styl.ZWYKLE
         self._stos = QStackedLayout(self)
         self._stos.setContentsMargins(0, 0, 0, 0)
-        pusty = etykieta(N.PRACA_PUSTY_WIDOK, "duzy", "praca_pusty_widok", zawijaj=True)
-        pusty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        pusty.setContentsMargins(30, 20, 30, 20)
-        self._stos.addWidget(pusty)
+        self._pusty = etykieta(N.PRACA_PUSTY_WIDOK, "duzy", "praca_pusty_widok", zawijaj=True)
+        self._pusty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._pusty.setContentsMargins(30, 20, 30, 20)
+        self._pusty.setMinimumSize(10, 10)
+        self._pusty.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
+        self._stos.addWidget(self._pusty)
         self._widok = QWidget()
         self._widok.setObjectName("widok_pracy")
         self._stos.addWidget(self._widok)
-        u = QVBoxLayout(self._widok)
+        self._u = u = QVBoxLayout(self._widok)
         u.setContentsMargins(14, 10, 14, 12)
         u.setSpacing(6)
         wiersz = QHBoxLayout()
         wiersz.setSpacing(10)
-        self.tytul = etykieta("", "tytul", "praca_tytul")
-        self.status = znaczek("", "#ffffff", "praca_status", 18)
+        self.tytul = etykieta("", "tytul", "praca_tytul", zawijaj=True)
         self.z_dwoch = przycisk("", "przycisk_inna_praca", "lacze", self.inna_praca.emit)
-        self.plytka = etykieta("", "slaby", "praca_plytka")
-        wiersz.addWidget(self.tytul)
-        wiersz.addWidget(self.status)
-        wiersz.addWidget(self.z_dwoch)
-        wiersz.addStretch(1)
-        wiersz.addWidget(self.plytka)
+        wiersz.addWidget(self.tytul, 1)
+        wiersz.addWidget(self.z_dwoch, 0, Qt.AlignmentFlag.AlignTop)
         u.addLayout(wiersz)
-        self.opis = etykieta("", nazwa="praca_opis", zawijaj=True)
-        u.addWidget(self.opis)
         wiersz = QHBoxLayout()
+        wiersz.setSpacing(10)
+        self.status = znaczek("", "#ffffff", "praca_status", 18)
+        self.opis = etykieta("", nazwa="praca_opis", zawijaj=True)
+        wiersz.addWidget(self.status, 0, Qt.AlignmentFlag.AlignTop)
+        wiersz.addWidget(self.opis, 1)
+        u.addLayout(wiersz)
+        self._dane_uklad = wiersz = QHBoxLayout()
         wiersz.setSpacing(6)
         self.dane = {}
         for klucz, podpis in (("kuweta", N.KUWETA), ("zeby", N.ZAB), ("krazek", N.KRAZEK)):
@@ -594,7 +984,7 @@ class WidokPracy(QFrame):
         u.addWidget(self.ubytek)
         self.obraz = ObrazPracy()
         u.addWidget(self.obraz, 1)
-        self.opis_obrazu = etykieta(N.OBRAZ_OPIS, "slaby", "praca_opis_obrazu")
+        self.opis_obrazu = etykieta(N.OBRAZ_OPIS, "slaby", "praca_opis_obrazu", zawijaj=True)
         u.addWidget(self.opis_obrazu)
         self.na_liscie = etykieta("", "informacja", "praca_na_liscie", zawijaj=True)
         u.addWidget(self.na_liscie)
@@ -602,57 +992,87 @@ class WidokPracy(QFrame):
         u.addWidget(self.zapisana)
         self.wyjasnienie = etykieta("", "uwaga", "praca_wyjasnienie", zawijaj=True)
         u.addWidget(self.wyjasnienie)
-        wiersz = QHBoxLayout()
+        self._decyzje = wiersz = QHBoxLayout()
         wiersz.setSpacing(12)
         self.przyciski = {}
+        self._kolory_decyzji = {}
         for polecenie, status_koloru, klawisz in (("ukruszona", "ukruszona", N.KLAWISZ_UKRUSZONA), ("ok", "zatwierdzona_ok", N.KLAWISZ_OK)):
             b = przycisk(N.SKROT.format(napis=ST.PRZYCISKI[polecenie], klawisz=klawisz), f"przycisk_{polecenie}", None,
-                         lambda p=polecenie: self.decyzja.emit(p), styl.WYSOKOSC_PRZYCISKU_DECYZJI)
-            b.setStyleSheet(styl.przycisk_w_kolorze(ST.STATUSY[status_koloru].hex))  # kolor = kolor gniazda po tej decyzji (ze ``statusy``)
+                         lambda p=polecenie: self.decyzja.emit(p), styl.ZWYKLE.wysokosc_decyzji)
+            self._kolory_decyzji[polecenie] = ST.STATUSY[status_koloru].hex  # kolor = kolor gniazda po tej decyzji (ze ``statusy``)
+            b.setStyleSheet(styl.przycisk_w_kolorze(self._kolory_decyzji[polecenie], styl.ZWYKLE))
             self.przyciski[polecenie] = b
             wiersz.addWidget(b, 1)
         u.addLayout(wiersz)
-        wiersz = QHBoxLayout()
+        self._drugi = wiersz = QHBoxLayout()
         wiersz.setSpacing(10)
+        wys = styl.ZWYKLE.wysokosc_drugiego_rzedu
         self.przyciski["cofnij"] = przycisk(N.SKROT.format(napis=ST.PRZYCISKI["cofnij"], klawisz=N.KLAWISZ_COFNIJ), "przycisk_cofnij", None,
-                                            lambda: self.decyzja.emit("cofnij"), 56)
-        self.przycisk_nastepna = przycisk(N.NASTEPNA, "przycisk_nastepna", "lacze", self.nastepna.emit, 56)
+                                            lambda: self.decyzja.emit("cofnij"), wys)
+        self.przycisk_nastepna = przycisk(N.NASTEPNA, "przycisk_nastepna", "lacze", self.nastepna.emit, wys)
         self.przycisk_nastepna.setToolTip(N.NASTEPNA_OPIS)
-        self.przycisk_zamknij = przycisk(N.ZAMKNIJ_PRACE, "przycisk_zamknij_prace", "lacze", self.zamknij.emit, 56)
+        self.przycisk_zamknij = przycisk(N.ZAMKNIJ_PRACE, "przycisk_zamknij_prace", "lacze", self.zamknij.emit, wys)
         wiersz.addWidget(self.przyciski["cofnij"], 3)
         wiersz.addWidget(self.przycisk_nastepna, 2)
         wiersz.addWidget(self.przycisk_zamknij, 2)
         u.addLayout(wiersz)
         self._sygnatura = None
 
+    def ustaw_tryb(self, r: styl.Rozmiary) -> None:
+        self._r = r
+        self._u.setContentsMargins(*((10, 5, 10, 6) if r.zwarty else (14, 10, 14, 12)))
+        self._u.setSpacing(2 if r.zwarty else 6)
+        self._pusty.setContentsMargins(*((16, 10, 16, 10) if r.zwarty else (30, 20, 30, 20)))
+        self._decyzje.setSpacing(8 if r.zwarty else 12)
+        self._drugi.setSpacing(6 if r.zwarty else 10)
+        for polecenie in ("ukruszona", "ok"):
+            self.przyciski[polecenie].setMinimumHeight(r.wysokosc_decyzji)
+            self.przyciski[polecenie].setStyleSheet(styl.przycisk_w_kolorze(self._kolory_decyzji[polecenie], r))
+        for b in (self.przyciski["cofnij"], self.przycisk_nastepna, self.przycisk_zamknij):
+            b.setMinimumHeight(r.wysokosc_drugiego_rzedu)
+        self.obraz.setMinimumSize(200 if r.zwarty else 300, r.obraz_min)
+        self._sygnatura = None
+
     def otwarty(self) -> bool:
         return self._stos.currentIndex() == 1
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - nazwa Qt
+        """Otwarty widok pracy potrzebuje tyle wysokosci, ile zajmuja zawiniete napisy przy obecnej szerokosci (zwykle minimum
+        ukladu liczy je w jednej linii) - inaczej przyciski decyzji wchodzilyby na drugi rzad przyciskow (A-P1)."""
+        s = super().minimumSizeHint()
+        if self.otwarty():
+            u = self._widok.layout()
+            s.setHeight(max(s.height(), u.minimumHeightForWidth(max(200, self.width()))))
+        return s
 
     def aktywny(self, polecenie: str) -> bool:
         return self.otwarty() and self.przyciski[polecenie].isEnabled()
 
     def wyczysc(self) -> None:
+        if self.otwarty():
+            self._stos.setCurrentIndex(0)
+            self.updateGeometry()
         self._sygnatura = None
-        self._stos.setCurrentIndex(0)
+        self.praca_id = None
 
     def ustaw(self, stan, plytka, gniazdo, praca, nr_pracy: int, jest_nastepna: bool) -> None:
         """``gniazdo`` - ``Gniazdo`` ze stanu albo None (praca poza gniazdem); ``praca`` - pokazywana ``Praca`` albo None
         (puste gniazdo); ``nr_pracy`` - ktora praca gniazda (od 0), gdy leza w nim dwie."""
         sygnatura = (plytka.skan_id, plytka.napis, plytka.numer, gniazdo, praca, nr_pracy, stan.operator, stan.operatorzy, jest_nastepna)
         self._stos.setCurrentIndex(1)
+        self.praca_id = praca.praca_id if praca is not None else None
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
         zrodlo = gniazdo if gniazdo is not None and (praca is None or len(gniazdo.prace) > 1) else praca  # dwie prace: status gniazda
-        self.tytul.setText(N.PRACA_TYTUL.format(gniazdo=gniazdo.nr) if gniazdo is not None else N.PRACA_TYTUL_POZA)
+        nazwa = nazwa_plytki(plytka.numer)
+        self.tytul.setText(N.PRACA_TYTUL.format(plytka=nazwa, gniazdo=gniazdo.nr) if gniazdo is not None else N.PRACA_TYTUL_POZA.format(plytka=nazwa))
         self.status.setText(zrodlo.podpis)
         self.status.setVisible(bool(zrodlo.podpis))
-        self.status.setStyleSheet(f"background: {zrodlo.rgb}; color: {styl.tekst_na(zrodlo.rgb)}; border: 1px solid #3a4047; border-radius: 5px; "
-                                  f"padding: 3px 10px; font-size: 18px; font-weight: 700;")
+        self.status.setStyleSheet(_styl_znaczka(zrodlo.rgb, self._r.status_pracy))
         ile = len(gniazdo.prace) if gniazdo is not None else 1
         self.z_dwoch.setVisible(ile > 1)
         self.z_dwoch.setText(N.PRACA_Z_DWOCH.format(nr=nr_pracy + 1, ile=ile))
-        self.plytka.setText(nazwa_plytki(plytka.numer))
         opis = ST.status(zrodlo.status).opis if zrodlo is gniazdo else praca.opis
         self.opis.setText(opis)
         for klucz, pole in self.dane.items():
@@ -667,10 +1087,11 @@ class WidokPracy(QFrame):
         self.na_liscie.setText(tekst_listy)
         self.na_liscie.setVisible(bool(tekst_listy))
         if praca is not None and praca.decyzja:
-            nazwa = ST.PRZYCISKI["ok"] if praca.decyzja == "ok" else ST.PRZYCISKI["ukruszona"]
+            nazwa_decyzji = ST.PRZYCISKI["ok"] if praca.decyzja == "ok" else ST.PRZYCISKI["ukruszona"]
             if praca.decyzja == "ukruszona_niewykryta":
-                nazwa = N.DECYZJA_NIEWYKRYTA.format(decyzja=nazwa)
-            self.zapisana.setText(N.DECYZJA_ZAPISANA.format(decyzja=nazwa, osoba=praca.operator or N.BRAK_DANYCH, godzina=godzina(praca.czas_decyzji)))
+                nazwa_decyzji = N.DECYZJA_NIEWYKRYTA.format(decyzja=nazwa_decyzji)
+            self.zapisana.setText(N.DECYZJA_ZAPISANA.format(decyzja=nazwa_decyzji, osoba=praca.operator or N.BRAK_DANYCH,
+                                                            godzina=godzina(praca.czas_decyzji)))
         self.zapisana.setVisible(praca is not None and bool(praca.decyzja))
         dozwolone = praca.dozwolone if praca is not None else ()
         jest_osoba = stan.operator is not None
@@ -692,6 +1113,7 @@ class WidokPracy(QFrame):
         self.przycisk_nastepna.setEnabled(jest_nastepna)
         self.obraz.setVisible(praca is not None)
         self.opis_obrazu.setVisible(praca is not None)
+        self.updateGeometry()  # wysokosc widoku zalezy od napisow (``minimumSizeHint``)
 
 
 # ----------------------------------------------------------------------------
@@ -708,7 +1130,7 @@ class ListaDofrezowania(QFrame):
         super().__init__()
         self.setProperty("rola", "panel")
         self.setObjectName("lista_dofrezowania")
-        uklad = QVBoxLayout(self)
+        self._uklad = uklad = QVBoxLayout(self)
         uklad.setContentsMargins(12, 8, 12, 10)
         uklad.setSpacing(6)
         wiersz = QHBoxLayout()
@@ -730,11 +1152,9 @@ class ListaDofrezowania(QFrame):
         self.tabela.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.tabela.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.tabela.verticalHeader().setVisible(False)
-        self.tabela.verticalHeader().setDefaultSectionSize(30)
         self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.tabela.horizontalHeader().setSectionsClickable(False)
         self.tabela.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.tabela.setMinimumHeight(30 + 3 * 30)  # naglowek i trzy pozycje zawsze widoczne
         self.tabela.cellClicked.connect(self._klik)
         uklad.addWidget(self.tabela, 1)
         wiersz = QHBoxLayout()
@@ -748,6 +1168,14 @@ class ListaDofrezowania(QFrame):
         uklad.addLayout(wiersz)
         self._pozycje: tuple = ()
         self._sygnatura = None
+        self.ustaw_tryb(styl.ZWYKLE)
+
+    def ustaw_tryb(self, r: styl.Rozmiary) -> None:
+        self._uklad.setContentsMargins(*((8, 4, 8, 5) if r.zwarty else (12, 8, 12, 10)))
+        self._uklad.setSpacing(3 if r.zwarty else 6)
+        self.tabela.verticalHeader().setDefaultSectionSize(r.wiersz_tabeli)
+        naglowek = r.naglowek_tabeli + (8 if r.zwarty else 14)
+        self.tabela.setMinimumHeight(naglowek + 2 * r.wiersz_tabeli)  # naglowek i dwie pozycje zawsze widoczne, reszta przewijana
 
     def ustaw(self, pozycje: tuple, wszystkie: bool, zapisana: str | None = None) -> None:
         sygnatura = (pozycje, wszystkie, zapisana)
@@ -784,29 +1212,34 @@ class ListaDofrezowania(QFrame):
 # ----------------------------------------------------------------------------
 class Legenda(QWidget):
     """Pasek pod mapa: kolory i podpisy statusow, ktore SA na pokazanej plytce (wprost ze stanu). Na plytce, ktora niczego
-    nie potwierdza, legenda nie pokazuje wiec zielonego."""
+    nie potwierdza, legenda nie pokazuje wiec zielonego. Ten sam podpis i kolor = jeden znaczek (opisy razem w podpowiedzi)."""
 
     def __init__(self):
         super().__init__()
         self.setObjectName("legenda")
-        self._uklad = QHBoxLayout(self)
-        self._uklad.setContentsMargins(0, 0, 0, 0)
-        self._uklad.setSpacing(8)
+        self._uklad = UkladPlynny(self, odstep_poziomy=8, odstep_pionowy=4)
+        self._sygnatura = None
+        self._r = styl.ZWYKLE
+
+    def ustaw_tryb(self, r: styl.Rozmiary) -> None:
+        self._r = r
         self._sygnatura = None
 
     def ustaw(self, plytka) -> None:
-        pozycje = []
+        pozycje: dict = {}
         for g in (plytka.gniazda if plytka is not None else ()):
-            if g.prace and g.podpis and (g.podpis, g.rgb, g.status) not in pozycje:
-                pozycje.append((g.podpis, g.rgb, g.status))
-        if pozycje == self._sygnatura:
+            if g.prace and g.podpis:
+                opisy = pozycje.setdefault((g.podpis, g.rgb), [])
+                if ST.status(g.status).opis not in opisy:
+                    opisy.append(ST.status(g.status).opis)
+        sygnatura = (tuple((k, tuple(v)) for k, v in pozycje.items()), self._r.zwarty)
+        if sygnatura == self._sygnatura:
             return
-        self._sygnatura = pozycje
+        self._sygnatura = sygnatura
         wyczysc(self._uklad)
         if pozycje:
             self._uklad.addWidget(etykieta(N.LEGENDA, "slaby"))
-        for podpis, rgb, status in pozycje:
-            z = znaczek(podpis, rgb, rozmiar_px=13)
-            z.setToolTip(ST.status(status).opis)
+        for (podpis, rgb), opisy in pozycje.items():
+            z = znaczek(podpis, rgb, rozmiar_px=self._r.znaczek)
+            z.setToolTip("\n".join(opisy))
             self._uklad.addWidget(z)
-        self._uklad.addStretch(1)

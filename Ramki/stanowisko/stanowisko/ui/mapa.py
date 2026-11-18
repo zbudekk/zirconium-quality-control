@@ -5,11 +5,16 @@
 albo None (wtedy gniazda sa rysowane jako kratka). Widzet niczego nie liczy i nie zna statusow; klikniecie gniazda =
 sygnal ``klik(nr)``. Do testow i kontroli: ``kolory()``, ``podpisy()``, ``numery()``, ``srodek_gniazda(nr)``,
 ``punkt_probny(nr)``, ``teksty_rysowane()``.
+
+Ochrona przed kliknieciem w poprzedni obraz (A-P2): ``przygas(True)`` przygasza mape i do ``przygas(False)`` mapa nie
+przyjmuje klikniec. Klawiatura (A-D): ``ustaw_kursor(nr)`` rysuje kursor gniazda (przerywany obrys), ``sasiad(nr, dx, dy)``
+- najblizsze gniazdo w kierunku strzalki.
 """
 from __future__ import annotations
 
 import logging
 import math
+import time
 import warnings
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
@@ -23,16 +28,22 @@ LOG = logging.getLogger(__name__)
 MARGINES_PX = 14
 MIEJSCE_NA_PODPIS_PX = 26  # pas pod plytka na napis "przod plytki"
 KOLUMN_KRATKI = 5
+PONOW_UKLAD_S = 60.0  # A-D2: nieudane wczytanie ukladu jest ponawiane po tylu sekundach (chwilowy blad dysku nie zostaje do restartu)
 _GEOMETRIE: dict = {}
+_BLEDY_UKLADU: dict = {}
 
 
 def geometria_ukladu(kontroler, nazwa: str | None):
     """``uklad.UkladPlytki`` ukladu ``nazwa`` (ksztalt mapy) albo None, gdy ukladu nie da sie wczytac. Katalog ukladu jak
-    w kontrolerze: z ustawien (``[plytki]``), gdy kontroler je ma; inaczej katalog domyslny programu. Wynik pamietany."""
+    w kontrolerze: z ustawien (``[plytki]``), gdy kontroler je ma; inaczej katalog domyslny programu. Wynik pamietany;
+    nieudane wczytanie - przez ``PONOW_UKLAD_S``."""
     if not nazwa:
         return None
     ust = getattr(kontroler, "ust", None)
     klucz = (nazwa, id(ust))
+    if klucz in _BLEDY_UKLADU and time.monotonic() - _BLEDY_UKLADU[klucz] >= PONOW_UKLAD_S:
+        del _BLEDY_UKLADU[klucz]
+        _GEOMETRIE.pop(klucz, None)
     if klucz not in _GEOMETRIE:
         try:
             from .. import uklad as U  # noqa: PLC0415 - numpy; kontroler laduje ten modul przy starcie
@@ -48,6 +59,7 @@ def geometria_ukladu(kontroler, nazwa: str | None):
         except Exception as e:  # noqa: BLE001 - mapa w kratke jest lepsza niz brak mapy
             LOG.warning("mapa: ukladu plytki nie da sie wczytac (%s) - gniazda w kratke", type(e).__name__)
             _GEOMETRIE[klucz] = None
+            _BLEDY_UKLADU[klucz] = time.monotonic()
     return _GEOMETRIE[klucz]
 
 
@@ -57,13 +69,15 @@ class MapaPlytki(QWidget):
     def __init__(self, rodzic=None):
         super().__init__(rodzic)
         self.setObjectName("mapa")
-        self.setMinimumSize(380, 340)
+        self.setMinimumSize(*styl.ZWYKLE.mapa_min)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._plytka = None
         self._gniazda: tuple = ()  # gniazda rysowane (ze stanu)
         self._geometria = None
         self._wybrane: int | None = None
+        self._kursor: int | None = None
+        self._przygaszona = False
         self._ksztalty: dict = {}  # nr -> (QPainterPath, QPointF srodek, promien px, szerokosc px)
         self._rozmiar_ksztaltow = None
         self._obrys = None  # (ksztalt, prostokat plytki, skala px na mm, funkcja mm -> px, uklad)
@@ -86,6 +100,47 @@ class MapaPlytki(QWidget):
         if zmiana_ukladu:
             self._rozmiar_ksztaltow = None
         self.update()
+
+    def przygas(self, przygaszona: bool) -> None:
+        """Przygaszenie mapy po zmianie jej zawartosci (A-P2): klikniecia pomijane, obraz przykryty polprzezroczysta warstwa."""
+        if przygaszona != self._przygaszona:
+            self._przygaszona = przygaszona
+            self.update()
+
+    def przygaszona(self) -> bool:
+        return self._przygaszona
+
+    def ustaw_kursor(self, nr: int | None) -> None:
+        """Kursor klawiatury (strzalki): przerywany obrys gniazda ``nr`` (None = bez kursora)."""
+        if nr != self._kursor:
+            self._kursor = nr
+            self.update()
+
+    def kursor(self) -> int | None:
+        return self._kursor
+
+    def sasiad(self, nr: int, dx: int, dy: int) -> int | None:
+        """Gniazdo najblizsze ``nr`` w kierunku (``dx``, ``dy``) na ekranie (w prawo = (1, 0), w gore = (0, -1)); None, gdy w tym
+        kierunku nie ma gniazda. Odchylenie od kierunku liczy sie podwojnie, wiec strzalka idzie "wzdluz rzedu"."""
+        self._przelicz()
+        if nr not in self._ksztalty:
+            return None
+        s0 = self._ksztalty[nr][1]
+        najlepszy = None
+        for inny, (_, s, _, _) in self._ksztalty.items():
+            if inny == nr:
+                continue
+            vx, vy = s.x() - s0.x(), s.y() - s0.y()
+            wzdluz = vx * dx + vy * dy
+            if wzdluz <= 1.0:
+                continue
+            w_poprzek = abs(vx * dy - vy * dx)
+            if w_poprzek > 2.5 * wzdluz:  # zbyt daleko od kierunku strzalki
+                continue
+            ocena = wzdluz + 2.0 * w_poprzek
+            if najlepszy is None or ocena < najlepszy[0]:
+                najlepszy = (ocena, inny)
+        return najlepszy[1] if najlepszy else None
 
     def numery(self) -> list:
         return [g.nr for g in self._gniazda]
@@ -176,6 +231,7 @@ class MapaPlytki(QWidget):
             p.setFont(f)
             p.setPen(QColor(styl.TEKST_SLABY))
             p.drawText(self.rect().adjusted(30, 30, -30, -30), int(Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap), self._napis)
+            self._rysuj_przygaszenie(p)
             p.end()
             return
         self._przelicz()
@@ -192,7 +248,23 @@ class MapaPlytki(QWidget):
             p.drawPath(sciezka)
             p.setPen(QPen(QColor("#101418"), 5))
             p.drawPath(sciezka)
+        if self._kursor in self._ksztalty:  # kursor klawiatury: przerywany obrys w kolorze akcentu
+            sciezka = self._ksztalty[self._kursor][0]
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QPen(QColor("#ffffff"), 7))
+            p.drawPath(sciezka)
+            pioro = QPen(QColor(styl.AKCENT), 4)
+            pioro.setStyle(Qt.PenStyle.DashLine)
+            p.setPen(pioro)
+            p.drawPath(sciezka)
+        self._rysuj_przygaszenie(p)
         p.end()
+
+    def _rysuj_przygaszenie(self, p: QPainter) -> None:
+        if self._przygaszona:
+            kolor = QColor(styl.TLO)
+            kolor.setAlpha(150)
+            p.fillRect(self.rect(), kolor)
 
     def _rysuj_plytke(self, p: QPainter) -> None:
         ksztalt, prostokat, s, px, uk = self._obrys
@@ -234,21 +306,29 @@ class MapaPlytki(QWidget):
             p.drawText(QRectF(srodek.x() - szer / 2, srodek.y() - promien * 0.75, szer, promien * 1.3), int(Qt.AlignmentFlag.AlignCenter), tekst)
             return
         f.setPixelSize(int(max(12, min(26, promien * 0.52))))
-        p.setFont(f)
+        numer = QRectF(srodek.x() - promien, srodek.y() - promien * 0.6, 2 * promien, promien * 1.2)
         if not g.podpis:
-            p.drawText(QRectF(srodek.x() - promien, srodek.y() - promien * 0.6, 2 * promien, promien * 1.2), int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
+            p.setFont(f)
+            p.drawText(numer, int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
             return
-        p.drawText(QRectF(srodek.x() - promien, srodek.y() - promien * 0.88, 2 * promien, promien * 0.6), int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
         pol_szer = max(10.0, promien * 0.95 - 5)  # 5 px zapasu na obrys zaznaczonego gniazda
         pole = QRectF(srodek.x() - pol_szer, srodek.y() - promien * 0.3, 2 * pol_szer, promien * 0.9)
         flagi = int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap)
+        podpis = QFont(f)
         for rozmiar in range(int(max(9, min(18, promien * 0.36))), 7, -1):  # najwiekszy napis, ktory miesci sie w gniezdzie
-            f.setPixelSize(rozmiar)
-            p.setFont(f)
+            podpis.setPixelSize(rozmiar)
+            p.setFont(podpis)
             potrzebne = p.boundingRect(pole, flagi, g.podpis)
             najdluzsze = max(p.fontMetrics().horizontalAdvance(slowo) for slowo in g.podpis.split())  # slowo nie lamie sie w polowie
             if najdluzsze <= pole.width() and potrzebne.width() <= pole.width() + 1 and potrzebne.height() <= pole.height() + 1:
                 break
+        else:  # A-D7: podpis nie miesci sie nawet najmniejsza czcionka - sam numer (kolor gniazda i legenda mowia reszte)
+            p.setFont(f)
+            p.drawText(numer, int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
+            return
+        p.setFont(f)
+        p.drawText(QRectF(srodek.x() - promien, srodek.y() - promien * 0.88, 2 * promien, promien * 0.6), int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
+        p.setFont(podpis)
         p.drawText(pole, flagi, g.podpis)
 
     # --- mysz ------------------------------------------------------------------------------------
@@ -265,7 +345,10 @@ class MapaPlytki(QWidget):
         return najblizsze[1] if najblizsze else None
 
     def mousePressEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
-        if zdarzenie.button() == Qt.MouseButton.LeftButton:
+        okno = self.window()
+        if okno is not self and okno.focusWidget() is not okno:
+            okno.setFocus(Qt.FocusReason.MouseFocusReason)  # klawiatura wraca do okna (Enter nie kliknie przycisku z fokusem)
+        if zdarzenie.button() == Qt.MouseButton.LeftButton and not self._przygaszona:  # przygaszona: klikniecie w poprzedni obraz
             nr = self.gniazdo_w_punkcie(zdarzenie.position())
             if nr is not None:
                 self.klik.emit(nr)
