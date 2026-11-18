@@ -196,3 +196,22 @@ def test_blad_pozy_tozsamosc():
     assert b["przesuniecie_mm"] == 0 and b["obrot_deg"] == 0
     b = match.blad_pozy(T, np.eye(4), m)
     assert abs(b["obrot_deg"] - 2.0) < 1e-6 and b["przesuniecie_mm"] > 0.9
+
+
+def test_kandydat_pola_puli_per_praca_domyslne():
+    """E3-A5: nowe pola kandydata (pula per praca) maja wartosci domyslne - pula z folderu daje klucz = id i brak wpisow."""
+    k = match.Kandydat(id="0123456789abcdef", zeby=["11"], typ="korona")
+    assert k.klucz == k.id and k.wpisy == [] and (k.wspolczynnik, k.krazek, k.frezowanie_id, k.projekt_id, k.pokrycie_wstepne) == (None,) * 5
+    k2 = match.Kandydat(id="0123456789abcdef", zeby=[], typ="korona", klucz="0123456789abcdef@1.25")
+    assert k2.klucz.endswith("@1.25")
+
+
+def test_pula_z_folderu_klucz_kandydata_i_wspolczynnik(pula, fragmenty, ust):
+    """E3-A5: pula z folderu - kandydaci z kluczem = skrot projektu i wspolczynnikiem puli, bez wpisow (porownaj szuka projektu po kluczu)."""
+    w, _ = fragmenty
+    f = w.fragmenty[0]
+    r = match.dopasuj(f.punkty, f.normalne, pula, ust, f.gniazdo)
+    assert not pula.per_praca and pula.wspolczynnik == 1.22
+    for k in r.kandydaci:
+        assert k.klucz == k.id and k.klucz in pula.projekty and k.wpisy == [] and k.frezowanie_id is None
+        assert k.wspolczynnik == 1.22 and k.pokrycie_wstepne is None

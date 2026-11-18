@@ -5,6 +5,12 @@ Pełny łańcuch plate → match → inspect (P3a). Użycie (z katalogu stanowis
         [--plytka auto|wieczorna|poranna|okragla_wieczorna|okragla_poranna|…_r54] [--wspolczynnik 1.22] [--numer N]
         [--wyjscie <folder>] [--prawda <skan.json>] [--bez-filtru] [--bez-inspekcji] [--orientacja auto|brzeg_dol|brzeg_gora]
         [--bez-straznika]
+    py -3.12 -m stanowisko.porownaj --skan <skan.stl> --wpisy <wpisy.csv> [--pamiec-puli <katalog>] [opcje jak wyzej]
+
+``--wpisy`` (E3-A5): pula per praca zamiast folderu - plik CSV ``plik;wspolczynnik[;krazek;frezowanie_id;projekt_id]``
+(kazdy STL w skali swojego krazka; ten sam STL z dwoma wspolczynnikami = dwa wpisy, wynik wskazuje wpis: pola kandydata
+``frezowanie_id``, ``krazek``, ``wspolczynnik``, ``wpisy``); w wyniku ``wspolczynnik`` = null i ``pula_wpisy`` (liczniki
+puli i pamieci podrecznej). Pamiec podreczna projektow: ``--pamiec-puli`` albo ``[sciezki] pula_cache``/``projekty``.
 
 ``--plytka`` to ``auto`` (domyślnie) albo nazwa układu z ``[plytki]``: układ gniazd R59 (``wieczorna`` …) albo poprzedni R54
 dla starych płytek fizycznych (``wieczorna_r54``, ``poranna_r54``, ``okragla_wieczorna_r54``, ``okragla_poranna_r54``).
@@ -158,7 +164,7 @@ def opis_ukladu(nazwa: str, uk: U.UkladPlytki | None = None) -> str:
 
 
 def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filtru: bool = False, inspekcja: bool = True,
-                      podglad: dict | None = None) -> list[dict]:
+                      podglad: dict | None = None, start: float | None = None, statystyka: dict | None = None) -> list[dict]:
     """match (+ inspect) dla każdego fragmentu (bez drobnych); wpisy JSON z 5 najlepszymi kandydatami.
 
     ``podglad`` (dict) dostaje ``WynikInspekcji`` każdego gniazda (punkty i odchyłki do podglądu 3D w oknie).
@@ -173,14 +179,24 @@ def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filt
     ``powod`` (dlaczego nie), ``wspolczynnik_puli``, ``wspolczynnik_ze_skanu``, pokrycie przed / po.
     Na płytce porannej (prace spieczone, współczynnik 1,0) poprawka jest tylko mierzona.
     Po zastosowanej korekcie transformacja kandydata jest podobieństwem i inspekcja liczy odchyłki w skali skorygowanej.
+
+    Pula per praca (E3-A5, runda 3): najpierw zwykle dopasowanie WSZYSTKICH fragmentow, potem ratunek fragmentow
+    nierozpoznanych albo niepewnych (``match.ratuj_plytke``: ranking niezalezny od obrotu pracy, budzet czasu od ``start`` -
+    poczatku analizy plytki wg ``time.monotonic()``; budzet = liczba dopasowan, zegar tylko awaryjnie), na koncu inspekcja; ``statystyka`` (dict) dostaje liczby ratunku. Pula z folderu - jak dotad.
     """
     ust_m = ustawienia_bez_filtru(ust) if bez_filtru else ust
     bez_korekty = "płytka poranna: prace spieczone (współczynnik 1,0) — poprawka skali tylko mierzona" if S.poranna(wyr.plytka) else ""
     gniazda = []
-    for f in wyr.fragmenty:
-        if f.status == "drobny":
-            continue
-        r = M.dopasuj(f.punkty, f.normalne, pula, ust_m, f.gniazdo, bez_korekty=bez_korekty)
+    fragmenty = [f for f in wyr.fragmenty if f.status != "drobny"]
+    wyniki = None
+    if getattr(pula, "per_praca", False):
+        start = time.monotonic() if start is None else start
+        wyniki = [M.dopasuj(f.punkty, f.normalne, pula, ust_m, f.gniazdo, bez_korekty=bez_korekty) for f in fragmenty]
+        st = M.ratuj_plytke([f.punkty for f in fragmenty], wyniki, pula, ust_m, start)
+        if statystyka is not None:
+            statystyka.update(st)
+    for nr, f in enumerate(fragmenty):
+        r = wyniki[nr] if wyniki is not None else M.dopasuj(f.punkty, f.normalne, pula, ust_m, f.gniazdo, bez_korekty=bez_korekty)
         wpis = {
             "gniazdo": f.gniazdo, "status_fragmentu": f.status, "punkty": f.liczba, "srodek": [round(v, 3) for v in f.srodek],
             "status": r.status, "pewnosc": round(r.pewnosc, 4), "czas_s": r.czas_s, "uwagi": r.uwagi,
@@ -192,7 +208,7 @@ def dopasuj_fragmenty(wyr: PL.WynikWyrownania, pula: M.Pula, ust: dict, bez_filt
         k = r.najlepszy
         if inspekcja and r.status != "szary" and k is not None and k.transformacja is not None:
             try:
-                wi = I.sprawdz(f.punkty, f.normalne, pula.projekty[k.id], np.array(k.transformacja), k.pokrycie, ust, f.gniazdo)
+                wi = I.sprawdz(f.punkty, f.normalne, pula.projekty[k.klucz], np.array(k.transformacja), k.pokrycie, ust, f.gniazdo)
                 wpis["inspekcja"] = wi.json()
             except MemoryError:  # brak pamięci dotyczy całego przebiegu, nie jednego gniazda
                 raise
@@ -225,6 +241,7 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
     i pole ``uklad_podpowiedz`` mówią, że trzeba dopisać 4 wiersze ``*_r54`` z ``ustawienia.przyklad.toml``.
     """
     t0 = time.time()
+    t0m = time.monotonic()  # poczatek analizy plytki dla awaryjnego limitu ratunku (zegar monotoniczny)
 
     def krok(etap: str, udzial: float) -> None:
         if postep is not None:
@@ -235,12 +252,15 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
     w = wspolczynnik if wspolczynnik is not None else (None if auto else wspolczynnik_domyslny(plytka, ust))
 
     def pula_gotowa(p: M.Pula | None, w_: float, udzial: float) -> M.Pula:
-        if p is not None and auto and wspolczynnik is None and not math.isclose(p.wspolczynnik, w_, rel_tol=0.0, abs_tol=1e-9):
+        # pula per praca (E3-A5, match.Pula.z_wpisow) ma wspolczynnik kazdego wpisu - nie zalezy od typu plytki i nie jest zastepowana
+        if p is not None and auto and wspolczynnik is None and not getattr(p, "per_praca", False) and not math.isclose(p.wspolczynnik, w_, rel_tol=0.0, abs_tol=1e-9):
             p = None  # pula z innym współczynnikiem niż domyślny dla rozpoznanej płytki
         if p is None:
             krok("pula projektów", udzial)
             p = pula_dla(w_) if pula_dla is not None else M.Pula(foldery, w_, orientacja)
         if len(p) == 0:
+            if getattr(p, "per_praca", False):
+                raise SystemExit(f"pula wpisow bez projektu do wczytania (liczniki: {json.dumps(p.liczniki, ensure_ascii=False)})")
             raise SystemExit(f"brak projektów STL w {', '.join(map(str, foldery))}")
         return p
 
@@ -275,11 +295,13 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
         krok("wynik", 0.95)
         if kontekst is not None:
             kontekst.update(uk=uk, pula=pula)
+        per_praca = getattr(pula, "per_praca", False)
         return {
             "skan": Path(skan).name, "plytka": plytka, "plytka_wybor": "auto" if auto else "reczny", "uklad_auto": info_auto,
             "uklad_zgodny": False, "uklad_komunikat": komunikat, "uklady_pasujace": pasujace,
             "uklad_podpowiedz": podpowiedz,
-            "wspolczynnik": w, "projekty": len(pula) if pula is not None else None, "foldery_projektow": [str(f) for f in foldery],
+            **({"pula_wpisy": pula.opis()} if per_praca else {}),
+            "wspolczynnik": None if per_praca else w, "projekty": len(pula) if pula is not None else None, "foldery_projektow": [str(f) for f in foldery],
             "numer": None, "numer_zrodlo": "nieznany", "bity": [], "numer_z_dolkow": None,
             "macierz_skan_do_plytki": e.macierz.tolist() if e.macierz is not None else None, "jakosc_wyrownania": e.jakosc,
             "gniazda": [], "gniazda_puste": [], "gniazda_podwojne": [], "poza_gniazdem": 0, "fragmenty_drobne": 0,
@@ -295,13 +317,15 @@ def porownaj(skan: Path, foldery: list[Path], plytka: str, ust: dict, wspolczynn
         kontekst.update(uk=uk, pula=pula)
     t2b = time.time()
     krok("identyfikacja i inspekcja gniazd (match + inspect)", 0.55)
-    gniazda = dopasuj_fragmenty(wyr, pula, ust, bez_filtru, inspekcja, podglad)
+    ratunek: dict = {}
+    gniazda = dopasuj_fragmenty(wyr, pula, ust, bez_filtru, inspekcja, podglad, start=t0m, statystyka=ratunek)
     t3 = time.time()
     krok("wynik", 0.95)
     wynik = {
         "skan": Path(skan).name, "plytka": plytka, "plytka_wybor": "auto" if auto else "reczny", "uklad_auto": info_auto,
         "uklad_zgodny": wyr.jakosc.get("uklad_zgodny"),  # None = strażnik wyłączony
-        "wspolczynnik": w, "projekty": len(pula), "foldery_projektow": [str(f) for f in foldery],
+        **({"pula_wpisy": pula.opis(), "ratunek": ratunek} if getattr(pula, "per_praca", False) else {}),  # E3-A5: pula per praca - wspolczynnik ma kazdy wpis; ratunek (runda 3)
+        "wspolczynnik": None if getattr(pula, "per_praca", False) else w, "projekty": len(pula), "foldery_projektow": [str(f) for f in foldery],
         "numer": wyr.numer, "numer_zrodlo": wyr.numer_zrodlo, "bity": wyr.bity, "numer_z_dolkow": wyr.numer_z_dolkow,
         "macierz_skan_do_plytki": wyr.macierz.tolist(), "jakosc_wyrownania": wyr.jakosc,
         "gniazda": gniazda, "gniazda_puste": wyr.gniazda_puste, "gniazda_podwojne": wyr.gniazda_podwojne,
@@ -551,10 +575,48 @@ def mapa_png(wynik: dict, uk: U.UkladPlytki, plik: Path, px: float = 0.1) -> Pat
     return plik
 
 
+KOLUMNY_WPISOW = ("plik", "wspolczynnik", "krazek", "frezowanie_id", "projekt_id")
+
+
+def wczytaj_wpisy(plik: Path) -> list[dict]:
+    """Wpisy puli per praca z pliku CSV (wiersz polecen ``--wpisy``; E3-A5): naglowek z kolumnami ``plik;wspolczynnik``
+    i opcjonalnie ``krazek``, ``frezowanie_id``, ``projekt_id`` (srednik; przecinek dziesietny dozwolony; UTF-8 albo cp1250).
+    Brak ``projekt_id`` = numer wiersza. Bledny wiersz = ``ValueError`` z numerem linii (bez tresci pol - w sciezkach sa nazwiska)."""
+    dane = Path(plik).read_bytes()
+    try:
+        tekst = dane.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        tekst = dane.decode("cp1250")
+    linie = [(nr, l.strip()) for nr, l in enumerate(tekst.splitlines(), start=1) if l.strip()]
+    if not linie:
+        raise ValueError("plik wpisow jest pusty")
+    naglowek = [k.strip().lower() for k in linie[0][1].rstrip(";").split(";")]
+    if not {"plik", "wspolczynnik"} <= set(naglowek) or not set(naglowek) <= set(KOLUMNY_WPISOW):
+        raise ValueError(f"plik wpisow: naglowek ma miec kolumny plik;wspolczynnik[;krazek;frezowanie_id;projekt_id] (linia {linie[0][0]})")
+    wpisy = []
+    for nr, linia in linie[1:]:
+        pola = [p.strip() for p in linia.rstrip(";").split(";")]
+        if len(pola) != len(naglowek):
+            raise ValueError(f"plik wpisow: linia {nr} ma {len(pola)} pol zamiast {len(naglowek)}")
+        r = dict(zip(naglowek, pola))
+        try:
+            w = float(r["wspolczynnik"].replace(",", "."))
+            fid = int(r["frezowanie_id"]) if r.get("frezowanie_id") else None
+            pid = int(r["projekt_id"]) if r.get("projekt_id") else len(wpisy) + 1
+        except ValueError:
+            raise ValueError(f"plik wpisow: linia {nr} - zla liczba (wspolczynnik, frezowanie_id albo projekt_id)") from None
+        if not (math.isfinite(w) and 0.5 <= w <= 2.0) or not r["plik"]:
+            raise ValueError(f"plik wpisow: linia {nr} - wspolczynnik spoza 0,5-2,0 albo pusty plik")
+        wpisy.append({"plik": r["plik"], "wspolczynnik": w, "krazek": r.get("krazek") or None, "frezowanie_id": fid, "projekt_id": pid, "sha16": None})
+    return wpisy
+
+
 def main(argv: list[str] | None = None) -> dict:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--skan", type=Path, required=True)
-    ap.add_argument("--projekty", type=Path, nargs="+", required=True, help="folder(y) z STL projektów (podfoldery zleceń)")
+    ap.add_argument("--projekty", type=Path, nargs="+", default=None, help="folder(y) z STL projektów (podfoldery zleceń); albo --wpisy")
+    ap.add_argument("--wpisy", type=Path, default=None, help="pula per praca: plik CSV plik;wspolczynnik[;krazek;frezowanie_id;projekt_id] (zamiast --projekty)")
+    ap.add_argument("--pamiec-puli", type=Path, default=None, help="katalog pamieci podrecznej projektow puli per praca (domyslnie [sciezki] pula_cache/projekty)")
     ap.add_argument("--plytka", default=AUTO, help="auto (domyślnie: program sam rozpoznaje układ ze skanu) albo nazwa układu z [plytki]")
     ap.add_argument("--wspolczynnik", type=float, default=None, help="skurcz (domyślnie: poranna 1,0; wieczorna środek [synth])")
     ap.add_argument("--numer", type=int, default=None, help="numer płytki, gdy dołki kodu są poza skanem")
@@ -573,10 +635,21 @@ def main(argv: list[str] | None = None) -> dict:
         ap.error(f"--plytka {a.plytka!r}: brak w [plytki] (są: {AUTO}, {', '.join(ust['plytki'])})")
     if not a.skan.exists():
         ap.error(f"brak pliku skanu {a.skan}")
-    for f in a.projekty:
+    if (a.projekty is None) == (a.wpisy is None):
+        ap.error("podaj --projekty (folder(y) STL) albo --wpisy (pula per praca) - jedno z nich")
+    for f in a.projekty or []:
         if not f.is_dir():
             ap.error(f"brak folderu projektów {f}")
-    if auto:  # układ, współczynnik domyślny i pula wynikają z rozpoznania — robi to porownaj()
+    if a.wpisy is not None:  # pula per praca (E3-A5): wspolczynnik kazdego wpisu; --wspolczynnik tylko dla wpisow bez wspolczynnika
+        from . import pamiec_puli as PP
+        try:
+            wpisy = wczytaj_wpisy(a.wpisy)
+        except (OSError, ValueError) as e:
+            ap.error(str(e) if isinstance(e, ValueError) else f"nie da sie odczytac pliku wpisow ({type(e).__name__})")
+        pamiec = PP.PamiecPuli(a.pamiec_puli) if a.pamiec_puli is not None else PP.z_ustawien(ust)
+        w = a.wspolczynnik
+        pula = M.Pula.z_wpisow(wpisy, None, a.orientacja, pamiec=pamiec, wspolczynnik_domyslny=a.wspolczynnik)
+    elif auto:  # układ, współczynnik domyślny i pula wynikają z rozpoznania — robi to porownaj()
         w, pula = a.wspolczynnik, None
     else:
         w = a.wspolczynnik if a.wspolczynnik is not None else wspolczynnik_domyslny(a.plytka, ust)
@@ -584,7 +657,7 @@ def main(argv: list[str] | None = None) -> dict:
     kontekst: dict = {}
     with warnings.catch_warnings(record=True) as ostrz:
         warnings.simplefilter("always")
-        wynik = porownaj(a.skan, a.projekty, a.plytka, ust, w, a.numer, a.orientacja, a.bez_filtru, pula, inspekcja=not a.bez_inspekcji,
+        wynik = porownaj(a.skan, a.projekty or [], a.plytka, ust, w, a.numer, a.orientacja, a.bez_filtru, pula, inspekcja=not a.bez_inspekcji,
                          straznik=not a.bez_straznika, kontekst=kontekst)
     uk, pula = kontekst.get("uk"), kontekst.get("pula")
     wynik["ostrzezenia"] = [str(o.message) for o in ostrz]
