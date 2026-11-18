@@ -9,7 +9,8 @@ Kryteria odbioru E3-A1 (plan etapu 3, sekcja 4.1) - kazde ma test `test_kN_...`:
 
 Runda 2 (recenzja PR #16, decyzje wlasciciela z 17.11.2026): testy `test_pN_...` = uwagi P2-P7 recenzenta (P1 w test_baza.py),
 `test_dN_...` = uwagi drobne, `test_decyzja2_...` = lista operatorow wymagana; decyzja 3 (kolor po decyzji) = `test_p7_...`,
-decyzja 4 (nazwy w czterech tabelach) = `test_k8_...`.
+decyzja 4 (nazwy w czterech tabelach) = `test_k8_...`; `test_p5_...` = doba robocza 06:00-06:00, zmiany, okno ponownego skanu
+60 min, lista biezaca (korekty wlasciciela do P5); `test_blokada_...` = plytka nie z tego trybu (wymaganie wlasciciela z 17.11).
 
 Dane: `testy/dane_sesji` - wyniki w formacie `porownaj.porownaj` zbudowane recznie (male, w pelni sztuczne: projekty to skroty
 `sha16` wymyslonych nazw, zlecenia maja fikcyjne nazwy folderow). Zgodnosc formatu z prawdziwym silnikiem pilnuje
@@ -241,12 +242,13 @@ def test_k2_ukruszona_ok_cofniecie_lista_do_dofrezowania(sesja, tmp_path):
     # lista jako plik (zalozenie Z6): te same pozycje, bez nazw folderow i plikow zlecen
     plik = sesja.zapisz_do_dofrezowania(DATA, tmp_path / "dane" / "listy")
     tresc = plik.read_text(encoding="utf-8").splitlines()
-    assert plik.name == f"do_dofrezowania_{DATA}.csv" and tresc[0] == "kuweta;zeby;krazek;plytka;gniazdo;projekt"
-    assert tresc[1:] == [f"3263;14;K-1101;1;2;{SHA['3263', '14']}"]
+    assert plik.name == f"do_dofrezowania_{DATA}.csv" and tresc[0] == "kuweta;zeby;krazek;plytka;gniazdo;projekt;doba;zmiana"
+    assert tresc[1:] == [f"3263;14;K-1101;1;2;{SHA['3263', '14']};{DATA};2"]  # 19:00 = zmiana 2
     # ponowne "Ukruszona" po cofnieciu: praca wraca na liste (piaty wiersz decyzji)
     sesja.ukruszona(p16)
     assert pozycje(sesja.do_dofrezowania(DATA)) == [("3263", "14", "K-1101"), ("0412", "16", "K-1102")] and liczba(sesja, "decyzje") == 5
-    assert sesja.do_dofrezowania("2026-11-18") == []  # inny wieczor: pusta lista
+    assert sesja.do_dofrezowania("2026-11-18") == []  # widok innej doby: pusto
+    assert sesja.do_dofrezowania() == sesja.do_dofrezowania(DATA) and all((x["doba"], x["zmiana"]) == (DATA, 2) for x in sesja.do_dofrezowania())
 
 
 def test_k2_praca_bez_projektu_i_bez_krazka_tez_trafia_na_liste(sesja):
@@ -402,19 +404,11 @@ def test_k3_ponowny_skan_plytki_zastepuje_poprzedni(sesja):
     assert stan_punktu(sesja, SHA["3263", "14"])["praca_id"] == nowe14
 
 
-def test_ponowny_skan_tylko_w_tym_samym_wieczorze_i_po_numerze_plytki(sesja, zegar):
+def test_skan_bez_numeru_po_wskazaniu_numeru_jest_kandydatem_do_zastapienia(sesja, zegar):
     s1 = przyjmij(sesja, "wynik_plytka1")
-    zegar.ustaw("2026-11-18T19:05:00")  # nastepny wieczor: ten sam numer plytki to juz inna partia
-    jutro = przyjmij(sesja, "wynik_plytka1_ponownie")
-    assert sesja.stan_wieczoru(DATA)["do_potwierdzenia"] == [] and sesja.stan_wieczoru("2026-11-18")["do_potwierdzenia"] == []
-    with pytest.raises(SE.BladSesji, match="nie ma skanu do zastapienia"):
-        sesja.zastap_skan(jutro)
-    with pytest.raises(SE.BladSesji, match="z tego samego wieczoru"):
-        sesja.zastap_skan(jutro, s1)
-    # skan bez numeru (dolki poza polem, numer niepodany): po wskazaniu numeru staje sie kandydatem do zastapienia
     zegar.ustaw(f"{DATA}T19:30:00")
     w = wynik("wynik_plytka1_ponownie")
-    w["numer"], w["numer_zrodlo"] = None, "nieznany"
+    w["numer"], w["numer_zrodlo"] = None, "nieznany"  # dolki poza polem, numer niepodany
     bez_numeru = sesja.przyjmij_wynik({**ZDARZENIA["wynik_plytka1_ponownie"], "sha16": "0123456789abcdef"}, w)
     assert skan(sesja, bez_numeru)["numer_plytki"] is None and sesja.stan_wieczoru(DATA)["do_potwierdzenia"] == []
     sesja.podaj_numer_plytki(bez_numeru, 1)
@@ -425,6 +419,14 @@ def test_ponowny_skan_tylko_w_tym_samym_wieczorze_i_po_numerze_plytki(sesja, zeg
     assert sesja.stan_wieczoru(DATA)["do_potwierdzenia"] == [{"skan_id": bez_numeru, "poprzedni_id": s1, "numer_plytki": 1}]
     with pytest.raises(SE.BladSesji, match="numer plytki"):
         sesja.podaj_numer_plytki(bez_numeru, 0)
+    # nastepnego dnia ten sam numer plytki to nowy wsad: bez propozycji, a wskazanie wprost jest odrzucane (inna doba, poza oknem)
+    zegar.ustaw("2026-11-18T19:05:00")
+    jutro = przyjmij(sesja, "wynik_plytka1_ponownie")
+    assert sesja.stan_wieczoru("2026-11-18")["do_potwierdzenia"] == []
+    with pytest.raises(SE.BladSesji, match="nie ma skanu do zastapienia"):
+        sesja.zastap_skan(jutro)
+    with pytest.raises(SE.BladSesji, match="z tej samej doby"):
+        sesja.zastap_skan(jutro, s1)
 
 
 def test_ten_sam_plik_skanu_przeanalizowany_drugi_raz_jest_kandydatem_do_zastapienia(sesja):
@@ -445,10 +447,10 @@ def test_p6a_zastap_skan_odmawia_gdy_numer_albo_rodzina_ukladu_sie_nie_zgadza(se
     assert skan(sesja, s1)["status"] == "przyjety" and len(sesja.do_dofrezowania(DATA)) == 1 and liczba(sesja, "decyzje") == 1
     # ten sam numer, ale inna rodzina ukladu (np. zly odczyt numeru): program nie proponuje i odmawia
     w = wynik("wynik_plytka1_ponownie")
-    w["plytka"] = "poranna"
+    w["plytka"] = "wieczorna_r54"  # stary uklad gniazd: inny rozstaw stozkow, wiec inna plytka fizyczna
     inna = sesja.przyjmij_wynik(ZDARZENIA["wynik_plytka1_ponownie"], w)
     assert sesja.stan_wieczoru(DATA)["do_potwierdzenia"] == []
-    with pytest.raises(SE.BladSesji, match=r"uklad.*poranna.*wieczorna"):
+    with pytest.raises(SE.BladSesji, match=r"uklad plytki \(wieczorna_r54 i wieczorna\)"):
         sesja.zastap_skan(inna, s1)
     with pytest.raises(SE.BladSesji, match="nie ma skanu do zastapienia"):
         sesja.zastap_skan(inna)
@@ -459,6 +461,7 @@ def test_p6a_zastap_skan_odmawia_gdy_numer_albo_rodzina_ukladu_sie_nie_zgadza(se
     assert sesja.stan_wieczoru(DATA)["do_potwierdzenia"] == [{"skan_id": kolo, "poprzedni_id": s1, "numer_plytki": 1}]
     assert sesja.zastap_skan(kolo) == s1 and sesja.do_dofrezowania(DATA) == []
     assert SE.rodzina_ukladu("okragla_poranna_r54") == "poranna_r54" != SE.rodzina_ukladu("poranna")
+    assert SE.rodzina_ukladu("okragla_wieczorna") == SE.rodzina_ukladu("wieczorna") == "wieczorna" and SE.rodzina_ukladu("nowy_uklad") == "nowy_uklad"
 
 
 def test_p6b_cofniecie_zastapienia_przywraca_poprzedni_skan_i_jego_decyzje(sesja):
@@ -616,43 +619,230 @@ def test_k5_po_zamknieciu_i_otwarciu_ten_sam_stan(tmp_path):
         s2.baza.zamknij()
 
 
-# --- P5: wieczor = chwila przyjecia skanu, doba robocza 04:00 - 04:00 ------------------------------
-def test_p5_wieczor_od_chwili_przyjecia_skanu_doba_od_4_do_4(sesja, zegar):
-    # (a) plik ze stara data (kopia z zachowana data, ponowna analiza pliku z wczoraj): liczy sie chwila przyjecia
-    stary = przyjmij(sesja, "wynik_plytka2", czas_pliku="2026-11-10T08:00:00")
-    assert skan(sesja, stary)["czas_pliku"] == "2026-11-10T08:00:00" and skan(sesja, stary)["czas_analizy"].startswith(DATA)
-    assert [s["id"] for s in sesja.stan_wieczoru()["skany"]] == [stary] and sesja.stan_wieczoru("2026-11-10")["skany"] == []
-    sesja.ukruszona(praca(sesja, stary, 4))
-    assert len(sesja.do_dofrezowania()) == 1 and sesja.do_dofrezowania("2026-11-10") == []
-    # (b) polnoc: skan o 23:59 i powtorka o 00:05 to ten sam wieczor
-    zegar.ustaw(f"{DATA}T23:59:00")
+# --- P5: doba robocza 06:00 - 06:00 od chwili przyjecia, zmiany, okno ponownego skanu, lista biezaca -----
+def _plytka(s: SE.Sesja, numer: int, sha16: str, nazwa: str = "wynik_plytka2", **zmiany) -> int:
+    """Skan plytki o podanym numerze (te same prace co w pliku `nazwa`), z wlasnym skrotem pliku skanu."""
+    w = wynik(nazwa)
+    w["numer"] = numer
+    return s.przyjmij_wynik({**ZDARZENIA[nazwa], "sha16": sha16, **zmiany}, w)
+
+
+def test_p5_doba_robocza_od_chwili_przyjecia_i_numer_zmiany(sesja, zegar):
+    # szesc skanow jednej doby D (17.11): 06:10, 13:50, 14:10, 23:59 oraz 00:05 i 05:55 dnia nastepnego -> zmiany 1, 1, 2, 3, 3, 3
+    czasy = [f"{DATA}T06:10:00", f"{DATA}T13:50:00", f"{DATA}T14:10:00", f"{DATA}T23:59:00", "2026-11-18T00:05:00", "2026-11-18T05:55:00"]
+    ids = []
+    for i, czas in enumerate(czasy):
+        zegar.ustaw(czas)
+        ids.append(_plytka(sesja, i + 1, f"{i:016x}", czas_pliku="2026-11-10T08:00:00"))  # data pliku jest tylko informacja
+    stan = sesja.stan_wieczoru()  # zegar: 05:55 dnia 18.11 - nadal doba 17.11, zmiana 3
+    assert (stan["data"], stan["zmiana"]) == (DATA, 3) and sesja.doba() == DATA and sesja.zmiana() == 3
+    assert [s["id"] for s in stan["skany"]] == ids and [s["zmiana"] for s in stan["skany"]] == [1, 1, 2, 3, 3, 3]
+    assert all(s["czas_pliku"] == "2026-11-10T08:00:00" for s in stan["skany"]) and sesja.stan_wieczoru("2026-11-10")["skany"] == []
+    assert [s["czas_analizy"][:16] for s in stan["skany"]] == [c[:16] for c in czasy] and stan["do_potwierdzenia"] == []
+    # od 06:00 liczy sie nastepna doba (zmiana 1)
+    zegar.ustaw("2026-11-18T06:00:00")
+    stan = sesja.stan_wieczoru()
+    assert (stan["data"], stan["zmiana"], stan["skany"]) == ("2026-11-18", 1, []) and sesja.doba() == "2026-11-18"
+    assert len(sesja.stan_wieczoru(DATA)["skany"]) == 6 and sesja.stan_wieczoru(DATA)["zmiana"] is None  # doba miniona: bez biezacej zmiany
+    # regula w jednym miejscu: doba() i zmiana(); granica i poczatki zmian sa ustawieniami
+    assert sesja.doba(f"{DATA}T05:59:59") == "2026-11-16" and sesja.doba(dt.datetime(2026, 11, 17, 6, 0)) == DATA
+    assert [sesja.zmiana(f"{DATA}T{g}:00") for g in ("05:59", "06:00", "13:59", "14:00", "21:59", "22:00", "23:59", "00:00")] == [3, 1, 1, 2, 2, 3, 3, 3]
+    assert (sesja.granica_doby_godz, sesja.zmiany_start_godz, sesja.ponowny_skan_okno_min) == (6, (6, 14, 22), 60)
+    inna = SE.Sesja(sesja.baza, operatorzy=OSOBY, granica_doby_godz=0, zmiany_start_godz=[7, 19], zegar=Zegar("2026-11-18T00:05:00"))
+    assert inna.doba() == "2026-11-18" and inna.zmiana() == 2 and inna.zmiana("2026-11-18T07:00:00") == 1
+    assert [s["id"] for s in inna.stan_wieczoru(DATA)["skany"]] == ids[:4]
+    for zle in ({"granica_doby_godz": 24}, {"zmiany_start_godz": []}, {"zmiany_start_godz": [14, 6]}, {"ponowny_skan_okno_min": -1}):
+        with pytest.raises(SE.BladSesji):
+            SE.Sesja(sesja.baza, operatorzy=OSOBY, **zle)
+
+
+def test_p5_ponowny_skan_w_oknie_60_minut_takze_przez_granice_doby(sesja, zegar):
+    # skan 05:55 (doba D, zmiana 3) i powtorka 06:05 (doba D+1, zmiana 1): propozycja i dzialajace zastapienie
+    zegar.ustaw("2026-11-18T05:55:00")
     s1 = przyjmij(sesja, "wynik_plytka1")
     sesja.ukruszona(praca(sesja, s1, 2))
-    zegar.ustaw("2026-11-18T00:05:00")
+    zegar.ustaw("2026-11-18T06:05:00")
     s1b = przyjmij(sesja, "wynik_plytka1_ponownie")
-    assert skan(sesja, s1b)["czas_analizy"].startswith("2026-11-18T00:05")
+    assert sesja.doba(skan(sesja, s1)["czas_analizy"]) == DATA and sesja.doba(skan(sesja, s1b)["czas_analizy"]) == "2026-11-18"
+    assert sesja.stan_wieczoru()["do_potwierdzenia"] == [{"skan_id": s1b, "poprzedni_id": s1, "numer_plytki": 1}]
+    assert sesja.zastap_skan(s1b) == s1 and skan(sesja, s1)["status"] == "zastapiony" and sesja.do_dofrezowania() == []
+    # granica okna (decyzja wlasciciela: "[cytat usuniety]"): 59 min -> propozycja, 60 min -> jeszcze propozycja, 61 min -> nowy wsad
+    for numer, minut, propozycja in ((2, 59, True), (3, 60, True), (4, 61, False)):
+        zegar.ustaw(f"2026-11-18T{7 + numer:02d}:00:00")
+        pierwszy = _plytka(sesja, numer, f"a{numer:015x}")
+        zegar.ustaw(f"2026-11-18T{7 + numer + minut // 60:02d}:{minut % 60:02d}:00")
+        drugi = _plytka(sesja, numer, f"b{numer:015x}")
+        oczekiwane = [{"skan_id": drugi, "poprzedni_id": pierwszy, "numer_plytki": numer}] if propozycja else []
+        assert [x for x in sesja.stan_wieczoru()["do_potwierdzenia"] if x["numer_plytki"] == numer] == oczekiwane, (numer, minut)
+    # ta sama plytka po 5 h w tej samej dobie = nowy wsad: bez propozycji, obie pozycje listy zachowane
+    zegar.ustaw("2026-11-18T13:00:00")
+    a = _plytka(sesja, 5, "c" * 16)
+    sesja.ukruszona(praca(sesja, a, 4))
+    zegar.ustaw("2026-11-18T18:00:00")
+    b = _plytka(sesja, 5, "d" * 16)
+    sesja.ukruszona(praca(sesja, b, 4))
+    assert [x for x in sesja.stan_wieczoru()["do_potwierdzenia"] if x["numer_plytki"] == 5] == []
+    with pytest.raises(SE.BladSesji, match="nie ma skanu do zastapienia.*60 min"):
+        sesja.zastap_skan(b)
+    assert [(x["praca_id"], x["zmiana"]) for x in sesja.do_dofrezowania()] == [(praca(sesja, a, 4), 1), (praca(sesja, b, 4), 2)]
+    # zastapienie wskazane wprost dziala w obrebie tej samej doby roboczej, takze poza oknem ...
+    assert sesja.zastap_skan(b, a) == a and [x["praca_id"] for x in sesja.do_dofrezowania()] == [praca(sesja, b, 4)]
+    # ... a poza doba i poza oknem jest odrzucane
+    zegar.ustaw("2026-11-19T07:30:00")
+    c = _plytka(sesja, 5, "e" * 16)
+    with pytest.raises(SE.BladSesji, match="z tej samej doby roboczej albo sprzed najwyzej 60 min"):
+        sesja.zastap_skan(c, b)
+    # okno jest ustawieniem; 0 = program nigdy nie proponuje
+    bez_okna = SE.Sesja(sesja.baza, operatorzy=OSOBY, ponowny_skan_okno_min=0, zegar=zegar)
+    d = _plytka(bez_okna, 5, "f" * 16)
+    assert bez_okna.stan_wieczoru()["do_potwierdzenia"] == [] and sesja.stan_wieczoru()["do_potwierdzenia"] == [{"skan_id": d, "poprzedni_id": c, "numer_plytki": 5}]
+
+
+def test_p5_lista_biezaca_do_dofrezowania_nie_znika_na_granicy_doby(sesja, zegar, tmp_path):
+    zegar.ustaw(f"{DATA}T23:00:00")
+    s1 = przyjmij(sesja, "wynik_plytka1")
+    p14, szara = praca(sesja, s1, 2), praca(sesja, s1, 7)
+    sesja.ukruszona(p14)
+    sesja.ukruszona(szara)  # praca bez projektu w indeksie
+    zegar.ustaw("2026-11-18T06:30:00")  # nastepna doba, zmiana 1
+    biezaca = sesja.do_dofrezowania()
+    assert [(x["praca_id"], x["doba"], x["zmiana"]) for x in biezaca] == [(p14, DATA, 3), (szara, DATA, 3)]  # "Ukruszona" z doby D widoczna w D+1
+    assert sesja.do_dofrezowania("2026-11-18") == [] and sesja.do_dofrezowania(DATA) == biezaca  # widok "ta doba" to filtr
     stan = sesja.stan_wieczoru()
-    assert sesja.wieczor() == DATA == stan["data"] and [s["id"] for s in stan["skany"]] == [stary, s1, s1b]
-    assert stan["do_potwierdzenia"] == [{"skan_id": s1b, "poprzedni_id": s1, "numer_plytki": 1}]
-    assert sesja.zastap_skan(s1b) == s1
-    assert pozycje(sesja.do_dofrezowania()) == [("0412", "16", "K-1102")]
-    sesja.ukruszona(praca(sesja, s1b, 2))  # decyzja po polnocy trafia na liste tego samego wieczoru
-    assert len(sesja.do_dofrezowania()) == 2 == len(sesja.do_dofrezowania(DATA))
-    # (c) od 04:00 liczy sie nowa doba robocza
-    zegar.ustaw("2026-11-18T03:59:00")
-    assert sesja.wieczor() == DATA
-    zegar.ustaw("2026-11-18T04:00:00")
-    assert sesja.wieczor() == "2026-11-18" and sesja.stan_wieczoru()["skany"] == [] and sesja.do_dofrezowania() == []
-    rano = przyjmij(sesja, "wynik_plytka1")  # ten sam numer plytki, ale juz nastepna doba
-    assert sesja.stan_wieczoru()["do_potwierdzenia"] == [] and [s["id"] for s in sesja.stan_wieczoru()["skany"]] == [rano]
-    with pytest.raises(SE.BladSesji, match="nie ma skanu do zastapienia"):
-        sesja.zastap_skan(rano)
-    assert len(sesja.stan_wieczoru(DATA)["skany"]) == 3
-    # granica doby jest ustawieniem ([sesja] granica_doby_godz) i jedna regula w kodzie
-    assert sesja.granica_doby_godz == 4 and sesja.wieczor("2026-11-18T00:05:00") == DATA
-    o_polnocy = SE.Sesja(sesja.baza, operatorzy=OSOBY, granica_doby_godz=0, zegar=Zegar("2026-11-18T00:05:00"))
-    assert o_polnocy.wieczor() == "2026-11-18" and o_polnocy.wieczor(dt.datetime(2026, 11, 17, 23, 59)) == DATA
-    assert [s["id"] for s in o_polnocy.stan_wieczoru(DATA)["skany"]] == [stary, s1]
+    assert (stan["data"], stan["zmiana"], stan["skany"], stan["do_dofrezowania"]) == ("2026-11-18", 1, [], [])
+    assert stan["do_dofrezowania_biezaca"] == biezaca
+    s2 = przyjmij(sesja, "wynik_plytka2")
+    p16 = praca(sesja, s2, 4)
+    sesja.ukruszona(p16)
+    assert [(x["praca_id"], x["doba"], x["zmiana"]) for x in sesja.do_dofrezowania()] == [(p14, DATA, 3), (szara, DATA, 3), (p16, "2026-11-18", 1)]
+    assert [x["praca_id"] for x in sesja.stan_wieczoru()["do_dofrezowania"]] == [p16]
+    plik = sesja.zapisz_do_dofrezowania(katalog=tmp_path / "dane" / "listy")
+    wiersze = plik.read_text(encoding="utf-8").splitlines()
+    assert plik.name == "do_dofrezowania_biezaca.csv" and len(wiersze) == 4 and wiersze[1].endswith(f";{DATA};3") and wiersze[3].endswith(";2026-11-18;1")
+    # pozycja jest otwarta, dopoki punkt projektu ma stan do_dofrezowania; zamkniecie punktu (zrobi to poranek, A6) zdejmuje ja z listy
+    sesja.baza.wykonaj("UPDATE stan_punktow SET stan = 'rozpoznany' WHERE projekt_id = (SELECT id FROM projekty WHERE sha16 = ?)", (SHA["3263", "14"],))
+    assert [x["praca_id"] for x in sesja.do_dofrezowania()] == [szara, p16] and sesja.do_dofrezowania(DATA) == [biezaca[1]]
+    # cofniecie decyzji z poprzedniej doby tez dziala nastepnego dnia
+    sesja.cofnij(szara)
+    assert [x["praca_id"] for x in sesja.do_dofrezowania()] == [p16]
+
+
+# --- blokada: plytka nie z tego trybu (wymaganie wlasciciela z 17.11.2026, zmiana zalozenia Z1) -----
+@pytest.mark.parametrize("uklad,tryb,powod", [
+    ("poranna", "wieczor", "plytka poranna w trybie wieczor"),
+    ("okragla_poranna", "wieczor", "plytka poranna w trybie wieczor"),
+    ("poranna_r54", "wieczor", "plytka poranna w trybie wieczor"),
+    ("okragla_poranna_r54", "wieczor", "plytka poranna w trybie wieczor"),
+    ("wieczorna", "rano", "plytka wieczorna w trybie rano"),
+    ("okragla_wieczorna_r54", "rano", "plytka wieczorna w trybie rano"),
+])
+def test_blokada_plytki_nie_z_trybu(sesja, uklad, tryb, powod):
+    w = wynik("wynik_plytka2")  # w pliku wyniku: gniazdo 1 zielone, 4 czerwone, 6 zolte, 9 pomaranczowe
+    w["plytka"] = uklad
+    sid = sesja.przyjmij_wynik(ZDARZENIA["wynik_plytka2"], w, tryb=tryb)
+    assert skan(sesja, sid)["status"] == "plytka_nie_z_trybu" == SE.STATUS_PLYTKA_NIE_Z_TRYBU and SE.powod_nie_z_trybu(uklad, tryb) == powod
+    assert [r["status_gniazda"] for r in sesja.baza.wiersze("SELECT status_gniazda FROM prace WHERE skan_id = ? ORDER BY id", (sid,))] == [
+        "zielony", "czerwony", "zolty", "pomaranczowy"]  # ocena programu zostaje w bazie
+    for gniazdo in (1, 4):
+        for akcja in (sesja.ukruszona, sesja.ok, sesja.cofnij, lambda p: sesja.decyzja(p, "ukruszona_niewykryta")):
+            with pytest.raises(SE.BladSesji, match="status 'plytka_nie_z_trybu'.*tylko na skanie przyjetym.*nie z tego trybu"):
+                akcja(praca(sesja, sid, gniazdo))
+    assert liczba(sesja, "decyzje") == 0 and liczba(sesja, "stan_punktow") == 0 and sesja.do_dofrezowania() == []
+    if tryb == "wieczor":
+        stan = sesja.stan_wieczoru(DATA)
+        s = stan["skany"][0]
+        assert (s["status"], s["aktywny"], s["powod"], s["liczniki"], s["moze_zastapic"]) == ("plytka_nie_z_trybu", False, powod, {}, None)
+        assert all(p["kolor"] is None for p in s["prace"]) and len(s["prace"]) == 4  # 0 zielonych: ramka nie zapala gniazd takiego skanu
+        assert (stan["liczniki"], stan["prac"], stan["do_dofrezowania"], stan["konflikty"]) == ({}, 0, [], [])
+    else:
+        assert sesja.stan_wieczoru(DATA)["skany"] == []  # skan poranny nie nalezy do stanu wieczoru
+
+
+def test_blokada_plytka_zgodna_z_trybem_bez_zmian_i_jedno_miejsce_reguly(sesja):
+    for uklad, tryb in (("wieczorna", "wieczor"), ("okragla_wieczorna", "wieczor"), ("wieczorna_r54", "wieczor"), ("okragla_wieczorna_r54", "wieczor"),
+                        ("poranna", "rano"), ("okragla_poranna_r54", "rano"), ("uklad_ktorego_program_nie_zna", "wieczor"), (None, "wieczor"),
+                        ("poranna", None), ("poranna", "inny_tryb")):
+        assert SE.powod_nie_z_trybu(uklad, tryb) is None, (uklad, tryb)
+    assert SE.czesci_ukladu("okragla_poranna_r54") == {"okragla": True, "typ": "poranna", "wersja": "_r54"}
+    assert SE.czesci_ukladu("wieczorna") == {"okragla": False, "typ": "wieczorna", "wersja": ""} and SE.czesci_ukladu("porannax") is None
+    assert [SE.typ_plytki(u) for u in ("poranna", "okragla_poranna", "poranna_r54", "wieczorna_r54", "okragla_wieczorna", "cos")] == [
+        "poranna", "poranna", "poranna", "wieczorna", "wieczorna", None]
+    w = wynik("wynik_plytka2")
+    w["plytka"] = "poranna"
+    rano = sesja.przyjmij_wynik(ZDARZENIA["wynik_plytka2"], w, tryb="rano")  # plytka poranna rano: przyjeta jak dotad
+    wieczor = przyjmij(sesja, "wynik_plytka3")  # okragla wieczorna wieczorem
+    assert skan(sesja, rano)["status"] == "przyjety" and skan(sesja, wieczor)["status"] == "przyjety"
+    assert skany_po_id(sesja)[wieczor]["powod"] is None
+    with pytest.raises(SE.BladSesji, match="dopuscic mozna tylko skan plytki nie z tego trybu"):
+        sesja.dopusc_plytke(wieczor)
+
+
+def test_blokada_skan_nie_z_trybu_nie_zastepuje_i_nie_jest_zastepowany(sesja):
+    dobry = przyjmij(sesja, "wynik_plytka2")  # wieczorna nr 2
+    sesja.ukruszona(praca(sesja, dobry, 4))
+    w = wynik("wynik_plytka2")
+    w["plytka"] = "poranna"  # ten sam numer plytki, ale plytka poranna zeskanowana wieczorem
+    zly = sesja.przyjmij_wynik({**ZDARZENIA["wynik_plytka2"], "sha16": "1" * 16}, w)
+    assert sesja.stan_wieczoru(DATA)["do_potwierdzenia"] == []
+    for wywolanie in (lambda: sesja.zastap_skan(zly), lambda: sesja.zastap_skan(zly, dobry)):
+        with pytest.raises(SE.BladSesji, match="status 'plytka_nie_z_trybu'"):
+            wywolanie()
+    dobry2 = przyjmij(sesja, "wynik_plytka2", sha16="2" * 16)  # poprawny skan po zlym: zly nie jest kandydatem
+    assert sesja.stan_wieczoru(DATA)["do_potwierdzenia"] == [{"skan_id": dobry2, "poprzedni_id": dobry, "numer_plytki": 2}]
+    with pytest.raises(SE.BladSesji, match="musi byc wczesniejszy, aktywny"):
+        sesja.zastap_skan(dobry2, zly)
+    assert skan(sesja, dobry)["status"] == "przyjety" and len(sesja.do_dofrezowania()) == 1 and skan(sesja, zly)["status"] == "plytka_nie_z_trybu"
+
+
+def test_blokada_swiadome_dopuszczenie_z_operatorem_i_jego_cofniecie(tmp_path):
+    s = nowa_sesja(tmp_path, operator=None)
+    try:
+        wypelnij_indeks(s.baza)
+        w = wynik("wynik_plytka2")
+        w["plytka"] = "okragla_poranna_r54"
+        sid = s.przyjmij_wynik(ZDARZENIA["wynik_plytka2"], w)
+        with pytest.raises(SE.BladSesji, match="wybierz osobe"):  # dopuszczenie bez operatora: odmowa
+            s.decyzja(None, "uklad", SE.DOPUSC_PLYTKE, skan_id=sid)
+        assert skan(s, sid)["status"] == "plytka_nie_z_trybu" and liczba(s, "decyzje") == 0
+        s.wybierz_operatora("Technik B")
+        d = s.decyzja(None, "uklad", SE.DOPUSC_PLYTKE, skan_id=sid)
+        wiersz = s.baza.wiersz("SELECT * FROM decyzje WHERE id = ?", (d,))
+        assert (wiersz["rodzaj"], wiersz["wartosc"], wiersz["skan_id"], wiersz["praca_id"], wiersz["operator"]) == (
+            "uklad", "dopusc_plytke_nie_z_trybu", sid, None, "Technik B")
+        zd = s.baza.wiersze("SELECT * FROM zdarzenia WHERE typ = 'plytka_nie_z_trybu_dopuszczona'")
+        assert len(zd) == 1 and zd[0]["skan_id"] == sid and json.loads(zd[0]["dane"])["decyzja_id"] == d and "Technik" not in zd[0]["dane"]
+        # po dopuszczeniu skan jest liczony normalnie
+        stan = s.stan_wieczoru(DATA)
+        assert (stan["skany"][0]["status"], stan["skany"][0]["aktywny"], stan["skany"][0]["powod"]) == ("przyjety", True, None)
+        assert stan["liczniki"] == {"zielony": 1, "czerwony": 1, "zolty": 1, "pomaranczowy": 1}
+        p16 = praca(s, sid, 4)
+        s.ukruszona(p16)
+        assert [x["praca_id"] for x in s.do_dofrezowania()] == [p16] and stan_punktu(s, SHA["0412", "16"])["stan"] == "do_dofrezowania"
+        # cofniecie dopuszczenia przywraca blokade: decyzje o pracach przestaja sie liczyc (zostaja w bazie)
+        c = s.cofnij_dopuszczenie(sid)
+        wiersz = s.baza.wiersz("SELECT * FROM decyzje WHERE id = ?", (c,))
+        assert (wiersz["rodzaj"], wiersz["wartosc"], wiersz["skan_id"], wiersz["praca_id"]) == ("cofniecie", str(d), sid, None)
+        assert skan(s, sid)["status"] == "plytka_nie_z_trybu" and s.do_dofrezowania() == [] and s.stan_wieczoru(DATA)["liczniki"] == {}
+        assert stan_punktu(s, SHA["0412", "16"])["stan"] == "oczekuje" and liczba(s, "decyzje") == 3
+        assert len(s.baza.wiersze("SELECT id FROM zdarzenia WHERE typ = 'plytka_nie_z_trybu_blokada_przywrocona'")) == 1
+        with pytest.raises(SE.BladSesji, match="nie ma dopuszczenia do cofniecia"):
+            s.cofnij_dopuszczenie(sid)
+        with pytest.raises(SE.BladSesji, match="status 'plytka_nie_z_trybu'"):
+            s.ok(p16)
+        # ponowne dopuszczenie: wczesniejsza decyzja "Ukruszona" znow sie liczy; cofniecie takze przez decyzja(..., "cofniecie", skan_id=...)
+        s.dopusc_plytke(sid)
+        assert [x["praca_id"] for x in s.do_dofrezowania()] == [p16] and stan_punktu(s, SHA["0412", "16"])["praca_id"] == p16
+        s.decyzja(None, "cofniecie", skan_id=sid)
+        assert skan(s, sid)["status"] == "plytka_nie_z_trybu" and s.do_dofrezowania() == []
+        # skan, ktory po dopuszczeniu i tak wymaga powtorzenia (drgniecie), dostaje status do_powtorzenia
+        w = wynik("wynik_drgniecie")
+        w["plytka"] = "poranna"
+        dr = s.przyjmij_wynik(ZDARZENIA["wynik_drgniecie"], w)
+        assert skan(s, dr)["status"] == "plytka_nie_z_trybu"
+        s.dopusc_plytke(dr)
+        assert skan(s, dr)["status"] == "do_powtorzenia" and skany_po_id(s)[dr]["liczniki"] == {"zolty": 3}
+    finally:
+        s.baza.zamknij()
 
 
 # --- kryterium 6 ------------------------------------------------------------------------------
@@ -874,10 +1064,10 @@ def test_sesja_z_ustawien(tmp_path):
 
     ust = UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)
     ust = {**ust, "sciezki": {**ust["sciezki"], "baza": (tmp_path / "b" / "stanowisko.sqlite").as_posix(), "wyniki": (tmp_path / "b" / "wyniki").as_posix()},
-           "sesja": {**ust["sesja"], "operatorzy": ["Technik A"], "granica_doby_godz": 6}}
+           "sesja": {**ust["sesja"], "operatorzy": ["Technik A"], "granica_doby_godz": 5, "zmiany_start_godz": [5, 13, 21], "ponowny_skan_okno_min": 45}}
     s = SE.Sesja.z_ustawien(ust)
     try:
-        assert s.baza.plik == tmp_path / "b" / "stanowisko.sqlite" and s.operatorzy == ("Technik A",) and s.granica_doby_godz == 6
+        assert s.baza.plik == tmp_path / "b" / "stanowisko.sqlite" and s.operatorzy == ("Technik A",) and (s.granica_doby_godz, s.zmiany_start_godz, s.ponowny_skan_okno_min) == (5, (5, 13, 21), 45)
         sid = s.przyjmij_wynik(ZDARZENIA["wynik_plytka3"], wynik("wynik_plytka3"))
         sk = skan(s, sid)
         assert s.sciezka_wyniku(sid).parent == tmp_path / "b" / "wyniki" and sk["wynik_json"] == f"wyniki/{s.sciezka_wyniku(sid).name}"

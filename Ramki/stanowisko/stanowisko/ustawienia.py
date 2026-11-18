@@ -97,6 +97,9 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
     "sesja": {
         "operatorzy": (list, "session"),
         "przechowuj_skany_dni": (int, PRZYSZLY),
+        "granica_doby_godz": (int, "session"),
+        "zmiany_start_godz": (list, "session"),
+        "ponowny_skan_okno_min": (int, "session"),
     },
 }
 
@@ -118,10 +121,13 @@ DOMYSLNE_NOWYCH = {
     "inspect": {"pas_brzegu_od": "linia_i_plaszczyzna", "brzeg_min_sprawdzony": 0.9, "brzeg_max_przerwa_mm": 1.5},
     "synth": {"odstep_ubytku_mm": 0.05, "krawedz_rozmiar_min_mm": 0.08, "krawedz_rozmiar_max_mm": 0.40},
     # Etap 3 (E3-A1, 17.11.2026; plan etapu 3 sekcja 3.7): nowe klucze są wyłącznie opcjonalne — tu wartości domyślne.
-    # [sesja] operatorzy: lista osób do wyboru na początku zmiany (DW3; pusta = osoba nie jest zapisywana);
-    # przechowuj_skany_dni: po ilu dniach wolno usuwać pliki skanów (DW4; 0 = nie usuwać — tryb cienia).
+    # [sesja] operatorzy: lista osób do wyboru na początku zmiany (DW3; lista jest wymagana do decyzji — przy pustej plik się
+    # wczytuje, ale session odrzuca „Ukruszona” / „OK”); przechowuj_skany_dni: po ilu dniach wolno usuwać pliki skanów
+    # (DW4; 0 = nie usuwać — tryb cienia); granica_doby_godz: początek doby roboczej (6 = zmiany 1, 2, 3 jednego dnia);
+    # zmiany_start_godz: początki zmian; ponowny_skan_okno_min: do ilu minut ta sama płytka to „ponowny skan”, a nie nowy wsad.
     "sciezki": {"wyniki": "dane/wyniki"},
-    "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0},
+    "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22],
+              "ponowny_skan_okno_min": 60},
 }
 
 # Sekcje, których może nie być w pliku: każdy ich klucz ma wartość domyślną (dziś: [sesja]).
@@ -233,6 +239,11 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(all(isinstance(o, str) and o.strip() for o in osoby) and len(set(osoby)) == len(osoby), "sesja", "operatorzy",
             "lista niepustych, różnych nazw osób (może być pusta)")
     warunek(d["sesja"]["przechowuj_skany_dni"] >= 0, "sesja", "przechowuj_skany_dni", "musi być >= 0 (0 = nie usuwać skanów)")
+    warunek(0 <= d["sesja"]["granica_doby_godz"] <= 23, "sesja", "granica_doby_godz", "godzina 0…23")
+    zmiany = d["sesja"]["zmiany_start_godz"]
+    warunek(bool(zmiany) and all(_typ_zgodny(g, int) and 0 <= g <= 23 for g in zmiany) and zmiany == sorted(set(zmiany)),
+            "sesja", "zmiany_start_godz", "niepusta lista rosnących godzin 0…23")
+    warunek(d["sesja"]["ponowny_skan_okno_min"] >= 0, "sesja", "ponowny_skan_okno_min", "musi być >= 0 (0 = nigdy nie proponować zastąpienia)")
     return d
 
 

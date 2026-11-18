@@ -165,7 +165,7 @@ WYMAGANE_PRZED_ETAPEM_3 = {
     "excel": ["kolor_rgb", "kolumna_kuwety", "kolumna_nazwy", "kolumna_odhaczenia", "tryb_pytaj_przed_zapisem"],
     "ramki": ["poranna_host", "port", "wieczorna_host"],
 }
-NOWE_E3_A1 = {"sciezki": {"wyniki": "dane/wyniki"}, "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 4}}
+NOWE_E3_A1 = {"sciezki": {"wyniki": "dane/wyniki"}, "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22], "ponowny_skan_okno_min": 60}}
 
 
 def test_e3_a1_nie_dodaje_kluczy_wymaganych():
@@ -196,7 +196,7 @@ def test_k10_stary_plik_ustawien_bez_nowych_kluczy_wczytuje_sie(tmp_path):
     """Kryterium 10 E3-A1: plik ustawien sprzed etapu 3 wczytuje sie bez bledu, nowe klucze dostaja wartosci domyslne."""
     p = _stary_plik(tmp_path)
     ust = UST.wczytaj_ustawienia(p)
-    assert ust["sesja"] == {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 4} and ust["sciezki"]["wyniki"] == "dane/wyniki"
+    assert ust["sesja"] == {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22], "ponowny_skan_okno_min": 60} and ust["sciezki"]["wyniki"] == "dane/wyniki"
     assert ust == UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)  # wzor ma nowe klucze wpisane z wartosciami domyslnymi
     ust["sesja"]["operatorzy"].append("Technik A")  # wartosc domyslna nie jest wspolna miedzy wczytaniami
     assert UST.wczytaj_ustawienia(p)["sesja"]["operatorzy"] == [] and UST.DOMYSLNE_NOWYCH["sesja"]["operatorzy"] == []
@@ -208,11 +208,14 @@ def test_k10_stary_plik_ustawien_bez_nowych_kluczy_wczytuje_sie(tmp_path):
 def test_nowe_klucze_wpis_w_pliku_ma_pierwszenstwo(tmp_path):
     p = _stary_plik(tmp_path, '\n[sesja]\noperatorzy = ["Technik A", "Technik B"]\n')
     ust = UST.wczytaj_ustawienia(p)
-    assert ust["sesja"] == {"operatorzy": ["Technik A", "Technik B"], "przechowuj_skany_dni": 0, "granica_doby_godz": 4}  # brakujacy klucz sekcji: domyslny
+    assert ust["sesja"] == {"operatorzy": ["Technik A", "Technik B"], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22], "ponowny_skan_okno_min": 60}  # brakujacy klucz sekcji: domyslny
     p = _stary_plik(tmp_path, "\n[sesja]\nprzechowuj_skany_dni = 30\n")
-    assert UST.wczytaj_ustawienia(p)["sesja"] == {"operatorzy": [], "przechowuj_skany_dni": 30, "granica_doby_godz": 4}
-    p = _stary_plik(tmp_path, "\n[sesja]\ngranica_doby_godz = 0\n")  # runda 2 (P5): doba robocza od polnocy tez jest poprawna
-    assert UST.wczytaj_ustawienia(p)["sesja"]["granica_doby_godz"] == 0
+    assert UST.wczytaj_ustawienia(p)["sesja"] == {"operatorzy": [], "przechowuj_skany_dni": 30, "granica_doby_godz": 6,
+                                                   "zmiany_start_godz": [6, 14, 22], "ponowny_skan_okno_min": 60}
+    # runda 2 (P5): doba robocza, zmiany i okno ponownego skanu sa ustawieniami
+    p = _stary_plik(tmp_path, "\n[sesja]\ngranica_doby_godz = 0\nzmiany_start_godz = [7, 19]\nponowny_skan_okno_min = 0\n")
+    sesja = UST.wczytaj_ustawienia(p)["sesja"]
+    assert (sesja["granica_doby_godz"], sesja["zmiany_start_godz"], sesja["ponowny_skan_okno_min"]) == (0, [7, 19], 0)
 
 
 @pytest.mark.parametrize("dopisek,komunikat", [
@@ -225,6 +228,12 @@ def test_nowe_klucze_wpis_w_pliku_ma_pierwszenstwo(tmp_path):
     ("[sesja]\ngranica_doby_godz = 24\n", r"\[sesja\] granica_doby_godz: godzina"),
     ("[sesja]\ngranica_doby_godz = -1\n", r"\[sesja\] granica_doby_godz: godzina"),
     ("[sesja]\ngranica_doby_godz = 4.5\n", r"\[sesja\] granica_doby_godz: oczekiwano int"),
+    ("[sesja]\nzmiany_start_godz = []\n", r"\[sesja\] zmiany_start_godz: niepusta lista"),
+    ("[sesja]\nzmiany_start_godz = [14, 6, 22]\n", r"\[sesja\] zmiany_start_godz: niepusta lista"),
+    ("[sesja]\nzmiany_start_godz = [6, 14, 24]\n", r"\[sesja\] zmiany_start_godz: niepusta lista"),
+    ("[sesja]\nzmiany_start_godz = 6\n", r"\[sesja\] zmiany_start_godz: oczekiwano list"),
+    ("[sesja]\nponowny_skan_okno_min = -5\n", r"\[sesja\] ponowny_skan_okno_min: musi"),
+    ("[sesja]\nponowny_skan_okno_min = \"60\"\n", r"\[sesja\] ponowny_skan_okno_min: oczekiwano int"),
     ('[sesja]\noperator = "Technik A"\n', r"\[sesja\] operator: nieznany klucz"),
     ('[sesje]\noperatorzy = []\n', r"\[sesje\]: nieznana sekcja"),
 ])

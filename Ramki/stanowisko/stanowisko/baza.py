@@ -1,15 +1,19 @@
 """baza - plik SQLite stanowiska: schemat, migracje z kopia pliku, zrzut stanu (E3-A1).
 
-Schemat = plan etapu 3, sekcja 3.4 (11 tabel, jeden plik; decyzje wlasciciela DW1 i DW2 z 17.11.2026).
+Schemat = plan etapu 3, sekcja 3.4 (11 tabel, jeden plik; decyzje wlasciciela DW1 i DW2 z 17.11.2026): te same tabele,
+kolumny, klucze, unikaty i indeksy. Ponad plan schemat ma 15 ograniczen NOT NULL, 2 wartosci domyslne i 4 wyzwalacze
+"tylko dopisywanie" - wszystkie wypisane z uzasadnieniem w ``OGRANICZENIA_PONAD_3_4`` i w ``opisy_modulow/baza.md``.
 Plik: ``[sciezki] baza`` (domyslnie ``dane/stanowisko.sqlite`` w katalogu programu), poza repozytorium i poza OneDrive.
 Wersja schematu siedzi w ``PRAGMA user_version``; migracje ida tylko w przod, kazda w jednej transakcji, a przed
-pierwsza migracja istniejacego pliku powstaje jego kopia ``<nazwa>.kopia_v<wersja>_<data>_<godzina>.sqlite``.
+migracja istniejacego pliku powstaje jego kopia ``<nazwa>.kopia_v<wersja>_<data>_<godzina>.sqlite``.
 Baza nowsza niz program = odmowa (``BladBazy``), plik zostaje nietkniety.
 
-DANE OSOBOWE: nazwa folderu zlecenia (z nazwiskiem) wystepuje wylacznie w tabelach ``zlecenia`` i ``excel_zapisy``
-(``TABELE_Z_NAZWA_FOLDERU``). Pozostale tabele, pliki wynikow, listy i dziennik ``zdarzenia`` uzywaja skrotu ``sha16``
-projektu, numeru kuwety i numerow wierszy. Statusy sa tekstem bez listy zamknietej (nowy status nie wymaga migracji).
+DANE OSOBOWE (DW2 po decyzji z 17.11.2026): nazwy folderow i plikow zlecen (z nazwiskami) wolno trzymac wylacznie
+w czterech tabelach - ``zlecenia``, ``projekty``, ``frezowania``, ``excel_zapisy`` (``KOLUMNY_Z_NAZWAMI``). Pozostale
+tabele, pliki wynikow, listy i dziennik ``zdarzenia`` uzywaja skrotu ``sha16`` projektu, numeru kuwety i numerow wierszy;
+``Baza.zdarzenie`` wycina sciezki z kazdego tekstu (``bez_sciezek``). Statusy sa tekstem bez listy zamknietej.
 
+Do bazy wchodzi sie tylko przez ``otworz`` (wlacza klucze obce i czas czekania na blokade).
 Modul korzysta tylko z biblioteki standardowej (wczytuje go proces okna, narzedzia i raport metryk).
 Opis: ``opisy_modulow/baza.md``.
 """
@@ -17,7 +21,9 @@ from __future__ import annotations
 
 import contextlib
 import datetime as dt
+import filecmp
 import json
+import re
 import shutil
 import sqlite3
 from pathlib import Path
@@ -27,8 +33,37 @@ from .ustawienia import KORZEN
 
 TABELE = ("zlecenia", "projekty", "cechy_stl", "frezowania", "sesje_pieca", "skany", "prace", "decyzje", "stan_punktow",
           "excel_zapisy", "zdarzenia")
-TABELE_Z_NAZWA_FOLDERU = ("zlecenia", "excel_zapisy")  # jedyne miejsca na nazwe folderu zlecenia (DW2)
+# Jedyne kolumny, w ktorych wolno trzymac nazwe folderu albo pliku zlecenia (dane osobowe). Uzywaja tego testy kryterium 8,
+# ``Baza.zrzut(bez_nazw=True)`` i przyszla kopia bazy dla programistow.
+KOLUMNY_Z_NAZWAMI = {
+    "zlecenia": ("folder", "folder_norm"),
+    "projekty": ("plik",),
+    "frezowania": ("plik_w_raporcie", "raport_plik"),
+    "excel_zapisy": ("folder",),
+}
+TABELE_Z_NAZWAMI = tuple(KOLUMNY_Z_NAZWAMI)
 TABELE_TYLKO_DOPISYWANIE = ("decyzje", "zdarzenia")
+CZEKAJ_NA_BLOKADE_MS = 5000
+
+# Ograniczenia NOT NULL, ktorych sekcja 3.4 planu nie podaje (decyzja koordynatora po recenzji PR #16: kazde wypisane
+# z uzasadnieniem; zadne nie blokuje zapisu przewidzianego planem w paczkach A4-A9). Wartosci domyslne: tylko `usuniety` = 0.
+OGRANICZENIA_PONAD_3_4 = {
+    "zlecenia.zrodlo": "czesc unikatu (zrodlo, folder): przy pustej wartosci SQLite nie pilnowalby unikatu zlecenia",
+    "zlecenia.folder": "czesc unikatu (zrodlo, folder): zlecenie to folder, bez nazwy folderu wiersz nic nie znaczy",
+    "zlecenia.usuniety": "flaga 0 / 1 z wartoscia domyslna 0: zapytania filtruja `usuniety = 0`, pusta wartosc gubilaby zlecenie",
+    "projekty.zlecenie_id": "czesc unikatu (zlecenie_id, plik): punkt pracy zawsze nalezy do zlecenia",
+    "projekty.plik": "czesc unikatu (zlecenie_id, plik): punkt pracy to plik STL w folderze zlecenia",
+    "projekty.usuniety": "flaga 0 / 1 z wartoscia domyslna 0: `session` szuka punktu po `sha16` wsrod `usuniety = 0`",
+    "skany.status": "logika wieczoru wybiera skany po statusie (aktywne, zastapione); skan bez statusu znikalby ze stanu po cichu",
+    "prace.skan_id": "praca istnieje tylko jako gniazdo konkretnego skanu (klucz obcy i czesc unikatu)",
+    "prace.nr_fragmentu": "czesc unikatu (skan_id, gniazdo, nr_fragmentu): rozroznia dwie prace w jednym gniezdzie",
+    "decyzje.rodzaj": "wiersz dziennika decyzji bez rodzaju nie daje sie zinterpretowac ani cofnac",
+    "decyzje.czas": "kolejnosc i metryki (M1) licza sie z czasu decyzji; dziennik jest tylko do dopisywania, wiec brak nie da sie uzupelnic",
+    "stan_punktow.stan": "tabela istnieje po to, zeby trzymac stan punktu; listy to zapytania po tej kolumnie",
+    "zdarzenia.czas": "dziennik bez czasu jest bezuzyteczny dla metryk (M1) i nie da sie go poprawic (tylko dopisywanie)",
+    "zdarzenia.zrodlo": "kazdy wpis dziennika ma nadawce (scanner, silnik, ui, ...); wpisuje go zawsze `Baza.zdarzenie`",
+    "zdarzenia.typ": "wpis dziennika bez typu nie daje sie zliczyc ani odfiltrowac; wpisuje go zawsze `Baza.zdarzenie`",
+}
 
 
 def _tylko_dopisywanie(tabela: str) -> tuple[str, ...]:
@@ -40,7 +75,8 @@ def _tylko_dopisywanie(tabela: str) -> tuple[str, ...]:
     )
 
 
-# Wersja 1: tabele i kolumny dokladnie wg sekcji 3.4 planu (kolejnosc kolumn jak w planie).
+# Wersja 1: tabele, kolumny, klucze, unikaty i indeksy wg sekcji 3.4 planu (kolejnosc kolumn jak w planie).
+# NOT NULL i DEFAULT ponad plan: tylko te z ``OGRANICZENIA_PONAD_3_4``.
 _WERSJA_1 = (
     """CREATE TABLE zlecenia (
         id INTEGER PRIMARY KEY,
@@ -56,8 +92,8 @@ _WERSJA_1 = (
     """CREATE TABLE projekty (
         id INTEGER PRIMARY KEY,
         zlecenie_id INTEGER NOT NULL REFERENCES zlecenia (id),
-        plik TEXT NOT NULL,                -- nazwa pliku STL w folderze zlecenia
-        sha16 TEXT NOT NULL,               -- 16 znakow SHA-256 zawartosci (identyfikator z match, synth, decyzje.csv)
+        plik TEXT NOT NULL,                -- nazwa pliku STL w folderze zlecenia: DANE OSOBOWE
+        sha16 TEXT,                        -- 16 znakow SHA-256 zawartosci (identyfikator z match, synth, decyzje.csv)
         zeby TEXT,
         typ TEXT,
         mtime_ns INTEGER,
@@ -81,15 +117,15 @@ _WERSJA_1 = (
         policzono TEXT)""",
     """CREATE TABLE frezowania (
         id INTEGER PRIMARY KEY,
-        projekt_id INTEGER REFERENCES projekty (id),   -- NULL: STL z raportu nieznaleziony w indeksie
-        plik_w_raporcie TEXT NOT NULL,
-        krazek TEXT NOT NULL,
+        projekt_id INTEGER REFERENCES projekty (id),   -- NULL: STL z raportu nieznaleziony w indeksie albo wpis na krazek
+        plik_w_raporcie TEXT,              -- nazwa pliku z raportu: DANE OSOBOWE; NULL: wpis reczny wspolczynnika na krazek (K7)
+        krazek TEXT,
         wspolczynnik REAL,
-        data TEXT NOT NULL,
+        data TEXT,
         zrodlo TEXT,                       -- millbox_html / millbox_pdf / csv / reczny
-        raport_plik TEXT,
+        raport_plik TEXT,                  -- DANE OSOBOWE (nazwa pliku raportu)
         wczytano TEXT,
-        UNIQUE (plik_w_raporcie, krazek, data))""",
+        UNIQUE (plik_w_raporcie, krazek, data))""",   # unikat nie obejmuje wierszy z pusta wartoscia (NULL) w ktorejs z trzech kolumn
     """CREATE TABLE sesje_pieca (
         id INTEGER PRIMARY KEY,
         data TEXT,
@@ -99,11 +135,11 @@ _WERSJA_1 = (
         zamknal TEXT)""",
     """CREATE TABLE skany (
         id INTEGER PRIMARY KEY,
-        plik TEXT,
+        plik TEXT,                         -- plik skanu ze skanera (nie plik zlecenia)
         sha16 TEXT,
         rozmiar INTEGER,
         czas_pliku TEXT,
-        czas_analizy TEXT,
+        czas_analizy TEXT,                 -- chwila przyjecia wyniku przez program: z niej wynika wieczor (doba robocza)
         czas_s REAL,
         tryb TEXT,                         -- wieczor / rano
         uklad TEXT,
@@ -112,7 +148,7 @@ _WERSJA_1 = (
         numer_plytki INTEGER,
         numer_zrodlo TEXT,                 -- dolki / podany / ramka / nieznany
         sesja_pieca_id INTEGER REFERENCES sesje_pieca (id),
-        status TEXT NOT NULL,              -- przyjety / do_powtorzenia / zastapiony / niezgodny_uklad / blad
+        status TEXT NOT NULL,              -- przyjety / do_powtorzenia / zastapiony / niezgodny_uklad / blad / import
         zastepuje_id INTEGER REFERENCES skany (id),
         wynik_json TEXT,                   -- sciezka pliku wyniku
         wersja_programu TEXT,
@@ -172,7 +208,7 @@ _WERSJA_1 = (
         zrodlo TEXT NOT NULL,              -- scanner / silnik / ui / ramka_w / ramka_p / excel / pula / system
         typ TEXT NOT NULL,
         skan_id INTEGER,
-        dane TEXT)""",                     # JSON bez nazwisk
+        dane TEXT)""",                     # JSON bez nazwisk i bez sciezek
     *_tylko_dopisywanie("decyzje"),
     *_tylko_dopisywanie("zdarzenia"),
 )
@@ -183,7 +219,46 @@ WERSJA_SCHEMATU = 1
 
 
 class BladBazy(RuntimeError):
-    """Baza nie nadaje sie do pracy (nowsza niz program, uszkodzona, nieudana migracja); komunikat dla czlowieka."""
+    """Baza nie nadaje sie do pracy (nowsza niz program, uszkodzona, nieudana migracja, zajeta); komunikat dla czlowieka."""
+
+
+# --- sciezki w tekstach: poza cztery tabele z nazwami nie moze wyjsc nazwa folderu zlecenia ---------------------------
+ZNACZNIK_SCIEZKI = "<sciezka>"
+# poczatek sciezki bezwzglednej: litera dysku (C:\ albo C:/), zasob sieciowy (\\serwer) albo /katalog/ na poczatku slowa
+_POCZATEK_SCIEZKI = re.compile(r"[A-Za-z]:[\\/]|\\\\[^\\\s]|(?<![\w.:/<])/(?=[\w.~-]+/)")
+
+
+def bez_sciezek(tekst: str) -> str:
+    """Zastepuje sciezki bezwzgledne znacznikiem ``<sciezka>`` (nazwy folderow zlecen zawieraja nazwiska).
+
+    Nazwy folderow maja spacje, wiec konca sciezki nie da sie zgadnac: sciezka w cudzyslowie konczy sie na cudzyslowie,
+    kazda inna - na koncu wiersza (reszta wiersza przepada razem z nia). Sciezek wzglednych funkcja nie rozpoznaje.
+    """
+    czesci, i = [], 0
+    while True:
+        m = _POCZATEK_SCIEZKI.search(tekst, i)
+        if m is None:
+            czesci.append(tekst[i:])
+            return "".join(czesci)
+        start = m.start()
+        czesci.append(tekst[i:start])
+        czesci.append(ZNACZNIK_SCIEZKI)
+        cudzyslow = tekst[start - 1] if start > 0 and tekst[start - 1] in "'\"" else None
+        koniec = tekst.find(cudzyslow, start) if cudzyslow else -1
+        if koniec < 0:
+            koniec = tekst.find("\n", start)
+        i = koniec if koniec >= 0 else len(tekst)
+
+
+def oczysc(obiekt: Any) -> Any:
+    """Kopia danych (slowniki, listy, wartosci proste) z wycietymi sciezkami w kazdym tekscie; kluczy slownikow nie zmienia."""
+    if isinstance(obiekt, str):
+        return bez_sciezek(obiekt)
+    if isinstance(obiekt, dict):
+        return {k: oczysc(v) for k, v in obiekt.items()}
+    if isinstance(obiekt, (list, tuple)):
+        return [oczysc(v) for v in obiekt]
+    return obiekt
 
 
 def sciezka_z_ustawien(ust: dict, klucz: str) -> Path:
@@ -197,15 +272,21 @@ def sciezka_bazy(ust: dict) -> Path:
     return sciezka_z_ustawien(ust, "baza")
 
 
-def _polacz(plik: Path, tylko_odczyt: bool = False) -> sqlite3.Connection:
+def _polacz(plik: Path, tylko_odczyt: bool = False, czekaj_ms: int = CZEKAJ_NA_BLOKADE_MS) -> sqlite3.Connection:
     if tylko_odczyt:
         pol = sqlite3.connect(f"{plik.resolve().as_uri()}?mode=ro", uri=True, isolation_level=None)
     else:
         pol = sqlite3.connect(plik, isolation_level=None)  # transakcje jawne: BEGIN / COMMIT w ``Baza.transakcja``
     pol.row_factory = sqlite3.Row
     pol.execute("PRAGMA foreign_keys = ON")
-    pol.execute("PRAGMA busy_timeout = 5000")
+    pol.execute(f"PRAGMA busy_timeout = {int(czekaj_ms)}")
     return pol
+
+
+def _zajeta(e: sqlite3.Error) -> bool:
+    """Czy blad SQLite oznacza blokade trzymana przez inne polaczenie (SQLITE_BUSY / SQLITE_LOCKED)."""
+    kod = getattr(e, "sqlite_errorcode", None)
+    return (kod is not None and kod & 0xFF in (5, 6)) or "database is locked" in str(e) or "database is busy" in str(e)
 
 
 def _wersja(pol: sqlite3.Connection, plik: Path) -> int:
@@ -221,6 +302,10 @@ def _za_nowa(plik: Path, wersja: int, docelowa: int) -> BladBazy:
 
 
 def _kopia_przed_migracja(plik: Path, wersja: int, teraz: dt.datetime) -> Path:
+    """Kopia pliku bazy przed migracja; gdy identyczna kopia tej wersji juz jest (poprzednia nieudana proba), zwraca ja."""
+    for istniejaca in sorted(plik.parent.glob(f"{plik.stem}.kopia_v{wersja}_*.sqlite")):
+        if filecmp.cmp(istniejaca, plik, shallow=False):
+            return istniejaca
     znacznik = teraz.strftime("%Y%m%d_%H%M%S")
     cel = plik.with_name(f"{plik.stem}.kopia_v{wersja}_{znacznik}.sqlite")
     n = 1
@@ -246,11 +331,12 @@ def _migruj(pol: sqlite3.Connection, plik: Path, od: int, do: int, kopia: Path |
                            + (f"; kopia sprzed migracji: {kopia}" if kopia is not None else "")) from e
 
 
-def otworz(plik: str | Path, *, tylko_odczyt: bool = False, zegar: Callable[[], dt.datetime] | None = None) -> "Baza":
+def otworz(plik: str | Path, *, tylko_odczyt: bool = False, zegar: Callable[[], dt.datetime] | None = None,
+           czekaj_ms: int = CZEKAJ_NA_BLOKADE_MS) -> "Baza":
     """Otwiera baze; nowy plik zaklada, starszy migruje (po zrobieniu kopii pliku), nowszego odmawia.
 
     ``tylko_odczyt``: plik musi istniec i miec biezaca wersje schematu; nic nie jest zakladane ani migrowane
-    (raport metryk, kopie dla programistow).
+    (raport metryk, kopie dla programistow). ``czekaj_ms``: ile czekac na baze zajeta przez inny program.
     """
     plik = Path(plik)
     zegar = zegar or dt.datetime.now
@@ -258,7 +344,7 @@ def otworz(plik: str | Path, *, tylko_odczyt: bool = False, zegar: Callable[[], 
     if tylko_odczyt:
         if not plik.exists():
             raise BladBazy(f"brak pliku bazy: {plik}")
-        pol = _polacz(plik, tylko_odczyt=True)
+        pol = _polacz(plik, tylko_odczyt=True, czekaj_ms=czekaj_ms)
         try:
             wersja = _wersja(pol, plik)
             if wersja > docelowa:
@@ -269,10 +355,10 @@ def otworz(plik: str | Path, *, tylko_odczyt: bool = False, zegar: Callable[[], 
         except BaseException:
             pol.close()
             raise
-        return Baza(plik, pol, zegar)
+        return Baza(plik, pol, zegar, czekaj_ms=czekaj_ms)
     istnial = plik.exists() and plik.stat().st_size > 0
     plik.parent.mkdir(parents=True, exist_ok=True)
-    pol = _polacz(plik)
+    pol = _polacz(plik, czekaj_ms=czekaj_ms)
     kopia = None
     zmigrowano = None
     try:
@@ -283,13 +369,13 @@ def otworz(plik: str | Path, *, tylko_odczyt: bool = False, zegar: Callable[[], 
             if istnial:  # kopia calego pliku przed jakakolwiek zmiana
                 pol.close()
                 kopia = _kopia_przed_migracja(plik, wersja, zegar())
-                pol = _polacz(plik)
+                pol = _polacz(plik, czekaj_ms=czekaj_ms)
             _migruj(pol, plik, wersja, docelowa, kopia)
             zmigrowano = (wersja, docelowa)
     except BaseException:
         pol.close()
         raise
-    baza = Baza(plik, pol, zegar, kopia_przed_migracja=kopia, zmigrowano=zmigrowano)
+    baza = Baza(plik, pol, zegar, kopia_przed_migracja=kopia, zmigrowano=zmigrowano, czekaj_ms=czekaj_ms)
     if kopia is not None:
         baza.zdarzenie("system", "migracja", {"z": zmigrowano[0], "do": zmigrowano[1], "kopia": kopia.name})
     return baza
@@ -299,11 +385,13 @@ class Baza:
     """Otwarte polaczenie z plikiem bazy (tworzy je ``otworz``). Jeden proces piszacy: proces okna."""
 
     def __init__(self, plik: Path, polaczenie: sqlite3.Connection, zegar: Callable[[], dt.datetime],
-                 kopia_przed_migracja: Path | None = None, zmigrowano: tuple[int, int] | None = None):
+                 kopia_przed_migracja: Path | None = None, zmigrowano: tuple[int, int] | None = None,
+                 czekaj_ms: int = CZEKAJ_NA_BLOKADE_MS):
         self.plik = plik
         self.polaczenie = polaczenie
         self.kopia_przed_migracja = kopia_przed_migracja  # plik kopii, jesli to otwarcie migrowalo istniejaca baze
         self.zmigrowano = zmigrowano  # (z wersji, do wersji) albo None
+        self.czekaj_ms = czekaj_ms
         self._zegar = zegar
         self._kolumny: dict[str, tuple[str, ...]] = {}
 
@@ -325,30 +413,39 @@ class Baza:
     def wersja(self) -> int:
         return int(self.polaczenie.execute("PRAGMA user_version").fetchone()[0])
 
+    def _wykonaj(self, sql: str, parametry: tuple | dict = ()) -> sqlite3.Cursor:
+        """Jedno polecenie; blokada trzymana przez inny program = ``BladBazy`` z komunikatem dla czlowieka (nie surowy blad SQLite)."""
+        try:
+            return self.polaczenie.execute(sql, parametry)
+        except sqlite3.OperationalError as e:
+            if _zajeta(e):
+                raise BladBazy(f"{self.plik.name}: baza jest zajeta przez inny program (czekano {self.czekaj_ms / 1000:g} s) - zamknij go albo "
+                               f"sprobuj ponownie za chwile; niczego nie zapisano") from e
+            raise
+
     @contextlib.contextmanager
     def transakcja(self) -> Iterator[None]:
-        """Calosc albo nic. Zagniezdzone wejscie nalezy do transakcji zewnetrznej."""
+        """Calosc albo nic. Zagniezdzone wejscie nalezy do transakcji zewnetrznej. Baza zajeta = ``BladBazy``, bez zmian."""
         if self.polaczenie.in_transaction:
             yield
             return
-        self.polaczenie.execute("BEGIN IMMEDIATE")
+        self._wykonaj("BEGIN IMMEDIATE")
         try:
             yield
+            self._wykonaj("COMMIT")
         except BaseException:
             if self.polaczenie.in_transaction:
                 self.polaczenie.execute("ROLLBACK")
             raise
-        else:
-            self.polaczenie.execute("COMMIT")
 
     def wykonaj(self, sql: str, parametry: tuple | dict = ()) -> sqlite3.Cursor:
-        return self.polaczenie.execute(sql, parametry)
+        return self._wykonaj(sql, parametry)
 
     def wiersze(self, sql: str, parametry: tuple | dict = ()) -> list[dict]:
-        return [dict(w) for w in self.polaczenie.execute(sql, parametry)]
+        return [dict(w) for w in self._wykonaj(sql, parametry)]
 
     def wiersz(self, sql: str, parametry: tuple | dict = ()) -> dict | None:
-        w = self.polaczenie.execute(sql, parametry).fetchone()
+        w = self._wykonaj(sql, parametry).fetchone()
         return dict(w) if w is not None else None
 
     def kolumny(self, tabela: str) -> tuple[str, ...]:
@@ -365,25 +462,34 @@ class Baza:
             if k not in znane:
                 raise BladBazy(f"{tabela}: nieznana kolumna {k!r} (sa: {', '.join(znane)})")
         if not kolumny:
-            return self.polaczenie.execute(f"INSERT INTO {tabela} DEFAULT VALUES").lastrowid
+            return self._wykonaj(f"INSERT INTO {tabela} DEFAULT VALUES").lastrowid
         sql = f"INSERT INTO {tabela} ({', '.join(kolumny)}) VALUES ({', '.join('?' * len(kolumny))})"
-        return self.polaczenie.execute(sql, tuple(kolumny.values())).lastrowid
+        return self._wykonaj(sql, tuple(kolumny.values())).lastrowid
 
     def zdarzenie(self, zrodlo: str, typ: str, dane: dict | None = None, skan_id: int | None = None, czas: str | None = None) -> int:
-        """Wpis do dziennika ``zdarzenia`` (tylko dopisywanie). ``dane``: slownik -> JSON; bez nazwisk i nazw folderow zlecen."""
-        tekst = json.dumps(dane, ensure_ascii=False, sort_keys=True) if dane is not None else None
+        """Wpis do dziennika ``zdarzenia`` (tylko dopisywanie - wpisu nie da sie potem poprawic ani usunac).
+
+        ``dane``: slownik -> JSON. Sciezki bezwzgledne w kazdym tekscie sa zastepowane znacznikiem ``<sciezka>``
+        (``bez_sciezek``); nazwisk i nazw zlecen podanych inaczej niz sciezka piszacy nie moze tu wkladac.
+        """
+        tekst = json.dumps(oczysc(dane), ensure_ascii=False, sort_keys=True) if dane is not None else None
         return self.wstaw("zdarzenia", czas=czas or self.teraz(), zrodlo=zrodlo, typ=typ, skan_id=skan_id, dane=tekst)
 
-    def zrzut(self, tabele: list[str] | tuple[str, ...] | None = None) -> dict[str, list[dict]]:
+    def zrzut(self, tabele: list[str] | tuple[str, ...] | None = None, bez_nazw: bool = False) -> dict[str, list[dict]]:
         """Cala zawartosc tabel (domyslnie wszystkich 11) jako slownik tabela -> wiersze w kolejnosci wstawiania.
 
-        Sluzy do porownania stanu przed i po restarcie programu. UWAGA: zawiera ``zlecenia.folder`` (dane osobowe) -
-        nie zapisywac do logow ani raportow.
+        Sluzy do porownania stanu przed i po restarcie programu. UWAGA: pelny zrzut zawiera nazwy folderow i plikow zlecen
+        (dane osobowe, ``KOLUMNY_Z_NAZWAMI``) - do logow, raportow i dla programistow tylko ``bez_nazw=True`` (te kolumny puste).
         """
         wynik = {}
         for tabela in (tabele if tabele is not None else TABELE):
             self.kolumny(tabela)  # sprawdzenie nazwy
-            wynik[tabela] = self.wiersze(f"SELECT * FROM {tabela} ORDER BY rowid")
+            wiersze = self.wiersze(f"SELECT * FROM {tabela} ORDER BY rowid")
+            if bez_nazw:
+                for w in wiersze:
+                    for kolumna in KOLUMNY_Z_NAZWAMI.get(tabela, ()):
+                        w[kolumna] = None
+            wynik[tabela] = wiersze
         return wynik
 
     def kopia(self, cel: str | Path) -> Path:
