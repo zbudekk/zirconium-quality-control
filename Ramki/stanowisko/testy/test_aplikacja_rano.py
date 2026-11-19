@@ -1498,7 +1498,30 @@ def test_pn3_zalegly_piec_osiagalny_z_ekranu_gdy_ostatni_zalatwiony(tmp_path, ek
         assert e.jest(f"wynik_excel_zalegly_{piec1}")  # zalegly piec na stronie "Kompletne i braki"
         e.klik("przycisk_excel")  # okno zalatwionego pieca 2 - widoczne z przyciskami zaleglych
         assert e.jest("excel_panel") and e.jest(f"excel_zalegly_{piec1}")
+        e.klik("excel_odswiez")  # r4 D-R3-2: odswiezenie nie zamyka okna otwartego dla zaleglych
+        assert e.jest("excel_panel") and e.jest(f"excel_zalegly_{piec1}")
         e.klik(f"wynik_excel_zalegly_{piec1}")
         assert e.jest("excel_panel") and k.stan().excel.sesja_pieca_id == piec1 and [p.kuweta for p in k.stan().excel.pozycje] == ["3200", "3207"]
+    finally:
+        k.zamknij()
+
+
+def test_pr31_enter_na_ramce_w_trybie_wieczor_bez_automatu_rozlozenia(tmp_path):
+    """r4 P-R3-1: laptop w trybie "wieczor" (lista kuwet ekranu niedostepna), Enter na ramce dla kuwety 3200 (plytka 4 na ramce
+    i okragla 9 poza ramka) - po powrocie do "rano" kuweta NIE jest rozlozona (bez automatu, gdy kuwety nie ma na liscie ekranu)."""
+    ind = IndicateAtrapa()
+    k = _poranek_kontroler(tmp_path / "k", ind)
+    try:
+        k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 5: "pewna"}, projekty={1: 301, 2: 302, 5: 304})
+        k.symuluj_skan_rano(9, {1: "pewna"}, projekty={1: 303}, uklad="okragla_poranna")
+        plan_id = k.stan().rano.plan_id
+        assert k.przelacz_tryb("wieczor") and k.stan().rano is None
+        ind.poranna.potw = [[4, "3200"]]
+        ind.poranna.zdarzenia.append(_zd(1, "potwierdzenie", plan_id=plan_id, plytka=4, kuweta="3200"))
+        k.przetworz()
+        assert k.przelacz_tryb("rano")
+        k3200 = next(x for x in k.stan().rano.kuwety if x.kuweta == "3200")
+        assert k3200.plytki == (4, 9) and not k3200.potwierdzona and k.stan().rano.kuweta_biezaca == "3200"
+        assert ramka_zdarzen(k.sesja.baza, typ="potwierdzenie")[0]["skutek"] == "zapisano"  # zdarzenie w dzienniku jak zawsze
     finally:
         k.zamknij()
