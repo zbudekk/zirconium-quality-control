@@ -71,6 +71,21 @@ porannych T14; runda 2: Enter z kuweta pokazana (B1), zakladka ostatniego pieca 
 (P3), obwodka tylko gniazd z listy kuwet (P4), napisy poprawki (P5), Enter w polu kuwety (D2), nowy wsad i cofniecie
 przeniesienia. Zrzuty: zmienna `E3_ZRZUTY`.
 
+## Ramki i Excel (E3-A12)
+
+- **Okno "Excel: wskaz wiersz"** (`stanowisko/ui/okno_excela.py`, `PanelExcela`, obiekt `excel_panel`): panel w lewej kolumnie
+  zamiast plytek pieca, gdy `stan.excel.widoczne` (po "Zamknij piec" w trybie "pytaj" albo po przycisku "Excel: wskaz wiersz"
+  `przycisk_excel` przy wyniku zamknietego pieca - `excel_pokaz`). Tabela pozycji (`excel_tabela`: kuweta, propozycja - wiersz /
+  juz odhaczone / wskaz wiersz, uwagi - "SPRAWDZ" dla wyboru bez zgodnej nazwy, stan), dla pokazanej pozycji folder zlecenia
+  (`excel_folder`), powod (`excel_powod`), wyrazny napis `excel_sprawdz` przy `do_sprawdzenia` i kandydaci (`excel_kandydaci`:
+  wiersz z oznaczeniem propozycji, data, numer B, kuweta C, nazwa H, pole B) z zapytania `excel_szczegoly` - nazwy H i folder
+  tylko na ekranie, nie w stanie. Przyciski: `excel_zatwierdz` ("Zatwierdz wiersz N" - proponowany albo wskazany kliknieciem
+  kandydata; dla "wskaz wiersz" aktywny dopiero po wskazaniu), `excel_pomin`, `excel_odswiez`, `excel_pozniej`; bez osoby
+  nieaktywne z napisem `excel_bez_osoby`. Runda 2 (recenzja PR #30, B1): "Zatwierdz" / "Pomin" aktywne tylko dla pozycji wybranej kliknieciem w liscie (napis `excel_wybierz`); po zapisie panel pokazuje nastepna pozycje, ale przyciski sa nieaktywne do klikniecia (podwojne klikniecie = jeden zapis); `do_sprawdzenia` wymaga wskazania wiersza kandydata; poprzednia proba z bledem - napis `excel_poprzedni`; inne piece do odhaczenia - przyciski `excel_zalegly_<id>` (P5); "przygotowuje propozycje" w czasie krokow Excela (P1). Wszystkie zalatwione - panel znika.
+- Klawisz "Zamknij piec" na ramce porannej zamyka piec w kontrolerze - ekran pokazuje to samo, co po przycisku (komunikat
+  `ramka_piec_zamkniety`); "Zamknij piec" z historii ramki / innego pieca - komunikat, piec otwarty.
+- Komunikat `ramka_niedostepna` znika, gdy ramka poranna odpowiada (`StanRano.ramka`); pasek stanu - jak wieczorem (`ui_wieczor.md`).
+
 ## Zalozenia i granice
 
 - Okna nie uruchomiono na prawdziwym ekranie (tryb offscreen, jak ekran wieczorny); wyglad zatwierdza wlasciciel (G2).
