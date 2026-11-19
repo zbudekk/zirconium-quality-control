@@ -357,14 +357,17 @@ def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska, tmp_path):
             czas = time.perf_counter() - t0
             zegar.stop()
         lacznik.zatrzymaj()
+        ocena, najdluzsza = PC.ocen_przerwy(pw.przerwy_petli(pomiar["znaczniki"], pomiar["cpu"]), PROG_PRZERWY_S)
+        opis = (f"10 plytek w {czas:.1f} s, najdluzsza przerwa petli Qt {najdluzsza.opis()}, prog {PROG_PRZERWY_S * 1000:.0f} ms; "
+                f"tykniec zegara {pomiar['tykniec']}, sygnalow stanu {len(stany)}, postepu {len(postepy)}; {pw.opis()}")
+        if ocena != PC.OK:  # najpierw kryterium czasu (powtorzenie albo porazka z rozbiciem), potem reszta
+            return ocena, opis
         s = st.k.stan()
         assert not pomiar["odmowy"], pomiar["odmowy"]
         assert len(s.plytki) == 10 and all(p.status == "przyjety" and len(p.prace) == 19 for p in s.plytki) and pomiar["decyzji"] == 10
         assert len(s.do_dofrezowania_biezaca) == 10
-        assert pomiar["tykniec"] >= 100 and len(postepy) >= 20 and len(stany) >= 20  # petla naprawde pracowala, okno dostawalo postep i stan
-        ocena, najdluzsza = PC.ocen_przerwy(pw.przerwy_petli(pomiar["znaczniki"], pomiar["cpu"]), PROG_PRZERWY_S)
-        return ocena, (f"10 plytek w {czas:.1f} s, najdluzsza przerwa petli Qt {najdluzsza.opis()}, prog {PROG_PRZERWY_S * 1000:.0f} ms; "
-                       f"tykniec zegara {pomiar['tykniec']}, sygnalow stanu {len(stany)}, postepu {len(postepy)}; {pw.opis()}")
+        assert pomiar["tykniec"] >= 100 and len(postepy) >= 20 and len(stany) >= 20, opis  # petla pracowala, okno dostawalo postep i stan
+        return ocena, opis
 
     powtorki = PC.Powtorki()
     st = stanowiska()

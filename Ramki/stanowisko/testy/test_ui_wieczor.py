@@ -1357,16 +1357,19 @@ def test_6_petla_okna_bez_przerw_10_plytek_po_19_prac(stanowiska, ekrany, tmp_pa
             petla.exec()
             czas = time.perf_counter() - t0
             zegar.stop()
-        assert len(pomiar["zdecydowane"]) == 10 and len(e.lista()) == 10 and len(e.plytki()) == 10
-        assert all(len(p.prace) == 19 for p in st.stan().plytki)
-        assert pomiar["tykniec"] >= 100 and len(czasy_ekranu) >= 20
         ocena_petli, przerwa = PC.ocen_przerwy(pw.przerwy_petli(pomiar["znaczniki"], pomiar["cpu"]), PROG_PRZERWY_S)
         ocena_ekranu, ekran = PC.ocen_przerwy([PC.Przerwa(b - a, pw.przestoj(a, b)) for a, b in czasy_ekranu], PROG_PRZERWY_S / 2)
         opis = (f"10 plytek x 19 prac w {czas:.1f} s; najdluzsza przerwa petli okna {przerwa.opis()} (prog {PROG_PRZERWY_S * 1000:.0f} ms); "
                 f"odswiezen ekranu {len(czasy_ekranu)}, najdluzsze {ekran.opis()} (prog {PROG_PRZERWY_S * 500:.0f} ms, ocena {ocena_ekranu}); "
                 f"najdluzszy krok technika (klik gniazda + Ukruszona + Esc) {max(pomiar['kroki'] or [0]) * 1000:.0f} ms; "
                 f"tykniec {pomiar['tykniec']}; {pw.opis()}")
-        return PC.gorsza(ocena_petli, ocena_ekranu), opis, e
+        ocena = PC.gorsza(ocena_petli, ocena_ekranu)
+        if ocena != PC.OK:  # najpierw kryterium czasu (powtorzenie albo porazka z rozbiciem), potem reszta
+            return ocena, opis, e
+        assert len(pomiar["zdecydowane"]) == 10 and len(e.lista()) == 10 and len(e.plytki()) == 10, opis
+        assert all(len(p.prace) == 19 for p in st.stan().plytki)
+        assert pomiar["tykniec"] >= 100 and len(czasy_ekranu) >= 20, opis
+        return ocena, opis, e
 
     powtorki = PC.Powtorki()
     dodatkowe = []
