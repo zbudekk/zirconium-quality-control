@@ -18,9 +18,13 @@ przyczyny z samego pomiaru, a dwie pozostale moga najwyzej zlecic POWTORZENIE po
    Przerwa wzorca >= ``PROG_PRZERWY_WZORCA_S``, w ktorej proces zuzyl mniej niz ``UDZIAL_CPU_PRZESTOJU`` jednego rdzenia,
    to PRZESTOJ PROCESU: wzorzec nie tykal, a proces prawie nie liczyl - zawieszenie lub wywlaszczenie procesu, ALE TEZ
    czekanie w bibliotece C z trzymanym GIL albo wywlaszczenie samego wzorca, gdy watek mierzony blokowal. Dlatego
-   ``wlasny(a, b)`` odejmuje od czasu sciennego najwyzej ``LIMIT_PRZESTOJU_S`` (100 ms) przestoju na przedzial, a test
+   ``wlasny(a, b)`` odejmuje od czasu sciennego najwyzej ``LIMIT_PRZESTOJU_S`` (50 ms) przestoju na przedzial, a test
    uzywa czasu wlasnego tylko do decyzji "powtorz pomiar" (``ocen_przerwy`` / ``Powtorki``): gdy porazke na czasie
-   sciennym usuwa samo odejmowanie przestoju - pomiar jest powtarzany RAZ; gdy znowu - porazka z rozbiciem.
+   sciennym usuwa samo odejmowanie przestoju - pomiar jest powtarzany RAZ; gdy znowu - porazka z rozbiciem. UWAGA: ta jedna
+   klasa regresji - czekanie w C z trzymanym GIL, dajace przerwe od progu do progu + 50 ms - SAMA wywoluje powtorzenie,
+   wiec gdy wystepuje tylko w czesci uruchomien, jest lapana rzadziej niz na czystym czasie sciennym (recenzja PR #33
+   runda 2, P2; przy ABOVE_NORMAL prawdziwych przestojow procesu prawie nie ma: 1 x 46 ms w 135 przebiegach pod
+   obciazeniem). Kazdy sukces dopiero po powtorzeniu jest zglaszany ``warnings.warn`` (``Powtorki.ostrzez``).
    Nie jest przestojem: blokujace wywolanie w mierzonym watku zwalniajace GIL (sleep, wejscie-wyjscie, COMMIT, czekanie
    na inny watek / proces - wzorzec tyka dalej) ani praca w Pythonie lub w C z GIL (proces zuzywa pelny rdzen).
 4. Wzorzec dysku (tylko z ``dysk=katalog``, testy z zapisem w bazie w watku okna): drugi watek co ``OKRES_DYSKU_S``
@@ -43,12 +47,13 @@ import sqlite3
 import statistics
 import threading
 import time
+import warnings
 from array import array
 from pathlib import Path
 
 PROG_PRZERWY_WZORCA_S = 0.020  # wzorzec tyka co 2 ms; 20 ms = 10 tykniec opuszczonych
 UDZIAL_CPU_PRZESTOJU = 0.25    # przestoj: proces zuzyl < 1/4 jednego rdzenia w czasie przerwy wzorca
-LIMIT_PRZESTOJU_S = 0.100      # najwiecej przestoju procesu odejmowane od jednego przedzialu (recenzja PR #33, P1)
+LIMIT_PRZESTOJU_S = 0.050      # najwiecej przestoju procesu odejmowane od jednego przedzialu (recenzja PR #33, P1 r1 / P2 r2)
 OKRES_DYSKU_S = 0.030          # odstep miedzy zapisami wzorca dysku (zapis trwa zwykle 5-10 ms)
 PROG_ZAPISU_S = 0.050          # czas zapisu wzorca dysku ponad to = przestoj dysku (proba: mediana 5 ms, 99. percentyl 10 ms)
 LIMIT_STARTU_S = 5.0           # wzorce musza dac pierwszy znacznik w tym czasie (recenzja PR #33, P3)
@@ -204,6 +209,12 @@ class Powtorki:
 
     def opis(self) -> str:
         return " | ".join(self.historia)
+
+    def ostrzez(self, nazwa: str, ocena: str) -> None:
+        """Sukces dopiero po powtorzeniu = ostrzezenie z historia pomiarow (widoczne w podsumowaniu pytest takze przy PASS).
+        Sporadyczna regresja albo czesty zastoj srodowiska nie znika wtedy bez sladu (recenzja PR #33 runda 2, P1)."""
+        if ocena == OK and len(self.historia) > 1:
+            warnings.warn(f"{nazwa}: kryterium spelnione dopiero w pomiarze {len(self.historia)}: {self.opis()}", stacklevel=2)
 
 
 # ---------------------------------------------------------------------- pomiar
@@ -398,4 +409,6 @@ class PomiarOdporny:
             tekst += (f"; wzorzec dysku {len(czasy)} zapisow (mediana {czasy[len(czasy) // 2] if czasy else 0:.1f} ms, najdluzszy "
                       f"{czasy[-1] if czasy else 0:.0f} ms), przestoje dysku {len(self.przestoje_dysku)} (razem "
                       f"{sum(b - a for a, b in self.przestoje_dysku) * 1000:.0f} ms)")
+            if self.blad_dysku is not None:  # D3 r2: wzorzec dysku przerwal prace - dalszych zastojow dysku nie widac
+                tekst += f"; BLAD WZORCA DYSKU (dalsze zastoje niewidoczne): {self.blad_dysku!r}"
         return tekst

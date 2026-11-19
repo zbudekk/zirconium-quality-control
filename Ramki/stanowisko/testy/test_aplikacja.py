@@ -303,7 +303,7 @@ def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska, tmp_path):
     """Kryterium (f): podczas analizy 10 plytek (przyjecie wyniku, zapis w bazie, nowy stan - w watku okna) petla zdarzen Qt
     nie ma przerw dluzszych niz 200 ms. Zegar co 10 ms mierzy najdluzsza przerwe; ``lacznik_qt`` sam wola ``przetworz``.
     E3-T0p: pomiar w ``pomiar_czasu.PomiarOdporny`` (GC sesji pytest zamrozony, priorytet procesu, wzorzec procesu i dysku);
-    prog na czasie sciennym. Przerwe ponad prog wyjasniona tylko przestojem CALEGO procesu (najwyzej 100 ms) albo
+    prog na czasie sciennym. Przerwe ponad prog wyjasniona tylko przestojem CALEGO procesu (najwyzej 50 ms) albo
     przestojem dysku (wzorzec dysku obok bazy) - caly pomiar na nowym stanowisku jest powtarzany (proces 1 raz, dysk
     najwyzej 2 razy); przerwa bez takiego wyjasnienia albo powtarzajaca sie = porazka z rozbiciem."""
     import pomiar_czasu as PC
@@ -383,6 +383,7 @@ def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska, tmp_path):
     finally:
         for s in dodatkowe:
             s.koniec()
+    powtorki.ostrzez("kryterium (f)", ocena)  # sukces dopiero po powtorzeniu - ostrzezenie w podsumowaniu pytest
     assert ocena == PC.OK, f"kryterium (f): {powtorki.opis()}"
 
 

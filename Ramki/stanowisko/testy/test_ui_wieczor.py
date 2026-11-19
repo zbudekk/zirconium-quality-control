@@ -1292,7 +1292,7 @@ def test_6_petla_okna_bez_przerw_10_plytek_po_19_prac(stanowiska, ekrany, tmp_pa
     (gniazdo 2 -> "Ukruszona" na kazdej nowej plytce). Zegar co 10 ms mierzy najdluzsza przerwe petli okna.
     E3-T0p: pomiar w ``pomiar_czasu.PomiarOdporny`` (GC sesji pytest zamrozony, priorytet procesu, wzorzec procesu i dysku);
     progi (przerwa 200 ms, odswiezenie ekranu 100 ms) na czasie sciennym. Przekroczenie wyjasnione tylko przestojem CALEGO
-    procesu (najwyzej 100 ms) albo przestojem dysku - caly pomiar na nowym stanowisku i w nowym oknie jest powtarzany (proces
+    procesu (najwyzej 50 ms) albo przestojem dysku - caly pomiar na nowym stanowisku i w nowym oknie jest powtarzany (proces
     1 raz, dysk najwyzej 2 razy); przekroczenie bez takiego wyjasnienia albo powtarzajace sie = porazka z rozbiciem."""
     import pomiar_czasu as PC
 
@@ -1387,6 +1387,7 @@ def test_6_petla_okna_bez_przerw_10_plytek_po_19_prac(stanowiska, ekrany, tmp_pa
     finally:
         for s in dodatkowe:
             s.koniec()
+    powtorki.ostrzez("kryterium (6)", ocena)  # sukces dopiero po powtorzeniu - ostrzezenie w podsumowaniu pytest
     assert ocena == PC.OK, f"kryterium (6): {powtorki.opis()}"
 
 
