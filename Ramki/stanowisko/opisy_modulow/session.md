@@ -167,3 +167,16 @@ WYMAGANIE dla A7 (D4): `statusy.py` dostaje wiersz `nieznana_rano` (praca niezna
   nieznana i nie domyka zlecenia bez potwierdzenia technika (`wybierz_kandydata`) - test `test_k5_*`.
 - **Rano z pula per praca** (zmiana `session_rano.py`, 5 linii): przypisanie automatyczne pracy zielonej = projekt wpisu puli z wyniku
   (`Sesja.projekt_wpisu_puli`, dane `projekty` tego samego wpisu w dzienniku), gdy jest i nie jest usuniety; inaczej jak dotad po `sha16`.
+
+**Runda 2 (recenzja PR #32 r1).**
+- P2: zmiana krazka (`wybierz_wpis` / `cofnij_wpis`) zmieniajaca projekt pracy przenosi punkt: stary projekt jak przy cofnieciu
+  "Ukruszona" (`_odswiez_punkt(..., aktywna=False)`: najnowsza inna ukruszona praca projektu albo `oczekuje` - poprzedni stan punktu
+  nie jest odtwarzany, jak dotad), nowy wg decyzji pracy; "Cofnij" po zmianie krazka - spojnie (test `test_r2_p2_*`).
+- D9: `cofnij_wpis(praca_id)` (decyzja `cofnij_wybor_wpisu`, wartosc = id cofanej `wybor_wpisu`): poprzedni wybor albo praca
+  nierozstrzygnieta (krazek pusty, projekt z wyniku). Projekt wybranego wpisu - z `wpisy` wyniku, dopiero potem z `frezowania`.
+- P3: wynik puli per praca zapisuje w dzienniku projekt wpisu KAZDEJ pracy (takze None - wpisy z roznymi projektami); wieczorem projekt
+  usuniety = bez przypisania; rano (`session_rano._przypisanie_auto`) usuniety = nastepca z regula `_nastepcy` (ten sam `sha16` w tym
+  samym zleceniu albo kuwecie), inaczej bez przypisania - nigdy szukanie po `sha16` w calym indeksie. `Sesja.wpis_puli_pracy`
+  (zastepuje `projekt_wpisu_puli`) czyta mape ostatnio przyjetego skanu z pamieci (D6 - bez zapytania na kazda prace).
+- D13: propozycja z ratunku po polu gniazda `ratunek` (bool), gdy wynik je ma; bez pola - uwaga "ratunek:" (dzisiejszy `match`;
+  pole w wyniku - POTRZEBUJE `match` / `porownaj`). Zolta praca z ratunkiem, ktory nie zmienil zwyciezcy, tez jest propozycja (ostroznie).

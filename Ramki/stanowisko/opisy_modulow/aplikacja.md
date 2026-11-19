@@ -215,10 +215,13 @@ Komunikaty, stan, sygnaly, dziennik, log programu (takze wpisy `scanner` i `siln
 **Wlaczenie.** `[silnik] pula_wpisow = true` (domyslnie false - pula z folderu jak dotad; decyzja wlasciciela przy wdrozeniu).
 Pula = `KatalogPul.z_ustawien(ust)` w watku pomocniczym `pula-katalog` (wlasne polaczenie z baza, kontrakt A4): `odswiez` (indeks
 `folder_cyrkon` / `folder_prywatne` z cechami nowych plikow, `folder_millbox/wspolczynniki.csv`, powiazanie), potem `pula_wieczorna`,
-`pula_poranna` i `sciezki` - przy starcie, "Odswiez pule", po bledzie analizy (P3) i przy zmianie trybu (bez ponownego indeksu - druga
-pula jest juz policzona). Nie po kazdym skanie (indeks "Cyrkon" to sekundy-minuty). Skan dostaje pule swojego trybu
-(`_opis_puli(z.tryb)`: wpisy + sciezki + zrodla). Stan `pula.stan`: liczenie (katalog) / gotowa (sa wpisy) / pusta (brak wpisow -
-skany czekaja, komunikat jak przy pustym folderze) / brak_folderu (katalog niedostepny; poprzednia pula zostaje, gdy byla).
+`pula_poranna` i `sciezki`. Kiedy (runda 2, P1): przy starcie i "Odswiez pule" (glosno: stan `liczenie`, skany czekaja), przy zmianie
+trybu (glosno - skany nowego trybu czekaja na swieza pule), przy zmianie doby roboczej i pliku `wspolczynniki.csv` (czas zmiany albo
+rozmiar - `os.stat` co `OKRES_KONTROLI_S`; cicho: pula zostaje do nowej) oraz po bledzie analizy (P3). NIE po kazdym wyniku ani skanie
+(indeks "Cyrkon" to sekundy-minuty). Jeden watek indeksu naraz: zamowienie w trakcie = kolejne odswiezenie po biezacym (glosne, gdy
+"Odswiez pule"; D8). Skan dostaje pule swojego trybu (`_opis_puli(z.tryb)`: wpisy + sciezki + zrodla, `druga` = pula drugiego trybu -
+plytka drugiego typu dostaje ja w silniku, P6). Stan `pula.stan`: liczenie / gotowa (sa wpisy) / pusta (brak wpisow - skany czekaja,
+komunikat `pula_wpisow_pusta` z przyczyna) / brak_folderu (katalog niedostepny - `pula_wpisow_brak`; poprzednia pula zostaje, gdy byla).
 
 **Budowa w tle.** Po odswiezeniu `silnik.przygotuj_pule(opis trybu)`, ZANIM skany wstrzymane pojda do silnika - regula zimnej
 puli: skany czekaja w kolejce silnika do konca budowy (`silnik.md`). Pasek: `pula.napis` ("wpisow puli: N - buduje pule: k z r
@@ -240,6 +243,19 @@ pierwszym procesem roboczym (A2p POTRZEBUJE 4, recenzja PR #31 D2); wynik w logu
 roboczego (poprzedni sie zakonczyl) po `KNOWNDLLS_SPRAWDZ_PO_S` (5 i 30 s) wpis w logu "diagnostyka KnownDlls - N s po zakonczeniu
 procesu roboczego (pid ...): uchwyt 0x.. procesu okna otwarty / zniknal (...)" - tylko log, bez wplywu na prace.
 
-**Granice.** Odswiezenie katalogu nie startuje samo przy nowym pliku CSV w ciagu wieczoru (technik: "Odswiez pule"); pula wpisow pusta
-nie przechodzi na pule z folderu (pytanie do wlasciciela w raporcie E3-A5i). Zimna pula kilkuset wpisow (pierwszy start, zmiana
+**Granice.** Pula wpisow pusta nie przechodzi na pule z folderu (pytanie do wlasciciela w raporcie E3-A5i). Zimna pula kilkuset wpisow (pierwszy start, zmiana
 programu / bibliotek - nowy odcisk pamieci) = minuty czekania pierwszego skanu z postepem na pasku.
+
+**Runda 2 (recenzja PR #32 r1).**
+- Komunikaty puli wpisow (P4): `pula_wpisow_pusta` / `pula_wpisow_brak` (id `pula`, gdy skany czekaja) z przyczyna
+  (`statusy.PRZYCZYNY_PULI`: brak / zly plik wspolczynnikow z numerami linii, brak frezowan w oknie dob, krazki sprzeczne i bez
+  wspolczynnika z liczba prac i nazwami krazkow, pliki z CSV spoza katalogu, rano - brak zmienionych zlecen) zamiast komunikatu trybu
+  folderu; staly `pula_wpisow_krazki` (id `pula_krazki`), gdy pula trybu ma krazki sprzeczne / bez wspolczynnika. Nowe pola `Pula`:
+  `krazki_sprzeczne`, `krazki_bez_wspolczynnika`, `przyczyna`, `blad_budowy`; licznik `sprzeczne_wspolczynniki` na pasku; blad budowy
+  w tle z przyczyna w napisie (D2). Wpisu recznego wspolczynnika w programie nie ma (`KatalogPul.wpisz_wspolczynnik` bez polecenia okna).
+- Zdarzenia `pula` z `rodzaj` (tryb i numer odswiezenia); postep innej puli nie zmienia paska (D1); wpisy dziennika `pula_wpisow` /
+  `pula_zbudowana` po ustawieniu stanu, blad bazy nie zostawia `liczenie` (D3).
+- `MODULY_DLL_PULI` (scipy.spatial, scipy.ndimage, open3d, `stanowisko.synth` / `katalog` / `indeks`) - w `main()`, gdy `pula_wpisow`
+  (P5): watek indeksu liczy cechy i miniatury nowych plikow w procesie okna (Open3D w procesie okna - koszt pamieci, opisany).
+- Polecenie (20.) `cofnij_wpis(praca_id)` (D9): cofa wybor krazka - poprzedni wybor albo praca "nierozstrzygnieta"; w `dozwolone`, gdy
+  wybor obowiazuje; ekran: "Cofnij wybor krazka" w rzedzie krazkow.

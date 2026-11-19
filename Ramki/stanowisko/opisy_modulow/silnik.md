@@ -231,7 +231,8 @@ zla skala) i budowa takiej puli trwa dluzej niz pula wpisow; analiza w drugim wa
 Pomiar (PC, test `test_k2_k3_*`): zimna pula 24 wpisow + 3 skany w trakcie budowy - 30 s, petla okna max 61 ms; restart z ciepla
 pamiecia - budowa 0,14 s (4,3 s od startu programu). Pula 400 wpisow zimna: ok. 5 min (raport E3-A5) - skany tyle czekaja.
 
-**Sprzatanie i pamiec linii.** `Silnik(pamiec_puli_dni=N)` - przy starcie procesu roboczego `PamiecPuli.sprzataj(N)` (wpisy
+**Sprzatanie i pamiec linii.** `Silnik(pamiec_puli_dni=N)` - przy PIERWSZYM starcie procesu roboczego w danym obiekcie `Silnik`
+(runda 2, D4: po awarii nowy proces nie usuwa wpisow uzywanych z pamieci procesu) `PamiecPuli.sprzataj(N)` (wpisy
 nieuzywane od N dni; liczba usunietych w `stan()["pamiec_puli_usuniete"]`, wiadomosc `sprzatanie`). `pamiec_linii` jest ustawiana,
 gdy modul `krawedz` jest juz zaladowany (funkcja analizy `porownaj` laduje go przy starcie) - proces z funkcja, ktora krawedzi nie
 uzywa, nie laduje Open3D tylko po to (program wlacza pamiec linii domyslnie od E3-A5i).
@@ -239,3 +240,11 @@ uzywa, nie laduje Open3D tylko po to (program wlacza pamiec linii domyslnie od E
 **Dane osobowe.** `CzyscicielNazw(foldery, pomin, pliki=..., korzenie=...)`: dla puli wpisow nazwy plikow z `OpisPuli.sciezki`, ich
 rdzenie i nazwy folderow zlecen -> `<projekt sha16>` / `<projekt>`, pelne sciezki pod `korzenie` -> `<projekt>` (bez przegladania
 drzewa "Cyrkon"; P3 recenzji PR #25). Blad budowy puli wraca do nadzorcy po tym samym czyszczeniu.
+
+**Runda 2 (recenzja PR #32 r1).** `OpisPuli.typ_plytki` ("wieczorna" / "poranna") i `druga` (pula drugiego typu): `PamiecPul.dla`
+wybiera pule po wspolczynniku domyslnym ROZPOZNANEGO typu plytki, o ktory prosi `porownaj` (poranna = `synth.WSPOLCZYNNIK_PORANNA`)
+- plytka poranna dopuszczona wieczorem dostaje pule poranna (P6; druga pula budowana w zadaniu, gdy nie byla przygotowana - przy
+zimnej puli porannej to minuty w limicie zadania, D14). `OpisPuli.rodzaj` (etykieta, bez wplywu na porownanie) w kazdym zdarzeniu
+`pula` (D1). Zadanie, ktorego pula jest juz zbudowana w procesie, idzie przed budowa innej puli (D1). Budowa bez postepu: limit
+`min(limit_zadania_s, LIMIT_BEZ_POSTEPU_PULI_S = 120 s)` (D2). Blad katalogu pamieci linii w petli zadan nie konczy procesu (D5);
+pamiec linii na dysku nie ma sprzatania ani odcisku algorytmu (wersja `krawedz.WERSJA` podbijana recznie) - opisane, bez zmiany.
