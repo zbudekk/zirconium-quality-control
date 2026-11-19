@@ -6,7 +6,7 @@ R58 (19.11.2026): arkusz zamowienia kompletu okraglego do ramki.
 Zrodla (nic nie jest wpisane w skrypcie):
   - ilosci i materialy: parametry.json -> quantities_r58 / materials_r58; stawki: cost_rate_min / max, mnozniki,
   - objetosci, gabaryty i SHA-256 plikow R58: tabela "2. Pliki wytworzone" raportu generatora na plikach oddanych
-    (domyslnie wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter3.md),
+    (domyslnie wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter4.md),
   - czesci ramki bez zmian (korpus W, korpus P, blat): R59_arkusz_zamowienia.csv.
 Kontrole (niezgodnosc = blad, pliki nie powstaja):
   1. SHA-256 w raporcie = wyniki_v2/raport/sha256_stl_po_R58.txt,
@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 STL = ROOT / "wyniki_v2" / "stl"
-RAPORT = ROOT / "wyniki_v2" / "raport" / "raport_wykonawcy_R58_SPRAWDZ_iter3.md"
+RAPORT = ROOT / "wyniki_v2" / "raport" / "raport_wykonawcy_R58_SPRAWDZ_iter4.md"
 SUMY = ROOT / "wyniki_v2" / "raport" / "sha256_stl_po_R58.txt"
 R59_CSV = ROOT / "R59_arkusz_zamowienia.csv"
 P = json.loads((ROOT / "parametry.json").read_text(encoding="utf-8"))
@@ -99,11 +99,11 @@ def opis(rdzen):
 
 def uwagi(rdzen):
     if rdzen.startswith("ramka_plytka"):
-        return ("R58: lezy na ramce (3 kieszenie magnesow od spodu, rowek pokrywki, rowek klucza); "
+        return ("R58: lezy na ramce (3 kieszenie magnesow od spodu, rowek pokrywki na obwodzie, rowek klucza od spodu przy scieciu); "
                 "sciecia orientacyjnego i rowkow nie wygladzac; nie pasuje do wkladki kwadratowej")
     if rdzen == "ramka_wkladka_okragla":
         return "R58: zamiast ramka_wkladka_v2.stl; 2 do ramek + 1 zapas; scianka w osiach 2,0 mm - nie szlifowac"
-    return "R58: druk wlasny wierzchem w dol; sile zatrzasku sprawdzic na pierwszej sztuce"
+    return "R58: druk wlasny wierzchem w dol; 8 szczelin przy zatrzaskach; sile zatrzasku sprawdzic na pierwszej sztuce"
 
 
 def main():
@@ -242,8 +242,8 @@ def main():
     L.append("## Czego wymagac od drukarni i co sprawdzic przy odbiorze")
     L.append("")
     L.append("- Plytki: sciecia orientacyjnego, rowka na obwodzie i rowka od spodu nie wygladzac ani nie zalewac; orientacja druku gniazdami do gory.")
-    L.append("- Plytka: 3 kieszenie od spodu - magnes 5 x 2 mm ma wejsc (kieszen 5,2 x 2,2); rowek klucza od spodu przy scieciu ma szerokosc 3,6.")
-    L.append("- Wkladka: plytka wchodzi tylko scieciem do sciecia i opada na kolek (kolek 3,0 w rowku 3,6); luz na srednicy 0,8.")
+    L.append("- Plytka: 3 kieszenie od spodu - magnes 5 x 2 mm ma wejsc (kieszen 5,2 x 2,2); rowek klucza od spodu przy scieciu: szerokosc 3,6, wysokosc 5,0.")
+    L.append("- Wkladka: plytka siada plasko tylko scieciem do sciecia - zebro klucza 3,0 wchodzi w rowek 3,6 od spodu plytki; w kazdym innym obrocie plytka lezy krzywo na zebrze (krawedz ok. 4,5 mm wyzej). Luz na srednicy 0,8.")
     L.append("- Wkladka: 3 kieszenie czujnikow 5,0 x 5,5 i kanaly przewodow od spodu maja byc drozne (odpylone).")
     L.append("- Zamawiac wylacznie pliki o sumach SHA-256 z tabel A i B.")
     L.append("")
