@@ -59,3 +59,11 @@ Rozmiary (A-P1): okno od 1500 x 860 punktow (np. 1600 x 900 przy skalowaniu 100 
   (`przycisk_przejmij_ramke`, `przejmij_ramke(rola)`) przy ramce wstrzymanej - tylko gdy program ma ramki (`stan.ramki`). Spacja
   przelacza ramke wieczorna w "skanowanie" (kontroler), po analizie ramka dostaje kolory gniazd mapy; bez ramki komunikat
   `ramka_wieczorna_niedostepna` i praca wedlug ekranu.
+
+## Pula per praca (E3-A5i, 19.11.2026)
+
+Pasek stanu: przy budowie puli wpisow w silniku (`pula.budowa_razem`, `budowa_gotowe`) pasek obok napisu puli pokazuje postep
+(gotowe z razem; przy liczeniu katalogu - pasek bez konca jak dotad), napis puli ze stanu. Widok pracy: rzad "Krazek do wyboru:"
+z przyciskiem na kazdy `Praca.wpisy_do_wyboru` (napis = krazek, wybrany z dopiskiem "(wybrany)", podpowiedz ze wspolczynnikiem);
+klik = `wybierz_wpis(praca_id, frezowanie_id)` dla pracy pokazanej w widoku (`WidokPracy.wybor_wpisu`), przyciski aktywne tylko
+z wybrana osoba i "wybierz_wpis" w `dozwolone`. Test: `testy/test_pula_aplikacja.py::test_ui_*`.
