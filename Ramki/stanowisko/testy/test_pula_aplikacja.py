@@ -263,7 +263,7 @@ def test_kontroler_wybierz_wpis_dozwolone_i_zle_argumenty(tmp_path):
 def test_k5_zolty_z_ratunku_nie_zamyka_zlecenia_rano_bez_potwierdzenia(tmp_path):
     """Recenzja PR #25 r3 D1: rano praca zolta z uwaga "ratunek: ..." (praca bokiem uratowana pelnym dopasowaniem - mozliwy zly
     projekt) nie dostaje przypisania automatycznego: zlecenie nie jest kompletne po "Zamknij piec", dopoki technik nie potwierdzi
-    kandydata. Zolty bez ratunku - jak dotad (liczy sie)."""
+    kandydata (praca dwuznaczna). Praca zielona tego samego skanu domyka swoje zlecenie."""
     zegar_t = [dt.datetime(2026, 11, 19, 8, 0)]
 
     def zegar():
@@ -280,7 +280,7 @@ def test_k5_zolty_z_ratunku_nie_zamyka_zlecenia_rano_bez_potwierdzenia(tmp_path)
         s = SE.Sesja(baza, operatorzy=["Technik A"], zegar=zegar)
         rano = SR.SesjaRano(s)
         ratunek = ["ratunek: pelne dopasowanie 8 kandydatow wg deskryptorow FPFH (praca nierozpoznana albo niepewna)"]
-        g = [_gniazdo(1, "d" * 16, status="zolty", _uwagi=ratunek), _gniazdo(2, "e" * 16, status="zolty")]
+        g = [_gniazdo(1, "d" * 16, status="zolty", _uwagi=ratunek), _gniazdo(2, "e" * 16, status="zielony")]
         for x in g:
             x["skala"]["wspolczynnik_puli"] = 1.0
         skan_id = rano.przyjmij_wynik({"plik": "C:/Skany/rano.stl", "sha16": "4" * 16}, _wynik(g, uklad="poranna", numer=4))
@@ -290,6 +290,7 @@ def test_k5_zolty_z_ratunku_nie_zamyka_zlecenia_rano_bez_potwierdzenia(tmp_path)
         klasy = {p["gniazdo"]: p for sk in stan["skany"] for p in sk["prace"]}
         assert klasy[1]["klasa"] == SR.KLASA_DWUZNACZNA and not klasy[1]["liczona"] and klasy[2]["liczona"]
         assert s.stan_wieczoru(s.doba())["skany"] == []  # skan poranny nie trafia do wieczoru
+        assert s._przypisania_skanow([skan_id])[1] == {prace[1]["id"]}  # propozycja z ratunku zapisana (stan, ekran)
         wynik = rano.zamknij_piec("Technik A")
         kuwety = {z["kuweta"] for z in wynik["kompletne"]}
         assert "3263" not in kuwety and "3301" in kuwety  # zolty z ratunku bez potwierdzenia nie zamyka zlecenia
@@ -297,6 +298,26 @@ def test_k5_zolty_z_ratunku_nie_zamyka_zlecenia_rano_bez_potwierdzenia(tmp_path)
         rano.wybierz_kandydata(prace[1]["id"], "d" * 16, "Technik A")  # technik potwierdza propozycje
         wynik = rano.zamknij_piec("Technik A")
         assert {"3263", "3301"} <= {z["kuweta"] for z in wynik["kompletne"]}
+    finally:
+        baza.zamknij()
+
+
+def test_rano_przypisanie_z_wpisu_puli_nie_po_sha16(tmp_path):
+    """E3-A5i: rano (pula poranna per praca) praca zielona dostaje projekt WPISU PULI z wyniku, takze gdy ten sam plik (sha16)
+    lezy jeszcze w innym zleceniu (spoza puli porannej) - szukanie po sha16 dawaloby prace dwuznaczna."""
+    baza, (p1, p2, p3), f = _baza_z_projektami(tmp_path)
+    try:
+        s = SE.Sesja(baza, operatorzy=["Technik A"])
+        rano = SR.SesjaRano(s)
+        wpis = {"frezowanie_id": None, "projekt_id": p2, "krazek": None, "wspolczynnik": 1.0}
+        g = [_gniazdo(1, "a" * 16, projekt_id=p2, frezowanie_id=None, wpisy=[wpis]), _gniazdo(2, "a" * 16)]  # 2: pula z folderu
+        for x in g:
+            x["skala"]["wspolczynnik_puli"] = 1.0
+        skan_id = rano.przyjmij_wynik({"plik": "C:/Skany/rano2.stl", "sha16": "6" * 16}, _wynik(g, uklad="poranna", numer=5))
+        prace = {p["gniazdo"]: p for p in baza.wiersze("SELECT * FROM prace WHERE skan_id = ?", (skan_id,))}
+        assert prace[1]["projekt_id"] == p2 and prace[2]["projekt_id"] is None
+        klasy = {p["gniazdo"]: p["klasa"] for sk in rano.stan_pieca()["skany"] for p in sk["prace"]}
+        assert klasy[1] == SR.KLASA_PEWNA and klasy[2] == SR.KLASA_DWUZNACZNA
     finally:
         baza.zamknij()
 
@@ -630,6 +651,7 @@ def test_ui_pasek_postep_budowy_puli_i_wybor_krazka():
     assert app.platformName() == "offscreen"
     a = K.AtrapaKontrolera()
     try:
+        a.symuluj_skan("zwykla", numer=1)
         stan = a.stan()
         pasek = C.PasekStanu()
         pula = K.Pula(stan="gotowa", zrodlo="wpisy", wpisy=40, budowa_gotowe=10, budowa_razem=40, napis="wpisow puli: 40 - buduje: 10 z 40")
