@@ -1,0 +1,31 @@
+przeszkody wewnatrz otworu (poza sciana i scieciem): 967 punktow, h 3.500..4.500, u 46.53..49.64
+mapa wnek ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl vs bazowa wieczorna (r > 44): roznych wezlow 0
+mapa wnek ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl vs bazowa wieczorna (r > 44): roznych wezlow 0
+mapa wnek ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl vs bazowa wieczorna (r > 44): roznych wezlow 0
+mapa wnek ramka_plytka_okragla_ramkowa_poranna_v2.stl vs bazowa wieczorna (r > 44): roznych wezlow 0
+mapa wnek ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl vs bazowa wieczorna (r > 44): roznych wezlow 0
+mapa wnek ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl vs bazowa wieczorna (r > 44): roznych wezlow 0
+mapa wnek ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl vs bazowa wieczorna (r > 44): roznych wezlow 0
+_wieczorna_v2.stl [poszerzone (gorna granica)]: okna plaskie ['-0.75..0.75']; uniesienie min/max poza oknem 3.586 / 4.500; katy z 0,02 < uniesienie < 4,4: 8 katow, -1.75..1.75 st., uniesienie 3.59..4.22; bez przesuniec dopuszczalnych: 0 katow
+_wieczorna_v2.stl [zwezone (dolna granica)]: okna plaskie ['-0.50..0.50']; uniesienie min/max poza oknem 3.515 / 4.500; katy z 0,02 < uniesienie < 4,4: 10 katow, -1.75..1.75 st., uniesienie 3.52..4.36; bez przesuniec dopuszczalnych: 0 katow
+   czas 86 s
+_wieczorna_n1_v2.stl [poszerzone (gorna granica)]: okna plaskie ['-0.75..0.75']; uniesienie min/max poza oknem 3.586 / 4.500; katy z 0,02 < uniesienie < 4,4: 8 katow, -1.75..1.75 st., uniesienie 3.59..4.22; bez przesuniec dopuszczalnych: 0 katow
+   czas 92 s
+_wieczorna_n2_v2.stl [poszerzone (gorna granica)]: okna plaskie ['-0.75..0.75']; uniesienie min/max poza oknem 3.586 / 4.500; katy z 0,02 < uniesienie < 4,4: 8 katow, -1.75..1.75 st., uniesienie 3.59..4.22; bez przesuniec dopuszczalnych: 0 katow
+   czas 97 s
+_wieczorna_n3_v2.stl [poszerzone (gorna granica)]: okna plaskie ['-0.75..0.75']; uniesienie min/max poza oknem 3.586 / 4.500; katy z 0,02 < uniesienie < 4,4: 8 katow, -1.75..1.75 st., uniesienie 3.59..4.22; bez przesuniec dopuszczalnych: 0 katow
+   czas 102 s
+_poranna_v2.stl [poszerzone (gorna granica)]: okna plaskie ['-0.75..0.75']; uniesienie min/max poza oknem 3.586 / 4.500; katy z 0,02 < uniesienie < 4,4: 8 katow, -1.75..1.75 st., uniesienie 3.59..4.22; bez przesuniec dopuszczalnych: 0 katow
+_poranna_v2.stl [zwezone (dolna granica)]: okna plaskie ['-0.50..0.50']; uniesienie min/max poza oknem 3.515 / 4.500; katy z 0,02 < uniesienie < 4,4: 10 katow, -1.75..1.75 st., uniesienie 3.52..4.36; bez przesuniec dopuszczalnych: 0 katow
+   czas 113 s
+_poranna_n4_v2.stl [poszerzone (gorna granica)]: okna plaskie ['-0.75..0.75']; uniesienie min/max poza oknem 3.586 / 4.500; katy z 0,02 < uniesienie < 4,4: 8 katow, -1.75..1.75 st., uniesienie 3.59..4.22; bez przesuniec dopuszczalnych: 0 katow
+   czas 118 s
+_poranna_n5_v2.stl [poszerzone (gorna granica)]: okna plaskie ['-0.75..0.75']; uniesienie min/max poza oknem 3.586 / 4.500; katy z 0,02 < uniesienie < 4,4: 8 katow, -1.75..1.75 st., uniesienie 3.59..4.22; bez przesuniec dopuszczalnych: 0 katow
+   czas 123 s
+_poranna_n6_v2.stl [poszerzone (gorna granica)]: okna plaskie ['-0.75..0.75']; uniesienie min/max poza oknem 3.586 / 4.500; katy z 0,02 < uniesienie < 4,4: 8 katow, -1.75..1.75 st., uniesienie 3.59..4.22; bez przesuniec dopuszczalnych: 0 katow
+   czas 128 s
+ramka_plytka_okragla_wieczorna_n8_v2.stl: okna plaskie []; uniesienie 4.500..4.500
+ramka_plytka_okragla_poranna_n9_v2.stl: okna plaskie []; uniesienie 4.500..4.500
+_wieczorna_n1_v2.stl DO GORY DNEM: okna plaskie []; uniesienie 4.500..4.500 (min przy [np.float64(141.5), np.float64(216.25), np.float64(332.0)])
+_poranna_n4_v2.stl DO GORY DNEM: okna plaskie []; uniesienie 4.500..4.500 (min przy [np.float64(112.0), np.float64(137.25), np.float64(196.75), np.float64(197.0), np.float64(240.5)])
+czas 200 s

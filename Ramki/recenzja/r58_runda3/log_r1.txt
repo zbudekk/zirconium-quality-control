@@ -1,0 +1,4 @@
+ramka_wkladka_okragla_v2.stl 287e001fddd655f9 tri 7686 vol 22.446169 bbox [-65.  -52.4   0. ] [65.  96.  10.5]
+   topo {'nv': 3835, 'nf': 7686, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -8} min pole 1.05e-06 normalne niezgodne 0 przeciecia wlasne 0 liczb -0.0: 0
+ramka_pokrywka_okragla_v2.stl f1a133cf19fda391 tri 6220 vol 25.056122 bbox [-51.8 -51.8   0. ] [51.8 51.8 20. ]
+   topo {'nv': 3112, 'nf': 6220, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': 2} min pole 9.84e-04 normalne niezgodne 0 przeciecia wlasne 0 liczb -0.0: 0

@@ -1,0 +1,51 @@
+sha256_stl_po_R58.txt: bajty nie-ASCII 0 CR 0
+  OK  len 64 stl/ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl 5d81f55b8b11
+  OK  len 64 stl/ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl 64867b5b63a3
+  OK  len 64 stl/ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl 7630a029157b
+  OK  len 64 stl/ramka_plytka_okragla_ramkowa_poranna_v2.stl 845e4bd61b40
+  OK  len 64 stl/ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl 84d361e2389b
+  OK  len 64 stl/ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl 7848aa239563
+  OK  len 64 stl/ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl 1b8ac3d39087
+  OK  len 64 stl/ramka_plytka_okragla_ramkowa_wieczorna_v2.stl 322eb892b7ac
+  OK  len 64 stl/ramka_wkladka_okragla_v2.stl 287e001fddd6
+  OK  len 64 stl/ramka_pokrywka_okragla_v2.stl f1a133cf19fd
+  OK  len 64 json/uklad_gniazd_okragla_ramkowa_poranna.json ab6e02a0a960
+  OK  len 64 json/uklad_gniazd_okragla_ramkowa_wieczorna.json d66ef99b799f
+R58_wdrozenie_zmiany.md (sekcja rundy 3):
+  OK  len 64 ramka_plytka_okragla_ramkowa_wieczorna_v2.stl  = txt: True
+  OK  len 64 ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl  = txt: True
+  OK  len 64 ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl  = txt: True
+  OK  len 64 ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl  = txt: True
+  OK  len 64 ramka_plytka_okragla_ramkowa_poranna_v2.stl  = txt: True
+  OK  len 64 ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl  = txt: True
+  OK  len 64 ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl  = txt: True
+  OK  len 64 ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl  = txt: True
+  OK  len 64 ramka_wkladka_okragla_v2.stl  = txt: True
+  OK  len 64 ramka_pokrywka_okragla_v2.stl  = txt: True
+  OK  len 64 json/uklad_gniazd_okragla_ramkowa_wieczorna.json  = txt: True
+  OK  len 64 json/uklad_gniazd_okragla_ramkowa_poranna.json  = txt: True
+  ZLE len 64 stl/ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl  = txt: True
+  ZLE len 64 stl/ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl  = txt: True
+  ZLE len 64 stl/ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl  = txt: True
+  ZLE len 64 stl/ramka_plytka_okragla_ramkowa_poranna_v2.stl  = txt: True
+  ZLE len 64 stl/ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl  = txt: True
+  ZLE len 64 stl/ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl  = txt: True
+  ZLE len 64 stl/ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl  = txt: True
+  ZLE len 64 stl/ramka_plytka_okragla_ramkowa_wieczorna_v2.stl  = txt: True
+  ZLE len 64 stl/ramka_wkladka_okragla_v2.stl  = txt: False
+  ZLE len 64 stl/ramka_pokrywka_okragla_v2.stl  = txt: False
+  OK  len 64 json/uklad_gniazd_okragla_ramkowa_poranna.json  = txt: True
+  OK  len 64 json/uklad_gniazd_okragla_ramkowa_wieczorna.json  = txt: True
+pelne sumy w R2 o dlugosci != 64: []
+stl_r58_runda2 vs sumy rundy 2 (sekcja R2-0):
+  OK  ramka_plytka_okragla_ramkowa_wieczorna_v2.stl
+  OK  ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl
+  OK  ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl
+  OK  ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl
+  OK  ramka_plytka_okragla_ramkowa_poranna_v2.stl
+  OK  ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl
+  OK  ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl
+  OK  ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl
+  OK  ramka_wkladka_okragla_v2.stl
+  OK  ramka_pokrywka_okragla_v2.stl
+stare pliki = SHA256SUMS R59: 25 / 25

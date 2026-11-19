@@ -1,0 +1,25 @@
+bbox [-51.8 -51.8 -20. ] [51.8 51.8  0. ]
+Z -19.50: sektory przelotowe (srodek/szer. st.): ['17.58/1.10', '32.43/1.10', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '327.58/1.10', '342.43/1.10']
+Z -13.00: sektory przelotowe (srodek/szer. st.): ['17.58/1.10', '32.43/1.10', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '327.58/1.10', '342.43/1.10']
+Z -8.00: sektory przelotowe (srodek/szer. st.): ['17.58/1.10', '32.43/1.10', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '327.58/1.10', '342.43/1.10']
+Z -5.50: sektory przelotowe (srodek/szer. st.): ['17.58/1.90', '32.42/1.90', '147.57/1.90', '162.43/1.90', '197.57/1.90', '212.43/1.90', '327.58/1.90', '342.43/1.90']
+Z -5.00: sektory przelotowe (srodek/szer. st.): ['17.60/2.25', '32.40/2.25', '147.60/2.25', '162.40/2.25', '197.60/2.25', '212.40/2.25', '327.60/2.25', '342.40/2.25']
+Z -4.50: sektory przelotowe (srodek/szer. st.): ['17.58/1.90', '32.42/1.90', '147.57/1.90', '162.43/1.90', '197.57/1.90', '212.43/1.90', '327.58/1.90', '342.43/1.90']
+Z -4.10: sektory przelotowe (srodek/szer. st.): ['17.60/0.95', '32.40/0.95', '147.60/0.95', '162.40/0.95', '197.60/0.95', '212.40/0.95', '327.60/0.95', '342.40/0.95']
+Z -3.90: sektory przelotowe (srodek/szer. st.): []
+Z -3.00: sektory przelotowe (srodek/szer. st.): []
+Z -2.50: sektory przelotowe (srodek/szer. st.): []
+szczelina 17.6: Z -13.0 szer 1.000; Z -6.5 szer 1.000; Z -5.0 szer 2.000; Z -4.3 szer 1.426; gora otworu/szczeliny w osi Z -4.000; pion (v 0/+0.75/-0.75) gora/dol: [(-4.0, None), (-4.35, -5.65), (-4.341, -5.659)]; przeciecia radialne na Z -5: []
+szczelina 32.4: Z -13.0 szer 1.000; Z -6.5 szer 1.000; Z -5.0 szer 2.000; Z -4.3 szer 1.426; gora otworu/szczeliny w osi Z -4.000; pion (v 0/+0.75/-0.75) gora/dol: [(-4.0, None), (-4.341, -5.659), (-4.35, -5.65)]; przeciecia radialne na Z -5: []
+szczelina 147.6: Z -13.0 szer 1.000; Z -6.5 szer 1.000; Z -5.0 szer 2.000; Z -4.3 szer 1.426; gora otworu/szczeliny w osi Z -4.000; pion (v 0/+0.75/-0.75) gora/dol: [(-4.0, None), (-4.35, -5.65), (-4.341, -5.659)]; przeciecia radialne na Z -5: []
+szczelina 162.4: Z -13.0 szer 1.000; Z -6.5 szer 1.000; Z -5.0 szer 2.000; Z -4.3 szer 1.426; gora otworu/szczeliny w osi Z -4.000; pion (v 0/+0.75/-0.75) gora/dol: [(-4.0, None), (-4.341, -5.659), (-4.35, -5.65)]; przeciecia radialne na Z -5: []
+szczelina 197.6: Z -13.0 szer 1.000; Z -6.5 szer 1.000; Z -5.0 szer 2.000; Z -4.3 szer 1.426; gora otworu/szczeliny w osi Z -4.000; pion (v 0/+0.75/-0.75) gora/dol: [(-4.0, None), (-4.35, -5.65), (-4.341, -5.659)]; przeciecia radialne na Z -5: []
+szczelina 212.4: Z -13.0 szer 1.000; Z -6.5 szer 1.000; Z -5.0 szer 2.000; Z -4.3 szer 1.426; gora otworu/szczeliny w osi Z -4.000; pion (v 0/+0.75/-0.75) gora/dol: [(-4.0, None), (-4.341, -5.659), (-4.35, -5.65)]; przeciecia radialne na Z -5: []
+szczelina 327.6: Z -13.0 szer 1.000; Z -6.5 szer 1.000; Z -5.0 szer 2.000; Z -4.3 szer 1.426; gora otworu/szczeliny w osi Z -4.000; pion (v 0/+0.75/-0.75) gora/dol: [(-4.0, None), (-4.35, -5.65), (-4.341, -5.659)]; przeciecia radialne na Z -5: []
+szczelina 342.4: Z -13.0 szer 1.000; Z -6.5 szer 1.000; Z -5.0 szer 2.000; Z -4.3 szer 1.426; gora otworu/szczeliny w osi Z -4.000; pion (v 0/+0.75/-0.75) gora/dol: [(-4.0, None), (-4.341, -5.659), (-4.35, -5.65)]; przeciecia radialne na Z -5: []
+roznice vs runda 2: 184 probek, Z -7.9..-4.4, katy [16, 17, 18, 32, 33, 34, 146, 147, 148, 162, 163, 164, 196, 197, 198, 212, 213, 214, 326, 327, 328, 342, 343, 344]
+spod wierzchu Z -2.000000000000001
+garb 25: wystep 0.7000
+garb 155: wystep 0.7000
+garb 205: wystep 0.7000
+garb 335: wystep 0.7000

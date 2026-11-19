@@ -6,7 +6,7 @@ R58 (19.11.2026): arkusz zamowienia kompletu okraglego do ramki.
 Zrodla (nic nie jest wpisane w skrypcie):
   - ilosci i materialy: parametry.json -> quantities_r58 / materials_r58; stawki: cost_rate_min / max, mnozniki,
   - objetosci, gabaryty i SHA-256 plikow R58: tabela "2. Pliki wytworzone" raportu generatora na plikach oddanych
-    (domyslnie wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter4.md),
+    (domyslnie wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter5.md),
   - czesci ramki bez zmian (korpus W, korpus P, blat): R59_arkusz_zamowienia.csv.
 Kontrole (niezgodnosc = blad, pliki nie powstaja):
   1. SHA-256 w raporcie = wyniki_v2/raport/sha256_stl_po_R58.txt,
@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 STL = ROOT / "wyniki_v2" / "stl"
-RAPORT = ROOT / "wyniki_v2" / "raport" / "raport_wykonawcy_R58_SPRAWDZ_iter4.md"
+RAPORT = ROOT / "wyniki_v2" / "raport" / "raport_wykonawcy_R58_SPRAWDZ_iter5.md"
 SUMY = ROOT / "wyniki_v2" / "raport" / "sha256_stl_po_R58.txt"
 R59_CSV = ROOT / "R59_arkusz_zamowienia.csv"
 P = json.loads((ROOT / "parametry.json").read_text(encoding="utf-8"))
@@ -103,7 +103,7 @@ def uwagi(rdzen):
                 "sciecia orientacyjnego i rowkow nie wygladzac; nie pasuje do wkladki kwadratowej")
     if rdzen == "ramka_wkladka_okragla":
         return "R58: zamiast ramka_wkladka_v2.stl; 2 do ramek + 1 zapas; scianka w osiach 2,0 mm - nie szlifowac"
-    return "R58: druk wlasny wierzchem w dol; 8 szczelin przy zatrzaskach; sile zatrzasku sprawdzic na pierwszej sztuce"
+    return "R58: druk wlasny wierzchem w dol; 8 szczelin 1 x 15 z otworem 2 mm przy zatrzaskach; najpierw 1 sztuka probna (sila zatrzasku), potem seria"
 
 
 def main():
@@ -223,8 +223,8 @@ def main():
             else "zastapiona przez " + kod("ramka_pokrywka_okragla_v2.stl") + " (druk wlasny)")
         L.append("| %s | %d | %s |" % (kod(w["plik"]), w["szt"], powod))
     L.append("")
-    L.append("Plytki okragle n8 i n9 (bez magnesow) zostaja plytkami testowymi tylko do skanera - zamowienie wedlug uznania; na ramce nie dzialaja "
-             "(ramka odczyta 0 i 1).")
+    L.append("Plytki okragle n8 i n9 (bez kieszeni magnesow) zostaja plytkami testowymi tylko do skanera - zamowienie wedlug uznania; na ramce nie dzialaja "
+             "(ramka czyta 0, a we wkladce okraglej leza krzywo na zebrze klucza).")
     L.append("")
     L.append("## Sumy - drukarnia")
     L.append("")

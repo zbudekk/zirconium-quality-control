@@ -1,0 +1,28 @@
+wkladka r3 vs r2: z gory roznic 361 (u 48.22..49.71, |v| <= 1.48, Z r3 6.000..6.975, r2 6.015..7.000); od spodu 0
+vs kwadratowa poza |x|,|y| > 51.35: z gory 0, od spodu 0
+bbox montazowy [-65.  -52.4  -3.5] [65. 96.  7.]
+  zebro Z 5.50: od zewnatrz pierwsze trafienie u 46.5000; od srodka czolo u 46.5000; szerokosc na u 48: 3.0
+  zebro Z 5.95: od zewnatrz pierwsze trafienie u 46.5000; od srodka czolo u 46.5000; szerokosc na u 48: 3.0
+  zebro Z 6.05: od zewnatrz pierwsze trafienie u 49.1500; od srodka czolo u 46.5500; szerokosc na u 48: 2.9
+  zebro Z 6.25: od zewnatrz pierwsze trafienie u 48.9500; od srodka czolo u 46.7500; szerokosc na u 48: 2.5
+  zebro Z 6.50: od zewnatrz pierwsze trafienie u 48.7000; od srodka czolo u 47.0000; szerokosc na u 48: 2.0
+  zebro Z 6.75: od zewnatrz pierwsze trafienie u 48.4500; od srodka czolo u 47.2500; szerokosc na u 48: 1.5
+  zebro Z 6.95: od zewnatrz pierwsze trafienie u 48.2500; od srodka czolo u 47.4500; szerokosc na u 48: 1.1
+  wierzch w osi u 47.00: Z 6.5000
+  wierzch w osi u 47.60: Z 7.0000
+  wierzch w osi u 48.00: Z 7.0000
+  wierzch w osi u 48.20: Z 7.0000
+  wierzch w osi u 48.50: Z 6.7000
+  wierzch w osi u 49.00: Z 6.2000
+  wierzch w osi u 49.20: Z 6.0000
+  wierzch w osi u 49.50: Z 6.0000
+  wierzch w osi u 49.74: Z 6.0000
+  wierzch w osi u 49.90: Z 6.0000
+  wierzch u 47.9 v 0.0: Z 7.0000
+  wierzch u 47.9 v 0.4: Z 7.0000
+  wierzch u 47.9 v 0.6: Z 6.9000
+  wierzch u 47.9 v 1.0: Z 6.5000
+  sciecie obok zebra (v 2.5) Z 2.6: u 49.7558
+  sciecie obok zebra (v 2.5) Z 4.0: u 49.7559
+  sciecie obok zebra (v 2.5) Z 5.9: u 50.6559
+  wierzcholki Z > 6: 98, u 11.7733..59.5030, |v| <= 59.5030, r max 61.1852, Z max 7.0000
