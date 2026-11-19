@@ -40,6 +40,17 @@ poziomie modulu: proces roboczy wykonuje go ponownie (jako ``__mp_main__``) i za
 
 Pula projektow zostaje w pamieci procesu roboczego miedzy zadaniami (``PamiecPul``): budowana raz na (foldery,
 wspolczynnik, orientacja, lista plikow w folderach), od nowa po zmianie plikow w folderze.
+
+Start procesu roboczego (E3-A2p): ``Process.start()`` (metoda spawn na Windows) tworzy proces potomny i zapisuje mu do
+lacza dane startowe (ok. 5 KB, wiecej niz bufor lacza 4 KB); gdy potomek ich nie czyta (zawisl albo zginal przed
+odczytem), zapis czeka bez konca - uchwyt odczytu lacza trzyma tez proces okna (``popen_spawn_win32``, bpo-33929), wiec
+smierc potomka zapisu nie konczy. Dlatego ``Process.start()`` biegnie w watku pomocniczym ``silnik-start``: gdy potomek
+zginie (sprawdzane co ``SPRAWDZ_POTOMKA_S``) albo minie ``limit_uruchomienia_s``, nadzorca zabija potomka, anuluje
+zawieszony zapis (``CancelSynchronousIo``), zamyka lacze i probuje od nowa; po ``proby_uruchomienia`` nieudanych probach -
+``blad`` ``start`` pierwszego zadania z kolejki (aplikacja: komunikat "silnik nie startuje"). Stan potomka (kod wyjscia,
+czas CPU, zaladowane moduly) trafia do logu. Proces roboczy dostaje wlasna, niewidoczna konsole (``CREATE_NO_WINDOW``,
+``FLAGI_PROCESU_ROBOCZEGO``) zamiast konsoli procesu okna: na PC potomkowie podlaczani do konsoli procesu okna ginely
+przy starcie z 0xC0000142 (przyczyna zawieszen D7 z raportu E3-A7, raport E3-A2p).
 """
 from __future__ import annotations
 
@@ -66,7 +77,16 @@ LOG = logging.getLogger(__name__)
 
 FUNKCJA_ANALIZY = "stanowisko.porownaj:porownaj"  # "modul:funkcja" o sygnaturze porownaj.porownaj
 LIMIT_ZADANIA_S = 600.0  # analiza dluzsza niz to = proces zabity, blad "limit_czasu", nastepne zadanie
-LIMIT_STARTU_S = 180.0  # proces roboczy, ktory nie zglosi gotowosci w tym czasie, jest zabijany
+LIMIT_STARTU_S = 180.0  # proces roboczy, ktory nie zglosi gotowosci w tym czasie (liczac od Process.start()), jest zabijany
+LIMIT_URUCHOMIENIA_S = 30.0  # E3-A2p: Process.start() dluzszy niz to = proba przerwana (potomek zabity, zapis do lacza anulowany)
+PROBY_URUCHOMIENIA = 3  # E3-A2p: tyle prob Process.start() z limitem, potem blad "start" pierwszego zadania z kolejki
+ODSTEP_PROB_URUCHOMIENIA_S = 0.5  # przerwa miedzy probami uruchomienia
+CZEKAJ_NA_PRZERWANIE_S = 3.0  # jak dlugo nadzorca odblokowuje zawieszony Process.start(), zanim zostawi watek pomocniczy
+SPRAWDZ_POTOMKA_S = 0.5  # co ile nadzorca sprawdza, czy proces potomny trwajacego Process.start() juz nie zginal
+# E3-A2p: proces roboczy z WLASNA, niewidoczna konsola (CREATE_NO_WINDOW), a nie podlaczony do konsoli procesu okna. Na PC
+# (D7) proces okna po kilkudziesieciu testach z oknami tracil mozliwosc podlaczania nowych procesow do swojej konsoli: kazdy
+# taki potomek (python.exe, cmd.exe) ginal przy starcie z 0xC0000142, a potomkowie bez tej konsoli startowali (raport E3-A2p).
+FLAGI_PROCESU_ROBOCZEGO = 0x08000000 if os.name == "nt" else 0
 PUL_W_PAMIECI = 2  # np. pula wieczorna (wspolczynnik krazka) i poranna (1,0)
 OKRES_S = 0.02  # co ile nadzorca zaglada do lacza z procesem
 RODZAJE_BLEDU = ("analiza", "proces", "limit_czasu", "start", "plik_zmieniony", "plik_niedostepny")
@@ -556,6 +576,241 @@ def _dolacz_do_obiektu_zadania(pid: int) -> bool:
     return True
 
 
+# --- start procesu roboczego bez konsoli procesu okna i z limitem czasu (E3-A2p)
+_PROBA_STARTU = threading.local()  # .proba: ProbaStartu biezacego Process.start() w tym watku (tylko watek silnik-start)
+_ZAMEK_WINAPI = threading.Lock()
+_OSTRZEZENIE_WINAPI = []  # nieznana postac wywolania CreateProcess - ostrzezenie w logu tylko raz na proces
+
+
+class ProbaStartu:
+    """Stan jednej proby ``Process.start()``, wspolny dla watku ``silnik-start`` i nadzorcy (pod ``zamek``; runda 2, P1).
+    Pelnomocnik ``_WinapiZFlagami`` zaraz po ``CreateProcess`` - jeszcze przed zapisem danych startowych - wola
+    ``po_utworzeniu``: potomek trafia do obiektu zadania procesu okna (D-N5: ginie z procesem okna takze po porzuceniu
+    proby), nadzorca dostaje ``pid`` i wlasna kopie uchwytu potomka (sprawdzanie zycia, opis, zabicie), a gdy proba jest
+    juz porzucona (wolny ``CreateProcess`` dluzszy niz limit), potomek jest zabijany od razu i start konczy sie wyjatkiem."""
+
+    def __init__(self, flagi: int = 0):
+        self.flagi = flagi  # dodatkowe flagi CreateProcess (FLAGI_PROCESU_ROBOCZEGO) albo 0
+        self.zamek = threading.Lock()
+        self.pid: int | None = None
+        self.uchwyt: int | None = None  # kopia uchwytu potomka nalezaca do nadzorcy (zamyka ja ``zamknij_uchwyt``)
+        self.w_obiekcie_zadania: bool | None = None  # None = CreateProcess tej proby jeszcze nie wrocil
+        self.blad_obiektu = ""
+        self.porzucona = False
+
+    def po_utworzeniu(self, uchwyt_procesu: int, uchwyt_watku: int, pid: int) -> None:
+        """Watek ``silnik-start``, zaraz po ``CreateProcess``. Przy porzuconej probie: zabija potomka, zamyka oba uchwyty
+        z ``CreateProcess`` (biblioteka standardowa ich juz nie dostanie) i rzuca ``OSError``."""
+        import _winapi
+
+        try:
+            w_obiekcie, blad = bool(_dolacz_do_obiektu_zadania(pid)), ""
+        except Exception as e:  # noqa: BLE001 - bez obiektu zadania zostaje Straznik
+            w_obiekcie, blad = False, f"{type(e).__name__}: {e}"
+        with self.zamek:
+            porzucona = self.porzucona
+            if not porzucona:
+                self.pid, self.w_obiekcie_zadania, self.blad_obiektu = pid, w_obiekcie, blad
+                try:
+                    biezacy = _winapi.GetCurrentProcess()
+                    self.uchwyt = _winapi.DuplicateHandle(biezacy, uchwyt_procesu, biezacy, 0, False, _winapi.DUPLICATE_SAME_ACCESS)
+                except OSError:
+                    self.uchwyt = None  # nadzorca nie zabije potomka wczesniej; potomek jest w obiekcie zadania i ma Straznika
+        if porzucona:
+            for zrob in (lambda: _winapi.TerminateProcess(uchwyt_procesu, 1), lambda: _winapi.CloseHandle(uchwyt_watku),
+                         lambda: _winapi.CloseHandle(uchwyt_procesu)):
+                try:
+                    zrob()
+                except OSError:
+                    pass
+            raise OSError(f"proba uruchomienia porzucona przed powrotem z CreateProcess - proces potomny pid {pid} zabity")
+
+    def porzuc(self) -> tuple:
+        """Nadzorca: proba porzucona - potomek z pozniejszego ``CreateProcess`` tej proby zostanie zabity od razu. Zwraca
+        (pid, uchwyt) potomka juz utworzonego albo (None, None)."""
+        with self.zamek:
+            self.porzucona = True
+            return self.pid, self.uchwyt
+
+    def kod_wyjscia(self) -> int | None:
+        """Kod wyjscia potomka, gdy juz sie zakonczyl (np. 0xC0000142 - blad inicjalizacji DLL przy starcie); None, gdy
+        dziala albo jeszcze go nie ma. Potomek martwy przed odczytem danych startowych juz ich nie przeczyta."""
+        with self.zamek:
+            uchwyt = self.uchwyt
+        if uchwyt is None:
+            return None
+        import _winapi
+
+        try:
+            kod = _winapi.GetExitCodeProcess(uchwyt)
+        except OSError:
+            return None
+        return None if kod == 259 else kod & 0xFFFFFFFF  # 259 = STILL_ACTIVE
+
+    def zamknij_uchwyt(self) -> None:
+        """Nadzorca: zamyka swoja kopie uchwytu potomka (koniec proby, udanej albo nie)."""
+        with self.zamek:
+            uchwyt, self.uchwyt = self.uchwyt, None
+        if uchwyt is not None:
+            import _winapi
+
+            try:
+                _winapi.CloseHandle(uchwyt)
+            except OSError:
+                pass
+
+
+class _WinapiZFlagami:
+    """Pelnomocnik modulu ``_winapi`` w ``multiprocessing.popen_spawn_win32``. Watki bez ``ProbaStartu`` (wszystkie poza
+    ``silnik-start``): ``CreateProcess`` przekazywany bez zmian, z dowolnymi argumentami (runda 2, P2). Watek
+    ``silnik-start``: dodatkowe flagi proby (``CREATE_NO_WINDOW``) - tylko przy znanej postaci wywolania (9 argumentow
+    pozycyjnych, ``creation_flags`` na miejscu 5; inaczej bez flag i jedno ostrzezenie w logu) - oraz
+    ``ProbaStartu.po_utworzeniu`` zaraz po utworzeniu procesu. Pozostale funkcje ``_winapi`` - bez zmian. Biblioteka
+    standardowa wola ``CreateProcess`` zawsze z flagami 0 i nie daje ich podac."""
+
+    def __init__(self, winapi):
+        self._winapi = winapi
+
+    def __getattr__(self, nazwa):
+        return getattr(self._winapi, nazwa)
+
+    def CreateProcess(self, *argumenty, **nazwane):  # noqa: N802 - nazwa jak w _winapi
+        proba = getattr(_PROBA_STARTU, "proba", None)
+        if proba is None:
+            return self._winapi.CreateProcess(*argumenty, **nazwane)
+        if proba.flagi:
+            if len(argumenty) == 9 and not nazwane:
+                argumenty = argumenty[:5] + (int(argumenty[5]) | proba.flagi,) + argumenty[6:]
+            elif not _OSTRZEZENIE_WINAPI:
+                _OSTRZEZENIE_WINAPI.append(True)
+                LOG.warning("silnik: nieznana postac wywolania CreateProcess w multiprocessing (%d argumentow pozycyjnych, nazwane: %s) - "
+                            "proces roboczy startuje bez wlasnej konsoli", len(argumenty), sorted(nazwane))
+        wynik = self._winapi.CreateProcess(*argumenty, **nazwane)
+        try:
+            uchwyt_procesu, uchwyt_watku, pid, _ = wynik
+        except (TypeError, ValueError):
+            return wynik  # nieznana postac wyniku: bez obiektu zadania od razu (zostaje dolaczenie po udanym starcie)
+        proba.po_utworzeniu(uchwyt_procesu, uchwyt_watku, pid)
+        return wynik
+
+
+def _winapi_z_flagami() -> bool:
+    """Windows: wstawia ``_WinapiZFlagami`` do ``multiprocessing.popen_spawn_win32`` (raz na proces). False poza Windows."""
+    if os.name != "nt":
+        return False
+    from multiprocessing import popen_spawn_win32
+
+    with _ZAMEK_WINAPI:
+        if not isinstance(popen_spawn_win32._winapi, _WinapiZFlagami):
+            popen_spawn_win32._winapi = _WinapiZFlagami(popen_spawn_win32._winapi)
+    return True
+
+
+def _opis_potomka(pid, uchwyt) -> str:
+    """Stan procesu potomnego proby startu - do logu (przyczyna zawieszenia): kod wyjscia albo "dziala", czas CPU,
+    liczba uchwytow i zaladowane moduly (potomek, ktory nie doszedl do odczytu lacza, ma ich malo)."""
+    opis = f"proces potomny pid {pid}"
+    if os.name != "nt" or uchwyt is None:
+        return opis
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        psapi = ctypes.WinDLL("psapi", use_last_error=True)
+        h = ctypes.c_void_p(int(uchwyt))
+        kod = wintypes.DWORD()
+        k32.GetExitCodeProcess.argtypes = [ctypes.c_void_p, ctypes.POINTER(wintypes.DWORD)]
+        if k32.GetExitCodeProcess(h, ctypes.byref(kod)):
+            opis += ": dziala" if kod.value == 259 else f": zakonczony, kod wyjscia 0x{kod.value:08X}"
+        czasy = [wintypes.FILETIME() for _ in range(4)]
+        k32.GetProcessTimes.argtypes = [ctypes.c_void_p] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+        if k32.GetProcessTimes(h, *[ctypes.byref(c) for c in czasy]):
+            cpu = sum((c.dwHighDateTime << 32 | c.dwLowDateTime) for c in czasy[2:]) / 1e7
+            opis += f", czas CPU {cpu:.2f} s"
+        liczba = wintypes.DWORD()
+        k32.GetProcessHandleCount.argtypes = [ctypes.c_void_p, ctypes.POINTER(wintypes.DWORD)]
+        if k32.GetProcessHandleCount(h, ctypes.byref(liczba)):
+            opis += f", uchwytow {liczba.value}"
+        moduly = (ctypes.c_void_p * 512)()
+        bajty = wintypes.DWORD()
+        psapi.EnumProcessModulesEx.argtypes = [ctypes.c_void_p, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD), wintypes.DWORD]
+        psapi.GetModuleBaseNameW.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_wchar_p, wintypes.DWORD]
+        if psapi.EnumProcessModulesEx(h, moduly, ctypes.sizeof(moduly), ctypes.byref(bajty), 0x03):  # LIST_MODULES_ALL
+            nazwy = []
+            for m in moduly[: min(512, bajty.value // ctypes.sizeof(ctypes.c_void_p))]:
+                bufor = ctypes.create_unicode_buffer(260)
+                if psapi.GetModuleBaseNameW(h, ctypes.c_void_p(m), bufor, 260):
+                    nazwy.append(bufor.value)
+            opis += f", modulow {len(nazwy)}: {', '.join(nazwy[:40])}{' ...' if len(nazwy) > 40 else ''}"
+        else:
+            opis += f", modulow nie da sie odczytac (blad {ctypes.get_last_error()})"
+    except Exception as e:  # noqa: BLE001 - diagnostyka nie moze zatrzymac przerwania startu
+        opis += f" (diagnostyka niedostepna: {type(e).__name__}: {e})"
+    return opis
+
+
+def _anuluj_zapis(uchwyt_watku) -> None:
+    """Windows: anuluje synchroniczne wejscie / wyjscie watku (zawieszony zapis danych startowych do lacza konczy sie bledem)."""
+    import ctypes
+
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CancelSynchronousIo.argtypes = [ctypes.c_void_p]
+    k32.CancelSynchronousIo(uchwyt_watku)
+
+
+def _przerwij_start(watek: threading.Thread, proba: ProbaStartu, czekaj_s: float = CZEKAJ_NA_PRZERWANIE_S) -> str:
+    """Odblokowuje zawieszony ``Process.start()`` w watku ``watek``: porzuca probe (potomek z pozniejszego ``CreateProcess``
+    ginie od razu), zabija potomka juz utworzonego (kopia uchwytu z ``ProbaStartu``) i anuluje zapis do lacza (Windows:
+    ``CancelSynchronousIo`` na uchwycie watku otwartym raz, wiec numer watku nie moze trafic do innego) - sama smierc
+    potomka zapisu nie konczy, bo uchwyt odczytu lacza trzyma tez proces okna. Czeka najwyzej ``czekaj_s`` na koniec
+    watku. Zwraca opis potomka (stan sprzed zabicia) do logu."""
+    pid, uchwyt = proba.porzuc()
+    opis = _opis_potomka(pid, uchwyt) if pid is not None else "proces potomny jeszcze nie utworzony (CreateProcess nie wrocil)"
+    if uchwyt is not None:
+        import _winapi
+
+        try:
+            _winapi.TerminateProcess(uchwyt, 1)
+        except OSError:  # proces juz nie zyje
+            pass
+    uchwyt_watku = None
+    if os.name == "nt" and watek.is_alive() and watek.native_id is not None:
+        import ctypes
+
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.OpenThread.restype = ctypes.c_void_p
+        k32.OpenThread.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
+        uchwyt_watku = k32.OpenThread(0x0001, False, watek.native_id)  # THREAD_TERMINATE - wymagane przez CancelSynchronousIo
+    try:
+        t0 = time.monotonic()
+        while watek.is_alive() and time.monotonic() - t0 < czekaj_s:
+            if uchwyt_watku:
+                _anuluj_zapis(uchwyt_watku)  # powtarzane: watek mogl jeszcze nie wejsc w zapis (CreateProcess, pickle)
+            watek.join(0.05)
+    finally:
+        if uchwyt_watku:
+            import ctypes
+
+            k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            k32.CloseHandle.argtypes = [ctypes.c_void_p]
+            k32.CloseHandle(uchwyt_watku)
+    if watek.is_alive():
+        opis += (f"; watek startu nie zakonczyl sie w {czekaj_s:g} s po przerwaniu - zostawiony (potomka z pozniejszego "
+                 "CreateProcess zabija od razu, proces po udanym starcie - zaraz po nim)")
+    return opis
+
+
+def _zamknij_porzucony(p) -> None:
+    """Proces, ktorego ``Process.start()`` skonczyl sie po przerwaniu proby - bez nadzoru, wiec zabity."""
+    try:
+        p.kill()
+        p.join(5.0)
+        p.close()
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def wczytaj_podglad(plik) -> dict:
     """Plik ``..._podglad.npz`` z silnika -> {numer gniazda: (punkty N x 3 w ukladzie plytki, odchylka kazdego punktu w mm)}."""
     import numpy as np
@@ -764,14 +1019,18 @@ class Silnik:
     None = tylko pamiec procesu, na dysk nic nie trafia). ``katalog_roboczy`` - katalog kopii roboczych skanow (N1; None =
     ``<katalog tymczasowy systemu>/qc_silnik``; jedna kopia 45-55 MB naraz na proces roboczy). ``czekaj_na_plik_s`` - jak
     dlugo ponawiac kopiowanie pliku skanu, ktory trzyma inny program. ``na_zdarzenie`` - funkcja wolana z kazdym
-    ``ZdarzenieSilnika`` w watku nadzorcy; nie moze czekac na watek, ktory wola ``stop()`` (D-N3).
+    ``ZdarzenieSilnika`` w watku nadzorcy; nie moze czekac na watek, ktory wola ``stop()`` (D-N3). ``limit_startu_s`` -
+    czas od ``Process.start()`` do zgloszenia gotowosci przez proces roboczy (ladowanie bibliotek). ``limit_uruchomienia_s``
+    i ``proby_uruchomienia`` - limit samego ``Process.start()`` i liczba prob (E3-A2p).
     """
 
     def __init__(self, ust: dict | None = None, plik_ustawien=None, *, funkcja: str = FUNKCJA_ANALIZY, limit_zadania_s: float = LIMIT_ZADANIA_S,
                  limit_startu_s: float = LIMIT_STARTU_S, pul_w_pamieci: int = PUL_W_PAMIECI, plik_logu=None, pamiec_linii=None,
-                 katalog_roboczy=None, czekaj_na_plik_s: float = CZEKAJ_NA_PLIK_S, na_zdarzenie=None):
+                 katalog_roboczy=None, czekaj_na_plik_s: float = CZEKAJ_NA_PLIK_S, na_zdarzenie=None,
+                 limit_uruchomienia_s: float = LIMIT_URUCHOMIENIA_S, proby_uruchomienia: int = PROBY_URUCHOMIENIA):
         self.ust, self.plik_ustawien, self.funkcja = ust, plik_ustawien, funkcja
         self.limit_zadania_s, self.limit_startu_s, self.pul_w_pamieci, self.plik_logu = limit_zadania_s, limit_startu_s, pul_w_pamieci, plik_logu
+        self.limit_uruchomienia_s, self.proby_uruchomienia = float(limit_uruchomienia_s), max(1, int(proby_uruchomienia))
         self.pamiec_linii = str(pamiec_linii) if pamiec_linii is not None else None
         self.katalog_roboczy = str(katalog_roboczy) if katalog_roboczy is not None else os.path.join(tempfile.gettempdir(), KATALOG_ROBOCZY)
         self.czekaj_na_plik_s = float(czekaj_na_plik_s)
@@ -796,6 +1055,7 @@ class Silnik:
         self._lista_zebrana = False  # stop() zebral juz liste niezakonczonych (D-N4)
         self._zglaszane: ZadanieAnalizy | None = None  # zadanie, ktorego zdarzenie koncowe wlasnie idzie do odbiorcy (D-N3)
         self._w_obiekcie_zadania = False  # D-N5: proces roboczy jest w obiekcie zadania Windows procesu okna
+        self._przerwane_uruchomienia = 0  # E3-A2p: proby Process.start() przerwane po limicie albo zakonczone wyjatkiem
 
     # --- sterowanie
     def start(self) -> None:
@@ -911,7 +1171,8 @@ class Silnik:
     def stan(self) -> dict:
         b = self._biezace
         return {"dziala": self.dziala(), "proces_gotowy": self._gotowy, "pid": self.pid, "w_kolejce": len(self._kolejka),
-                "biezace": b.zadanie_id if b is not None else None, "starty_procesu": self._starty, "obiekt_zadania": self._w_obiekcie_zadania}
+                "biezace": b.zadanie_id if b is not None else None, "starty_procesu": self._starty, "obiekt_zadania": self._w_obiekcie_zadania,
+                "nieudane_uruchomienia": self._przerwane_uruchomienia}
 
     # --- nadzorca
     def _zglos(self, typ: str, **pola) -> None:
@@ -933,27 +1194,132 @@ class Silnik:
                 time.sleep(0.2)
 
     def _uruchom_proces(self) -> None:
+        """Uruchamia proces roboczy: najwyzej ``proby_uruchomienia`` prob ``Process.start()`` z limitem ``limit_uruchomienia_s``
+        kazda (E3-A2p). Wszystkie nieudane = ``_nieudany_start_procesu`` (blad ``start`` pierwszego zadania z kolejki, kolejna
+        proba dopiero przy nastepnym zadaniu - jak po procesie, ktory nie zglosil gotowosci)."""
+        powody = []
+        for proba in range(1, self.proby_uruchomienia + 1):
+            if proba > 1 and self._stop.wait(ODSTEP_PROB_URUCHOMIENIA_S):
+                return
+            if self._stop.is_set():
+                return
+            powod = self._proba_uruchomienia(proba)
+            if powod is None:
+                return
+            powody.append(powod)
+        if self._stop.is_set():
+            return
+        n = self.proby_uruchomienia
+        self._nieudany_start_procesu(f"proces silnika nie wystartowal: {n} {'proba' if n == 1 else 'proby' if n < 5 else 'prob'} uruchomienia nieudane "
+                                     f"(ostatnia: {powody[-1][0]})",
+                                     "\n".join(f"proba {i}: {a}" + (f" ({b})" if b else "") for i, (a, b) in enumerate(powody, 1)))
+
+    def _start_z_limitem(self, p, proba: ProbaStartu) -> tuple | None:
+        """``p.start()`` w watku pomocniczym ``silnik-start``; nadzorca czeka najwyzej ``limit_uruchomienia_s`` (krocej po
+        ``stop()`` albo smierci potomka). None = proces uruchomiony; inaczej (przyczyna, opis potomka) nieudanej proby
+        (zawieszony start jest przerywany: ``_przerwij_start``). Potomek z ``CreateProcess``, ktory wroci po porzuceniu
+        proby, ginie od razu (``ProbaStartu``); proces, ktorego ``start()`` skonczy sie po porzuceniu - zaraz po nim."""
+        stan: dict = {}
+        zamek = threading.Lock()
+
+        def cel() -> None:
+            _PROBA_STARTU.proba = proba  # tylko ten watek: flagi i obsluga potomka w pelnomocniku _winapi
+            try:
+                p.start()
+            except BaseException as e:  # noqa: BLE001 - takze blad CreateProcess i zapis anulowany przez _przerwij_start
+                with zamek:
+                    stan["blad"] = f"{type(e).__name__}: {e}"  # sam tekst: wyjatek trzymalby ramki z obiektem Popen
+                return
+            finally:
+                _PROBA_STARTU.proba = None
+            with zamek:
+                porzucony = stan.get("porzucony", False)
+                stan["uruchomiony"] = not porzucony
+            if porzucony:
+                _zamknij_porzucony(p)
+
+        w = threading.Thread(target=cel, name="silnik-start", daemon=True)
+        t0 = time.monotonic()
+        w.start()
+        kod_potomka, nastepne_sprawdzenie = None, t0 + SPRAWDZ_POTOMKA_S
+        while w.is_alive() and not self._stop.is_set() and time.monotonic() - t0 < self.limit_uruchomienia_s:
+            w.join(0.05)
+            if w.is_alive() and time.monotonic() >= nastepne_sprawdzenie:
+                nastepne_sprawdzenie = time.monotonic() + SPRAWDZ_POTOMKA_S
+                kod_potomka = proba.kod_wyjscia()
+                if kod_potomka is not None:
+                    break
+        if not w.is_alive():
+            proba.zamknij_uchwyt()
+            return None if stan.get("uruchomiony") else (f"Process.start() zakonczyl sie bledem {stan.get('blad', '?')}", "")
+        if self._stop.is_set():
+            przyczyna = "przerwany przez stop()"
+        elif kod_potomka is not None:
+            przyczyna = (f"proces potomny zakonczyl sie, zanim Process.start() sie skonczyl (kod wyjscia 0x{kod_potomka:08X}"
+                         f"{' - blad inicjalizacji DLL' if kod_potomka == 0xC0000142 else ''}), Process.start() czekal {time.monotonic() - t0:.1f} s")
+        else:
+            przyczyna = f"Process.start() nie zakonczyl sie w {self.limit_uruchomienia_s:g} s"
+        opis = "opis potomka niedostepny"
+        try:  # D5: proba porzucona i uchwyt zamkniety takze po wyjatku w przerywaniu
+            opis = _przerwij_start(w, proba, CZEKAJ_NA_PRZERWANIE_S)
+        finally:
+            proba.porzuc()
+            proba.zamknij_uchwyt()
+            with zamek:
+                uruchomiony = stan.get("uruchomiony", False)
+                stan["porzucony"] = True
+        if uruchomiony:  # start skonczyl sie w trakcie przerywania (potomek moze juz byc zabity): proces nie zostaje
+            _zamknij_porzucony(p)
+        return przyczyna, opis
+
+    def _proba_uruchomienia(self, nr_proby: int) -> tuple | None:
+        """Jedna proba uruchomienia procesu roboczego. None = proces dziala (albo ``stop()`` w trakcie - wtedy zabity);
+        inaczej (przyczyna, szczegoly) nieudanej proby - lacze zamkniete po obu stronach, proces potomny zabity."""
+        try:
+            flagi = FLAGI_PROCESU_ROBOCZEGO if _winapi_z_flagami() else 0
+        except Exception as e:  # noqa: BLE001 - bez pelnomocnika proces roboczy startuje jak przed E3-A2p (konsola procesu okna)
+            flagi = 0
+            LOG.warning("silnik: pelnomocnika CreateProcess dla procesu roboczego nie da sie wstawic (%s: %s)", type(e).__name__, e)
+        proba = ProbaStartu(flagi)
         rodzic, dziecko = self._ctx.Pipe()
         p = self._ctx.Process(target=_robotnik, name="silnik-analiza", daemon=True,
                               args=(dziecko, self.ust, self.plik_ustawien, self.funkcja, self.pul_w_pamieci, self.plik_logu, self.pamiec_linii,
                                     self.limit_zadania_s, self.katalog_roboczy, self.czekaj_na_plik_s))
-        p.start()
+        t0 = time.monotonic()
+        powod = self._start_z_limitem(p, proba)
+        if powod is not None:
+            for koniec in (rodzic, dziecko):
+                try:
+                    koniec.close()
+                except OSError:
+                    pass
+            if self._stop.is_set():
+                return None
+            self._przerwane_uruchomienia += 1
+            LOG.warning("silnik: proba %d z %d uruchomienia procesu roboczego nieudana: %s%s", nr_proby, self.proby_uruchomienia, powod[0],
+                        f" ({powod[1]})" if powod[1] else "")
+            return powod
         dziecko.close()  # koniec lacza po stronie procesu roboczego zostaje tylko u niego: jego smierc = koniec danych
-        try:  # D-N5: system konczy proces roboczy razem z procesem okna (takze, gdy Straznik nie dostaje czasu - kod natywny z GIL)
-            w_obiekcie = _dolacz_do_obiektu_zadania(p.pid)
-        except Exception as e:  # noqa: BLE001 - bez obiektu zadania zostaje Straznik (jak do rundy 3)
-            w_obiekcie = False
-            LOG.warning("silnik: procesu roboczego nie dalo sie wlozyc do obiektu zadania Windows (%s: %s) - zostaje straznik w procesie",
-                        type(e).__name__, e)
+        # D-N5: system konczy proces roboczy razem z procesem okna (takze, gdy Straznik nie dostaje czasu - kod natywny z GIL).
+        # Na Windows potomek jest w obiekcie zadania juz od CreateProcess (ProbaStartu); bez pelnomocnika - dopiero teraz.
+        w_obiekcie, blad = proba.w_obiekcie_zadania, proba.blad_obiektu
+        if w_obiekcie is None:
+            try:
+                w_obiekcie, blad = _dolacz_do_obiektu_zadania(p.pid), ""
+            except Exception as e:  # noqa: BLE001 - bez obiektu zadania zostaje Straznik (jak do rundy 3)
+                w_obiekcie, blad = False, f"{type(e).__name__}: {e}"
+        if blad:
+            LOG.warning("silnik: procesu roboczego nie dalo sie wlozyc do obiektu zadania Windows (%s) - zostaje straznik w procesie", blad)
         with self._zamek:
             if not self._po_stopie:
-                self._proces, self._lacze, self._gotowy, self._start_procesu = p, rodzic, False, time.monotonic()
+                self._proces, self._lacze, self._gotowy, self._start_procesu = p, rodzic, False, t0  # limit_startu_s liczony od Process.start()
                 self._w_obiekcie_zadania = bool(w_obiekcie)
                 self._starty += 1
-                return
+                return None
         p.kill()  # D-N3: stop() ruszyl w trakcie startu procesu (wolny p.start()) - proces nie moze zostac bez nadzoru
         p.join(5.0)
         rodzic.close()
+        return None
 
     def _zamknij_proces(self, grzecznie: bool = False) -> int | None:
         with self._zamek:  # stop() i nadzorca (po przekroczeniu czasu join) nie zamykaja tego samego procesu dwa razy
