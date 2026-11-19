@@ -587,6 +587,24 @@ def plan_k4(kal_, logika=None):
     return plan
 
 
+def wzor_obszaru_plytki(oczekiwane):
+    """Wiersze bajtow RGB obszaru plytki (obraz.OBSZAR_PLYTKI) klatki z pikselami `oczekiwane` (reszta czarna)."""
+    x0, y0, w, h = obraz.OBSZAR_PLYTKI
+    k = obraz.Klatka()
+    for (x, y), rgb in oczekiwane.items():
+        k.ustaw(x, y, rgb)
+    return [bytes(k.dane[(y * k.szerokosc + x0) * 3:(y * k.szerokosc + x0 + w) * 3]) for y in range(y0, y0 + h)]
+
+
+def obszar_plytki_rowny(klatka, wzor) -> bool:
+    """To samo co `porownaj_obszar_plytki(klatka, o) == []` dla wzoru z `wzor_obszaru_plytki(o)`, ale 40 porownan
+    wierszy bajtow zamiast 1600 pikseli - warunek `atrapa.czekaj` liczony pod blokada atrapy, ktorej potrzebuje tez
+    watek petli ramki (pobierz_klawisze, pokaz), wiec ma byc krotki (E3-T0p)."""
+    x0, y0, w, _ = obraz.OBSZAR_PLYTKI
+    d, s = klatka.dane, klatka.szerokosc
+    return all(d[((y0 + i) * s + x0) * 3:((y0 + i) * s + x0 + w) * 3] == r for i, r in enumerate(wzor))
+
+
 def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     """K4 w czasie rzeczywistym (watek petli, zegar Windows). Kryterium < 100 ms dowodzi
     deterministycznie `test_k4_..._czas_sztuczny` (takze z nierownymi obiegami petli); tu (runda 2, D10)
@@ -594,7 +612,12 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     E3-A8p: czas przelaczenia wg kryterium - od zmiany odczytu czujnikow do pierwszej klatki z wlasciwym
     obrazem wyslanej na matryce (zegar atrapy), bez budzenia watku testu i porownania pikseli; czas
     widziany przez watek testu tylko w wydruku POMIAR. Zdarzenia 4, 0, 5, 0 nie zaleza od rozstawu obiegow
-    petli (odbijanie czujnikow, E3-A8p) - wczesniej przy nierownych obiegach ginelo zdarzenie 0."""
+    petli (odbijanie czujnikow, E3-A8p) - wczesniej przy nierownych obiegach ginelo zdarzenie 0.
+    E3-T0p: czas przelaczenia = czas wlasny (`pomiar_czasu.PomiarOdporny`: scienny bez przestojow CALEGO procesu, GC
+    sesji pytest zamrozony, priorytet procesu na czas pomiaru); progi bez zmian, dodatkowo co najmniej 90 %
+    przelaczen < 100 ms. Warunek czekania watku testu - porownanie wierszy bajtow (krotko pod blokada atrapy)."""
+    from pomiar_czasu import PomiarOdporny
+
     prog, atrapa, port = ramka_p
     lap = Laptop(port)
     lap.stan()
@@ -605,30 +628,35 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     o4 = oczekiwane_piksele(plan, 4, set(P4_K4))
     o5 = oczekiwane_piksele(plan, 5, set(P5_K4))
     oczekiwany = {4: o4, 0: {}, 5: o5}
+    wzory = {n: wzor_obszaru_plytki(o) for n, o in oczekiwany.items()}
     n0 = prog.logika.nr
     czasy_testu = []
-    for _ in range(10):
-        for n in (4, 0, 5, 0):
-            t0 = time.perf_counter()
-            atrapa.poloz_plytke(n)
-            ok = atrapa.czekaj(lambda a, o=oczekiwany[n]: a.klatka is not None
-                               and porownaj_obszar_plytki(a.klatka, o) == [], 2.0)
-            czasy_testu.append(time.perf_counter() - t0)
-            assert ok, f"plytka {n}: brak wlasciwego obrazu"
+    with PomiarOdporny() as pw:
+        for _ in range(10):
+            for n in (4, 0, 5, 0):
+                t0 = time.perf_counter()
+                atrapa.poloz_plytke(n)
+                # 5 s tylko na wypadek przestoju calego procesu - czas przelaczenia mierzy historia atrapy ponizej
+                ok = atrapa.czekaj(lambda a, w=wzory[n]: obszar_plytki_rowny(a.klatka, w), 5.0)
+                czasy_testu.append(time.perf_counter() - t0)
+                assert ok, f"plytka {n}: brak wlasciwego obrazu"
     zmiany = atrapa.zmiany_plytki
     assert len(zmiany) == 40
-    czasy = []
+    czasy, wlasne = [], []
     for c, n in zmiany:
         t_klatki = next(czas for czas, _, k in atrapa.historia
                         if czas >= c and porownaj_obszar_plytki(k, oczekiwany[n]) == [])
         czasy.append(t_klatki - c)
-    s, s_testu = sorted(czasy), sorted(czasy_testu)
-    mediana = s[len(s) // 2]
-    print(f"POMIAR K4: {len(s)} przelaczen (czujniki -> klatka na matrycy), mediana {mediana * 1000:.0f} ms, "
-          f"maks {s[-1] * 1000:.0f} ms; z budzeniem watku testu: mediana {s_testu[len(s_testu) // 2] * 1000:.0f} ms, "
-          f"maks {s_testu[-1] * 1000:.0f} ms")
-    assert mediana < 0.100, f"mediana przelaczenia {mediana * 1000:.0f} ms"
-    assert max(czasy) < 0.250, f"najdluzsze przelaczenie {max(czasy) * 1000:.0f} ms"
+        wlasne.append(pw.wlasny(c, t_klatki))
+    s, s_testu, s_wl = sorted(czasy), sorted(czasy_testu), sorted(wlasne)
+    mediana = s_wl[len(s_wl) // 2]
+    print(f"POMIAR K4: {len(s)} przelaczen (czujniki -> klatka na matrycy), czas wlasny: mediana {mediana * 1000:.0f} ms, "
+          f"90. percentyl {s_wl[int(0.9 * len(s_wl)) - 1] * 1000:.0f} ms, maks {s_wl[-1] * 1000:.0f} ms; sciennie: mediana "
+          f"{s[len(s) // 2] * 1000:.0f} ms, maks {s[-1] * 1000:.0f} ms; z budzeniem watku testu: mediana "
+          f"{s_testu[len(s_testu) // 2] * 1000:.0f} ms, maks {s_testu[-1] * 1000:.0f} ms\nPOMIAR K4: {pw.opis()}")
+    assert mediana < 0.100, f"mediana przelaczenia {mediana * 1000:.0f} ms (czas wlasny); {pw.opis()}"
+    assert sum(x < 0.100 for x in wlasne) >= 36, f"ponizej 100 ms tylko {sum(x < 0.100 for x in wlasne)} z 40; {pw.opis()}"
+    assert max(wlasne) < 0.250, f"najdluzsze przelaczenie {max(wlasne) * 1000:.0f} ms (czas wlasny); {pw.opis()}"
     # runda 2 (P7): obraz gasnie od razu, a zdarzenie "plytka 0" przychodzi po ustaleniu odczytu (30 ms)
     assert czekaj_na(lambda: prog.logika.plytka == 0)
     zd, _ = prog.logika.zdarzenia_od(n0)

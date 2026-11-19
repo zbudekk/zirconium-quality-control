@@ -301,10 +301,14 @@ def test_powtorka_tej_samej_tresci_nie_jest_liczona_dwa_razy(stanowiska):
 # ----------------------------------------------------------------------------
 def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska):
     """Kryterium (f): podczas analizy 10 plytek (przyjecie wyniku, zapis w bazie, nowy stan - w watku okna) petla zdarzen Qt
-    nie ma przerw dluzszych niz 200 ms. Zegar co 10 ms mierzy najdluzsza przerwe; ``lacznik_qt`` sam wola ``przetworz``."""
+    nie ma przerw dluzszych niz 200 ms. Zegar co 10 ms mierzy najdluzsza przerwe; ``lacznik_qt`` sam wola ``przetworz``.
+    E3-T0p: przerwa liczona jako czas wlasny (``pomiar_czasu.PomiarOdporny``: czas scienny bez przestojow CALEGO procesu,
+    GC sesji pytest zamrozony, priorytet procesu na czas pomiaru) - na obciazonym PC czas scienny 211-366 ms przy 50 ms
+    osobno; blokujace wywolanie albo ciezka praca w watku okna nadal przekracza prog."""
     from PySide6.QtCore import QEventLoop, QTimer
     from PySide6.QtWidgets import QApplication
 
+    from pomiar_czasu import PomiarOdporny
     from stanowisko import kontroler_api as K
 
     app = QApplication.instance() or QApplication([])
@@ -316,10 +320,13 @@ def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska):
     lacznik.stan_zmieniony.connect(stany.append)
     lacznik.postep.connect(postepy.append)
     petla = QEventLoop()
-    pomiar = {"ostatni": 0.0, "przerwa": 0.0, "tykniec": 0, "decyzji": 0, "odmowy": []}
+    pomiar = {"ostatni": 0.0, "przerwa": 0.0, "tykniec": 0, "decyzji": 0, "odmowy": [], "znaczniki": [], "cpu": []}
+    pw = PomiarOdporny()
 
     def tyk():
         teraz = time.perf_counter()
+        pomiar["znaczniki"].append(teraz)
+        pomiar["cpu"].append(pw.cpu_watku())
         pomiar["przerwa"] = max(pomiar["przerwa"], teraz - pomiar["ostatni"])
         pomiar["ostatni"] = teraz
         pomiar["tykniec"] += 1
@@ -339,21 +346,26 @@ def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska):
     for i in range(10):  # 10 plytek po 19 prac, kazda "liczona" 0,3 s w procesie silnika
         st.zapisz({"gniazda": {n: ("czerwony" if n == 2 else "zielony") for n in range(1, 20)}, "numer": 1 + i,
                    "projekty": {n: 100 * (i + 1) + n for n in range(1, 20)}, "spij": 0.3})
-    pomiar["ostatni"] = time.perf_counter()
-    zegar.start()
-    t0 = time.perf_counter()
-    petla.exec()
-    czas = time.perf_counter() - t0
-    zegar.stop()
+    with pw:
+        pomiar["ostatni"] = time.perf_counter()
+        pomiar["znaczniki"].append(pomiar["ostatni"])
+        pomiar["cpu"].append(pw.cpu_watku())
+        zegar.start()
+        t0 = time.perf_counter()
+        petla.exec()
+        czas = time.perf_counter() - t0
+        zegar.stop()
     lacznik.zatrzymaj()
     s = st.k.stan()
-    print(f"\n[kryterium f] 10 plytek w {czas:.1f} s, najdluzsza przerwa petli Qt {pomiar['przerwa'] * 1000:.0f} ms (prog {PROG_PRZERWY_S * 1000:.0f} ms), "
-          f"tykniec zegara {pomiar['tykniec']}, sygnalow stanu {len(stany)}, postepu {len(postepy)}")
+    przerwa, rozbicie = pw.przerwy_petli(pomiar["znaczniki"], pomiar["cpu"])
+    print(f"\n[kryterium f] 10 plytek w {czas:.1f} s, najdluzsza przerwa petli Qt {przerwa * 1000:.0f} ms wlasna / {pomiar['przerwa'] * 1000:.0f} ms "
+          f"sciennie (prog {PROG_PRZERWY_S * 1000:.0f} ms), tykniec zegara {pomiar['tykniec']}, sygnalow stanu {len(stany)}, postepu {len(postepy)}\n"
+          f"[kryterium f] {rozbicie}\n[kryterium f] {pw.opis()}")
     assert not pomiar["odmowy"], pomiar["odmowy"]
     assert len(s.plytki) == 10 and all(p.status == "przyjety" and len(p.prace) == 19 for p in s.plytki) and pomiar["decyzji"] == 10
     assert len(s.do_dofrezowania_biezaca) == 10
     assert pomiar["tykniec"] >= 100 and len(postepy) >= 20 and len(stany) >= 20  # petla naprawde pracowala, okno dostawalo postep i stan
-    assert pomiar["przerwa"] <= PROG_PRZERWY_S
+    assert przerwa <= PROG_PRZERWY_S, f"przerwa petli Qt {przerwa * 1000:.0f} ms (czas wlasny); {rozbicie}; {pw.opis()}"
 
 
 # ----------------------------------------------------------------------------
