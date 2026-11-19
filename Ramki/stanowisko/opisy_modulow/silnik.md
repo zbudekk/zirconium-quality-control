@@ -248,3 +248,7 @@ zimnej puli porannej to minuty w limicie zadania, D14). `OpisPuli.rodzaj` (etyki
 `pula` (D1). Zadanie, ktorego pula jest juz zbudowana w procesie, idzie przed budowa innej puli (D1). Budowa bez postepu: limit
 `min(limit_zadania_s, LIMIT_BEZ_POSTEPU_PULI_S = 120 s)` (D2). Blad katalogu pamieci linii w petli zadan nie konczy procesu (D5);
 pamiec linii na dysku nie ma sprzatania ani odcisku algorytmu (wersja `krawedz.WERSJA` podbijana recznie) - opisane, bez zmiany.
+
+**Runda 3 (recenzja PR #32 r2).** `OpisPuli.druga` nie wplywa na porownanie opisow (D3: zmiana samej puli porannej nie powoduje
+ponownej budowy puli wieczornej); zadanie niesie obie pule w pickle (ok. 2x). Czysciciel tekstow zadania dostaje takze pliki puli
+drugiego typu (D2).

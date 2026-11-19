@@ -217,7 +217,9 @@ Pula = `KatalogPul.z_ustawien(ust)` w watku pomocniczym `pula-katalog` (wlasne p
 `folder_cyrkon` / `folder_prywatne` z cechami nowych plikow, `folder_millbox/wspolczynniki.csv`, powiazanie), potem `pula_wieczorna`,
 `pula_poranna` i `sciezki`. Kiedy (runda 2, P1): przy starcie i "Odswiez pule" (glosno: stan `liczenie`, skany czekaja), przy zmianie
 trybu (glosno - skany nowego trybu czekaja na swieza pule), przy zmianie doby roboczej i pliku `wspolczynniki.csv` (czas zmiany albo
-rozmiar - `os.stat` co `OKRES_KONTROLI_S`; cicho: pula zostaje do nowej) oraz po bledzie analizy (P3). NIE po kazdym wyniku ani skanie
+rozmiar - `aplikacja.stan_pliku` w watku pomocniczym `pula-plik-csv` co `OKRES_KONTROLI_S`, najwyzej jedno sprawdzenie naraz, wynik
+przez skrzynke - okno nie czeka na udzial sieciowy, runda 3 B1; cicho: pula zostaje do nowej) oraz po bledzie analizy (P3). Doba
+i stan pliku zapisywane po UDANYM odswiezeniu; nieudane ponawiane po `PONOW_KATALOG_S` (60 s; runda 3 D8). NIE po kazdym wyniku ani skanie
 (indeks "Cyrkon" to sekundy-minuty). Jeden watek indeksu naraz: zamowienie w trakcie = kolejne odswiezenie po biezacym (glosne, gdy
 "Odswiez pule"; D8). Skan dostaje pule swojego trybu (`_opis_puli(z.tryb)`: wpisy + sciezki + zrodla, `druga` = pula drugiego trybu -
 plytka drugiego typu dostaje ja w silniku, P6). Stan `pula.stan`: liczenie / gotowa (sa wpisy) / pusta (brak wpisow - skany czekaja,
@@ -259,3 +261,9 @@ programu / bibliotek - nowy odcisk pamieci) = minuty czekania pierwszego skanu z
   (P5): watek indeksu liczy cechy i miniatury nowych plikow w procesie okna (Open3D w procesie okna - koszt pamieci, opisany).
 - Polecenie (20.) `cofnij_wpis(praca_id)` (D9): cofa wybor krazka - poprzedni wybor albo praca "nierozstrzygnieta"; w `dozwolone`, gdy
   wybor obowiazuje; ekran: "Cofnij wybor krazka" w rzedzie krazkow.
+
+**Runda 3 (recenzja PR #32 r2).** B1: zaden `os.stat` folderu MillBox / udzialow w watku okna (wyzej). D1: plytka drugiego typu
+(np. poranna dopuszczona wieczorem), gdy pula drugiego trybu jest pusta - komunikat `pula_plytki_pusta` z `skan_id` plytki (prace
+dopasowane do puli biezacego trybu sa szare); komunikat ulotny (nie wraca po restarcie). D6: `cofnij_wpis(praca_id, decyzja_id)`,
+`Praca.wybor_wpisu_id` - ekran podaje id pokazanego wyboru (podwojne klikniecie nie cofa drugiego; wieczorne "Cofnij" bez zmian).
+D4: czas ladowania modulow z DLL w logu startu (z Open3D przy `pula_wpisow`) - do pomiaru na laptopie.
