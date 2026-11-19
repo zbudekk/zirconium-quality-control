@@ -1000,6 +1000,7 @@ class WidokPracy(QFrame):
     nastepna = Signal()
     inna_praca = Signal()
     wybor_wpisu = Signal(int)  # E3-A5i: frezowanie_id krazka wybranego przez technika (``Praca.wpisy_do_wyboru``)
+    cofnij_wpis = Signal()  # E3-A5i runda 2 (D9): cofniecie wyboru krazka
 
     def __init__(self):
         super().__init__()
@@ -1054,6 +1055,8 @@ class WidokPracy(QFrame):
         self._wpisy_uklad.addWidget(etykieta(N.KRAZEK_DO_WYBORU, "podpis"))
         self._wpisy_przyciski: list[QPushButton] = []
         self._wpisy_uklad.addStretch(1)
+        self.przycisk_cofnij_wpis = przycisk(N.KRAZEK_COFNIJ, "przycisk_cofnij_wpis", "lacze", self.cofnij_wpis.emit)
+        self._wpisy_uklad.addWidget(self.przycisk_cofnij_wpis)
         self._wpisy_pole.setVisible(False)
         u.addWidget(self._wpisy_pole)
         self.ubytek = etykieta("", "duzy", "praca_ubytek", zawijaj=True)
@@ -1144,6 +1147,8 @@ class WidokPracy(QFrame):
             b.setEnabled(mozna)
             self._wpisy_uklad.insertWidget(1 + nr, b)
             self._wpisy_przyciski.append(b)
+        self.przycisk_cofnij_wpis.setVisible(praca is not None and "cofnij_wpis" in praca.dozwolone)
+        self.przycisk_cofnij_wpis.setEnabled(jest_osoba)
         self._wpisy_pole.setVisible(bool(wpisy))
 
     def wyczysc(self) -> None:

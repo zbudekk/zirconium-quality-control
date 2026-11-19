@@ -577,9 +577,13 @@ class SesjaRano:
         sha = praca["kandydat1_sha16"]
         if praca["status_match"] != "zielony" or not sha:
             return None
-        z_puli = self.sesja.projekt_wpisu_puli(praca["id"], praca["skan_id"])
-        if z_puli is not None and self.baza.wiersz("SELECT id FROM projekty WHERE id = ? AND usuniety = 0", (z_puli,)):
-            return z_puli
+        z_puli = self.sesja.wpis_puli_pracy(praca["id"], praca["skan_id"])
+        if z_puli is not None:  # runda 2 (P3): wynik puli per praca - nigdy szukanie po sha16 w calym indeksie
+            pid = z_puli["projekt_id"]
+            info = self._projekty_id([pid]).get(pid) if pid is not None else None
+            if info is None:
+                return None  # wpisy z roznymi projektami albo projektu nie ma: praca do wskazania
+            return pid if not info["usuniety"] else self._nastepcy({pid: info}).get(pid)  # usuniety: nastepca z tego zlecenia / kuwety
         projekty = self._projekty_sha([sha]).get(sha, [])
         return projekty[0]["projekt_id"] if len(projekty) == 1 else None
 

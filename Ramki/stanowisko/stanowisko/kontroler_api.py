@@ -131,7 +131,7 @@ POLECENIA = POLECENIA + POLECENIA_RANO
 POLECENIA_A12 = ("test_led", "przejmij_ramke", "excel_zatwierdz", "excel_pomin", "excel_odswiez", "excel_pokaz", "excel_zamknij")
 POLECENIA = POLECENIA + POLECENIA_A12
 # pula per praca (E3-A5i): wybor krazka (wpisu puli) pracy, ktorej wynik dopasowania nie rozstrzygnal
-POLECENIA_A5I = ("wybierz_wpis",)
+POLECENIA_A5I = ("wybierz_wpis", "cofnij_wpis")  # runda 2 (D9): cofniecie wyboru krazka
 POLECENIA = POLECENIA + POLECENIA_A5I
 # sygnaly kontrolera do okna (``ZdarzenieKontrolera.typ``; w ``lacznik_qt``: stan_zmieniony, postep, komunikat, pytanie, zamkniety)
 SYGNALY = ("stan", "postep", "komunikat", "pytanie", "zamkniety")
@@ -457,6 +457,12 @@ class Pula:
     budowa_gotowe: int | None = None
     budowa_razem: int | None = None
     czas_budowy_s: float | None = None
+    # runda 2 (P4, D2): krazki ze sprzecznymi wspolczynnikami / bez wspolczynnika (nazwy krazkow - nie dane osobowe), przyczyna pustej
+    # puli wpisow (tekst dla technika), przyczyna nieudanej budowy w tle
+    krazki_sprzeczne: tuple = ()
+    krazki_bez_wspolczynnika: tuple = ()
+    przyczyna: str | None = None
+    blad_budowy: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -900,6 +906,10 @@ class Kontroler:
 
     def wybierz_wpis(self, praca_id: int, frezowanie_id: int) -> Odpowiedz:
         """E3-A5i: krazek pracy z ``Praca.wpisy_do_wyboru`` (``frezowanie_id``); decyzja z osoba, krazek pracy zmieniony."""
+        raise NotImplementedError
+
+    def cofnij_wpis(self, praca_id: int) -> Odpowiedz:
+        """E3-A5i runda 2: cofa wybor krazka (poprzedni wybor albo praca "nierozstrzygnieta")."""
         raise NotImplementedError
 
     def potwierdz_ponowny_skan(self, skan_id: int) -> Odpowiedz:
@@ -2908,9 +2918,9 @@ class KontrolerSesji(Kontroler):
                 dozwolone = ("ukruszona", "cofnij")
         wpisy = tuple(WpisDoWyboru(frezowanie_id=w["frezowanie_id"], krazek=w.get("krazek"), wspolczynnik=w.get("wspolczynnik"),
                                    wybrany=w["frezowanie_id"] == p.get("frezowanie_id")) for w in p.get("wpisy_do_wyboru") or ())
-        if wpisy and dozwolone:
-            dozwolone += ("wybierz_wpis",)  # E3-A5i: krazek pracy do wskazania przez technika
         wybor = p.get("wybor_wpisu") or {}
+        if wpisy and dozwolone:
+            dozwolone += ("wybierz_wpis", "cofnij_wpis") if wybor else ("wybierz_wpis",)  # E3-A5i: krazek pracy do wskazania
         return Praca(
             praca_id=p["id"], skan_id=s["id"], gniazdo=p["gniazdo"], status=klucz, kolor=kolor, rgb=st.hex, podpis=st.napis,
             opis=f"{st.opis} {ST.OPIS_PROPOZYCJI}".strip() if p.get("propozycja") and kolor == ST.KOLOR_ZOLTY else st.opis,
@@ -3229,6 +3239,9 @@ class KontrolerSesji(Kontroler):
 
     def wybierz_wpis(self, praca_id: int, frezowanie_id: int) -> Odpowiedz:
         return self._polecenie(lambda: self.sesja.wybierz_wpis(praca_id, frezowanie_id), nazwa="wybierz_wpis", liczby=(praca_id, frezowanie_id))
+
+    def cofnij_wpis(self, praca_id: int) -> Odpowiedz:
+        return self._polecenie(lambda: self.sesja.cofnij_wpis(praca_id), nazwa="cofnij_wpis", liczby=(praca_id,))
 
     def _sesja_skanu(self, skan_id: int):
         """Sesja, ktora obsluguje skan: poranna (``SesjaRano`` - kontrola, ze skan nalezy do otwartego pieca) dla skanu w trybie

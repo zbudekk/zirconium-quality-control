@@ -337,6 +337,16 @@ KOMUNIKATY: dict[str, Wzor] = {
     "pula_pusta": Wzor(POZIOM_BLAD, "Brak projektów w puli",
                        "W folderze projektów nie ma plików projektów — skany czekają ({czeka}). Sprawdź, czy pliki projektów są w folderze "
                        "projektów, i kliknij „Odśwież pulę”. Jeśli folder jest inny — zgłoś to."),
+    # E3-A5i runda 2 (P4): pula per praca - przyczyna pustej puli i krazki bez wspolczynnika (nazwy krazkow, bez nazw zlecen)
+    "pula_wpisow_pusta": Wzor(POZIOM_BLAD, "Brak wpisow puli dnia",
+                              "Pula dnia nie ma zadnego projektu ze wspolczynnikiem - skany czekaja ({czeka}). Przyczyna: {przyczyna}. "
+                              "Popraw plik wspolczynnikow (albo katalog zlecen) i kliknij \u201eOdswiez pule\u201d."),
+    "pula_wpisow_brak": Wzor(POZIOM_BLAD, "Katalog zlecen niedostepny",
+                             "Program nie odswiezyl katalogu zlecen - skany czekaja ({czeka}). Przyczyna: {przyczyna}. Sprawdz, czy foldery "
+                             "zlecen i plik wspolczynnikow sa dostepne, i kliknij \u201eOdswiez pule\u201d."),
+    "pula_wpisow_krazki": Wzor(POZIOM_OSTRZEZENIE, "Prace bez wspolczynnika w puli",
+                               "{przyczyna}. Prace z tych krazkow nie maja projektu w puli (beda szare), dopoki krazek nie ma jednej "
+                               "wartosci w pliku wspolczynnikow (albo potwierdzonego wpisu recznego)."),
     "pula_brak_folderu": Wzor(POZIOM_BLAD, "Brak folderu projektów",
                               "Program nie widzi folderu projektów — skany czekają ({czeka}). Sprawdź, czy dysk z folderem "
                               "projektów jest podłączony, i kliknij „Odśwież pulę”. Jeśli folder jest inny — zgłoś to."),
@@ -509,10 +519,23 @@ STANY_PULI_WPISOW = {
     "brak_folderu": "katalog zlecen niedostepny - odswiez pule",
 }
 NAPIS_BUDOWY_PULI = "wpisow puli: {n} - buduje pule: {k} z {r} (analiza czeka)"
-NAPIS_BLAD_BUDOWY_PULI = " - budowa w tle nieudana, pula w analizie"
-# liczniki puli wpisow na pasku (tylko niezerowe): KatalogPul (bez_wspolczynnika, brakujace) i match.Pula.z_wpisow (reszta)
+NAPIS_BLAD_BUDOWY_PULI = " - budowa w tle nieudana ({blad}); pula powstanie w analizie pierwszego skanu"
+# liczniki puli wpisow na pasku (tylko niezerowe): KatalogPul (bez_wspolczynnika, sprzeczne_wspolczynniki, brakujace) i
+# match.Pula.z_wpisow (reszta)
 LICZNIKI_PULI = {"brak_pliku": "brak pliku", "plik_zmieniony": "plik zmieniony", "bez_wspolczynnika": "bez wspolczynnika",
-                 "brakujace": "spoza katalogu", "pominiete": "nie do wczytania"}
+                 "sprzeczne_wspolczynniki": "sprzeczne wspolczynniki", "brakujace": "spoza katalogu", "pominiete": "nie do wczytania"}
+# runda 2 (P4): przyczyny pustej / okrojonej puli wpisow (``Pula.przyczyna``, komunikaty ``pula_wpisow_*``)
+PRZYCZYNY_PULI = {
+    "csv_brak": "brak pliku wspolczynnikow (wspolczynniki.csv w folderze MillBox)",
+    "csv_nie_ustawiono": "nie ustawiono folderu MillBox ([sciezki] folder_millbox)",
+    "csv_blad": "plik wspolczynnikow odrzucony ({blad})",
+    "bez_wierszy": "w pliku wspolczynnikow nie ma frezowan z ostatnich dob roboczych",
+    "sprzeczne": "sprzeczne wspolczynniki krazkow: prac {n} (krazki: {krazki})",
+    "bez_wspolczynnika": "prace bez wspolczynnika: {n} (krazki: {krazki})",
+    "brakujace": "pliki z pliku wspolczynnikow spoza katalogu zlecen: {n}",
+    "rano_brak": "brak zlecen zmienionych w ostatnich dniach roboczych (foldery Cyrkon / Prywatne)",
+    "katalog": "blad odswiezenia katalogu ({blad})",
+}
 OPIS_PROPOZYCJI = "Propozycja programu (ratunek dopasowania) - sprawdz projekt i krazek."
 # poranek (E3-A7): dlaczego "Zamknij piec" jest teraz niemozliwe (reguly session_rano)
 BLOKADA_BEZ_NUMERU = "Podaj numer płytki ({skany}) — rano numer jest potrzebny przed „Zamknij piec”."
