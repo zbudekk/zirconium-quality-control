@@ -302,9 +302,10 @@ def test_powtorka_tej_samej_tresci_nie_jest_liczona_dwa_razy(stanowiska):
 def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska):
     """Kryterium (f): podczas analizy 10 plytek (przyjecie wyniku, zapis w bazie, nowy stan - w watku okna) petla zdarzen Qt
     nie ma przerw dluzszych niz 200 ms. Zegar co 10 ms mierzy najdluzsza przerwe; ``lacznik_qt`` sam wola ``przetworz``.
-    E3-T0p: przerwa liczona jako czas wlasny (``pomiar_czasu.PomiarOdporny``: czas scienny bez przestojow CALEGO procesu,
-    GC sesji pytest zamrozony, priorytet procesu na czas pomiaru) - na obciazonym PC czas scienny 211-366 ms przy 50 ms
-    osobno; blokujace wywolanie albo ciezka praca w watku okna nadal przekracza prog."""
+    E3-T0p: przerwa liczona jako czas wlasny (``pomiar_czasu.PomiarOdporny``: czas scienny bez przestojow CALEGO procesu
+    i bez czekania na dysk, gdy stal on takze dla wzorca dysku; GC sesji pytest zamrozony, priorytet procesu na czas
+    pomiaru) - na obciazonym PC czas scienny 211-366 ms przy 50 ms osobno; blokujace wywolanie albo ciezka praca w watku
+    okna nadal przekracza prog."""
     from PySide6.QtCore import QEventLoop, QTimer
     from PySide6.QtWidgets import QApplication
 
@@ -321,7 +322,7 @@ def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska):
     lacznik.postep.connect(postepy.append)
     petla = QEventLoop()
     pomiar = {"ostatni": 0.0, "przerwa": 0.0, "tykniec": 0, "decyzji": 0, "odmowy": [], "znaczniki": [], "cpu": []}
-    pw = PomiarOdporny()
+    pw = PomiarOdporny(dysk=st.tmp)  # wzorzec dysku obok bazy: zapis w bazie w watku okna czeka na dysk
 
     def tyk():
         teraz = time.perf_counter()

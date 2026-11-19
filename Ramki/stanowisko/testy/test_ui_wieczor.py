@@ -1291,8 +1291,9 @@ def test_6_petla_okna_bez_przerw_10_plytek_po_19_prac(stanowiska, ekrany):
     """Prawdziwy kontroler, 10 plytek po 19 prac liczonych w procesie silnika; okno pokazane, technik w trakcie klika decyzje
     (gniazdo 2 -> "Ukruszona" na kazdej nowej plytce). Zegar co 10 ms mierzy najdluzsza przerwe petli okna.
     E3-T0p: przerwy i czasy odswiezenia ekranu liczone jako czas wlasny (``pomiar_czasu.PomiarOdporny``: czas scienny bez
-    przestojow CALEGO procesu, GC sesji pytest zamrozony, priorytet procesu na czas pomiaru) - na obciazonym PC czas scienny
-    201-989 ms przy 46-126 ms osobno; blokujace wywolanie albo ciezka praca w watku okna nadal przekracza prog."""
+    przestojow CALEGO procesu, przerwy petli takze bez czekania na dysk, gdy stal on dla wzorca dysku; GC sesji pytest
+    zamrozony, priorytet procesu na czas pomiaru) - na obciazonym PC czas scienny 201-989 ms przy 46-126 ms osobno;
+    blokujace wywolanie albo ciezka praca w watku okna nadal przekracza prog."""
     from PySide6.QtCore import QEventLoop, Qt, QTimer
     from PySide6.QtTest import QTest
 
@@ -1304,7 +1305,7 @@ def test_6_petla_okna_bez_przerw_10_plytek_po_19_prac(stanowiska, ekrany):
     e.klik("osoba_0")
     czasy_ekranu = []  # (poczatek, koniec) kazdego odswiezenia ekranu
     prawdziwe = e.okno.pokaz_stan
-    pw = PomiarOdporny()
+    pw = PomiarOdporny(dysk=st.tmp)  # wzorzec dysku obok bazy: zapis w bazie w watku okna czeka na dysk
 
     def mierzone(stan):
         t0 = time.perf_counter()
