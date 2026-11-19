@@ -85,7 +85,12 @@
                                         "poranna":   {"A": [36.5, 18.5], "B": [36.5, 21.5], "C": [43, 6], "D": [43, 9]}},
                               "status": "ZALOZENIE", "zrodlo": "R57/R59", "opis": "środki dołków kodu A/B/C/D płytek okrągłych (per typ): promień ≤ socket_zone_r − 3 = 44, ścianka do gniazd ≥ 3, do stożków ≥ 1,5, do krawędzi ≥ 1,5, ścianka 1 między dołkami (rozstaw 3); wieczorna (pozycje bez zmian od R57): rząd y −43,5 przed rynienką przednią (promień 43,73; po R59 do rynienki 4,80); poranna [R59, wariant P‑e]: rynienka dosunięta do przodu (y −35,3), rząd przed nią się nie mieści, więc dwie pary z prawej strony: A (36,5; 18,5), B (36,5; 21,5), C (43; 6), D (43; 9) (promień 40,92…43,93; do gniazd 3,55…4,08; do stożka C 2,09…6,61; do krawędzi 5,07…8,08); dawniej R57: kolumna x 30,5, y −31…−22; K‑62"},
     "number_pos_round":      {"value": {"wieczorna": [35, -26.5], "poranna": [-44, 5.5]}, "status": "ZALOZENIE", "zrodlo": "R57/R59", "opis": "środek cyfry reliefu (number_text_h, number_relief_h) na płytkach okrągłych, per typ; null = cyfra pominięta; obrys cyfry 5 × 3,6 w kole 47, odstęp od gniazd ≥ 3; wieczorna (35; −26,5) bez zmian od R57 (po R59: do rynienki 3,27, promień narożnika obrysu 46,85); poranna [R59, wariant P‑e]: (−44; 5,5) z lewej strony (promień narożnika obrysu 46,49, do gniazda 3,48, do stożka 13,70); dawniej R57: (36,5; −24,5); K‑13"},
-    "plate_numbers_round":   {"value": {"wieczorna": [8], "poranna": [9]}, "status": "ZALOZENIE", "zrodlo": "R57/D11", "opis": "numery płytek okrągłych: n8 = tylko D (wieczorna), n9 = A + D (poranna); kod 4‑bitowy zgodny wstecz z n1–n6"}
+    "plate_numbers_round":   {"value": {"wieczorna": [8], "poranna": [9]}, "status": "ZALOZENIE", "zrodlo": "R57/D11", "opis": "numery płytek okrągłych: n8 = tylko D (wieczorna), n9 = A + D (poranna); kod 4‑bitowy zgodny wstecz z n1–n6"},
+    "round_magnet_r":        {"value": 45,    "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: promień osi cech płytki okrągłej ramkowej i wkładki okrągłej — kieszenie magnesów A/B/C (płytka), kieszenie Halla A/B/C i kołek klucza D (wkładka); osie na przekątnych narożników: A 225°, B 135°, C 45°, D = `round_flat_angle` −45° → (±31,82; ±31,82) = 45/√2. Ścianki: kieszeń ø5,2 – krawędź płytki 50 − 45 − 2,6 = 2,4 ≥ 1,5; kieszeń – dno rowka pokrywki (r 49,2) w rzucie 1,6 (rowek 3,3 wyżej); sufit kieszeni – dno gniazda 8 − 4 − 2,2 = 1,8 ≥ 1,5; kieszeń – najbliższy otwór ø3 w rzucie ≥ 7,48 (`narzedzia/studium_R58.py`)"},
+    "round_key_slot_w":      {"value": 3.6,   "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: szerokość rowka klucza od spodu płytki okrągłej ramkowej, oś na kierunku `round_flat_angle`; kołek ø3,0 wkładki → luz 0,3/stronę, obrót ±0,38°, przesunięcie gniazda na r 40 o 0,27 (+ luz promieniowy 0,4 = 0,67 ≤ 1,25 tolerancji kalibracji); ścianka rowek – najbliższy otwór ø3 w rzucie ≥ 8,11"},
+    "round_key_slot_r0":     {"value": 43,    "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: promień końca wewnętrznego (płaskiego) rowka klucza; rowek biegnie na zewnątrz przez krawędź i płaszczyznę ścięcia; kołek ø3 w r 45 → 0,5 od końca rowka (przy przesunięciu płytki o luz 0,4 zostaje 0,1)"},
+    "round_key_slot_h":      {"value": 2.5,   "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: wysokość rowka klucza od spodu płytki (Z −8…−5,5); ścianka sufit rowka – dno gniazda 8 − 4 − 2,5 = 1,5 ≥ 1,5; nad kołkiem klucza (2,0) zostaje 0,5 ≥ 0,4"},
+    "plate_numbers_round_frame": {"value": {"wieczorna": [1, 2, 3], "poranna": [4, 5, 6]}, "status": "ZALOZENIE", "zrodlo": "R58/D11", "opis": "R58 (decyzja właściciela 19.11.2026): numery płytek okrągłych ramkowych (do ramki) jak kwadratowe — wieczorne n1–n3, poranne n4–n6; kod n = A + 2B + 4C (bit D = 0), ramka czyta magnesy A/B/C; n8/n9 (`plate_numbers_round`) zostają płytkami testowymi skanera"}
   },
 
   "pokrywka": {
@@ -104,7 +109,8 @@
     "cover_snap_count":  {"value": 4,   "status": "SPEC", "zrodlo": "R21"},
     "cover_finger_w":    {"value": 30,  "status": "ZALOZENIE", "zrodlo": "4.2", "opis": "wycięcie 30 x 3 na dolnej krawędzi przodu i tyłu"},
     "cover_finger_h":    {"value": 3,   "status": "ZALOZENIE", "zrodlo": "4.2"},
-    "cover_corner_r":    {"value": 3,   "status": "SPEC", "zrodlo": "4.1"}
+    "cover_corner_r":    {"value": 3,   "status": "SPEC", "zrodlo": "4.1"},
+    "round_cover_snap_angles": {"value": [25, 155, 205, 335], "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: kąty środków 4 garbów pokrywki okrągłej od +X [deg]; pary przy osi X (owalizacja wzdłuż X); łuk garbu `cover_snap_w` 10 po licu wewnętrznym r 50,3 = ±5,7°; omijają ścięcie płytki (−45° ± 9,2°; garb 335° kończy się 5,1° przed ścięciem) i wycięcia palcowe (±90° ± 17,4° na r 50,3; odstęp 42°)"}
   },
 
   "panel_dyfuzor_pi": {
@@ -287,7 +293,13 @@
     "wire_slot_x":          {"value": 66,    "status": "ZALOZENIE", "zrodlo": "D12"},
     "wire_slot_y":          {"value": 90,    "status": "ZALOZENIE", "zrodlo": "D12"},
     "wire_rabbet":          {"value": 1.5,   "status": "ZALOZENIE", "zrodlo": "D12", "opis": "wysokość rowka kablowego na zewnętrznej dolnej krawędzi ramy"},
-    "wire_rabbet_w":        {"value": 2.5,   "status": "ZALOZENIE", "zrodlo": "R50-U9", "opis": "szerokość rowka (od x 52,3 do 49,8; do otworu 48,3 zostaje 1,5); ten sam przekrój co przelot w ściance"}
+    "wire_rabbet_w":        {"value": 2.5,   "status": "ZALOZENIE", "zrodlo": "R50-U9", "opis": "szerokość rowka (od x 52,3 do 49,8; do otworu 48,3 zostaje 1,5); ten sam przekrój co przelot w ściance"},
+    "round_insert_clearance": {"value": 0.4,  "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: luz promieniowy płytki okrągłej w otworze wkładki okrągłej (jak 0,4 kwadratu, R53 T6): otwór ø100,8; ścięcie wkładki 49,356 + 0,4 = 49,756 od środka; ścianka ramy w osiach (lewo, prawo, tył) 52,4 − 50,4 = 2,0 ≥ 1,5 (4.8)"},
+    "round_insert_ledge_r": {"value": 47,     "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: promień wewnętrzny ciągłego występu (półki obwodowej) wkładki okrągłej, Z 0…2,5; płytka leży na występie r 47…50 i na 4 półkach; odstęp od krawędzi najdalszego otworu ø3 płytki 5,58 / 5,34 ≥ 3; dno w osi po rowku kablowym 52,4 − 2,5 − 47 = 2,9 ≥ 1,5"},
+    "round_insert_shelf":   {"value": 10,     "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: bok 4 kwadratowych półek wkładki okrągłej (środki w osiach A, B, C, D na promieniu `round_magnet_r`, boki równoległe do osi X/Y), przycięte do otworu; odstęp od krawędzi najbliższego otworu ø3 płytki ≥ 3,10 (poranna B, C); kieszeń Halla 5,0 × 5,5 w półce: margines 2,5 (X) / 2,25 (Y)"},
+    "round_key_pin_d":      {"value": 3.0,    "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: kołek klucza na półce D wkładki okrągłej (zamiast kołka kwadratowego `orient_post`); w rowku płytki `round_key_slot_w` 3,6 → luz 0,3/stronę"},
+    "round_key_pin_h":      {"value": 2.0,    "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: wysokość kołka klucza nad półką (Z 2,5…4,5); rowek płytki 2,5 → 0,5 nad kołkiem"},
+    "round_key_pin_chamfer": {"value": 0.5,   "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: faza wierzchołka kołka klucza 0,5 × 45° (naprowadzenie w rowek)"}
   },
 
   "male_czesci": {
@@ -343,6 +355,16 @@
         "ramka_wkladka": "PA12 drukarnia",
         "ramka_tulejka_dc": "PETG FDM (własny)",
         "ramka_podkladka_panelu_05": "PETG FDM (własny)", "ramka_podkladka_panelu_1": "PETG FDM (własny)", "ramka_podkladka_panelu_2": "PETG FDM (własny)"
-      }, "status": "ZALOZENIE", "zrodlo": "Z19/D2/R50/R55", "opis": "R55: bez żywicy, druk własny = PETG FDM u kolegi; kolory: korpus, blat grafit; wkładka, płytki, pokrywka naturalny biały (jak Z19); K-57 liczy koszt tylko dla pozycji 'PA12 drukarnia'"}
+      }, "status": "ZALOZENIE", "zrodlo": "Z19/D2/R50/R55", "opis": "R55: bez żywicy, druk własny = PETG FDM u kolegi; kolory: korpus, blat grafit; wkładka, płytki, pokrywka naturalny biały (jak Z19); K-57 liczy koszt tylko dla pozycji 'PA12 drukarnia'"},
+    "quantities_r58": {"value": {
+        "ramka_plytka_okragla_ramkowa_wieczorna_n1": 1, "ramka_plytka_okragla_ramkowa_wieczorna_n2": 1, "ramka_plytka_okragla_ramkowa_wieczorna_n3": 1,
+        "ramka_plytka_okragla_ramkowa_poranna_n4": 1, "ramka_plytka_okragla_ramkowa_poranna_n5": 1, "ramka_plytka_okragla_ramkowa_poranna_n6": 1,
+        "ramka_wkladka_okragla": 3, "ramka_pokrywka_okragla": 4
+      }, "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: ilości kompletu okrągłego do ramki (decyzja właściciela 19.11.2026); osobny klucz, bo dopisanie do `quantities` zmieniłoby arkusz zamówienia R59 i sprawdzenie K‑57; włączenie do arkusza = osobny krok koordynatora"},
+    "materials_r58": {"value": {
+        "ramka_plytka_okragla_ramkowa_wieczorna_n1": "PA12 drukarnia", "ramka_plytka_okragla_ramkowa_wieczorna_n2": "PA12 drukarnia", "ramka_plytka_okragla_ramkowa_wieczorna_n3": "PA12 drukarnia",
+        "ramka_plytka_okragla_ramkowa_poranna_n4": "PA12 drukarnia", "ramka_plytka_okragla_ramkowa_poranna_n5": "PA12 drukarnia", "ramka_plytka_okragla_ramkowa_poranna_n6": "PA12 drukarnia",
+        "ramka_wkladka_okragla": "PA12 drukarnia", "ramka_pokrywka_okragla": "PETG FDM (własny)"
+      }, "status": "ZALOZENIE", "zrodlo": "R58", "opis": "R58: materiały kompletu okrągłego: płytki i wkładka PA12 naturalny biały, mat (jak kwadratowe, drukarnia); pokrywka PETG FDM druk własny, wierzchem w dół (jak kwadratowa)"}
   }
 }

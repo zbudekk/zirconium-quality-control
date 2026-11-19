@@ -1,0 +1,366 @@
+{
+ "plate": "okragla_ramkowa_poranna",
+ "version": "v2",
+ "units": "mm",
+ "coords": {
+  "origin": "środek górnej powierzchni płytki",
+  "x": "w prawo (od użytkownika)",
+  "y": "do tyłu",
+  "flat": "ścięcie orientacyjne na kierunku -45° od +X (przód-prawo, jak dawny narożnik D); patrz pole flat"
+ },
+ "thickness": 8,
+ "markers": [
+  {
+   "corner": "A",
+   "x": -30.5,
+   "y": -32.0,
+   "d": 5,
+   "depth": 3
+  },
+  {
+   "corner": "B",
+   "x": -37.5,
+   "y": 23.5,
+   "d": 5,
+   "depth": 3
+  },
+  {
+   "corner": "C",
+   "x": 41.5,
+   "y": 16.0,
+   "d": 5,
+   "depth": 3
+  }
+ ],
+ "code_dimples": [
+  {
+   "bit": "A",
+   "x": 36.5,
+   "y": 18.5,
+   "d": 2,
+   "depth": 1
+  },
+  {
+   "bit": "B",
+   "x": 36.5,
+   "y": 21.5,
+   "d": 2,
+   "depth": 1
+  },
+  {
+   "bit": "C",
+   "x": 43.0,
+   "y": 6.0,
+   "d": 2,
+   "depth": 1
+  },
+  {
+   "bit": "D",
+   "x": 43.0,
+   "y": 9.0,
+   "d": 2,
+   "depth": 1
+  }
+ ],
+ "shape": "round",
+ "size": 100.0,
+ "d": 100.0,
+ "flat": {
+  "corner": "D",
+  "angle_deg": -45.0,
+  "chord_w": 16,
+  "dist": 49.3559,
+  "opis": "ścięcie pionowe na całej grubości: płaszczyzna prostopadła do kierunku angle_deg (od +X), w odległości dist od środka"
+ },
+ "magnet_pockets": [
+  {
+   "corner": "A",
+   "angle_deg": 225.0,
+   "x": -31.8198,
+   "y": -31.8198,
+   "d": 5.2,
+   "depth": 2.2
+  },
+  {
+   "corner": "B",
+   "angle_deg": 135.0,
+   "x": -31.8198,
+   "y": 31.8198,
+   "d": 5.2,
+   "depth": 2.2
+  },
+  {
+   "corner": "C",
+   "angle_deg": 45.0,
+   "x": 31.8198,
+   "y": 31.8198,
+   "d": 5.2,
+   "depth": 2.2
+  }
+ ],
+ "number_relief": {
+  "x": -44.0,
+  "y": 5.5,
+  "text_h": 5,
+  "relief_h": 0.6
+ },
+ "cover_groove": {
+  "z": 2,
+  "w": 1.0,
+  "depth": 0.8,
+  "opis": "rowek na całym obwodzie (także przez ścięcie): od walca R do R − depth, środek z pod wierzchem, wysokość w"
+ },
+ "key_slot": {
+  "angle_deg": -45.0,
+  "r0": 43,
+  "w": 3.6,
+  "h": 2.5,
+  "opis": "rowek klucza od spodu: szerokość w, oś na kierunku angle_deg, od promienia r0 na zewnątrz przez krawędź, wysokość h od spodu"
+ },
+ "sockets": [
+  {
+   "id": 1,
+   "type": "trough",
+   "x": 0,
+   "y": -35.3,
+   "l": 50,
+   "w": 13,
+   "angle": 0,
+   "depth": 4,
+   "hole_d": 3,
+   "hole_pitch": 10,
+   "hole_count": 4
+  },
+  {
+   "id": 2,
+   "type": "round",
+   "x": 31,
+   "y": -19.55,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 3,
+   "type": "round",
+   "x": 15.5,
+   "y": -19.55,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 4,
+   "type": "round",
+   "x": 0,
+   "y": -19.55,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 5,
+   "type": "round",
+   "x": -15.5,
+   "y": -19.55,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 6,
+   "type": "round",
+   "x": -31,
+   "y": -19.55,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 7,
+   "type": "round",
+   "x": 38.75,
+   "y": -6.1,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 8,
+   "type": "round",
+   "x": 23.25,
+   "y": -6.1,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 9,
+   "type": "round",
+   "x": 7.75,
+   "y": -6.1,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 10,
+   "type": "round",
+   "x": -7.75,
+   "y": -6.1,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 11,
+   "type": "round",
+   "x": -23.25,
+   "y": -6.1,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 12,
+   "type": "round",
+   "x": -38.75,
+   "y": -6.1,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 13,
+   "type": "round",
+   "x": 32.25,
+   "y": 8,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 14,
+   "type": "round",
+   "x": 16.75,
+   "y": 8,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 15,
+   "type": "round",
+   "x": -16.75,
+   "y": 8,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 16,
+   "type": "round",
+   "x": -32.25,
+   "y": 8,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 17,
+   "type": "round",
+   "x": 0,
+   "y": 8.75,
+   "d_top": 15,
+   "d_bottom": 12.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 18,
+   "type": "round",
+   "x": 24.5,
+   "y": 22.85,
+   "d_top": 15,
+   "d_bottom": 12.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 19,
+   "type": "round",
+   "x": -24.5,
+   "y": 22.85,
+   "d_top": 15,
+   "d_bottom": 12.86,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 20,
+   "type": "round",
+   "x": 7.75,
+   "y": 23.6,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 21,
+   "type": "round",
+   "x": -7.75,
+   "y": 23.6,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 22,
+   "type": "round",
+   "x": 15.5,
+   "y": 37.05,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 23,
+   "type": "round",
+   "x": 0,
+   "y": 37.05,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  },
+  {
+   "id": 24,
+   "type": "round",
+   "x": -15.5,
+   "y": 37.05,
+   "d_top": 12.5,
+   "d_bottom": 10.36,
+   "depth": 4,
+   "hole_d": 3
+  }
+ ],
+ "leds": {}
+}
