@@ -88,8 +88,10 @@ RODZAJ_COFNIECIE = "cofniecie"  # ponad liste z sekcji 3.4; zatwierdzone przez w
 RODZAJ_COFNIJ_ZASTAPIENIE = "cofnij_zastapienie"  # ponad liste z sekcji 3.4 (recenzja PR #16, P6)
 # E3-A5i: wybor krazka (wpisu puli) pracy, ktorej wynik puli per praca nie rozstrzygnal; wartosc = frezowanie_id
 RODZAJ_WYBOR_WPISU = "wybor_wpisu"
+RODZAJ_COFNIJ_WPIS = "cofnij_wybor_wpisu"  # runda 2 (D9): cofniecie wyboru krazka; wartosc = id cofanej decyzji ``wybor_wpisu``
 RODZAJE_POZNIEJSZYCH_PACZEK = ("wybor_kandydata", "przypisanie_reczne", "uklad")
-RODZAJE = DECYZJE_O_PRACY + (RODZAJ_COFNIECIE, "powtorz_skan", RODZAJ_COFNIJ_ZASTAPIENIE, "numer_plytki", RODZAJ_WYBOR_WPISU) + RODZAJE_POZNIEJSZYCH_PACZEK
+RODZAJE = (DECYZJE_O_PRACY + (RODZAJ_COFNIECIE, "powtorz_skan", RODZAJ_COFNIJ_ZASTAPIENIE, "numer_plytki", RODZAJ_WYBOR_WPISU, RODZAJ_COFNIJ_WPIS)
+           + RODZAJE_POZNIEJSZYCH_PACZEK)
 # E3-A5i (recenzja PR #25 r3 D1): praca zolta, ktorej wynik dal ratunek plytki (uwaga z tym poczatkiem) = PROPOZYCJA - rano bez
 # przypisania automatycznego (nie domyka zlecenia bez potwierdzenia technika), wieczorem przypisana, ale oznaczona w stanie
 PREFIKS_UWAGI_RATUNKU = "ratunek:"
@@ -205,8 +207,14 @@ def _do_powtorzenia(wynik: dict) -> bool:
 
 
 def propozycja_ratunku(g: dict) -> bool:
-    """E3-A5i: praca zolta z wyniku ratunku plytki (uwaga "ratunek: ..." w ``uwagi`` gniazda) - propozycja do potwierdzenia."""
-    return g.get("status") == "zolty" and any(isinstance(u, str) and u.startswith(PREFIKS_UWAGI_RATUNKU) for u in g.get("uwagi") or ())
+    """E3-A5i: praca zolta z wyniku ratunku plytki - propozycja do potwierdzenia. Runda 2 (D13): pole gniazda ``ratunek`` (True =
+    wynik dal ratunek plytki), gdy wynik je ma (``match`` / ``porownaj`` - POTRZEBUJE w raporcie E3-A5i); bez pola - uwaga z poczatkiem
+    ``PREFIKS_UWAGI_RATUNKU`` (napis ``match.ratuj``)."""
+    if g.get("status") != "zolty":
+        return False
+    if isinstance(g.get("ratunek"), bool):
+        return g["ratunek"]
+    return any(isinstance(u, str) and u.startswith(PREFIKS_UWAGI_RATUNKU) for u in g.get("uwagi") or ())
 
 
 def wpisy_do_wyboru(kandydat: dict | None) -> list[dict]:
@@ -270,6 +278,7 @@ class Sesja:
         self.ponowny_skan_okno_min = ponowny_skan_okno_min
         self.ponowny_skan_min_wspolnych = prog  # E3-A1p: 0 = pytanie o ponowny skan bez warunku zgodnosci prac (regula sprzed 18.11.2026)
         self._zegar = zegar or dt.datetime.now
+        self._wpisy_puli_skanu: tuple | None = None  # E3-A5i runda 2 (D6): (skan_id, praca_id -> projekt wpisu puli) ostatniego skanu
 
     @classmethod
     def z_ustawien(cls, ust: dict, baza: B.Baza | None = None, **kw: Any) -> "Sesja":
@@ -378,7 +387,7 @@ class Sesja:
                 numer_zrodlo=wynik.get("numer_zrodlo"), status=status, wersja_programu=self.wersja_programu, skrot_ustawien=self.skrot_ust)
             w_gniezdzie: dict[Any, int] = {}
             do_wyboru: dict[str, list] = {}
-            z_puli: dict[str, int] = {}
+            z_puli: dict[str, int | None] = {}
             propozycje: list[int] = []
             for g in gniazda:
                 w_gniezdzie[g.get("gniazdo")] = w_gniezdzie.get(g.get("gniazdo"), 0) + 1
@@ -388,13 +397,15 @@ class Sesja:
                     wpisy = wpisy_do_wyboru(k1)
                     if wpisy:
                         do_wyboru[str(praca_id)] = wpisy
-                    if k1.get("wpisy") and isinstance(k1.get("projekt_id"), int) and not isinstance(k1.get("projekt_id"), bool):
-                        z_puli[str(praca_id)] = k1["projekt_id"]  # projekt wpisu puli (sesja poranna: przypisanie automatyczne)
+                    if k1.get("wpisy"):  # wynik puli per praca: projekt wpisu albo None (wpisy z roznymi projektami) - rano bez sha16 (P3)
+                        pid = k1.get("projekt_id")
+                        z_puli[str(praca_id)] = pid if isinstance(pid, int) and not isinstance(pid, bool) else None
                     if propozycja_ratunku(g):
                         propozycje.append(praca_id)
             if do_wyboru or propozycje or z_puli:  # E3-A5i: krazki do wyboru, projekty wpisow puli, propozycje z ratunku
                 self.baza.zdarzenie("silnik", ZDARZENIE_PRZYPISAN, {"wpisy": do_wyboru, "projekty": z_puli, "propozycje": propozycje},
                                     skan_id=skan_id, czas=teraz)
+            self._wpisy_puli_skanu = (skan_id, dict(z_puli))  # runda 2 (D6): sesja poranna czyta to bez zapytania na kazda prace
             if self.katalog_wynikow is not None:
                 self.baza.wykonaj("UPDATE skany SET wynik_json = ? WHERE id = ?", (self._zapisz_wynik(wynik, teraz, sha16), skan_id))
             self.baza.zdarzenie("silnik", "skan_przyjety", {"status": status, "prace": len(gniazda), "czas_s": (wynik.get("czas_s") or {}).get("razem")},
@@ -465,7 +476,8 @@ class Sesja:
         pid = kandydat.get("projekt_id")
         if isinstance(pid, bool) or not isinstance(pid, int):
             return None
-        return pid if self.baza.wiersz("SELECT id FROM projekty WHERE id = ?", (pid,)) else None
+        # runda 2 (P3): projekt usuniety z indeksu (folder zmieniony po zbudowaniu puli) = bez przypisania, nigdy szukanie po sha16
+        return pid if self.baza.wiersz("SELECT id FROM projekty WHERE id = ? AND usuniety = 0", (pid,)) else None
 
     def _frezowanie(self, projekt_id: int | None, kandydat: dict) -> int | None:
         """Wpis frezowania pracy: wskazany przez wynik (pula ze wspolczynnikiem per praca, A5); inaczej jedyny wpis projektu.
@@ -555,6 +567,8 @@ class Sesja:
             return self.podaj_numer_plytki(skan_id, wartosc, operator)
         if rodzaj == RODZAJ_WYBOR_WPISU:
             return self.wybierz_wpis(praca_id, wartosc, operator)
+        if rodzaj == RODZAJ_COFNIJ_WPIS:
+            return self.cofnij_wpis(praca_id, operator)
         if rodzaj == RODZAJ_COFNIECIE:
             return self.cofnij(praca_id, operator)
         osoba = self._operator(operator)
@@ -632,28 +646,82 @@ class Sesja:
             propozycje |= {int(x) for x in dane.get("propozycje") or () if isinstance(x, int)}
         return wpisy, propozycje
 
-    def projekt_wpisu_puli(self, praca_id: int, skan_id: int) -> int | None:
-        """E3-A5i: projekt wpisu puli per praca, ktory wskazal wynik dopasowania pracy (``kandydaci[0].projekt_id``); None = pula
-        z folderu, wynik bez jednoznacznego projektu albo praca szara. Dla sesji porannej (przypisanie automatyczne)."""
+    def wpis_puli_pracy(self, praca_id: int, skan_id: int) -> dict | None:
+        """E3-A5i: praca z wyniku puli per praca -> {"projekt_id": projekt wpisu (``kandydaci[0].projekt_id``) albo None (wpisy
+        z roznymi projektami)}; None = pula z folderu albo praca szara. Dla sesji porannej (przypisanie automatyczne bez szukania
+        po ``sha16`` - runda 2, P3). Mapa ostatnio przyjetego skanu z pamieci (D6), inne - z dziennika."""
+        if self._wpisy_puli_skanu is not None and self._wpisy_puli_skanu[0] == skan_id:
+            mapa = self._wpisy_puli_skanu[1]
+            return {"projekt_id": mapa[str(praca_id)]} if str(praca_id) in mapa else None
         for w in self.baza.wiersze("SELECT dane FROM zdarzenia WHERE zrodlo = 'silnik' AND typ = ? AND skan_id = ? ORDER BY id DESC",
                                    (ZDARZENIE_PRZYPISAN, skan_id)):
             try:
-                pid = (json.loads(w["dane"] or "{}").get("projekty") or {}).get(str(praca_id))
+                mapa = json.loads(w["dane"] or "{}").get("projekty") or {}
             except (ValueError, AttributeError):
                 continue
-            if isinstance(pid, int) and not isinstance(pid, bool):
-                return pid
+            if str(praca_id) in mapa:
+                pid = mapa[str(praca_id)]
+                return {"projekt_id": pid if isinstance(pid, int) and not isinstance(pid, bool) else None}
         return None
 
     def _wybory_wpisow(self, prace_ids: list[int]) -> dict[int, dict]:
-        """Ostatnia decyzja ``wybor_wpisu`` kazdej pracy (decyzje sa tylko dopisywane - nowszy wybor zastepuje starszy)."""
+        """Obowiazujaca (ostatnia niecofnieta) decyzja ``wybor_wpisu`` kazdej pracy (nowszy wybor zastepuje starszy; cofniecie -
+        ``cofnij_wybor_wpisu`` z id decyzji - wraca do poprzedniego wyboru albo do "nierozstrzygniety")."""
         if not prace_ids:
             return {}
+        decyzje = self.baza.wiersze(f"SELECT * FROM decyzje WHERE rodzaj IN (?, ?) AND praca_id IN ({_znaki(len(prace_ids))}) ORDER BY id",
+                                    (RODZAJ_WYBOR_WPISU, RODZAJ_COFNIJ_WPIS, *prace_ids))
+        cofniete = {int(d["wartosc"]) for d in decyzje if d["rodzaj"] == RODZAJ_COFNIJ_WPIS and str(d["wartosc"] or "").isdigit()}
         wynik: dict[int, dict] = {}
-        for d in self.baza.wiersze(f"SELECT * FROM decyzje WHERE rodzaj = ? AND praca_id IN ({_znaki(len(prace_ids))}) ORDER BY id",
-                                   (RODZAJ_WYBOR_WPISU, *prace_ids)):
-            wynik[d["praca_id"]] = d
+        for d in decyzje:
+            if d["rodzaj"] == RODZAJ_WYBOR_WPISU and d["id"] not in cofniete:
+                wynik[d["praca_id"]] = d
         return wynik
+
+    def _przypisz_wpis(self, praca: dict, frezowanie_id: int | None, projekt_id: int | None) -> None:
+        """Krazek i projekt pracy po wyborze / cofnieciu wyboru; punkt STAREGO projektu wraca jak przy cofnieciu "Ukruszona"
+        (najnowsza inna ukruszona praca projektu albo ``oczekuje``), nowy dostaje stan wg decyzji pracy (runda 2, P2)."""
+        self.baza.wykonaj("UPDATE prace SET frezowanie_id = ?, projekt_id = ? WHERE id = ?", (frezowanie_id, projekt_id, praca["id"]))
+        if projekt_id != praca["projekt_id"]:
+            if praca["projekt_id"] is not None:
+                self._odswiez_punkt(praca, praca["tryb_skanu"], aktywna=False)
+            self._odswiez_punkt({**praca, "projekt_id": projekt_id}, praca["tryb_skanu"])
+
+    def cofnij_wpis(self, praca_id: int, operator: str | None = None, *, decyzja_id: int | None = None) -> int:
+        """Runda 2 (D9): cofa obowiazujacy wybor krazka pracy - wraca poprzedni wybor albo praca "nierozstrzygnieta" (krazek pusty,
+        projekt z wyniku dopasowania). Runda 3 (D6): ``decyzja_id`` - cofnij dokladnie ten wybor; inny obowiazujacy = odmowa (podwojne
+        klikniecie nie cofa dwoch wyborow). Zwraca ``decyzje.id`` (``cofnij_wybor_wpisu``)."""
+        osoba = self._operator(operator)
+        with self.baza.transakcja():
+            praca = self._praca_do_decyzji(praca_id)
+            ob = self._wybory_wpisow([praca["id"]]).get(praca["id"])
+            if ob is None:
+                raise BladSesji(f"praca {praca_id}: nie ma wyboru krazka do cofniecia")
+            if decyzja_id is not None and ob["id"] != decyzja_id:
+                raise BladSesji(f"praca {praca_id}: obowiazuje wybor {ob['id']}, nie {decyzja_id} - odswiez widok (wybor juz cofniety?)")
+            decyzja_id = self.baza.wstaw("decyzje", praca_id=praca["id"], skan_id=praca["skan_id"], rodzaj=RODZAJ_COFNIJ_WPIS, wartosc=str(ob["id"]),
+                                         operator=osoba, czas=self.teraz())
+            poprzedni = self._wybory_wpisow([praca["id"]]).get(praca["id"])
+            wpisy = self._przypisania_skanow([praca["skan_id"]])[0].get(praca["id"], [])
+            if poprzedni is not None:
+                fid = int(poprzedni["wartosc"])
+                wpis = next((w for w in wpisy if w.get("frezowanie_id") == fid), {})
+                self._przypisz_wpis(praca, fid, self._projekt_wpisu(wpis, fid, praca))
+            else:
+                z_wyniku = self.wpis_puli_pracy(praca["id"], praca["skan_id"]) or {}
+                pid = z_wyniku.get("projekt_id")
+                if pid is not None and not self.baza.wiersz("SELECT id FROM projekty WHERE id = ? AND usuniety = 0", (pid,)):
+                    pid = None
+                self._przypisz_wpis(praca, None, pid)
+        return decyzja_id
+
+    def _projekt_wpisu(self, wpis: dict, fid: int, praca: dict) -> int | None:
+        """Projekt wybranego wpisu: z wyniku dopasowania (``wpisy`` kandydata), inaczej z ``frezowania`` (runda 2, D9)."""
+        pid = wpis.get("projekt_id")
+        if isinstance(pid, int) and not isinstance(pid, bool):
+            return pid
+        fr = self.baza.wiersz("SELECT projekt_id FROM frezowania WHERE id = ?", (fid,))
+        return fr["projekt_id"] if fr is not None and fr["projekt_id"] is not None else praca["projekt_id"]
 
     def wybierz_wpis(self, praca_id: int, frezowanie_id: Any, operator: str | None = None) -> int:
         """Technik wskazuje krazek (wpis puli) pracy, ktorej wynik puli per praca nie rozstrzygnal (ten sam STL z tym samym albo
@@ -671,15 +739,12 @@ class Sesja:
             if wpis is None:
                 dostepne = ", ".join(str(w.get("krazek") or w.get("frezowanie_id")) for w in wpisy) or "brak"
                 raise BladSesji(f"praca {praca_id}: wskazany krazek nie jest wpisem puli tej pracy (do wyboru: {dostepne})")
-            fr = self.baza.wiersz("SELECT id, projekt_id FROM frezowania WHERE id = ?", (fid,))
-            if fr is None:
+            if self.baza.wiersz("SELECT id FROM frezowania WHERE id = ?", (fid,)) is None:
                 raise BladSesji(f"praca {praca_id}: wpisu frezowania {fid} nie ma juz w bazie - odswiez pule")
-            projekt_id = fr["projekt_id"] if fr["projekt_id"] is not None else praca["projekt_id"]
+            projekt_id = self._projekt_wpisu(wpis, fid, praca)
             decyzja_id = self.baza.wstaw("decyzje", praca_id=praca["id"], skan_id=praca["skan_id"], rodzaj=RODZAJ_WYBOR_WPISU, wartosc=str(fid),
                                          operator=osoba, czas=self.teraz())
-            self.baza.wykonaj("UPDATE prace SET frezowanie_id = ?, projekt_id = ? WHERE id = ?", (fid, projekt_id, praca["id"]))
-            if projekt_id != praca["projekt_id"]:
-                self._odswiez_punkt({**praca, "projekt_id": projekt_id}, praca["tryb_skanu"])
+            self._przypisz_wpis(praca, fid, projekt_id)
         return decyzja_id
 
     def zastap_skan(self, skan_id: int, poprzedni_id: int | None = None, operator: str | None = None) -> int:
