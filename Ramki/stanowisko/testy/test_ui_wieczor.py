@@ -1287,75 +1287,108 @@ def test_5_restart_programu_odtwarza_plytki_i_decyzje_na_ekranie(stanowiska, ekr
 # ----------------------------------------------------------------------------
 # (6) petla okna
 # ----------------------------------------------------------------------------
-def test_6_petla_okna_bez_przerw_10_plytek_po_19_prac(stanowiska, ekrany):
+def test_6_petla_okna_bez_przerw_10_plytek_po_19_prac(stanowiska, ekrany, tmp_path):
     """Prawdziwy kontroler, 10 plytek po 19 prac liczonych w procesie silnika; okno pokazane, technik w trakcie klika decyzje
-    (gniazdo 2 -> "Ukruszona" na kazdej nowej plytce). Zegar co 10 ms mierzy najdluzsza przerwe petli okna."""
+    (gniazdo 2 -> "Ukruszona" na kazdej nowej plytce). Zegar co 10 ms mierzy najdluzsza przerwe petli okna.
+    E3-T0p: pomiar w ``pomiar_czasu.PomiarOdporny`` (GC sesji pytest zamrozony, priorytet procesu, wzorzec procesu i dysku);
+    progi (przerwa 200 ms, odswiezenie ekranu 100 ms) na czasie sciennym. Przekroczenie wyjasnione tylko przestojem CALEGO
+    procesu (najwyzej 50 ms) albo przestojem dysku - caly pomiar na nowym stanowisku i w nowym oknie jest powtarzany (proces
+    1 raz, dysk najwyzej 2 razy); przekroczenie bez takiego wyjasnienia albo powtarzajace sie = porazka z rozbiciem."""
+    import pomiar_czasu as PC
+
     from PySide6.QtCore import QEventLoop, Qt, QTimer
     from PySide6.QtTest import QTest
 
     from stanowisko import statusy as ST
 
-    st = stanowiska()
-    e = ekrany(st.k)
-    e.klik("osoba_0")
-    czasy_ekranu = []
-    prawdziwe = e.okno.pokaz_stan
+    def proba(st):
+        """Jeden pomiar na stanowisku ``st`` w nowym oknie: (ocena, opis, okno)."""
+        e = ekrany(st.k)
+        e.klik("osoba_0")
+        czasy_ekranu = []  # (poczatek, koniec) kazdego odswiezenia ekranu
+        prawdziwe = e.okno.pokaz_stan
+        pw = PC.PomiarOdporny(dysk=st.tmp)  # wzorzec dysku obok bazy: zapis w bazie w watku okna czeka na dysk
 
-    def mierzone(stan):
-        t0 = time.perf_counter()
-        prawdziwe(stan)
-        czasy_ekranu.append(time.perf_counter() - t0)
-
-    e.okno.pokaz_stan = mierzone  # okno wola ``pokaz_stan`` przy kazdym sygnale stanu
-    petla = QEventLoop()
-    pomiar = {"ostatni": 0.0, "przerwa": 0.0, "tykniec": 0, "zdecydowane": set(), "kroki": [], "w_kroku": False}
-
-    def tyk():
-        teraz = time.perf_counter()  # przerwa = czas miedzy kolejnymi tyknieciami zegara (zawiera prace okna i klikniecia technika)
-        pomiar["przerwa"] = max(pomiar["przerwa"], teraz - pomiar["ostatni"])
-        pomiar["ostatni"] = teraz
-        pomiar["tykniec"] += 1
-        if pomiar["w_kroku"]:  # tykniecie w trakcie obslugi klikniecia (zagniezdzone zdarzenia) - tylko pomiar
-            return
-        plytka = e.okno.pokazana_plytka()
-        if (plytka is not None and plytka not in pomiar["zdecydowane"] and e.mapa.podpisy().get(2) == ST.STATUSY["czerwony"].napis
-                and not e.okno.ochrona_aktywna()):  # technik klika, gdy mapa nie jest juz przygaszona po zmianie (A-P2)
-            pomiar["w_kroku"] = True
+        def mierzone(stan):
             t0 = time.perf_counter()
-            QTest.mouseClick(e.mapa, Qt.MouseButton.LeftButton, pos=e.mapa.srodek_gniazda(2).toPoint())
-            QTest.mouseClick(e.w("przycisk_ukruszona"), Qt.MouseButton.LeftButton)
-            QTest.keyClick(e.okno, Qt.Key.Key_Escape)
-            pomiar["kroki"].append(time.perf_counter() - t0)
-            pomiar["zdecydowane"].add(plytka)
-            pomiar["w_kroku"] = False
-        elif (plytka is None or plytka in pomiar["zdecydowane"]) and e.w("przycisk_nowa_plytka").isVisibleTo(e.okno):
-            pomiar["w_kroku"] = True  # nowy wynik przyszedl, zanim technik skonczyl poprzednia plytke: przelacza sam (A-P2)
-            QTest.mouseClick(e.w("przycisk_nowa_plytka"), Qt.MouseButton.LeftButton)
-            pomiar["w_kroku"] = False
-        if len(pomiar["zdecydowane"]) == 10 and len(e.lista()) == 10:
-            petla.quit()
+            prawdziwe(stan)
+            czasy_ekranu.append((t0, time.perf_counter()))
 
-    zegar = QTimer()
-    zegar.setInterval(10)
-    zegar.timeout.connect(tyk)
-    QTimer.singleShot(180_000, petla.quit)
-    for i in range(10):
-        st.zapisz({"gniazda": {n: ("czerwony" if n == 2 else "zielony") for n in range(1, 20)}, "numer": 1 + i,
-                   "projekty": {n: 100 * (i + 1) + n for n in range(1, 20)}, "spij": 0.3})
-    pomiar["ostatni"] = time.perf_counter()
-    zegar.start()
-    t0 = time.perf_counter()
-    petla.exec()
-    czas = time.perf_counter() - t0
-    zegar.stop()
-    print(f"\n[kryterium 6] 10 plytek x 19 prac w {czas:.1f} s; najdluzsza przerwa petli okna {pomiar['przerwa'] * 1000:.0f} ms "
-          f"(prog {PROG_PRZERWY_S * 1000:.0f} ms); odswiezen ekranu {len(czasy_ekranu)}, najdluzsze {max(czasy_ekranu) * 1000:.1f} ms; "
-          f"najdluzszy krok technika (klik gniazda + Ukruszona + Esc) {max(pomiar['kroki'] or [0]) * 1000:.0f} ms; tykniec {pomiar['tykniec']}")
-    assert len(pomiar["zdecydowane"]) == 10 and len(e.lista()) == 10 and len(e.plytki()) == 10
-    assert all(len(p.prace) == 19 for p in st.stan().plytki)
-    assert pomiar["tykniec"] >= 100 and len(czasy_ekranu) >= 20
-    assert pomiar["przerwa"] <= PROG_PRZERWY_S
-    assert max(czasy_ekranu) <= PROG_PRZERWY_S / 2
+        e.okno.pokaz_stan = mierzone  # okno wola ``pokaz_stan`` przy kazdym sygnale stanu
+        petla = QEventLoop()
+        pomiar = {"tykniec": 0, "zdecydowane": set(), "kroki": [], "w_kroku": False, "znaczniki": [], "cpu": []}
+
+        def tyk():
+            pomiar["znaczniki"].append(time.perf_counter())  # przerwa = czas miedzy kolejnymi tyknieciami (praca okna i klikniecia)
+            pomiar["cpu"].append(pw.cpu_watku())
+            pomiar["tykniec"] += 1
+            if pomiar["w_kroku"]:  # tykniecie w trakcie obslugi klikniecia (zagniezdzone zdarzenia) - tylko pomiar
+                return
+            plytka = e.okno.pokazana_plytka()
+            if (plytka is not None and plytka not in pomiar["zdecydowane"] and e.mapa.podpisy().get(2) == ST.STATUSY["czerwony"].napis
+                    and not e.okno.ochrona_aktywna()):  # technik klika, gdy mapa nie jest juz przygaszona po zmianie (A-P2)
+                pomiar["w_kroku"] = True
+                t0 = time.perf_counter()
+                QTest.mouseClick(e.mapa, Qt.MouseButton.LeftButton, pos=e.mapa.srodek_gniazda(2).toPoint())
+                QTest.mouseClick(e.w("przycisk_ukruszona"), Qt.MouseButton.LeftButton)
+                QTest.keyClick(e.okno, Qt.Key.Key_Escape)
+                pomiar["kroki"].append(time.perf_counter() - t0)
+                pomiar["zdecydowane"].add(plytka)
+                pomiar["w_kroku"] = False
+            elif (plytka is None or plytka in pomiar["zdecydowane"]) and e.w("przycisk_nowa_plytka").isVisibleTo(e.okno):
+                pomiar["w_kroku"] = True  # nowy wynik przyszedl, zanim technik skonczyl poprzednia plytke: przelacza sam (A-P2)
+                QTest.mouseClick(e.w("przycisk_nowa_plytka"), Qt.MouseButton.LeftButton)
+                pomiar["w_kroku"] = False
+            if len(pomiar["zdecydowane"]) == 10 and len(e.lista()) == 10:
+                petla.quit()
+
+        zegar = QTimer()
+        zegar.setInterval(10)
+        zegar.timeout.connect(tyk)
+        QTimer.singleShot(180_000, petla.quit)
+        for i in range(10):
+            st.zapisz({"gniazda": {n: ("czerwony" if n == 2 else "zielony") for n in range(1, 20)}, "numer": 1 + i,
+                       "projekty": {n: 100 * (i + 1) + n for n in range(1, 20)}, "spij": 0.3})
+        with pw:
+            pomiar["znaczniki"].append(time.perf_counter())
+            pomiar["cpu"].append(pw.cpu_watku())
+            zegar.start()
+            t0 = time.perf_counter()
+            petla.exec()
+            czas = time.perf_counter() - t0
+            zegar.stop()
+        ocena_petli, przerwa = PC.ocen_przerwy(pw.przerwy_petli(pomiar["znaczniki"], pomiar["cpu"]), PROG_PRZERWY_S)
+        ocena_ekranu, ekran = PC.ocen_przerwy([PC.Przerwa(b - a, pw.przestoj(a, b)) for a, b in czasy_ekranu], PROG_PRZERWY_S / 2)
+        opis = (f"10 plytek x 19 prac w {czas:.1f} s; najdluzsza przerwa petli okna {przerwa.opis()} (prog {PROG_PRZERWY_S * 1000:.0f} ms); "
+                f"odswiezen ekranu {len(czasy_ekranu)}, najdluzsze {ekran.opis()} (prog {PROG_PRZERWY_S * 500:.0f} ms, ocena {ocena_ekranu}); "
+                f"najdluzszy krok technika (klik gniazda + Ukruszona + Esc) {max(pomiar['kroki'] or [0]) * 1000:.0f} ms; "
+                f"tykniec {pomiar['tykniec']}; {pw.opis()}")
+        ocena = PC.gorsza(ocena_petli, ocena_ekranu)
+        if ocena != PC.OK:  # najpierw kryterium czasu (powtorzenie albo porazka z rozbiciem), potem reszta
+            return ocena, opis, e
+        assert len(pomiar["zdecydowane"]) == 10 and len(e.lista()) == 10 and len(e.plytki()) == 10, opis
+        assert all(len(p.prace) == 19 for p in st.stan().plytki)
+        assert pomiar["tykniec"] >= 100 and len(czasy_ekranu) >= 20, opis
+        return ocena, opis, e
+
+    powtorki = PC.Powtorki()
+    dodatkowe = []
+    st = stanowiska()
+    try:
+        while True:
+            ocena, opis, e = proba(st)
+            print(f"\n[kryterium 6] proba {len(powtorki.historia) + 1}: {ocena}; {opis}")
+            if not powtorki.dalej(ocena, opis):
+                break
+            e.zamknij()  # poprzednie okno i stanowisko zamkniete (ponowne zamkniecie po tescie jest bez skutku)
+            st.koniec()
+            st = StanowiskoAplikacji(tmp_path / f"powtorka_{len(powtorki.historia)}")  # nowe stanowisko, czyste dane
+            dodatkowe.append(st)
+    finally:
+        for s in dodatkowe:
+            s.koniec()
+    powtorki.ostrzez("kryterium (6)", ocena)  # sukces dopiero po powtorzeniu - ostrzezenie w podsumowaniu pytest
+    assert ocena == PC.OK, f"kryterium (6): {powtorki.opis()}"
 
 
 def test_6_odswiezenie_ekranu_przy_10_plytkach_i_zdarzeniach(atrapa, ekrany):
