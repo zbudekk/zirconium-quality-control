@@ -23,7 +23,7 @@ zapis z ``fsync`` (COMMIT SQLite) potrafi czekac na dysk ponad 200 ms (proba na 
    Ograniczenie: wywolanie biblioteki C, ktore TRZYMA GIL i czeka bez zuzycia procesora, wygladaloby jak przestoj.
 4. Wzorzec dysku (tylko z ``dysk=katalog``, testy z zapisem w bazie w watku okna): drugi watek co ``OKRES_DYSKU_S``
    robi minimalny COMMIT SQLite (autocommit, ustawienia domyslne jak baza stanowiska: journal DELETE, synchronous FULL)
-   w osobnym pliku w tym samym katalogu. Zapis wzorca dluzszy niz ``PROG_ZAPISU_S`` to PRZESTOJ DYSKU (dysk / system
+   w osobnym pliku w tym samym katalogu. Czas zapisu wzorca ponad ``PROG_ZAPISU_S`` to PRZESTOJ DYSKU (dysk / system
    plikow stal dla kazdego programu). ``przerwy_petli`` odejmuje od przerwy petli czesc wspolna z przestojami dysku, ale
    najwyzej tyle, ile watek petli w tej przerwie NIE liczyl (przerwa - przestoj procesu - CPU watku) - czekanie na dysk
    (czas zapisu wzorca obejmuje tez czekanie na GIL, gdy watek petli liczy - stad to ograniczenie).
@@ -45,7 +45,7 @@ from pathlib import Path
 PROG_PRZERWY_WZORCA_S = 0.020  # wzorzec tyka co 2 ms; 20 ms = 10 tykniec opuszczonych
 UDZIAL_CPU_PRZESTOJU = 0.25    # przestoj: proces zuzyl < 1/4 jednego rdzenia w czasie przerwy wzorca
 OKRES_DYSKU_S = 0.030          # odstep miedzy zapisami wzorca dysku (zapis trwa zwykle 5-10 ms)
-PROG_ZAPISU_S = 0.050          # zapis wzorca dysku dluzszy niz to = przestoj dysku (proba: mediana 5 ms, 99. percentyl 10 ms)
+PROG_ZAPISU_S = 0.050          # czas zapisu wzorca dysku ponad to = przestoj dysku (proba: mediana 5 ms, 99. percentyl 10 ms)
 ABOVE_NORMAL_PRIORITY_CLASS = 0x8000
 
 _k32 = None
@@ -123,7 +123,7 @@ class PomiarOdporny:
         self.zapisy: list = []          # (poczatek, koniec) kazdego zapisu wzorca dysku
         self.pauzy_gc: list = []        # (poczatek, koniec, pokolenie) pauz GC w trakcie pomiaru
         self.przestoje: list = []       # (poczatek, koniec) przestojow procesu
-        self.przestoje_dysku: list = []  # (poczatek, koniec) zapisow wzorca dysku dluzszych niz PROG_ZAPISU_S
+        self.przestoje_dysku: list = []  # (poczatek + PROG_ZAPISU_S, koniec) zapisow wzorca dysku dluzszych niz PROG_ZAPISU_S
         self.zajete: list = []          # (poczatek, koniec, udzial CPU) przerw wzorca, w ktorych proces pracowal (GIL zajety)
         self.priorytet_ustawiony = False
         self._cps = 0.0
@@ -209,7 +209,9 @@ class PomiarOdporny:
             else:
                 self.zajete.append((t[i], t[i + 1], udzial))
         self._poczatki = [a for a, _ in self.przestoje]
-        self.przestoje_dysku = [(a, b) for a, b in self.zapisy if b - a > PROG_ZAPISU_S]
+        # przestoj dysku = czas zapisu wzorca PONAD prog (pierwsze PROG_ZAPISU_S kazdego zapisu to zwykla praca dysku) -
+        # mniej odjete, gdy przestoj dysku przypadkiem trafi na blokujace wywolanie w watku petli
+        self.przestoje_dysku = [(a + PROG_ZAPISU_S, b) for a, b in self.zapisy if b - a > PROG_ZAPISU_S]
         self._poczatki_dysku = [a for a, _ in self.przestoje_dysku]
 
     # ------------------------------------------------------------------ wyniki
