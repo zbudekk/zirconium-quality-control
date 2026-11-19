@@ -545,7 +545,15 @@ class PasekStanu(QFrame):
         elif not liczenie:
             self._liczenie_od = None
         self._sprawdz_liczenie()
-        self.postep_puli.setVisible(liczenie)
+        # E3-A5i: budowa puli wpisow w procesie silnika - pasek z postepem (gotowe z razem); liczenie katalogu - pasek bez konca
+        razem, gotowe = getattr(stan.pula, "budowa_razem", None), getattr(stan.pula, "budowa_gotowe", None) or 0
+        buduje = bool(razem) and gotowe < razem
+        if buduje:
+            self.postep_puli.setRange(0, razem)
+            self.postep_puli.setValue(gotowe)
+        elif self.postep_puli.maximum() != 0:
+            self.postep_puli.setRange(0, 0)
+        self.postep_puli.setVisible(liczenie or buduje)
         if not sk.dostepny:
             self.skaner.setText(N.SKANER_BRAK_FOLDERU)
         elif not sk.dziala:
@@ -991,6 +999,7 @@ class WidokPracy(QFrame):
     zamknij = Signal()
     nastepna = Signal()
     inna_praca = Signal()
+    wybor_wpisu = Signal(int)  # E3-A5i: frezowanie_id krazka wybranego przez technika (``Praca.wpisy_do_wyboru``)
 
     def __init__(self):
         super().__init__()
@@ -1036,6 +1045,17 @@ class WidokPracy(QFrame):
             wiersz.addSpacing(18)
         wiersz.addStretch(1)
         u.addLayout(wiersz)
+        # E3-A5i: krazek do wyboru (wynik puli per praca nierozstrzygniety) - przycisk na kazdy wpis puli
+        self._wpisy_pole = QWidget()
+        self._wpisy_pole.setObjectName("praca_wpisy_do_wyboru")
+        self._wpisy_uklad = QHBoxLayout(self._wpisy_pole)
+        self._wpisy_uklad.setContentsMargins(0, 0, 0, 0)
+        self._wpisy_uklad.setSpacing(8)
+        self._wpisy_uklad.addWidget(etykieta(N.KRAZEK_DO_WYBORU, "podpis"))
+        self._wpisy_przyciski: list[QPushButton] = []
+        self._wpisy_uklad.addStretch(1)
+        self._wpisy_pole.setVisible(False)
+        u.addWidget(self._wpisy_pole)
         self.ubytek = etykieta("", "duzy", "praca_ubytek", zawijaj=True)
         u.addWidget(self.ubytek)
         self.obraz = ObrazPracy()
@@ -1104,6 +1124,28 @@ class WidokPracy(QFrame):
     def aktywny(self, polecenie: str) -> bool:
         return self.otwarty() and self.przyciski[polecenie].isEnabled()
 
+    def przyciski_wpisow(self) -> list:
+        """E3-A5i: przyciski krazkow do wyboru pokazanej pracy (puste, gdy wynik rozstrzygniety)."""
+        return list(self._wpisy_przyciski)
+
+    def _ustaw_wpisy(self, praca, jest_osoba: bool) -> None:
+        """Przyciski krazkow ``Praca.wpisy_do_wyboru``: napis = krazek (wybrany - z dopiskiem), klik = ``wybor_wpisu(frezowanie_id)``."""
+        wpisy = tuple(getattr(praca, "wpisy_do_wyboru", ()) or ()) if praca is not None else ()
+        for b in self._wpisy_przyciski:
+            self._wpisy_uklad.removeWidget(b)
+            b.deleteLater()
+        self._wpisy_przyciski = []
+        mozna = praca is not None and "wybierz_wpis" in praca.dozwolone and jest_osoba
+        for nr, w in enumerate(wpisy):
+            tekst = w.krazek or str(w.frezowanie_id)
+            b = przycisk(N.KRAZEK_WYBRANY.format(krazek=tekst) if w.wybrany else tekst, f"przycisk_wpis_{w.frezowanie_id}", "lacze",
+                         lambda f=w.frezowanie_id: self.wybor_wpisu.emit(int(f)))
+            b.setToolTip(N.KRAZEK_PODPOWIEDZ.format(wspolczynnik=w.wspolczynnik if w.wspolczynnik is not None else N.BRAK_DANYCH))
+            b.setEnabled(mozna)
+            self._wpisy_uklad.insertWidget(1 + nr, b)
+            self._wpisy_przyciski.append(b)
+        self._wpisy_pole.setVisible(bool(wpisy))
+
     def wyczysc(self) -> None:
         if self.otwarty():
             self._stos.setCurrentIndex(0)
@@ -1154,6 +1196,7 @@ class WidokPracy(QFrame):
         for polecenie, b in self.przyciski.items():
             b.setEnabled(polecenie in dozwolone and jest_osoba)
             b.setVisible(praca is not None)
+        self._ustaw_wpisy(praca, jest_osoba)
         if praca is None:
             wyjasnienie = ""
         elif not dozwolone:

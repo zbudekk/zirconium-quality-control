@@ -500,6 +500,20 @@ STANY_PULI = {
     "pusta": "brak plików projektów",
     "brak_folderu": "brak folderu projektów",
 }
+# E3-A5i: pula per praca ([silnik] pula_wpisow = true; KatalogPul -> wpisy z wspolczynnikami -> silnik) - napisy paska
+STANY_PULI_WPISOW = {
+    "nieustawiona": "pula wpisow wylaczona",
+    "liczenie": "odswiezam katalog zlecen i wspolczynniki...",
+    "gotowa": "wpisow puli: {n}{braki}",
+    "pusta": "brak wpisow puli dnia (plik wspolczynnikow, katalog zlecen?)",
+    "brak_folderu": "katalog zlecen niedostepny - odswiez pule",
+}
+NAPIS_BUDOWY_PULI = "wpisow puli: {n} - buduje pule: {k} z {r} (analiza czeka)"
+NAPIS_BLAD_BUDOWY_PULI = " - budowa w tle nieudana, pula w analizie"
+# liczniki puli wpisow na pasku (tylko niezerowe): KatalogPul (bez_wspolczynnika, brakujace) i match.Pula.z_wpisow (reszta)
+LICZNIKI_PULI = {"brak_pliku": "brak pliku", "plik_zmieniony": "plik zmieniony", "bez_wspolczynnika": "bez wspolczynnika",
+                 "brakujace": "spoza katalogu", "pominiete": "nie do wczytania"}
+OPIS_PROPOZYCJI = "Propozycja programu (ratunek dopasowania) - sprawdz projekt i krazek."
 # poranek (E3-A7): dlaczego "Zamknij piec" jest teraz niemozliwe (reguly session_rano)
 BLOKADA_BEZ_NUMERU = "Podaj numer płytki ({skany}) — rano numer jest potrzebny przed „Zamknij piec”."
 SKAN_Z_GODZINY = "skan z {godzina}"

@@ -209,3 +209,37 @@ Komunikaty, stan, sygnaly, dziennik, log programu (takze wpisy `scanner` i `siln
 - Baza zajeta przez inny program blokuje watek okna do `czekaj_ms` (5 s) przy kazdym zapisie (D5, znane); ponowienia zapisu wyniku sa coraz rzadsze (najrzadziej co 30 s), wiec okno nie stoi caly czas.
 - Okno zastepcze w `aplikacja.py` jest tylko po to, zeby program dal sie uruchomic przed A3b.
 - Prawdziwa akcja "start skanu", nazwy i sposob zapisu plikow prawdziwego skanera: po dniu skanera (B2).
+
+## Pula per praca w programie - kontrakt w wersji 5 (E3-A5i, 19.11.2026; addytywnie)
+
+**Wlaczenie.** `[silnik] pula_wpisow = true` (domyslnie false - pula z folderu jak dotad; decyzja wlasciciela przy wdrozeniu).
+Pula = `KatalogPul.z_ustawien(ust)` w watku pomocniczym `pula-katalog` (wlasne polaczenie z baza, kontrakt A4): `odswiez` (indeks
+`folder_cyrkon` / `folder_prywatne` z cechami nowych plikow, `folder_millbox/wspolczynniki.csv`, powiazanie), potem `pula_wieczorna`,
+`pula_poranna` i `sciezki` - przy starcie, "Odswiez pule", po bledzie analizy (P3) i przy zmianie trybu (bez ponownego indeksu - druga
+pula jest juz policzona). Nie po kazdym skanie (indeks "Cyrkon" to sekundy-minuty). Skan dostaje pule swojego trybu
+(`_opis_puli(z.tryb)`: wpisy + sciezki + zrodla). Stan `pula.stan`: liczenie (katalog) / gotowa (sa wpisy) / pusta (brak wpisow -
+skany czekaja, komunikat jak przy pustym folderze) / brak_folderu (katalog niedostepny; poprzednia pula zostaje, gdy byla).
+
+**Budowa w tle.** Po odswiezeniu `silnik.przygotuj_pule(opis trybu)`, ZANIM skany wstrzymane pojda do silnika - regula zimnej
+puli: skany czekaja w kolejce silnika do konca budowy (`silnik.md`). Pasek: `pula.napis` ("wpisow puli: N - buduje pule: k z r
+(analiza czeka)", potem "wpisow puli: N (brak pliku: x, bez wspolczynnika: y)" - niezerowe liczniki KatalogPul i `z_wpisow`), pasek
+postepu z wartoscia `budowa_gotowe` / `budowa_razem`. Nowe pola `Pula`: `zrodlo` (folder / wpisy), `wpisy`, `liczniki`
+(`ZamrozonySlownik`), `budowa_gotowe`, `budowa_razem`, `czas_budowy_s`. Dziennik: `pula / pula_wpisow` (liczby wpisow, czas
+odswiezenia), `pula / pula_zbudowana` (geometrie, czas, liczniki). Sprzatanie pamieci puli: `[silnik] pamiec_puli_dni` (30; 0 =
+nie) przekazane do silnika tylko z pula wpisow.
+
+**Praca.** `Praca.wpisy_do_wyboru` (`WpisDoWyboru`: frezowanie_id, krazek, wspolczynnik, wybrany), `Praca.propozycja`,
+`Praca.wybor_wpisu_osoba`; `dozwolone` + "wybierz_wpis", gdy sa wpisy do wyboru. Polecenie (19.) `wybierz_wpis(praca_id,
+frezowanie_id)` - `KontrolerSesji`, wiec takze atrapa; zle argumenty = `zle_argumenty`, bez osoby = `brak_operatora`, wpis spoza listy =
+odmowa `session`. Ekran: rzad "Krazek do wyboru:" w widoku pracy (przycisk na krazek, wybrany z dopiskiem).
+
+**Start programu.** `main()` po utworzeniu `QApplication` wola `zaladuj_moduly_dll()` (`MODULY_DLL`: numpy, sqlite3, ctypes, socket,
+select, http.client, unicodedata, zipfile, bz2, lzma, trimesh, PIL, `stanowisko.indicate`, `stanowisko.pula`, pywin32) - przed
+pierwszym procesem roboczym (A2p POTRZEBUJE 4, recenzja PR #31 D2); wynik w logu po `konfiguruj_logi`. Diagnostyka PR #31 D1:
+`uchwyty_knowndlls()` (NtQueryObject - typ obiektu przed nazwa, tylko katalogi) przy starcie; po kazdym kolejnym starcie procesu
+roboczego (poprzedni sie zakonczyl) po `KNOWNDLLS_SPRAWDZ_PO_S` (5 i 30 s) wpis w logu "diagnostyka KnownDlls - N s po zakonczeniu
+procesu roboczego (pid ...): uchwyt 0x.. procesu okna otwarty / zniknal (...)" - tylko log, bez wplywu na prace.
+
+**Granice.** Odswiezenie katalogu nie startuje samo przy nowym pliku CSV w ciagu wieczoru (technik: "Odswiez pule"); pula wpisow pusta
+nie przechodzi na pule z folderu (pytanie do wlasciciela w raporcie E3-A5i). Zimna pula kilkuset wpisow (pierwszy start, zmiana
+programu / bibliotek - nowy odcisk pamieci) = minuty czekania pierwszego skanu z postepem na pasku.

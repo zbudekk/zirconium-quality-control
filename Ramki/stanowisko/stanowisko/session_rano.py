@@ -571,10 +571,15 @@ class SesjaRano:
         return d
 
     def _przypisanie_auto(self, praca: dict) -> int | None:
-        """Przypisanie automatyczne rano: projekt 1. kandydata tylko przy dopasowaniu zielonym i jednym projekcie o tym ``sha16``."""
+        """Przypisanie automatyczne rano: projekt 1. kandydata tylko przy dopasowaniu zielonym i jednym projekcie o tym ``sha16``.
+        E3-A5i: pula per praca - projekt wpisu puli wskazany przez wynik (``Sesja.projekt_wpisu_puli``), nie szukanie po ``sha16``
+        (ten sam plik w zleceniu spoza puli porannej nie odbiera przypisania). Zolta (takze propozycja z ratunku) - bez przypisania."""
         sha = praca["kandydat1_sha16"]
         if praca["status_match"] != "zielony" or not sha:
             return None
+        z_puli = self.sesja.projekt_wpisu_puli(praca["id"], praca["skan_id"])
+        if z_puli is not None and self.baza.wiersz("SELECT id FROM projekty WHERE id = ? AND usuniety = 0", (z_puli,)):
+            return z_puli
         projekty = self._projekty_sha([sha]).get(sha, [])
         return projekty[0]["projekt_id"] if len(projekty) == 1 else None
 
