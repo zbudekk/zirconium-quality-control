@@ -498,6 +498,7 @@ class Aplikacja(K.KontrolerSesji):
         self._knowndlls: list[int] = []  # recenzja PR #31 D1: uchwyty KnownDlls procesu okna z chwili startu
         self._pid_silnika: int | None = None  # ostatni znany proces roboczy (do wpisu diagnostycznego)
         self._starty_dll = 0  # starty procesu roboczego widziane przez diagnostyke (kolejny start = poprzedni proces sie zakonczyl)
+        self._smierc_dll = -1e9  # chwila (monotonic) ostatniej zaplanowanej diagnostyki po smierci procesu roboczego
         self._kontrole_dll: list[tuple] = []  # (termin monotonic, sekundy po smierci, pid) - wpisy diagnostyczne do zrobienia
         self._wczytaj_pule()
 
@@ -818,11 +819,10 @@ class Aplikacja(K.KontrolerSesji):
         uchwyty KnownDlls procesu okna sa nadal otwarte (dane diagnostyczne z laptopa stanowiska; bez wplywu na prace)."""
         if self.silnik is None or not self._knowndlls:
             return
-        starty = int(self.silnik.stan().get("starty_procesu") or 0)  # nowy proces roboczy = poprzedni sie zakonczyl (awaria, limit)
-        if starty > self._starty_dll:
-            if self._starty_dll >= 1:
-                self._kontrole_dll += [(teraz + po, po, self._pid_silnika) for po in KNOWNDLLS_SPRAWDZ_PO_S]
-            self._starty_dll = starty
+        starty = int(self.silnik.stan().get("starty_procesu") or 0)  # kolejny start procesu roboczego = poprzedni sie zakonczyl
+        if starty > max(self._starty_dll, 1):  # pierwszy start to nie smierc; smierc + restart miedzy kontrolami tez widac
+            self._zaplanuj_kontrole_dll(teraz)
+        self._starty_dll = max(self._starty_dll, starty)
         self._pid_silnika = self.silnik.pid or self._pid_silnika
         for x in [x for x in self._kontrole_dll if x[0] <= teraz]:
             self._kontrole_dll.remove(x)
@@ -830,6 +830,13 @@ class Aplikacja(K.KontrolerSesji):
             zniknely = [h for h in self._knowndlls if h not in otwarte]
             LOG.info("stanowisko: diagnostyka KnownDlls - %.0f s po zakonczeniu procesu roboczego (pid %s): uchwyt %s procesu okna %s",
                      x[1], x[2], ", ".join(hex(h) for h in self._knowndlls), "otwarty" if not zniknely else f"zniknal ({', '.join(hex(h) for h in zniknely)})")
+
+    def _zaplanuj_kontrole_dll(self, teraz: float) -> None:
+        """Wpisy diagnostyczne KnownDlls po zakonczeniu procesu roboczego (zdarzenie bledu procesu albo kolejny start); ta sama
+        smierc widziana dwa razy (blad, potem restart) w ciagu 5 s - jeden zestaw wpisow."""
+        if self._knowndlls and teraz - self._smierc_dll > 5.0:
+            self._smierc_dll = teraz
+            self._kontrole_dll += [(teraz + po, po, self._pid_silnika) for po in KNOWNDLLS_SPRAWDZ_PO_S]
 
     def _czeka_na_pule(self) -> int:
         return len(self._wstrzymane) + len(self._do_sprawdzenia)
@@ -1130,6 +1137,8 @@ class Aplikacja(K.KontrolerSesji):
     def _zdarzenie_silnika(self, e: Any) -> str:
         if e.typ == "pula":  # E3-A5i: budowa puli wpisow w procesie silnika
             return self._zdarzenie_puli(e)
+        if e.typ == "blad" and e.rodzaj in ("proces", "limit_czasu"):  # PR #31 D1: proces roboczy sie zakonczyl - diagnostyka w logu
+            self._zaplanuj_kontrole_dll(time.monotonic())
         if e.typ == "gotowy":
             self._silnik_gotowy = True
             if self._silnik_nie_startuje:  # proces jednak wystartowal: skany wstrzymane ida do analizy
