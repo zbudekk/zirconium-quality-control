@@ -276,6 +276,13 @@ class PanelWyniku(QScrollArea):
         self.przycisk_excel = przycisk(NR.EXCEL_POKAZ, n("przycisk_excel"), None, self._pokaz_excel)  # E3-A12
         self.przycisk_excel.setVisible(False)
         u.addWidget(self.przycisk_excel)
+        # r3 P-N3: zalegle piece Excela osiagalne z ekranu (takze gdy okno Excela jest zamkniete, a ostatni piec zalatwiony)
+        self._prefiks = n("wynik_excel_zalegly")
+        self.zalegle = QWidget()
+        self.zalegle.setObjectName(n("wynik_excel_zalegle"))
+        self._zalegle = UkladPlynny(self.zalegle, odstep_poziomy=6, odstep_pionowy=3)
+        self.zalegle.setVisible(False)
+        u.addWidget(self.zalegle)
         self.braki_tytul = etykieta("", "duzy", n("rano_braki_tytul"), zawijaj=True)
         u.addWidget(self.braki_tytul)
         self.braki = tabela(n("tabela_braki"), NR.KOLUMNY_BRAKI, styl.ZWYKLE)
@@ -385,7 +392,8 @@ class PanelWyniku(QScrollArea):
     def ustaw(self, rano, stan=None) -> None:
         self._stan = stan
         excel = stan is not None and stan.excel is not None
-        sygnatura = (rano, self._r.zwarty, stan.operator if stan is not None else None, self._wybrane, self._ostatnie, excel)
+        zalegle = stan.excel.zalegle if excel else ()
+        sygnatura = (rano, self._r.zwarty, stan.operator if stan is not None else None, self._wybrane, self._ostatnie, excel, zalegle)
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
@@ -403,6 +411,15 @@ class PanelWyniku(QScrollArea):
         braki = rano.braki if rano is not None else ()
         self.przycisk_excel.setVisible(excel and rano is not None and rano.sesja_pieca_id is not None and not rano.otwarty and bool(kompletne))
         self.przycisk_excel.setEnabled(stan is not None and stan.operator is not None)
+        wyczysc(self._zalegle)
+        if zalegle:
+            self._zalegle.addWidget(etykieta(NR.EXCEL_ZALEGLE, "slaby"))
+            for sid, nr, d, ile in zalegle:
+                b = przycisk(NR.EXCEL_ZALEGLY.format(nr=nr or "?", doba=dzien(d) if d else "?", ile=ile), f"{self._prefiks}_{sid}", "lacze",
+                             lambda sid=sid: self.ekran._polecenie("excel_pokaz", sid) if self.ekran is not None else None)
+                b.setEnabled(stan.operator is not None)
+                self._zalegle.addWidget(b)
+        self.zalegle.setVisible(bool(zalegle))
         self.kompletne_tytul.setText(NR.KOMPLETNE_TYTUL.format(n=len(kompletne)))
         wypelnij(self.kompletne, [[z.kuweta or NR.BRAK_DANYCH, NR.PUNKTY.format(rozpoznane=z.rozpoznane, punktow=z.punktow),
                                    NR.UWAGA_DOFREZOWANY if z.z_dofrezowaniem else ""] for z in kompletne], r)

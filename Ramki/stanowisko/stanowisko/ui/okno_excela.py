@@ -254,6 +254,8 @@ class PanelExcela(QFrame):
         szczegoly = (self.ekran.k.excel_szczegoly(p.sesja_pieca_id, p.zlecenie_id)
                      if p is not None and p.zlecenie_id is not None and self.ekran is not None else None)
         self._kandydaci = szczegoly.kandydaci if szczegoly is not None else ()
+        if self._wiersz is not None and self._wiersz not in {x.wiersz for x in self._kandydaci}:  # r3 D-N2: lista kandydatow zmieniona
+            self._wiersz = None
         self.folder.setText(NR.EXCEL_FOLDER.format(kuweta=p.kuweta or NR.LISTA_PUSTA, folder=szczegoly.folder or NR.LISTA_PUSTA)
                             if p is not None and szczegoly is not None else "")
         self.powod.setText(p.powod if p is not None else "")

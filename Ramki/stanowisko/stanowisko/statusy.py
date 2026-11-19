@@ -418,7 +418,7 @@ KOMUNIKATY: dict[str, Wzor] = {
                        "Program nie zmienia arkusza (tryb „cień”) — zapisał w logu, co by zaznaczył dla pieca nr {nr} ({ile}). "
                        "Odhacz zlecenia w Excelu ręcznie."),
     "excel_zalegle": Wzor(POZIOM_OSTRZEZENIE, "Excel: piec czeka na odhaczenie",
-                          "Piec nr {nr} z {doba}: {ile} bez wpisu w logu Excela — kliknij „Excel: piec {nr}” w oknie Excela albo "
+                          "Piec nr {nr} z {doba}: {ile} bez wpisu w logu Excela — kliknij „Piec {nr}” na stronie „Kompletne i braki” (albo w oknie Excela) albo "
                           "odhacz ręcznie."),
 }
 # E3-A12: bledy ramek z ``indicate`` (kod ``stan()["blad"]``) - tekst ostateczny dla osoby (indicate.md: "ustala A12 w statusy.py")
