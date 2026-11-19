@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """studium_R58.py - rachunek luzow dla R58 (plytka okragla na ramke: magnesy, polki wkladki, klucz, rowek pokrywki).
 
-Czyta parametry.json (rzedy gniazd ev_rows / mo_rows) i liczy dla obu typow plytki odleglosci nowych cech od
-otworow o3, obrysow gniazd i krawedzi. Uruchomienie: python studium_R58.py [--rm 45] [--polka 10]
+Czyta parametry.json (rzedy gniazd ev_rows / mo_rows; wymiary rowka klucza i zebra z kluczy R58) i liczy dla obu typow plytki
+odleglosci nowych cech od otworow o3, obrysow gniazd i krawedzi. Uruchomienie: python studium_R58.py [--rm 45] [--polka 10]
+[--slot_r0 46 --slot_h 5 --zebro_w 3 --zebro_r0 46.5 --zebro_h 4.5]. Domyslne wartosci rowka i zebra = parametry.json.
+Runda 2 (B1 recenzji): kolek klucza zastapiony zebrem przy scieciu; sciecie NIE blokuje obrotu (plytka wnika w sciecie wkladki
+tylko 0,244 przy luzie 0,4) - obrot blokuje zebro, ktore nie miesci sie w kieszeni magnesu (warunek nizej); okno wejscia liczy K-67.
 Tylko biblioteka standardowa. Wynik na stdout; kod 0 = wszystkie warunki spelnione.
 """
 import argparse
@@ -58,16 +61,61 @@ def odl_pkt_obrot_prostokat(p, c, kat, u0, u1, v0, v1):
     return odl_pkt_prostokat((u, v), u0, u1, v0, v1)
 
 
+def scianka_3d_rowek_gniazda(P, typ, kat, r0, w, h, R_scie):
+    """Najmniejsza odleglosc 3D powierzchni rowka klucza (sufit Z -T + h, boki, czolo; u od r0 do sciecia) od powierzchni gniazd
+    i rynienek (stozek 15 st. od Z 0 do -socket_depth, dno) - probkowanie co ok. 0,1 mm (rowek) i 0,05 mm (profil gniazda)."""
+    T, dep = P['plate_thickness'], P['socket_depth']
+    t = math.tan(math.radians(P['socket_wall_angle']))
+    c, s = math.cos(math.radians(kat)), math.sin(math.radians(kat))
+    zc = -T + h
+    pkt = []
+    nu = 40
+    for i in range(nu + 1):
+        u = r0 + (R_scie - r0) * i / nu
+        for j in range(19):
+            pkt.append((u, -w / 2 + w * j / 18, zc))
+        for k in range(int(round(h / 0.25)) + 1):
+            pkt += [(u, w / 2, zc - k * 0.25), (u, -w / 2, zc - k * 0.25)]
+    for j in range(19):
+        for k in range(int(round(h / 0.25)) + 1):
+            pkt.append((r0, -w / 2 + w * j / 18, zc - k * 0.25))
+    wiersze = P['ev_rows'] if typ == 'wieczorna' else P['mo_rows']
+    best = (1e9, None)
+    for wr in wiersze:
+        for x0 in wr['x']:
+            if wr['type'] == 'round':
+                a, b, r_top = (x0, wr['y']), (x0, wr['y']), wr['d'] / 2
+            else:
+                hl = wr['l'] / 2 - wr['w'] / 2
+                a, b, r_top = (x0 - hl, wr['y']), (x0 + hl, wr['y']), wr['w'] / 2
+            for (u, v, z) in pkt:
+                x, y = u * c - v * s, u * s + v * c
+                dx, dy = b[0] - a[0], b[1] - a[1]
+                L2 = dx * dx + dy * dy
+                tt = 0.0 if L2 == 0 else max(0.0, min(1.0, ((x - a[0]) * dx + (y - a[1]) * dy) / L2))
+                rh = math.hypot(x - (a[0] + tt * dx), y - (a[1] + tt * dy))
+                if rh - r_top > best[0] + 2:
+                    continue
+                d = min(math.hypot(rh - (r_top - dep * q / 80 * t), z + dep * q / 80) for q in range(81))
+                d = min(d, min(math.hypot(rh - (r_top - dep * t) * q / 40, z + dep) for q in range(41)))
+                if d < best[0]:
+                    best = (d, '%s x %g y %g' % (wr['type'], x0, wr['y']))
+    return best
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--rm', type=float, default=45.0, help='promien osi magnesow i kolka klucza')
+    ap.add_argument('--rm', type=float, default=45.0, help='promien osi magnesow (kieszenie plytki, kieszenie Halla)')
     ap.add_argument('--polka', type=float, default=10.0, help='bok polki czujnika (kwadrat wokol osi magnesu)')
     ap.add_argument('--wyst', type=float, default=47.0, help='promien wewnetrzny wystepu (polki obwodowej)')
-    ap.add_argument('--slot_w', type=float, default=3.6)
-    ap.add_argument('--slot_r0', type=float, default=43.0)
-    ap.add_argument('--slot_h', type=float, default=2.5)
-    a = ap.parse_args()
     P = parametry()
+    ap.add_argument('--slot_w', type=float, default=P['round_key_slot_w'])
+    ap.add_argument('--slot_r0', type=float, default=P['round_key_slot_r0'])
+    ap.add_argument('--slot_h', type=float, default=P['round_key_slot_h'])
+    ap.add_argument('--zebro_w', type=float, default=P['round_key_rib_w'])
+    ap.add_argument('--zebro_r0', type=float, default=P['round_key_rib_r0'])
+    ap.add_argument('--zebro_h', type=float, default=P['round_key_rib_h'])
+    a = ap.parse_args()
     R = P['plate_round_d'] / 2
     T = P['plate_thickness']
     md, mdep = P['magnet_pocket_d'], P['magnet_pocket_depth']
@@ -108,17 +156,22 @@ def main():
         kat = math.radians(katy['D'])
         d = min(odl_pkt_obrot_prostokat(o, (0, 0), kat, a.slot_r0, R + 1, -a.slot_w / 2, a.slot_w / 2) for o in otw) - hole_r
         war('rowek klucza: scianka do najblizszego otworu o3 (w rzucie)', d, 1.5)
-        war('rowek klucza: scianka pionowa dno gniazda - sufit rowka', T - dep - a.slot_h, 1.5)
-    luz = (a.slot_w - 3.0) / 2
-    print('\nKlucz: kolek o3 w rowku %.1f -> luz %.2f na strone; obrot +-%.2f st.; przesuniecie na r 40: %.2f (+ luz promieniowy 0,4)' % (
-        a.slot_w, luz, math.degrees(luz / a.rm), luz / a.rm * 40))
-    war('przesuniecie gniazda od obrotu + luz promieniowy (kalibracja toleruje 1,25)', luz / a.rm * 40 + 0.4, 1.25, wiekszy=False)
+        d3, kto = scianka_3d_rowek_gniazda(P, typ, katy['D'], a.slot_r0, a.slot_w, a.slot_h, math.sqrt(R * R - (P['round_flat_w'] / 2) ** 2))
+        war('rowek klucza (do Z %.1f): scianka 3D do gniazd/rynienki (%s)' % (-T + a.slot_h, kto), d3, 1.5)
     w = P['round_flat_w']
     dist = math.sqrt(R * R - (w / 2) ** 2)
-    luz_o = 0.4
-    kat_pl = math.degrees(math.asin(w / 2 / R))
-    kat_gr = math.degrees(math.acos((dist + luz_o) / R))
-    print('Sciecie: polowa kata sciecia plytki %.2f st.; blokada zgrubna obrotu +-%.2f st.' % (kat_pl, kat_pl - kat_gr))
+    luz_o = P['round_insert_clearance']
+    do = dist + luz_o
+    luz = (a.slot_w - a.zebro_w) / 2
+    print('\nKlucz: zebro %.1f w rowku %.1f -> luz %.2f na strone; obrot +-%.2f st. (na r %.1f); przesuniecie gniazda na r 40: %.2f (+ luz promieniowy %.1f)' % (
+        a.zebro_w, a.slot_w, luz, math.degrees(luz / a.zebro_r0), a.zebro_r0, luz / a.zebro_r0 * 40, luz_o))
+    war('przesuniecie gniazda od obrotu + luz promieniowy (kalibracja toleruje 1,25)', luz / a.zebro_r0 * 40 + luz_o, 1.25, wiekszy=False)
+    war('zebro nie miesci sie w kieszeni magnesu: zasieg zebra (lico sciecia wkladki %.3f) - (rm + md/2)' % do, do - (a.rm + md / 2), 1.5)
+    war('czolo zebra - koniec rowka plytki (r %.1f - %.1f)' % (a.zebro_r0, a.slot_r0), a.zebro_r0 - a.slot_r0, 0.4)
+    war('nad zebrem: rowek %.1f - zebro %.1f' % (a.slot_h, a.zebro_h), a.slot_h - a.zebro_h, 0.4)
+    war('zebro wyzsze niz kieszen magnesu (plytka w zlym obrocie nie siada): %.1f - %.1f' % (a.zebro_h, mdep), a.zebro_h - mdep, 1.0)
+    print('Sciecie: wnikanie plytki w sciecie wkladki %.3f < luz %.1f - sciecie NIE blokuje obrotu (tylko znak wzrokowy i oparcie zebra); '
+          'plytka w zlym obrocie lezy na zebrze %.1f nad polka: przechyl ok. %.1f st.' % (R - do, luz_o, a.zebro_h, math.degrees(math.atan2(a.zebro_h, do + R))))
     zw = P['insert_opening'] / 2 + P['insert_wall_w']
     Ro = R + luz_o
     war('wkladka: scianka w osi (obrys %.1f, otwor o%.1f)' % (2 * zw, 2 * Ro), zw - Ro, 1.5)

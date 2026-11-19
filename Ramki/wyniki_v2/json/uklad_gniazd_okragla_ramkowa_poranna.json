@@ -112,9 +112,9 @@
  },
  "key_slot": {
   "angle_deg": -45.0,
-  "r0": 43,
+  "r0": 46.0,
   "w": 3.6,
-  "h": 2.5,
+  "h": 5.0,
   "opis": "rowek klucza od spodu: szerokość w, oś na kierunku angle_deg, od promienia r0 na zewnątrz przez krawędź, wysokość h od spodu"
  },
  "sockets": [

@@ -120,7 +120,8 @@ WYMAGANE_KLUCZE = {
 KLUCZE_R58 = {
     'round_magnet_r', 'round_key_slot_w', 'round_key_slot_r0', 'round_key_slot_h', 'plate_numbers_round_frame',
     'round_cover_snap_angles', 'round_insert_clearance', 'round_insert_ledge_r', 'round_insert_shelf',
-    'round_key_pin_d', 'round_key_pin_h', 'round_key_pin_chamfer', 'quantities_r58', 'materials_r58',
+    'round_key_rib_w', 'round_key_rib_r0', 'round_key_rib_h', 'round_key_rib_chamfer', 'round_cover_slit_w', 'round_cover_slit_h',
+    'round_cover_slit_offset', 'quantities_r58', 'materials_r58',
 }
 WYMAGANE_KLUCZE |= KLUCZE_R58
 
@@ -1391,7 +1392,20 @@ def zbuduj_pokrywke_okragla(P, nazwa):
     for zn in (-1, 1):
         y0, y1 = sorted((zn * (rz + NADDATEK), zn * y_wew))
         tnace.append(bm_prostopadloscian(-fw / 2, fw / 2, y0, y1, -wys - NADDATEK, -wys + fh))
+    # R58 runda 2 (P2 recenzji): pionowe szczeliny odciazajace przez scianke po obu stronach kazdego garbu (garb na jezyku);
+    # srodek szczeliny round_cover_slit_offset po licu wewnetrznym od srodka garbu, szerokosc stala (bryla rownolegloscienna wzdluz promienia)
+    for kat, zn in polozenia_szczelin_pokrywki(P):
+        box = bm_prostopadloscian(rw - 2 * NADDATEK, rz + 2 * NADDATEK, -P['round_cover_slit_w'] / 2, P['round_cover_slit_w'] / 2,
+                                  -wys - 2 * NADDATEK, -wys + P['round_cover_slit_h'])
+        tnace.append(bm_transformuj(box, obrot_z(kat)))
     return zbuduj_z_operacji(nazwa, baza, dodatnie, tnace)
+
+
+def polozenia_szczelin_pokrywki(P):
+    """R58 runda 2: (kat srodka szczeliny [deg], strona -1/+1) - po dwie na garb, round_cover_slit_offset po licu wewnetrznym."""
+    rw, _rz, _wys = wymiary_pokrywki_okraglej(P)
+    d = math.degrees(P['round_cover_slit_offset'] / rw)
+    return [(float(k) + zn * d, zn) for k in P['round_cover_snap_angles'] for zn in (-1, 1)]
 
 
 # ===========================================================================
@@ -1710,8 +1724,8 @@ def zbuduj_wkladke_okragla(P, nazwa):
     i strzalki jak wkladka kwadratowa. Otwor: kolo plytki + 2*luz ze scieciem (odleglosc sciecia plytki + luz), faza insert_chamfer
     na gornej krawedzi calego obrysu; polka (Z 0...insert_shelf_h): wystep od otworu do round_insert_ledge_r + 4 kwadratowe polki
     round_insert_shelf w osiach A-D; kieszenie Halla przelotowe w osiach A, B, C, kanal pod polka do okregu otworu i przelot przez
-    pelny naroznik do naroza zewnetrznego (jedna bryla, ciagla z rowkiem kablowym); kolek klucza na polce D; wyciecie palcowe
-    z przodu na pelnej wysokosci, takze przez wystep."""
+    pelny naroznik do naroza zewnetrznego (jedna bryla, ciagla z rowkiem kablowym); zebro klucza na osi D (runda 2, zamiast kolka);
+    wyciecie palcowe z przodu na pelnej wysokosci, takze przez wystep."""
     h = P['insert_opening'] / 2
     zw = h + P['insert_wall_w']
     H, sh, tt = P['insert_h'], P['insert_shelf_h'], P['tab_t']
@@ -1724,14 +1738,10 @@ def zbuduj_wkladke_okragla(P, nazwa):
     baza = bm_z_konturow([obrys, polki], 0.0, sh)
     dodatnie = [bm_z_konturow([obrys, otwor], sh - NADDATEK, tt),
                 bm_z_konturow([prostokat(2 * zw, 2 * zw), otwor], tt - NADDATEK, H)]
-    # kolek klucza na polce D (zamiast kolka kwadratowego orient_post), faza wierzcholka
     osie = osie_okragle(P)
-    _kd, kx, ky = osie['D']
-    rp, hp, cp = P['round_key_pin_d'] / 2, P['round_key_pin_h'], P['round_key_pin_chamfer']
-    n = seg_okregu(rp)
-    dodatnie.append(bm_z_pierscieni([(okrag(rp, kx, ky, n), sh - NADDATEK), (okrag(rp, kx, ky, n), sh + hp - cp),
-                                      (okrag(rp - cp, kx, ky, n), sh + hp)]))
     dodatnie += _wkl_dodatnie_wspolne(P)
+    # R58 runda 2 (B1 recenzji): zebro klucza na osi D zamiast kolka - doklejane PO roznicach (dodatnie_po), zeby faza otworu go nie ciela
+    dodatnie_po = bryly_zebra_klucza(P)
     tnace = []
     # faza 1 x 45 na gornej krawedzi calego obrysu otworu (kolo + sciecie)
     c = P['insert_chamfer']
@@ -1758,7 +1768,27 @@ def zbuduj_wkladke_okragla(P, nazwa):
     fw, rl = P['finger_cut_w'], P['round_insert_ledge_r']
     y_kon = -math.sqrt(rl * rl - (fw / 2) ** 2) + 5 * NADDATEK
     tnace.append(bm_prostopadloscian(-fw / 2, fw / 2, -zw - NADDATEK, y_kon, -NADDATEK, H + NADDATEK))
-    return zbuduj_z_operacji(nazwa, baza, dodatnie, tnace)
+    return zbuduj_z_operacji(nazwa, baza, dodatnie, tnace, dodatnie_po=dodatnie_po)
+
+
+def bryly_zebra_klucza(P):
+    """R58 runda 2: zebro klucza wkladki okraglej na osi D (kierunek round_flat_angle). Uklad lokalny: u wzdluz osi D, v prostopadle.
+    Czesc dolna (Z polka...wierzch wkladki): u od round_key_rib_r0 do lica sciecia + faza otworu + 2 x NADDATEK (wypelnia faze otworu
+    za zebrem - ponizej wierzchu jedna bryla ze sciana), v +-w/2. Czesc gorna (nad wierzchem): u od r0 do lica sciecia (nie wychodzi
+    nad wierzch sciany), faza round_key_rib_chamfer na obu bokach i czole wewnetrznym; wierzch na polka + round_key_rib_h."""
+    H, sh, c_otw = P['insert_h'], P['insert_shelf_h'], P['insert_chamfer']
+    w, r0, h, c = P['round_key_rib_w'], P['round_key_rib_r0'], P['round_key_rib_h'], P['round_key_rib_chamfer']
+    _R, dist, kat, _cw = sciecie_okraglej(P)
+    do = dist + P['round_insert_clearance']
+    z_faz = sh + h - c                    # poczatek fazy zebra
+    if not (sh + h > H and z_faz >= H - 1e-9 and w - 2 * c > 0 and r0 + c < do):
+        raise BladProjektu('zebro klucza: geometria poza obslugiwanym zakresem (wierzch %.2f, poczatek fazy %.2f, wierzch wkladki %.2f, szerokosc gora %.2f)'
+                           % (sh + h, z_faz, H, w - 2 * c))
+    M = obrot_z(kat)
+    dolna = bm_prostopadloscian(r0, do + c_otw + 2 * NADDATEK, -w / 2, w / 2, sh - NADDATEK, H)
+    pr = lambda u0, u1, v: [(u1, -v), (u1, v), (u0, v), (u0, -v)]
+    gorna = bm_z_pierscieni([(pr(r0, do, w / 2), H - NADDATEK), (pr(r0, do, w / 2), z_faz), (pr(r0 + c, do, w / 2 - c), sh + h)])
+    return [bm_transformuj(dolna, M), bm_transformuj(gorna, M)]
 
 
 # ---- blat (uklad: srodek, wierzch Z = 0, w dol ujemne) ----
@@ -2660,7 +2690,7 @@ def sprawdz_okragla(W, P, siatka, plik, uklad, numer, bity_zmierzone):
             start = Vector((cu * (R + 5) - su * v, su * (R + 5) + cu * v, z))
             loc = pierwsze_trafienie(siatka.bvh, start, Vector((-cu, -su, 0)))
             return None if loc is None else loc.x * cu + loc.y * su
-        sc = [promien_w_kierunku(kat, -4.0), u_przesuniety(voff, -7.5), u_przesuniety(-voff, -7.5)]
+        sc = [u_przesuniety(voff, -4.0), u_przesuniety(-voff, -4.0), u_przesuniety(voff, -7.5), u_przesuniety(-voff, -7.5)]   # runda 2: rowek do Z -3
     ob = [promien_w_kierunku(kat + pol + 3.0, -4.0), promien_w_kierunku(kat - pol - 3.0, -4.0)]
     if any(v is None for v in sc + ob):
         bledy.append('(b) brak trafienia przy ścięciu')
@@ -2673,9 +2703,9 @@ def sprawdz_okragla(W, P, siatka, plik, uklad, numer, bity_zmierzone):
             info.append('(b) ścięcie na kierunku %g°: odległość %.3f / %.3f (zadane %.3f, cięciwa %g); %g° obok: %.3f / %.3f'
                         % (kat, sc[0], sc[1], fl['dist'], fl['chord_w'], pol + 3.0, ob[0], ob[1]))
         else:
-            info.append('(b) ścięcie na kierunku %g°: odległość na Z −4 w osi %.3f, na Z −7,5 (rowek klucza w osi) promieniami odsuniętymi o ±%.1f: %.3f / %.3f '
+            info.append('(b) ścięcie na kierunku %g° (w osi rowek klucza do Z %g) promieniami równoległymi odsuniętymi o ±%.1f: Z −4 %.3f / %.3f, Z −7,5 %.3f / %.3f '
                         '(zadane %.3f, cięciwa %g) [R58]; %g° obok: %.3f / %.3f'
-                        % (kat, sc[0], voff, sc[1], sc[2], fl['dist'], fl['chord_w'], pol + 3.0, ob[0], ob[1]))
+                        % (kat, -T + ks['h'], voff, sc[0], sc[1], sc[2], sc[3], fl['dist'], fl['chord_w'], pol + 3.0, ob[0], ob[1]))
     # (c) faza wierzchu i pelna grubosc: sondy jak K-15 na kierunku 90 st. (z dala od sciecia)
     lista = [((0.0, R - 0.1, -0.05), False), ((0.0, R - f - 0.1, -0.15), True), ((0.0, R - 0.1, -1.0), True),
              ((0.0, R - 0.1, -T + 0.1), True), ((0.0, R + 0.1, -4.0), False)]
@@ -3373,6 +3403,98 @@ def otwory_o3(uklad):
     return wyn
 
 
+def klasy_scian_plytki(siatka, uklad, P):
+    """R58 runda 2: klasa kazdej sciany siatki plytki ramkowej (uklad montazowy) z geometrii JSON: 'zew' (wierzch z cyfra, faza, walec,
+    sciecie, spod), 'rowek_klucza', 'rowek_pokrywki', 'kieszen_<naroze>'; wnetrze: 'otwor', 'stozek', 'dolek', 'gniazdo' (gniazda i rynienka)."""
+    T, R, f = P['plate_thickness'], uklad['d'] / 2, P['plate_top_chamfer']
+    fl, cg, ks = uklad['flat'], uklad['cover_groove'], uklad['key_slot']
+    cf, sf = math.cos(math.radians(fl['angle_deg'])), math.sin(math.radians(fl['angle_deg']))
+    ck, sk = math.cos(math.radians(ks['angle_deg'])), math.sin(math.radians(ks['angle_deg']))
+    E = 1e-3
+    otw = otwory_o3(uklad)
+    rh = uklad['sockets'][0]['hole_d'] / 2
+    dep = max(g['depth'] for g in uklad['sockets'])
+    klasy = []
+    for fc in siatka.bm.faces:
+        vs = [v.co for v in fc.verts]
+        zs = [v.z for v in vs]
+        rs = [math.hypot(v.x, v.y) for v in vs]
+        # promienie z tolerancja 0,01 > strzalka wieloboku 256 bokow (R (1 - cos(pi/256)) = 0,004): wierzcholki z przeciec na bokach wieloboku
+        if min(zs) >= -E or max(zs) <= -T + E or min(rs) >= R - 0.01 or (min(rs) >= R - f - 0.01 and min(zs) >= -f - E) \
+                or min(v.x * cf + v.y * sf for v in vs) >= fl['dist'] - E:
+            klasy.append('zew')
+            continue
+        if all(v.x * ck + v.y * sk >= ks['r0'] - E and abs(-v.x * sk + v.y * ck) <= ks['w'] / 2 + E and v.z <= -T + ks['h'] + E for v in vs):
+            klasy.append('rowek_klucza')
+            continue
+        if all(-cg['z'] - cg['w'] / 2 - E <= z <= -cg['z'] + cg['w'] / 2 + E for z in zs) and min(rs) >= R - cg['depth'] - 0.01:
+            klasy.append('rowek_pokrywki')
+            continue
+        k = next((mp['corner'] for mp in uklad['magnet_pockets']
+                  if all(math.hypot(v.x - mp['x'], v.y - mp['y']) <= mp['d'] / 2 + E and v.z <= -T + mp['depth'] + E for v in vs)), None)
+        if k:
+            klasy.append('kieszen_%s' % k)
+            continue
+        c = sum(vs, Vector((0, 0, 0))) / len(vs)
+        if c.z <= -dep + E and any(math.hypot(c.x - ox, c.y - oy) <= rh + E for ox, oy in otw):
+            klasy.append('otwor')
+        elif any(math.hypot(c.x - m['x'], c.y - m['y']) <= m['d'] / 2 + E and c.z >= -m['depth'] - E for m in uklad['markers']):
+            klasy.append('stozek')
+        elif any(math.hypot(c.x - d['x'], c.y - d['y']) <= d['d'] / 2 + E and c.z >= -d['depth'] - E for d in uklad['code_dimples']):
+            klasy.append('dolek')
+        else:
+            klasy.append('gniazdo')
+    return klasy
+
+
+def probki_scian(siatka, indeksy, krok=0.2):
+    """Punkty na trojkatach siatki (indeksy scian) w siatce barycentrycznej co <= krok."""
+    pkt = []
+    for i in indeksy:
+        vs = [v.co for v in siatka.bm.faces[i].verts]
+        for k in range(1, len(vs) - 1):
+            a, b, c = vs[0], vs[k], vs[k + 1]
+            n = max(1, int(math.ceil(max((b - a).length, (c - a).length, (c - b).length) / krok)))
+            for p in range(n + 1):
+                for q in range(n + 1 - p):
+                    pkt.append(a + (b - a) * (p / n) + (c - a) * (q / n))
+    return pkt
+
+
+def scianki_3d_plytki(siatka, uklad, P):
+    """R58 runda 2 (D2, D3 recenzji): scianki 3D plytki ramkowej z siatki. Dla rowka klucza, rowka pokrywki i kazdej kieszeni magnesu:
+    najmniejsza odleglosc probek ich powierzchni od powierzchni wnetrza (klasy 'gniazdo', 'otwor', 'stozek', 'dolek', inne kieszenie i rowki);
+    pasek rowek klucza - rowek pokrywki przy scieciu osobno (informacyjnie). Zwraca nazwa -> (min, klasa, punkt, {klasa: min}, prog albo None)."""
+    klasy = klasy_scian_plytki(siatka, uklad, P)
+    wsp = [v.co.copy() for v in siatka.bm.verts]
+    sciany = [[v.index for v in fc.verts] for fc in siatka.bm.faces]
+    wnetrze = ('gniazdo', 'otwor', 'stozek', 'dolek')
+
+    def odl(zrodlo, cele, prog):
+        idx = [i for i, k in enumerate(klasy) if k in cele]
+        if not idx:
+            return None
+        bvh = BVHTree.FromPolygons(wsp, [sciany[i] for i in idx])
+        per, best = {}, (float('inf'), None, (0.0, 0.0, 0.0))
+        for p in probki_scian(siatka, [i for i, k in enumerate(klasy) if k == zrodlo]):
+            loc, _n, j, d = bvh.find_nearest(p)
+            if loc is None:
+                continue
+            k = klasy[idx[j]]
+            per[k] = min(per.get(k, float('inf')), d)
+            if d < best[0]:
+                best = (d, k, (loc.x, loc.y, loc.z))
+        return best[0], best[1], best[2], per, prog
+    kiesz = sorted({k for k in klasy if k.startswith('kieszen_')})
+    wyn = {}
+    wyn['rowek klucza–wnętrze'] = odl('rowek_klucza', wnetrze + tuple(kiesz), 1.5)
+    wyn['rowek pokrywki–wnętrze'] = odl('rowek_pokrywki', wnetrze + tuple(kiesz), 1.5)
+    for k in kiesz:
+        wyn['%s–wnętrze' % k.replace('kieszen_', 'kieszeń ')] = odl(k, wnetrze + tuple(x for x in kiesz if x != k) + ('rowek_klucza', 'rowek_pokrywki'), 1.5)
+    wyn['rowek klucza–rowek pokrywki (pasek przy ścięciu, informacyjnie)'] = odl('rowek_klucza', ('rowek_pokrywki',), None)
+    return {k: v for k, v in wyn.items() if v is not None}
+
+
 def sprawdz_ramkowa(W, P, siatka, plik, uklad, numer, uklad_kw, punkty_mapy, mapa_ref, plik_ref, katalog_rzutow, iter_):
     """K-64 (R58): plytka okragla ramkowa - kieszenie magnesow, rowek pokrywki, rowek klucza (sondy i pomiary promieniami), scianki
     (z JSON, parametrow i pomiarow), sockets = kwadrat typu, obrys cyfry (z siatki), mapa wysokosci wierzchu = okragla tego typu."""
@@ -3485,41 +3607,16 @@ def sprawdz_ramkowa(W, P, siatka, plik, uklad, numer, uklad_kw, punkty_mapy, map
             bledy.append('(c) rowek klucza: początek r %.3f zamiast %g' % (r0_k, ks['r0']))
     info.append('(c) rowek klucza na %g°: szerokość %.3f (oś %.3f od zadanej), wysokość od spodu %.3f, początek r %.3f (zadane %g / %g / %g)'
                 % (ks['angle_deg'], szer_k, off_k, h_k, r0_k, ks['w'], ks['h'], ks['r0']))
-    # (d) scianki z JSON i parametrow (rachunek jak K-16) + kieszen-krawedz zmierzona w (a)
-    otw = otwory_o3(uklad)
-    rh = uklad['sockets'][0]['hole_d'] / 2
-    dep = max(g['depth'] for g in uklad['sockets'])
-    sc = []
-    sc.append(('kieszeń–otwór ø3 (rzut XY)', min(math.hypot(mp['x'] - ox, mp['y'] - oy) - rh - mp['d'] / 2 for mp in uklad['magnet_pockets'] for ox, oy in otw), 1.5))
-    sc.append(('sufit kieszeni–dno gniazda (pion)', T - dep - max(mp['depth'] for mp in uklad['magnet_pockets']), 1.5))
-    sc.append(('sufit rowka klucza–dno gniazda (pion)', T - dep - ks['h'], 1.5))
-
-    def do_rowka_klucza(px, py):
-        u, v = px * cu + py * su, -px * su + py * cu
-        return odl_punkt_prostokat((u, v), ks['r0'], R + 1.0, -ks['w'] / 2, ks['w'] / 2)
-    sc.append(('rowek klucza–otwór ø3 (rzut XY)', min(do_rowka_klucza(ox, oy) for ox, oy in otw) - rh, 1.5))
-    zg = cg['z'] - cg['w'] / 2           # gorna krawedz rowka pod wierzchem (najszersze obrysy stozkowe w wysokosci rowka)
-    zasieg, kto = 0.0, None
-    for g in uklad['sockets']:
-        (a, b), r = ksztalt(g)
-        e = max(math.hypot(*a), math.hypot(*b)) + r - zg * t15
-        if e > zasieg:
-            zasieg, kto = e, 'gniazdo id %d' % g['id']
-    for m in uklad['markers']:
-        if zg < m['depth']:
-            e = math.hypot(m['x'], m['y']) + m['d'] / 2 * (1 - zg / m['depth'])
-            if e > zasieg:
-                zasieg, kto = e, 'stożek %s' % m['corner']
-    sc.append(('dno rowka pokrywki–obrysy gniazd/stożków na Z −%g (%s)' % (zg, kto), R - cg['depth'] - zasieg, 1.5))
-    dl_d = max(dl['depth'] for dl in uklad['code_dimples'])
-    pion_zn = T - max(mp['depth'] for mp in uklad['magnet_pockets']) - max(m['depth'] for m in uklad['markers'])
-    sc.append(('stożek znacznika–kieszeń magnesu (pion)', pion_zn, 1.5))
-    xy_zn = min(math.hypot(m['x'] - mp['x'], m['y'] - mp['y']) - m['d'] / 2 - mp['d'] / 2 for m in uklad['markers'] for mp in uklad['magnet_pockets'])
-    for nz, v, lim in sc:
-        if v < lim - 1e-6:
-            bledy.append('(d) %s %.3f < %g' % (nz, v, lim))
-    info.append('(d) ścianki: ' + '; '.join('%s %.2f (≥ %g)' % s for s in sc) + '; informacyjnie: stożek–kieszeń w rzucie XY min %.2f (rzuty %s), dołek kodu nad rowkiem pokrywki o %.2f w pionie'
-                % (xy_zn, 'nakładają się — liczy się ścianka w pionie' if xy_zn < 0 else 'rozłączne', zg - dl_d))
+    # (d) [runda 2: D2/D3 recenzji] scianki 3D z siatki: odleglosc najblizszej powierzchni wnetrza (gniazda, rynienka, otwory, stozki, dolki,
+    # inne cechy) od probek co <= 0,2 mm na powierzchniach rowka klucza, rowka pokrywki i kieszeni magnesow (bez powierzchni zewnetrznych)
+    sc3 = scianki_3d_plytki(siatka, uklad, P)
+    for nz, (v, kto, gdzie, per, lim) in sc3.items():
+        if lim is not None and v < lim - 1e-6:
+            bledy.append('(d) ścianka 3D %s %.3f < %g (%s)' % (nz, v, lim, kto))
+    info.append('(d) ścianki 3D z siatki (min po próbkach co ≤ 0,2 mm): ' + '; '.join(
+        '%s %.3f%s (najbliżej: %s w (%.2f; %.2f; %.2f); wg klas: %s)' % (nz, v, '' if lim is None else ' ≥ %g' % lim, kto, gdzie[0], gdzie[1], gdzie[2],
+                                                                   ', '.join('%s %.2f' % kv for kv in sorted(per.items(), key=lambda kv: kv[1])))
+        for nz, (v, kto, gdzie, per, lim) in sc3.items()))
     # (e) sockets = kwadrat typu
     rowne = uklad['sockets'] == uklad_kw['sockets']
     if not rowne:
@@ -3585,7 +3682,7 @@ def sprawdz_ramkowa(W, P, siatka, plik, uklad, numer, uklad_kw, punkty_mapy, map
 
 
 def sprawdz_wkladke_okragla(W, P, siatka, plik, siatka_kw, plik_kw, katalog_rzutow, iter_):
-    """K-65 (R58): wkladka okragla - otwor i sciecie, wystep, polki, kieszenie Halla, kolek klucza, scianka w osiach, wyciecie palcowe,
+    """K-65 (R58): wkladka okragla - otwor i sciecie, wystep, polki, kieszenie Halla, zebro klucza (runda 2), scianka w osiach, wyciecie palcowe,
     K-56, zgodnosc obrysu zewnetrznego / uszu / kolkow / magnesow z wkladka kwadratowa, ciaglosc kanalow kablowych."""
     H, sh, c = P['insert_h'], P['insert_shelf_h'], P['insert_chamfer']
     zw = P['insert_opening'] / 2 + P['insert_wall_w']
@@ -3594,7 +3691,7 @@ def sprawdz_wkladke_okragla(W, P, siatka, plik, siatka_kw, plik_kw, katalog_rzut
     ro, do = R + luz, dist + luz
     rl, s = P['round_insert_ledge_r'], P['round_insert_shelf'] / 2
     hw, hl, chh, ph = P['hall_pocket_w'], P['hall_pocket_l'], P['hall_lead_channel_h'], P['hall_wall_pass_h']
-    rp, hp, cp = P['round_key_pin_d'] / 2, P['round_key_pin_h'], P['round_key_pin_chamfer']
+    zb_w, zb_r0, zb_h, zb_c = P['round_key_rib_w'], P['round_key_rib_r0'], P['round_key_rib_h'], P['round_key_rib_chamfer']
     fw, rw, rh = P['finger_cut_w'], P['wire_rabbet_w'], P['wire_rabbet']
     osie = osie_okragle(P)
     bvh = siatka.bvh
@@ -3602,7 +3699,7 @@ def sprawdz_wkladke_okragla(W, P, siatka, plik, siatka_kw, plik_kw, katalog_rzut
     bledy, info, lista = [], [], []
     roznica_kat = lambda a, b: abs(((a - b) + 180) % 360 - 180)
     # (a) otwor o(2 ro) i sciecie
-    z_o = (sh + hp + H - c) / 2 if sh + hp < H - c else sh + hp + 0.1    # nad kolkiem klucza, pod faza
+    z_o = (sh + H - c) / 2                # miedzy polka a faza otworu (w osi D stoi zebro klucza - sciecie mierzone obok)
     przod = math.degrees(math.asin(fw / 2 / ro)) + 2.0
     pr = []
     for i in range(36):
@@ -3620,15 +3717,16 @@ def sprawdz_wkladke_okragla(W, P, siatka, plik, siatka_kw, plik_kw, katalog_rzut
         bledy.append('(a) średnica %.3f poza %g ± 0,1' % (sr, 2 * ro))
     cu, su = math.cos(math.radians(kat)), math.sin(math.radians(kat))
     voff = do * math.tan(math.radians(beta)) / 2
-    scs = [promien_od_srodka(bvh, kat, z_o)]
-    for v in (voff, -voff):
-        loc = pierwsze_trafienie(bvh, (-su * v, cu * v, sh + hp / 2), (cu, su, 0))
-        scs.append(None if loc is None else loc.x * cu + loc.y * su)
+    scs = []
+    for zz in (z_o, sh + 0.5):
+        for v in (voff, -voff):
+            loc = pierwsze_trafienie(bvh, (-su * v, cu * v, zz), (cu, su, 0))
+            scs.append(None if loc is None else loc.x * cu + loc.y * su)
     if any(v is None for v in scs) or any(abs(v - do) > 0.05 for v in scs):
         bledy.append('(a) ścięcie: %s zamiast %.3f' % (', '.join('—' if v is None else '%.3f' % v for v in scs), do))
     lista += [((0, 0, z_o), False), (((ro - 0.2), 0, z_o), False), (((ro + 0.2), 0, z_o), True), ((ro - 0.15, 0, H - 0.2), False), ((ro + c + 0.2, 0, H - 0.2), True)]
-    info.append('(a) otwór na Z %.2f z %d promieni: r %.3f…%.3f, ø %.3f (zadane %g ± 0,1); ścięcie na %g°: %s (zadane %.3f; w osi i ±%.1f obok)'
-                % (z_o, len(pr), min(pr), max(pr), sr, 2 * ro, kat, ' / '.join('—' if v is None else '%.3f' % v for v in scs), do, voff))
+    info.append('(a) otwór na Z %.2f z %d promieni: r %.3f…%.3f, ø %.3f (zadane %g ± 0,1); ścięcie na %g° promieniami odsuniętymi o ±%.1f od osi (w osi żebro klucza), Z %.2f i %.2f: %s (zadane %.3f)'
+                % (z_o, len(pr), min(pr), max(pr), sr, 2 * ro, kat, voff, z_o, sh + 0.5, ' / '.join('—' if v is None else '%.3f' % v for v in scs), do))
     # (b) wystep r = round_insert_ledge_r na polowie wysokosci polki (kierunki poza polkami w osiach i poza wycieciem palcowym)
     pw = []
     przod_w = math.degrees(math.asin(fw / 2 / rl)) + 3.0
@@ -3679,24 +3777,39 @@ def sprawdz_wkladke_okragla(W, P, siatka, plik, siatka_kw, plik_kw, katalog_rzut
             bledy.append('(d) kieszeń Halla %s: środek (%.3f, %.3f), %.3f × %.3f' % (k, sw[0], sw[1], sw[2], sw[3]))
     info.append('(d) kieszenie Halla (Z %.2f; środek, X × Y): ' % z_k + '; '.join('%s (%.3f, %.3f) %.3f × %.3f' % p for p in pom_h)
                 + ' (osie A/B/C = osie magnesów płytki, %g × %g ± 0,05)' % (hw, hl))
-    # (e) kolek klucza na polce D; brak kolka kwadratowego
-    _a, kx, ky = osie['D']
-    sb = srodek_bryly(bvh, kx, ky, sh + (hp - cp) / 2, rp + 1.5)
-    top = pierwsze_trafienie(bvh, (kx, ky, H + 5.0), (0, 0, -1))
+    # (e) [runda 2] zebro klucza na osi D: szerokosc, poczatek, wierzch, koniec nad wierzchem na licu sciecia, zrosniecie ze sciana ponizej
+    # wierzchu (faza otworu za zebrem wypelniona), fazy gornych krawedzi; brak kolka kwadratowego
+    uv = lambda u, v, z: (u * cu - v * su, u * su + v * cu, z)
+    vv = lambda q: -q[0] * su + q[1] * cu
+    uu = lambda q: q[0] * cu + q[1] * su
+    um, zm = (zb_r0 + do) / 2, sh + (zb_h - zb_c) / 2
+    tp = pierwsze_trafienie(bvh, uv(um, zb_w / 2 + 1.5, zm), (su, -cu, 0))
+    tm = pierwsze_trafienie(bvh, uv(um, -zb_w / 2 - 1.5, zm), (-su, cu, 0))
+    t0 = pierwsze_trafienie(bvh, uv(zb_r0 - 2.0, 0, zm), (cu, su, 0))
+    tg = pierwsze_trafienie(bvh, uv((zb_r0 + zb_c + do) / 2, 0, H + 5.0), (0, 0, -1))
+    tz = pierwsze_trafienie(bvh, uv(do + 2.0, 0, (H + sh + zb_h) / 2), (-cu, -su, 0))
     pc = P['insert_opening'] / 2 - P['orient_post_gap'] - P['orient_post'] / 2
-    lista += [((kx, ky, sh + hp - 0.1), True), ((kx, ky, sh + hp + 0.15), False), ((kx + rp - 0.15, ky, sh + 0.75), True),
-              ((kx + rp + 0.15, ky, sh + 0.75), False), ((kx + rp - cp + 0.3, ky, sh + hp - 0.1), False),
+    zt = sh + zb_h
+    lista += [(uv(um, 0, zm), True), (uv(um, zb_w / 2 - 0.2, zm), True), (uv(um, -zb_w / 2 + 0.2, zm), True),
+              (uv(um, zb_w / 2 + 0.2, zm), False), (uv(um, -zb_w / 2 - 0.2, zm), False),
+              (uv(zb_r0 - 0.2, 0, zm), False), (uv(zb_r0 + 0.2, 0, zm), True),
+              (uv(um + zb_c / 2, 0, zt - 0.15), True), (uv(um, 0, zt + 0.15), False),
+              (uv(um, zb_w / 2 - zb_c + 0.35, zt - 0.15), False), (uv(um, zb_w / 2 - zb_c - 0.2, zt - 0.15), True),
+              (uv(zb_r0 + zb_c - 0.35, 0, zt - 0.15), False),
+              (uv(do + 0.15, 0, (H + zt) / 2), False),
+              (uv(do + c / 2, 0, H - c / 4), True), (uv(do + c / 2, zb_w / 2 + 1.0, H - c / 4), False),
               ((pc, -pc, sh + P['orient_post_h'] - 0.5), False)]
-    if sb is None or top is None:
-        bledy.append('(e) kołek klucza: brak trafień')
-        sb = (float('nan'),) * 4
-        zt = float('nan')
+    if None in (tp, tm, t0, tg, tz):
+        bledy.append('(e) żebro klucza: brak trafień')
+        szer_z = off_z = r0_z = zt_z = zew_z = float('nan')
     else:
-        zt = top.z
-        if math.hypot(sb[0] - kx, sb[1] - ky) > 0.05 or abs(sb[2] - 2 * rp) > 0.05 or abs(sb[3] - 2 * rp) > 0.05 or abs(zt - (sh + hp)) > 0.02:
-            bledy.append('(e) kołek klucza: (%.3f, %.3f) ø %.3f × %.3f, wierzch %.3f' % (sb[0], sb[1], sb[2], sb[3], zt))
-    info.append('(e) kołek klucza: środek (%.3f, %.3f) (oś D (%.3f, %.3f)), ø %.3f × %.3f, wierzch Z %.3f (zadane ø%g, %g ± 0,02); dawny kołek kwadratowy (%.1f, %.1f) — brak'
-                % (sb[0], sb[1], kx, ky, sb[2], sb[3], zt, 2 * rp, sh + hp, pc, -pc))
+        szer_z, off_z = vv(tp) - vv(tm), (vv(tp) + vv(tm)) / 2
+        r0_z, zt_z, zew_z = uu(t0), tg.z, uu(tz)
+        if abs(szer_z - zb_w) > 0.05 or abs(off_z) > 0.05 or abs(r0_z - zb_r0) > 0.05 or abs(zt_z - zt) > 0.02 or abs(zew_z - do) > 0.05:
+            bledy.append('(e) żebro klucza: szerokość %.3f (oś %.3f), początek r %.3f, wierzch %.3f, koniec nad wierzchem u %.3f' % (szer_z, off_z, r0_z, zt_z, zew_z))
+    info.append('(e) żebro klucza na %g°: szerokość %.3f (oś przesunięta o %.3f), początek r %.3f, wierzch Z %.3f, nad wierzchem wkładki kończy się na u %.3f '
+                '(zadane %g / %g / %g / lico ścięcia %.3f); poniżej Z %g zrośnięte ze ścianą (faza otworu za żebrem wypełniona — sonda), fazy %g na bokach i czole (sondy); '
+                'dawny kołek kwadratowy (%.1f, %.1f) — brak' % (kat, szer_z, off_z, r0_z, zt_z, zew_z, zb_w, zb_r0, zt, do, H, zb_c, pc, -pc))
     # (f) scianka ramy w osiach (lewo, prawo, tyl) i dno w osi po rowku kablowym
     z_s = (sh + H - c) / 2
     sc_o, dno_o = [], []
@@ -3784,8 +3897,8 @@ def sprawdz_wkladke_okragla(W, P, siatka, plik, siatka_kw, plik_kw, katalog_rzut
     if zg_n != n_n:
         bledy.append('sondy %d/%d' % (zg_n, n_n))
     W.dodaj('K-65', not bledy, '%s: sondy %d/%d; %s; błędy: %s' % (plik, zg_n, n_n, '; '.join(info), '; '.join(bledy) or 'brak'),
-            'otwór ø%g ± 0,1, ścięcie %.3f ± 0,05; występ r %g; półka Z %g; kieszenie Halla w osiach A/B/C; kołek ø%g na D; ścianka w osiach ≥ 1,5; wycięcie %g; K‑56; '
-            'obrys/uszy/kołki/magnesy = wkładka kwadratowa; kanały ciągłe [R58]' % (2 * ro, do, rl, sh, 2 * rp, fw), 'B',
+            'otwór ø%g ± 0,1, ścięcie %.3f ± 0,05; występ r %g; półka Z %g; kieszenie Halla w osiach A/B/C; żebro klucza %g od r %g do lica ścięcia, wierzch Z %g; ścianka w osiach ≥ 1,5; '
+            'wycięcie %g; K‑56; obrys/uszy/kołki/magnesy = wkładka kwadratowa; kanały ciągłe [R58]' % (2 * ro, do, rl, sh, zb_w, zb_r0, sh + zb_h, fw), 'B',
             '%s: %d sond < 0,1 od ściany' % (plik, bl) if bl else '')
     os.makedirs(katalog_rzutow, exist_ok=True)
     for nz, z0, kier, lo, hi in (('gora', H + 10.0, -1, 0.0, H + P['label_relief_h']), ('spod', -P['tab_pin_h'] - 5.0, 1, -P['tab_pin_h'], ph)):
@@ -3840,7 +3953,9 @@ def sprawdz_pokrywke_okragla(W, P, siatka, plik):
     garby = []
     for kat in P['round_cover_snap_angles']:
         v = [promien_od_srodka(bvh, kat + d, zsn) for d in (0.0, -3.0, 3.0)]
-        vo = [promien_od_srodka(bvh, kat + d, zsn) for d in (-pol_luku - 2.0, pol_luku + 2.0)]
+        # obok luku: w polowie przerwy miedzy koncem garbu a szczelina odciazajaca (runda 2)
+        d_obok = (pol_luku + math.degrees(P['round_cover_slit_offset'] / rw) - math.degrees(math.asin(P['round_cover_slit_w'] / 2 / rw))) / 2
+        vo = [promien_od_srodka(bvh, kat + d, zsn) for d in (-d_obok, d_obok)]
         ca, sa = math.cos(math.radians(kat)), math.sin(math.radians(kat))
         rr = rw - wy / 4
         gz = pierwsze_trafienie(bvh, (rr * ca, rr * sa, zsn + hg + 0.5), (0, 0, -1))
@@ -3870,7 +3985,7 @@ def sprawdz_pokrywke_okragla(W, P, siatka, plik):
     ocz = sorted(float(k) % 360 for k in P['round_cover_snap_angles'])
     if len(srodki) != len(ocz) or any(roznica > 1.0 for roznica in (abs(((a - b) + 180) % 360 - 180) for a, b in zip(srodki, ocz))):
         bledy.append('przegląd co 1°: sektory garbów %s (oczekiwane %s)' % (srodki, ocz))
-    info.append('garby (kąt: występ w osi / ±3° min…max, r obok łuku ±%.1f°, środek Z, wysokość Z): ' % (pol_luku + 2.0)
+    info.append('garby (kąt: występ w osi / ±3° min…max, r obok łuku ±%.2f° — między końcem garbu a szczeliną, środek Z, wysokość Z): ' % d_obok
                 + '; '.join('%g°: %.3f / %.3f…%.3f, %.3f / %.3f, %.3f, %.3f' % (k, a, b, c_, d, e, f, h) for k, a, b, c_, d, e, f, h in garby)
                 + '; przegląd co 1° na Z %g: %d sektorów, środki %s (zadane %s)' % (zsn, len(srodki), ', '.join('%.1f' % a for a in srodki), ', '.join('%g' % a for a in ocz)))
     # wyciecia palcowe z przodu i z tylu
@@ -3889,26 +4004,262 @@ def sprawdz_pokrywke_okragla(W, P, siatka, plik):
         if not (abs(szer - fw) <= 0.05 and abs(wys_w - fh) <= 0.05):
             bledy.append('wycięcie %s: %.3f × %.3f' % ('tył' if zn > 0 else 'przód', szer, wys_w))
     info.append('wycięcia palcowe przód / tył: %s (zadane %g × %g)' % (' / '.join('%.3f × %.3f' % w for w in wyc), fw, fh))
+    # runda 2 (P2 recenzji): szczeliny odciazajace - 8 szt.: szerokosc (promienie styczne na r srodka scianki), wysokosc (promien od dolu),
+    # przelotowosc (sondy przy obu licach), przeglad co 0,1 st. na polowie wysokosci szczelin; odstepy katowe od siebie, wyciec palcowych i garbow
+    sw, sl = P['round_cover_slit_w'], P['round_cover_slit_h']
+    z_s = -wys + sl / 2
+    pom_s = []
+    for kat, zn in polozenia_szczelin_pokrywki(P):
+        ca, sa = math.cos(math.radians(kat)), math.sin(math.radians(kat))
+        p = Vector((rm * ca, rm * sa, z_s))
+        a1 = pierwsze_trafienie(bvh, p, (-sa, ca, 0))
+        a2 = pierwsze_trafienie(bvh, p, (sa, -ca, 0))
+        g = pierwsze_trafienie(bvh, (rm * ca, rm * sa, -wys - 1.0), (0, 0, 1))
+        if None in (a1, a2, g):
+            bledy.append('szczelina %.2f°: brak trafień' % kat)
+            continue
+        szer, wys_sz = (a1 - p).length + (a2 - p).length, g.z + wys
+        pom_s.append((kat, szer, wys_sz))
+        if abs(szer - sw) > 0.05 or abs(wys_sz - sl) > 0.05:
+            bledy.append('szczelina %.2f°: %.3f × %.3f' % (kat, szer, wys_sz))
+        db = math.degrees((sw / 2 + 0.25) / rm)
+        lista += [(((rw + 0.15) * ca, (rw + 0.15) * sa, z_s), False), (((rz - 0.15) * ca, (rz - 0.15) * sa, z_s), False), ((rm * ca, rm * sa, z_s), False),
+                  ((rm * math.cos(math.radians(kat + db)), rm * math.sin(math.radians(kat + db)), z_s), True),
+                  ((rm * math.cos(math.radians(kat - db)), rm * math.sin(math.radians(kat - db)), z_s), True),
+                  ((rm * ca, rm * sa, -wys + sl + 0.2), True)]
+    sekt, w_s = [], False
+    for i in range(3600):
+        a = math.radians(i * 0.1 + 0.05)
+        jest = pierwsze_trafienie(bvh, (0, 0, z_s), (math.cos(a), math.sin(a), 0)) is None
+        if jest and not w_s:
+            sekt.append([i, i])
+        if jest:
+            sekt[-1][1] = i
+        w_s = jest
+    if len(sekt) > 1 and sekt[0][0] == 0 and sekt[-1][1] == 3599:
+        sekt[0][0] = sekt[-1][0] - 3600
+        sekt.pop()
+    sr_s = sorted(((a + b + 1) / 20.0) % 360 for a, b in sekt)
+    ocz_s = sorted(k % 360 for k, _z in polozenia_szczelin_pokrywki(P))
+    if len(sr_s) != len(ocz_s) or any(abs(((a - b) + 180) % 360 - 180) > 0.2 for a, b in zip(sr_s, ocz_s)):
+        bledy.append('przegląd szczelin: %s (oczekiwane %s)' % (sr_s, ocz_s))
+    pol_s = math.degrees(math.asin(sw / 2 / rw))
+    zakresy = [('szczelina', k - pol_s, k + pol_s) for k, _z in polozenia_szczelin_pokrywki(P)]
+    zakresy += [('wycięcie', c_ - math.degrees(math.asin(fw / 2 / rw)), c_ + math.degrees(math.asin(fw / 2 / rw))) for c_ in (-90.0, 90.0)]
+    zakresy += [('garb', float(k) - pol_luku, float(k) + pol_luku) for k in P['round_cover_snap_angles']]
+    odst = []
+    for i, (n1, a1_, b1_) in enumerate(zakresy):
+        for n2, a2_, b2_ in zakresy[i + 1:]:
+            if 'szczelina' not in (n1, n2):
+                continue
+            c1, c2 = (a1_ + b1_) / 2, (a2_ + b2_) / 2
+            dc = abs(((c1 - c2) + 180) % 360 - 180)
+            odst.append((dc - (b1_ - a1_) / 2 - (b2_ - a2_) / 2, '%s–%s' % (n1, n2)))
+    min_odst = {}
+    for v, nz in odst:
+        min_odst[nz] = min(min_odst.get(nz, 1e9), v)
+    if any(v <= 0 for v in min_odst.values()):
+        bledy.append('szczeliny nachodzą: %s' % min_odst)
+    info.append('szczeliny odciążające [runda 2]: %d szt. (kąt: szerokość × wysokość) %s (zadane %g × %g); przegląd co 0,1° na Z %g: %d przelotowych sektorów, środki %s (zadane %s); '
+                'najmniejsze odstępy kątowe po licu r %.1f: %s' % (len(pom_s), '; '.join('%.2f°: %.3f × %.3f' % p for p in pom_s), sw, sl, z_s, len(sr_s),
+                                                                 ', '.join('%.2f' % a for a in sr_s), ', '.join('%.2f' % a for a in ocz_s), rw,
+                                                                 ', '.join('%s %.2f° (%.2f mm)' % (k, v, math.radians(v) * rw) for k, v in sorted(min_odst.items()))))
     zg_n, n_n, bl = W.sondy_k('K-66', siatka, plik, lista)
     if zg_n != n_n:
         bledy.append('sondy %d/%d' % (zg_n, n_n))
     W.dodaj('K-66', not bledy, '%s: sondy %d/%d; %s; błędy: %s' % (plik, zg_n, n_n, '; '.join(info), '; '.join(bledy) or 'brak'),
-            'ø%g / ø%g ± 0,1; wysokość %g; wierzch %g; 4 garby %s° (występ %g, środek Z %g ± 0,05); wycięcia %g × %g [R58]'
-            % (2 * rw, 2 * rz, wys, tw, '/'.join('%g' % a for a in P['round_cover_snap_angles']), wy, zsn, fw, fh), 'B',
+            'ø%g / ø%g ± 0,1; wysokość %g; wierzch %g; 4 garby %s° (występ %g, środek Z %g ± 0,05); wycięcia %g × %g; 8 szczelin %g × %g przelotowych, rozłącznych [R58]'
+            % (2 * rw, 2 * rz, wys, tw, '/'.join('%g' % a for a in P['round_cover_snap_angles']), wy, zsn, fw, fh, P['round_cover_slit_w'], P['round_cover_slit_h']), 'B',
             '%s: %d sond < 0,1 od ściany' % (plik, bl) if bl else '')
 
 
-def sprawdz_pasowania_R58(W, P, plyty, sc_wkl, sc_pokr):
+KROK_ULOZEN = 0.1        # R58 runda 2, K-67: krok siatki map wysokosci i przesuniec w szukaniu ulozen plaskich [mm] (narzedziowe)
+KROK_KATA_ULOZEN = 0.25  # krok obrotu [deg] (narzedziowe)
+TOL_STYKU = 0.02         # styk spod plytki - wierzch polki (2,5 = 2,5) nie jest kolizja (narzedziowe)
+
+
+def mapa_przeszkod_wkladki(siatka_wk, r_max, krok=KROK_ULOZEN, przes=0.0137):
+    """R58 runda 2: mapa wysokosci wierzchu wkladki (uklad wkladki) w kole r_max: tablice numpy (x, y, z) wezlow z trafieniem promienia z gory."""
+    import numpy as np
+    n = int(math.ceil(r_max / krok)) + 1
+    xs, ys, zs = [], [], []
+    d = Vector((0, 0, -1))
+    z0 = siatka_wk.bbox[5] + 5.0
+    for j in range(-n, n + 1):
+        y = j * krok + przes
+        for i in range(-n, n + 1):
+            x = i * krok + przes
+            if x * x + y * y > r_max * r_max:
+                continue
+            loc, _n, _i, _dd = siatka_wk.bvh.ray_cast(Vector((x, y, z0)), d)
+            if loc is not None:
+                xs.append(x)
+                ys.append(y)
+                zs.append(loc.z)
+    return np.array(xs), np.array(ys), np.array(zs)
+
+
+def mapa_spodu_plytki(siatka_pl, T, r_in, r_out, krok=KROK_ULOZEN, przes=0.0371):
+    """R58 runda 2: mapa wysokosci spodu plytki (uklad plytki, spod Z = -T) w pierscieniu r_in...r_out: z_wzgl = trafienie promienia od spodu + T
+    (0 = pelny spod, kieszen 2,2, rowek klucza 5,0); NaN = brak materialu w kolumnie (poza plytka, otwor przelotowy) albo poza pierscieniem.
+    Erozja brakow o 1 wezel (krawedz i otwory o krok mniejsze - bez falszywych styków z krawedzia otworu wkladki przy przesunieciu = luz)."""
+    import numpy as np
+    n = int(math.ceil(r_out / krok)) + 1
+    m = np.full((2 * n + 1, 2 * n + 1), np.nan)
+    licz = np.zeros(m.shape, dtype=bool)
+    d = Vector((0, 0, 1))
+    for j in range(2 * n + 1):
+        y = (j - n) * krok + przes
+        for i in range(2 * n + 1):
+            x = (i - n) * krok + przes
+            r2 = x * x + y * y
+            if r2 < r_in * r_in or r2 > r_out * r_out:
+                continue
+            licz[j, i] = True
+            loc, _n, _i, _dd = siatka_pl.bvh.ray_cast(Vector((x, y, -T - 5.0)), d)
+            if loc is not None:
+                m[j, i] = loc.z + T
+    brak = licz & np.isnan(m)
+    er = brak.copy()
+    er[1:, :] |= brak[:-1, :]
+    er[:-1, :] |= brak[1:, :]
+    er[:, 1:] |= brak[:, :-1]
+    er[:, :-1] |= brak[:, 1:]
+    m[er] = np.nan
+    return m, n, przes
+
+
+def unoszenie(mapa, n, przes, prz, sh, katy, przes_xy, krok=KROK_ULOZEN, tol=TOL_STYKU):
+    """Dla kazdego kata (deg): najmniejsze po przesunieciach uniesienie plytki potrzebne, zeby nie kolidowala z przeszkodami prz = (x, y, z)
+    przy spodzie na polce Z sh (0 = lezy plasko). Zwraca (uniesienia, promien punktu styku, przesuniecie)."""
+    import numpy as np
+    X, Y, H = prz
+    dx = np.array([p[0] for p in przes_xy])[:, None]
+    dy = np.array([p[1] for p in przes_xy])[:, None]
+    qx, qy = X[None, :] - dx, Y[None, :] - dy
+    rr = np.hypot(X, Y)
+    wyn_l, wyn_r, wyn_d = [], [], []
+    size = mapa.shape[0]
+    for a in katy:
+        c, s = math.cos(math.radians(a)), math.sin(math.radians(a))
+        px, py = c * qx + s * qy, -s * qx + c * qy
+        ii = np.rint((px - przes) / krok).astype(np.int64) + n
+        jj = np.rint((py - przes) / krok).astype(np.int64) + n
+        ok = (ii >= 0) & (ii < size) & (jj >= 0) & (jj < size)
+        z = np.full(px.shape, np.nan)
+        z[ok] = mapa[jj[ok], ii[ok]]
+        lift = H[None, :] - (sh + z) - tol
+        lift = np.where(np.isnan(lift), -np.inf, lift)
+        kmax = lift.argmax(axis=1)
+        lmax = lift[np.arange(lift.shape[0]), kmax]
+        lmax = np.maximum(lmax, 0.0)
+        s_best = int(lmax.argmin())
+        wyn_l.append(float(lmax[s_best]))
+        wyn_r.append(float(rr[kmax[s_best]]))
+        wyn_d.append(przes_xy[s_best])
+    return wyn_l, wyn_r, wyn_d
+
+
+def przedzialy(katy, maska):
+    """Ciagle przedzialy katow (deg) z maska True, z zawinieciem 360."""
+    n = len(katy)
+    if all(maska):
+        return [(0.0, 360.0)]
+    start = next(i for i in range(n) if not maska[i])
+    wyn, bie = [], None
+    for k in range(1, n + 1):
+        i = (start + k) % n
+        if maska[i] and bie is None:
+            bie = katy[i]
+        if not maska[i] and bie is not None:
+            kon = katy[(i - 1) % n]
+            wyn.append((bie if bie <= kon else bie - 360.0, kon))
+            bie = None
+    if bie is not None:
+        wyn.append((bie, katy[(start - 1) % n] + (360.0 if katy[(start - 1) % n] < bie else 0.0)))
+    return wyn
+
+
+def ulozenia_plaskie(P, sc_wkl, plyty, sh, opis_zestawu):
+    """R58 runda 2 (B1 recenzji): czy plytka da sie polozyc plasko na polce wkladki w innym obrocie niz nominalny. Z siatek: mapa wierzchu
+    wkladki (przeszkody = material powyzej polki + TOL_STYKU w kole R + luz + krok) i mapa spodu kazdej plytki; obrot 0...360 co KROK_KATA_ULOZEN,
+    przesuniecie w kole luzu round_insert_clearance co KROK_ULOZEN. Zwraca liste (rdzen, katy, uniesienia, promienie styku) i dane kontroli."""
+    R = P['plate_round_d'] / 2
+    luz = P['round_insert_clearance']
+    T = P['plate_thickness']
+    s_wk = Siatka(sc_wkl, M_druk(P, 'wkladka_okragla').inverted())
+    X, Y, Z = mapa_przeszkod_wkladki(s_wk, R + luz + KROK_ULOZEN)
+    s_wk.zwolnij()
+    import numpy as np
+    prz_m = Z > sh + TOL_STYKU
+    prz = (X[prz_m], Y[prz_m], Z[prz_m])
+    pelne = (X, Y, Z)
+    r_in = max(0.0, float(np.hypot(prz[0], prz[1]).min()) - luz - 2 * KROK_ULOZEN)
+    k = int(round(luz / KROK_ULOZEN))
+    przes_xy = [(i * KROK_ULOZEN, j * KROK_ULOZEN) for i in range(-k, k + 1) for j in range(-k, k + 1)
+                if (i * KROK_ULOZEN) ** 2 + (j * KROK_ULOZEN) ** 2 <= luz * luz + 1e-9]
+    katy = [i * KROK_KATA_ULOZEN for i in range(int(round(360.0 / KROK_KATA_ULOZEN)))]
+    wyn = []
+    kontrola = None
+    for rdzen, sciezka, Md in plyty:
+        s_pl = Siatka(sciezka, Md.inverted())
+        mapa, n, przes = mapa_spodu_plytki(s_pl, T, r_in, R + 2 * KROK_ULOZEN)
+        s_pl.zwolnij()
+        L, rc, dd = unoszenie(mapa, n, przes, prz, sh, katy, przes_xy)
+        wyn.append((rdzen, katy, L, rc, dd))
+        if kontrola is None:
+            # kontrola czulosci na pierwszej plytce: nominal (0 st., bez przesuniecia) = 0; plytka opuszczona o 0,05 (wszystkie wezly wkladki
+            # w pierscieniu, takze polka) > 0; przesuniecie o luz + 0,2 w strone sciecia > 0
+            kat_d = osie_okragle(P)['D'][0]
+            sd = ((luz + 2 * KROK_ULOZEN) * math.cos(math.radians(kat_d)), (luz + 2 * KROK_ULOZEN) * math.sin(math.radians(kat_d)))
+            pel_m = np.hypot(pelne[0], pelne[1]) >= r_in + luz + 2 * KROK_ULOZEN
+            pel = (pelne[0][pel_m], pelne[1][pel_m], pelne[2][pel_m])
+            kontrola = (rdzen, unoszenie(mapa, n, przes, prz, sh, [0.0], [(0.0, 0.0)])[0][0],
+                        unoszenie(mapa, n, przes, pel, sh - 0.05, [0.0], [(0.0, 0.0)])[0][0],
+                        unoszenie(mapa, n, przes, prz, sh, [0.0], [sd])[0][0], len(prz[0]), len(przes_xy), len(katy))
+    return wyn, kontrola
+
+
+def opis_ulozen(P, wyn, sh):
+    """Okno wejscia (uniesienie 0) wokol 0 st., inne kąty z uniesieniem 0, strefa naprowadzenia (krawedz rowka plytki na fazie zebra:
+    0 < uniesienie < wysokosc zebra - TOL_STYKU) i uniesienie poza nia (plytka lezy na wierzchu zebra)."""
+    R = P['plate_round_d'] / 2
+    c = P['round_key_rib_h'] - TOL_STYKU - 0.01        # ponizej: styk na fazie zebra (naprowadzenie), powyzej: plytka na wierzchu zebra
+    opisy, bledy = [], []
+    for rdzen, katy, L, rc, dd in wyn:
+        zero = [l <= 1e-9 for l in L]
+        prz = przedzialy(katy, zero)
+        okno = [p for p in prz if p[0] <= 0.0 + 1e-9 <= p[1] + 1e-9 or (p[0] <= 360.0 <= p[1])]
+        inne = [p for p in prz if p not in okno]
+        nap = [l <= c + 1e-9 for l in L]
+        prz_nap = [p for p in przedzialy(katy, nap) if p[0] <= 1e-9 <= p[1] + 1e-9]
+        poza = [(l, a, r) for l, a, r, z, n_ in zip(L, katy, rc, zero, nap) if not n_]
+        if poza:
+            lmin, amin, rmin = min(poza)
+            lmax = max(p[0] for p in poza)
+            alfa = math.degrees(math.atan2(lmin, rmin + R))
+            kraw = 2 * R * math.tan(math.radians(alfa))
+        else:
+            lmin = lmax = amin = rmin = alfa = kraw = float('nan')
+        opisy.append((rdzen, okno, inne, prz_nap, lmin, amin, lmax, alfa, kraw))
+    return opisy
+
+
+def sprawdz_pasowania_R58(W, P, plyty, sc_wkl, sc_pokr, stare_okragle=(), poprzednie=None):
     """K-67 (R58): pasowania w ukladzie montazowym wkladki (spod ramy Z = 0): plytka okragla ramkowa we wkladce okraglej, pokrywka okragla
-    na plytce. plyty: lista (rdzen, sciezka, M_druk, uklad). Kolizje metoda K-53 (kopie zmniejszone o SKURCZ_K53)."""
+    na plytce. plyty: lista (rdzen, sciezka, M_druk, uklad). Kolizje metoda K-53 (kopie zmniejszone o SKURCZ_K53). Runda 2: zebro klucza
+    w rowku; szukanie ulozen plaskich (obrot 0...360 x przesuniecie w luzie) dla kazdej plytki; informacyjnie stare plytki okragle n8/n9
+    (stare_okragle: (rdzen, sciezka, M)) i geometria rundy 1 (poprzednie: (sciezka wkladki, [(rdzen, sciezka, M)]))."""
     sh, T = P['insert_shelf_h'], P['plate_thickness']
     z_pl = sh + T
     z_pk = z_pl + P['cover_inner_h'] + P['cover_top_t']
-    R, dist, kat, _w = sciecie_okraglej(P)
+    R, dist, kat, cw = sciecie_okraglej(P)
     luz = P['round_insert_clearance']
-    rp, hp = P['round_key_pin_d'] / 2, P['round_key_pin_h']
-    rw_p, _rz_p, _wys_p = wymiary_pokrywki_okraglej(P)
+    zb_w, zb_r0, zb_h = P['round_key_rib_w'], P['round_key_rib_r0'], P['round_key_rib_h']
+    do = dist + luz
+    rw_p, rz_p, _wys_p = wymiary_pokrywki_okraglej(P)
     osie = osie_okragle(P)
+    zw = P['insert_opening'] / 2 + P['insert_wall_w']
     bledy, info = [], []
     kol = bpy.data.collections.new('R58_zlozenie')
     bpy.context.scene.collection.children.link(kol)
@@ -3925,8 +4276,24 @@ def sprawdz_pasowania_R58(W, P, plyty, sc_wkl, sc_pokr):
     kolizje, styk = [], []
     if n_par(wk, pk):
         kolizje.append(('wkladka_okragla', 'pokrywka_okragla', n_par(wk, pk)))
+    cu, su = math.cos(math.radians(kat)), math.sin(math.radians(kat))
+    uv = lambda u, v, z: (u * cu - v * su, u * su + v * cu, z)
+    vv = lambda q: -q.x * su + q.y * cu
+    uu = lambda q: q.x * cu + q.y * su
+    zt = lambda o, x, y: (lambda l: None if l is None else l.z)(o.promien((x, y, 100), (0, 0, -1)))
+    zp = lambda o, x, y: (lambda l: None if l is None else l.z)(o.promien((x, y, -100), (0, 0, 1)))
+    # D2: kolnierz pokrywki nad wkladka - max Z wierzchu wkladki w calym pierscieniu pod kolnierzem (promienie co 0,25 mm / 0,5 st.)
+    zmax_k, gdzie_k = -1e9, None
+    r_k = rw_p - KROK_ULOZEN
+    while r_k <= rz_p + KROK_ULOZEN + 1e-9:
+        for i in range(720):
+            a = math.radians(i * 0.5)
+            z = zt(wk, r_k * math.cos(a), r_k * math.sin(a))
+            if z is not None and z > zmax_k:
+                zmax_k, gdzie_k = z, (r_k, i * 0.5)
+        r_k += 0.25
+    kolnierz = pk.bbox[4] - zmax_k
     zmierzone = {}
-    obrot = {}
     for rdzen, sciezka, Md, uklad in plyty:
         pl = oz(sciezka, TR((0, 0, z_pl)) @ Md.inverted(), rdzen)
         for a, nb in ((wk, 'wkladka_okragla'), (pk, 'pokrywka_okragla')):
@@ -3937,18 +4304,20 @@ def sprawdz_pasowania_R58(W, P, plyty, sc_wkl, sc_pokr):
         if re.search(r'_n\d+$', rdzen):
             continue
         typ = uklad['plate']
+        ks = uklad['key_slot']
         # pomiary na plytce bazowej typu
-        zt = lambda o, x, y: (lambda l: None if l is None else l.z)(o.promien((x, y, 100), (0, 0, -1)))
-        zp = lambda o, x, y: (lambda l: None if l is None else l.z)(o.promien((x, y, -100), (0, 0, 1)))
-        z_o = sh + hp + 0.25
+        z_o = (sh + P['insert_h'] - P['insert_chamfer']) / 2
         luzy = []
         for a in (0.0, 30.0, 90.0, 150.0, 180.0, 210.0, 240.0, 300.0):
             ri = promien_od_srodka(wk.bvh, a, z_o)
             rpl = promien_z_zewnatrz(pl.bvh, a, z_pl - T / 2, R + 5)
             luzy.append(None if ri is None or rpl is None else ri - rpl)
-        ri_sc = promien_od_srodka(wk.bvh, kat, z_o)
-        rpl_sc = promien_z_zewnatrz(pl.bvh, kat, z_pl - T / 2, R + 5)
-        luz_sc = None if ri_sc is None or rpl_sc is None else ri_sc - rpl_sc
+        voff = (zb_w / 2 + cw / 2) / 2 + 1.0
+        luz_sc = []
+        for v in (voff, -voff):
+            a_ = pierwsze_trafienie(wk.bvh, uv(0, v, z_o), (cu, su, 0))
+            b_ = pierwsze_trafienie(pl.bvh, uv(R + 5, v, z_pl - T / 2), (-cu, -su, 0))
+            luz_sc.append(None if (a_ is None or b_ is None) else uu(a_) - uu(b_))
         rs = (P['round_insert_ledge_r'] + R + luz) / 2
         z_polki = zt(wk, 0.0, rs)
         spod = pl.bbox[4]
@@ -3958,24 +4327,23 @@ def sprawdz_pasowania_R58(W, P, plyty, sc_wkl, sc_pokr):
             m = srodek_wneki(pl.bvh, cx, cy, z_pl - T + P['magnet_pocket_depth'] / 2)
             hh = srodek_wneki(wk.bvh, cx, cy, (P['hall_lead_channel_h'] + sh) / 2)
             osi.append((k, None if (m is None or hh is None) else math.hypot(m[0] - hh[0], m[1] - hh[1])))
-        _a, kx, ky = osie['D']
-        cu, su = math.cos(math.radians(kat)), math.sin(math.radians(kat))
-        ks = uklad['key_slot']
-        z_r = sh + min(ks['h'], hp) / 2          # w wysokosci kolka i rowka
-        p0 = (kx, ky, z_r)
-        sp = pierwsze_trafienie(pl.bvh, p0, (-su, cu, 0))
-        sm = pierwsze_trafienie(pl.bvh, p0, (su, -cu, 0))
-        kp = srodek_bryly(wk.bvh, kx, ky, z_r, rp + 1.0)
-        sufit = zp(pl, kx, ky)
-        wierzch_k = zt(wk, kx, ky)
-        if sp and sm and kp:
-            v = lambda q: -q[0] * su + q[1] * cu
-            vp, vm = v((sp.x, sp.y)), v((sm.x, sm.y))
-            vk = v((kp[0], kp[1]))
-            luz_l, luz_p = vp - (vk + kp[2] / 2), (vk - kp[2] / 2) - vm
+        # zebro klucza w rowku: boki (promienie +-v w siatce plytki z osi zebra i z zewnatrz w siatce wkladki), czolo, nad zebrem
+        um, zr = (max(zb_r0, ks['r0']) + dist) / 2, sh + (zb_h - P['round_key_rib_chamfer']) / 2
+        sp = pierwsze_trafienie(pl.bvh, uv(um, 0, zr), (-su, cu, 0))
+        sm = pierwsze_trafienie(pl.bvh, uv(um, 0, zr), (su, -cu, 0))
+        kp = pierwsze_trafienie(wk.bvh, uv(um, zb_w / 2 + 1.0, zr), (su, -cu, 0))
+        km = pierwsze_trafienie(wk.bvh, uv(um, -zb_w / 2 - 1.0, zr), (-su, cu, 0))
+        czp = pierwsze_trafienie(pl.bvh, uv(um, 0, zr), (-cu, -su, 0))
+        czw = pierwsze_trafienie(wk.bvh, uv(ks['r0'] - 2.0, 0, zr), (cu, su, 0))
+        uz = (zb_r0 + P['round_key_rib_chamfer'] + dist) / 2
+        sufit = zp(pl, *uv(uz, 0, 0)[:2])
+        wierzch_z = zt(wk, *uv(uz, 0, 0)[:2])
+        if None in (sp, sm, kp, km, czp, czw):
+            luz_l = luz_p = czolo = None
         else:
-            luz_l = luz_p = None
-        nad = None if (sufit is None or wierzch_k is None) else sufit - wierzch_k
+            luz_l, luz_p = vv(sp) - vv(kp), vv(km) - vv(sm)
+            czolo = uu(czw) - uu(czp)
+        nad = None if (sufit is None or wierzch_z is None) else sufit - wierzch_z
         # pokrywka na plytce
         z_pm = z_pk - (P['cover_inner_h'] + P['cover_top_t'] + P['cover_skirt_below']) / 2
         luz_pk = []
@@ -3999,55 +4367,86 @@ def sprawdz_pasowania_R58(W, P, plyty, sc_wkl, sc_pokr):
                 garby.append((kg, None, None, None))
                 continue
             garby.append((kg, R - czub, czub - dno_r, (bg.z + bd.z) / 2 - (gg.z + gd.z) / 2))
-        kolnierz = pk.bbox[4] - zt(wk, 0.0, P['insert_opening'] / 2 + P['insert_wall_w'] - 0.9)
-        zmierzone[typ] = (luzy, luz_sc, z_polki, spod, osi, luz_l, luz_p, nad, luz_pk, garby, kolnierz)
-        # plytka obrocona o 90 / 180 / 270 st. (informacyjnie): kolizje z wkladka
-        for ob_k in (90.0, 180.0, 270.0):
-            po = oz(sciezka, TR((0, 0, z_pl)) @ Matrix.Rotation(math.radians(ob_k), 4, 'Z') @ Md.inverted(), '%s_obrot%d' % (rdzen, ob_k))
-            obrot[(typ, ob_k)] = n_par(po, wk)
+        zmierzone[typ] = (luzy, luz_sc, z_polki, spod, osi, luz_l, luz_p, czolo, nad, luz_pk, garby)
     # ocena
     if kolizje:
         bledy.append('kolizje: %s' % '; '.join('%s–%s %d' % k for k in kolizje))
-    for typ, (luzy, luz_sc, z_polki, spod, osi, luz_l, luz_p, nad, luz_pk, garby, kolnierz) in zmierzone.items():
+    l_bok = P['round_key_slot_w'] / 2 - zb_w / 2
+    f = lambda v, n=3: '—' if v is None else ('%.' + str(n) + 'f') % v
+    for typ, (luzy, luz_sc, z_polki, spod, osi, luz_l, luz_p, czolo, nad, luz_pk, garby) in zmierzone.items():
         e = []
-        if any(v is None or abs(v - luz) > 0.05 for v in luzy) or luz_sc is None or abs(luz_sc - luz) > 0.05:
+        if any(v is None or abs(v - luz) > 0.05 for v in luzy + luz_sc):
             e.append('luz promieniowy')
         if z_polki is None or abs(spod - z_polki) > 0.02 or abs(spod - sh) > 0.02:
             e.append('spód płytki na półce')
         if any(d is None or d > 0.1 for _k, d in osi):
             e.append('oś magnesu nad osią kieszeni Halla')
-        if luz_l is None or abs(luz_l - (P['round_key_slot_w'] / 2 - rp)) > 0.05 or abs(luz_p - (P['round_key_slot_w'] / 2 - rp)) > 0.05:
-            e.append('luz kołka w rowku')
+        if luz_l is None or abs(luz_l - l_bok) > 0.05 or abs(luz_p - l_bok) > 0.05:
+            e.append('luz żebra w rowku')
+        if czolo is None or abs(czolo - (P['round_key_rib_r0'] - P['round_key_slot_r0'])) > 0.05:
+            e.append('czoło żebra – koniec rowka')
         if nad is None or nad < 0.4 - 1e-6:
-            e.append('luz nad kołkiem')
+            e.append('luz nad żebrem')
         if any(v is None or abs(v - P['cover_clearance']) > 0.05 for v in luz_pk):
             e.append('luz pokrywka–płytka')
         if any(z is None or abs(z - (R - (rw_p - P['cover_snap_bump']))) > 0.05 or abs(dz) > 0.05 for _k, z, _g, dz in garby):
             e.append('garb w rowku')
-        if kolnierz is None or kolnierz < 0.4 - 1e-6:
-            e.append('kołnierz nad wkładką')
         if e:
             bledy.append('%s: %s' % (typ, ', '.join(e)))
-        f = lambda v, n=3: '—' if v is None else ('%.' + str(n) + 'f') % v
-        info.append('%s: luz promieniowy %s (8 kierunków), na ścięciu %s (zadane %g); spód płytki Z %s, półka Z %s (zadane %g); oś magnesu–oś kieszeni Halla %s (≤ 0,1); '
-                    'kołek w rowku: luz %s / %s na stronę (zadane %g), nad kołkiem %s (≥ 0,4); pokrywka–płytka luz %s (zadane %g); garby: zagłębienie w rowek / szczelina do dna / ΔZ do środka rowka %s; '
-                    'dół kołnierza nad ramą wkładki %s (≥ 0,4)'
-                    % (typ, ' / '.join(f(v) for v in luzy), f(luz_sc), luz, f(spod), f(z_polki), sh, ', '.join('%s %s' % (k, f(d)) for k, d in osi),
-                       f(luz_l), f(luz_p), P['round_key_slot_w'] / 2 - rp, f(nad), ' / '.join(f(v) for v in luz_pk), P['cover_clearance'],
-                       '; '.join('%g° %s / %s / %s' % (k, f(z), f(g), f(dz)) for k, z, g, dz in garby), f(kolnierz)))
-    info.append('kolizje (skurcz −%.2f): %s' % (SKURCZ_K53, '; '.join('%s–%s %d' % k for k in kolizje) if kolizje else 'brak (%d par)' % (2 * len(plyty) + 1)))
+        info.append('%s: luz promieniowy %s (8 kierunków), na ścięciu (promienie ±%.1f od osi) %s (zadane %g); spód płytki Z %s, półka Z %s (zadane %g); '
+                    'oś magnesu–oś kieszeni Halla %s (≤ 0,1); żebro klucza w rowku: luz %s / %s na stronę (zadane %g), czoło żebra – koniec rowka %s (zadane %g), nad żebrem %s (≥ 0,4); '
+                    'pokrywka–płytka luz %s (zadane %g); garby: zagłębienie w rowek / szczelina do dna / ΔZ do środka rowka %s'
+                    % (typ, ' / '.join(f(v) for v in luzy), (zb_w / 2 + cw / 2) / 2 + 1.0, ' / '.join(f(v) for v in luz_sc), luz, f(spod), f(z_polki), sh,
+                       ', '.join('%s %s' % (k, f(d)) for k, d in osi), f(luz_l), f(luz_p), l_bok, f(czolo), P['round_key_rib_r0'] - P['round_key_slot_r0'], f(nad),
+                       ' / '.join(f(v) for v in luz_pk), P['cover_clearance'], '; '.join('%g° %s / %s / %s' % (k, f(z), f(g), f(dz)) for k, z, g, dz in garby)))
+    if kolnierz < 0.4 - 1e-6:
+        bledy.append('kołnierz nad wkładką %.3f' % kolnierz)
+    info.append('dół kołnierza pokrywki (Z %.3f) nad wierzchem wkładki: max Z wkładki w pierścieniu r %.2f…%.2f (co 0,25 mm × 0,5°) %.3f w r %.2f, %.1f° → %.3f (≥ 0,4)'
+                % (pk.bbox[4], rw_p - KROK_ULOZEN, rz_p + KROK_ULOZEN, zmax_k, gdzie_k[0], gdzie_k[1], kolnierz))
+    info.append('kolizje w położeniu nominalnym (skurcz −%.2f): %s' % (SKURCZ_K53, '; '.join('%s–%s %d' % k for k in kolizje) if kolizje else 'brak (%d par)' % (2 * len(plyty) + 1)))
     info.append('kontrola czułości (bez skurczu, płytka na półce = styk): ' + ', '.join('%s %d' % s_ for s_ in styk))
-    info.append('informacyjnie: płytka obrócona (kolizje z wkładką, skurcz −%.2f): %s — nie wchodzi, gdy > 0'
-                % (SKURCZ_K53, '; '.join('%s %g° %d' % (t, a, n) for (t, a), n in sorted(obrot.items()))))
-    if any(n == 0 for n in obrot.values()):
-        ostrzez('R58: płytka okrągła obrócona wchodzi we wkładkę bez kolizji: %s' % [k for k, n in obrot.items() if n == 0])
-    W.dodaj('K-67', not bledy, '%s; błędy: %s' % ('; '.join(info), '; '.join(bledy) or 'brak'),
-            'luz promieniowy %g ± 0,05; spód na półce ± 0,02; oś magnesu nad osią Halla ≤ 0,1; kołek w rowku %g/stronę ± 0,05, nad kołkiem ≥ 0,4; pokrywka %g ± 0,05; '
-            'garb w rowku (zagłębienie %g ± 0,05, ΔZ ≤ 0,05); kołnierz ≥ 0,4 nad wkładką; 0 kolizji [R58]'
-            % (luz, P['round_key_slot_w'] / 2 - rp, P['cover_clearance'], R - (rw_p - P['cover_snap_bump'])), 'B')
     for ob in utworzone:
         usun_obiekt(ob)
     bpy.data.collections.remove(kol)
+    # runda 2 (B1): szukanie ulozen plaskich - kazda plytka R58, obrot 0...360 co KROK_KATA_ULOZEN, przesuniecie w kole luzu co KROK_ULOZEN
+    t0 = time.time()
+    wyn, kontr = ulozenia_plaskie(P, sc_wkl, [(r, s, M) for r, s, M, _u in plyty], sh, 'R58')
+    opisy = opis_ulozen(P, wyn, sh)
+    szer = []
+    for rdzen, okno, inne, prz_nap, lmin, amin, lmax, alfa, kraw in opisy:
+        if len(okno) != 1 or inne:
+            bledy.append('%s: płytka leży płasko poza jednym oknem wokół 0° (okno %s, inne %s)' % (rdzen, okno, inne))
+        if okno:
+            szer.append(okno[0][1] - okno[0][0])
+    info.append('ułożenia płaskie [runda 2, B1] (mapa spodu płytki vs mapa wierzchu wkładki co %g mm; obrót 0…360° co %g°; przesunięcie w kole luzu %g co %g mm, %d położeń; '
+                'pustych kieszeni nie zaklejano; %d węzłów przeszkód wkładki powyżej półki): ' % (KROK_ULOZEN, KROK_KATA_ULOZEN, luz, KROK_ULOZEN, kontr[5], kontr[4])
+                + '; '.join('%s: okno %s, inne kąty bez kolizji: %s; strefa naprowadzenia (krawędź rowka na fazie żebra, uniesienie < %s) %s; poza nią płytka leży na żebrze: '
+                            'uniesienie min %s (przy %s°), max %s, przechył %s°, krawędź +%s'
+                            % (r, ' i '.join('%.2f…%.2f° (%.2f°)' % (a, b, b - a) for a, b in o) or 'BRAK', ' '.join('%.2f…%.2f°' % p for p in i_) or 'brak',
+                               f(P['round_key_rib_h'] - TOL_STYKU, 2), ' '.join('%.2f…%.2f°' % p for p in n_) or '—', f(lmin, 2), f(amin, 2), f(lmax, 2), f(alfa, 2), f(kraw, 2))
+                               for r, o, i_, n_, lmin, amin, lmax, alfa, kraw in opisy))
+    ok_k = kontr[1] <= 1e-9 and kontr[2] > 0 and kontr[3] > 0
+    if not ok_k:
+        bledy.append('kontrola czułości szukania ułożeń: nominal %.3f, opuszczona 0,05 %.3f, przesunięta poza luz %.3f' % kontr[1:4])
+    info.append('kontrola czułości szukania (%s): nominal 0° bez przesunięcia uniesienie %.3f (= 0); płytka opuszczona o 0,05 w półkę (wszystkie węzły wkładki) %.3f (> 0); '
+                'przesunięta o luz + %g w stronę ścięcia %.3f (> 0)' % (kontr[0], kontr[1], kontr[2], 2 * KROK_ULOZEN, kontr[3]))
+    if stare_okragle:
+        w2, _k2 = ulozenia_plaskie(P, sc_wkl, list(stare_okragle), sh, 'n8/n9')
+        info.append('informacyjnie — stare płytki okrągłe (bez kieszeni i rowka) w nowej wkładce: ' + '; '.join(
+            '%s: kąty bez kolizji %s; uniesienie min %s / max %s (leży na żebrze: przechył %s°, krawędź +%s)'
+            % (r, ' '.join('%.2f…%.2f°' % p for p in i_ + o) or 'brak', f(lmin, 2), f(lmax, 2), f(alfa, 2), f(kraw, 2))
+            for r, o, i_, _n, lmin, _a, lmax, alfa, kraw in opis_ulozen(P, w2, sh)))
+    if poprzednie:
+        w3, k3 = ulozenia_plaskie(P, poprzednie[0], poprzednie[1], sh, 'runda 1')
+        info.append('kontrola czułości — geometria rundy 1 (kołek ø3 × 2, rowek r0 43 / h 2,5) tą samą metodą: ' + '; '.join(
+            '%s: kąty bez kolizji %s' % (r, ' '.join('%.2f…%.2f°' % p for p in o + i_) or 'brak') for r, o, i_, _n, *_x in opis_ulozen(P, w3, sh))
+            + ' (B1 recenzji: okna przy 90/180/270°)')
+    info.append('czas szukania %.0f s' % (time.time() - t0))
+    W.dodaj('K-67', not bledy, '; '.join(info) + '; błędy: %s' % ('; '.join(bledy) or 'brak'),
+            'luz promieniowy %g ± 0,05; spód na półce ± 0,02; oś magnesu nad osią Halla ≤ 0,1; żebro w rowku %g/stronę ± 0,05, czoło %g ± 0,05, nad żebrem ≥ 0,4; pokrywka %g ± 0,05; '
+            'garb w rowku (zagłębienie %g ± 0,05, ΔZ ≤ 0,05); kołnierz ≥ 0,4 nad wkładką (cały pierścień); 0 kolizji; płytka leży płasko tylko w jednym oknie wokół 0° '
+            '(obrót × przesunięcie w luzie, każda z 8 płytek) [R58 runda 2]'
+            % (luz, l_bok, P['round_key_rib_r0'] - P['round_key_slot_r0'], P['cover_clearance'], R - (rw_p - P['cover_snap_bump'])), 'B')
 
 
 # ===========================================================================
@@ -4990,12 +5389,13 @@ def zrzut_parametrow_zgodny(sc_wym, sc_param):
     zrzut = json.loads(m.group(1))
     if zrzut == biez:
         return True
-    brak = sorted(k for s, z in biez.items() if not s.startswith('_') and isinstance(z, dict)
-                  for k in z if k in KLUCZE_R58 and k not in zrzut.get(s, {}))
+    # runda 2 (D1 recenzji): wyjatek tylko dla zrzutu, w ktorym nie ma ZADNEGO klucza R58, przy wszystkich kluczach R58 w parametry.json
+    w_zrzucie = [k for s, z in zrzut.items() if not s.startswith('_') and isinstance(z, dict) for k in z if k in KLUCZE_R58]
+    brak = sorted(k for s, z in biez.items() if not s.startswith('_') and isinstance(z, dict) for k in z if k in KLUCZE_R58)
 
     def bez_r58(d):
         return {s: ({k: v for k, v in z.items() if k not in KLUCZE_R58} if (isinstance(z, dict) and not s.startswith('_')) else z) for s, z in d.items()}
-    if brak and bez_r58(zrzut) == bez_r58(biez):
+    if not w_zrzucie and set(brak) == KLUCZE_R58 and bez_r58(zrzut) == bez_r58(biez):
         _ZRZUT_UWAGA[:] = ['zrzut sprzed R58: brak %d kluczy R58 (%s), pozostałe klucze identyczne' % (len(brak), ', '.join(brak))]
         return True
     return False
@@ -5178,19 +5578,37 @@ def przygotuj_scene():
     _FONT.clear()
 
 
-def wyczysc_wyniki(out):
-    """Usuwa pliki generowane (STL, arkusze, rendery, .blend, README); raporty i JSON gniazd zostaja."""
+def rdzenie_R58(P):
+    """R58: rdzenie nazw plikow kompletu okraglego (z parametrow: typy TYPY_PLYTEK_R58, numery plate_numbers_round_frame, wkladka
+    i pokrywka okragla)."""
+    wyn = []
+    for typ in TYPY_PLYTEK_R58:
+        wyn.append('plytka_%s' % typ)
+        wyn += ['plytka_%s_n%d' % (typ, n) for n in numery_plytek(P, typ)]
+    return wyn + ['wkladka_okragla', 'pokrywka_okragla']
+
+
+def wyczysc_wyniki(out, P=None):
+    """Usuwa pliki generowane (STL, arkusze, rendery, .blend, README); raporty i JSON gniazd zostaja.
+    R58 runda 2 (P3 recenzji): z P pomija STL kompletu okraglego (rdzenie_R58) - przebiegi A/B/C/ALL ich nie buduja, wiec nie moga ich kasowac
+    (JSON ukladow i raporty i tak zostaja). Zwraca liste pominietych plikow."""
+    chronione = {nazwa_stl(P, r) for r in rdzenie_R58(P)} if P is not None else set()
+    pominiete = []
     for pod in ('stl', 'arkusze', 'render'):
         k = os.path.join(out, pod)
         if os.path.isdir(k):
             for f in os.listdir(k):
                 p = os.path.join(k, f)
                 if os.path.isfile(p):
+                    if pod == 'stl' and f in chronione:
+                        pominiete.append(f)
+                        continue
                     os.remove(p)
     for f in ('ramka_v2.blend', 'ramka_v2.blend1', 'README.md', 'do_v3.md'):
         p = os.path.join(out, f)
         if os.path.isfile(p):
             os.remove(p)
+    return pominiete
 
 
 def nazwa_stl(P, rdzen):
@@ -5570,7 +5988,7 @@ def etapy_istniejace(P, out):
     return wyn
 
 
-def etap_R58(P, out, W, iter_, buduj=True):
+def etap_R58(P, out, W, iter_, buduj=True, poprzednie=None):
     """R58: komplet okragly do ramki - 8 plytek okraglych ramkowych (2 bazowe + n1-n6), wkladka okragla, pokrywka okragla, 2 JSON ukladu.
     Buduje i sprawdza TYLKO te pliki (K-01...K-04b, K-05, K-06...K-09, K-11, K-13, K-16, K-61, K-62, K-64...K-67); pliki etapow A-C
     (21 STL, 4 JSON) tylko czyta jako odniesienie (uklady kwadratowe i okragle, plytki okragle bazowe, wkladka kwadratowa) - nic
@@ -5640,7 +6058,7 @@ def etap_R58(P, out, W, iter_, buduj=True):
         if rodzaj == 'wkladka_okragla':
             zw = P['insert_opening'] / 2 + P['insert_wall_w']
             ex = P['tab_pos_x'] + P['tab_w'] / 2
-            zakres = (-ex, ex, -zw, P['tab_end_y'], -P['tab_pin_h'], P['insert_h'] + P['label_relief_h'])
+            zakres = (-ex, ex, -zw, P['tab_end_y'], -P['tab_pin_h'], max(P['insert_h'] + P['label_relief_h'], P['insert_shelf_h'] + P['round_key_rib_h']))
             obj, gab = ogolne_stl(W, plik, siatka, (zakres[1] - zakres[0], zakres[3] - zakres[2], zakres[5] - zakres[4]), zakres, rodzaj)
             s_kw = Siatka(sc_wkl_kw, M_druk(P, 'wkladka').inverted())
             sprawdz_wkladke_okragla(W, P, siatka, plik, s_kw, os.path.basename(sc_wkl_kw), kat_rz, iter_)
@@ -5665,7 +6083,21 @@ def etap_R58(P, out, W, iter_, buduj=True):
                       'gab': '%.3f × %.3f × %.3f' % (bb[1] - bb[0], bb[3] - bb[2], bb[5] - bb[4]), 'obj': '%.2f' % obj})
         stl[rdzen] = (sciezka, M)
         siatka.zwolnij()
-    sprawdz_pasowania_R58(W, P, plyty, stl['wkladka_okragla'][0], stl['pokrywka_okragla'][0])
+    # runda 2: informacyjnie stare plytki okragle n8/n9 (pliki R59, tylko odczyt) i - gdy podano --r58-poprzednie - geometria rundy 1
+    stare = []
+    for typ in ('okragla_wieczorna', 'okragla_poranna'):
+        for n in numery_plytek(P, typ):
+            r = 'plytka_%s_n%d' % (typ, n)
+            stare.append((r, sciezka_stl_istniejaca(P, kat_stl, r), M_druk(P, 'plytka_%s' % typ)))
+    pop = None
+    if poprzednie:
+        kp = os.path.join(out, poprzednie)
+        sw = os.path.join(kp, nazwa_stl(P, 'wkladka_okragla'))
+        pl = [('%s (runda 1)' % r, os.path.join(kp, nazwa_stl(P, r)), M_druk(P, r)) for r in ('plytka_%s' % t for t in TYPY_PLYTEK_R58)]
+        if not all(os.path.isfile(p) for p in [sw] + [x[1] for x in pl]):
+            raise BladProjektu('--r58-poprzednie: brak plików rundy 1 w %s' % kp)
+        pop = (sw, pl)
+    sprawdz_pasowania_R58(W, P, plyty, stl['wkladka_okragla'][0], stl['pokrywka_okragla'][0], stare, pop)
     # ilosci kompletu (quantities_r58 / materials_r58) z objetosciami z siatek - do raportu (arkusz zamowienia R59 bez zmian)
     for klucz in sorted(P['quantities_r58']):
         obj, _bb = DZIENNIK['stl'][klucz[len('ramka_'):]]
@@ -5685,16 +6117,17 @@ def odstepstwa_informacyjne_R58(P):
               'dopisanie do `quantities` zmieniłoby arkusz zamówienia R59 (`wyniki_v2/arkusze`) i sprawdzenie K‑57 starych plików; włączenie do arkusza = krok koordynatora (przebieg ALL)',
               'tak — koordynator (arkusz zamówienia)'))
     D.append(('R58 / K‑60 przy `--etap SPRAWDZ` (zrzut `parametry.json` w `arkusz_wymiarow.md`)',
-              'zrzut sprzed R58 uznany za zgodny, gdy różni się tylko brakiem kluczy R58 (%d kluczy, lista w kodzie `KLUCZE_R58`)' % len(KLUCZE_R58),
+              'zrzut sprzed R58 uznany za zgodny tylko wtedy, gdy nie ma w nim żadnego z %d kluczy R58 (`KLUCZE_R58`; wszystkie są w `parametry.json`) i poza tym nie ma różnic [runda 2, D1]' % len(KLUCZE_R58),
               'arkusze R59 zostają bez zmian (zlecenie), a nowe klucze nie wpływają na żaden plik etapów A–C; każda inna różnica zrzutu nadal daje NIE; przebieg ALL koordynatora zapisze pełny zrzut',
               'tak — koordynator (protokół K‑60)'))
-    D.append(('R58 / sprawdzenia płytki okrągłej ramkowej', 'K‑61 (b) na Z −7,5 promieniami równoległymi do osi ścięcia, odsuniętymi o ±(w rowka/2 + cięciwa/2)/2; K‑63 nie dotyczy (zastępuje go K‑64); K‑09 bez kontroli odwrotnej dawnych rogów',
-              'w osi ścięcia na Z −7,5 leży rowek klucza (Z −8…−5,5), więc promień w osi trafiałby w jego koniec r 43; kieszenie, rowek pokrywki i rowek klucza są cechami płytki ramkowej; dawne rogi (±42, ±42) leżą poza ø100',
+    D.append(('R58 / sprawdzenia płytki okrągłej ramkowej', 'K‑61 (b) na Z −4 i −7,5 promieniami równoległymi do osi ścięcia, odsuniętymi o ±(w rowka/2 + cięciwa/2)/2; K‑63 nie dotyczy (zastępuje go K‑64); K‑09 bez kontroli odwrotnej dawnych rogów',
+              'w osi ścięcia leży rowek klucza (Z −8…%s), więc promień w osi trafiałby w jego koniec r %s; kieszenie, rowek pokrywki i rowek klucza są cechami płytki ramkowej; dawne rogi (±42, ±42) leżą poza ø100'
+              % (liczba_pl(-P['plate_thickness'] + P['round_key_slot_h'], 1), liczba_pl(P['round_key_slot_r0'], 1)),
               'nie — informacyjnie (zapis w protokole)'))
     D.append(('R58 / numery n1–n6 płytek okrągłych ramkowych', 'te same numery i bity co płytki kwadratowe (decyzja właściciela); `kody_plytek.md` (arkusze R59) nie był generowany na nowo',
               'program stanowiska rozpoznaje dziś płytkę po numerze — przy n1–n6 nie odróżni okrągłej od kwadratowej bez zmiany programu (osobna paczka); tabela kodów R58 w `R58_wdrozenie_zmiany.md`',
               'tak — koordynator (program stanowiska, arkusz kodów)'))
-    D.append(('R58 / pokrywka okrągła bez klucza', 'kubek obrotowo symetryczny poza garbami i wycięciami palcowymi; położenie nominalne (wycięcia z przodu i z tyłu) sprawdzone w K‑67',
+    D.append(('R58 / pokrywka okrągła bez klucza', 'kubek obrotowo symetryczny poza garbami, szczelinami odciążającymi (runda 2) i wycięciami palcowymi; położenie nominalne (wycięcia z przodu i z tyłu) sprawdzone w K‑67',
               'pokrywkę można założyć w dowolnym obrocie; garb nad ścięciem płytki (cięciwa %g) nie zahacza (czubek r %s > ścięcie %s), zostają 3 garby; siła zatrzasku do sprawdzenia na pierwszym wydruku FDM'
               % (P['round_flat_w'], liczba_pl(P['plate_round_d'] / 2 + P['cover_clearance'] - P['cover_snap_bump'], 2), liczba_pl(sciecie_okraglej(P)[1], 3)),
               'nie — informacyjnie (ryzyko w `R58_wdrozenie_zmiany.md`)'))
@@ -5702,6 +6135,11 @@ def odstepstwa_informacyjne_R58(P):
               'eksporter zapisuje znak zera w kilku normalnych różnie w kolejnych przebiegach (`ramka_wkladka_v2`, `do_v3.md` #9; w R58 tak samo wkładka okrągła: 3 normalne, wierzchołki i trójkąty identyczne); '
               'po zmianie 10 STL i 2 JSON odtwarzają się bajtowo w czystej kopii folderu; pliki etapów A–C zapisywane bez zmian (domyślnie False), więc ich SHA nie zależą od R58',
               'nie — informacyjnie (normalizacja dla wszystkich plików nadal w v3)'))
+    D.append(('R58 runda 2 / K‑67 szukanie ułożeń płaskich (B1)', 'mapa spodu płytki (od spodu) i mapa wierzchu wkładki (z góry) z siatek co %s mm; braki materiału płytki poszerzone o 1 węzeł '
+              '(krawędź i otwory o %s mm mniejsze); styk spodu z półką: tolerancja %s' % (liczba_pl(KROK_ULOZEN, 1), liczba_pl(KROK_ULOZEN, 1), liczba_pl(TOL_STYKU, 2)),
+              'bez poszerzenia przy przesunięciu równym luzowi węzły ściany otworu wkładki trafiałyby w węzły krawędzi płytki (fałszywy styk); granice okna wejścia są dokładne do ok. ±0,15° '
+              '(siatka 0,1 mm na promieniu ok. 47); metoda 2,5D (jedna kolumna materiału na węzeł) wystarcza, bo płytka leży płasko na Z %s, a nad półką wkładki są tylko ściana otworu i żebro'
+              % liczba_pl(P['insert_shelf_h'], 1), 'nie — informacyjnie'))
 
 
 def main():
@@ -5712,6 +6150,7 @@ def main():
     ap.add_argument('--iter', type=int, default=1)
     ap.add_argument('--bez-renderow', action='store_true', help='przebieg probny bez renderow Cycles (K-60 = NIE)')
     ap.add_argument('--raport', default=None, help='etykieta w nazwie raportu zamiast etapu (np. R54 -> raport_wykonawcy_R54_iter1.md)')
+    ap.add_argument('--r58-poprzednie', default=None, help='R58: katalog (wzgledem --out) z plikami rundy 1 (wkladka i plytki bazowe) - kontrola czulosci K-67')
     a = ap.parse_args(argv)
     t0 = time.time()
     out = os.path.join(KATALOG, a.out)
@@ -5730,7 +6169,9 @@ def main():
     znacz = 'iter%d' % a.iter if buduj else 'SPRAWDZ_iter%d' % a.iter
     przygotuj_scene()
     if buduj:
-        wyczysc_wyniki(out)
+        pominiete = wyczysc_wyniki(out, P)
+        if pominiete:
+            DZIENNIK['uklad'].append('czyszczenie wyników: pominięto %d STL kompletu R58 (%s)' % (len(pominiete), ', '.join(sorted(pominiete))))
     W = Wyniki()
     pliki, stl = etap_A(P, out, W, znacz, buduj)
     odstepstwa_informacyjne_R57(P)
@@ -5811,7 +6252,7 @@ def main_R58(a, P, liczone, out, sc_param, t0):
     znacz = ('R58_iter%d' if buduj else 'R58_SPRAWDZ_iter%d') % a.iter
     przygotuj_scene()
     W = Wyniki()
-    pliki = etap_R58(P, out, W, znacz, buduj)
+    pliki = etap_R58(P, out, W, znacz, buduj, a.r58_poprzednie)
     odstepstwa_informacyjne_R58(P)
     for p in pliki:
         p['rozmiar'] = os.path.getsize(p['sciezka'])
