@@ -202,3 +202,53 @@ W oknie Qt: `lacznik = lacznik_qt(silnik)` - obiekt z sygnalami `gotowy()`, `sta
   byc szybko; do decyzji po probach na laptopie stanowiska, D4).
 - Proces roboczy, ktory zglasza gotowosc i ginie bez zadania, jest uruchamiany od nowa bez licznika (D4 b, malo
   prawdopodobne).
+
+## Pula per praca w silniku (E3-A5i, 19.11.2026)
+
+**Opis puli.** `OpisPuli(wpisy=..., sciezki=..., korzenie=...)`: `wpisy` - wpisy puli dnia (`pula.Wpis` albo slowniki: `sha16`,
+`wspolczynnik`, `krazek`, `frezowanie_id`, `projekt_id`), `sciezki` - `projekt_id` -> plik STL (`KatalogPul.sciezki`; DANE OSOBOWE:
+tylko w procesie roboczym, poza `repr`), `korzenie` - zrodla zlecen ("Cyrkon", "Prywatne") do czyszczenia sciezek z komunikatow.
+`opis.per_praca` = sa wpisy. Bez wpisow - pula z folderu jak dotad (`foldery` ma teraz wartosc domyslna `()`).
+
+**Budowa.** `PamiecPul(limit, ust)` trzyma jedna `pamiec_puli.PamiecPuli` na proces roboczy (`[sciezki] pula_cache` / `projekty`,
+`pamiec_puli.z_ustawien`) i buduje `match.Pula.z_wpisow(wpisy, sciezki, pamiec=...)`; czesci lekkie zostaja w procesie, wiec pula po
+odswiezeniu (nowe wiersze CSV) liczy tylko nowe geometrie. Klucz puli w procesie: wpisy, pliki z rozmiarem i czasem zmiany,
+orientacja (plik zmieniony = nowa pula). Dla puli per praca `pula_dla(w)` nie zalezy od wspolczynnika plytki. Postep budowy:
+rozgrzewka czesci lekkich kazdej geometrii (`pamiec.lekki`, ta sama regula sciezki i wspolczynnika co `z_wpisow`), potem
+`z_wpisow` bierze je z pamieci procesu.
+
+**Regula zimnej puli (wybrana w E3-A5i): skany czekaja w kolejce silnika, az pula wpisow sie zbuduje.** `Silnik.przygotuj_pule(opis)`
+(ostatnie wywolanie wygrywa, None = nic) - nadzorca wysyla pule do procesu roboczego, gdy ten jest gotowy i wolny, PRZED kolejnym
+zadaniem z kolejki; zadanie trwajace konczy sie najpierw. Zdarzenia `ZdarzenieSilnika(typ="pula")`: `etap` start / budowa
+(`wynik` = {gotowe, razem} najczesciej co `ODSTEP_POSTEPU_PULI_S` = 0,25 s) / gotowa (`wynik` = `Pula.opis()` - liczniki
+`wpisow`, `geometrii`, `brak_pliku`, `plik_zmieniony`, `bez_wspolczynnika`, `pominiete`, statystyka pamieci - oraz
+`czas_przygotowania_s`) / blad. Proces bez postepu budowy dluzej niz `limit_zadania_s` = zabity; smierc procesu w trakcie
+budowy = nowa proba po restarcie, po `PROBY_PRZYGOTOWANIA_PULI` (2) takich z rzedu koniec prob; wyjatek budowy (nie smierc) - bez
+ponawiania. W obu przypadkach zadania ida dalej i buduja pule same (bez postepu). Po kazdym restarcie procesu roboczego (awaria,
+limit czasu) pula zadana buduje sie od nowa sama. `stan()["pula"]` = {zadana, w_toku, gotowa, gotowe, razem}.
+Dlaczego nie "skany na pule z folderu do czasu gotowosci": pula z folderu to caly "Cyrkon" z jednym wspolczynnikiem (inny krazek =
+zla skala) i budowa takiej puli trwa dluzej niz pula wpisow; analiza w drugim watku obok budowy - Open3D / BLAS w watkach (plan 3.8).
+Pomiar (PC, test `test_k2_k3_*`): zimna pula 24 wpisow + 3 skany w trakcie budowy - 30 s, petla okna max 61 ms; restart z ciepla
+pamiecia - budowa 0,14 s (4,3 s od startu programu). Pula 400 wpisow zimna: ok. 5 min (raport E3-A5) - skany tyle czekaja.
+
+**Sprzatanie i pamiec linii.** `Silnik(pamiec_puli_dni=N)` - przy PIERWSZYM starcie procesu roboczego w danym obiekcie `Silnik`
+(runda 2, D4: po awarii nowy proces nie usuwa wpisow uzywanych z pamieci procesu) `PamiecPuli.sprzataj(N)` (wpisy
+nieuzywane od N dni; liczba usunietych w `stan()["pamiec_puli_usuniete"]`, wiadomosc `sprzatanie`). `pamiec_linii` jest ustawiana,
+gdy modul `krawedz` jest juz zaladowany (funkcja analizy `porownaj` laduje go przy starcie) - proces z funkcja, ktora krawedzi nie
+uzywa, nie laduje Open3D tylko po to (program wlacza pamiec linii domyslnie od E3-A5i).
+
+**Dane osobowe.** `CzyscicielNazw(foldery, pomin, pliki=..., korzenie=...)`: dla puli wpisow nazwy plikow z `OpisPuli.sciezki`, ich
+rdzenie i nazwy folderow zlecen -> `<projekt sha16>` / `<projekt>`, pelne sciezki pod `korzenie` -> `<projekt>` (bez przegladania
+drzewa "Cyrkon"; P3 recenzji PR #25). Blad budowy puli wraca do nadzorcy po tym samym czyszczeniu.
+
+**Runda 2 (recenzja PR #32 r1).** `OpisPuli.typ_plytki` ("wieczorna" / "poranna") i `druga` (pula drugiego typu): `PamiecPul.dla`
+wybiera pule po wspolczynniku domyslnym ROZPOZNANEGO typu plytki, o ktory prosi `porownaj` (poranna = `synth.WSPOLCZYNNIK_PORANNA`)
+- plytka poranna dopuszczona wieczorem dostaje pule poranna (P6; druga pula budowana w zadaniu, gdy nie byla przygotowana - przy
+zimnej puli porannej to minuty w limicie zadania, D14). `OpisPuli.rodzaj` (etykieta, bez wplywu na porownanie) w kazdym zdarzeniu
+`pula` (D1). Zadanie, ktorego pula jest juz zbudowana w procesie, idzie przed budowa innej puli (D1). Budowa bez postepu: limit
+`min(limit_zadania_s, LIMIT_BEZ_POSTEPU_PULI_S = 120 s)` (D2). Blad katalogu pamieci linii w petli zadan nie konczy procesu (D5);
+pamiec linii na dysku nie ma sprzatania ani odcisku algorytmu (wersja `krawedz.WERSJA` podbijana recznie) - opisane, bez zmiany.
+
+**Runda 3 (recenzja PR #32 r2).** `OpisPuli.druga` nie wplywa na porownanie opisow (D3: zmiana samej puli porannej nie powoduje
+ponownej budowy puli wieczornej); zadanie niesie obie pule w pickle (ok. 2x). Czysciciel tekstow zadania dostaje takze pliki puli
+drugiego typu (D2).

@@ -209,3 +209,61 @@ Komunikaty, stan, sygnaly, dziennik, log programu (takze wpisy `scanner` i `siln
 - Baza zajeta przez inny program blokuje watek okna do `czekaj_ms` (5 s) przy kazdym zapisie (D5, znane); ponowienia zapisu wyniku sa coraz rzadsze (najrzadziej co 30 s), wiec okno nie stoi caly czas.
 - Okno zastepcze w `aplikacja.py` jest tylko po to, zeby program dal sie uruchomic przed A3b.
 - Prawdziwa akcja "start skanu", nazwy i sposob zapisu plikow prawdziwego skanera: po dniu skanera (B2).
+
+## Pula per praca w programie - kontrakt w wersji 5 (E3-A5i, 19.11.2026; addytywnie)
+
+**Wlaczenie.** `[silnik] pula_wpisow = true` (domyslnie false - pula z folderu jak dotad; decyzja wlasciciela przy wdrozeniu).
+Pula = `KatalogPul.z_ustawien(ust)` w watku pomocniczym `pula-katalog` (wlasne polaczenie z baza, kontrakt A4): `odswiez` (indeks
+`folder_cyrkon` / `folder_prywatne` z cechami nowych plikow, `folder_millbox/wspolczynniki.csv`, powiazanie), potem `pula_wieczorna`,
+`pula_poranna` i `sciezki`. Kiedy (runda 2, P1): przy starcie i "Odswiez pule" (glosno: stan `liczenie`, skany czekaja), przy zmianie
+trybu (glosno - skany nowego trybu czekaja na swieza pule), przy zmianie doby roboczej i pliku `wspolczynniki.csv` (czas zmiany albo
+rozmiar - `aplikacja.stan_pliku` w watku pomocniczym `pula-plik-csv` co `OKRES_KONTROLI_S`, najwyzej jedno sprawdzenie naraz, wynik
+przez skrzynke - okno nie czeka na udzial sieciowy, runda 3 B1; cicho: pula zostaje do nowej) oraz po bledzie analizy (P3). Doba
+i stan pliku zapisywane po UDANYM odswiezeniu; nieudane ponawiane po `PONOW_KATALOG_S` (60 s; runda 3 D8). NIE po kazdym wyniku ani skanie
+(indeks "Cyrkon" to sekundy-minuty). Jeden watek indeksu naraz: zamowienie w trakcie = kolejne odswiezenie po biezacym (glosne, gdy
+"Odswiez pule"; D8). Skan dostaje pule swojego trybu (`_opis_puli(z.tryb)`: wpisy + sciezki + zrodla, `druga` = pula drugiego trybu -
+plytka drugiego typu dostaje ja w silniku, P6). Stan `pula.stan`: liczenie / gotowa (sa wpisy) / pusta (brak wpisow - skany czekaja,
+komunikat `pula_wpisow_pusta` z przyczyna) / brak_folderu (katalog niedostepny - `pula_wpisow_brak`; poprzednia pula zostaje, gdy byla).
+
+**Budowa w tle.** Po odswiezeniu `silnik.przygotuj_pule(opis trybu)`, ZANIM skany wstrzymane pojda do silnika - regula zimnej
+puli: skany czekaja w kolejce silnika do konca budowy (`silnik.md`). Pasek: `pula.napis` ("wpisow puli: N - buduje pule: k z r
+(analiza czeka)", potem "wpisow puli: N (brak pliku: x, bez wspolczynnika: y)" - niezerowe liczniki KatalogPul i `z_wpisow`), pasek
+postepu z wartoscia `budowa_gotowe` / `budowa_razem`. Nowe pola `Pula`: `zrodlo` (folder / wpisy), `wpisy`, `liczniki`
+(`ZamrozonySlownik`), `budowa_gotowe`, `budowa_razem`, `czas_budowy_s`. Dziennik: `pula / pula_wpisow` (liczby wpisow, czas
+odswiezenia), `pula / pula_zbudowana` (geometrie, czas, liczniki). Sprzatanie pamieci puli: `[silnik] pamiec_puli_dni` (30; 0 =
+nie) przekazane do silnika tylko z pula wpisow.
+
+**Praca.** `Praca.wpisy_do_wyboru` (`WpisDoWyboru`: frezowanie_id, krazek, wspolczynnik, wybrany), `Praca.propozycja`,
+`Praca.wybor_wpisu_osoba`; `dozwolone` + "wybierz_wpis", gdy sa wpisy do wyboru. Polecenie (19.) `wybierz_wpis(praca_id,
+frezowanie_id)` - `KontrolerSesji`, wiec takze atrapa; zle argumenty = `zle_argumenty`, bez osoby = `brak_operatora`, wpis spoza listy =
+odmowa `session`. Ekran: rzad "Krazek do wyboru:" w widoku pracy (przycisk na krazek, wybrany z dopiskiem).
+
+**Start programu.** `main()` po utworzeniu `QApplication` wola `zaladuj_moduly_dll()` (`MODULY_DLL`: numpy, sqlite3, ctypes, socket,
+select, http.client, unicodedata, zipfile, bz2, lzma, trimesh, PIL, `stanowisko.indicate`, `stanowisko.pula`, pywin32) - przed
+pierwszym procesem roboczym (A2p POTRZEBUJE 4, recenzja PR #31 D2); wynik w logu po `konfiguruj_logi`. Diagnostyka PR #31 D1:
+`uchwyty_knowndlls()` (NtQueryObject - typ obiektu przed nazwa, tylko katalogi) przy starcie; po kazdym kolejnym starcie procesu
+roboczego (poprzedni sie zakonczyl) po `KNOWNDLLS_SPRAWDZ_PO_S` (5 i 30 s) wpis w logu "diagnostyka KnownDlls - N s po zakonczeniu
+procesu roboczego (pid ...): uchwyt 0x.. procesu okna otwarty / zniknal (...)" - tylko log, bez wplywu na prace.
+
+**Granice.** Pula wpisow pusta nie przechodzi na pule z folderu (pytanie do wlasciciela w raporcie E3-A5i). Zimna pula kilkuset wpisow (pierwszy start, zmiana
+programu / bibliotek - nowy odcisk pamieci) = minuty czekania pierwszego skanu z postepem na pasku.
+
+**Runda 2 (recenzja PR #32 r1).**
+- Komunikaty puli wpisow (P4): `pula_wpisow_pusta` / `pula_wpisow_brak` (id `pula`, gdy skany czekaja) z przyczyna
+  (`statusy.PRZYCZYNY_PULI`: brak / zly plik wspolczynnikow z numerami linii, brak frezowan w oknie dob, krazki sprzeczne i bez
+  wspolczynnika z liczba prac i nazwami krazkow, pliki z CSV spoza katalogu, rano - brak zmienionych zlecen) zamiast komunikatu trybu
+  folderu; staly `pula_wpisow_krazki` (id `pula_krazki`), gdy pula trybu ma krazki sprzeczne / bez wspolczynnika. Nowe pola `Pula`:
+  `krazki_sprzeczne`, `krazki_bez_wspolczynnika`, `przyczyna`, `blad_budowy`; licznik `sprzeczne_wspolczynniki` na pasku; blad budowy
+  w tle z przyczyna w napisie (D2). Wpisu recznego wspolczynnika w programie nie ma (`KatalogPul.wpisz_wspolczynnik` bez polecenia okna).
+- Zdarzenia `pula` z `rodzaj` (tryb i numer odswiezenia); postep innej puli nie zmienia paska (D1); wpisy dziennika `pula_wpisow` /
+  `pula_zbudowana` po ustawieniu stanu, blad bazy nie zostawia `liczenie` (D3).
+- `MODULY_DLL_PULI` (scipy.spatial, scipy.ndimage, open3d, `stanowisko.synth` / `katalog` / `indeks`) - w `main()`, gdy `pula_wpisow`
+  (P5): watek indeksu liczy cechy i miniatury nowych plikow w procesie okna (Open3D w procesie okna - koszt pamieci, opisany).
+- Polecenie (20.) `cofnij_wpis(praca_id)` (D9): cofa wybor krazka - poprzedni wybor albo praca "nierozstrzygnieta"; w `dozwolone`, gdy
+  wybor obowiazuje; ekran: "Cofnij wybor krazka" w rzedzie krazkow.
+
+**Runda 3 (recenzja PR #32 r2).** B1: zaden `os.stat` folderu MillBox / udzialow w watku okna (wyzej). D1: plytka drugiego typu
+(np. poranna dopuszczona wieczorem), gdy pula drugiego trybu jest pusta - komunikat `pula_plytki_pusta` z `skan_id` plytki (prace
+dopasowane do puli biezacego trybu sa szare); komunikat ulotny (nie wraca po restarcie). D6: `cofnij_wpis(praca_id, decyzja_id)`,
+`Praca.wybor_wpisu_id` - ekran podaje id pokazanego wyboru (podwojne klikniecie nie cofa drugiego; wieczorne "Cofnij" bez zmian).
+D4: czas ladowania modulow z DLL w logu startu (z Open3D przy `pula_wpisow`) - do pomiaru na laptopie.

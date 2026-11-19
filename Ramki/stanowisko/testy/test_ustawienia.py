@@ -341,8 +341,13 @@ def test_nowe_klucze_zla_wartosc_nadal_jest_bledem(tmp_path, dopisek, komunikat)
 NOWE_E3_A3A = {
     "sciezki": {"podglady": "dane/podglady", "pula_cache": "dane/pula_cache", "logi": "dane/logi"},
     "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True, "obserwator": "watchdog"},
-    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": False, "ponow_plik_niedostepny": 3},
+    # E3-A5i (19.11.2026): pamiec_linii domyslnie true w programie (linie brzegu na dysku: pierwsza plytka po starcie bez liczenia
+    # linii od nowa); modul silnik bez ustawien nadal bez pamieci na dysku (Silnik(pamiec_linii=None))
+    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": True, "ponow_plik_niedostepny": 3},
 }
+# E3-A5i: pula per praca w programie ([silnik] pula_wpisow; domyslnie false = pula z folderu jak dotad) i sprzatanie pamieci puli
+# przy starcie (pamiec_puli_dni; 0 = bez sprzatania) - klucze opcjonalne
+NOWE_E3_A5I = {"silnik": {"pula_wpisow": False, "pamiec_puli_dni": 30}}
 
 
 def _plik_sprzed_etapu_3(tmp_path, dopisek: str = ""):
@@ -369,19 +374,20 @@ def test_e3_a3a_nowe_klucze_sa_opcjonalne_i_rowne_stalym_modulow(tmp_path):
     for sekcja, klucze in NOWE_E3_A3A.items():
         for k, v in klucze.items():
             assert k in UST.SCHEMAT[sekcja] and UST.DOMYSLNE_NOWYCH[sekcja][k] == v, (sekcja, k)
-    assert set(UST.SCHEMAT["scanner"]) == set(NOWE_E3_A3A["scanner"]) and set(UST.SCHEMAT["silnik"]) == set(NOWE_E3_A3A["silnik"])
+    assert set(UST.SCHEMAT["scanner"]) == set(NOWE_E3_A3A["scanner"])
+    assert set(UST.SCHEMAT["silnik"]) == set(NOWE_E3_A3A["silnik"]) | set(NOWE_E3_A5I["silnik"])
     d = UST.DOMYSLNE_NOWYCH
     assert (d["scanner"]["stabilizacja_ms"], d["scanner"]["min_rozmiar_mb"], d["scanner"]["min_trojkatow"], d["scanner"]["wzorzec_pliku"]) == (
         SC.STABILIZACJA_MS, SC.MIN_ROZMIAR_MB, SC.MIN_TROJKATOW, SC.WZORZEC_PLIKU)
     assert (d["silnik"]["limit_zadania_s"], d["silnik"]["czekaj_na_plik_s"]) == (SI.LIMIT_ZADANIA_S, SI.CZEKAJ_NA_PLIK_S)
-    import inspect  # D11 (recenzja PR #20): pamiec linii domyslnie jak w silnik (Silnik(pamiec_linii=None) = wylaczona)
-    assert d["silnik"]["pamiec_linii"] is (inspect.signature(SI.Silnik).parameters["pamiec_linii"].default is not None)
+    import inspect  # D11 (recenzja PR #20) zmienione w E3-A5i: program wlacza pamiec linii (aplikacja), modul sam - nie
+    assert d["silnik"]["pamiec_linii"] is True and inspect.signature(SI.Silnik).parameters["pamiec_linii"].default is None
     parametry_scannera = inspect.signature(SC.Scanner).parameters  # pozostale 2 wartosci (wczesniej 6 z 10 porownanych z modulami)
     assert (d["scanner"]["rekurencyjnie"], d["scanner"]["obserwator"]) == (parametry_scannera["rekurencyjnie"].default, parametry_scannera["obserwator"].default)
     assert d["silnik"]["ponow_plik_niedostepny"] >= 0  # regula aplikacji (nie ma odpowiednika w silnik)
     ust = UST.wczytaj_ustawienia(_plik_sprzed_etapu_3(tmp_path))
     assert ust == UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU)  # wzor ma nowe klucze wpisane z wartosciami domyslnymi
-    assert ust["scanner"] == NOWE_E3_A3A["scanner"] and ust["silnik"] == NOWE_E3_A3A["silnik"]
+    assert ust["scanner"] == NOWE_E3_A3A["scanner"] and ust["silnik"] == {**NOWE_E3_A3A["silnik"], **NOWE_E3_A5I["silnik"]}
     assert {k: ust["sciezki"][k] for k in NOWE_E3_A3A["sciezki"]} == NOWE_E3_A3A["sciezki"]
     # lokalny plik tej maszyny (na PC: kopia sprzed etapu 3, bez nowych kluczy) tez przechodzi
     lokalny = UST.wczytaj_ustawienia(UST.PLIK_USTAWIEN)
@@ -389,7 +395,7 @@ def test_e3_a3a_nowe_klucze_sa_opcjonalne_i_rowne_stalym_modulow(tmp_path):
     # wpis w pliku ma pierwszenstwo, brakujace klucze sekcji dostaja wartosci domyslne
     ust = UST.wczytaj_ustawienia(_plik_sprzed_etapu_3(tmp_path, '\n[scanner]\nstabilizacja_ms = 500\nwzorzec_pliku = "plytka_*.stl"\n\n[silnik]\nlimit_zadania_s = 300\n'))
     assert ust["scanner"] == {**NOWE_E3_A3A["scanner"], "stabilizacja_ms": 500, "wzorzec_pliku": "plytka_*.stl"}
-    assert ust["silnik"] == {**NOWE_E3_A3A["silnik"], "limit_zadania_s": 300}
+    assert ust["silnik"] == {**NOWE_E3_A3A["silnik"], **NOWE_E3_A5I["silnik"], "limit_zadania_s": 300}
 
 
 @pytest.mark.parametrize("dopisek, komunikat", [
@@ -406,6 +412,9 @@ def test_e3_a3a_nowe_klucze_sa_opcjonalne_i_rowne_stalym_modulow(tmp_path):
     ("[silnik]\nczekaj_na_plik_s = -1\n", r"\[silnik\] czekaj_na_plik_s: musi"),
     ("[silnik]\nponow_plik_niedostepny = -1\n", r"\[silnik\] ponow_plik_niedostepny: musi"),
     ("[silnik]\npamiec_linii = 1\n", r"\[silnik\] pamiec_linii: oczekiwano bool"),
+    ("[silnik]\npula_wpisow = 1\n", r"\[silnik\] pula_wpisow: oczekiwano bool"),  # E3-A5i
+    ("[silnik]\npamiec_puli_dni = -1\n", r"\[silnik\] pamiec_puli_dni: musi"),
+    ("[silnik]\npamiec_puli_dni = 2.5\n", r"\[silnik\] pamiec_puli_dni: oczekiwano int"),
     ("[silniki]\nlimit_zadania_s = 5\n", r"\[silniki\]: nieznana sekcja"),
 ])
 def test_e3_a3a_zla_wartosc_nowego_klucza_jest_bledem(tmp_path, dopisek, komunikat):

@@ -104,17 +104,42 @@ BLOK_ODCZYTU = 4 * 1024 * 1024
 OKRES_STRAZNIKA_S = 0.5  # co ile straznik w procesie roboczym sprawdza proces okna i czas zadania
 KOD_BEZ_PROCESU_OKNA = 91  # kod wyjscia procesu roboczego: zniknal proces okna
 KOD_LIMIT_ZADANIA = 92  # kod wyjscia procesu roboczego: zadanie przekroczylo limit (z zapasem)
+# E3-A5i: budowa puli wpisow w tle (``przygotuj_pule``) - postep najczesciej co tyle; proces, ktory budujac pule nie przysyla postepu
+# dluzej niz ``limit_zadania_s``, jest zabijany; budowa przerwana smiercia procesu tyle razy z rzedu = koniec prob (zadania ida dalej)
+ODSTEP_POSTEPU_PULI_S = 0.25
+LIMIT_BEZ_POSTEPU_PULI_S = 120.0  # runda 2 (D2): budowa bez postepu dluzej niz tyle (albo limit_zadania_s, gdy krotszy) = proces zabity
+PROBY_PRZYGOTOWANIA_PULI = 2
+ETAPY_PULI = ("start", "budowa", "gotowa", "blad")
 
 
 @dataclasses.dataclass(frozen=True)
 class OpisPuli:
     """Z czego silnik buduje pule projektow. ``wspolczynnik`` None = domyslny dla rozpoznanego typu plytki (jak w wierszu
-    polecen). ``wspolczynniki`` (opcjonalnie): skrot projektu -> wspolczynnik pojedynczej pracy (``match.Pula``)."""
+    polecen). ``wspolczynniki`` (opcjonalnie): skrot projektu -> wspolczynnik pojedynczej pracy (``match.Pula``).
 
-    foldery: tuple
+    E3-A5i - pula per praca: ``wpisy`` (``pula.Wpis`` albo slowniki z polami ``sha16``, ``wspolczynnik``, ``krazek``,
+    ``frezowanie_id``, ``projekt_id``) i ``sciezki`` (``projekt_id`` -> plik STL, ``KatalogPul.sciezki``) = pula
+    ``match.Pula.z_wpisow`` z pamiecia podreczna ``pamiec_puli`` (``wspolczynnik`` - tylko dla wpisow bez wspolczynnika);
+    ``korzenie`` - zrodla zlecen ("Cyrkon", "Prywatne"): sciezki pod nimi sa wycinane z komunikatow. Sciezki to DANE OSOBOWE
+    (nazwy folderow zlecen): trafiaja tylko do procesu roboczego, nie do ``repr`` (logi) i nie do plikow."""
+
+    foldery: tuple = ()
     wspolczynnik: float | None = None
     orientacja: str = "auto"
     wspolczynniki: dict | None = None
+    wpisy: tuple = dataclasses.field(default=(), repr=False)
+    sciezki: dict | None = dataclasses.field(default=None, repr=False)
+    korzenie: tuple = dataclasses.field(default=(), repr=False)
+    # runda 2 (P6, D1): ``typ_plytki`` - typ plytki, dla ktorego jest ta pula ("wieczorna" / "poranna"); ``druga`` - pula drugiego
+    # typu: plytka rozpoznana jako drugi typ (np. poranna dopuszczona wieczorem) dostaje ``druga``; ``rodzaj`` - etykieta puli
+    # w zdarzeniach ``pula`` (np. "wieczor:3"; nie wplywa na porownanie opisow)
+    typ_plytki: str = ""
+    druga: object = dataclasses.field(default=None, repr=False, compare=False)  # runda 3 (D3): zmiana puli porannej nie zmienia opisu wieczornego
+    rodzaj: str = dataclasses.field(default="", compare=False)
+
+    @property
+    def per_praca(self) -> bool:
+        return bool(self.wpisy)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -135,7 +160,9 @@ class ZadanieAnalizy:
 
 @dataclasses.dataclass(frozen=True)
 class ZdarzenieSilnika:
-    typ: str  # gotowy | start | postep | wynik | blad | zatrzymany
+    # pula (E3-A5i): budowa puli wpisow w tle - ``etap`` start / budowa / gotowa / blad; ``wynik`` = {"gotowe", "razem"} (budowa)
+    # albo liczby puli (gotowa: ``match.Pula.opis()`` + ``czas_s``); ``blad`` - komunikat
+    typ: str  # gotowy | start | postep | wynik | blad | zatrzymany | pula
     czas: float  # time.time()
     zadanie_id: int | None = None
     zadanie: ZadanieAnalizy | None = None
@@ -188,15 +215,26 @@ class CzyscicielNazw:
     ``POLA_TEKSTU_WOLNEGO``); pola decyzji (``status``, ``typ``, ``id``, ``skan``, kolory gniazd ...), klucze i liczby -
     bez zmian, nawet gdy folder w puli nazywa sie ``OK`` albo plik ``korona.stl``."""
 
-    def __init__(self, foldery, pomin=()):
+    def __init__(self, foldery, pomin=(), pliki=(), korzenie=()):
+        """E3-A5i (P3 recenzji PR #25): ``pliki`` - pliki puli wpisow (``OpisPuli.sciezki``): ich nazwy, rdzenie nazw i nazwy
+        folderow zlecen, bez przegladania drzewa; ``korzenie`` - zrodla zlecen, pod ktorymi pelna sciezka -> ``<projekt>``."""
         self.foldery: list[str] = []
         self._mapa: dict[str, Path | None] = {}  # nazwa malymi literami -> plik (None = folder albo nazwa niejednoznaczna)
         self._skroty: dict[Path, str] = {}
         self._wzor = None
         try:
-            self.foldery = [str(f) for f in foldery if str(f)]
+            przegladane = [str(f) for f in foldery if str(f)]
+            self.foldery = przegladane + [str(k) for k in korzenie if str(k) and str(k) not in przegladane]
             pomijane = {os.path.normcase(os.path.abspath(str(p))) for p in pomin}
-            for f in self.foldery:
+            for p in (Path(x) for x in pliki):
+                if os.path.normcase(os.path.abspath(str(p))) in pomijane:
+                    continue
+                self._dodaj(p.name, p)
+                if len(p.stem) >= 3 and _liter(p.stem) >= 2:
+                    self._dodaj(p.stem, p)
+                if _liter(p.parent.name) >= 2:
+                    self._dodaj(p.parent.name, None)
+            for f in przegladane:
                 korzen = Path(f)
                 try:
                     wpisy = list(korzen.rglob("*")) if korzen.is_dir() else []
@@ -344,18 +382,122 @@ class Straznik:
         return w
 
 
-class PamiecPul:
-    """Pule projektow trzymane w procesie roboczym miedzy zadaniami (budowa puli to sekundy, plytek jest kilkanascie dziennie)."""
+def _pole(w, nazwa: str):
+    """Pole wpisu puli: ``pula.Wpis`` (atrybut) albo slownik (klucz) - jak ``match.Pula.z_wpisow``."""
+    return w.get(nazwa) if isinstance(w, dict) else getattr(w, nazwa, None)
 
-    def __init__(self, limit: int = PUL_W_PAMIECI):
+
+class PamiecPul:
+    """Pule projektow trzymane w procesie roboczym miedzy zadaniami (budowa puli to sekundy, plytek jest kilkanascie dziennie).
+
+    E3-A5i: pula per praca (``OpisPuli.wpisy``) = ``match.Pula.z_wpisow`` z jedna ``pamiec_puli.PamiecPuli`` na proces
+    (katalog ``[sciezki] pula_cache`` / ``projekty`` z ``ust``; bez ``ust`` - tylko pamiec procesu): czesci lekkie i pelne projekty
+    zostaja w procesie, wiec nowa pula po odswiezeniu liczy tylko nowe wpisy. ``przygotuj(opis, postep)`` - budowa w tle
+    z postepem (gotowe, razem), zanim przyjdzie pierwsze zadanie."""
+
+    def __init__(self, limit: int = PUL_W_PAMIECI, ust: dict | None = None):
         self.limit = max(1, limit)
+        self.ust = ust
         self._pule: collections.OrderedDict = collections.OrderedDict()
+        self._pamiec_puli = None
 
     def __len__(self) -> int:
         return len(self._pule)
 
+    def pamiec_puli(self):
+        """``pamiec_puli.PamiecPuli`` procesu (tworzona przy pierwszym uzyciu - laduje ``match`` z Open3D)."""
+        if self._pamiec_puli is None:
+            from . import pamiec_puli as PP
+
+            self._pamiec_puli = PP.z_ustawien(self.ust) if self.ust is not None else PP.PamiecPuli(None)
+        return self._pamiec_puli
+
+    @staticmethod
+    def _pliki_wpisow(opis: OpisPuli) -> list[tuple]:
+        """(plik, wspolczynnik) kazdej geometrii puli wpisow (ta sama regula co ``match.Pula.z_wpisow``: sciezka z ``sciezki``
+        albo pole ``plik`` / ``sciezka`` wpisu, wspolczynnik wpisu albo ``opis.wspolczynnik``), bez powtorzen, w kolejnosci wpisow."""
+        wynik, widziane = [], set()
+        for w in opis.wpisy:
+            wsp = _pole(w, "wspolczynnik")
+            wsp = opis.wspolczynnik if wsp is None else wsp
+            pid = _pole(w, "projekt_id")
+            plik = (opis.sciezki or {}).get(pid) if opis.sciezki and pid in opis.sciezki else (_pole(w, "plik") or _pole(w, "sciezka"))
+            if wsp is None or plik is None:
+                continue
+            k = (os.path.normcase(os.path.abspath(str(plik))), round(float(wsp), 6))
+            if k not in widziane:
+                widziane.add(k)
+                wynik.append((Path(plik), round(float(wsp), 6)))
+        return wynik
+
+    def _klucz_wpisow(self, opis: OpisPuli) -> tuple:
+        """Klucz puli wpisow w pamieci procesu: wpisy, pliki z rozmiarem i czasem zmiany (plik zmieniony = nowa pula), orientacja."""
+        wpisy = tuple(tuple(_pole(w, n) for n in ("sha16", "wspolczynnik", "krazek", "frezowanie_id", "projekt_id")) for w in opis.wpisy)
+        pliki = []
+        for pid, plik in sorted((opis.sciezki or {}).items(), key=lambda kv: str(kv[0])):
+            try:
+                st = os.stat(plik)
+                pliki.append((str(pid), str(plik), st.st_size, st.st_mtime_ns))
+            except OSError:
+                pliki.append((str(pid), str(plik), None, None))
+        return ("wpisy", wpisy, tuple(pliki), opis.orientacja, opis.wspolczynnik)
+
+    def pula_wpisow(self, opis: OpisPuli, postep=None):
+        """Pula per praca dla ``opis`` - z pamieci procesu albo zbudowana (``postep(gotowe, razem)`` w trakcie)."""
+        klucz = self._klucz_wpisow(opis)
+        if klucz in self._pule:
+            self._pule.move_to_end(klucz)
+            return self._pule[klucz]
+        from . import match as M
+
+        pamiec = self.pamiec_puli()
+        pliki = self._pliki_wpisow(opis)
+        razem = len(pliki)
+        ostatni = 0.0
+        if postep is not None:
+            postep(0, razem)
+        for nr, (plik, wsp) in enumerate(pliki, start=1):  # rozgrzewka: czesci lekkie w pamieci procesu (i na dysku) z postepem
+            try:
+                pamiec.lekki(plik, pamiec.skrot(plik), wsp, opis.orientacja)
+            except (OSError, ValueError):
+                pass  # brak pliku / plik nie do wczytania: licznik ustawi z_wpisow
+            if postep is not None and (nr == razem or time.monotonic() - ostatni >= ODSTEP_POSTEPU_PULI_S):
+                ostatni = time.monotonic()
+                postep(nr, razem)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # synth.wczytaj_projekt ostrzega z nazwa pliku (nazwisko) - zasada A4
+            pula = M.Pula.z_wpisow(list(opis.wpisy), dict(opis.sciezki or {}), opis.orientacja, pamiec=pamiec, wspolczynnik_domyslny=opis.wspolczynnik)
+        self._pule[klucz] = pula
+        while len(self._pule) > self.limit:
+            self._pule.popitem(last=False)
+        return pula
+
+    def przygotuj(self, opis: OpisPuli, postep=None) -> dict:
+        """Budowa puli wpisow przed pierwszym zadaniem (E3-A5i); zwraca liczby puli (bez nazw) i czas budowy."""
+        t0 = time.monotonic()
+        pula = self.pula_wpisow(opis, postep)
+        return {**pula.opis(), "czas_s": round(time.monotonic() - t0, 3), "geometrii": len(pula)}
+
+    def sprzataj(self, dni: float) -> int:
+        """``PamiecPuli.sprzataj(dni)`` katalogu pamieci puli (wpisy nieuzywane od ``dni`` dni); 0 / brak katalogu = nic."""
+        return int(self.pamiec_puli().sprzataj(dni)) if dni and dni > 0 else 0
+
+    @staticmethod
+    def opis_dla_plytki(opis: OpisPuli, w: float | None) -> OpisPuli:
+        """Runda 2 (P6): ``porownaj`` prosi o pule wspolczynnikiem domyslnym ROZPOZNANEGO typu plytki (poranna 1,0); plytka innego
+        typu niz ``opis.typ_plytki`` (poranna dopuszczona wieczorem, wieczorna rano) dostaje ``opis.druga``, gdy jest."""
+        druga = opis.druga
+        if druga is None or not getattr(druga, "per_praca", False) or w is None or not opis.typ_plytki:
+            return opis
+        from . import synth as S
+
+        typ = "poranna" if abs(float(w) - S.WSPOLCZYNNIK_PORANNA[0]) < 1e-9 else "wieczorna"
+        return druga if typ != opis.typ_plytki and druga.typ_plytki == typ else opis
+
     def dla(self, opis: OpisPuli):
-        """Funkcja ``pula_dla(wspolczynnik) -> match.Pula`` dla ``porownaj``."""
+        """Funkcja ``pula_dla(wspolczynnik) -> match.Pula`` dla ``porownaj``. Pula per praca nie zalezy od wspolczynnika plytki."""
+        if opis.per_praca:
+            return lambda w: self.pula_wpisow(self.opis_dla_plytki(opis, w))
 
         def pula_dla(w: float):
             from . import match as M
@@ -930,9 +1072,37 @@ def _wykonaj(zadanie: ZadanieAnalizy, funkcja, ust: dict, pamiec: PamiecPul, lac
     return wynik, pliki
 
 
+def _ustaw_pamiec_linii(katalog) -> bool:
+    """Pamiec linii brzegu na dysku (``krawedz.ustaw_katalog_pamieci``) - gdy modul ``krawedz`` jest juz zaladowany (laduje go
+    funkcja analizy, np. ``porownaj``). E3-A5i: program wlacza pamiec linii domyslnie, a proces roboczy z funkcja, ktora krawedzi
+    nie uzywa, nie laduje przez to Open3D przy starcie. True = ustawiono."""
+    kr = sys.modules.get(f"{__package__}.krawedz") if __package__ else None
+    if katalog is None or kr is None:
+        return False
+    Path(katalog).mkdir(parents=True, exist_ok=True)
+    kr.ustaw_katalog_pamieci(katalog)
+    return True
+
+
+def _przygotuj_pule(lacze, pamiec: PamiecPul, opis: OpisPuli) -> None:
+    """E3-A5i: budowa puli wpisow w procesie roboczym przed zadaniami; postep i wynik do nadzorcy (bez nazw plikow)."""
+    czysc = CzyscicielNazw((), pliki=(opis.sciezki or {}).values(), korzenie=opis.korzenie)
+    try:
+        info = pamiec.przygotuj(opis, lambda gotowe, razem: lacze.send(("pula_postep", int(gotowe), int(razem))))
+        odpowiedz = ("pula_gotowa", json.loads(json.dumps(info, default=str)))
+    except KeyboardInterrupt:
+        raise
+    except BaseException as e:  # noqa: BLE001 - blad budowy puli nie konczy procesu roboczego
+        odpowiedz = ("pula_blad", czysc(f"{type(e).__name__}: {e}"), czysc(traceback.format_exc()))
+    lacze.send(odpowiedz)
+
+
 def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamieci: int, plik_logu, pamiec_linii=None,
-              limit_zadania_s: float | None = LIMIT_ZADANIA_S, katalog_roboczy=None, czekaj_na_plik_s: float = CZEKAJ_NA_PLIK_S) -> None:
-    """Cialo procesu roboczego: laduje ustawienia i funkcje analizy, potem wykonuje zadania z lacza, jedno naraz."""
+              limit_zadania_s: float | None = LIMIT_ZADANIA_S, katalog_roboczy=None, czekaj_na_plik_s: float = CZEKAJ_NA_PLIK_S,
+              pamiec_puli_dni: float | None = None) -> None:
+    """Cialo procesu roboczego: laduje ustawienia i funkcje analizy, potem wykonuje zadania z lacza, jedno naraz.
+    E3-A5i: ``pamiec_puli_dni`` - przy starcie ``PamiecPuli.sprzataj(dni)`` (wynik do nadzorcy: wiadomosc ``sprzatanie``);
+    wiadomosc ``pula`` z nadzorcy = budowa puli wpisow w tle (``_przygotuj_pule``)."""
     rodzic = multiprocessing.parent_process()
     straznik = Straznik(rodzic.is_alive if rodzic is not None else (lambda: True), limit_zadania_s)
     straznik.uruchom()  # P6: od pierwszej chwili - takze w trakcie ladowania bibliotek i w trakcie analizy
@@ -953,18 +1123,21 @@ def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamiec
             from . import ustawienia as UST
 
             ust = UST.wczytaj_ustawienia(Path(plik_ustawien) if plik_ustawien is not None else None)
-        if pamiec_linii is not None:  # linie brzegu projektow (P2) takze na dysku: przezywaja restart procesu i programu
-            from . import krawedz as KR
-
-            Path(pamiec_linii).mkdir(parents=True, exist_ok=True)
-            KR.ustaw_katalog_pamieci(pamiec_linii)
-        pamiec = PamiecPul(pul_w_pamieci)
+        linie_ustawione = _ustaw_pamiec_linii(pamiec_linii)  # linie brzegu projektow (P2) takze na dysku: przezywaja restart
+        pamiec = PamiecPul(pul_w_pamieci, ust)
     except BaseException as e:  # noqa: BLE001 - brak pakietu, zly plik ustawien: nadzorca dostaje komunikat
         try:
             lacze.send(("blad_startu", f"{type(e).__name__}: {e}", traceback.format_exc()))
         except OSError:
             pass
         return
+    if pamiec_puli_dni:  # E3-A5i: stare wpisy pamieci puli (nieuzywane od N dni) - przy starcie programu i procesu roboczego
+        try:
+            usuniete = pamiec.sprzataj(float(pamiec_puli_dni))
+        except Exception as e:  # noqa: BLE001 - sprzatanie nie moze zatrzymac startu
+            sys.stderr.write(f"silnik: sprzatanie pamieci puli nieudane ({type(e).__name__})\n")
+            usuniete = -1
+        lacze.send(("sprzatanie", usuniete))
     katalog = Path(katalog_roboczy) if katalog_roboczy is not None else Path(tempfile.gettempdir()) / KATALOG_ROBOCZY
     try:  # N1 / D-N6: kopie po procesach roboczych zabitych w trakcie zadania (Straznik, limit czasu, awaria)
         katalog.mkdir(parents=True, exist_ok=True)
@@ -979,9 +1152,23 @@ def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamiec
             return  # proces okna zniknal
         if wiadomosc[0] == "koniec":
             return
+        if wiadomosc[0] == "pula":  # E3-A5i: budowa puli wpisow przed zadaniami (straznik pilnuje tylko procesu okna)
+            try:
+                _przygotuj_pule(lacze, pamiec, wiadomosc[1])
+            except OSError:
+                return
+            continue
+        if not linie_ustawione:
+            try:  # krawedz zaladowany pozniej (leniwy import w funkcji analizy); blad katalogu nie konczy procesu (runda 2, D5)
+                linie_ustawione = _ustaw_pamiec_linii(pamiec_linii)
+            except OSError:
+                linie_ustawione = True
         zadanie: ZadanieAnalizy = wiadomosc[1]
         straznik.poczatek_zadania()
-        czysc = CzyscicielNazw(zadanie.pula.foldery, pomin=(zadanie.skan,))  # lista plikow puli: nazwy do usuniecia z tekstow
+        # lista plikow puli: nazwy do usuniecia z tekstow (pula wpisow: pliki z OpisPuli.sciezki + zrodla zlecen, E3-A5i)
+        druga = getattr(zadanie.pula, "druga", None)  # runda 3 (D2): takze pliki puli drugiego typu (P6)
+        pliki = list((zadanie.pula.sciezki or {}).values()) + list((getattr(druga, "sciezki", None) or {}).values())
+        czysc = CzyscicielNazw(zadanie.pula.foldery, pomin=(zadanie.skan,), pliki=pliki, korzenie=zadanie.pula.korzenie)
         kopia, oryginal = str(_folder_kopii(katalog, zadanie) / Path(zadanie.skan).name), str(zadanie.skan)
 
         def tekst(t: str) -> str:  # sciezka kopii roboczej w komunikacie -> plik skanu (technik zna plik skanu, nie kopie)
@@ -1021,13 +1208,19 @@ class Silnik:
     dlugo ponawiac kopiowanie pliku skanu, ktory trzyma inny program. ``na_zdarzenie`` - funkcja wolana z kazdym
     ``ZdarzenieSilnika`` w watku nadzorcy; nie moze czekac na watek, ktory wola ``stop()`` (D-N3). ``limit_startu_s`` -
     czas od ``Process.start()`` do zgloszenia gotowosci przez proces roboczy (ladowanie bibliotek). ``limit_uruchomienia_s``
-    i ``proby_uruchomienia`` - limit samego ``Process.start()`` i liczba prob (E3-A2p).
+    i ``proby_uruchomienia`` - limit samego ``Process.start()`` i liczba prob (E3-A2p). ``pamiec_puli_dni`` (E3-A5i) - przy
+    starcie procesu roboczego ``PamiecPuli.sprzataj(dni)`` (None / 0 = bez sprzatania; liczba usunietych w ``stan()``).
+
+    Pula wpisow w tle (E3-A5i, regula zimnej puli): ``przygotuj_pule(opis)`` - proces roboczy buduje pule PRZED kolejnymi
+    zadaniami (zadania czekaja w kolejce, postep w zdarzeniach ``pula``); po restarcie procesu (awaria, limit czasu) budowa
+    rusza od nowa sama. Zadanie trwajace w chwili wywolania konczy sie najpierw.
     """
 
     def __init__(self, ust: dict | None = None, plik_ustawien=None, *, funkcja: str = FUNKCJA_ANALIZY, limit_zadania_s: float = LIMIT_ZADANIA_S,
                  limit_startu_s: float = LIMIT_STARTU_S, pul_w_pamieci: int = PUL_W_PAMIECI, plik_logu=None, pamiec_linii=None,
                  katalog_roboczy=None, czekaj_na_plik_s: float = CZEKAJ_NA_PLIK_S, na_zdarzenie=None,
-                 limit_uruchomienia_s: float = LIMIT_URUCHOMIENIA_S, proby_uruchomienia: int = PROBY_URUCHOMIENIA):
+                 limit_uruchomienia_s: float = LIMIT_URUCHOMIENIA_S, proby_uruchomienia: int = PROBY_URUCHOMIENIA,
+                 pamiec_puli_dni: float | None = None):
         self.ust, self.plik_ustawien, self.funkcja = ust, plik_ustawien, funkcja
         self.limit_zadania_s, self.limit_startu_s, self.pul_w_pamieci, self.plik_logu = limit_zadania_s, limit_startu_s, pul_w_pamieci, plik_logu
         self.limit_uruchomienia_s, self.proby_uruchomienia = float(limit_uruchomienia_s), max(1, int(proby_uruchomienia))
@@ -1056,6 +1249,16 @@ class Silnik:
         self._zglaszane: ZadanieAnalizy | None = None  # zadanie, ktorego zdarzenie koncowe wlasnie idzie do odbiorcy (D-N3)
         self._w_obiekcie_zadania = False  # D-N5: proces roboczy jest w obiekcie zadania Windows procesu okna
         self._przerwane_uruchomienia = 0  # E3-A2p: proby Process.start() przerwane po limicie albo zakonczone wyjatkiem
+        # E3-A5i: pula wpisow budowana w tle; zadana (ostatnia z przygotuj_pule), w toku, gotowa w biezacym procesie roboczym
+        self.pamiec_puli_dni = float(pamiec_puli_dni) if pamiec_puli_dni else None
+        self._pula_zadana: OpisPuli | None = None
+        self._pula_w_toku: OpisPuli | None = None
+        self._pula_gotowa: OpisPuli | None = None
+        self._pula_proby = 0
+        self._pula_od = 0.0
+        self._pula_ostatni_postep = 0.0
+        self._pula_postep = (0, 0)
+        self._sprzatniete: int | None = None
 
     # --- sterowanie
     def start(self) -> None:
@@ -1168,11 +1371,25 @@ class Silnik:
                 return False
             time.sleep(0.02)
 
+    def przygotuj_pule(self, opis: OpisPuli | None) -> None:
+        """E3-A5i: pula wpisow, ktora proces roboczy ma zbudowac w tle przed kolejnymi zadaniami (ostatnie wywolanie wygrywa;
+        None = nic do przygotowania). Pula juz zbudowana w biezacym procesie nie jest budowana drugi raz. Postep i wynik:
+        zdarzenia ``pula`` (``etap`` start / budowa / gotowa / blad)."""
+        if opis is not None and not opis.per_praca:
+            opis = None
+        with self._zamek:
+            if opis != self._pula_zadana:
+                self._pula_zadana, self._pula_proby = opis, 0
+
     def stan(self) -> dict:
         b = self._biezace
         return {"dziala": self.dziala(), "proces_gotowy": self._gotowy, "pid": self.pid, "w_kolejce": len(self._kolejka),
                 "biezace": b.zadanie_id if b is not None else None, "starty_procesu": self._starty, "obiekt_zadania": self._w_obiekcie_zadania,
-                "nieudane_uruchomienia": self._przerwane_uruchomienia}
+                "nieudane_uruchomienia": self._przerwane_uruchomienia,
+                "pula": {"zadana": self._pula_zadana is not None, "w_toku": self._pula_w_toku is not None,
+                         "gotowa": self._pula_zadana is not None and self._pula_gotowa == self._pula_zadana,
+                         "gotowe": self._pula_postep[0], "razem": self._pula_postep[1]},
+                "pamiec_puli_usuniete": self._sprzatniete}
 
     # --- nadzorca
     def _zglos(self, typ: str, **pola) -> None:
@@ -1284,7 +1501,10 @@ class Silnik:
         rodzic, dziecko = self._ctx.Pipe()
         p = self._ctx.Process(target=_robotnik, name="silnik-analiza", daemon=True,
                               args=(dziecko, self.ust, self.plik_ustawien, self.funkcja, self.pul_w_pamieci, self.plik_logu, self.pamiec_linii,
-                                    self.limit_zadania_s, self.katalog_roboczy, self.czekaj_na_plik_s))
+                                    self.limit_zadania_s, self.katalog_roboczy, self.czekaj_na_plik_s,
+                                    # runda 2 (D4): sprzatanie pamieci puli tylko przy pierwszym starcie procesu roboczego w tym
+                                    # uruchomieniu programu - po awarii nowy proces nie usuwa wpisow uzywanych z pamieci procesu
+                                    self.pamiec_puli_dni if self._starty == 0 else None))
         t0 = time.monotonic()
         powod = self._start_z_limitem(p, proba)
         if powod is not None:
@@ -1325,6 +1545,7 @@ class Silnik:
         with self._zamek:  # stop() i nadzorca (po przekroczeniu czasu join) nie zamykaja tego samego procesu dwa razy
             p, lacze = self._proces, self._lacze
             self._proces, self._lacze, self._gotowy = None, None, False
+            self._pula_gotowa = None  # E3-A5i: pula zbudowana w procesie, ktorego juz nie ma - nowy proces buduje ja od nowa
         kod = None
         if p is not None:
             if grzecznie and p.is_alive() and lacze is not None:
@@ -1374,6 +1595,13 @@ class Silnik:
             if teraz - self._start_procesu > self.limit_startu_s:
                 self._zamknij_proces()
                 self._nieudany_start_procesu(f"proces silnika nie zglosil gotowosci w {self.limit_startu_s:.0f} s", "")
+        elif self._pula_w_toku is not None:  # E3-A5i: budowa puli w tle - zadania czekaja; proces bez postepu za dlugo = zabity
+            limit = min(self.limit_zadania_s, LIMIT_BEZ_POSTEPU_PULI_S)
+            if teraz - self._pula_ostatni_postep > limit:
+                self._zamknij_proces()
+                self._pula_przerwana(f"budowa puli bez postepu dluzej niz {limit:.0f} s - proces silnika przerwany")
+        elif self._wyslij_pule(lacze, teraz):
+            return
         else:
             with self._zamek:  # D3: zdjecie z kolejki i "w toku" razem - czekaj_na_pusta_kolejke nie widzi luki
                 if self._po_stopie:
@@ -1387,6 +1615,38 @@ class Silnik:
                     lacze.send(("zadanie", zadanie))
                 except OSError:
                     self._po_smierci_procesu()
+
+    def _wyslij_pule(self, lacze, teraz: float) -> bool:
+        """E3-A5i: proces gotowy i wolny, a zadana pula nie jest zbudowana w tym procesie - wyslij ja do budowy (przed zadaniami
+        z kolejki). True = wyslano (zadania czekaja na koniec budowy)."""
+        with self._zamek:
+            opis = self._pula_zadana
+            if self._po_stopie or opis is None or opis == self._pula_gotowa:
+                return False
+            if self._kolejka and self._pula_gotowa is not None and self._kolejka[0].pula == self._pula_gotowa:
+                return False  # runda 2 (D1): pierwsze zadanie ma juz swoja pule w procesie - idzie przed budowa innej puli
+            self._pula_w_toku, self._pula_od, self._pula_ostatni_postep, self._pula_postep = opis, teraz, teraz, (0, 0)
+        self._zglos("pula", etap="start", udzial=0.0, wynik={"gotowe": 0, "razem": 0, "wpisow": len(opis.wpisy), "rodzaj": opis.rodzaj})
+        try:
+            lacze.send(("pula", opis))
+        except OSError:
+            self._po_smierci_procesu()
+        return True
+
+    def _pula_przerwana(self, tekst: str) -> None:
+        """Budowa puli przerwana smiercia albo zabiciem procesu: zdarzenie ``pula`` / ``blad``; po PROBY_PRZYGOTOWANIA_PULI takich
+        przerwaniach z rzedu - koniec prob (zadania ida dalej i buduja pule same, bez postepu)."""
+        with self._zamek:
+            opis, self._pula_w_toku = self._pula_w_toku, None
+            if opis is None:
+                return
+            self._pula_proby += 1
+            koniec = self._pula_proby >= PROBY_PRZYGOTOWANIA_PULI and self._pula_zadana == opis
+            if koniec:
+                self._pula_zadana = None
+        LOG.warning("silnik: %s%s", tekst, " - koniec prob budowy puli w tle" if koniec else " - nowa proba po starcie procesu")
+        self._zglos("pula", etap="blad", blad=tekst, wynik={"gotowe": self._pula_postep[0], "razem": self._pula_postep[1], "koniec_prob": koniec,
+                                                       "rodzaj": opis.rodzaj})
 
     def _zakoncz(self, zadanie: ZadanieAnalizy, typ: str, **pola) -> None:
         """Zdarzenie koncowe zadania (``wynik`` / ``blad``) - jedyna droga (D-N3). Po rozpoczeciu ``stop()`` zdarzenie jest
@@ -1427,6 +1687,13 @@ class Silnik:
             self._zamknij_proces()
             self._nieudany_start_procesu(f"proces silnika nie wystartowal: {w[1]}", w[2])
             return
+        if rodzaj == "sprzatanie":  # E3-A5i: PamiecPuli.sprzataj przy starcie procesu roboczego
+            self._sprzatniete = int(w[1])
+            LOG.info("silnik: pamiec puli - usuniete wpisy nieuzywane od %s dni: %s", f"{self.pamiec_puli_dni:g}", w[1])
+            return
+        if rodzaj in ("pula_postep", "pula_gotowa", "pula_blad"):
+            self._odbierz_pule(w)
+            return
         zadanie = self._biezace
         if zadanie is None or w[1] != zadanie.zadanie_id:
             return  # spozniona wiadomosc zadania juz zamknietego
@@ -1440,10 +1707,42 @@ class Silnik:
         elif rodzaj == "blad":
             self._zakoncz(zadanie, "blad", rodzaj=w[4] if len(w) > 4 else "analiza", blad=w[2], szczegoly=w[3], czas_s=czas_s)
 
+    def _odbierz_pule(self, w: tuple) -> None:
+        """E3-A5i: postep, koniec albo blad budowy puli wpisow w procesie roboczym."""
+        opis = self._pula_w_toku
+        if opis is None:
+            return  # spozniona wiadomosc (budowa przerwana)
+        teraz = time.monotonic()
+        if w[0] == "pula_postep":
+            self._pula_ostatni_postep, self._pula_postep = teraz, (int(w[1]), int(w[2]))
+            self._zglos("pula", etap="budowa", udzial=(w[1] / w[2]) if w[2] else 0.0, wynik={"gotowe": int(w[1]), "razem": int(w[2]), "rodzaj": opis.rodzaj})
+            return
+        with self._zamek:
+            self._pula_w_toku = None
+            if w[0] == "pula_gotowa":
+                self._pula_gotowa, self._pula_proby = opis, 0
+            elif self._pula_zadana == opis:
+                self._pula_zadana = None  # blad budowy (nie smierc procesu) nie jest ponawiany - zadania zbuduja pule same
+        czas_s = round(teraz - self._pula_od, 3)
+        if w[0] == "pula_gotowa":
+            info = dict(w[1] or {})
+            razem = self._pula_postep[1]
+            self._pula_postep = (razem, razem)
+            LOG.info("silnik: pula wpisow gotowa w %.1f s (wpisow %s, geometrii %s)", czas_s, info.get("wpisow"), info.get("geometrii"))
+            self._zglos("pula", etap="gotowa", udzial=1.0, wynik={**info, "gotowe": razem, "razem": razem, "czas_przygotowania_s": czas_s,
+                                                              "rodzaj": opis.rodzaj}, czas_s=czas_s)
+        else:
+            LOG.warning("silnik: budowa puli wpisow nieudana: %s", w[1])
+            self._zglos("pula", etap="blad", blad=str(w[1]), szczegoly=str(w[2]) if len(w) > 2 else "", czas_s=czas_s,
+                        wynik={"gotowe": self._pula_postep[0], "razem": self._pula_postep[1], "koniec_prob": True, "rodzaj": opis.rodzaj})
+
     def _po_smierci_procesu(self) -> None:
         """Proces roboczy zniknal (zabity, awaria biblioteki): blad biezacego zadania; nowy proces ruszy w nastepnym kroku."""
         gotowy, zadanie, od = self._gotowy, self._biezace, self._biezace_od
+        w_toku = self._pula_w_toku is not None
         kod = self._zamknij_proces()
+        if w_toku:
+            self._pula_przerwana(f"proces silnika zakonczyl sie w trakcie budowy puli (kod wyjscia {kod})")
         if zadanie is not None:
             self._zakoncz(zadanie, "blad", rodzaj="proces", czas_s=round(time.monotonic() - od, 3),
                           blad=f"proces silnika zakonczyl sie w trakcie analizy (kod wyjscia {kod}); analiza przerwana")

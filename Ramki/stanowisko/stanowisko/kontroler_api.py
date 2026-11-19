@@ -79,7 +79,7 @@ from . import statusy as ST
 
 LOG = logging.getLogger(__name__)
 
-WERSJA_KONTRAKTU = 4  # 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7); 4: ramki i Excel (E3-A12) - addytywnie
+WERSJA_KONTRAKTU = 5  # 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7); 4: ramki i Excel (E3-A12); 5: pula per praca (E3-A5i) - addytywnie
 TRYB_WIECZOR = SE.TRYB_WIECZOR
 TRYB_RANO = SE.TRYB_RANO
 TRYBY = (TRYB_WIECZOR, TRYB_RANO)
@@ -130,6 +130,9 @@ POLECENIA = POLECENIA + POLECENIA_RANO
 # ramki i Excel (E3-A12): test diod, przejecie ramki po "drugi laptop", okno "Excel: wskaz wiersz"
 POLECENIA_A12 = ("test_led", "przejmij_ramke", "excel_zatwierdz", "excel_pomin", "excel_odswiez", "excel_pokaz", "excel_zamknij")
 POLECENIA = POLECENIA + POLECENIA_A12
+# pula per praca (E3-A5i): wybor krazka (wpisu puli) pracy, ktorej wynik dopasowania nie rozstrzygnal
+POLECENIA_A5I = ("wybierz_wpis", "cofnij_wpis")  # runda 2 (D9): cofniecie wyboru krazka
+POLECENIA = POLECENIA + POLECENIA_A5I
 # sygnaly kontrolera do okna (``ZdarzenieKontrolera.typ``; w ``lacznik_qt``: stan_zmieniony, postep, komunikat, pytanie, zamkniety)
 SYGNALY = ("stan", "postep", "komunikat", "pytanie", "zamkniety")
 RODZAJE_PYTAN = ("ponowny_skan", "plytka_nie_z_trybu", "brak_numeru_plytki",
@@ -267,6 +270,23 @@ class Praca:
     blad_inspekcji: bool = False
     na_liscie: NaLiscie | None = None
     dozwolone: tuple = ()
+    # E3-A5i (kontrakt w wersji 5): krazki do wyboru (wynik puli per praca nierozstrzygniety - polecenie ``wybierz_wpis``),
+    # propozycja z ratunku (zolty z uwaga "ratunek:" - do potwierdzenia), kto wybral krazek
+    wpisy_do_wyboru: tuple = ()
+    propozycja: bool = False
+    wybor_wpisu_osoba: str | None = None
+    wybor_wpisu_id: int | None = None  # runda 3 (D6): id obowiazujacej decyzji wyboru krazka - argument ``cofnij_wpis``
+
+
+@dataclasses.dataclass(frozen=True)
+class WpisDoWyboru:
+    """E3-A5i: jeden krazek (wpis puli) do wyboru dla pracy: ``frezowanie_id`` (argument ``wybierz_wpis``), ``krazek``,
+    ``wspolczynnik``; ``wybrany`` - ten wpis jest teraz przypisany pracy."""
+
+    frezowanie_id: int
+    krazek: str | None = None
+    wspolczynnik: float | None = None
+    wybrany: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -429,6 +449,21 @@ class Pula:
     stan: str = "nieustawiona"
     napis: str = ""
     odswiezono: str | None = None
+    # E3-A5i (kontrakt w wersji 5): ``zrodlo`` folder / wpisy (pula per praca z katalogu zlecen: ``[silnik] pula_wpisow``);
+    # ``wpisy`` - liczba wpisow puli trybu; ``liczniki`` (``ZamrozonySlownik``: brak_pliku, plik_zmieniony, bez_wspolczynnika ...);
+    # budowa puli w procesie silnika: ``budowa_gotowe`` / ``budowa_razem`` (None = nie budowano), ``czas_budowy_s`` (ostatniej)
+    zrodlo: str = "folder"
+    wpisy: int | None = None
+    liczniki: Any = None
+    budowa_gotowe: int | None = None
+    budowa_razem: int | None = None
+    czas_budowy_s: float | None = None
+    # runda 2 (P4, D2): krazki ze sprzecznymi wspolczynnikami / bez wspolczynnika (nazwy krazkow - nie dane osobowe), przyczyna pustej
+    # puli wpisow (tekst dla technika), przyczyna nieudanej budowy w tle
+    krazki_sprzeczne: tuple = ()
+    krazki_bez_wspolczynnika: tuple = ()
+    przyczyna: str | None = None
+    blad_budowy: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -868,6 +903,15 @@ class Kontroler:
         raise NotImplementedError
 
     def cofnij(self, praca_id: int) -> Odpowiedz:
+        raise NotImplementedError
+
+    def wybierz_wpis(self, praca_id: int, frezowanie_id: int) -> Odpowiedz:
+        """E3-A5i: krazek pracy z ``Praca.wpisy_do_wyboru`` (``frezowanie_id``); decyzja z osoba, krazek pracy zmieniony."""
+        raise NotImplementedError
+
+    def cofnij_wpis(self, praca_id: int, decyzja_id: int | None = None) -> Odpowiedz:
+        """E3-A5i runda 2: cofa wybor krazka (poprzedni wybor albo praca "nierozstrzygnieta"); runda 3 (D6): ``decyzja_id``
+        (``Praca.wybor_wpisu_id``) - dokladnie ten wybor (podwojne klikniecie nie cofa drugiego)."""
         raise NotImplementedError
 
     def potwierdz_ponowny_skan(self, skan_id: int) -> Odpowiedz:
@@ -2874,12 +2918,19 @@ class KontrolerSesji(Kontroler):
                 dozwolone = ("ok", "cofnij")
             else:
                 dozwolone = ("ukruszona", "cofnij")
+        wpisy = tuple(WpisDoWyboru(frezowanie_id=w["frezowanie_id"], krazek=w.get("krazek"), wspolczynnik=w.get("wspolczynnik"),
+                                   wybrany=w["frezowanie_id"] == p.get("frezowanie_id")) for w in p.get("wpisy_do_wyboru") or ())
+        wybor = p.get("wybor_wpisu") or {}
+        if wpisy and dozwolone:
+            dozwolone += ("wybierz_wpis", "cofnij_wpis") if wybor else ("wybierz_wpis",)  # E3-A5i: krazek pracy do wskazania
         return Praca(
-            praca_id=p["id"], skan_id=s["id"], gniazdo=p["gniazdo"], status=klucz, kolor=kolor, rgb=st.hex, podpis=st.napis, opis=st.opis,
+            praca_id=p["id"], skan_id=s["id"], gniazdo=p["gniazdo"], status=klucz, kolor=kolor, rgb=st.hex, podpis=st.napis,
+            opis=f"{st.opis} {ST.OPIS_PROPOZYCJI}".strip() if p.get("propozycja") and kolor == ST.KOLOR_ZOLTY else st.opis,
             nr_fragmentu=p["nr_fragmentu"], status_programu=p["status_gniazda"], status_inspekcji=p["status_inspekcji"],
             status_match=p["status_match"], decyzja=p["decyzja"], operator=p["operator"], czas_decyzji=p["czas_decyzji"], sha16=p["sha16"],
             kuweta=p["kuweta"], zeby=p["zeby"], krazek=p["krazek"], pewnosc=p["pewnosc"], pokrycie=p["kandydat1_pokrycie"], ubytki=p["ubytki"],
-            ubytek_max_mm=p["ubytek_max_mm"], blad_inspekcji=blad, na_liscie=na_liscie, dozwolone=dozwolone)
+            ubytek_max_mm=p["ubytek_max_mm"], blad_inspekcji=blad, na_liscie=na_liscie, dozwolone=dozwolone,
+            wpisy_do_wyboru=wpisy, propozycja=bool(p.get("propozycja")), wybor_wpisu_osoba=wybor.get("operator"), wybor_wpisu_id=wybor.get("id"))
 
     def _plytka(self, s: dict, po_projekcie: dict, po_pracy: dict, propozycja: dict | None, czasy: dict) -> Plytka:
         numer_znany = s["numer_plytki"] is not None
@@ -3187,6 +3238,13 @@ class KontrolerSesji(Kontroler):
 
     def cofnij(self, praca_id: int) -> Odpowiedz:
         return self._polecenie(lambda: self.sesja.cofnij(praca_id), nazwa="cofnij", liczby=(praca_id,))
+
+    def wybierz_wpis(self, praca_id: int, frezowanie_id: int) -> Odpowiedz:
+        return self._polecenie(lambda: self.sesja.wybierz_wpis(praca_id, frezowanie_id), nazwa="wybierz_wpis", liczby=(praca_id, frezowanie_id))
+
+    def cofnij_wpis(self, praca_id: int, decyzja_id: int | None = None) -> Odpowiedz:
+        liczby = (praca_id,) if decyzja_id is None else (praca_id, decyzja_id)
+        return self._polecenie(lambda: self.sesja.cofnij_wpis(praca_id, decyzja_id=decyzja_id), nazwa="cofnij_wpis", liczby=liczby)
 
     def _sesja_skanu(self, skan_id: int):
         """Sesja, ktora obsluguje skan: poranna (``SesjaRano`` - kontrola, ze skan nalezy do otwartego pieca) dla skanu w trybie

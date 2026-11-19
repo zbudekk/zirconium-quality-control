@@ -987,6 +987,8 @@ def test_okno_1920x1080_bez_obciec_z_paskiem_ramek_i_oknem_excela(tmp_path, ekra
         e.klik_rano(skany[6], 11)
         e.klik("praca_rano_bez_projektu")
         e.klik("przycisk_zamknij_piec")
+        # okno Excela jest odroczone o kilka obiegow petli okna (A12 P1) - czekanie z limitem zamiast sprawdzenia od razu (E3-A5i r3)
+        e.czekaj(lambda: e.jest("excel_panel"), 20.0, "okno Excela po Zamknij piec")
         assert e.jest("excel_panel") and e.jest("napis_ramki") and e.jest("przycisk_test_led")
         e.klik_wiersz("excel_tabela", 1)
         usterki = {}

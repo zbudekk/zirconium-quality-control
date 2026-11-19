@@ -131,6 +131,8 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "czekaj_na_plik_s": (float, "aplikacja"),
         "pamiec_linii": (bool, "aplikacja"),
         "ponow_plik_niedostepny": (int, "aplikacja"),
+        "pula_wpisow": (bool, "aplikacja"),  # E3-A5i, opcjonalny: pula per praca z katalogu zlecen (KatalogPul)
+        "pamiec_puli_dni": (int, "aplikacja"),  # E3-A5i, opcjonalny: PamiecPuli.sprzataj(dni) przy starcie (0 = bez sprzatania)
     },
 }
 
@@ -176,8 +178,12 @@ DOMYSLNE_NOWYCH = {
               "ponowny_skan_okno_min": 60, "ponowny_skan_min_wspolnych": 0.5},
     "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True,
                 "obserwator": "watchdog"},
-    # pamiec_linii domyslnie False - tak samo jak w silnik (pamiec_linii=None); recenzja PR #20, D11
-    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": False, "ponow_plik_niedostepny": 3},
+    # pamiec_linii: E3-A5i (19.11.2026) domyslnie True w programie - linie brzegu na dysku (pierwsza plytka po starcie bez liczenia linii;
+    # recenzja PR #20 D11 zakladala False jak w module silnik, ktory bez ustawien nadal nie pisze na dysk). E3-A5i: pula_wpisow -
+    # pula per praca z katalogu zlecen (False = pula z folderu, jak dotad); pamiec_puli_dni - po ilu dniach bez uzycia wpis pamieci
+    # puli na dysku jest usuwany przy starcie programu (0 = nigdy; propozycja koordynatora 30)
+    "silnik": {"limit_zadania_s": 600.0, "czekaj_na_plik_s": 60.0, "pamiec_linii": True, "ponow_plik_niedostepny": 3, "pula_wpisow": False,
+               "pamiec_puli_dni": 30},
 }
 
 # Sekcje, których może nie być w pliku: każdy ich klucz ma wartość domyślną (dziś: [sesja], [scanner], [silnik]).
@@ -330,6 +336,7 @@ def _waliduj(d: dict, plik: Path) -> dict:
     warunek(si["limit_zadania_s"] > 0, "silnik", "limit_zadania_s", "musi być > 0 (sekundy)")
     warunek(si["czekaj_na_plik_s"] >= 0, "silnik", "czekaj_na_plik_s", "musi być >= 0 (sekundy)")
     warunek(si["ponow_plik_niedostepny"] >= 0, "silnik", "ponow_plik_niedostepny", "musi być >= 0 (liczba ponowień)")
+    warunek(si["pamiec_puli_dni"] >= 0, "silnik", "pamiec_puli_dni", "musi być >= 0 (dni; 0 = bez sprzatania pamieci puli)")
     return d
 
 

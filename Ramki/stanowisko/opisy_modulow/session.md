@@ -145,3 +145,38 @@ WYMAGANIE dla A7 (D4): `statusy.py` dostaje wiersz `nieznana_rano` (praca niezna
 - Konflikt poranny = tylko `stan_pieca.konflikty`; `Sesja.przyjmij_wynik` od E3-A1p nie dopisuje `konflikt_projektu` dla skanow porannych (D6 rundy 1 - rozwiazane w A1p, tak samo D10: zastapienie w tym samym piecu do 12 h).
 - Skan zablokowany albo bez wyniku nadal otwiera nowy piec, gdy nie ma biezacego (zeby blokowal "Zamknij piec" do ponownego skanu); nie przedluza natomiast pieca (D2 r3). Program zostawiony w trybie "Poranek" na noc moze wiec zostawic pusty stary piec z blokada - zamknac go po pominieciu skanu albo zostawic (ostrzezenie).
 - Dziedziczenie stanu wybiera najnowszy wiersz poprzednika; ten sam plik skopiowany do dwoch zlecen tej samej kuwety (rzadkie) dziedziczy z obu tak samo.
+
+## Pula per praca w sesji (E3-A5i, 19.11.2026)
+
+- **Przypisanie z wyniku, nie po sha16.** Wynik puli per praca niesie w `kandydaci[0]` pola `wpisy`, `projekt_id`, `frezowanie_id`
+  (`match.Pula.z_wpisow`). `_projekt_kandydata`: z `wpisy` - `projekt_id` kandydata (ten sam plik w dwoch zleceniach ma jeden skrot,
+  a wpis puli wskazuje zlecenie); `projekt_id` puste (wpisy z roznymi projektami) = bez przypisania; pula z folderu (bez `wpisy`) -
+  jak dotad po `sha16`. `_frezowanie`: wskazane `frezowanie_id`; wynik z `wpisy` bez niego = bez zgadywania (dawniej "jedyny wpis
+  projektu").
+- **Krazek do wyboru.** Wpisy kandydata z co najmniej dwoma roznymi frezowaniami i pustym `frezowanie_id` (ten sam STL z tym samym albo
+  blizszym niz 0,2 % wspolczynnikiem na kilku krazkach) trafiaja do dziennika (`zdarzenia`: `silnik / przypisania_do_wyboru`, dane
+  `wpisy` praca -> [frezowanie_id, projekt_id, krazek, wspolczynnik] - bez nazw) i do stanu wieczoru (`wpisy_do_wyboru` pracy,
+  `frezowanie_id`, `wybor_wpisu` = ostatnia decyzja). `wybierz_wpis(praca_id, frezowanie_id, operator=None)` (takze
+  `decyzja(praca_id, "wybor_wpisu", frezowanie_id)`): osoba z listy, praca skanu wieczornego `przyjety`, wpis z listy tej pracy;
+  zapis = decyzja `wybor_wpisu` (wartosc = frezowanie_id, osoba, czas) + `prace.frezowanie_id` i `prace.projekt_id` z wpisu; wybor
+  mozna zmienic. Decyzja nie zmienia koloru pracy (`_obowiazujace` liczy tylko "Ukruszona" / "OK").
+- **Propozycja z ratunku** (recenzja PR #25 r3 D1): praca zolta z uwaga zaczynajaca sie od "ratunek:" (`PREFIKS_UWAGI_RATUNKU`,
+  ratunek plytki A5 - praca bokiem uratowana pelnym dopasowaniem, mozliwy zly projekt). Wieczorem przypisana jak kazda praca
+  (kuweta na liscie "do dofrezowania"), w stanie `propozycja` = True (ekran: "propozycja programu - sprawdz"). Rano przypisanie
+  automatyczne ma tylko praca zielona (`session_rano._przypisanie_auto` - jak od A6), wiec propozycja jest praca dwuznaczna /
+  nieznana i nie domyka zlecenia bez potwierdzenia technika (`wybierz_kandydata`) - test `test_k5_*`.
+- **Rano z pula per praca** (zmiana `session_rano.py`, 5 linii): przypisanie automatyczne pracy zielonej = projekt wpisu puli z wyniku
+  (`Sesja.projekt_wpisu_puli`, dane `projekty` tego samego wpisu w dzienniku), gdy jest i nie jest usuniety; inaczej jak dotad po `sha16`.
+
+**Runda 2 (recenzja PR #32 r1).**
+- P2: zmiana krazka (`wybierz_wpis` / `cofnij_wpis`) zmieniajaca projekt pracy przenosi punkt: stary projekt jak przy cofnieciu
+  "Ukruszona" (`_odswiez_punkt(..., aktywna=False)`: najnowsza inna ukruszona praca projektu albo `oczekuje` - poprzedni stan punktu
+  nie jest odtwarzany, jak dotad), nowy wg decyzji pracy; "Cofnij" po zmianie krazka - spojnie (test `test_r2_p2_*`).
+- D9: `cofnij_wpis(praca_id)` (decyzja `cofnij_wybor_wpisu`, wartosc = id cofanej `wybor_wpisu`): poprzedni wybor albo praca
+  nierozstrzygnieta (krazek pusty, projekt z wyniku). Projekt wybranego wpisu - z `wpisy` wyniku, dopiero potem z `frezowania`.
+- P3: wynik puli per praca zapisuje w dzienniku projekt wpisu KAZDEJ pracy (takze None - wpisy z roznymi projektami); wieczorem projekt
+  usuniety = bez przypisania; rano (`session_rano._przypisanie_auto`) usuniety = nastepca z regula `_nastepcy` (ten sam `sha16` w tym
+  samym zleceniu albo kuwecie), inaczej bez przypisania - nigdy szukanie po `sha16` w calym indeksie. `Sesja.wpis_puli_pracy`
+  (zastepuje `projekt_wpisu_puli`) czyta mape ostatnio przyjetego skanu z pamieci (D6 - bez zapytania na kazda prace).
+- D13: propozycja z ratunku po polu gniazda `ratunek` (bool), gdy wynik je ma; bez pola - uwaga "ratunek:" (dzisiejszy `match`;
+  pole w wyniku - POTRZEBUJE `match` / `porownaj`). Zolta praca z ratunkiem, ktory nie zmienil zwyciezcy, tez jest propozycja (ostroznie).
