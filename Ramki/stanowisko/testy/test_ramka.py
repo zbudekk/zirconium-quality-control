@@ -684,6 +684,7 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
         if not powtorki.dalej(ocena, opis):
             break
     powtorki.ostrzez("K4", ocena)  # sukces dopiero po powtorzeniu - ostrzezenie w podsumowaniu pytest
+    assert ocena == PC.OK, f"K4: {powtorki.opis()}"
     # runda 2 (P7): obraz gasnie od razu, a zdarzenie "plytka 0" przychodzi po ustaleniu odczytu (30 ms)
     assert czekaj_na(lambda: prog.logika.plytka == 0)
     zd, _ = prog.logika.zdarzenia_od(n0)

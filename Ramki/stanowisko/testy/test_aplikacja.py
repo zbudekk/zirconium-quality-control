@@ -384,6 +384,7 @@ def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska, tmp_path):
         for s in dodatkowe:
             s.koniec()
     powtorki.ostrzez("kryterium (f)", ocena)  # sukces dopiero po powtorzeniu - ostrzezenie w podsumowaniu pytest
+    assert ocena == PC.OK, f"kryterium (f): {powtorki.opis()}"
 
 
 # ----------------------------------------------------------------------------

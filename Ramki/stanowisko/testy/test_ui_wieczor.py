@@ -1388,6 +1388,7 @@ def test_6_petla_okna_bez_przerw_10_plytek_po_19_prac(stanowiska, ekrany, tmp_pa
         for s in dodatkowe:
             s.koniec()
     powtorki.ostrzez("kryterium (6)", ocena)  # sukces dopiero po powtorzeniu - ostrzezenie w podsumowaniu pytest
+    assert ocena == PC.OK, f"kryterium (6): {powtorki.opis()}"
 
 
 def test_6_odswiezenie_ekranu_przy_10_plytkach_i_zdarzeniach(atrapa, ekrany):
