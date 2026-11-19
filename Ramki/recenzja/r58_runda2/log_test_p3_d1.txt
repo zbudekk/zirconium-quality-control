@@ -1,0 +1,11 @@
+== P3: wyczysc_wyniki na kopii katalogu (pliki puste o nazwach z wyniki_v2) ==
+przed: stl 14 (stare 4 + R58 10), arkusze 1, json 2
+po:    stl 10, arkusze 0, json 2; pominiete przez wyczysc_wyniki: 10
+zostaly dokladnie pliki R58: True ; stare usuniete: True
+wywolanie bez P (dawne zachowanie) usuwa wszystko w stl: True
+== D1: zrzut_parametrow_zgodny (K-60) ==
+zrzut R59 bez zmian (brak wszystkich kluczy R58)                                 -> zgodny
+zrzut z jednym kluczem R58 o poprawnej wartosci (pozostalych brak)               -> NIE
+zrzut z jednym kluczem R58 o BLEDNEJ wartosci (pozostalych brak)                 -> NIE
+zrzut bez kluczy R58, ale zmieniony stary klucz plate_size                       -> NIE
+zrzut = biezacy parametry.json (pelny)                                           -> zgodny

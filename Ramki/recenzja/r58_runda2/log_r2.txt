@@ -1,0 +1,40 @@
+ramka_plytka_okragla_ramkowa_wieczorna_v2.stl
+   wierzch runda2 vs runda1: roznic 0; wierzch vs okragla R59 (bazowa): roznic 0
+   spod runda2 vs runda1: roznic 2270, poza obszarem starego+nowego rowka klucza: 0
+   spod w rowku (u 46.1.., |v|<=1.7): Z -3.0000..-3.0000 (pkt 1119)
+   dawny rowek u 43.1..45.9: spod Z -8.0000..-8.0000 (ma byc -8, pelny)
+ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl
+   wierzch runda2 vs runda1: roznic 0; wierzch vs okragla R59 (bazowa): roznic 1735
+   spod runda2 vs runda1: roznic 2270, poza obszarem starego+nowego rowka klucza: 0
+   spod w rowku (u 46.1.., |v|<=1.7): Z -3.0000..-3.0000 (pkt 1119)
+   dawny rowek u 43.1..45.9: spod Z -8.0000..-8.0000 (ma byc -8, pelny)
+ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl
+   wierzch runda2 vs runda1: roznic 0; wierzch vs okragla R59 (bazowa): roznic 1881
+   spod runda2 vs runda1: roznic 2270, poza obszarem starego+nowego rowka klucza: 0
+   spod w rowku (u 46.1.., |v|<=1.7): Z -3.0000..-3.0000 (pkt 1119)
+   dawny rowek u 43.1..45.9: spod Z -8.0000..-8.0000 (ma byc -8, pelny)
+ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl
+   wierzch runda2 vs runda1: roznic 0; wierzch vs okragla R59 (bazowa): roznic 1637
+   spod runda2 vs runda1: roznic 2270, poza obszarem starego+nowego rowka klucza: 0
+   spod w rowku (u 46.1.., |v|<=1.7): Z -3.0000..-3.0000 (pkt 1119)
+   dawny rowek u 43.1..45.9: spod Z -8.0000..-8.0000 (ma byc -8, pelny)
+ramka_plytka_okragla_ramkowa_poranna_v2.stl
+   wierzch runda2 vs runda1: roznic 0; wierzch vs okragla R59 (bazowa): roznic 0
+   spod runda2 vs runda1: roznic 2270, poza obszarem starego+nowego rowka klucza: 0
+   spod w rowku (u 46.1.., |v|<=1.7): Z -3.0000..-3.0000 (pkt 1119)
+   dawny rowek u 43.1..45.9: spod Z -8.0000..-8.0000 (ma byc -8, pelny)
+ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl
+   wierzch runda2 vs runda1: roznic 0; wierzch vs okragla R59 (bazowa): roznic 1810
+   spod runda2 vs runda1: roznic 2270, poza obszarem starego+nowego rowka klucza: 0
+   spod w rowku (u 46.1.., |v|<=1.7): Z -3.0000..-3.0000 (pkt 1119)
+   dawny rowek u 43.1..45.9: spod Z -8.0000..-8.0000 (ma byc -8, pelny)
+ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl
+   wierzch runda2 vs runda1: roznic 0; wierzch vs okragla R59 (bazowa): roznic 1680
+   spod runda2 vs runda1: roznic 2270, poza obszarem starego+nowego rowka klucza: 0
+   spod w rowku (u 46.1.., |v|<=1.7): Z -3.0000..-3.0000 (pkt 1119)
+   dawny rowek u 43.1..45.9: spod Z -8.0000..-8.0000 (ma byc -8, pelny)
+ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl
+   wierzch runda2 vs runda1: roznic 0; wierzch vs okragla R59 (bazowa): roznic 1547
+   spod runda2 vs runda1: roznic 2270, poza obszarem starego+nowego rowka klucza: 0
+   spod w rowku (u 46.1.., |v|<=1.7): Z -3.0000..-3.0000 (pkt 1119)
+   dawny rowek u 43.1..45.9: spod Z -8.0000..-8.0000 (ma byc -8, pelny)

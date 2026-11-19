@@ -1,0 +1,6 @@
+szczelina 12.0 (a 10.0): ugiecie 0.40 -> sila na garb   8.1 N, odksztalcenie nasady 0.90 % (naprezenie 18.0 MPa) - nominal (czubek 49,6 vs plytka 50,0)
+szczelina 12.0 (a 10.0): ugiecie 0.55 -> sila na garb  11.1 N, odksztalcenie nasady 1.24 % (naprezenie 24.8 MPa) - otwor FDM zanizony o 0,3 na srednicy
+szczelina 12.0 (a 10.0): ugiecie 0.70 -> sila na garb  14.2 N, odksztalcenie nasady 1.57 % (naprezenie 31.5 MPa) - pokrywka zsunieta o luz 0,3 - jedna strona
+szczelina 15.0 (a 13.0): ugiecie 0.40 -> sila na garb   3.7 N, odksztalcenie nasady 0.53 % (naprezenie 10.7 MPa) - nominal (czubek 49,6 vs plytka 50,0)
+szczelina 15.0 (a 13.0): ugiecie 0.55 -> sila na garb   5.1 N, odksztalcenie nasady 0.73 % (naprezenie 14.6 MPa) - otwor FDM zanizony o 0,3 na srednicy
+szczelina 15.0 (a 13.0): ugiecie 0.70 -> sila na garb   6.5 N, odksztalcenie nasady 0.93 % (naprezenie 18.6 MPa) - pokrywka zsunieta o luz 0,3 - jedna strona

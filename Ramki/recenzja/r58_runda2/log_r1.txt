@@ -1,0 +1,36 @@
+ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl 5d81f55b8b114ba9 tri 25076 vol 49.198191 bbox [-50. -50.   0.] [50.  50.   8.6] size [100.  100.    8.6]
+   topo {'nv': 12486, 'nf': 25076, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -52} min area 1.60e-04 n<1e-6: 0 nan 0
+ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl 64867b5b63a31db8 tri 25518 vol 49.196054 bbox [-50. -50.   0.] [50.  50.   8.6] size [100.  100.    8.6]
+   topo {'nv': 12707, 'nf': 25518, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -52} min area 2.20e-04 n<1e-6: 0 nan 0
+ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl 7630a029157b2fc6 tri 25332 vol 49.195234 bbox [-50. -50.   0.] [50.  50.   8.6] size [100.  100.    8.6]
+   topo {'nv': 12614, 'nf': 25332, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -52} min area 2.63e-04 n<1e-6: 0 nan 0
+ramka_plytka_okragla_ramkowa_poranna_v2.stl 845e4bd61b405620 tri 25164 vol 49.183343 bbox [-50. -50.   0.] [50. 50.  8.] size [100. 100.   8.]
+   topo {'nv': 12530, 'nf': 25164, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -52} min area 2.91e-03 n<1e-6: 0 nan 0
+ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl 84d361e2389bef12 tri 22100 vol 48.910078 bbox [-50. -50.   0.] [50.  50.   8.6] size [100.  100.    8.6]
+   topo {'nv': 11008, 'nf': 22100, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -42} min area 1.70e-04 n<1e-6: 0 nan 0
+ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl 7848aa2395638b33 tri 22294 vol 48.910998 bbox [-50. -50.   0.] [50.  50.   8.6] size [100.  100.    8.6]
+   topo {'nv': 11105, 'nf': 22294, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -42} min area 1.42e-04 n<1e-6: 0 nan 0
+ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl 1b8ac3d390870f0a tri 22508 vol 48.908197 bbox [-50. -50.   0.] [50.  50.   8.6] size [100.  100.    8.6]
+   topo {'nv': 11212, 'nf': 22508, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -42} min area 1.68e-04 n<1e-6: 0 nan 0
+ramka_plytka_okragla_ramkowa_wieczorna_v2.stl 322eb892b7acf81c tri 22270 vol 48.895709 bbox [-50. -50.   0.] [50. 50.  8.] size [100. 100.   8.]
+   topo {'nv': 11093, 'nf': 22270, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -42} min area 2.91e-03 n<1e-6: 0 nan 0
+ramka_pokrywka_okragla_v2.stl 8e2385350d459540 tri 5292 vol 25.118141 bbox [-51.8 -51.8   0. ] [51.8 51.8 20. ] size [103.6 103.6  20. ]
+   topo {'nv': 2648, 'nf': 5292, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': 2} min area 9.84e-04 n<1e-6: 0 nan 0
+ramka_wkladka_okragla_v2.stl baf94bf89665987d tri 7686 vol 22.448114 bbox [-65.  -52.4   0. ] [65.  96.  10.5] size [130.  148.4  10.5]
+   topo {'nv': 3835, 'nf': 7686, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -8} min area 3.72e-06 n<1e-6: 0 nan 0
+ramka_plytka_okragla_wieczorna_v2.stl aad8033e6c1d1f34 tri 19428 vol 49.338523 bbox [-50. -50.   0.] [50. 50.  8.] size [100. 100.   8.]
+   topo {'nv': 9672, 'nf': 19428, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -42} min area 3.75e-03 n<1e-6: 0 nan 0
+ramka_plytka_okragla_poranna_v2.stl e35835d7618e6665 tri 22310 vol 49.626156 bbox [-50. -50.   0.] [50. 50.  8.] size [100. 100.   8.]
+   topo {'nv': 11103, 'nf': 22310, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -52} min area 3.75e-03 n<1e-6: 0 nan 0
+ramka_plytka_okragla_wieczorna_n8_v2.stl d5591f652ea1b6b2 tri 19714 vol 49.355143 bbox [-50. -50.   0.] [50.  50.   8.6] size [100.  100.    8.6]
+   topo {'nv': 9815, 'nf': 19714, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -42} min area 2.59e-04 n<1e-6: 0 nan 0
+ramka_plytka_okragla_poranna_n9_v2.stl f9444e6f14e37d9d tri 22576 vol 49.638048 bbox [-50. -50.   0.] [50.  50.   8.6] size [100.  100.    8.6]
+   topo {'nv': 11236, 'nf': 22576, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -52} min area 1.68e-04 n<1e-6: 0 nan 0
+ramka_wkladka_v2.stl f4196fbc64045099 tri 1806 vol 12.409055 bbox [-65.  -52.4   0. ] [65. 96. 11.] size [130.  148.4  11. ]
+   topo {'nv': 895, 'nf': 1806, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -8} min area 2.07e-03 n<1e-6: 0 nan 0
+ramka_pokrywka_v2.stl ad23444483ac9573 tri 820 vol 30.064073 bbox [-49.8 -49.8   0. ] [49.8 49.8 20. ] size [99.6 99.6 20. ]
+   topo {'nv': 412, 'nf': 820, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': 2} min area 6.34e-04 n<1e-6: 0 nan 0
+ramka_plytka_wieczorna_n1_v2.stl 3b0db5452a0cd953 tri 18930 vol 59.659093 bbox [-48. -48.   0.] [48.  48.   8.6] size [96.  96.   8.6]
+   topo {'nv': 9423, 'nf': 18930, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -42} min area 1.70e-04 n<1e-6: 0 nan 0
+ramka_blat_v2.stl 8c48856eb9addee2 tri 5692 vol 72.517186 bbox [-100. -100.    0.] [100. 100.  14.] size [200. 200.  14.]
+   topo {'nv': 2842, 'nf': 5692, 'degenerate': 0, 'edges_not2': 0, 'dir_dup': 0, 'components': 1, 'euler': -4} min area 4.66e-04 n<1e-6: 0 nan 0
