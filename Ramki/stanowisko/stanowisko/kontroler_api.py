@@ -37,7 +37,16 @@ PORANEK (E3-A7, wersja 3, addytywnie): ``stan.tryb`` (``wieczor`` / ``rano``) wy
 porannej (``session_rano.SesjaRano``), a ``stan.rano`` (``StanRano``) opisuje piec: plytki z gniazdami w klasach pracy porannej
 (``PracaRano``: kuweta, zab, miniatura, kandydaci), zlecenia kompletne i braki, kuwety do rozlozenia w wybranej kolejnosci,
 blokady "Zamknij piec". Polecenia poranne: ``POLECENIA_RANO``; zapytanie ``projekty_kuwety(kuweta)`` podaje projekty zlecenia
-do przypisania recznego. Ramka i Excel sa jeszcze niepodlaczone (A12) - stan ma o tym komunikaty, program dziala dalej.
+do przypisania recznego. Bez ramki i bez Excela stan ma o tym komunikaty, program dziala dalej.
+
+RAMKI I EXCEL (E3-A12, wersja 4, addytywnie): ``podlacz_ramki(indicate.Indicate)`` / ``podlacz_excel(excel.Excel)`` (``Aplikacja``
+robi to z ustawien przy starcie). Zdarzenia ramek odbiera ``przetworz()`` (zegar okna) - kazde zapisane w dzienniku ``zdarzenia``
+(zrodlo ``ramka_p`` / ``ramka_w``) z kluczem ``indicate.klucz_zdarzenia`` sprawdzanym w tej samej transakcji co skutek (po
+restarcie programu historia ramki nie daje duplikatow); "Zamknij piec" z ramki zamyka TYLKO biezacy piec. Plan ramki porannej =
+``SesjaRano.plan_plytek(kolejnosc z ekranu)`` po kazdej zmianie pieca; ramka wieczorna: Spacja -> "skanowanie", start analizy ->
+"analiza", wynik -> kolory gniazd mapy (``ramka_protokol.kolor_ramki`` statusow ``Gniazdo``). Excel: po "Zamknij piec" w trybie
+"pytaj" ``stan.excel`` (``StanExcel``) z propozycjami do okna "Excel: wskaz wiersz" (zapis koloru dopiero po ``excel_zatwierdz``
+z okna), w trybie "cien" - sam log. Stan ramek: ``stan.ramki`` (``StanRamek``). Polecenia: ``POLECENIA_A12``.
 
 Plik zawiera tez ``KontrolerSesji`` (wspolna czesc prawdziwego kontrolera i atrapy: stan z ``session``, polecenia
 o decyzjach) oraz ``AtrapaKontrolera`` - kontroler na danych sztucznych, bez skanera i silnika, do budowy i testow okna.
@@ -70,13 +79,26 @@ from . import statusy as ST
 
 LOG = logging.getLogger(__name__)
 
-WERSJA_KONTRAKTU = 3  # 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7) - addytywnie, okno wieczorne bez zmian
+WERSJA_KONTRAKTU = 4  # 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7); 4: ramki i Excel (E3-A12) - addytywnie
 TRYB_WIECZOR = SE.TRYB_WIECZOR
 TRYB_RANO = SE.TRYB_RANO
 TRYBY = (TRYB_WIECZOR, TRYB_RANO)
 KOLEJNOSCI_KUWET = SR.KOLEJNOSCI  # "liczba" (od najliczniejszej) / "numer"; trzeci sposob (U7) - numer wpisany recznie: wybierz_kuwete
 ID_RAMKA_PORANNA = "ramka_poranna"  # staly id komunikatu "ramka poranna nie jest podlaczona" (do A12)
-ID_EXCEL = "excel"  # staly id komunikatu "Excel nie jest podlaczony" po "Zamknij piec" (do A12)
+ID_EXCEL = "excel"  # staly id komunikatu Excela po "Zamknij piec" (brak Excela, blad Excela, tryb cien)
+ID_RAMKA_WIECZORNA = "ramka_wieczorna"  # staly id komunikatu "ramka wieczorna nie odpowiada" (E3-A12, tryb wieczor)
+ID_TEST_LED = "ramki_test_led"
+OKRES_STANU_RAMEK_S = 0.25  # co ile ``przetworz`` czyta stan klientow ramek (polaczenie, blad, plytka) - zmiana = nowy stan
+CZAS_TEST_LED_S = 8.5  # ramka konczy test diod sama po 8 s (ramka.logika.CZAS_TEST_LED_S); potem plan pieca ponownie
+ZDARZEN_RAMKI_W_PAMIECI = 4000  # tyle ostatnich kluczy zdarzen ramki z dziennika (dziennik ramki ma 2000 ostatnich zdarzen)
+ZRODLA_RAMEK = {"W": "ramka_w", "P": "ramka_p"}  # kolumna ``zdarzenia.zrodlo`` wpisow zdarzen ramek
+ZDARZENIA_KUWET_RAMKI = ("potwierdzenie", "cofniecie", "kuweta_wybrana")
+CZAS_NA_POLACZENIE_RAMEK_S = 2.0  # komunikat "ramka nie odpowiada" dopiero po tylu sekundach od podlaczenia (recenzja PR #30 D7)
+OKRES_PONOWIENIA_PLANU_S = 2.0  # P2: plan ramki porannej, ktorego nie dalo sie zbudowac - ponowienie co tyle sekund
+OKRES_PONOWIENIA_ZDARZEN_S = 1.0  # r3 D-N1: zdarzenia ramki odlozone przy zajetej bazie - ponowienie najczesciej co tyle sekund
+CZEKAJ_ZDARZENIA_MS = 150  # r3 D-N1 / r4 D-R3-1: zapis zdarzen ramki czeka na zajeta baze najwyzej tyle (ponizej progu petli okna 200 ms)
+ZALEGLE_EXCELA_H = 48  # P5: piece zamkniete w ostatnich tylu godzinach z niezalatwionymi zleceniami Excela - przypomnienie przy starcie
+ZALEGLE_EXCELA_PIECE = 5
 MAX_PROJEKTOW_KUWETY = 60  # najwyzej tyle projektow zwraca ``projekty_kuwety``
 MAX_KUWET_KOMUNIKATU = 40  # tyle numerow kuwet w komunikacie "Excel nie jest podlaczony" (reszta: "i N innych")
 LIMIT_PRZETWARZANIA_S = 0.05  # najdluzej tyle trwa jedno ``przetworz()``, gdy czeka wiele zdarzen (petla okna: przerwy < 200 ms)
@@ -105,6 +127,9 @@ POLECENIA_RANO = ("przelacz_tryb", "wybierz_kandydata", "przypisz_recznie", "cof
                   # runda 4/5 A6: zapomniany "Zamknij piec" - zamkniecie i przeniesienie skanow nowego wsadu do nowego pieca i cofniecie
                   "zamknij_piec_i_przenies", "cofnij_przeniesienie")
 POLECENIA = POLECENIA + POLECENIA_RANO
+# ramki i Excel (E3-A12): test diod, przejecie ramki po "drugi laptop", okno "Excel: wskaz wiersz"
+POLECENIA_A12 = ("test_led", "przejmij_ramke", "excel_zatwierdz", "excel_pomin", "excel_odswiez", "excel_pokaz", "excel_zamknij")
+POLECENIA = POLECENIA + POLECENIA_A12
 # sygnaly kontrolera do okna (``ZdarzenieKontrolera.typ``; w ``lacznik_qt``: stan_zmieniony, postep, komunikat, pytanie, zamkniety)
 SYGNALY = ("stan", "postep", "komunikat", "pytanie", "zamkniety")
 RODZAJE_PYTAN = ("ponowny_skan", "plytka_nie_z_trybu", "brak_numeru_plytki",
@@ -113,7 +138,14 @@ LIMIT_SKANOWANIA_S = 180  # "start skanu" bez pliku dluzej niz tyle = skan przer
 # polecenia, po ktorych stan punktow zlecen (lista brakow) na pewno sie nie zmienil - bez ponownego liczenia ``braki()`` (P2);
 # kazde inne udane polecenie uniewaznia pamiec brakow (polecenia plytki - tylko dla skanu wieczornego)
 NIE_RUSZA_PUNKTOW = frozenset(("przelacz_tryb", "ustaw_kolejnosc", "wybierz_kuwete", "potwierdz_kuwete", "cofnij_kuwete", "wybierz_kandydata",
-                               "przypisz_recznie", "cofnij_przypisanie", "pomin_skan", "cofnij_pominiecie", "odrzuc_ponowny_skan"))
+                               "przypisz_recznie", "cofnij_przypisanie", "pomin_skan", "cofnij_pominiecie", "odrzuc_ponowny_skan")
+                              + POLECENIA_A12)
+
+
+def tekst_komunikatu(rodzaj: str, **pola: Any) -> tuple:
+    """(poziom, tytul, tekst) komunikatu ``rodzaj`` - ``statusy.tekst_komunikatu`` (od rundy 2 E3-A12 wszystkie teksty, takze ramek
+    i Excela, sa w ``statusy`` - recenzja PR #30 D4)."""
+    return ST.tekst_komunikatu(rodzaj, **pola)
 
 
 # ----------------------------------------------------------------------------
@@ -636,6 +668,104 @@ class StanRano:
 
 
 @dataclasses.dataclass(frozen=True)
+class StanRamki:
+    """Stan jednej ramki dla okna (E3-A12, z ``indicate.KlientRamki.stan()``): ``polaczona``, ``blad`` (kod: ``brak_polaczenia`` jako
+    ``komunikat``, ``zly_klucz``, ``inny_laptop``, ``blad_sprzetu``, ``plan_odrzucony`` ...), ``komunikat`` (tekst roboczy indicate),
+    ``plytka`` (numer plytki na ramce), ``tryb_ramki``, ``plan_przyjety``, ``wstrzymane`` (drugi laptop - plan dopiero po
+    ``przejmij_ramke``), ``potwierdzone`` (liczba potwierdzen kuwet na ramce porannej), ``ostrzezenia`` (kalibracja, identyfikator)."""
+
+    rola: str
+    polaczona: bool = False
+    blad: str | None = None
+    komunikat: str | None = None
+    plytka: int | None = None
+    tryb_ramki: str | None = None
+    plan_przyjety: bool = False
+    wstrzymane: bool = False
+    potwierdzone: int = 0
+    ostrzezenia: tuple = ()
+    utracone: int = 0  # zdarzenia ramki utracone (dziennik ramki przepelniony w czasie przerwy) - podpowiedz paska (D7)
+    przepelnienie: int = 0
+
+
+@dataclasses.dataclass(frozen=True)
+class StanRamek:
+    """Ramki stanowiska (``stan.ramki``; None = program bez ramek): ``wieczorna`` / ``poranna`` (``StanRamki`` albo None, gdy tej ramki
+    nie ma w ustawieniach), ``test_led`` - trwa test diod."""
+
+    wieczorna: StanRamki | None = None
+    poranna: StanRamki | None = None
+    test_led: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class PozycjaExcel:
+    """Jedno zlecenie kompletne w oknie "Excel: wskaz wiersz" (E3-A12, z ``excel.Pozycja``): ``nr`` - numer pozycji do polecen
+    ``excel_zatwierdz`` / ``excel_pomin`` i zapytania ``excel_szczegoly``; ``klasa`` (``jeden_wiersz`` / ``juz_odhaczone`` /
+    ``wskaz_wiersz``), ``wiersz`` proponowany (None = wskaz), ``regula``, ``powod`` (bez nazwisk), ``do_sprawdzenia`` (wybor bez
+    zgodnej nazwy - okno oznacza wyraznie), ``data`` wiersza, ``kandydatow``, ``zalatwiona`` i ``wynik`` (wpis logu)."""
+
+    nr: int
+    kuweta: str | None
+    klasa: str
+    wiersz: int | None
+    regula: int
+    powod: str = ""
+    do_sprawdzenia: bool = False
+    data: str | None = None
+    kandydatow: int = 0
+    zalatwiona: bool = False
+    wynik: str | None = None
+    zlecenie_id: int | None = None  # P4: tozsamosc pozycji w poleceniach (z ``sesja_pieca_id``) - nie numer na liscie
+    sesja_pieca_id: int | None = None
+    poprzedni_blad: bool = False  # D9: poprzednia proba zapisu tego zlecenia skonczyla sie wpisem "blad" (zapis mogl dojsc)
+    poprzedni_wiersz: int | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class KandydatExcel:
+    """Wiersz arkusza - kandydat (zapytanie ``excel_szczegoly``): ``nazwa`` = kolumna H (DANE OSOBOWE - tylko na ekran laptopa,
+    nigdy w stanie, dzienniku ani komunikatach), ``kolor_b`` - wypelnienie pola B (``#rrggbb`` albo None), ``zielone``."""
+
+    wiersz: int
+    data: str | None = None
+    numer_b: str = ""
+    kuweta: str = ""
+    nazwa: str = ""
+    kolor_b: str | None = None
+    zielone: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class SzczegolyExcel:
+    """Szczegoly pozycji okna Excela (zapytanie, nie stan): ``folder`` zlecenia i ``kandydaci`` (``KandydatExcel``) - tylko na ekran."""
+
+    nr: int
+    folder: str = ""
+    kandydaci: tuple = ()
+
+
+@dataclasses.dataclass(frozen=True)
+class StanExcel:
+    """Excel (``stan.excel``; None = program bez Excela): ``tryb`` ("pytaj" / "cien"), piec, ktorego dotycza ``pozycje``
+    (``PozycjaExcel``), ``widoczne`` - okno "Excel: wskaz wiersz" ma byc pokazane (sa pozycje do zalatwienia, osoba go nie zamknela),
+    ``blad`` - ostatni blad Excela (np. Excel nie uruchomiony), ``ostrzezenia`` (z ustawien, skoroszyt / arkusz uzyte),
+    ``do_zalatwienia`` - liczba pozycji bez wpisu w logu."""
+
+    tryb: str = "pytaj"
+    sesja_pieca_id: int | None = None
+    nr_w_dniu: int | None = None
+    data: str | None = None
+    pozycje: tuple = ()
+    widoczne: bool = False
+    blad: str | None = None
+    ostrzezenia: tuple = ()
+    do_zalatwienia: int = 0
+    w_toku: int = 0  # P1: kroki Excela czekajace na kolejne obiegi petli okna (propozycje, poprawki, "juz odhaczone")
+    zalegle: tuple = ()  # P5: inne piece z niezalatwionymi zleceniami: (sesja_pieca_id, nr_w_dniu, data, ile)
+
+
+@dataclasses.dataclass(frozen=True)
 class StanAplikacji:
     """Caly stan ekranu wieczornego. ``wersja`` rosnie przy kazdej zmianie. ``plytki`` - skany biezacej doby roboczej
     w kolejnosci przyjecia; ``biezaca_plytka`` - skan_id ostatniej plytki. ``komunikaty`` i ``pytania`` - wszystko, co
@@ -668,6 +798,8 @@ class StanAplikacji:
     niezapisane: tuple = ()
     lista_zapisana: str | None = None
     rano: StanRano | None = None  # wersja 3 (E3-A7): stan pieca, gdy ``tryb`` == "rano"; w trybie "wieczor" None
+    ramki: StanRamek | None = None  # wersja 4 (E3-A12): ramki stanowiska (None = program bez ramek)
+    excel: StanExcel | None = None  # wersja 4 (E3-A12): Excel i okno "Excel: wskaz wiersz" (None = program bez Excela)
 
     def plytka(self, skan_id: int) -> Plytka | None:
         return next((p for p in self.plytki if p.skan_id == skan_id), None)
@@ -864,6 +996,40 @@ class Kontroler:
         """Zapytanie (nie polecenie): projekty zlecenia o tej kuwecie do przypisania recznego (``ProjektPuli``)."""
         raise NotImplementedError
 
+    # --- ramki i Excel (wersja 4, E3-A12)
+    def test_led(self) -> Odpowiedz:
+        """"Test LED": podlaczone ramki pokazuja przez kilka sekund kolejne kolory na wszystkich diodach (potem wraca plan)."""
+        raise NotImplementedError
+
+    def przejmij_ramke(self, rola: str) -> Odpowiedz:
+        """Ramka ``rola`` ("W" / "P") wstrzymana po "drugi laptop" albo "zly klucz" - decyzja osoby: ten laptop ja przejmuje."""
+        raise NotImplementedError
+
+    def excel_zatwierdz(self, sesja_pieca_id: int, zlecenie_id: int, wiersz: int | None = None) -> Odpowiedz:
+        """Okno "Excel: wskaz wiersz": zatwierdzenie pozycji (piec + zlecenie z ``StanExcel.pozycje`` - P4) - wiersz proponowany albo
+        ``wiersz`` wskazany z kandydatow. Tylko po kliknieciu osoby (tryb "pytaj"); ``dane`` = wpis logu (bez nazw)."""
+        raise NotImplementedError
+
+    def excel_pomin(self, sesja_pieca_id: int, zlecenie_id: int) -> Odpowiedz:
+        """Pozycja (piec + zlecenie) pominieta (osoba zaznaczy w Excelu recznie) - wpis "pominieto" w logu."""
+        raise NotImplementedError
+
+    def excel_odswiez(self) -> Odpowiedz:
+        """Propozycje pieca od nowa (swiezy odczyt arkusza) - po bledzie Excela albo zmianie arkusza."""
+        raise NotImplementedError
+
+    def excel_pokaz(self, sesja_pieca_id: int | None = None) -> Odpowiedz:
+        """Okno Excela dla zamknietego pieca (None = ostatni): zlecenia kompletne bez wpisu w logu Excela (takze po restarcie)."""
+        raise NotImplementedError
+
+    def excel_zamknij(self) -> Odpowiedz:
+        """"Pozniej": okno Excela znika (pozycje zostaja - ``excel_pokaz``)."""
+        raise NotImplementedError
+
+    def excel_szczegoly(self, sesja_pieca_id: int, zlecenie_id: int):
+        """Zapytanie (nie polecenie): ``SzczegolyExcel`` pozycji (folder i kandydaci z H - tylko na ekran) albo None."""
+        raise NotImplementedError
+
     def wykonaj(self, polecenie: str, *argumenty: Any) -> Odpowiedz:
         """Polecenie po nazwie (``POLECENIA``) - dla przyciskow z ``Pytanie.odpowiedzi``. Nieznana nazwa = odmowa ``odmowa``,
         zla liczba argumentow = odmowa ``zle_argumenty`` - nigdy wyjatek (D1)."""
@@ -984,6 +1150,38 @@ class KontrolerSesji(Kontroler):
         self._lista_czas: str | None = None
         self._lista_blad = False
         self._odrzucone = self._wczytaj_odrzucone()
+        # ramki i Excel (E3-A12): podlaczane przez ``podlacz_ramki`` / ``podlacz_excel`` (Aplikacja - z ustawien przy starcie)
+        self.ramki = None
+        self.excel = None
+        self._stan_ramek: StanRamek | None = None
+        self._ramki_kontrola = 0.0
+        self._klucze_ramek: dict = {}  # zrodlo -> klucze zdarzen ramki zapisanych w dzienniku (start_id:nr)
+        self._klucze_od: dict = {}  # zrodlo -> najwyzszy id dziennika w chwili odczytu kluczy
+        self._plan_p: str | None = None  # plan_id planu pieca wyslanego do ramki porannej
+        self._plan_p_podpis: tuple | None = None
+        self._plany_wyslane: set = set()
+        self._test_led_do = 0.0
+        self._znacznik_spacji = None  # ramka W: znacznik Spacji czekajacy na plik skanu
+        self._w_ostatni = None  # ramka W: znacznik ostatniego skanu
+        self._w_do_wyslania: tuple | None = None  # (znacznik, skan_id) - wynik do wyslania po zbudowaniu stanu
+        self._w_aktywny: tuple | None = None  # (znacznik, skan_id, obraz wyslany) wyniku na ramce W
+        self._excel_pozycje: list = []
+        self._excel_piec: tuple | None = None  # (sesja_pieca_id, nr_w_dniu, data) pieca pozycji Excela
+        self._excel_blad: str | None = None
+        self._excel_widoczne = False
+        self._excel_kolejka: collections.deque = collections.deque()  # P1: kroki Excela, jeden na obieg petli okna
+        self._excel_zalegle: dict = {}  # P5: sesja_pieca_id -> (nr_w_dniu, data, ile) piecow z niezalatwionymi zleceniami
+        self._excel_bledy: dict = {}  # D9: zlecenie_id -> wiersz ostatniego wpisu "blad" w excel_zapisy pokazanego pieca
+        self._plan_p_dane: dict | None = None  # ostatni plan pieca wyslany do ramki (kuwety -> plytki: rozlozenie z ramki)
+        self._plan_p_ponow = False  # P2: planu nie dalo sie zbudowac - ponowienie
+        self._plan_p_ponow_od = 0.0
+        self._plany_czekaja: dict = {}  # P7: plan_id pieca zamknietego -> wersja planu laptopa w chwili zamkniecia
+        self._zdarzenia_ponow: list = []  # D2: zdarzenia ramki niezapisane (baza zajeta) - ponowienie
+        self._zdarzenia_ponow_od = 0.0  # r3 D-N1: najwczesniej wtedy kolejna proba
+        self._excel_jawnie = False  # r3 P-N3: okno pokazane jawnie (``excel_pokaz``) - widoczne takze bez pozycji, gdy sa zalegle piece
+        self._odswiez_potrzebne = False
+        self._ramki_od = 0.0
+        self._ramki_po_czasie = False
 
     # --- sygnaly ---------------------------------------------------------------------------------
     def subskrybuj(self, funkcja: Callable[[ZdarzenieKontrolera], None]) -> None:
@@ -1035,6 +1233,7 @@ class KontrolerSesji(Kontroler):
             if p.id not in self._ogloszone:
                 self._ogloszone.add(p.id)
                 self._powiadom("pytanie", pytanie=p, stan=stan)
+        self._po_odswiezeniu(stan)  # E3-A12: plan ramki porannej, wynik na ramce wieczornej
         return stan
 
     def _odswiez_zywe(self, sygnal: str = "stan") -> None:
@@ -1047,7 +1246,7 @@ class KontrolerSesji(Kontroler):
             self._odswiez()
             return
         self._wersja += 1
-        self._stan = dataclasses.replace(self._stan, wersja=self._wersja, **zywe)
+        self._stan = dataclasses.replace(self._stan, wersja=self._wersja, ramki=self._stan_ramek, **zywe)
         if sygnal == "postep":
             self._powiadom("postep", postep=self._stan.analiza, stan=self._stan)
         else:
@@ -1074,10 +1273,15 @@ class KontrolerSesji(Kontroler):
     def przetworz(self, limit_s: float = LIMIT_PRZETWARZANIA_S) -> int:
         if self._zamkniety:
             return 0
+        try:
+            n = self._przetworz_ramki()  # E3-A12: krok Excela, zdarzenia i stan ramek (zegar okna)
+        except Exception:  # noqa: BLE001 - recenzja PR #30 D2: blad ramek / Excela nie przerywa obiegu
+            LOG.exception("kontroler: blad obslugi ramek / Excela")
+            n = 0
         if self._sprawdz_zmiane():
             self._odswiez()
-            return 1
-        return 1 if self._sprawdz_zajetosc() else 0
+            return n + 1
+        return n + (1 if self._sprawdz_zajetosc() else 0)
 
     def _uklad(self, nazwa: str | None) -> tuple:
         """(numery gniazd, numery plytek) ukladu ``nazwa``; ((), ()) gdy ukladu nie da sie wczytac."""
@@ -1164,8 +1368,13 @@ class KontrolerSesji(Kontroler):
                 pytania += [p for p in plytka.pytania if not p.ukryte]
                 trwale += [k for k in plytka.komunikaty if not k.ukryte]
             pytania += [q for q in self._pytania_rano(rano) if not q.ukryte]
-            if not rano.ramka and ID_RAMKA_PORANNA not in self._ukryte:
+            if not rano.ramka and ID_RAMKA_PORANNA not in self._ukryte and self._ramki_po_czasie_na_polaczenie():
                 trwale.append(self._nowy_komunikat(ID_RAMKA_PORANNA, "ramka_niedostepna", czas=sw["data"]))
+        if (self.tryb == TRYB_WIECZOR and self._klient("W") is not None and ID_RAMKA_WIECZORNA not in self._ukryte
+                and self._ramki_po_czasie_na_polaczenie()):
+            w = self._stan_ramek.wieczorna if self._stan_ramek is not None else None
+            if w is None or not w.polaczona:  # E3-A12: bez ramki wieczornej program dziala wedlug ekranu
+                trwale.append(self._nowy_komunikat(ID_RAMKA_WIECZORNA, "ramka_wieczorna_niedostepna", czas=sw["data"]))
         komunikaty = sorted(list(self._komunikaty.values()) + trwale, key=lambda k: (k.czas, k.id))
         aktywne = [p.skan_id for p in plytki]
         liczniki: dict[str, int] = {}  # po klasie koloru, tylko plytki aktywne (plytka bez numeru nie ma zielonych)
@@ -1180,7 +1389,7 @@ class KontrolerSesji(Kontroler):
             do_dofrezowania=tuple(self._pozycja(x) for x in sw["do_dofrezowania"]),
             do_dofrezowania_biezaca=lista_biezaca,
             pytania=tuple(pytania), komunikaty=tuple(komunikaty), konflikty=zamroz(sw["konflikty"]), zamkniety=self._zamkniety,
-            lista_zapisana=self._lista_czas, rano=rano, **self._stan_zywy())
+            lista_zapisana=self._lista_czas, rano=rano, ramki=self._stan_ramek, excel=self._stan_excel(), **self._stan_zywy())
 
     @staticmethod
     def _skladowe_oczekujacych(pary: list) -> dict:
@@ -1273,16 +1482,25 @@ class KontrolerSesji(Kontroler):
         return f"{m[1]}{int(m[2])}" if m else k
 
     def _rozlozone(self, plan_id: str) -> list:
-        """Kuwety pieca ``plan_id`` potwierdzone jako rozlozone (stos - Backspace cofa ostatnia); po restarcie z dziennika."""
+        """Kuwety pieca ``plan_id`` potwierdzone jako rozlozone (stos - Backspace cofa ostatnia); po restarcie z dziennika. Od rundy 2
+        E3-A12 takze Enter / Backspace na ramce porannej (wpisy ``ramka_p`` z polem ``kuweta_rozlozona`` / ``kuweta_cofnieta``)."""
         if plan_id not in self._kuwety_rozlozone:
             stos: list = []
-            for w in self.sesja.baza.wiersze("SELECT typ, dane FROM zdarzenia WHERE zrodlo = 'ui' AND typ IN ('kuweta_potwierdzona', 'kuweta_cofnieta') "
-                                             "ORDER BY id"):
+            for w in self.sesja.baza.wiersze("SELECT zrodlo, typ, dane FROM zdarzenia WHERE (zrodlo = 'ui' AND typ IN ('kuweta_potwierdzona', "
+                                             "'kuweta_cofnieta')) OR (zrodlo = 'ramka_p' AND typ IN ('potwierdzenie', 'cofniecie')) ORDER BY id"):
                 try:
                     d = json.loads(w["dane"])
                 except (TypeError, ValueError):
                     continue
                 if d.get("plan_id") != plan_id:
+                    continue
+                if w["zrodlo"] == "ramka_p":
+                    if d.get("kuweta_rozlozona"):
+                        stos.append(d["kuweta_rozlozona"])
+                    elif d.get("kuweta_cofnieta") in stos:
+                        stos.reverse()
+                        stos.remove(d["kuweta_cofnieta"])
+                        stos.reverse()
                     continue
                 if w["typ"] == "kuweta_potwierdzona":
                     stos.append(d.get("kuweta"))
@@ -1656,12 +1874,952 @@ class KontrolerSesji(Kontroler):
             zajety=zajety, nowy_wsad=nowy_wsad, ostatni_zamkniety=ostatni)
 
     def _ramka_poranna_dostepna(self) -> bool:
-        """Czy ramka poranna jest podlaczona - do A12 (``indicate``) zawsze False: program dziala wedlug ekranu."""
-        return False
+        """Czy ramka poranna jest podlaczona i odpowiada (E3-A12: ostatni odczyt stanu klienta ``indicate``)."""
+        r = self._stan_ramek.poranna if self._stan_ramek is not None else None
+        return r is not None and r.polaczona and r.blad is None
 
     def _excel_dostepny(self) -> bool:
-        """Czy Excel jest podlaczony - do A12 (``excel``) zawsze False: zlecenia kompletne odhacza sie recznie."""
+        """Czy program ma Excel (E3-A12: ``podlacz_excel``); czy Excel odpowiada, wiadomo dopiero przy odczycie arkusza."""
+        return self.excel is not None
+
+    # --- ramki swietlne (E3-A12) ------------------------------------------------------------------
+    def podlacz_ramki(self, ramki: Any) -> None:
+        """Ramki stanowiska: ``indicate.Indicate`` (``wieczorna`` / ``poranna`` - klienci ``KlientRamki`` albo None) albo None.
+        Plan pieca idzie do klienta PRZED pierwszym kontaktem z ramka (potwierdzenia z bazy, gdy ramka planu juz nie ma), potem
+        klienci startuja (``uruchom``). Brak ramki = komunikat (po ``CZAS_NA_POLACZENIE_RAMEK_S``) i praca dalej (kryterium 5)."""
+        if self._zamkniety:
+            return
+        self.ramki = ramki
+        self._ramki_od = time.monotonic()
+        self._ramki_po_czasie = False
+        self._stan_ramek = self._odczytaj_ramki()
+        self._plan_p = self._plan_p_podpis = self._plan_p_dane = None
+        self._plany_wyslane = set()
+        if self._stan is not None:
+            self._odswiez()
+        if ramki is not None:
+            try:
+                ramki.uruchom()
+            except Exception:  # noqa: BLE001 - ramka to dodatek: program dziala dalej wedlug ekranu
+                LOG.exception("kontroler: klienci ramek nie wystartowali")
+
+    def podlacz_excel(self, excel: Any) -> None:
+        """Excel: ``excel.Excel`` z ``baza`` TEGO programu (X4 sprawdzane w ``sesje_pieca`` - recenzja PR #27 D7, PR #30 D8) albo
+        None. Polaczenie z arkuszem leniwe. Przy podlaczeniu: piece zamkniete w ostatnich ``ZALEGLE_EXCELA_H`` godzinach ze
+        zleceniami kompletnymi bez wpisu w logu Excela - komunikat i przycisk w oknie Excela (P5)."""
+        if self._zamkniety:
+            return
+        if excel is not None and getattr(excel, "baza", None) is not self.sesja.baza:
+            LOG.error("kontroler: Excel bez bazy programu - niepodlaczony (zapis do Excela wymaga kontroli X4 w bazie)")
+            excel = None
+        self.excel = excel
+        self._excel_pozycje, self._excel_piec, self._excel_blad, self._excel_widoczne = [], None, None, False
+        self._excel_kolejka.clear()
+        self._excel_zalegle = {}
+        if excel is not None:
+            try:
+                self._excel_przelicz_zalegle()
+            except Exception:  # noqa: BLE001
+                LOG.exception("kontroler: zaleglych piecow Excela nie da sie policzyc")
+        if self._stan is not None:
+            self._odswiez()
+
+    def _klient(self, rola: str):
+        if self.ramki is None:
+            return None
+        return getattr(self.ramki, "wieczorna" if rola == "W" else "poranna", None)
+
+    def _klienci(self) -> list:
+        return [k for k in (self._klient("W"), self._klient("P")) if k is not None]
+
+    def _odczytaj_ramki(self) -> StanRamek | None:
+        if self.ramki is None:
+            return None
+
+        def jedna(k):
+            if k is None:
+                return None
+            try:
+                s = k.stan()
+            except Exception:  # noqa: BLE001
+                LOG.exception("kontroler: stanu ramki nie da sie odczytac")
+                return StanRamki(rola=getattr(k, "rola", "?"))
+            plytka = s.get("plytka")
+            return StanRamki(rola=s.get("rola") or getattr(k, "rola", "?"), polaczona=bool(s.get("polaczona")), blad=s.get("blad"),
+                             komunikat=s.get("komunikat"), plytka=plytka if _jest_liczba(plytka) else None, tryb_ramki=s.get("tryb_ramki"),
+                             plan_przyjety=bool(s.get("plan_przyjety")), wstrzymane=bool(s.get("wstrzymane")),
+                             potwierdzone=len(s.get("potwierdzone") or ()), ostrzezenia=tuple(s.get("ostrzezenia") or ()),
+                             utracone=int(s.get("utracone") or 0), przepelnienie=int(s.get("przepelnienie") or 0))
+
+        return StanRamek(wieczorna=jedna(self._klient("W")), poranna=jedna(self._klient("P")), test_led=time.monotonic() < self._test_led_do)
+
+    def _ramki_po_czasie_na_polaczenie(self) -> bool:
+        """Recenzja PR #30 D7: komunikaty "ramka nie odpowiada" dopiero po ``CZAS_NA_POLACZENIE_RAMEK_S`` od podlaczenia (bez migania
+        przed pierwszym kontaktem)."""
+        return self.ramki is None or self._ramki_po_czasie or time.monotonic() - self._ramki_od >= CZAS_NA_POLACZENIE_RAMEK_S
+
+    @staticmethod
+    def _dostepnosc_ramek(s: StanRamek | None) -> tuple:
+        """Czesc stanu ramek, od ktorej zaleza komunikaty i ``StanRano.ramka`` (zmiana = pelne odswiezenie stanu)."""
+        if s is None:
+            return ()
+        return tuple((r.rola, r.polaczona, r.blad, r.komunikat) for r in (s.wieczorna, s.poranna) if r is not None)
+
+    def _komunikaty_ramek(self) -> None:
+        """Bledy ramek inne niz brak polaczenia (zly klucz, drugi laptop, awaria sprzetu, plan odrzucony) - komunikat z tekstem
+        ``statusy.BLEDY_RAMEK`` (D4)."""
+        for r in (self._stan_ramek.wieczorna, self._stan_ramek.poranna) if self._stan_ramek is not None else ():
+            if r is None:
+                continue
+            pokaz = r.blad not in (None, "brak_polaczenia")
+            nazwa = ST.NAZWY_TRYBOW.get(TRYB_WIECZOR if r.rola == "W" else TRYB_RANO, r.rola)
+            self._ustaw_komunikat("ramka_blad", f"ramka_blad:{r.rola}", pokaz, ramka=nazwa,
+                                  powod=ST.BLEDY_RAMEK.get(r.blad or "", r.komunikat or r.blad or ""))
+
+    def _przetworz_ramki(self) -> int:
+        """Zegar okna (``przetworz``): krok Excela (najwyzej jeden odczyt arkusza na obieg - recenzja PR #30 P1), zdarzenia ramek ->
+        dziennik i sesja (klucz unikalny; zdarzenia, ktorych nie dalo sie zapisac przy zajetej bazie, czekaja na ponowienie - D2),
+        stan klientow co ``OKRES_STANU_RAMEK_S``, ponowienie planu pieca po bledzie (P2), koniec testu diod. Zwraca liczbe
+        obsluzonych zdarzen; stan odswieza sama (pelny albo czesc "zywa")."""
+        n = self._przetworz_excel()
+        if self.ramki is None or self._zamkniety:
+            return n
+        pelne, zywe = self._odswiez_potrzebne, False
+        self._odswiez_potrzebne = False
+        odebrane = []
+        for k in self._klienci():
+            try:
+                odebrane += k.odbierz_zdarzenia()
+            except Exception:  # noqa: BLE001
+                LOG.exception("kontroler: zdarzen ramki nie da sie odebrac")
+        teraz = time.monotonic()
+        if self._zdarzenia_ponow and teraz < self._zdarzenia_ponow_od:  # r3 D-N1: odlozone czekaja (kolejnosc: nowe za nimi)
+            self._zdarzenia_ponow += odebrane
+        elif self._zdarzenia_ponow or odebrane:
+            do_zapisu, self._zdarzenia_ponow = self._zdarzenia_ponow + odebrane, []
+            n += len(do_zapisu)
+            with self._krotkie_czekanie_na_baze():
+                wynik, self._zdarzenia_ponow = self._zdarzenia_ramki(do_zapisu)
+            if self._zdarzenia_ponow:
+                self._zdarzenia_ponow_od = teraz + OKRES_PONOWIENIA_ZDARZEN_S
+            pelne = wynik or pelne
+        if teraz >= self._ramki_kontrola:
+            self._ramki_kontrola = teraz + OKRES_STANU_RAMEK_S
+            if self._test_led_do and teraz >= self._test_led_do:  # koniec testu diod: plan pieca ponownie
+                self._test_led_do = 0.0
+                self._plan_p_podpis = None
+                self._usun_komunikat(ID_TEST_LED)
+                pelne = True
+            if not self._ramki_po_czasie and teraz - self._ramki_od >= CZAS_NA_POLACZENIE_RAMEK_S:
+                self._ramki_po_czasie = True
+                pelne = True
+            if self._plan_p_ponow and teraz >= self._plan_p_ponow_od and self._stan is not None:  # P2: ponowienie planu po bledzie
+                self._plan_p_ponow_od = teraz + OKRES_PONOWIENIA_PLANU_S
+                self._plan_p_podpis = None
+                self._synchronizuj_ramke_p(self._stan)
+                pelne = pelne or self._odswiez_potrzebne
+                self._odswiez_potrzebne = False
+            nowy = self._odczytaj_ramki()
+            if nowy != self._stan_ramek:
+                stary, self._stan_ramek = self._stan_ramek, nowy
+                if self._dostepnosc_ramek(stary) != self._dostepnosc_ramek(nowy):
+                    self._komunikaty_ramek()
+                    pelne = True
+                else:
+                    zywe = True
+        if pelne:
+            self._odswiez()
+        elif zywe:
+            self._odswiez_zywe()
+        return n
+
+    # --- dziennik zdarzen ramek z kluczem unikalnym (wymaganie indicate.md, pkt 4 API) -------------
+    def _krotkie_czekanie_na_baze(self):
+        """r3 D-N1: zapis zdarzen ramki czeka na baze zajeta przez inny program najwyzej ``CZEKAJ_ZDARZENIA_MS`` (zamiast
+        ``busy_timeout`` 5 s - okno nie stoi), potem zdarzenia czekaja na ponowienie co ``OKRES_PONOWIENIA_ZDARZEN_S``."""
+        import contextlib  # noqa: PLC0415
+
+        baza = self.sesja.baza
+
+        @contextlib.contextmanager
+        def czekanie():
+            ustawione = False
+            try:
+                baza.polaczenie.execute(f"PRAGMA busy_timeout = {int(CZEKAJ_ZDARZENIA_MS)}")
+                ustawione = True
+            except Exception:  # noqa: BLE001 - bez krotkiego czekania zapis i tak sie uda (dluzej)
+                pass
+            try:
+                yield
+            finally:
+                if ustawione:
+                    try:
+                        baza.polaczenie.execute(f"PRAGMA busy_timeout = {int(getattr(baza, 'czekaj_ms', B.CZEKAJ_NA_BLOKADE_MS))}")
+                    except Exception:  # noqa: BLE001
+                        LOG.exception("kontroler: nie da sie przywrocic czasu czekania na baze")
+
+        return czekanie()
+
+    def _zdarzenia_ramki(self, zdarzenia: list) -> tuple:
+        """Zdarzenia jednego odbioru, w kolejnosci: kolejne zdarzenia bez skutku w sesji zapisywane w JEDNEJ transakcji (jeden zapis
+        na dysk), "Zamknij piec" - osobno. Blad serii = wycofanie i zapis po jednym. Baza zajeta = to zdarzenie i nastepne czekaja
+        na ponowienie w nastepnym obiegu (recenzja PR #30 D2 - nie gina do restartu). Zwraca (odswiezyc caly stan, do ponowienia)."""
+        pelne, seria = False, []
+
+        def zapisz_po_jednym(lista: list) -> list:
+            nonlocal pelne
+            for i, z in enumerate(lista):
+                try:
+                    pelne = self._zdarzenie_ramki(z) or pelne
+                except B.BladBazy:
+                    LOG.warning("kontroler: baza zajeta - %d zdarzen ramki czeka na ponowienie", len(lista) - i)
+                    return lista[i:]
+                except Exception:  # noqa: BLE001 - blad jednego zdarzenia nie zatrzymuje programu
+                    LOG.exception("kontroler: blad obslugi zdarzenia ramki")
+                    pelne = True
+            return []
+
+        def zapisz_serie() -> list:
+            nonlocal pelne
+            if len(seria) <= 1:
+                return zapisz_po_jednym(seria)
+            try:
+                for zrodlo in {ZRODLA_RAMEK.get(z.get("rola")) for z in seria} - {None}:
+                    self._klucze_zrodla(zrodlo)  # pamiec kluczy z dziennika wczytana przed seria
+            except B.BladBazy:
+                return list(seria)
+            znane = {(ZRODLA_RAMEK.get(z.get("rola")), f"{z.get('start_id')}:{z.get('nr')}") for z in seria
+                     if f"{z.get('start_id')}:{z.get('nr')}" in self._klucze_ramek.get(ZRODLA_RAMEK.get(z.get("rola")), ())}
+            od = dict(self._klucze_od)
+            try:
+                with self.sesja.baza.transakcja():
+                    wynik = False
+                    for z in seria:
+                        wynik = self._zdarzenie_ramki(z) or wynik
+                pelne = wynik or pelne
+                return []
+            except Exception as e:  # noqa: BLE001 - seria wycofana: klucze tej serii z pamieci precz
+                for z in seria:
+                    zrodlo, klucz = ZRODLA_RAMEK.get(z.get("rola")), f"{z.get('start_id')}:{z.get('nr')}"
+                    if zrodlo in self._klucze_ramek and (zrodlo, klucz) not in znane:
+                        self._klucze_ramek[zrodlo].discard(klucz)
+                self._klucze_od.update(od)
+                self._kuwety_rozlozone.clear()  # rozlozenie kuwet z ramki - od nowa z dziennika
+                if isinstance(e, B.BladBazy):
+                    return list(seria)
+                LOG.exception("kontroler: serii zdarzen ramki nie da sie zapisac - zapis po jednym")
+                return zapisz_po_jednym(seria)
+
+        for i, z in enumerate(zdarzenia):
+            if z.get("rola") == "P" and z.get("typ") == "zamknij_piec":
+                reszta = zapisz_serie()
+                seria = []
+                if reszta:
+                    return pelne, reszta + list(zdarzenia[i:])
+                reszta = zapisz_po_jednym([z])
+                if reszta:
+                    return pelne, reszta + list(zdarzenia[i + 1:])
+            else:
+                seria.append(z)
+        reszta = zapisz_serie()  # najpierw zapis (ustawia pelne), potem wynik
+        return pelne, reszta
+
+    def _klucze_zrodla(self, zrodlo: str) -> set:
+        """Klucze (start_id:nr) zdarzen ramki ``zrodlo`` z dziennika: ostatnie ``ZDARZEN_RAMKI_W_PAMIECI`` wpisow (ramka powtarza
+        najwyzej 2000 ostatnich zdarzen), czytane raz; ``_klucze_od`` - najwyzszy id dziennika sprawdzony (D1: przesuwany po kazdym
+        wlasnym wpisie - drugi program na tej bazie blokuje ``BlokadaStanowiska``)."""
+        if zrodlo not in self._klucze_ramek:
+            klucze = set()
+            for w in self.sesja.baza.wiersze("SELECT dane FROM zdarzenia WHERE zrodlo = ? ORDER BY id DESC LIMIT ?", (zrodlo, ZDARZEN_RAMKI_W_PAMIECI)):
+                try:
+                    klucze.add(json.loads(w["dane"])["klucz"])
+                except (TypeError, ValueError, KeyError):
+                    continue
+            self._klucze_od[zrodlo] = (self.sesja.baza.wiersz("SELECT max(id) AS m FROM zdarzenia") or {}).get("m") or 0
+            self._klucze_ramek[zrodlo] = klucze
+        return self._klucze_ramek[zrodlo]
+
+    def _klucz_zapisany(self, zrodlo: str, klucz: str) -> bool:
+        """Czy zdarzenie o tym kluczu jest juz w dzienniku - pamiec + wpisy dopisane po ostatnim sprawdzeniu (w transakcji zapisu)."""
+        if klucz in self._klucze_zrodla(zrodlo):
+            return True
+        wzor = "%" + json.dumps({"klucz": klucz})[1:-1].replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+        return self.sesja.baza.wiersz("SELECT 1 AS j FROM zdarzenia WHERE id > ? AND zrodlo = ? AND dane LIKE ? ESCAPE '!' LIMIT 1",
+                                      (self._klucze_od[zrodlo], zrodlo, wzor)) is not None
+
+    def _wpisz_zdarzenie_ramki(self, zrodlo: str, typ: str, dane: dict) -> int:
+        id_ = self.sesja.baza.zdarzenie(zrodlo, typ, dane, czas=self._teraz())
+        self._klucze_od[zrodlo] = max(self._klucze_od.get(zrodlo, 0), id_)  # D1: pamiec ma klucze tego uruchomienia
+        return id_
+
+    def _kuweta_z_ramki(self, z: dict, plan_id: str) -> tuple:
+        """Decyzja wlasciciela (runda 2): Enter / Backspace na ramce porannej = takze kuweta rozlozona / cofnieta na ekranie.
+        Kuweta jest rozlozona, gdy ramka ma ja potwierdzona na WSZYSTKICH plytkach, na ktorych lezy wedlug EKRANU (lista kuwet
+        ``KuwetaRano.plytki``, lustro potwierdzen klienta ``potwierdzone()``); kuweta z praca na plytce poza planem ramki (okragla)
+        - bez automatu, rozlozenie potwierdza osoba na ekranie (r3 P-N1). Cofniecie na ramce kuwety rozlozonej - znow do
+        rozlozenia (biezaca kuweta laptopa bez zmian - r3 D-N3). Zwraca ("kuweta_rozlozona" / "kuweta_cofnieta", kuweta) albo
+        (None, None)."""
+        kuweta, k = z.get("kuweta"), self._klient("P")
+        if not isinstance(kuweta, str) or k is None or plan_id != self._plan_p or self._plan_p_dane is None:
+            return None, None
+        stos = self._rozlozone(plan_id)
+        if z.get("typ") == "cofniecie":
+            return ("kuweta_cofnieta", kuweta) if kuweta in stos else (None, None)
+        w_planie = next((set(x.get("plytki") or ()) for x in self._plan_p_dane.get("kuwety") or () if x.get("kuweta") == kuweta), None)
+        rano = self._stan.rano if self._stan is not None else None
+        na_ekranie = next((set(x.plytki) for x in (rano.kuwety if rano is not None else ()) if x.kuweta == kuweta), None)
+        plytki = na_ekranie  # r4 P-R3-1: kuwety nie ma na liscie ekranu (tryb "wieczor", skan liczony inaczej) - bez automatu
+        if not plytki or kuweta in stos or not plytki <= (w_planie or set()):
+            return None, None  # r3 P-N1: praca kuwety na plytce poza ramka (okragla) - rozlozenie potwierdza osoba na ekranie
+        try:
+            potwierdzone = {(int(p), kw) for p, kw in k.potwierdzone()}
+        except Exception:  # noqa: BLE001
+            return None, None
+        return ("kuweta_rozlozona", kuweta) if all((p, kuweta) in potwierdzone for p in plytki) else (None, None)
+
+    def _zdarzenie_ramki(self, z: dict) -> bool:
+        """Jedno zdarzenie ramki (watek okna): wpis w ``zdarzenia`` z kluczem ``klucz_zdarzenia`` (start_id, nr) - KAZDE zdarzenie,
+        takze pominiete i odrzucone - w tej samej transakcji co skutek; klucz juz zapisany = nic (historia po restarcie programu).
+        Potwierdzenia / cofniecia / wybory kuwet: dziennik ("inny_piec", gdy ``plan_id`` nie jest otwartym piecem) i rozlozenie
+        kuwety na ekranie (``_kuweta_z_ramki``). "Zamknij piec": ``_zamknij_piec_z_ramki``. Zwraca True, gdy trzeba odswiezyc caly
+        stan. Baza zajeta = ``BladBazy`` (wolajacy ponawia)."""
+        rola = z.get("rola")
+        zrodlo = ZRODLA_RAMEK.get(rola)
+        if zrodlo is None or not isinstance(z.get("start_id"), str) or not _jest_liczba(z.get("nr")):
+            LOG.warning("kontroler: zdarzenie ramki bez klucza (rola, start_id, nr) - pominiete")
+            return False
+        klucz = f"{z['start_id']}:{z['nr']}"
+        typ = str(z.get("typ") or "nieznane")[:40]
+        dane = {"klucz": klucz, "start_id": z["start_id"], "nr": z["nr"], "z_historii": bool(z.get("z_historii")),
+                "nieaktualne": bool(z.get("nieaktualne"))}
+        for pole in ("plan_id", "plytka", "poprzednia", "kuweta", "wersja", "przyczyna", "stan"):
+            if isinstance(z.get(pole), (str, int)) and not isinstance(z.get(pole), bool):
+                dane[pole] = z[pole] if not isinstance(z[pole], str) else z[pole][:40]
+        if rola == "P" and typ == "zamknij_piec":
+            return self._zamknij_piec_z_ramki(z, zrodlo, klucz, dane)
+        if rola == "P" and typ == "plan_przyjety" and _jest_liczba(z.get("wersja")):  # P7: plan nowej wersji przyjety po zamknieciu
+            czeka = self._plany_czekaja.get(z.get("plan_id"))
+            if czeka is not None and z["wersja"] > czeka:
+                del self._plany_czekaja[z["plan_id"]]
+        skutek, kuweta, plan_id = "zapisano", (None, None), None
+        if rola == "P" and typ in ZDARZENIA_KUWET_RAMKI:
+            otwarty = self.rano.otwarty_piec()
+            if otwarty is None or z.get("plan_id") != otwarty["plan_id"]:
+                skutek = "inny_piec"
+            elif typ in ("potwierdzenie", "cofniecie"):
+                plan_id = otwarty["plan_id"]
+                kuweta = self._kuweta_z_ramki(z, plan_id)
+        baza = self.sesja.baza
+        with baza.transakcja():
+            if self._klucz_zapisany(zrodlo, klucz):
+                return False
+            self._wpisz_zdarzenie_ramki(zrodlo, typ, {**dane, "skutek": skutek, **({kuweta[0]: kuweta[1]} if kuweta[0] else {})})
+        self._klucze_zrodla(zrodlo).add(klucz)
+        if kuweta[0] == "kuweta_rozlozona":
+            self._rozlozone(plan_id).append(kuweta[1])
+            if self._kuweta_biezaca.get(plan_id) == kuweta[1]:
+                self._kuweta_biezaca.pop(plan_id, None)  # biezaca = nastepna nierozlozona (jak Enter na ekranie)
+            return True
+        if kuweta[0] == "kuweta_cofnieta":
+            stos = self._rozlozone(plan_id)
+            del stos[len(stos) - 1 - stos[::-1].index(kuweta[1])]  # r3 D-N3: biezaca kuweta laptopa zostaje (wybor osoby przy laptopie)
+            return True
         return False
+
+    def _zamknij_piec_z_ramki(self, z: dict, zrodlo: str, klucz: str, dane: dict) -> bool:
+        """"Zamknij piec" z klawiatury ramki porannej: TYLKO gdy zdarzenie nie jest z historii / innego pieca (``nieaktualne``), nie
+        przyszlo sprzed przyjecia planu nowej wersji po zamknieciu / ponownym otwarciu tego pieca (P7), ``plan_id`` = otwarty piec
+        biezacy, nie trwa analiza ani skanowanie (jak przycisk) i jest wybrana osoba; skutek (``session_rano.zamknij_piec``) i klucz
+        w jednej transakcji. Odmowa sesji = wpis "odmowa" z powodem. Baza zajeta = ``BladBazy`` (ponowienie w nastepnym obiegu),
+        inny blad = wpis "blad" i komunikat (D2). Po zapisie z pominieciem polecenia okna pamiec listy brakow jest uniewazniana
+        (recenzja PR #26, D1) - takze po bledzie."""
+        baza = self.sesja.baza
+        skutek, powod, wynik = "nieaktualne", "", None
+        try:
+            otwarty = self.rano.otwarty_piec()
+            with baza.transakcja():
+                if self._klucz_zapisany(zrodlo, klucz):
+                    return False
+                if z.get("nieaktualne") or z.get("z_historii") or z.get("plan_id") in self._plany_czekaja:
+                    skutek = "nieaktualne"
+                elif otwarty is None or z.get("plan_id") != otwarty["plan_id"]:
+                    skutek = "inny_piec"
+                elif self._zajety() is not None:
+                    skutek = self._zajety()
+                else:
+                    try:
+                        wynik = self.rano.zamknij_piec(plan_id=z["plan_id"])
+                        skutek = "zamknieto"
+                    except SE.BladSesji as e:
+                        skutek, powod = "odmowa", B.bez_sciezek(str(e))[:300]
+                self._wpisz_zdarzenie_ramki(zrodlo, "zamknij_piec", {**dane, "skutek": skutek, **({"powod": powod} if powod else {})})
+        except B.BladBazy:
+            self._uniewaznij_punkty()
+            raise
+        except Exception:  # noqa: BLE001 - nic nie zapisano (transakcja wycofana): sam klucz z "blad", piec bez zmian, komunikat
+            LOG.exception("kontroler: 'Zamknij piec' z ramki nie powiodl sie")
+            self._uniewaznij_punkty()
+            try:
+                with baza.transakcja():
+                    if not self._klucz_zapisany(zrodlo, klucz):
+                        self._wpisz_zdarzenie_ramki(zrodlo, "zamknij_piec", {**dane, "skutek": "blad"})
+                self._klucze_zrodla(zrodlo).add(klucz)
+            except Exception:  # noqa: BLE001
+                LOG.exception("kontroler: wpisu zdarzenia ramki nie da sie zapisac")
+            self._komunikat("ramka_zamknij_odmowa", id_="ramka_zamknij_odmowa", powod=ST.NAPIS_BLAD_PROGRAMU_RAMKI)
+            return True
+        self._klucze_zrodla(zrodlo).add(klucz)
+        self._uniewaznij_punkty()
+        if skutek == "zamknieto":
+            self._komunikat("ramka_piec_zamkniety", id_="ramka_piec_zamkniety", nr=(wynik or {}).get("nr_w_dniu") or "?")
+            self._po_zamknieciu_pieca(wynik or {})
+        elif skutek == "nieaktualne":
+            self._komunikat("ramka_zamknij_nieaktualne", id_="ramka_zamknij_nieaktualne")
+        else:
+            tekst = powod if skutek == "odmowa" else (tekst_komunikatu(skutek)[2] if skutek in ("analiza_trwa", "skanowanie_trwa")
+                                                      else tekst_komunikatu("ramka_zamknij_nieaktualne")[2])
+            self._komunikat("ramka_zamknij_odmowa", id_="ramka_zamknij_odmowa", powod=tekst)
+        return True
+
+    def _potwierdzone_z_bazy(self, plan_id: str) -> list:
+        """Potwierdzenia kuwet planu ``plan_id`` z dziennika zdarzen ramki porannej (lustro stanu ramki: potwierdzenie dopisuje,
+        cofniecie usuwa ostatnie) - do pierwszego planu po starcie programu (ramka zgaszona przy zamknieciu nie ma juz planu)."""
+        stos: dict = {}
+        wiersze = self.sesja.baza.wiersze("SELECT typ, dane FROM zdarzenia WHERE zrodlo = ? ORDER BY id DESC LIMIT ?",
+                                          (ZRODLA_RAMEK["P"], ZDARZEN_RAMKI_W_PAMIECI))
+        for w in reversed(wiersze):
+            if w["typ"] not in ("potwierdzenie", "cofniecie"):
+                continue
+            try:
+                d = json.loads(w["dane"])
+            except (TypeError, ValueError):
+                continue
+            if d.get("plan_id") != plan_id or d.get("skutek") != "zapisano" or not _jest_liczba(d.get("plytka")) or not isinstance(d.get("kuweta"), str):
+                continue
+            lista = stos.setdefault(d["plytka"], [])
+            if w["typ"] == "potwierdzenie" and d["kuweta"] not in lista:
+                lista.append(d["kuweta"])
+            elif w["typ"] == "cofniecie" and d["kuweta"] in lista:
+                del lista[len(lista) - 1 - lista[::-1].index(d["kuweta"])]
+        return [[p, k] for p in sorted(stos) for k in stos[p]]
+
+    def _zgas_ramke_p(self) -> None:
+        """Ramka poranna gasnie od razu (zamkniecie pieca - takze w trybie "wieczor": recenzja PR #30 P3)."""
+        k = self._klient("P")
+        if k is not None and self._plan_p is not None:
+            try:
+                k.zgas()
+            except Exception:  # noqa: BLE001
+                LOG.exception("kontroler: zgaszenie ramki porannej")
+        self._plan_p = self._plan_p_podpis = self._plan_p_dane = None
+
+    def _synchronizuj_ramke_p(self, stan: StanAplikacji) -> None:
+        """Plan ramki porannej = ``SesjaRano.plan_plytek(kolejnosc z ekranu)`` po kazdej zmianie pieca (plytki, prace, braki,
+        kolejnosc) - liczony tylko, gdy zmienil sie stan pieca na ekranie; brak otwartego pieca = ``zgas`` (w trybie "wieczor" tez -
+        P3). Blad liczenia planu (kazdy - P2) = ramka zgaszona, komunikat, ponowienie co ``OKRES_STANU_RAMEK_S``. Pierwszy plan
+        danego pieca w tym uruchomieniu niesie potwierdzenia z bazy (gdy sa)."""
+        k = self._klient("P")
+        if k is None or time.monotonic() < self._test_led_do:
+            return
+        if stan.tryb != TRYB_RANO:  # wieczorem plan bez zmian (D10), ale zamkniety piec nie swieci (P3)
+            if self._plan_p is not None and self.rano.otwarty_piec() is None:
+                self._zgas_ramke_p()
+            return
+        r = stan.rano
+        if r is None or not r.otwarty or r.sesja_pieca_id is None:
+            if self._plan_p is not None:
+                self._zgas_ramke_p()
+            return
+        podpis = (r.sesja_pieca_id, r.plan_id, self._kolejnosc, r.plytki, r.braki)
+        if podpis == self._plan_p_podpis:
+            return
+        try:
+            pp = self.rano.plan_plytek(r.sesja_pieca_id, kolejnosc=self._kolejnosc)
+            potwierdzone = None
+            if pp["plan_id"] not in self._plany_wyslane:
+                potwierdzone = self._potwierdzone_z_bazy(pp["plan_id"]) or None
+            k.ustaw_plan_rano(pp, potwierdzone=potwierdzone)
+        except SE.BladSesji:  # piec niezamkniety z wczesniejszej doby - plytek nie ma juz na stole
+            self._plan_p_podpis = podpis
+            self._zgas_ramke_p()
+            self._plan_p_podpis = podpis
+            return
+        except Exception as e:  # noqa: BLE001 - P2: stary plan nie moze swiecic (indicate.md: plan, ktorego nie da sie zbudowac = zgaszony)
+            if self._plan_p_ponow:
+                LOG.warning("kontroler: planu ramki porannej nadal nie da sie przygotowac (%s)", type(e).__name__)
+            else:
+                LOG.exception("kontroler: planu ramki porannej nie da sie przygotowac - ramka zgaszona, ponowienie")
+                self._plan_p_ponow_od = time.monotonic() + OKRES_PONOWIENIA_PLANU_S
+            self._zgas_ramke_p()
+            self._plan_p_podpis = podpis  # nastepna proba: ponowienie co OKRES_PONOWIENIA_PLANU_S albo zmiana pieca
+            self._plan_p_ponow = True
+            if self._ustaw_komunikat("ramka_plan_blad", "ramka_plan_blad", True, wroc=True, powod=B.bez_sciezek(type(e).__name__)):
+                self._odswiez_potrzebne = True
+            return
+        self._plany_wyslane.add(pp["plan_id"])
+        self._plan_p, self._plan_p_podpis, self._plan_p_dane, self._plan_p_ponow = pp["plan_id"], podpis, pp, False
+        if self._usun_komunikat("ramka_plan_blad"):
+            self._odswiez_potrzebne = True
+
+    # --- ramka wieczorna: Spacja, analiza, wynik = kolory mapy -------------------------------------
+    def _ramka_w_spacja(self) -> None:
+        """Spacja (udany "start skanu") wieczorem: ramka W w stan "skanowanie" (gasi poprzedni wynik); znacznik do wyniku skanu."""
+        k = self._klient("W")
+        if k is None or self.tryb != TRYB_WIECZOR:
+            return
+        try:
+            self._znacznik_spacji = self._w_ostatni = k.skanowanie()
+            self._w_aktywny = None
+        except Exception:  # noqa: BLE001
+            LOG.exception("kontroler: ramka wieczorna - Spacja")
+
+    def _ramka_w_nowy_skan(self, tryb: str | None = None):
+        """Nowy skan wieczorny ZLECONY do analizy (nie powtorka ani plik przemianowany - recenzja PR #30 P6): znacznik Spacji,
+        a skan bez Spacji - ``znacznik()`` (dziala jak Spacja: ramka gasi poprzedni wynik). Zwraca znacznik skanu albo None."""
+        k = self._klient("W")
+        if k is None or (tryb or self.tryb) != TRYB_WIECZOR:
+            return None
+        try:
+            z = self._znacznik_spacji if self._znacznik_spacji is not None else k.znacznik()
+        except Exception:  # noqa: BLE001
+            LOG.exception("kontroler: ramka wieczorna - znacznik skanu")
+            return None
+        self._znacznik_spacji = None
+        self._w_ostatni, self._w_aktywny = z, None
+        return z
+
+    def _ramka_w_analiza(self, znacznik) -> None:
+        """Start analizy skanu - raz na skan (wolajacy pilnuje; recenzja PR #28 D5: druga ``analiza()`` zaczelaby nowy skan) i tylko
+        dla OSTATNIEGO skanu (analiza starszego skanu w kolejce nie zmienia stanu ramki)."""
+        k = self._klient("W")
+        if k is None or znacznik is None or znacznik != self._w_ostatni:
+            return
+        try:
+            k.analiza()
+        except Exception:  # noqa: BLE001
+            LOG.exception("kontroler: ramka wieczorna - analiza")
+
+    def _ramka_w_wynik(self, znacznik, skan_id: int) -> None:
+        """Wynik skanu zapisany: kolory gniazd ida do ramki po zbudowaniu stanu (``_synchronizuj_ramke_w`` - kolory mapy)."""
+        if self._klient("W") is not None and znacznik is not None and znacznik == self._w_ostatni:
+            self._w_do_wyslania = (znacznik, skan_id)
+
+    def _ramka_w_blad(self, znacznik) -> None:
+        """Blad analizy ostatniego skanu: ramka W w stan "blad" (ciemna, poprzedni wynik nie wraca)."""
+        k = self._klient("W")
+        if k is None or znacznik is None or znacznik != self._w_ostatni:
+            return
+        self._w_aktywny = None
+        try:
+            k.blad()
+        except Exception:  # noqa: BLE001
+            LOG.exception("kontroler: ramka wieczorna - blad")
+
+    def _synchronizuj_ramke_w(self, stan: StanAplikacji) -> None:
+        """Wynik OSTATNIEGO skanu na ramce W: kolory = ``ramka_protokol.kolor_ramki`` statusow gniazd plytki ze stanu (ta sama mapa,
+        co na ekranie), wysylane ponownie po kazdej zmianie (decyzja, numer plytki). Skan zablokowany (status inny niz przyjety) -
+        ``blad()``; "niewazny" (nowy skan, zdjecie plytki, restart ramki) - koniec."""
+        k = self._klient("W")
+        if k is None:
+            return
+        if self._w_do_wyslania is not None:
+            znacznik, skan_id = self._w_do_wyslania
+            self._w_do_wyslania = None
+            if znacznik == self._w_ostatni:
+                self._w_aktywny = (znacznik, skan_id, None)
+        if self._w_aktywny is None or time.monotonic() < self._test_led_do:
+            return
+        znacznik, skan_id, wyslane = self._w_aktywny
+        if znacznik != self._w_ostatni:
+            self._w_aktywny = None
+            return
+        plytka = stan.plytka(skan_id)
+        if plytka is None:
+            return
+        if plytka.status != SE.STATUS_PRZYJETY or not plytka.aktywna:
+            self._w_aktywny = None
+            k.blad()
+            return
+        from . import ramka_protokol as RP  # noqa: PLC0415 - tylko z ramkami (pakiet ``ramka``)
+
+        kolory = {g.nr: RP.kolor_ramki(g.status) for g in plytka.gniazda}
+        obraz = (plytka.numer, plytka.uklad, tuple(sorted(kolory.items())))
+        if obraz == wyslane:
+            return
+        wynik = k.wynik(plytka.numer, plytka.uklad, kolory, znacznik)
+        self._w_aktywny = None if wynik == "niewazny" else (znacznik, skan_id, obraz)
+
+    def _po_odswiezeniu(self, stan: StanAplikacji) -> None:
+        """Po kazdym pelnym zbudowaniu stanu: plan ramki porannej i wynik na ramce wieczornej (bledy - tylko log)."""
+        if self.ramki is None or self._zamkniety:
+            return
+        for funkcja in (self._synchronizuj_ramke_p, self._synchronizuj_ramke_w):
+            try:
+                funkcja(stan)
+            except Exception:  # noqa: BLE001 - ramka to dodatek: blad nie zatrzymuje odswiezania
+                LOG.exception("kontroler: blad synchronizacji ramki (%s)", funkcja.__name__)
+
+    def _zamknij_ramki_excel(self) -> None:
+        """Zamkniecie programu: obie ramki gasna (``zgas``), klienci zatrzymani (najwyzej ok. 1 s; zgaszenie, ktore nie doszlo -
+        ostrzezenie w logu: ramka moze swiecic do konca waznosci planu), Excel rozlaczony (obiekty COM zwolnione)."""
+        if self.ramki is not None:
+            for k in self._klienci():
+                try:
+                    k.zgas()
+                except Exception:  # noqa: BLE001
+                    LOG.exception("kontroler: zgaszenie ramki przy zamknieciu")
+            try:
+                doszlo = self.ramki.zatrzymaj()
+                for rola, ok in (doszlo or {}).items():
+                    if not ok:
+                        LOG.warning("kontroler: zgaszenie ramki %s przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu", rola)
+            except Exception:  # noqa: BLE001
+                LOG.exception("kontroler: zatrzymanie klientow ramek")
+            self.ramki = None
+        if self.excel is not None:
+            try:
+                self.excel.rozlacz()
+            except Exception:  # noqa: BLE001
+                LOG.exception("kontroler: rozlaczenie Excela")
+        self._excel_kolejka.clear()
+
+    # --- Excel po "Zamknij piec" (E3-A12) ------------------------------------------------------------
+    def _po_zamknieciu_pieca(self, wynik: dict) -> None:
+        """"Zamknij piec" zapisany (przycisk albo klawisz ramki, w kazdym trybie): ramka poranna gasnie OD RAZU (P3), "Zamknij piec"
+        tego pieca z ramki odebrane przed przyjeciem planu nowej wersji = nieaktualne (P7); Excel ODROCZONY do nastepnych obiegow
+        petli okna (P1: najpierw ramka i ekran, potem odczyty arkusza - jeden na obieg); bez Excela - komunikat z lista kuwet (A7).
+        Nigdy nie rzuca wyjatku."""
+        try:
+            k = self._klient("P")
+            if wynik.get("data") and wynik.get("nr_w_dniu") is not None:
+                pid = SR.plan_id({"data": wynik["data"], "nr_w_dniu": wynik["nr_w_dniu"]})
+                wersja = (k.stan().get("wersja") if k is not None else None) or 0
+                self._plany_czekaja[pid] = wersja if _jest_liczba(wersja) else 0
+            self._zgas_ramke_p()
+            if self.excel is None:
+                self._komunikat_excela(wynik)
+                return
+            sid = wynik.get("sesja_pieca_id")
+            if not _jest_liczba(sid):
+                return
+            self._excel_odloz_biezacy(sid)
+            self._excel_piec = (sid, wynik.get("nr_w_dniu"), wynik.get("data"))
+            self._excel_pozycje, self._excel_blad, self._excel_widoczne = [], None, False
+            self._excel_kolejka.append(("piec", sid, True))
+        except Exception:  # noqa: BLE001 - piec jest zamkniety; ramka i Excel to dodatki
+            LOG.exception("kontroler: czynnosci po 'Zamknij piec'")
+
+    def _excel_odloz_biezacy(self, nowy_sid: int) -> None:
+        """P5: niezalatwione pozycje pokazanego pieca nie znikaja po cichu, gdy pojawia sie inny piec - piec trafia do zaleglych
+        (komunikat, przycisk w oknie Excela)."""
+        if self._excel_piec is None or self._excel_piec[0] == nowy_sid:
+            return
+        ile = sum(1 for p in self._excel_pozycje if not p.zalatwiona)
+        if ile:
+            sid, nr, data = self._excel_piec
+            self._excel_dodaj_zalegly(sid, nr, data, ile)
+
+    def _excel_dodaj_zalegly(self, sid: int, nr, data, ile: int) -> None:
+        self._excel_zalegle[sid] = (nr, data, ile)
+        data = data or ""
+        self._komunikat("excel_zalegle", id_=f"excel_zalegle:{sid}", nr=nr or "?", doba=f"{data[8:10]}.{data[5:7]}" if len(data) >= 10 else "?",
+                        ile=f"{ile} {ST.odmiana(ile, *ST.ZLECENIA_ODMIANA)}")
+
+    def _excel_przelicz_zalegle(self) -> None:
+        """P5 przy starcie: piece zamkniete w ostatnich ``ZALEGLE_EXCELA_H`` godzinach (najwyzej ``ZALEGLE_EXCELA_PIECE``) ze zleceniami
+        kompletnymi bez wpisu w ``excel_zapisy`` (poza "blad")."""
+        od = (self._zegar() - dt.timedelta(hours=ZALEGLE_EXCELA_H)).replace(microsecond=0).isoformat()
+        for w in self.sesja.baza.wiersze("SELECT id FROM sesje_pieca WHERE zamknieto IS NOT NULL AND zamknieto >= ? ORDER BY zamknieto DESC, id DESC "
+                                         "LIMIT ?", (od, ZALEGLE_EXCELA_PIECE)):
+            wynik = self.rano.wynik_pieca(w["id"]) or {}
+            zalatwione = self._excel_zalatwione(w["id"])
+            ile = sum(1 for z in wynik.get("kompletne") or () if z.get("zlecenie_id") not in zalatwione)
+            if ile:
+                self._excel_dodaj_zalegly(w["id"], wynik.get("nr_w_dniu"), wynik.get("data"), ile)
+
+    def _excel_zalatwione(self, sid: int) -> set:
+        return {w["zlecenie_id"] for w in self.sesja.baza.wiersze(
+            "SELECT zlecenie_id FROM excel_zapisy WHERE sesja_pieca_id = ? AND wynik != ? AND zlecenie_id IS NOT NULL", (sid, "blad"))}
+
+    def _przetworz_excel(self) -> int:
+        """Jeden krok Excela na obieg petli okna (P1): propozycje pieca (jeden odczyt arkusza), poprawki do logu (jeden odczyt),
+        "juz odhaczone" bez watpliwosci (jeden odczyt na pozycje). Kazdy blad = komunikat z lista kuwet (P8)."""
+        if not self._excel_kolejka or self.excel is None or self._zamkniety:
+            return 0
+        krok = self._excel_kolejka.popleft()
+        try:
+            if krok[0] == "piec":
+                self._excel_krok_piec(krok[1], poprawki=krok[2])
+            elif krok[0] == "poprawki":
+                self._excel_krok_poprawki(krok[1])
+            elif krok[0] == "juz":
+                self._excel_krok_juz(*krok[1])
+        except Exception:  # noqa: BLE001 - P8: nieoczekiwany blad (np. typ komorki z pywin32) = komunikat, praca dalej
+            LOG.exception("kontroler: krok Excela (%s) nie powiodl sie", krok[0])
+
+            def piec_kroku(x: tuple) -> int:
+                return x[1][0] if x[0] == "juz" else x[1]
+
+            sid = piec_kroku(krok)
+            self._excel_kolejka = collections.deque(x for x in self._excel_kolejka if piec_kroku(x) != sid)
+            self._excel_blad_kroku(sid, ST.NAPIS_EXCEL_BLAD_PROGRAMU)
+        self._odswiez()
+        return 1
+
+    def _excel_blad_kroku(self, sid: int, powod: str) -> None:
+        try:
+            self.excel.rozlacz()
+        except Exception:  # noqa: BLE001
+            pass
+        self._excel_blad = B.bez_sciezek(powod)[:300]
+        wynik = self.rano.wynik_pieca(sid) or {}
+        zalatwione = self._excel_zalatwione(sid)
+        self._komunikat_excela_bledu(wynik, [z for z in wynik.get("kompletne") or () if z.get("zlecenie_id") not in zalatwione])
+
+    def _excel_krok_piec(self, sid: int, *, poprawki: bool = False) -> None:
+        """Propozycje dla zamknietego pieca (swiezy odczyt): zlecenia kompletne bez wpisu w ``excel_zapisy`` tego pieca (poza
+        "blad" - poprzednia proba z bledem pokazana przy pozycji, D9); takze po restarcie i ponownym zamknieciu (bez dubli w logu,
+        D3). Tryb "cien": log porownawczy z TEGO odczytu (bez odczytu na pozycje - P1)."""
+        from . import excel as EX  # noqa: PLC0415
+
+        ex = self.excel
+        wynik = self.rano.wynik_pieca(sid)
+        if not wynik or not wynik.get("zamknieto"):  # piec otwarty ponownie w miedzyczasie
+            if self._excel_piec is not None and self._excel_piec[0] == sid:
+                self._excel_piec, self._excel_pozycje, self._excel_widoczne = None, [], False
+            return
+        zalatwione = self._excel_zalatwione(sid)
+        bledy = {w["zlecenie_id"]: w["wiersz"] for w in self.sesja.baza.wiersze(
+            "SELECT zlecenie_id, wiersz FROM excel_zapisy WHERE sesja_pieca_id = ? AND wynik = ? AND zlecenie_id IS NOT NULL ORDER BY id", (sid, "blad"))}
+        kompletne = [z for z in (wynik.get("kompletne") or []) if z.get("zlecenie_id") not in zalatwione]
+        self._excel_odloz_biezacy(sid)
+        self._excel_piec = (sid, wynik.get("nr_w_dniu"), wynik.get("data"))
+        self._excel_pozycje, self._excel_blad, self._excel_widoczne, self._excel_bledy = [], None, False, bledy
+        self._excel_jawnie = False
+        try:
+            pozycje = ex.propozycje({**wynik, "kompletne": kompletne}) if kompletne else []
+        except EX.BladExcela as e:
+            self._excel_blad_kroku(sid, str(e))
+            return
+        for poz, zl in zip(pozycje, kompletne):  # r3 P-N2: pozycja z bledem jednego zlecenia (``zlecenie_id`` None) - tozsamosc
+            if poz.zlecenie_id is None and _jest_liczba(zl.get("zlecenie_id")):  # z kompletne (ta sama kolejnosc): mozna ja pominac,
+                poz.zlecenie_id = zl["zlecenie_id"]  # a wpis logu ma zlecenie (tryb "cien" nie dopisuje go przy kazdym pokazaniu)
+        self._usun_komunikat(ID_EXCEL)
+        if self._excel_zalegle.pop(sid, None) is not None:
+            self._usun_komunikat(f"excel_zalegle:{sid}")
+        self._excel_pozycje = pozycje
+        if poprawki and [x for x in wynik.get("poprawki") or () if x.get("zlecenie_id") not in zalatwione]:
+            self._excel_kolejka.appendleft(("poprawki", sid))
+        operator = self.sesja.operator
+        if ex.tryb == EX.TRYB_CIEN:
+            if pozycje:
+                wpisy = ex.zapisz_cien_bez_odczytu(pozycje, operator)
+                self._komunikat("excel_cien", id_=ID_EXCEL, nr=wynik.get("nr_w_dniu") or "?",
+                                ile=f"{len(wpisy)} {ST.odmiana(len(wpisy), *ST.ZLECENIA_ODMIANA)}")
+            return
+        for p in pozycje:  # "juz odhaczone" bez watpliwosci - tylko log, bez pytania, po jednej na obieg petli
+            if p.dopasowanie.klasa == EX.KLASA_JUZ_ODHACZONE and not p.dopasowanie.do_sprawdzenia and p.zlecenie_id is not None:
+                self._excel_kolejka.append(("juz", (sid, p.zlecenie_id)))
+        self._excel_widoczne = any(not p.zalatwiona for p in pozycje)
+
+    def _excel_krok_poprawki(self, sid: int) -> None:
+        wynik = self.rano.wynik_pieca(sid) or {}
+        zalatwione = self._excel_zalatwione(sid)
+        poprawki = [x for x in wynik.get("poprawki") or () if x.get("zlecenie_id") not in zalatwione]
+        if poprawki:
+            self.excel.zaloguj_poprawki({**wynik, "poprawki": poprawki}, self.sesja.operator)  # SE5: tylko log
+
+    def _excel_krok_juz(self, sid: int, zlecenie_id: int) -> None:
+        from . import excel as EX  # noqa: PLC0415
+
+        p = next((x for x in self._excel_pozycje if x.sesja_pieca_id == sid and x.zlecenie_id == zlecenie_id and not x.zalatwiona), None)
+        if p is None:
+            return
+        try:
+            self.excel.zaloguj_juz_odhaczone(p, self.sesja.operator)
+        except EX.BladExcela as e:
+            LOG.warning("kontroler: 'juz odhaczone' bez wpisu w logu (%s) - pozycja czeka na osobe", type(e).__name__)
+        self._excel_widoczne = any(not x.zalatwiona for x in self._excel_pozycje)
+
+    def _komunikat_excela_bledu(self, wynik: dict, kompletne: list) -> None:
+        kuwety = [z.get("kuweta") or "?" for z in kompletne]
+        lista = ", ".join(kuwety[:MAX_KUWET_KOMUNIKATU]) + (ST.I_INNYCH.format(n=len(kuwety) - MAX_KUWET_KOMUNIKATU)
+                                                          if len(kuwety) > MAX_KUWET_KOMUNIKATU else "")
+        data = wynik.get("data") or ""
+        self._komunikat("excel_blad", id_=ID_EXCEL, powod=self._excel_blad or "", nr=wynik.get("nr_w_dniu") or "?",
+                        doba=f"{data[8:10]}.{data[5:7]}" if len(data) >= 10 else "?",
+                        ile=f"{len(kuwety)} {ST.odmiana(len(kuwety), *ST.ZLECENIA_ODMIANA)}", kuwety=lista or "-")
+
+    def _wyczysc_excel_otwartego(self) -> None:
+        """Piec pozycji Excela znow otwarty (``otworz_piec_ponownie``, ``cofnij_przeniesienie`` - D3): propozycje znikaja."""
+        if self._excel_piec is None:
+            return
+        w = self.sesja.baza.wiersz("SELECT zamknieto FROM sesje_pieca WHERE id = ?", (self._excel_piec[0],))
+        if w is None or not w["zamknieto"]:
+            self._excel_pozycje, self._excel_widoczne, self._excel_piec = [], False, None
+            self._excel_kolejka.clear()
+
+    def _stan_excel(self) -> StanExcel | None:
+        if self.excel is None:
+            return None
+        pozycje = []
+        for i, p in enumerate(self._excel_pozycje):
+            blad = p.zlecenie_id in self._excel_bledy
+            pozycje.append(PozycjaExcel(nr=i, kuweta=p.kuweta, klasa=p.dopasowanie.klasa, wiersz=p.dopasowanie.wiersz, regula=p.dopasowanie.regula,
+                                        powod=p.dopasowanie.powod, do_sprawdzenia=bool(p.dopasowanie.do_sprawdzenia), data=p.dopasowanie.data,
+                                        kandydatow=len(p.dopasowanie.kandydaci), zalatwiona=bool(p.zalatwiona), wynik=p.stan,
+                                        zlecenie_id=p.zlecenie_id, sesja_pieca_id=p.sesja_pieca_id, poprzedni_blad=blad,
+                                        poprzedni_wiersz=self._excel_bledy.get(p.zlecenie_id) if blad else None))
+        do = sum(1 for p in pozycje if not p.zalatwiona)
+        sid, nr, data = self._excel_piec or (None, None, None)
+        try:
+            ostrzezenia = tuple(self.excel.ostrzezenia)
+        except Exception:  # noqa: BLE001
+            ostrzezenia = ()
+        zalegle = tuple((s, n, d, ile) for s, (n, d, ile) in sorted(self._excel_zalegle.items()) if s != sid)
+        return StanExcel(tryb=self.excel.tryb, sesja_pieca_id=sid, nr_w_dniu=nr, data=data, pozycje=tuple(pozycje),
+                         widoczne=self._excel_widoczne and (do > 0 or (self._excel_jawnie and bool(zalegle))), blad=self._excel_blad,
+                         ostrzezenia=ostrzezenia, do_zalatwienia=do,
+                         w_toku=len(self._excel_kolejka), zalegle=zalegle)
+
+    def _pozycja_excela(self, sesja_pieca_id: int, zlecenie_id: int):
+        """P4: pozycja wskazana tozsamoscia (piec + zlecenie), nie numerem na liscie - lista zmienila sie = odmowa bez zapisu."""
+        if self.excel is None:
+            raise SE.BladSesji(ST.NAPIS_EXCEL_NIEPODLACZONY)
+        p = next((x for x in self._excel_pozycje if x.sesja_pieca_id == sesja_pieca_id and x.zlecenie_id == zlecenie_id), None)
+        if p is None:
+            raise SE.BladSesji(ST.NAPIS_POZYCJA_EXCELA_INNA)
+        return p
+
+    # --- polecenia ramek i Excela (E3-A12) ---------------------------------------------------------
+    def test_led(self) -> Odpowiedz:
+        def wykonaj() -> int:
+            klienci = self._klienci()
+            if not klienci:
+                raise SE.BladSesji(ST.NAPIS_RAMKI_NIEPODLACZONE)
+            for k in klienci:
+                k.tryb("test_led")
+            self._test_led_do = time.monotonic() + CZAS_TEST_LED_S
+            self._plan_p_podpis, self._w_aktywny, self._znacznik_spacji = None, None, None
+            self._komunikat("ramki_test_led", id_=ID_TEST_LED)
+            self._stan_ramek = self._odczytaj_ramki()
+            return len(klienci)
+
+        return self._polecenie(wykonaj, operator=False, nazwa="test_led", punkty=False)
+
+    def przejmij_ramke(self, rola: str) -> Odpowiedz:
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not isinstance(rola, str) or rola not in ZRODLA_RAMEK:
+            return self._zle_argumenty("przejmij_ramke")
+
+        def wykonaj() -> str:
+            k = self._klient(rola)
+            if k is None:
+                raise SE.BladSesji(ST.NAPIS_RAMKI_NIEPODLACZONE)
+            k.wznow()
+            self.sesja.baza.zdarzenie("ui", "ramka_przejeta", {"rola": rola}, czas=self._teraz())
+            return rola
+
+        return self._polecenie(wykonaj, operator=False, nazwa="przejmij_ramke", punkty=False)
+
+    def excel_zatwierdz(self, sesja_pieca_id: int, zlecenie_id: int, wiersz: int | None = None) -> Odpowiedz:
+        """Zatwierdzenie pozycji okna Excela (piec + zlecenie - P4) - wylacznie po kliknieciu osoby (A9, wymaganie 1); osoba =
+        wybrana na zmianie."""
+        from . import excel as EX  # noqa: PLC0415
+
+        def wykonaj() -> ZamrozonySlownik:
+            p = self._pozycja_excela(sesja_pieca_id, zlecenie_id)
+            try:
+                return zamroz(self.excel.zatwierdz(p, self.sesja.operator, wiersz=wiersz))
+            except EX.BladExcela as e:
+                raise SE.BladSesji(B.bez_sciezek(str(e))[:400]) from e
+
+        liczby = (sesja_pieca_id, zlecenie_id) + (() if wiersz is None else (wiersz,))
+        return self._polecenie(wykonaj, nazwa="excel_zatwierdz", liczby=liczby, punkty=False)
+
+    def excel_pomin(self, sesja_pieca_id: int, zlecenie_id: int) -> Odpowiedz:
+        from . import excel as EX  # noqa: PLC0415
+
+        def wykonaj() -> ZamrozonySlownik:
+            p = self._pozycja_excela(sesja_pieca_id, zlecenie_id)
+            try:
+                return zamroz(self.excel.pomin(p, self.sesja.operator))
+            except EX.BladExcela as e:
+                raise SE.BladSesji(B.bez_sciezek(str(e))[:400]) from e
+
+        return self._polecenie(wykonaj, nazwa="excel_pomin", liczby=(sesja_pieca_id, zlecenie_id), punkty=False)
+
+    def _excel_pokaz_piec(self, sid: int) -> int:
+        """Okno Excela dla pieca ``sid`` (jawny wybor osoby): widoczne, gdy sa pozycje do zalatwienia ALBO inne zalegle piece
+        (r3 P-N3 - przyciski zaleglych w oknie, takze gdy pokazany piec jest zalatwiony)."""
+        if (self._excel_piec is not None and self._excel_piec[0] == sid and self._excel_blad is None
+                and any(not p.zalatwiona for p in self._excel_pozycje)):
+            pass
+        else:
+            self._excel_krok_piec(sid)
+            if self._excel_blad:
+                raise SE.BladSesji(self._excel_blad)
+        self._excel_widoczne, self._excel_jawnie = True, True
+        return sum(1 for p in self._excel_pozycje if not p.zalatwiona)
+
+    def excel_odswiez(self) -> Odpowiedz:
+        def wykonaj() -> int:
+            if self.excel is None:
+                raise SE.BladSesji(ST.NAPIS_EXCEL_NIEPODLACZONY)
+            sid = self._excel_piec[0] if self._excel_piec is not None else self._ostatni_zamkniety_id()
+            if sid is None:
+                raise SE.BladSesji(ST.NAPIS_BRAK_PIECA_EXCELA)
+            jawnie = self._excel_jawnie  # r4 D-R3-2: okno pokazane jawnie (takze tylko dla zaleglych piecow) zostaje po odswiezeniu
+            self._excel_krok_piec(sid)
+            if self._excel_blad:
+                raise SE.BladSesji(self._excel_blad)
+            self._excel_jawnie = jawnie
+            self._excel_widoczne = jawnie or any(not p.zalatwiona for p in self._excel_pozycje)
+            return len(self._excel_pozycje)
+
+        return self._polecenie(wykonaj, nazwa="excel_odswiez", punkty=False)
+
+    def excel_pokaz(self, sesja_pieca_id: int | None = None) -> Odpowiedz:
+        def wykonaj() -> int:
+            if self.excel is None:
+                raise SE.BladSesji(ST.NAPIS_EXCEL_NIEPODLACZONY)
+            sid = sesja_pieca_id if sesja_pieca_id is not None else (self._excel_piec[0] if self._excel_piec is not None
+                                                                      else self._ostatni_zamkniety_id())
+            if sid is None:
+                raise SE.BladSesji(ST.NAPIS_BRAK_PIECA_EXCELA)
+            return self._excel_pokaz_piec(sid)
+
+        return self._polecenie(wykonaj, nazwa="excel_pokaz", liczby=() if sesja_pieca_id is None else (sesja_pieca_id,), punkty=False)
+
+    def excel_zamknij(self) -> Odpowiedz:
+        def wykonaj() -> int:
+            if self.excel is None:
+                raise SE.BladSesji(ST.NAPIS_EXCEL_NIEPODLACZONY)
+            self._excel_widoczne = False
+            return sum(1 for p in self._excel_pozycje if not p.zalatwiona)
+
+        return self._polecenie(wykonaj, operator=False, nazwa="excel_zamknij", punkty=False)
+
+    def excel_szczegoly(self, sesja_pieca_id: int, zlecenie_id: int) -> SzczegolyExcel | None:
+        """Zapytanie okna: folder zlecenia i kandydaci (kolumna H - DANE OSOBOWE, tylko na ekran) pozycji (piec, zlecenie); None = brak."""
+        if self._zamkniety or self.excel is None or not (_jest_liczba(sesja_pieca_id) and _jest_liczba(zlecenie_id)):
+            return None
+        i, p = next(((i, x) for i, x in enumerate(self._excel_pozycje) if x.sesja_pieca_id == sesja_pieca_id and x.zlecenie_id == zlecenie_id),
+                    (None, None))
+        if p is None:
+            return None
+        zielony = tuple(self.excel.konf.kolor)
+        kandydaci = []
+        try:
+            for x in p.kandydaci_do_okna:
+                kol = x.get("wypelnienie_b")
+                kandydaci.append(KandydatExcel(wiersz=x["wiersz"], data=x.get("data"), numer_b=x.get("numer_b") or "", kuweta=x.get("kuweta") or "",
+                                               nazwa=x.get("nazwa") or "", kolor_b="#%02x%02x%02x" % tuple(kol) if kol else None,
+                                               zielone=bool(kol) and tuple(kol) == zielony))
+        except Exception:  # noqa: BLE001 - podglad okna nie moze zatrzymac programu
+            LOG.exception("kontroler: kandydatow Excela nie da sie pokazac")
+        return SzczegolyExcel(nr=i, folder=p.folder or "", kandydaci=tuple(kandydaci))
 
     # --- lista "do dofrezowania" w pliku (P7, zalozenie Z6) ----------------------------------------
     def _katalog_listy(self) -> Path | None:
@@ -1778,7 +2936,7 @@ class KontrolerSesji(Kontroler):
 
     def _nowy_komunikat(self, id_: str, rodzaj: str, *, trwaly: bool = False, czas: str | None = None, skan_id: int | None = None,
                         gniazda: tuple = (), **pola: Any) -> Komunikat:
-        poziom, tytul, tekst = ST.tekst_komunikatu(rodzaj, **pola)
+        poziom, tytul, tekst = tekst_komunikatu(rodzaj, **pola)
         return Komunikat(id=id_, rodzaj=rodzaj, poziom=poziom, tytul=tytul, tekst=tekst, czas=czas or self._teraz(), skan_id=skan_id,
                          gniazda=tuple(gniazda), trwaly=trwaly)
 
@@ -1918,7 +3076,7 @@ class KontrolerSesji(Kontroler):
         stary = self._komunikaty.get(id_)
         if stary is None and not wroc:
             return False
-        if stary is not None and stary.tekst == ST.tekst_komunikatu(rodzaj, **pola)[2]:
+        if stary is not None and stary.tekst == tekst_komunikatu(rodzaj, **pola)[2]:
             return False
         self._komunikat(rodzaj, id_=id_, **pola)
         return True
@@ -1979,6 +3137,7 @@ class KontrolerSesji(Kontroler):
             return self._odmowa("baza_zajeta")
         except Exception:  # noqa: BLE001 - D1: polecenie okna nigdy nie konczy sie wyjatkiem w slocie Qt
             LOG.exception("kontroler: polecenie %s nie powiodlo sie", nazwa)
+            self._uniewaznij_punkty()  # recenzja PR #26, D2: wyjatek mogl wypasc PO zapisie w bazie - lista brakow od nowa
             return self._odmowa("blad_polecenia")
         for kod in ("brak_operatora", "pusta_lista_operatorow", "odmowa", "baza_zajeta", "osoba_spoza_listy", KOD_ZLE_ARGUMENTY, "blad_polecenia",
                     "kuweta_zmienila_sie", "analiza_trwa", "skanowanie_trwa"):
@@ -2174,7 +3333,7 @@ class KontrolerSesji(Kontroler):
 
         def wykonaj() -> ZamrozonySlownik:
             wynik = self.rano.zamknij_piec(sesja_pieca_id=sesja_pieca_id)
-            self._komunikat_excela(wynik)
+            self._po_zamknieciu_pieca(wynik)  # E3-A12: Excel ("pytaj" / "cien") albo komunikat z lista kuwet
             return zamroz(wynik)
 
         return self._polecenie(wykonaj, nazwa="zamknij_piec", liczby=() if sesja_pieca_id is None else (sesja_pieca_id,))
@@ -2192,7 +3351,7 @@ class KontrolerSesji(Kontroler):
 
         def wykonaj() -> ZamrozonySlownik:
             wynik = self.rano.zamknij_piec_i_przenies(list(skany), sesja_pieca_id=sesja_pieca_id)
-            self._komunikat_excela(wynik.get("zamkniety") or {})
+            self._po_zamknieciu_pieca(wynik.get("zamkniety") or {})
             return zamroz(wynik)
 
         return self._polecenie(wykonaj, nazwa="zamknij_piec_i_przenies", liczby=(sesja_pieca_id,))
@@ -2200,11 +3359,21 @@ class KontrolerSesji(Kontroler):
     def cofnij_przeniesienie(self, sesja_pieca_id: int) -> Odpowiedz:
         """Cofa "zamknij piec i przenies" (``session_rano.cofnij_przeniesienie``, A6 runda 5): skany wracaja do poprzedniego pieca,
         ktory znow jest otwarty; odmowa A6 (np. do nowego pieca doszly inne skany) - komunikat."""
-        return self._polecenie(lambda: zamroz(self.rano.cofnij_przeniesienie(sesja_pieca_id)), nazwa="cofnij_przeniesienie", liczby=(sesja_pieca_id,))
+        def wykonaj() -> ZamrozonySlownik:
+            wynik = zamroz(self.rano.cofnij_przeniesienie(sesja_pieca_id))
+            self._wyczysc_excel_otwartego()  # recenzja PR #30 D3
+            return wynik
+
+        return self._polecenie(wykonaj, nazwa="cofnij_przeniesienie", liczby=(sesja_pieca_id,))
 
     def otworz_piec_ponownie(self, sesja_pieca_id: int) -> Odpowiedz:
         """Cofa "Zamknij piec" ostatniego pieca (``session_rano.otworz_piec_ponownie``; odhaczen w Excelu program nie zdejmuje)."""
-        return self._polecenie(lambda: zamroz(self.rano.otworz_piec_ponownie(sesja_pieca_id)), nazwa="otworz_piec_ponownie", liczby=(sesja_pieca_id,))
+        def wykonaj() -> ZamrozonySlownik:
+            wynik = zamroz(self.rano.otworz_piec_ponownie(sesja_pieca_id))
+            self._wyczysc_excel_otwartego()  # propozycje sprzed otwarcia: X4 i tak odmowi
+            return wynik
+
+        return self._polecenie(wykonaj, nazwa="otworz_piec_ponownie", liczby=(sesja_pieca_id,))
 
     def pomin_skan(self, skan_id: int) -> Odpowiedz:
         return self._polecenie(lambda: self.rano.pomin_skan(skan_id), nazwa="pomin_skan", liczby=(skan_id,))
@@ -2810,9 +3979,10 @@ class AtrapaKontrolera(KontrolerSesji):
         self.starty_skanu.append(self._teraz())
         udany = self._start_udany
         self._czeka_na_skan = udany
-        self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany}, czas=self.starty_skanu[-1])
+        self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany, "tryb": self.tryb}, czas=self.starty_skanu[-1])  # tryb: prosba A10
         if not udany:
             return self._odmowa("start_skanu_nieudany")
+        self._ramka_w_spacja()  # E3-A12: ramka wieczorna w stan "skanowanie"
         if self._usun_komunikat("odmowa:start_skanu_nieudany"):
             self._odswiez()  # stara odmowa znika z komunikatow
         else:
@@ -2925,6 +4095,7 @@ class AtrapaKontrolera(KontrolerSesji):
     def zamknij(self) -> Odpowiedz:
         if self._zamkniety:
             return Odpowiedz(True)
+        self._zamknij_ramki_excel()  # E3-A12: ramki zgaszone, klienci zatrzymani, Excel rozlaczony
         stan = dataclasses.replace(self.stan(), zamkniety=True, analiza=None)
         self._zamkniety = True
         self._stan = stan
@@ -2964,11 +4135,14 @@ class AtrapaKontrolera(KontrolerSesji):
         zdarzenie = {"plik": f"atrapa/{nazwa}", "sha16": skrot_sztuczny(f"skan sztuczny {self._nr_skanu} {time.time_ns()}"),
                      "rozmiar": 48_000_000 + self._nr_skanu, "czas_pliku": self._teraz()}
         self._analiza, self._czeka_na_skan = None, False
+        znacznik = self._ramka_w_nowy_skan()  # E3-A12: ramka W - skan bez Spacji = nowy skan; start analizy
+        self._ramka_w_analiza(znacznik)
         if rodzaj == "blad":
             if self.tryb == TRYB_RANO:  # jak prawdziwy kontroler: skan poranny do sesji pieca (A6)
                 skan_id = self.rano.przyjmij_blad(zdarzenie, "analiza: blad sztuczny")
             else:
                 skan_id = self.sesja.przyjmij_blad(zdarzenie, "analiza: blad sztuczny", self.tryb)
+            self._ramka_w_blad(znacznik)
             self._odswiez()
             return skan_id
         domyslne = {
@@ -2984,14 +4158,16 @@ class AtrapaKontrolera(KontrolerSesji):
         uklad = uklad or (obca if rodzaj == "nie_z_trybu" else wlasciwa)
         wynik = sztuczny_wynik(uklad, None if rodzaj == "bez_numeru" else numer, gniazda if gniazda is not None else domyslne,
                                uklad_zgodny=rodzaj != "niezgodny_uklad", poza_gniazdem=poza_gniazdem, skan=nazwa, projekty=projekty)
-        return self._przyjmij_sztuczny(zdarzenie, wynik)
+        return self._przyjmij_sztuczny(zdarzenie, wynik, znacznik)
 
-    def _przyjmij_sztuczny(self, zdarzenie: dict, wynik: dict) -> int:
-        """Wynik sztuczny do sesji trybu kontrolera (rano: ``SesjaRano`` - piec otwiera sie sam, jak w ``Aplikacja``)."""
+    def _przyjmij_sztuczny(self, zdarzenie: dict, wynik: dict, znacznik=None) -> int:
+        """Wynik sztuczny do sesji trybu kontrolera (rano: ``SesjaRano`` - piec otwiera sie sam, jak w ``Aplikacja``); ``znacznik`` -
+        skanu wieczornego na ramce W (kolory mapy ida do ramki po zbudowaniu stanu)."""
         if self.tryb == TRYB_RANO:
             skan_id = self.rano.przyjmij_wynik(zdarzenie, wynik)
         else:
             skan_id = self.sesja.przyjmij_wynik(zdarzenie, wynik, self.tryb)
+        self._ramka_w_wynik(znacznik, skan_id)
         self._po_skanie(self.tryb)
         self._zapisz_podglad(skan_id, self._sztuczny_podglad(zdarzenie["sha16"], wynik))
         self._odswiez()

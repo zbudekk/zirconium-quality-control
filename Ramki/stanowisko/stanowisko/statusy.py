@@ -393,7 +393,53 @@ KOMUNIKATY: dict[str, Wzor] = {
     "rano_niedostepny": Wzor(POZIOM_BLAD, "Stanu pieca nie da się odczytać",
                              "Część poranna ekranu pokazuje ostatni odczytany stan. Spróbuj ponownie za chwilę; jeśli to się powtarza, "
                              "zgłoś awarię."),
+    # ramki i Excel w programie (E3-A12; recenzja PR #30 D4 - teksty ostateczne tutaj, nie w kontrolerze)
+    "ramka_wieczorna_niedostepna": Wzor(POZIOM_INFO, "Ramka wieczorna nie odpowiada",
+                                        "Program działa bez ramki — wynik płytki pokazuje ekran. Sprawdź zasilanie ramki i sieć "
+                                        "stanowiska; ramka dołączy sama."),
+    "ramka_blad": Wzor(POZIOM_OSTRZEZENIE, "Ramka {ramka}: problem", "{powod}"),
+    "ramka_plan_blad": Wzor(POZIOM_OSTRZEZENIE, "Ramka poranna zgaszona",
+                            "Planu pieca nie udało się przygotować ({powod}) — ramka jest zgaszona, program ponawia sam. Do tego czasu "
+                            "rozkładaj według ekranu."),
+    "ramka_piec_zamkniety": Wzor(POZIOM_INFO, "Piec zamknięty klawiszem ramki",
+                                 "Piec nr {nr} zamknięty klawiszem „Zamknij piec” na ramce porannej."),
+    "ramka_zamknij_odmowa": Wzor(POZIOM_OSTRZEZENIE, "Ramka: „Zamknij piec” nie wykonane",
+                                 "{powod} Piec jest nadal otwarty — zamknij go przyciskiem na ekranie, gdy będzie można."),
+    "ramka_zamknij_nieaktualne": Wzor(POZIOM_INFO, "Ramka: stare „Zamknij piec”",
+                                      "Ramka zgłosiła „Zamknij piec” sprzed ponownego uruchomienia programu, sprzed ponownego otwarcia "
+                                      "pieca albo dla innego pieca — piec NIE został zamknięty. Jeśli jest rozłożony, zamknij go "
+                                      "przyciskiem na ekranie."),
+    "ramki_test_led": Wzor(POZIOM_INFO, "Test diod ramek",
+                           "Ramki przez kilka sekund pokazują kolejne kolory na wszystkich diodach; potem wraca plan pieca."),
+    "excel_blad": Wzor(POZIOM_OSTRZEZENIE, "Excel nie odpowiada",
+                       "{powod} — program działa dalej. Otwórz plik zleceń w Excelu i kliknij „Excel: wskaż wiersz” albo odhacz "
+                       "ręcznie zlecenia kompletne pieca nr {nr} z {doba} ({ile}): {kuwety}."),
+    "excel_cien": Wzor(POZIOM_INFO, "Excel: tryb cienia",
+                       "Program nie zmienia arkusza (tryb „cień”) — zapisał w logu, co by zaznaczył dla pieca nr {nr} ({ile}). "
+                       "Odhacz zlecenia w Excelu ręcznie."),
+    "excel_zalegle": Wzor(POZIOM_OSTRZEZENIE, "Excel: piec czeka na odhaczenie",
+                          "Piec nr {nr} z {doba}: {ile} bez wpisu w logu Excela — kliknij „Piec {nr}” na stronie „Kompletne i braki” (albo w oknie Excela) albo "
+                          "odhacz ręcznie."),
 }
+# E3-A12: bledy ramek z ``indicate`` (kod ``stan()["blad"]``) - tekst ostateczny dla osoby (indicate.md: "ustala A12 w statusy.py")
+BLEDY_RAMEK = {
+    "zly_klucz": "Ramka odrzuca klucz — sprawdź [ramki] klucz w ustawieniach (ten sam co w pliku ramki), potem kliknij „Przejmij ramkę”.",
+    "inny_laptop": "Tę ramkę obsługuje drugi laptop — zamknij program na drugim laptopie albo kliknij „Przejmij ramkę”.",
+    "blad_sprzetu": "Awaria sprzętu ramki — diody zgaszone; ramka wróci sama, potem wynik pojawi się ponownie.",
+    "plan_odrzucony": "Ramka odrzuciła plan (inna wersja programu ramki?) — diody zgaszone; rozkładaj według ekranu.",
+    "plan_innej_ramki": "Adresy ramki wieczornej i porannej są zamienione w ustawieniach ([ramki]).",
+    "zla_rola": "Pod adresem tej ramki odpowiada ramka innego rodzaju — sprawdź adresy ramek w ustawieniach.",
+    "zla_odpowiedz": "Ramka odpowiada niezgodnie z protokołem (inna wersja programu ramki?).",
+    "polecenie_odrzucone": "Ramka odrzuca polecenie — program ponawia.",
+    "brak_kalibracji": "Brak poprawnej kalibracji diod ramki — gniazda nie będą wskazywane.",
+}
+# E3-A12: napisy odmow polecen ramek i Excela (``Odpowiedz.tekst``)
+NAPIS_RAMKI_NIEPODLACZONE = "Ramki nie są podłączone — program pracuje bez ramek (sekcja [ramki] w ustawieniach)."
+NAPIS_EXCEL_NIEPODLACZONY = "Excel nie jest podłączony — odhacz zlecenia kompletne ręcznie."
+NAPIS_POZYCJA_EXCELA_INNA = "Tej pozycji nie ma już w oknie Excela (lista się zmieniła) — wybierz zlecenie ponownie; nic nie zapisano."
+NAPIS_BRAK_PIECA_EXCELA = "Nie ma zamkniętego pieca do odhaczenia w Excelu."
+NAPIS_EXCEL_BLAD_PROGRAMU = "Błąd programu przy Excelu (szczegóły w logu)"
+NAPIS_BLAD_PROGRAMU_RAMKI = "Błąd programu przy obsłudze klawisza ramki (szczegóły w logu)."
 # napis pozycji "nie zapisano" (``StanAplikacji.niezapisane``) wg przyczyny
 NAPISY_NIEZAPISANE = {"blad_zapisu": "nie zapisano — błąd zapisu", "baza_zajeta": "nie zapisano — baza zajęta"}
 

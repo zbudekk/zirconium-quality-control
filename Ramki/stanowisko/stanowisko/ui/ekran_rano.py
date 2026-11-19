@@ -14,6 +14,8 @@ gdy ``stan.tryb == "rano"``. Zasady jak na ekranie wieczornym (kontrakt ``kontro
   ``kuweta_do_cofniecia``): gdy w kontrolerze jest juz inna, odmowa bez zapisu (recenzja PR #26, B1);
 * panele i okno nie trzymaja sie nawzajem silnymi referencjami (``weakref``) - okno znika bez zbierania cykli przez GC
   w przypadkowym watku (recenzja PR #26, D7);
+* E3-A12: okno "Excel: wskaz wiersz" (``okno_excela.PanelExcela``) zastepuje plytki w lewej kolumnie, gdy ``stan.excel.widoczne``;
+  przycisk "Excel: wskaz wiersz" przy wyniku zamknietego pieca (``excel_pokaz``), gdy program ma Excel;
 * klawiatura jak na ramce porannej: cyfry (i "#") = numer kuwety, Enter = wybierz wpisana kuwete albo potwierdz biezaca
   ("rozlozona"), Backspace = popraw numer albo cofnij ostatnie potwierdzenie, Esc = wyczysc numer albo zamknij widok pracy;
   Spacja (start skanu) obsluguje okno.
@@ -39,6 +41,7 @@ from .czesci import (ObszarPaneli, PanelOsoby, UkladPlynny, dzien, etykieta, god
 from .kandydaci import WidokPracyRano, nazwa_plytki
 from .mapa import geometria_ukladu
 from .mapa_rano import MapaRano
+from .okno_excela import PanelExcela
 
 PANELI = 3  # tyle pytan i komunikatow naraz (jak wieczorem)
 OCHRONA_MS = 800  # po zmianie zestawu plytek klikniecia map sa pomijane (jak A-P2 wieczorem)
@@ -270,6 +273,16 @@ class PanelWyniku(QScrollArea):
         u.addWidget(self.kompletne_tytul)
         self.kompletne = tabela(n("tabela_kompletne"), NR.KOLUMNY_KOMPLETNE, styl.ZWYKLE)
         u.addWidget(self.kompletne)
+        self.przycisk_excel = przycisk(NR.EXCEL_POKAZ, n("przycisk_excel"), None, self._pokaz_excel)  # E3-A12
+        self.przycisk_excel.setVisible(False)
+        u.addWidget(self.przycisk_excel)
+        # r3 P-N3: zalegle piece Excela osiagalne z ekranu (takze gdy okno Excela jest zamkniete, a ostatni piec zalatwiony)
+        self._prefiks = n("wynik_excel_zalegly")
+        self.zalegle = QWidget()
+        self.zalegle.setObjectName(n("wynik_excel_zalegle"))
+        self._zalegle = UkladPlynny(self.zalegle, odstep_poziomy=6, odstep_pionowy=3)
+        self.zalegle.setVisible(False)
+        u.addWidget(self.zalegle)
         self.braki_tytul = etykieta("", "duzy", n("rano_braki_tytul"), zawijaj=True)
         u.addWidget(self.braki_tytul)
         self.braki = tabela(n("tabela_braki"), NR.KOLUMNY_BRAKI, styl.ZWYKLE)
@@ -318,6 +331,12 @@ class PanelWyniku(QScrollArea):
             self._sygnatura = None
             if self._stan is not None:
                 self.ustaw(self._stan.rano, self._stan)
+
+    def _pokaz_excel(self) -> None:
+        """E3-A12: okno "Excel: wskaz wiersz" dla pokazanego zamknietego pieca."""
+        rano = (self._stan.rano.ostatni_zamkniety if self._ostatni_piec else self._stan.rano) if self._stan is not None and self._stan.rano else None
+        if rano is not None and rano.sesja_pieca_id is not None and self.ekran is not None:
+            self.ekran._polecenie("excel_pokaz", rano.sesja_pieca_id)
 
     def _cofnij(self) -> None:
         if self._ostatnie is None or self.ekran is None:
@@ -372,7 +391,9 @@ class PanelWyniku(QScrollArea):
 
     def ustaw(self, rano, stan=None) -> None:
         self._stan = stan
-        sygnatura = (rano, self._r.zwarty, stan.operator if stan is not None else None, self._wybrane, self._ostatnie)
+        excel = stan is not None and stan.excel is not None
+        zalegle = stan.excel.zalegle if excel else ()
+        sygnatura = (rano, self._r.zwarty, stan.operator if stan is not None else None, self._wybrane, self._ostatnie, excel, zalegle)
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
@@ -388,6 +409,17 @@ class PanelWyniku(QScrollArea):
             self.tytul.setText(NR.WYNIK_TYTUL_ZAMKNIETY.format(nr=rano.nr_w_dniu, godzina=godzina(rano.zamknieto), osoba=rano.zamknal or NR.BRAK_DANYCH))
         kompletne = rano.kompletne if rano is not None else ()
         braki = rano.braki if rano is not None else ()
+        self.przycisk_excel.setVisible(excel and rano is not None and rano.sesja_pieca_id is not None and not rano.otwarty and bool(kompletne))
+        self.przycisk_excel.setEnabled(stan is not None and stan.operator is not None)
+        wyczysc(self._zalegle)
+        if zalegle:
+            self._zalegle.addWidget(etykieta(NR.EXCEL_ZALEGLE, "slaby"))
+            for sid, nr, d, ile in zalegle:
+                b = przycisk(NR.EXCEL_ZALEGLY.format(nr=nr or "?", doba=dzien(d) if d else "?", ile=ile), f"{self._prefiks}_{sid}", "lacze",
+                             lambda sid=sid: self.ekran._polecenie("excel_pokaz", sid) if self.ekran is not None else None)
+                b.setEnabled(stan.operator is not None)
+                self._zalegle.addWidget(b)
+        self.zalegle.setVisible(bool(zalegle))
         self.kompletne_tytul.setText(NR.KOMPLETNE_TYTUL.format(n=len(kompletne)))
         wypelnij(self.kompletne, [[z.kuweta or NR.BRAK_DANYCH, NR.PUNKTY.format(rozpoznane=z.rozpoznane, punktow=z.punktow),
                                    NR.UWAGA_DOFREZOWANY if z.z_dofrezowaniem else ""] for z in kompletne], r)
@@ -489,6 +521,9 @@ class EkranRano(QWidget):
                                              lambda: self._polecenie_pieca("cofnij_przeniesienie"))
         u.addWidget(self.cofnij_przeniesienie, 0, Qt.AlignmentFlag.AlignVCenter)
         lewa.addWidget(naglowek)
+        self.excel = PanelExcela(self)  # E3-A12: okno "Excel: wskaz wiersz" w miejscu plytek
+        self.excel.setVisible(False)
+        lewa.addWidget(self.excel, 1)
         self.plytki = QWidget()
         self.plytki.setObjectName("rano_plytki")
         self.plytki.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -562,6 +597,7 @@ class EkranRano(QWidget):
         self.widok.ustaw_tryb(r)
         self.wynik.ustaw_tryb(r)
         self.ostatni.ustaw_tryb(r)
+        self.excel.ustaw_tryb(r)
         self._sygnatury.clear()
         if self._stan is not None:
             self._odswiez()
@@ -625,6 +661,12 @@ class EkranRano(QWidget):
             self.okno._informacja = N.PRACA_ZNIKNELA
         plytki = self._plytki_widoczne(rano)
         self._odswiez_karty(stan, rano, plytki)
+        pokaz_excel = stan.excel is not None and stan.excel.widoczne  # E3-A12: okno Excela zamiast plytek
+        if pokaz_excel:
+            self.excel.ustaw(stan)
+        self.excel.setVisible(pokaz_excel)
+        self.plytki.setVisible(not pokaz_excel)
+        self.legenda.setVisible(not pokaz_excel)
         self._odswiez_naglowek(stan, rano)
         self._odswiez_uwagi(stan, rano)
         if plytka is None:

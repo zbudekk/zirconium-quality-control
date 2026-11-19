@@ -416,6 +416,8 @@ class PasekStanu(QFrame):
     odswiez_pule = Signal()
     zmien_osobe = Signal()
     przelacz_tryb = Signal()  # E3-A7: przycisk "-> Poranek" / "-> Wieczor" obok trybu
+    test_led = Signal()  # E3-A12: "Test LED" (ramki)
+    przejmij_ramke = Signal(str)  # E3-A12: rola ramki do przejecia ("W" / "P") po "drugi laptop" / "zly klucz"
 
     def __init__(self):
         super().__init__()
@@ -438,6 +440,15 @@ class PasekStanu(QFrame):
         self.doba = self._pole(w1, N.DOBA, "napis_doba")
         self.przycisk_osoby = przycisk(N.ZMIEN_OSOBE, "przycisk_zmien_osobe", "lacze", self.zmien_osobe.emit)
         self.osoba = self._pole(w1, N.OSOBA, "napis_osoba", self.przycisk_osoby)
+        # E3-A12: stan ramek, "Test LED" i "Przejmij ramke" - tylko gdy program ma ramki (``stan.ramki``)
+        self.przycisk_test_led = przycisk(NR.TEST_LED, "przycisk_test_led", "lacze", self.test_led.emit)
+        self.przycisk_test_led.setToolTip(NR.TEST_LED_OPIS)
+        self.przycisk_przejmij = przycisk("", "przycisk_przejmij_ramke", "lacze", lambda: self.przejmij_ramke.emit(self._do_przejecia or ""))
+        self.przycisk_przejmij.setToolTip(NR.PRZEJMIJ_OPIS)
+        self._do_przejecia: str | None = None
+        self.ramki = self._pole(w1, NR.RAMKI, "napis_ramki", self.przycisk_test_led, self.przycisk_przejmij)
+        self.pole_ramki = self.ramki.parentWidget()
+        self.pole_ramki.setVisible(False)
         self.kolejka = etykieta("", "slaby", "napis_kolejka")
         w1.addWidget(self.kolejka)
         w1.addStretch(1)
@@ -512,7 +523,7 @@ class PasekStanu(QFrame):
         sk, kol, an = stan.skaner, stan.kolejka, stan.analiza
         sygnatura = (stan.tryb, stan.doba, stan.zmiana, stan.operator, stan.operatorzy, stan.wymaga_operatora, stan.pula.napis, stan.pula.stan,
                      sk.dostepny, sk.dziala, sk.zajete, sk.czeka_na_skan, kol, kol.w_toku, kol.silnik_gotowy,
-                     None if an is None else round(an.udzial * 100), stan.zamkniety)
+                     None if an is None else round(an.udzial * 100), stan.zamkniety, getattr(stan, "ramki", None))
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
@@ -562,6 +573,33 @@ class PasekStanu(QFrame):
             czesci.append(N.WSTRZYMANE_ZAPIS.format(n=niezapisane))
         self.kolejka.setText(N.ODSTEP_KOLEJKI.join(czesci))
         self.kolejka.setVisible(bool(czesci))
+        self._ustaw_ramki(getattr(stan, "ramki", None))
+
+    def _ustaw_ramki(self, r) -> None:
+        """E3-A12: "Ramki: W: gotowa, P: brak polaczenia" (podpowiedz: komunikaty i ostrzezenia klientow), przycisk "Przejmij
+        ramke" przy ramce wstrzymanej (drugi laptop, zly klucz). Bez ramek pole ukryte."""
+        self.pole_ramki.setVisible(r is not None)
+        if r is None:
+            return
+        czesci, podpowiedz, dobrze, przejecie = [], [], True, None
+        for x in (r.wieczorna, r.poranna):
+            if x is None:
+                continue
+            klucz = "test" if r.test_led else ("gotowa" if x.polaczona and x.blad is None else (x.blad or "brak_polaczenia"))
+            czesci.append(NR.RAMKA_STAN.format(rola=x.rola, stan=NR.RAMKA_STANY.get(klucz, NR.RAMKA_STANY["inny"]))
+                          + (NR.RAMKA_PLYTKA.format(n=x.plytka) if x.plytka else ""))
+            podpowiedz += [t for t in ((x.komunikat or ""),) + tuple(x.ostrzezenia) if t and t not in podpowiedz]
+            if getattr(x, "utracone", 0):  # recenzja PR #30 D7: utracone zdarzenia ramki (dziennik ramki przepelniony w przerwie)
+                podpowiedz.append(NR.RAMKA_UTRACONE.format(rola=x.rola, n=x.utracone))
+            dobrze = dobrze and klucz in ("gotowa", "test")
+            if przejecie is None and (x.wstrzymane or x.blad in ("inny_laptop", "zly_klucz")):
+                przejecie = x.rola
+        self.ramki.setText(NR.RAMKI_ODSTEP.join(czesci))
+        self.ramki.setToolTip(chr(10).join(podpowiedz))
+        self._rola(self.ramki, "wartosc" if dobrze else "wartosc_uwaga")
+        self._do_przejecia = przejecie
+        self.przycisk_przejmij.setText(NR.PRZEJMIJ_RAMKE.format(rola=przejecie or ""))
+        self.przycisk_przejmij.setVisible(przejecie is not None)
 
     def _sprawdz_liczenie(self) -> None:
         """"Odswiez pule" nieaktywne w trakcie liczenia; po ``LIMIT_LICZENIA_PULI_S`` znowu aktywne (A-D5: liczenie moglo zawisnac

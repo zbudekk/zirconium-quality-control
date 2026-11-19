@@ -116,3 +116,48 @@ PUNKTY = "{rozpoznane} z {punktow}"
 LISTA_PUSTA = "—"
 ODSTEP_NAPISU = " — "
 KROPKA = " · "
+
+# --- ramki i Excel (E3-A12) ------------------------------------------------------------------------
+RAMKI = "Ramki"
+RAMKA_STAN = "{rola}: {stan}"
+RAMKA_STANY = {"gotowa": "gotowa", "brak_polaczenia": "brak połączenia", "inny_laptop": "drugi laptop", "zly_klucz": "zły klucz",
+               "blad_sprzetu": "awaria", "test": "test diod", "inny": "błąd"}
+RAMKA_PLYTKA = " (płytka {n})"
+RAMKI_ODSTEP = " · "
+TEST_LED = "Test LED"
+TEST_LED_OPIS = "Ramki pokażą przez kilka sekund kolejne kolory na wszystkich diodach (sprawdzenie diod); potem wraca plan."
+PRZEJMIJ_RAMKE = "Przejmij ramkę {rola}"
+PRZEJMIJ_OPIS = "Ramka czekała na decyzję (drugi laptop albo zły klucz) — kliknij, jeśli ten laptop ma ją obsługiwać."
+EXCEL_POKAZ = "Excel: wskaż wiersz"
+EXCEL_TYTUL = "Excel: wskaż wiersz — piec nr {nr} z {doba}"
+EXCEL_TRYB = {"pytaj": "Kolor pola B zmienia się dopiero po „Zatwierdź” (tryb „pytaj”).",
+              "cien": "Tryb cienia — program nie zmienia arkusza, zapisuje tylko log."}
+EXCEL_KOLUMNY = ("Kuweta", "Propozycja", "Uwagi", "Stan")
+EXCEL_PROPOZYCJA = {"jeden_wiersz": "wiersz {wiersz}", "juz_odhaczone": "już odhaczone (wiersz {wiersz})",
+                    "wskaz_wiersz": "wskaż wiersz ({n} kand.)"}
+EXCEL_UWAGA_SPRAWDZ = "SPRAWDŹ"
+EXCEL_SPRAWDZ = "SPRAWDŹ: wiersz wybrany bez zgodnej nazwy w kolumnie H — porównaj z folderem zlecenia przed zatwierdzeniem."
+EXCEL_STANY = {None: "do zatwierdzenia", "zapisano": "zapisano", "juz_odhaczone": "już odhaczone", "wskazano_recznie": "zapisano (wskazany)",
+               "pominieto": "pominięte", "tylko_log": "tylko log", "blad": "błąd — sprawdź", "zapisano bez logu CSV": "zapisano (bez logu CSV)"}
+EXCEL_KANDYDACI_TYTUL = "Kandydaci (kliknij wiersz, żeby go wskazać):"
+EXCEL_KANDYDACI_KOLUMNY = ("Wiersz", "Data", "Nr (B)", "Kuweta (C)", "Nazwa (H)", "Pole B")
+EXCEL_PROPONOWANY = " ◀"
+EXCEL_POLE_ZIELONE = "zielone"
+EXCEL_POLE_INNE = "inny kolor"
+EXCEL_FOLDER = "Kuweta {kuweta} · folder zlecenia: {folder}"
+EXCEL_ZATWIERDZ = "Zatwierdź wiersz {wiersz}"
+EXCEL_ZATWIERDZ_WYBIERZ = "Zatwierdź (wskaż wiersz)"
+EXCEL_POMIN = "Pomiń — zaznaczę ręcznie"
+EXCEL_POZNIEJ = "Później"
+EXCEL_ODSWIEZ = "Odśwież z Excela"
+EXCEL_BEZ_OSOBY = "Wybierz osobę — zatwierdza osoba z listy."
+EXCEL_ZOSTALO = "Do zatwierdzenia: {n} z {razem}"
+EXCEL_WYBIERZ = "Kliknij zlecenie na liście, żeby je zatwierdzić albo pominąć."
+EXCEL_WSKAZ_WIERSZ = "Kliknij właściwy wiersz na liście kandydatów, potem „Zatwierdź”."
+EXCEL_W_TOKU = "Excel: przygotowuję propozycje… (zostało kroków: {n})"
+EXCEL_POPRZEDNI_BLAD = "POPRZEDNIA PRÓBA: błąd — zapis mógł dojść; sprawdź w Excelu wiersze {od}–{do} przed ponownym zatwierdzeniem."
+EXCEL_POPRZEDNI_BLAD_BEZ_WIERSZA = "POPRZEDNIA PRÓBA: błąd — sprawdź w Excelu, czy pole B tego zlecenia nie jest już zaznaczone."
+EXCEL_UWAGA_BLAD = "poprzednio błąd"
+EXCEL_ZALEGLE = "Inne piece do odhaczenia:"
+EXCEL_ZALEGLY = "Piec {nr} ({doba}) — {ile}"
+RAMKA_UTRACONE = "utracone zdarzenia ramki {rola}: {n}"

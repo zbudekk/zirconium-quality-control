@@ -965,6 +965,31 @@ class Excel:
                               "sesja_pieca_id": p.sesja_pieca_id, "powod": str(e)})
         return wpisy
 
+    def zapisz_cien_bez_odczytu(self, pozycje: list[Pozycja], operator: str | None) -> list[dict]:
+        """Tryb "cien" (E3-A12, recenzja PR #30 P1): log porownawczy pozycji z JEDNEGO swiezego odczytu (``propozycje``) bez
+        ponownego odczytu arkusza na kazda pozycje (``zapisz_cien`` czyta caly arkusz przy kazdym ``zatwierdz``) - te same wpisy:
+        jeden wiersz -> ``tylko_log`` z wierszem, juz odhaczone -> ``juz_odhaczone`` (regula 4), wskaz wiersz -> ``tylko_log`` bez
+        wiersza; blad wpisu -> pozycja wyniku z ``powod``. Nic nie zapisuje w Excelu (brak drogi zapisu)."""
+        if self.tryb != TRYB_CIEN:
+            raise BladExcela("zapisz_cien_bez_odczytu dziala tylko w trybie 'cien' - w trybie 'pytaj' kazdy zapis zatwierdza czlowiek")
+        osoba = self._osoba(operator)
+        wpisy = []
+        for p in pozycje:
+            if p.zalatwiona:
+                continue
+            d = p.dopasowanie
+            try:
+                if d.klasa == KLASA_WSKAZ_WIERSZ:
+                    wpisy.append(self._zalatw(p, osoba, None, d.regula, WYNIK_TYLKO_LOG))
+                elif d.klasa == KLASA_JUZ_ODHACZONE:
+                    wpisy.append(self._zalatw(p, osoba, d.wiersz, 4, WYNIK_JUZ_ODHACZONE, KLASA_JUZ_ODHACZONE))
+                else:
+                    wpisy.append(self._zalatw(p, osoba, d.wiersz, d.regula, WYNIK_TYLKO_LOG))
+            except BladExcela as e:
+                wpisy.append({"id": None, "kuweta": p.kuweta, "wiersz": d.wiersz, "klasa": d.klasa, "wynik": WYNIK_BLAD, "regula": d.regula,
+                              "tryb": self.tryb, "zlecenie_id": p.zlecenie_id, "sesja_pieca_id": p.sesja_pieca_id, "powod": str(e)})
+        return wpisy
+
     def zaloguj_poprawki(self, wynik_pieca: dict, operator: str | None) -> list[dict]:
         """Poprawki z "Zamknij piec" (zab do zlecenia juz odhaczonego - SE5): Excel bez zmian, wpis ``tylko_log`` z wierszem
         wskazanym przez reguly (dla audytu); jeden odczyt arkusza."""
