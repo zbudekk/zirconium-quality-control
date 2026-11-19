@@ -58,14 +58,15 @@ def test_roznica_przedzialow():
 
 
 # ---------------------------------------------------------------------- P1: limit odejmowania przestoju procesu
-def test_p1_przestoj_procesu_odejmowany_najwyzej_100_ms():
+def test_p1_przestoj_procesu_odejmowany_najwyzej_50_ms():
+    assert PC.LIMIT_PRZESTOJU_S == 0.050  # recenzja PR #33 runda 2, P2
     t = znaczniki(0.0, 1.0) + znaczniki(1.3, 2.0)  # wzorzec stoi 300 ms, proces bez CPU
     pw = pomiar_z_danych(t, [0.0] * len(t))
     assert len(pw.przestoje) == 1
     assert pw.przestoj(0.9, 1.4) == pytest.approx(PC.LIMIT_PRZESTOJU_S)
     assert pw.wlasny(0.99, 1.31) == pytest.approx(0.32 - PC.LIMIT_PRZESTOJU_S)
-    assert PC.ocen_przerwy(pw.przerwy_petli([0.99, 1.31], [0.0, 0.0]), 0.2)[0] == PC.BLAD  # 220 ms po odjeciu 100 ms
-    assert PC.ocen_przerwy(pw.przerwy_petli([1.05, 1.29], [0.0, 0.0]), 0.2)[0] == PC.POWTORZ_PROCES  # 240 - 100 ms
+    assert PC.ocen_przerwy(pw.przerwy_petli([0.99, 1.31], [0.0, 0.0]), 0.2)[0] == PC.BLAD  # 270 ms po odjeciu 50 ms
+    assert PC.ocen_przerwy(pw.przerwy_petli([1.05, 1.29], [0.0, 0.0]), 0.2)[0] == PC.POWTORZ_PROCES  # 240 - 50 ms
 
 
 # ---------------------------------------------------------------------- P2: przestoj dysku = powtorzenie, nie odejmowanie
@@ -159,7 +160,7 @@ def test_b1_watek_tla_trzymajacy_gil_300_ms_to_porazka(tmp_path):
 
 @WINDOWS
 def test_p1_czekanie_w_c_z_trzymanym_gil_300_ms_to_porazka(tmp_path):
-    """``Sleep(300)`` przez ``ctypes.PyDLL`` (GIL trzymany, CPU 0) wyglada jak przestoj procesu - odjete najwyzej 100 ms."""
+    """``Sleep(300)`` przez ``ctypes.PyDLL`` (GIL trzymany, CPU 0) wyglada jak przestoj procesu - odjete najwyzej 50 ms."""
     import ctypes
 
     for proba in range(3):
@@ -167,3 +168,49 @@ def test_p1_czekanie_w_c_z_trzymanym_gil_300_ms_to_porazka(tmp_path):
             zn, cpu = petla_10_ms(pw, 0.8, lambda: ctypes.PyDLL("kernel32").Sleep(300))
         ocena, najdluzsza = PC.ocen_przerwy(pw.przerwy_petli(zn, cpu), 0.2)
         assert ocena == PC.BLAD, (proba, najdluzsza.opis(), pw.opis())
+
+@WINDOWS
+def test_d1_sciezka_powtorzenia_czekanie_w_c_z_gil_raz_pass_z_ostrzezeniem_zawsze_porazka(tmp_path):
+    """Sciezka powtorzenia od poczatku do konca (recenzja PR #33 runda 2, D1): ``PyDLL Sleep(210)`` w petli daje przerwe
+    ok. 220 ms (> 200 ms), a po odjeciu najwyzej 50 ms przestoju procesu ok. 170 ms - ocena ``powtorz_proces``.
+    (i) tylko w 1. pomiarze -> PASS w 2. pomiarze z ostrzezeniem i historia; (ii) w kazdym pomiarze -> porazka po 2."""
+    import ctypes
+
+    def pomiar(z_blokada: bool):
+        with PC.PomiarOdporny(dysk=tmp_path) as pw:
+            zn, cpu = petla_10_ms(pw, 0.6, (lambda: ctypes.PyDLL("kernel32").Sleep(210)) if z_blokada else (lambda: None))
+        ocena, najdluzsza = PC.ocen_przerwy(pw.przerwy_petli(zn, cpu), 0.2)
+        return ocena, najdluzsza.opis()
+
+    def caly_test(blokada_w_pomiarze):
+        powtorki, n = PC.Powtorki(), 0
+        while True:
+            ocena, opis = pomiar(blokada_w_pomiarze(n))
+            n += 1
+            if not powtorki.dalej(ocena, opis):
+                return ocena, powtorki
+
+    with pytest.warns(UserWarning, match="dopiero w pomiarze 2"):
+        ocena, powtorki = caly_test(lambda n: n == 0)
+        powtorki.ostrzez("D1", ocena)
+    assert ocena == PC.OK and powtorki.historia[0].startswith(f"proba 1: {PC.POWTORZ_PROCES}"), powtorki.opis()
+    ocena, powtorki = caly_test(lambda n: True)
+    assert ocena == PC.POWTORZ_PROCES and len(powtorki.historia) == 2, powtorki.opis()
+
+
+def test_p1_ostrzezenie_tylko_przy_sukcesie_po_powtorzeniu(recwarn):
+    p = PC.Powtorki()
+    p.dalej(PC.OK, "od razu")
+    p.ostrzez("x", PC.OK)
+    assert not recwarn.list
+    p = PC.Powtorki()
+    p.dalej(PC.POWTORZ_DYSK, "zastoj dysku")
+    p.dalej(PC.BLAD, "regresja")
+    p.ostrzez("x", PC.BLAD)  # porazke zglasza asercja testu, nie ostrzezenie
+    assert not recwarn.list
+
+
+def test_d3_blad_wzorca_dysku_w_opisie():
+    pw = pomiar_z_danych(znaczniki(0.0, 0.1), [0.0] * 51)
+    pw.dysk, pw.blad_dysku = object(), OSError("dysk pelny")
+    assert "BLAD WZORCA DYSKU" in pw.opis() and "dysk pelny" in pw.opis()

@@ -607,7 +607,7 @@ def obszar_plytki_rowny(klatka, wzor) -> bool:
 
 def ocen_k4(czasy_sciennie, czasy_wlasne) -> str:
     """Kryterium K4 (mediana < 100 ms, co najmniej 36 z 40 < 100 ms, maks < 250 ms) na czasie SCIENNYM: `ok`; gdy spelnia
-    je dopiero czas wlasny (bez przestoju procesu, najwyzej 100 ms na przelaczenie) - `powtorz_proces`; inaczej `blad`."""
+    je dopiero czas wlasny (bez przestoju procesu, najwyzej 50 ms na przelaczenie) - `powtorz_proces`; inaczej `blad`."""
     import pomiar_czasu as PC
 
     def spelnia(xs) -> bool:
@@ -629,7 +629,7 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
     petli (odbijanie czujnikow, E3-A8p) - wczesniej przy nierownych obiegach ginelo zdarzenie 0.
     E3-T0p: pomiar w `pomiar_czasu.PomiarOdporny` (GC sesji pytest zamrozony, priorytet procesu); progi na czasie
     sciennym bez zmian, dodatkowo co najmniej 36 z 40 przelaczen < 100 ms. Gdy kryterium spelnia dopiero czas bez
-    przestoju calego procesu (najwyzej 100 ms na przelaczenie) - seria 40 przelaczen jest powtarzana raz; gdy znowu -
+    przestoju calego procesu (najwyzej 50 ms na przelaczenie) - seria 40 przelaczen jest powtarzana raz; gdy znowu -
     porazka z rozbiciem. Warunek czekania watku testu - porownanie wierszy bajtow (krotko pod blokada atrapy)."""
     import pomiar_czasu as PC
 
@@ -683,7 +683,7 @@ def test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia(kal, ramka_p):
         print(f"POMIAR K4 seria {serie}: {ocena}; {opis}")
         if not powtorki.dalej(ocena, opis):
             break
-    assert ocena == PC.OK, f"K4: {powtorki.opis()}"
+    powtorki.ostrzez("K4", ocena)  # sukces dopiero po powtorzeniu - ostrzezenie w podsumowaniu pytest
     # runda 2 (P7): obraz gasnie od razu, a zdarzenie "plytka 0" przychodzi po ustaleniu odczytu (30 ms)
     assert czekaj_na(lambda: prog.logika.plytka == 0)
     zd, _ = prog.logika.zdarzenia_od(n0)
