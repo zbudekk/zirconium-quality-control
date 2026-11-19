@@ -227,6 +227,7 @@ class OknoWieczor(QWidget):
         u.setSpacing(10)
         self.widok = WidokPracy()
         self.widok.decyzja.connect(self._decyzja)
+        self.widok.wybor_wpisu.connect(self._wybor_wpisu)  # E3-A5i: krazek pracy do wyboru
         self.widok.zamknij.connect(self._zamknij_prace)
         self.widok.nastepna.connect(self._idz_do_nastepnej)
         self.widok.inna_praca.connect(self._inna_praca)
@@ -521,6 +522,13 @@ class OknoWieczor(QWidget):
         if praca is None or self._praca_widoku is None or praca.praca_id != self._praca_widoku or self.widok.praca_id != self._praca_widoku:
             return
         self._polecenie(nazwa, self._praca_widoku)
+
+    def _wybor_wpisu(self, frezowanie_id: int) -> None:
+        """E3-A5i: krazek wskazany przez technika dla pracy pokazanej w widoku pracy (tylko gdy widok pokazuje wybrana prace)."""
+        _, praca = self._wybor()
+        if praca is None or self._praca_widoku is None or praca.praca_id != self._praca_widoku or self.widok.praca_id != self._praca_widoku:
+            return
+        self._polecenie("wybierz_wpis", self._praca_widoku, int(frezowanie_id))
 
     def _wybrano_osobe(self, osoba: str) -> None:
         self._zmiana_osoby = False

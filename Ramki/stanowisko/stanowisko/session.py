@@ -86,8 +86,14 @@ DECYZJE_UKRUSZENIA = ("ukruszona", "ukruszona_niewykryta")  # praca idzie na lis
 DECYZJE_O_PRACY = DECYZJE_UKRUSZENIA + ("ok",)
 RODZAJ_COFNIECIE = "cofniecie"  # ponad liste z sekcji 3.4; zatwierdzone przez wlasciciela 17.11.2026
 RODZAJ_COFNIJ_ZASTAPIENIE = "cofnij_zastapienie"  # ponad liste z sekcji 3.4 (recenzja PR #16, P6)
+# E3-A5i: wybor krazka (wpisu puli) pracy, ktorej wynik puli per praca nie rozstrzygnal; wartosc = frezowanie_id
+RODZAJ_WYBOR_WPISU = "wybor_wpisu"
 RODZAJE_POZNIEJSZYCH_PACZEK = ("wybor_kandydata", "przypisanie_reczne", "uklad")
-RODZAJE = DECYZJE_O_PRACY + (RODZAJ_COFNIECIE, "powtorz_skan", RODZAJ_COFNIJ_ZASTAPIENIE, "numer_plytki") + RODZAJE_POZNIEJSZYCH_PACZEK
+RODZAJE = DECYZJE_O_PRACY + (RODZAJ_COFNIECIE, "powtorz_skan", RODZAJ_COFNIJ_ZASTAPIENIE, "numer_plytki", RODZAJ_WYBOR_WPISU) + RODZAJE_POZNIEJSZYCH_PACZEK
+# E3-A5i (recenzja PR #25 r3 D1): praca zolta, ktorej wynik dal ratunek plytki (uwaga z tym poczatkiem) = PROPOZYCJA - rano bez
+# przypisania automatycznego (nie domyka zlecenia bez potwierdzenia technika), wieczorem przypisana, ale oznaczona w stanie
+PREFIKS_UWAGI_RATUNKU = "ratunek:"
+ZDARZENIE_PRZYPISAN = "przypisania_do_wyboru"  # dziennik: wpisy puli do wyboru i propozycje prac skanu (bez nazw - id i krazki)
 
 # kolory pracy po decyzji technika (kontrakt dla okna A3 i ramki A8; pozostale kolory to statusy gniazda z analizy)
 KOLOR_UKRUSZONA = "czerwony"
@@ -196,6 +202,25 @@ def _do_powtorzenia(wynik: dict) -> bool:
         if g.get("status_fragmentu") in FRAGMENTY_DO_POWTORZENIA or (g.get("inspekcja") or {}).get("status") in INSPEKCJA_DO_POWTORZENIA:
             return True
     return False
+
+
+def propozycja_ratunku(g: dict) -> bool:
+    """E3-A5i: praca zolta z wyniku ratunku plytki (uwaga "ratunek: ..." w ``uwagi`` gniazda) - propozycja do potwierdzenia."""
+    return g.get("status") == "zolty" and any(isinstance(u, str) and u.startswith(PREFIKS_UWAGI_RATUNKU) for u in g.get("uwagi") or ())
+
+
+def wpisy_do_wyboru(kandydat: dict | None) -> list[dict]:
+    """E3-A5i: wpisy puli (krazki), miedzy ktorymi wynik puli per praca nie rozstrzygnal (``frezowanie_id`` puste, w ``wpisy``
+    co najmniej dwa rozne frezowania) - do wyboru technika. Wynik rozstrzygniety albo pula z folderu: []."""
+    if not kandydat or kandydat.get("frezowanie_id") is not None:
+        return []
+    wynik, widziane = [], set()
+    for w in kandydat.get("wpisy") or ():
+        fid = w.get("frezowanie_id") if isinstance(w, dict) else None
+        if isinstance(fid, int) and not isinstance(fid, bool) and fid not in widziane:
+            widziane.add(fid)
+            wynik.append({"frezowanie_id": fid, "projekt_id": w.get("projekt_id"), "krazek": w.get("krazek"), "wspolczynnik": w.get("wspolczynnik")})
+    return wynik if len(wynik) > 1 else []
 
 
 def _obowiazujace(decyzje: list[dict]) -> dict[int, dict]:
@@ -352,9 +377,24 @@ class Sesja:
                 uklad_zgodny=None if zgodny is None else int(bool(zgodny)), numer_plytki=wynik.get("numer"),
                 numer_zrodlo=wynik.get("numer_zrodlo"), status=status, wersja_programu=self.wersja_programu, skrot_ustawien=self.skrot_ust)
             w_gniezdzie: dict[Any, int] = {}
+            do_wyboru: dict[str, list] = {}
+            z_puli: dict[str, int] = {}
+            propozycje: list[int] = []
             for g in gniazda:
                 w_gniezdzie[g.get("gniazdo")] = w_gniezdzie.get(g.get("gniazdo"), 0) + 1
-                self._wstaw_prace(skan_id, g, w_gniezdzie[g.get("gniazdo")], wynik)
+                praca_id = self._wstaw_prace(skan_id, g, w_gniezdzie[g.get("gniazdo")], wynik)
+                if g.get("status") != "szary":
+                    k1 = (g.get("kandydaci") or [None])[0] or {}
+                    wpisy = wpisy_do_wyboru(k1)
+                    if wpisy:
+                        do_wyboru[str(praca_id)] = wpisy
+                    if k1.get("wpisy") and isinstance(k1.get("projekt_id"), int) and not isinstance(k1.get("projekt_id"), bool):
+                        z_puli[str(praca_id)] = k1["projekt_id"]  # projekt wpisu puli (sesja poranna: przypisanie automatyczne)
+                    if propozycja_ratunku(g):
+                        propozycje.append(praca_id)
+            if do_wyboru or propozycje or z_puli:  # E3-A5i: krazki do wyboru, projekty wpisow puli, propozycje z ratunku
+                self.baza.zdarzenie("silnik", ZDARZENIE_PRZYPISAN, {"wpisy": do_wyboru, "projekty": z_puli, "propozycje": propozycje},
+                                    skan_id=skan_id, czas=teraz)
             if self.katalog_wynikow is not None:
                 self.baza.wykonaj("UPDATE skany SET wynik_json = ? WHERE id = ?", (self._zapisz_wynik(wynik, teraz, sha16), skan_id))
             self.baza.zdarzenie("silnik", "skan_przyjety", {"status": status, "prace": len(gniazda), "czas_s": (wynik.get("czas_s") or {}).get("razem")},
@@ -392,8 +432,10 @@ class Sesja:
         ins = g.get("inspekcja")
         skala = g.get("skala") or {}
         projekt_id = frezowanie_id = None
-        if k1 is not None and g.get("status") != "szary":  # praca szara ("bez projektu") nie ma przypisania
-            projekt_id = self._projekt(k1.get("id"))
+        # praca szara ("bez projektu") nie ma przypisania. Rano przypisanie obowiazujace ustawia potem sesja poranna (tylko praca
+        # zielona - zolta, takze propozycja z ratunku, czeka na decyzje technika; recenzja PR #25 r3 D1)
+        if k1 is not None and g.get("status") != "szary":
+            projekt_id = self._projekt_kandydata(k1)
             frezowanie_id = self._frezowanie(projekt_id, k1)
         ubytki = (ins.get("ubytki") or []) if ins else None
         return self.baza.wstaw(
@@ -413,15 +455,29 @@ class Sesja:
         w = self.baza.wiersze("SELECT id FROM projekty WHERE sha16 = ? AND usuniety = 0 ORDER BY id LIMIT 2", (sha16,))
         return w[0]["id"] if len(w) == 1 else None
 
+    def _projekt_kandydata(self, kandydat: dict) -> int | None:
+        """E3-A5i: projekt pracy z WYNIKU puli per praca - ``kandydaci[0].projekt_id`` (wpis puli, z ktorego pochodzi dopasowana
+        geometria), nie szukanie po ``sha16``: ten sam plik w dwoch zleceniach ma jeden skrot, a wpis puli wskazuje zlecenie.
+        Wpisy z roznymi projektami (``projekt_id`` puste) = bez przypisania (program nie zgaduje zlecenia). Pula z folderu (bez
+        ``wpisy``) - jak dotad, po ``sha16``."""
+        if not kandydat.get("wpisy"):
+            return self._projekt(kandydat.get("id"))
+        pid = kandydat.get("projekt_id")
+        if isinstance(pid, bool) or not isinstance(pid, int):
+            return None
+        return pid if self.baza.wiersz("SELECT id FROM projekty WHERE id = ?", (pid,)) else None
+
     def _frezowanie(self, projekt_id: int | None, kandydat: dict) -> int | None:
         """Wpis frezowania pracy: wskazany przez wynik (pula ze wspolczynnikiem per praca, A5); inaczej jedyny wpis projektu.
 
         Projekt z kilkoma wpisami (zab frezowany na dwoch krazkach, K4) bez wskazania w wyniku: brak - program nie zgaduje krazka.
+        E3-A5i: wynik puli per praca (``wpisy``) bez ``frezowanie_id`` = niejednoznaczny - bez zgadywania, krazek wybiera technik
+        (``wybierz_wpis``).
         """
         wskazany = kandydat.get("frezowanie_id")
         if wskazany is not None and self.baza.wiersz("SELECT id FROM frezowania WHERE id = ?", (wskazany,)):
             return int(wskazany)
-        if projekt_id is None:
+        if projekt_id is None or kandydat.get("wpisy"):
             return None
         w = self.baza.wiersze("SELECT id FROM frezowania WHERE projekt_id = ? ORDER BY id LIMIT 2", (projekt_id,))
         return w[0]["id"] if len(w) == 1 else None
@@ -497,6 +553,8 @@ class Sesja:
             return self.cofnij_zastapienie(skan_id, operator)
         if rodzaj == "numer_plytki":
             return self.podaj_numer_plytki(skan_id, wartosc, operator)
+        if rodzaj == RODZAJ_WYBOR_WPISU:
+            return self.wybierz_wpis(praca_id, wartosc, operator)
         if rodzaj == RODZAJ_COFNIECIE:
             return self.cofnij(praca_id, operator)
         osoba = self._operator(operator)
@@ -553,6 +611,75 @@ class Sesja:
             decyzja_id = self.baza.wstaw("decyzje", praca_id=praca["id"], rodzaj=RODZAJ_COFNIECIE, wartosc=str(obowiazujaca["id"]),
                                          operator=osoba, czas=self.teraz())
             self._odswiez_punkt(praca, praca["tryb_skanu"])
+        return decyzja_id
+
+    # --- E3-A5i: krazek (wpis puli) do wyboru ------------------------------------------------------
+    def _przypisania_skanow(self, skany_ids: list[int]) -> tuple[dict[int, list[dict]], set[int]]:
+        """Z dziennika (``ZDARZENIE_PRZYPISAN``): praca_id -> wpisy puli do wyboru oraz prace bedace propozycja z ratunku."""
+        wpisy: dict[int, list[dict]] = {}
+        propozycje: set[int] = set()
+        if not skany_ids:
+            return wpisy, propozycje
+        for w in self.baza.wiersze(f"SELECT dane FROM zdarzenia WHERE zrodlo = 'silnik' AND typ = ? AND skan_id IN ({_znaki(len(skany_ids))}) "
+                                   "ORDER BY id", (ZDARZENIE_PRZYPISAN, *skany_ids)):
+            try:
+                dane = json.loads(w["dane"] or "{}")
+            except ValueError:
+                continue
+            for k, lista in (dane.get("wpisy") or {}).items():
+                if str(k).isdigit() and isinstance(lista, list):
+                    wpisy[int(k)] = [x for x in lista if isinstance(x, dict)]
+            propozycje |= {int(x) for x in dane.get("propozycje") or () if isinstance(x, int)}
+        return wpisy, propozycje
+
+    def projekt_wpisu_puli(self, praca_id: int, skan_id: int) -> int | None:
+        """E3-A5i: projekt wpisu puli per praca, ktory wskazal wynik dopasowania pracy (``kandydaci[0].projekt_id``); None = pula
+        z folderu, wynik bez jednoznacznego projektu albo praca szara. Dla sesji porannej (przypisanie automatyczne)."""
+        for w in self.baza.wiersze("SELECT dane FROM zdarzenia WHERE zrodlo = 'silnik' AND typ = ? AND skan_id = ? ORDER BY id DESC",
+                                   (ZDARZENIE_PRZYPISAN, skan_id)):
+            try:
+                pid = (json.loads(w["dane"] or "{}").get("projekty") or {}).get(str(praca_id))
+            except (ValueError, AttributeError):
+                continue
+            if isinstance(pid, int) and not isinstance(pid, bool):
+                return pid
+        return None
+
+    def _wybory_wpisow(self, prace_ids: list[int]) -> dict[int, dict]:
+        """Ostatnia decyzja ``wybor_wpisu`` kazdej pracy (decyzje sa tylko dopisywane - nowszy wybor zastepuje starszy)."""
+        if not prace_ids:
+            return {}
+        wynik: dict[int, dict] = {}
+        for d in self.baza.wiersze(f"SELECT * FROM decyzje WHERE rodzaj = ? AND praca_id IN ({_znaki(len(prace_ids))}) ORDER BY id",
+                                   (RODZAJ_WYBOR_WPISU, *prace_ids)):
+            wynik[d["praca_id"]] = d
+        return wynik
+
+    def wybierz_wpis(self, praca_id: int, frezowanie_id: Any, operator: str | None = None) -> int:
+        """Technik wskazuje krazek (wpis puli) pracy, ktorej wynik puli per praca nie rozstrzygnal (ten sam STL z tym samym albo
+        bardzo bliskim wspolczynnikiem na kilku krazkach): ``frezowanie_id`` musi byc jednym z ``wpisy_do_wyboru`` tej pracy.
+        Zapis: decyzja ``wybor_wpisu`` (osoba, czas, wartosc = frezowanie_id), ``prace.frezowanie_id`` i ``prace.projekt_id`` z wpisu.
+        Wybor mozna zmienic (nowa decyzja). Zwraca ``decyzje.id``."""
+        osoba = self._operator(operator)
+        if isinstance(frezowanie_id, bool) or not str(frezowanie_id).isdigit():
+            raise BladSesji(f"krazek wskazuje id frezowania (liczba), jest {frezowanie_id!r}")
+        fid = int(frezowanie_id)
+        with self.baza.transakcja():
+            praca = self._praca_do_decyzji(praca_id)
+            wpisy = self._przypisania_skanow([praca["skan_id"]])[0].get(praca["id"], [])
+            wpis = next((w for w in wpisy if w.get("frezowanie_id") == fid), None)
+            if wpis is None:
+                dostepne = ", ".join(str(w.get("krazek") or w.get("frezowanie_id")) for w in wpisy) or "brak"
+                raise BladSesji(f"praca {praca_id}: wskazany krazek nie jest wpisem puli tej pracy (do wyboru: {dostepne})")
+            fr = self.baza.wiersz("SELECT id, projekt_id FROM frezowania WHERE id = ?", (fid,))
+            if fr is None:
+                raise BladSesji(f"praca {praca_id}: wpisu frezowania {fid} nie ma juz w bazie - odswiez pule")
+            projekt_id = fr["projekt_id"] if fr["projekt_id"] is not None else praca["projekt_id"]
+            decyzja_id = self.baza.wstaw("decyzje", praca_id=praca["id"], skan_id=praca["skan_id"], rodzaj=RODZAJ_WYBOR_WPISU, wartosc=str(fid),
+                                         operator=osoba, czas=self.teraz())
+            self.baza.wykonaj("UPDATE prace SET frezowanie_id = ?, projekt_id = ? WHERE id = ?", (fid, projekt_id, praca["id"]))
+            if projekt_id != praca["projekt_id"]:
+                self._odswiez_punkt({**praca, "projekt_id": projekt_id}, praca["tryb_skanu"])
         return decyzja_id
 
     def zastap_skan(self, skan_id: int, poprzedni_id: int | None = None, operator: str | None = None) -> int:
@@ -938,6 +1065,8 @@ class Sesja:
         prace_skanu: dict[int, list[dict]] = {i: [] for i in ids}
         for p in self._prace_skanow(ids):
             prace_skanu[p["skan_id"]].append(p)
+        do_wyboru, propozycje = self._przypisania_skanow(ids)  # E3-A5i: krazki do wyboru, propozycje z ratunku
+        wybory = self._wybory_wpisow(list(do_wyboru))
         wynik_skany, razem, razem_decyzje, prac, do_potwierdzenia = [], {}, {}, 0, []
         for s in skany:
             aktywny = s["status"] in STATUSY_AKTYWNE
@@ -963,7 +1092,9 @@ class Sesja:
                     "kandydat2_sha16": p["kandydat2_sha16"], "kandydat2_pokrycie": p["kandydat2_pokrycie"], "pewnosc": p["pewnosc"],
                     "wspolczynnik": p["wspolczynnik"], "korekta_skali": p["korekta_skali"], "ubytki": p["ubytki"], "ubytek_max_mm": p["ubytek_max_mm"],
                     "decyzja": d["rodzaj"] if d else None, "decyzja_id": d["id"] if d else None, "operator": d["operator"] if d else None,
-                    "czas_decyzji": d["czas"] if d else None})
+                    "czas_decyzji": d["czas"] if d else None,
+                    "frezowanie_id": p["frezowanie_id"], "wpisy_do_wyboru": do_wyboru.get(p["id"], []), "propozycja": p["id"] in propozycje,
+                    "wybor_wpisu": ({k: wybory[p["id"]][k] for k in ("id", "operator", "czas", "wartosc")} if p["id"] in wybory else None)})
             if poprzedni is not None:
                 do_potwierdzenia.append({"skan_id": s["id"], "poprzedni_id": poprzedni["id"], "numer_plytki": s["numer_plytki"],
                                          "podstawa": podstawa, **self._decyzje_do_utraty(poprzedni["id"])})

@@ -78,6 +78,72 @@ PLIK_LOGU = "stanowisko.log"
 PLIK_LOGU_SILNIKA = "silnik.log"
 KOD_PROGRAM_JUZ_DZIALA = 3  # kod wyjscia main(), gdy inny egzemplarz pracuje na tej bazie (B1)
 PRZYCZYNA_BAZA_ZAJETA, PRZYCZYNA_BLAD_ZAPISU = "baza_zajeta", "blad_zapisu"  # ``Niezapisany.przyczyna``
+# E3-A2p POTRZEBUJE 4 / recenzja PR #31 D2: moduly z DLL, ktore proces okna laduje pozniej (obraz odchylek, podglad, indeks puli,
+# ramki, Excel) - ladowane w ``main()`` przy starcie, zanim pierwszy proces roboczy silnika sie zakonczy (na PC po takim
+# zdarzeniu znika uchwyt \KnownDlls procesu okna i kazdy nowy modul z DLL konczy sie "DLL load failed"). Brak modulu = wpis w logu.
+MODULY_DLL = ("numpy", "sqlite3", "ctypes", "socket", "select", "http.client", "unicodedata", "zipfile", "bz2", "lzma", "trimesh",
+              "PIL.Image", "PIL.PngImagePlugin", "stanowisko.indicate", "stanowisko.pula", "pythoncom", "win32com.client")
+# recenzja PR #31 D1: po smierci procesu roboczego - po tylu sekundach wpis w logu, czy uchwyt KnownDlls procesu okna jest otwarty
+KNOWNDLLS_SPRAWDZ_PO_S = (5.0, 30.0)
+
+
+def zaladuj_moduly_dll(moduly=MODULY_DLL) -> dict:
+    """Importuje ``moduly`` (wolac w ``main()`` po Qt, przed ``Aplikacja``); zwraca nazwa -> True albo opis bledu (brak pakietu,
+    np. pywin32 poza laptopem stanowiska - nie blad programu)."""
+    import importlib  # noqa: PLC0415
+
+    wynik: dict = {}
+    for nazwa in moduly:
+        try:
+            importlib.import_module(nazwa)
+            wynik[nazwa] = True
+        except Exception as e:  # noqa: BLE001 - brak pakietu albo blad DLL: modul zaladuje sie (albo nie) przy pierwszym uzyciu
+            wynik[nazwa] = f"{type(e).__name__}: {B.bez_sciezek(str(e))[:120]}"
+    return wynik
+
+
+def _nazwa_obiektu(uchwyt: int, typ_katalogu: bool = True) -> str | None:
+    """Nazwa obiektu jadra pod uchwytem procesu (``NtQueryObject``) - tylko dla obiektow typu Directory (zapytanie o nazwe
+    innych typow, np. potokow, moze zawisnac); None = uchwyt zamkniety albo inny typ."""
+    import ctypes  # noqa: PLC0415
+    from ctypes import wintypes  # noqa: PLC0415
+
+    class Napis(ctypes.Structure):  # UNICODE_STRING
+        _fields_ = [("Length", ctypes.c_ushort), ("MaximumLength", ctypes.c_ushort), ("Buffer", ctypes.c_void_p)]
+
+    nt = ctypes.WinDLL("ntdll")
+    zapytaj = nt.NtQueryObject
+    zapytaj.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.ULONG, ctypes.POINTER(wintypes.ULONG)]
+    zapytaj.restype = ctypes.c_long
+    bufor = ctypes.create_string_buffer(2048)
+    dl = wintypes.ULONG(0)
+
+    def tekst(klasa: int) -> str | None:
+        if zapytaj(wintypes.HANDLE(uchwyt), klasa, bufor, len(bufor), ctypes.byref(dl)) != 0:
+            return None
+        n = Napis.from_buffer(bufor)
+        return ctypes.wstring_at(n.Buffer, n.Length // 2) if n.Buffer and n.Length else ""
+
+    if tekst(2) != "Directory":  # ObjectTypeInformation: typ PRZED nazwa
+        return None
+    return tekst(1)  # ObjectNameInformation
+
+
+def uchwyty_knowndlls(maks: int = 0x2000) -> list[int]:
+    """Uchwyty procesu wskazujace katalog obiektow \\KnownDlls (recenzja PR #31 D1 - dane diagnostyczne); poza Windows []."""
+    if os.name != "nt":
+        return []
+    try:
+        return [h for h in range(4, maks, 4) if _nazwa_obiektu(h) == "\\KnownDlls"]
+    except Exception:  # noqa: BLE001 - diagnostyka nie moze przeszkodzic w pracy
+        return []
+
+
+def knowndlls_otwarty(uchwyt: int) -> bool:
+    try:
+        return _nazwa_obiektu(uchwyt) == "\\KnownDlls"
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _istnieje(plik: str | Path) -> bool:
@@ -422,6 +488,17 @@ class Aplikacja(K.KontrolerSesji):
         self._pula_nr = 0  # numer liczenia: wynik starszego liczenia jest pomijany
         self._liczenie_puli = False  # trwa liczenie o numerze _pula_nr (D4: nie uruchamiac drugiego cichego)
         self._pula_ponownie = False  # po biezacym liczeniu policzyc jeszcze raz (zmiana w trakcie liczenia)
+        # E3-A5i: pula per praca ([silnik] pula_wpisow): KatalogPul (indeks "Cyrkon" / "Prywatne" + plik wspolczynnikow) odswiezany
+        # w watku pomocniczym -> wpisy puli wieczornej i porannej -> OpisPuli.wpisy -> budowa w procesie silnika w tle
+        self._pula_wpisow = bool(ust["silnik"].get("pula_wpisow", False))
+        self._pamiec_puli_dni = int(ust["silnik"].get("pamiec_puli_dni", 0) or 0)
+        self._pule_wpisow: dict[str, tuple] = {}  # tryb -> (wpisy, sciezki projekt_id -> plik [DANE OSOBOWE], liczniki KatalogPul)
+        self._opisy_puli: dict[str, SI.OpisPuli] = {}
+        self._budowa: dict | None = None  # postep budowy puli w silniku: gotowe, razem, czas_s, blad, liczniki z_wpisow
+        self._knowndlls: list[int] = []  # recenzja PR #31 D1: uchwyty KnownDlls procesu okna z chwili startu
+        self._pid_silnika: int | None = None  # ostatni znany proces roboczy (do wpisu diagnostycznego)
+        self._starty_dll = 0  # starty procesu roboczego widziane przez diagnostyke (kolejny start = poprzedni proces sie zakonczyl)
+        self._kontrole_dll: list[tuple] = []  # (termin monotonic, sekundy po smierci, pid) - wpisy diagnostyczne do zrobienia
         self._wczytaj_pule()
 
     # --- start -----------------------------------------------------------------------------------
@@ -435,7 +512,12 @@ class Aplikacja(K.KontrolerSesji):
         self.silnik = SI.Silnik(**{
             "ust": ust, "funkcja": self._funkcja_analizy, "limit_zadania_s": float(ust["silnik"]["limit_zadania_s"]),
             "czekaj_na_plik_s": float(ust["silnik"]["czekaj_na_plik_s"]), "pamiec_linii": self.pula_cache if ust["silnik"]["pamiec_linii"] else None,
-            "plik_logu": self.katalog_logow / PLIK_LOGU_SILNIKA, **s})
+            "plik_logu": self.katalog_logow / PLIK_LOGU_SILNIKA,
+            # E3-A5i: PamiecPuli.sprzataj(pamiec_puli_dni) przy starcie procesu roboczego - tylko z pula wpisow (inaczej pamiec puli pusta)
+            "pamiec_puli_dni": self._pamiec_puli_dni if self._pula_wpisow and self._pamiec_puli_dni > 0 else None, **s})
+        self._knowndlls = uchwyty_knowndlls()  # PR #31 D1: stan przed pierwszym procesem roboczym
+        LOG.info("stanowisko: diagnostyka DLL - uchwyty katalogu obiektow Known DLLs procesu okna przy starcie: %s",
+                 ", ".join(hex(h) for h in self._knowndlls) or "brak")
         self.silnik.start()
         self._uruchomiony = True
         for nazwa in ust.get("plytki") or {}:  # uklady plytek (i numpy) wczytane teraz, a nie w petli okna przy pierwszej plytce
@@ -567,9 +649,13 @@ class Aplikacja(K.KontrolerSesji):
         """Liczy pliki STL puli w watku pomocniczym (folder sieciowy moze odpowiadac dlugo); wynik wraca przez skrzynke.
         ``ciche``: odswiezenie po skanie, wyniku albo bledzie analizy (P3) - stan puli zostaje do czasu nowego wyniku (skany
         nie czekaja na liczenie); gdy liczenie juz trwa, nie startuje drugiego watku, tylko zamawia kolejne liczenie po nim
-        (D4: folder sieciowy, ktory nie odpowiada, nie mnozy wiszacych watkow)."""
+        (D4: folder sieciowy, ktory nie odpowiada, nie mnozy wiszacych watkow). E3-A5i: z pula wpisow - odswiezenie katalogu
+        zlecen (``_odswiez_katalog``)."""
         if ciche and self._liczenie_puli:
             self._pula_ponownie = True
+            return
+        if self._pula_wpisow:
+            self._odswiez_katalog(ciche)
             return
         self._pula_nr += 1
         if self._pula_folder is None:
@@ -607,6 +693,143 @@ class Aplikacja(K.KontrolerSesji):
         if self._pula_ponownie:
             self._pula_ponownie = False
             self._policz_pule(ciche=True)
+
+    # --- pula per praca (E3-A5i) --------------------------------------------------------------------
+    def _odswiez_katalog(self, ciche: bool = False) -> None:
+        """``KatalogPul.odswiez`` (indeks "Cyrkon" / "Prywatne" z cechami nowych plikow, plik wspolczynnikow, powiazanie) w watku
+        pomocniczym z wlasnym polaczeniem z baza (kontrakt A4), potem pule wieczorna i poranna z sciezkami plikow; wynik przez
+        skrzynke (``pula_wpisy``). Bledy = stan ``brak_folderu`` (bez nazw w komunikacie)."""
+        self._pula_nr += 1
+        if not ciche:
+            self._pula_stan = "liczenie"
+        nr, ust, teraz = self._pula_nr, self.ust, self._zegar()
+        self._liczenie_puli = True
+
+        def licz() -> None:
+            t0 = time.monotonic()
+            try:
+                from . import pula as PL  # noqa: PLC0415 - indeks, wspolczynniki (trimesh, PIL: zaladowane w main)
+
+                kp = PL.KatalogPul.z_ustawien(ust)
+                try:
+                    raport = kp.odswiez(teraz)
+                    pule = {}
+                    for tryb, p in ((SE.TRYB_WIECZOR, kp.pula_wieczorna(teraz)), (SE.TRYB_RANO, kp.pula_poranna(teraz))):
+                        pule[tryb] = (tuple(p.wpisy), kp.sciezki(p.wpisy), dict(p.liczniki))
+                finally:
+                    kp.zamknij()
+                ind = raport.get("indeks") or {}
+                info = {"czas_s": round(time.monotonic() - t0, 2), "csv": raport.get("csv_plik"), "nowe": ind.get("nowe"), "bledy": ind.get("bledy")}
+                wynik = ("pula_wpisy", (nr, pule, info))
+            except Exception as e:  # noqa: BLE001 - katalog niedostepny, baza zajeta: stan "brak_folderu", nigdy wiszace "liczenie"
+                wynik = ("pula_wpisy", (nr, None, {"blad": type(e).__name__}))
+            self._skrzynka.put(wynik)
+
+        threading.Thread(target=licz, name="pula-katalog", daemon=True).start()
+
+    def _pula_wpisow_policzona(self, nr: int, pule: dict | None, info: dict) -> None:
+        if nr != self._pula_nr:
+            return
+        if pule is None:
+            LOG.warning("stanowisko: katalogu zlecen nie da sie odswiezyc (%s) - pula wpisow bez zmian", info.get("blad"))
+        else:
+            LOG.info("stanowisko: katalog zlecen odswiezony w %.1f s (plik wspolczynnikow: %s; nowe pliki %s, bledy %s); wpisow puli: "
+                     "wieczor %d, rano %d", info.get("czas_s") or 0.0, info.get("csv"), info.get("nowe"), info.get("bledy"),
+                     len(pule[SE.TRYB_WIECZOR][0]), len(pule[SE.TRYB_RANO][0]))
+            self._pule_wpisow, self._opisy_puli = pule, {}
+            self.sesja.baza.zdarzenie("pula", "pula_wpisow", {"wieczor": len(pule[SE.TRYB_WIECZOR][0]), "rano": len(pule[SE.TRYB_RANO][0]),
+                                                              "czas_s": info.get("czas_s")}, czas=self._teraz())
+        liczba = None if pule is None and not self._pule_wpisow else len(self._pule_wpisow.get(self.tryb, ((),))[0])
+        self._przygotuj_pule_trybu()  # najpierw budowa puli, potem skany wstrzymane (silnik bierze budowe przed zadaniami)
+        self._pula_policzona(nr, liczba)
+
+    def _przygotuj_pule_trybu(self) -> None:
+        """Pula wpisow biezacego trybu do budowy w tle w procesie silnika (regula zimnej puli: zadania czekaja na nia w kolejce)."""
+        opis = self._opis_puli(self.tryb)
+        if self.silnik is None or not opis.per_praca:
+            if self.silnik is not None:
+                self.silnik.przygotuj_pule(None)
+            return
+        stan = self.silnik.stan()["pula"]
+        if stan["gotowa"] and self._budowa is not None and self._budowa.get("opis") == opis:
+            return
+        if self._budowa is None or self._budowa.get("opis") != opis:
+            razem = len({(str(opis.sciezki.get(w.projekt_id)), round(float(w.wspolczynnik), 6)) for w in opis.wpisy
+                         if opis.sciezki and w.projekt_id in opis.sciezki and w.wspolczynnik is not None})
+            self._budowa = {"opis": opis, "gotowe": 0, "razem": razem, "czas_s": None, "blad": None, "liczniki": {}}
+        self.silnik.przygotuj_pule(opis)
+
+    def _opis_puli_wpisow(self, tryb: str) -> SI.OpisPuli:
+        opis = self._opisy_puli.get(tryb)
+        if opis is None:
+            wpisy, sciezki, _ = self._pule_wpisow.get(tryb, ((), {}, {}))
+            korzenie = tuple(str(p) for p in (katalog_z_ustawien(self.ust, "folder_cyrkon"), katalog_z_ustawien(self.ust, "folder_prywatne")))
+            opis = SI.OpisPuli(wpisy=tuple(wpisy), sciezki=dict(sciezki), korzenie=korzenie)
+            self._opisy_puli[tryb] = opis
+        return opis
+
+    def _zdarzenie_puli(self, e: Any) -> str:
+        """Zdarzenie ``pula`` silnika (E3-A5i): postep budowy puli wpisow na pasku; blad budowy - wpis w logu i napis."""
+        b = self._budowa
+        if b is None:
+            return ""
+        w = e.wynik or {}
+        if e.etap in ("start", "budowa") and w.get("razem"):
+            b["gotowe"], b["razem"] = int(w.get("gotowe") or 0), int(w["razem"])
+        elif e.etap == "gotowa":
+            b["razem"] = int(w.get("razem") or b["razem"] or 0)
+            b["gotowe"], b["czas_s"], b["blad"] = b["razem"], w.get("czas_przygotowania_s", e.czas_s), None
+            b["liczniki"] = {k: w.get(k) for k in ST.LICZNIKI_PULI if isinstance(w.get(k), int)}
+            self.sesja.baza.zdarzenie("pula", "pula_zbudowana", {"geometrii": w.get("geometrii"), "wpisow": w.get("wpisow"), "czas_s": b["czas_s"],
+                                                                 **b["liczniki"]}, czas=self._teraz())
+        elif e.etap == "blad":
+            b["blad"] = B.bez_sciezek(str(e.blad))[:200]
+            if (w or {}).get("koniec_prob"):
+                b["gotowe"] = b["razem"]  # analiza nie czeka dluzej - pule zbuduje zadanie
+        return "zywe"
+
+    def _napis_puli_wpisow(self) -> str:
+        st = self._pula_stan
+        if st != "gotowa":
+            return ST.STANY_PULI_WPISOW.get(st, "")
+        b = self._budowa or {}
+        n = self._pula_liczba or 0
+        if b.get("razem") and (b.get("gotowe") or 0) < b["razem"]:
+            return ST.NAPIS_BUDOWY_PULI.format(n=n, k=b.get("gotowe") or 0, r=b["razem"])
+        liczniki = {**(self._pule_wpisow.get(self.tryb, ((), {}, {}))[2] or {}), **(b.get("liczniki") or {})}
+        braki = ", ".join(f"{opis}: {liczniki[k]}" for k, opis in ST.LICZNIKI_PULI.items() if isinstance(liczniki.get(k), int) and liczniki[k] > 0)
+        return ST.STANY_PULI_WPISOW["gotowa"].format(n=n, braki=f" ({braki})" if braki else "") + (ST.NAPIS_BLAD_BUDOWY_PULI if b.get("blad") else "")
+
+    def przelacz_tryb(self, tryb: str) -> K.Odpowiedz:
+        """Jak w ``KontrolerSesji``; E3-A5i: z pula wpisow - pula nowego trybu (wieczorna / poranna) do budowy w tle."""
+        stary = self.tryb
+        odp = super().przelacz_tryb(tryb)
+        if odp and self._pula_wpisow and self.tryb != stary and self._pule_wpisow:
+            self._pula_stan = "gotowa" if self._pule_wpisow.get(self.tryb, ((),))[0] else "pusta"
+            self._pula_liczba = len(self._pule_wpisow.get(self.tryb, ((),))[0])
+            self._przygotuj_pule_trybu()
+            if self._pula_stan == "gotowa" and not self._do_sprawdzenia:
+                self._zwolnij_wstrzymane()
+            self._odswiez()
+        return odp
+
+    def _kontrola_dll(self, teraz: float) -> None:
+        """Recenzja PR #31 D1: po smierci (zmianie) procesu roboczego - po ``KNOWNDLLS_SPRAWDZ_PO_S`` sekundach wpis w logu, czy
+        uchwyty KnownDlls procesu okna sa nadal otwarte (dane diagnostyczne z laptopa stanowiska; bez wplywu na prace)."""
+        if self.silnik is None or not self._knowndlls:
+            return
+        starty = int(self.silnik.stan().get("starty_procesu") or 0)  # nowy proces roboczy = poprzedni sie zakonczyl (awaria, limit)
+        if starty > self._starty_dll:
+            if self._starty_dll >= 1:
+                self._kontrole_dll += [(teraz + po, po, self._pid_silnika) for po in KNOWNDLLS_SPRAWDZ_PO_S]
+            self._starty_dll = starty
+        self._pid_silnika = self.silnik.pid or self._pid_silnika
+        for x in [x for x in self._kontrole_dll if x[0] <= teraz]:
+            self._kontrole_dll.remove(x)
+            otwarte = [h for h in self._knowndlls if knowndlls_otwarty(h)]
+            zniknely = [h for h in self._knowndlls if h not in otwarte]
+            LOG.info("stanowisko: diagnostyka KnownDlls - %.0f s po zakonczeniu procesu roboczego (pid %s): uchwyt %s procesu okna %s",
+                     x[1], x[2], ", ".join(hex(h) for h in self._knowndlls), "otwarty" if not zniknely else f"zniknal ({', '.join(hex(h) for h in zniknely)})")
 
     def _czeka_na_pule(self) -> int:
         return len(self._wstrzymane) + len(self._do_sprawdzenia)
@@ -665,13 +888,18 @@ class Aplikacja(K.KontrolerSesji):
         self._odswiez()
         return K.Odpowiedz(True, dane=self._pula_stan)
 
-    def _opis_puli(self) -> SI.OpisPuli:
+    def _opis_puli(self, tryb: str | None = None) -> SI.OpisPuli:
+        """Opis puli dla skanu w trybie ``tryb``: poziom 1 (folder + wspolczynnik reczny) albo - z pula wpisow (E3-A5i) - wpisy
+        puli wieczornej / porannej z katalogu zlecen."""
+        if self._pula_wpisow:
+            return self._opis_puli_wpisow(tryb or self.tryb)
         return SI.OpisPuli(foldery=(str(self._pula_folder),), wspolczynnik=self._pula_wspolczynnik)
 
     # --- czesc zywa stanu ----------------------------------------------------------------------------
     def _stan_zywy(self) -> dict:
         w_toku = 1 if self._w_toku is not None and self._w_toku in self._zlecone else 0
-        napis = ST.STANY_PULI.get(self._pula_stan, "").format(n=self._pula_liczba)
+        napis = self._napis_puli_wpisow() if self._pula_wpisow else ST.STANY_PULI.get(self._pula_stan, "").format(n=self._pula_liczba)
+        b = self._budowa if self._pula_wpisow else None
         sc = self.scanner.stan() if self.scanner is not None else {}
         niezapisane = self._niezapisane()
         return {
@@ -680,7 +908,11 @@ class Aplikacja(K.KontrolerSesji):
                                  wstrzymane=len(self._wstrzymane) + len(self._do_zapisu) + len(self._do_sprawdzenia),
                                  silnik_gotowy=self._silnik_gotowy, niezapisane=len(niezapisane)),
             "pula": K.Pula(folder=str(self._pula_folder) if self._pula_folder is not None else None, wspolczynnik=self._pula_wspolczynnik,
-                           liczba_stl=self._pula_liczba, stan=self._pula_stan, napis=napis, odswiezono=self._pula_czas),
+                           liczba_stl=self._pula_liczba, stan=self._pula_stan, napis=napis, odswiezono=self._pula_czas,
+                           zrodlo="wpisy" if self._pula_wpisow else "folder", wpisy=self._pula_liczba if self._pula_wpisow else None,
+                           liczniki=K.ZamrozonySlownik(b["liczniki"]) if b and b.get("liczniki") else None,
+                           budowa_gotowe=b["gotowe"] if b else None, budowa_razem=b["razem"] if b else None,
+                           czas_budowy_s=b["czas_s"] if b else None),
             "skaner": K.Skaner(folder=str(self.folder_skanera), dostepny=bool(sc.get("folder_dostepny")), dziala=bool(sc.get("dziala")),
                                zajete=int(sc.get("zajete") or 0), ostatni_start_skanu=self._ostatni_start_skanu, startow_skanu=self._starty_skanu,
                                czeka_na_skan=self._czeka_na_skan),
@@ -755,6 +987,7 @@ class Aplikacja(K.KontrolerSesji):
         if t0 - self._ostatnia_kontrola >= OKRES_KONTROLI_S:
             self._ostatnia_kontrola = t0
             zmiany.add(self._kontrola_skanera())
+            self._bezpiecznie(self._kontrola_dll, t0)  # PR #31 D1: tylko wpis w logu (blad = wpis w logu, praca dalej)
         try:
             obsluzone += self._przetworz_ramki()  # E3-A12: krok Excela, zdarzenia i stan ramek (odswieza stan sama, gdy trzeba)
         except Exception:  # noqa: BLE001 - recenzja PR #30 D2: blad ramek / Excela nie przerywa obiegu
@@ -796,6 +1029,9 @@ class Aplikacja(K.KontrolerSesji):
     def _zdarzenie_skrzynki(self, rodzaj: str, dane: Any) -> str:
         if rodzaj == "pula":
             self._pula_policzona(*dane)
+            return "stan"
+        if rodzaj == "pula_wpisy":  # E3-A5i: katalog zlecen odswiezony (pule wieczorna i poranna)
+            self._pula_wpisow_policzona(*dane)
             return "stan"
         if rodzaj == "skan":
             self._czeka_na_skan = False
@@ -849,7 +1085,8 @@ class Aplikacja(K.KontrolerSesji):
             return
         z.znacznik_w = self._ramka_w_nowy_skan(z.tryb)  # E3-A12: znacznik dopiero dla skanu zleconego (recenzja PR #30 P6)
         self._zlec(z)
-        self._policz_pule(ciche=True)  # P3: pula sprawdzana przy kazdym nowym skanie (w tle; pusta = kolejne skany czekaja)
+        if not self._pula_wpisow:  # E3-A5i: katalog zlecen nie jest odswiezany po kazdym skanie (tylko przy starcie / "Odswiez pule")
+            self._policz_pule(ciche=True)  # P3: pula sprawdzana przy kazdym nowym skanie (w tle; pusta = kolejne skany czekaja)
 
     def _przejmij_przemianowany(self, x: Zlecenie) -> None:
         """P2: plik skanu czekajacego w kolejce zmienil nazwe (stara sciezka zniknela) - zadanie przechodzi na nowa sciezke:
@@ -875,7 +1112,7 @@ class Aplikacja(K.KontrolerSesji):
                 self._komunikat_puli(self._pula_stan, self._czeka_na_pule())
             return
         try:
-            nr = self.silnik.zlec(SI.ZadanieAnalizy(skan=Path(z.plik), pula=self._opis_puli(), tryb=z.tryb, numer=z.numer, skan_sha16=z.sha16,
+            nr = self.silnik.zlec(SI.ZadanieAnalizy(skan=Path(z.plik), pula=self._opis_puli(z.tryb), tryb=z.tryb, numer=z.numer, skan_sha16=z.sha16,
                                                     wyjscie=self.katalog_podgladow))
         except SI.SilnikZatrzymany:
             self._wstrzymane.append(z)  # silnik sie zatrzymuje: zadanie zostanie zapisane jako niezakonczone
@@ -891,6 +1128,8 @@ class Aplikacja(K.KontrolerSesji):
             self._zlec(z)
 
     def _zdarzenie_silnika(self, e: Any) -> str:
+        if e.typ == "pula":  # E3-A5i: budowa puli wpisow w procesie silnika
+            return self._zdarzenie_puli(e)
         if e.typ == "gotowy":
             self._silnik_gotowy = True
             if self._silnik_nie_startuje:  # proces jednak wystartowal: skany wstrzymane ida do analizy
@@ -1234,6 +1473,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
+    # E3-A2p POTRZEBUJE 4 / PR #31 D2: moduly z DLL uzywane pozniej - teraz, przed pierwszym procesem roboczym silnika
+    moduly_dll = zaladuj_moduly_dll()
 
     def pokaz_blad(tekst: str) -> None:  # komunikat dla czlowieka zamiast sladu wyjatku w oknie konsoli
         if args.zamknij_po is None:
@@ -1265,6 +1506,9 @@ def main(argv: list[str] | None = None) -> int:
         kontroler = None
         try:
             konfiguruj_logi(ust)
+            LOG.info("stanowisko: moduly z DLL zaladowane przy starcie: %s; niezaladowane: %s",
+                     ", ".join(n for n, ok in moduly_dll.items() if ok is True),
+                     "; ".join(f"{n} ({ok})" for n, ok in moduly_dll.items() if ok is not True) or "brak")
             kontroler = Aplikacja(ust, blokada=blokada, ramki=True, excel=True)  # E3-A12: ramki i Excel z ustawien
             kontroler.start()
         except Exception as e:  # noqa: BLE001 - D9: kazdy blad startu = komunikat dla czlowieka i wpis w logu
