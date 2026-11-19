@@ -275,6 +275,7 @@ class Praca:
     wpisy_do_wyboru: tuple = ()
     propozycja: bool = False
     wybor_wpisu_osoba: str | None = None
+    wybor_wpisu_id: int | None = None  # runda 3 (D6): id obowiazujacej decyzji wyboru krazka - argument ``cofnij_wpis``
 
 
 @dataclasses.dataclass(frozen=True)
@@ -908,8 +909,9 @@ class Kontroler:
         """E3-A5i: krazek pracy z ``Praca.wpisy_do_wyboru`` (``frezowanie_id``); decyzja z osoba, krazek pracy zmieniony."""
         raise NotImplementedError
 
-    def cofnij_wpis(self, praca_id: int) -> Odpowiedz:
-        """E3-A5i runda 2: cofa wybor krazka (poprzedni wybor albo praca "nierozstrzygnieta")."""
+    def cofnij_wpis(self, praca_id: int, decyzja_id: int | None = None) -> Odpowiedz:
+        """E3-A5i runda 2: cofa wybor krazka (poprzedni wybor albo praca "nierozstrzygnieta"); runda 3 (D6): ``decyzja_id``
+        (``Praca.wybor_wpisu_id``) - dokladnie ten wybor (podwojne klikniecie nie cofa drugiego)."""
         raise NotImplementedError
 
     def potwierdz_ponowny_skan(self, skan_id: int) -> Odpowiedz:
@@ -2928,7 +2930,7 @@ class KontrolerSesji(Kontroler):
             status_match=p["status_match"], decyzja=p["decyzja"], operator=p["operator"], czas_decyzji=p["czas_decyzji"], sha16=p["sha16"],
             kuweta=p["kuweta"], zeby=p["zeby"], krazek=p["krazek"], pewnosc=p["pewnosc"], pokrycie=p["kandydat1_pokrycie"], ubytki=p["ubytki"],
             ubytek_max_mm=p["ubytek_max_mm"], blad_inspekcji=blad, na_liscie=na_liscie, dozwolone=dozwolone,
-            wpisy_do_wyboru=wpisy, propozycja=bool(p.get("propozycja")), wybor_wpisu_osoba=wybor.get("operator"))
+            wpisy_do_wyboru=wpisy, propozycja=bool(p.get("propozycja")), wybor_wpisu_osoba=wybor.get("operator"), wybor_wpisu_id=wybor.get("id"))
 
     def _plytka(self, s: dict, po_projekcie: dict, po_pracy: dict, propozycja: dict | None, czasy: dict) -> Plytka:
         numer_znany = s["numer_plytki"] is not None
@@ -3240,8 +3242,9 @@ class KontrolerSesji(Kontroler):
     def wybierz_wpis(self, praca_id: int, frezowanie_id: int) -> Odpowiedz:
         return self._polecenie(lambda: self.sesja.wybierz_wpis(praca_id, frezowanie_id), nazwa="wybierz_wpis", liczby=(praca_id, frezowanie_id))
 
-    def cofnij_wpis(self, praca_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self.sesja.cofnij_wpis(praca_id), nazwa="cofnij_wpis", liczby=(praca_id,))
+    def cofnij_wpis(self, praca_id: int, decyzja_id: int | None = None) -> Odpowiedz:
+        liczby = (praca_id,) if decyzja_id is None else (praca_id, decyzja_id)
+        return self._polecenie(lambda: self.sesja.cofnij_wpis(praca_id, decyzja_id=decyzja_id), nazwa="cofnij_wpis", liczby=liczby)
 
     def _sesja_skanu(self, skan_id: int):
         """Sesja, ktora obsluguje skan: poranna (``SesjaRano`` - kontrola, ze skan nalezy do otwartego pieca) dla skanu w trybie

@@ -344,6 +344,9 @@ KOMUNIKATY: dict[str, Wzor] = {
     "pula_wpisow_brak": Wzor(POZIOM_BLAD, "Katalog zlecen niedostepny",
                              "Program nie odswiezyl katalogu zlecen - skany czekaja ({czeka}). Przyczyna: {przyczyna}. Sprawdz, czy foldery "
                              "zlecen i plik wspolczynnikow sa dostepne, i kliknij \u201eOdswiez pule\u201d."),
+    "pula_plytki_pusta": Wzor(POZIOM_OSTRZEZENIE, "Plytka bez swojej puli",
+                              "To plytka {typ}, a pula trybu {tryb} jest pusta - prace dopasowano do puli biezacego trybu (inne "
+                              "wspolczynniki), wiec sa szare albo niepewne. Kliknij \u201eOdswiez pule\u201d i zeskanuj plytke ponownie."),
     "pula_wpisow_krazki": Wzor(POZIOM_OSTRZEZENIE, "Prace bez wspolczynnika w puli",
                                "{przyczyna}. Prace z tych krazkow nie maja projektu w puli (beda szare), dopoki krazek nie ma jednej "
                                "wartosci w pliku wspolczynnikow (albo potwierdzonego wpisu recznego)."),

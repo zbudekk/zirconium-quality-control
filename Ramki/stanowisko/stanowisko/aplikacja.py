@@ -87,6 +87,17 @@ MODULY_DLL = ("numpy", "sqlite3", "ctypes", "socket", "select", "http.client", "
 # te moduly tez przy starcie (``main``, gdy ``[silnik] pula_wpisow``)
 MODULY_DLL_PULI = ("scipy.spatial", "scipy.ndimage", "open3d", "stanowisko.synth", "stanowisko.katalog", "stanowisko.indeks")
 PLIK_WSPOLCZYNNIKOW = "wspolczynniki.csv"  # w [sciezki] folder_millbox - jak pula.KatalogPul.z_ustawien (nazwa_csv)
+PONOW_KATALOG_S = 60.0  # runda 3 (D8): nieudane odswiezenie katalogu (np. udzial sieciowy niedostepny) - kolejna proba najwczesniej po tylu s
+
+
+def stan_pliku(plik: str | Path) -> tuple | None:
+    """(czas zmiany, rozmiar) pliku albo None (brak). Wolane TYLKO w watkach pomocniczych (runda 3, B1: ``folder_millbox`` bywa udzialem
+    sieciowym - ``os.stat`` na niedostepnym hoscie stoi ok. 21 s)."""
+    try:
+        st = os.stat(plik)
+        return (st.st_mtime_ns, st.st_size)
+    except (OSError, ValueError):
+        return None
 # recenzja PR #31 D1: po smierci procesu roboczego - po tylu sekundach wpis w logu, czy uchwyt KnownDlls procesu okna jest otwarty
 KNOWNDLLS_SPRAWDZ_PO_S = (5.0, 30.0)
 
@@ -503,6 +514,8 @@ class Aplikacja(K.KontrolerSesji):
         self._doba_katalogu: str | None = None  # runda 2 (P1): doba i (czas zmiany, rozmiar) pliku wspolczynnikow ostatniego odswiezenia
         self._csv_katalogu: tuple | None = None
         self._pula_ponownie_glosno = False  # D8: "Odswiez pule" w trakcie cichego odswiezenia
+        self._csv_w_toku = False  # runda 3 (B1): sprawdzenie pliku wspolczynnikow w watku pomocniczym trwa
+        self._ponow_katalog_po: float | None = None  # runda 3 (D8): po nieudanym odswiezeniu - termin kolejnej proby (monotonic)
         self.odswiezenia_katalogu: list[str] = []  # powody kolejnych odswiezen katalogu (diagnostyka, testy)
         self._knowndlls: list[int] = []  # recenzja PR #31 D1: uchwyty KnownDlls procesu okna z chwili startu
         self._pid_silnika: int | None = None  # ostatni znany proces roboczy (do wpisu diagnostycznego)
@@ -719,13 +732,13 @@ class Aplikacja(K.KontrolerSesji):
         self._pula_nr += 1
         if not ciche:
             self._pula_stan = "liczenie"
-        nr, ust, teraz = self._pula_nr, self.ust, self._zegar()
+        nr, ust, teraz, doba, plik_csv = self._pula_nr, self.ust, self._zegar(), self.sesja.doba(), self._plik_csv()
         self._liczenie_puli = True
-        self._doba_katalogu, self._csv_katalogu = self.sesja.doba(), self._stan_pliku_csv()
         self.odswiezenia_katalogu.append(powod or ("ciche" if ciche else "glosne"))
 
         def licz() -> None:
             t0 = time.monotonic()
+            csv_stan = stan_pliku(plik_csv)  # runda 3 (B1): stan pliku w tym watku, zapisywany po udanym odswiezeniu (D8)
             try:
                 from . import pula as PL  # noqa: PLC0415 - indeks, wspolczynniki (moduly z DLL: zaladowane w main, MODULY_DLL_PULI)
 
@@ -739,7 +752,7 @@ class Aplikacja(K.KontrolerSesji):
                     kp.zamknij()
                 ind = raport.get("indeks") or {}
                 info = {"czas_s": round(time.monotonic() - t0, 2), "csv": raport.get("csv_plik"), "csv_blad": raport.get("csv_blad"),
-                        "nowe": ind.get("nowe"), "bledy": ind.get("bledy")}
+                        "nowe": ind.get("nowe"), "bledy": ind.get("bledy"), "doba": doba, "csv_stan": csv_stan}
                 wynik = ("pula_wpisy", (nr, pule, info))
             except Exception as e:  # noqa: BLE001 - katalog niedostepny, baza zajeta: stan "brak_folderu", nigdy wiszace "liczenie"
                 wynik = ("pula_wpisy", (nr, None, {"blad": type(e).__name__}))
@@ -747,33 +760,74 @@ class Aplikacja(K.KontrolerSesji):
 
         threading.Thread(target=licz, name="pula-katalog", daemon=True).start()
 
-    def _stan_pliku_csv(self) -> tuple | None:
-        """(czas zmiany, rozmiar) pliku wspolczynnikow - zmiana = odswiezenie katalogu (runda 2, P1); brak pliku = None."""
-        try:
-            st = os.stat(katalog_z_ustawien(self.ust, "folder_millbox") / PLIK_WSPOLCZYNNIKOW)
-            return (st.st_mtime_ns, st.st_size)
-        except (OSError, ValueError):
-            return None
+    def _ostrzez_pusta_pula_typu(self, z: Zlecenie, wynik: dict, skan_id: int) -> None:
+        """Runda 3 (D1): plytka drugiego typu (np. poranna dopuszczona wieczorem) dostaje w silniku pule drugiego trybu - gdy ta pula
+        jest pusta, analiza szla na puli biezacego trybu (wspolczynniki krazkow) i prace sa szare: komunikat przy plytce."""
+        typ = SE.typ_plytki(wynik.get("plytka"))
+        if not self._pula_wpisow or typ is None or typ == SE.TYP_PLYTKI_TRYBU.get(z.tryb):
+            return
+        tryb_typu = next((t for t, nazwa in SE.TYP_PLYTKI_TRYBU.items() if nazwa == typ), None)
+        if tryb_typu is None or self._pule_wpisow.get(tryb_typu, ((),))[0]:
+            return
+        self._komunikat("pula_plytki_pusta", id_=f"pula_plytki_pusta:{skan_id}", skan_id=skan_id, typ=typ,
+                        tryb=ST.NAZWY_TRYBOW.get(tryb_typu, tryb_typu))
+
+    def _plik_csv(self) -> Path:
+        return katalog_z_ustawien(self.ust, "folder_millbox") / PLIK_WSPOLCZYNNIKOW
 
     def _kontrola_katalogu(self) -> str:
-        """Runda 2 (P1): co ``OKRES_KONTROLI_S`` - zmiana doby roboczej albo pliku wspolczynnikow = ciche odswiezenie katalogu."""
-        if not self._pula_wpisow or self._zamykanie or self._doba_katalogu is None:
+        """Runda 2 (P1) / 3 (B1, D8): co ``OKRES_KONTROLI_S`` - zmiana doby roboczej (bez I/O) = ciche odswiezenie katalogu; stan pliku
+        wspolczynnikow sprawdza watek pomocniczy (najwyzej jeden naraz, wynik przez skrzynke - ``_stan_csv``), wiec okno nigdy nie
+        czeka na udzial sieciowy. Po nieudanym odswiezeniu - kolejna proba po ``PONOW_KATALOG_S``."""
+        if not self._pula_wpisow or self._zamykanie or self._liczenie_puli:
             return ""
-        doba, csv = self.sesja.doba(), self._stan_pliku_csv()
-        if doba == self._doba_katalogu and csv == self._csv_katalogu:
+        if self._ponow_katalog_po is not None:
+            if time.monotonic() < self._ponow_katalog_po:
+                return ""
+            self._ponow_katalog_po = None
+            LOG.info("stanowisko: ponowne odswiezenie katalogu zlecen po nieudanym")
+            self._odswiez_katalog(ciche=True, powod="ponowienie")
+            return "zywe"
+        if self._doba_katalogu is None:
             return ""
-        powod = "doba" if doba != self._doba_katalogu else "plik_wspolczynnikow"
-        LOG.info("stanowisko: odswiezenie katalogu zlecen - zmiana: %s", powod)
-        self._doba_katalogu, self._csv_katalogu = doba, csv  # w trakcie odswiezenia: jedno zamowienie, nie co sekunde
-        self._odswiez_katalog(ciche=True, powod=powod)
+        if self.sesja.doba() != self._doba_katalogu:
+            LOG.info("stanowisko: odswiezenie katalogu zlecen - zmiana: doba")
+            self._odswiez_katalog(ciche=True, powod="doba")
+            return "zywe"
+        if not self._csv_w_toku:
+            self._csv_w_toku = True
+            nr, plik = self._pula_nr, self._plik_csv()
+
+            def sprawdz() -> None:
+                try:
+                    stan = ("ok", stan_pliku(plik))
+                except Exception:  # noqa: BLE001 - zawsze odpowiedz (inaczej kolejne sprawdzenia by nie ruszyly)
+                    stan = ("blad", None)
+                self._skrzynka.put(("csv_stan", (nr, stan)))
+
+            threading.Thread(target=sprawdz, name="pula-plik-csv", daemon=True).start()
+        return ""
+
+    def _stan_csv(self, nr: int, stan: tuple) -> str:
+        """Wynik sprawdzenia pliku wspolczynnikow (watek pomocniczy): inny niz przy ostatnim udanym odswiezeniu = ciche odswiezenie.
+        Wynik sprzed nowszego odswiezenia (inny numer) - pomijany."""
+        self._csv_w_toku = False
+        if (stan[0] != "ok" or nr != self._pula_nr or not self._pula_wpisow or self._zamykanie or self._liczenie_puli
+                or self._doba_katalogu is None or stan[1] == self._csv_katalogu):
+            return ""
+        LOG.info("stanowisko: odswiezenie katalogu zlecen - zmiana: plik wspolczynnikow")
+        self._odswiez_katalog(ciche=True, powod="plik_wspolczynnikow")
         return "zywe"
 
     def _pula_wpisow_policzona(self, nr: int, pule: dict | None, info: dict) -> None:
         if nr != self._pula_nr:
             return
         if pule is None:
-            LOG.warning("stanowisko: katalogu zlecen nie da sie odswiezyc (%s) - pula wpisow bez zmian", info.get("blad"))
+            LOG.warning("stanowisko: katalogu zlecen nie da sie odswiezyc (%s) - pula wpisow bez zmian; kolejna proba za %.0f s",
+                        info.get("blad"), PONOW_KATALOG_S)
+            self._ponow_katalog_po = time.monotonic() + PONOW_KATALOG_S  # D8: nieudane - ponawiane (stan pliku / doby bez zmian)
         else:
+            self._doba_katalogu, self._csv_katalogu, self._ponow_katalog_po = info.get("doba"), info.get("csv_stan"), None
             LOG.info("stanowisko: katalog zlecen odswiezony w %.1f s (plik wspolczynnikow: %s; nowe pliki %s, bledy %s); wpisow puli: "
                      "wieczor %d, rano %d", info.get("czas_s") or 0.0, info.get("csv"), info.get("nowe"), info.get("bledy"),
                      len(pule[SE.TRYB_WIECZOR][0]), len(pule[SE.TRYB_RANO][0]))
@@ -1154,6 +1208,8 @@ class Aplikacja(K.KontrolerSesji):
         if rodzaj == "pula":
             self._pula_policzona(*dane)
             return "stan"
+        if rodzaj == "csv_stan":  # runda 3 (B1): stan pliku wspolczynnikow z watku pomocniczego
+            return self._stan_csv(*dane)
         if rodzaj == "pula_wpisy":  # E3-A5i: katalog zlecen odswiezony (pule wieczorna i poranna)
             self._pula_wpisow_policzona(*dane)
             return "stan"
@@ -1384,6 +1440,7 @@ class Aplikacja(K.KontrolerSesji):
             LOG.warning("stanowisko: wynik skanu %s pominiety - ta sama tresc ma juz wynik (skan %d)", z.sha16, jest["id"])
             return
         LOG.info("stanowisko: skan %s przyjety jako %d (%.1f s)", z.sha16, skan_id, d.zdarzenie.czas_s or 0.0)
+        self._ostrzez_pusta_pula_typu(z, d.zdarzenie.wynik or {}, skan_id)
         if not self._zamykanie and not self._pula_wpisow:  # runda 2 (P1): katalogu zlecen NIE odswiezamy po kazdym wyniku
             self._policz_pule(ciche=True)  # liczba STL na ekranie aktualna po kazdej plytce (silnik i tak czyta folder przy kazdym zadaniu)
 
@@ -1600,6 +1657,7 @@ def main(argv: list[str] | None = None) -> int:
 
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
     # E3-A2p POTRZEBUJE 4 / PR #31 D2: moduly z DLL uzywane pozniej - teraz, przed pierwszym procesem roboczym silnika
+    t_moduly = time.monotonic()
     moduly_dll = zaladuj_moduly_dll()
 
     def pokaz_blad(tekst: str) -> None:  # komunikat dla czlowieka zamiast sladu wyjatku w oknie konsoli
@@ -1622,6 +1680,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         if ust["silnik"].get("pula_wpisow"):  # runda 2 (P5): moduly watku indeksu (Open3D, scipy) tez przed silnikiem
             moduly_dll.update(zaladuj_moduly_dll(MODULY_DLL_PULI))
+        czas_moduly = time.monotonic() - t_moduly  # runda 3 (D4): czas ladowania modulow (z Open3D przy pula_wpisow) - do logu
         blokada = BlokadaStanowiska(B.sciezka_bazy(ust))
         try:
             blokada.zajmij()  # B1: zanim program dotknie logu, bazy i folderu skanera
@@ -1634,7 +1693,7 @@ def main(argv: list[str] | None = None) -> int:
         kontroler = None
         try:
             konfiguruj_logi(ust)
-            LOG.info("stanowisko: moduly z DLL zaladowane przy starcie: %s; niezaladowane: %s",
+            LOG.info("stanowisko: moduly z DLL zaladowane przy starcie (%.1f s): %s; niezaladowane: %s", czas_moduly,
                      ", ".join(n for n, ok in moduly_dll.items() if ok is True),
                      "; ".join(f"{n} ({ok})" for n, ok in moduly_dll.items() if ok is not True) or "brak")
             kontroler = Aplikacja(ust, blokada=blokada, ramki=True, excel=True)  # E3-A12: ramki i Excel z ustawien

@@ -134,7 +134,7 @@ class OpisPuli:
     # typu: plytka rozpoznana jako drugi typ (np. poranna dopuszczona wieczorem) dostaje ``druga``; ``rodzaj`` - etykieta puli
     # w zdarzeniach ``pula`` (np. "wieczor:3"; nie wplywa na porownanie opisow)
     typ_plytki: str = ""
-    druga: object = dataclasses.field(default=None, repr=False)
+    druga: object = dataclasses.field(default=None, repr=False, compare=False)  # runda 3 (D3): zmiana puli porannej nie zmienia opisu wieczornego
     rodzaj: str = dataclasses.field(default="", compare=False)
 
     @property
@@ -1166,7 +1166,9 @@ def _robotnik(lacze, ust: dict | None, plik_ustawien, funkcja: str, pul_w_pamiec
         zadanie: ZadanieAnalizy = wiadomosc[1]
         straznik.poczatek_zadania()
         # lista plikow puli: nazwy do usuniecia z tekstow (pula wpisow: pliki z OpisPuli.sciezki + zrodla zlecen, E3-A5i)
-        czysc = CzyscicielNazw(zadanie.pula.foldery, pomin=(zadanie.skan,), pliki=(zadanie.pula.sciezki or {}).values(), korzenie=zadanie.pula.korzenie)
+        druga = getattr(zadanie.pula, "druga", None)  # runda 3 (D2): takze pliki puli drugiego typu (P6)
+        pliki = list((zadanie.pula.sciezki or {}).values()) + list((getattr(druga, "sciezki", None) or {}).values())
+        czysc = CzyscicielNazw(zadanie.pula.foldery, pomin=(zadanie.skan,), pliki=pliki, korzenie=zadanie.pula.korzenie)
         kopia, oryginal = str(_folder_kopii(katalog, zadanie) / Path(zadanie.skan).name), str(zadanie.skan)
 
         def tekst(t: str) -> str:  # sciezka kopii roboczej w komunikacie -> plik skanu (technik zna plik skanu, nie kopie)

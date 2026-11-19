@@ -687,15 +687,18 @@ class Sesja:
                 self._odswiez_punkt(praca, praca["tryb_skanu"], aktywna=False)
             self._odswiez_punkt({**praca, "projekt_id": projekt_id}, praca["tryb_skanu"])
 
-    def cofnij_wpis(self, praca_id: int, operator: str | None = None) -> int:
+    def cofnij_wpis(self, praca_id: int, operator: str | None = None, *, decyzja_id: int | None = None) -> int:
         """Runda 2 (D9): cofa obowiazujacy wybor krazka pracy - wraca poprzedni wybor albo praca "nierozstrzygnieta" (krazek pusty,
-        projekt z wyniku dopasowania). Zwraca ``decyzje.id`` (``cofnij_wybor_wpisu``)."""
+        projekt z wyniku dopasowania). Runda 3 (D6): ``decyzja_id`` - cofnij dokladnie ten wybor; inny obowiazujacy = odmowa (podwojne
+        klikniecie nie cofa dwoch wyborow). Zwraca ``decyzje.id`` (``cofnij_wybor_wpisu``)."""
         osoba = self._operator(operator)
         with self.baza.transakcja():
             praca = self._praca_do_decyzji(praca_id)
             ob = self._wybory_wpisow([praca["id"]]).get(praca["id"])
             if ob is None:
                 raise BladSesji(f"praca {praca_id}: nie ma wyboru krazka do cofniecia")
+            if decyzja_id is not None and ob["id"] != decyzja_id:
+                raise BladSesji(f"praca {praca_id}: obowiazuje wybor {ob['id']}, nie {decyzja_id} - odswiez widok (wybor juz cofniety?)")
             decyzja_id = self.baza.wstaw("decyzje", praca_id=praca["id"], skan_id=praca["skan_id"], rodzaj=RODZAJ_COFNIJ_WPIS, wartosc=str(ob["id"]),
                                          operator=osoba, czas=self.teraz())
             poprzedni = self._wybory_wpisow([praca["id"]]).get(praca["id"])

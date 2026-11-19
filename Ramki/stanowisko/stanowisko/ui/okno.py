@@ -535,7 +535,8 @@ class OknoWieczor(QWidget):
         _, praca = self._wybor()
         if praca is None or self._praca_widoku is None or praca.praca_id != self._praca_widoku or self.widok.praca_id != self._praca_widoku:
             return
-        self._polecenie("cofnij_wpis", self._praca_widoku)
+        if praca.wybor_wpisu_id is not None:  # runda 3 (D6): dokladnie pokazany wybor - podwojne klikniecie nie cofa drugiego
+            self._polecenie("cofnij_wpis", self._praca_widoku, praca.wybor_wpisu_id)
 
     def _wybrano_osobe(self, osoba: str) -> None:
         self._zmiana_osoby = False
