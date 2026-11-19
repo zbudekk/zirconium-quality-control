@@ -162,7 +162,10 @@ W oknie Qt: `lacznik = lacznik_qt(silnik)` - obiekt z sygnalami `gotowy()`, `sta
   zmiennoprzecinkowych do 0,1 (prog posredni z recenzji); szczegoly w `testy/test_silnik.py` (`roznice`, `_rowne`)
   i w raporcie paczki.
 - Import PySide6 dopiero PO wykonaniu prawdziwych analiz przez silnik w tym samym procesie konczyl sie na PC wlasciciela
-  bledem "DLL load failed while importing Shiboken" (3 z 3 prob jednej sciezki testu; przyczyna nieustalona).
+  bledem "DLL load failed while importing Shiboken" (3 z 3 prob jednej sciezki testu; przyczyna nieustalona). E3-A2p runda 2:
+  ten sam objaw przy `import sqlite3` - kilka sekund po zakonczeniu procesu roboczego w procesie okna znika uchwyt katalogu
+  obiektow otwarty przy starcie procesu (najpewniej `\KnownDlls`), zamykany spoza kodu Pythona; zalezy od ukladu pamieci /
+  czasu (raport E3-A2p). Dotyczy kazdego modulu z DLL ladowanego pierwszy raz po takim zdarzeniu.
   ZALECENIE dla A3: wszystkie uzywane moduly PySide6 (QtCore, QtGui, QtWidgets, wydruk ...) importowac W CALOSCI przy
   starcie programu - na poczatku `main()`, przed pierwszym uzyciem silnika - oraz test "analiza, potem pierwsze otwarcie
   kazdego okna".
