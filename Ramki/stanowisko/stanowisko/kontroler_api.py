@@ -96,7 +96,7 @@ ZDARZENIA_KUWET_RAMKI = ("potwierdzenie", "cofniecie", "kuweta_wybrana")
 CZAS_NA_POLACZENIE_RAMEK_S = 2.0  # komunikat "ramka nie odpowiada" dopiero po tylu sekundach od podlaczenia (recenzja PR #30 D7)
 OKRES_PONOWIENIA_PLANU_S = 2.0  # P2: plan ramki porannej, ktorego nie dalo sie zbudowac - ponowienie co tyle sekund
 OKRES_PONOWIENIA_ZDARZEN_S = 1.0  # r3 D-N1: zdarzenia ramki odlozone przy zajetej bazie - ponowienie najczesciej co tyle sekund
-CZEKAJ_ZDARZENIA_MS = 250  # r3 D-N1: zapis zdarzen ramki czeka na zajeta baze najwyzej tyle (nie 5 s) - potem ponowienie
+CZEKAJ_ZDARZENIA_MS = 150  # r3 D-N1 / r4 D-R3-1: zapis zdarzen ramki czeka na zajeta baze najwyzej tyle (ponizej progu petli okna 200 ms)
 ZALEGLE_EXCELA_H = 48  # P5: piece zamkniete w ostatnich tylu godzinach z niezalatwionymi zleceniami Excela - przypomnienie przy starcie
 ZALEGLE_EXCELA_PIECE = 5
 MAX_PROJEKTOW_KUWETY = 60  # najwyzej tyle projektow zwraca ``projekty_kuwety``
@@ -2168,7 +2168,7 @@ class KontrolerSesji(Kontroler):
         w_planie = next((set(x.get("plytki") or ()) for x in self._plan_p_dane.get("kuwety") or () if x.get("kuweta") == kuweta), None)
         rano = self._stan.rano if self._stan is not None else None
         na_ekranie = next((set(x.plytki) for x in (rano.kuwety if rano is not None else ()) if x.kuweta == kuweta), None)
-        plytki = na_ekranie if na_ekranie else w_planie
+        plytki = na_ekranie  # r4 P-R3-1: kuwety nie ma na liscie ekranu (tryb "wieczor", skan liczony inaczej) - bez automatu
         if not plytki or kuweta in stos or not plytki <= (w_planie or set()):
             return None, None  # r3 P-N1: praca kuwety na plytce poza ramka (okragla) - rozlozenie potwierdza osoba na ekranie
         try:
@@ -2770,10 +2770,12 @@ class KontrolerSesji(Kontroler):
             sid = self._excel_piec[0] if self._excel_piec is not None else self._ostatni_zamkniety_id()
             if sid is None:
                 raise SE.BladSesji(ST.NAPIS_BRAK_PIECA_EXCELA)
+            jawnie = self._excel_jawnie  # r4 D-R3-2: okno pokazane jawnie (takze tylko dla zaleglych piecow) zostaje po odswiezeniu
             self._excel_krok_piec(sid)
             if self._excel_blad:
                 raise SE.BladSesji(self._excel_blad)
-            self._excel_widoczne = any(not p.zalatwiona for p in self._excel_pozycje)
+            self._excel_jawnie = jawnie
+            self._excel_widoczne = jawnie or any(not p.zalatwiona for p in self._excel_pozycje)
             return len(self._excel_pozycje)
 
         return self._polecenie(wykonaj, nazwa="excel_odswiez", punkty=False)
