@@ -150,9 +150,13 @@ ekranu (`KuwetaRano.plytki`); praca na plytce poza ramka (okragla) - rozlozenie 
 z bledem jednego zlecenia dostaje `zlecenie_id` z `kompletne[i]` (da sie ja pominac; "cien" bez dubli logu). P-N3: zalegle piece
 Excela - przyciski na stronie "Kompletne i braki" (`wynik_excel_zalegly_<id>`); okno pokazane jawnie (`excel_pokaz`) widoczne takze
 bez pozycji, gdy sa zalegle piece. D-N1: zdarzenia ramek przy zajetej bazie - ponowienie co `OKRES_PONOWIENIA_ZDARZEN_S` (1 s),
-czekanie na baze przy ich zapisie `CZEKAJ_ZDARZENIA_MS` (250 ms zamiast 5 s). D-N2: wskazany wiersz kandydata zerowany, gdy znika
+czekanie na baze przy ich zapisie `CZEKAJ_ZDARZENIA_MS` (150 ms zamiast 5 s - runda 4, D-R3-1). D-N2: wskazany wiersz kandydata zerowany, gdy znika
 z listy. D-N3: Backspace na ramce nie przestawia biezacej kuwety laptopa. D-N4 (`_plany_czekaja` bez sprzatania - plan_id z data,
 kierunek bezpieczny), D-N6 (D6 / D10) - bez zmian.
+
+**Runda 4 (recenzja PR #30 r3).** P-R3-1: kuweta, ktorej nie ma na liscie kuwet ekranu (tryb "wieczor" - `stan.rano` None, skan
+liczony inaczej), nie jest oznaczana jako rozlozona Enterem na ramce (wpis zdarzenia jak zawsze). D-R3-2: "Odswiez z Excela" nie
+zamyka okna pokazanego jawnie (takze tylko dla zaleglych piecow).
 
 ## Jak dziala `Aplikacja`
 
