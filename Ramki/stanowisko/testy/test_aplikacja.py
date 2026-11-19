@@ -299,74 +299,88 @@ def test_powtorka_tej_samej_tresci_nie_jest_liczona_dwa_razy(stanowiska):
 # ----------------------------------------------------------------------------
 # (f) petla zdarzen Qt
 # ----------------------------------------------------------------------------
-def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska):
+def test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek(stanowiska, tmp_path):
     """Kryterium (f): podczas analizy 10 plytek (przyjecie wyniku, zapis w bazie, nowy stan - w watku okna) petla zdarzen Qt
     nie ma przerw dluzszych niz 200 ms. Zegar co 10 ms mierzy najdluzsza przerwe; ``lacznik_qt`` sam wola ``przetworz``.
-    E3-T0p: przerwa liczona jako czas wlasny (``pomiar_czasu.PomiarOdporny``: czas scienny bez przestojow CALEGO procesu
-    i bez czekania na dysk, gdy stal on takze dla wzorca dysku; GC sesji pytest zamrozony, priorytet procesu na czas
-    pomiaru) - na obciazonym PC czas scienny 211-366 ms przy 50 ms osobno; blokujace wywolanie albo ciezka praca w watku
-    okna nadal przekracza prog."""
+    E3-T0p: pomiar w ``pomiar_czasu.PomiarOdporny`` (GC sesji pytest zamrozony, priorytet procesu, wzorzec procesu i dysku);
+    prog na czasie sciennym. Przerwe ponad prog wyjasniona tylko przestojem CALEGO procesu (najwyzej 100 ms) albo
+    przestojem dysku (wzorzec dysku obok bazy) - caly pomiar na nowym stanowisku jest powtarzany (proces 1 raz, dysk
+    najwyzej 2 razy); przerwa bez takiego wyjasnienia albo powtarzajaca sie = porazka z rozbiciem."""
+    import pomiar_czasu as PC
+
     from PySide6.QtCore import QEventLoop, QTimer
     from PySide6.QtWidgets import QApplication
 
-    from pomiar_czasu import PomiarOdporny
     from stanowisko import kontroler_api as K
 
     app = QApplication.instance() or QApplication([])
     assert app.platformName() == "offscreen"
-    st = stanowiska()
-    assert st.k.wybierz_operatora("Technik A")
-    lacznik = K.lacznik_qt(st.k, okres_ms=30)
-    stany, postepy = [], []
-    lacznik.stan_zmieniony.connect(stany.append)
-    lacznik.postep.connect(postepy.append)
-    petla = QEventLoop()
-    pomiar = {"ostatni": 0.0, "przerwa": 0.0, "tykniec": 0, "decyzji": 0, "odmowy": [], "znaczniki": [], "cpu": []}
-    pw = PomiarOdporny(dysk=st.tmp)  # wzorzec dysku obok bazy: zapis w bazie w watku okna czeka na dysk
+    dodatkowe = []
 
-    def tyk():
-        teraz = time.perf_counter()
-        pomiar["znaczniki"].append(teraz)
-        pomiar["cpu"].append(pw.cpu_watku())
-        pomiar["przerwa"] = max(pomiar["przerwa"], teraz - pomiar["ostatni"])
-        pomiar["ostatni"] = teraz
-        pomiar["tykniec"] += 1
+    def proba(st):
+        """Jeden pomiar na stanowisku ``st``: (ocena, opis)."""
+        assert st.k.wybierz_operatora("Technik A")
+        lacznik = K.lacznik_qt(st.k, okres_ms=30)
+        stany, postepy = [], []
+        lacznik.stan_zmieniony.connect(stany.append)
+        lacznik.postep.connect(postepy.append)
+        petla = QEventLoop()
+        pomiar = {"tykniec": 0, "decyzji": 0, "odmowy": [], "znaczniki": [], "cpu": []}
+        pw = PC.PomiarOdporny(dysk=st.tmp)  # wzorzec dysku obok bazy: zapis w bazie w watku okna czeka na dysk
+
+        def tyk():
+            pomiar["znaczniki"].append(time.perf_counter())
+            pomiar["cpu"].append(pw.cpu_watku())
+            pomiar["tykniec"] += 1
+            s = st.k.stan()
+            if len(s.plytki) > pomiar["decyzji"]:  # jak technik w trakcie analizy kolejnych plytek: decyzja na swiezo policzonej plytce
+                odp = st.k.ukruszona(s.plytki[pomiar["decyzji"]].gniazdo(2).praca.praca_id)
+                if not odp:
+                    pomiar["odmowy"].append(odp.tekst)
+                pomiar["decyzji"] += 1
+            if (len(s.plytki) == 10 and s.kolejka.razem == 0 and pomiar["decyzji"] == 10) or pomiar["odmowy"]:
+                petla.quit()
+
+        zegar = QTimer()
+        zegar.setInterval(10)
+        zegar.timeout.connect(tyk)
+        QTimer.singleShot(180_000, petla.quit)
+        for i in range(10):  # 10 plytek po 19 prac, kazda "liczona" 0,3 s w procesie silnika
+            st.zapisz({"gniazda": {n: ("czerwony" if n == 2 else "zielony") for n in range(1, 20)}, "numer": 1 + i,
+                       "projekty": {n: 100 * (i + 1) + n for n in range(1, 20)}, "spij": 0.3})
+        with pw:
+            pomiar["znaczniki"].append(time.perf_counter())
+            pomiar["cpu"].append(pw.cpu_watku())
+            zegar.start()
+            t0 = time.perf_counter()
+            petla.exec()
+            czas = time.perf_counter() - t0
+            zegar.stop()
+        lacznik.zatrzymaj()
         s = st.k.stan()
-        if len(s.plytki) > pomiar["decyzji"]:  # jak technik w trakcie analizy kolejnych plytek: decyzja na swiezo policzonej plytce
-            odp = st.k.ukruszona(s.plytki[pomiar["decyzji"]].gniazdo(2).praca.praca_id)
-            if not odp:
-                pomiar["odmowy"].append(odp.tekst)
-            pomiar["decyzji"] += 1
-        if (len(s.plytki) == 10 and s.kolejka.razem == 0 and pomiar["decyzji"] == 10) or pomiar["odmowy"]:
-            petla.quit()
+        assert not pomiar["odmowy"], pomiar["odmowy"]
+        assert len(s.plytki) == 10 and all(p.status == "przyjety" and len(p.prace) == 19 for p in s.plytki) and pomiar["decyzji"] == 10
+        assert len(s.do_dofrezowania_biezaca) == 10
+        assert pomiar["tykniec"] >= 100 and len(postepy) >= 20 and len(stany) >= 20  # petla naprawde pracowala, okno dostawalo postep i stan
+        ocena, najdluzsza = PC.ocen_przerwy(pw.przerwy_petli(pomiar["znaczniki"], pomiar["cpu"]), PROG_PRZERWY_S)
+        return ocena, (f"10 plytek w {czas:.1f} s, najdluzsza przerwa petli Qt {najdluzsza.opis()}, prog {PROG_PRZERWY_S * 1000:.0f} ms; "
+                       f"tykniec zegara {pomiar['tykniec']}, sygnalow stanu {len(stany)}, postepu {len(postepy)}; {pw.opis()}")
 
-    zegar = QTimer()
-    zegar.setInterval(10)
-    zegar.timeout.connect(tyk)
-    QTimer.singleShot(180_000, petla.quit)
-    for i in range(10):  # 10 plytek po 19 prac, kazda "liczona" 0,3 s w procesie silnika
-        st.zapisz({"gniazda": {n: ("czerwony" if n == 2 else "zielony") for n in range(1, 20)}, "numer": 1 + i,
-                   "projekty": {n: 100 * (i + 1) + n for n in range(1, 20)}, "spij": 0.3})
-    with pw:
-        pomiar["ostatni"] = time.perf_counter()
-        pomiar["znaczniki"].append(pomiar["ostatni"])
-        pomiar["cpu"].append(pw.cpu_watku())
-        zegar.start()
-        t0 = time.perf_counter()
-        petla.exec()
-        czas = time.perf_counter() - t0
-        zegar.stop()
-    lacznik.zatrzymaj()
-    s = st.k.stan()
-    przerwa, rozbicie = pw.przerwy_petli(pomiar["znaczniki"], pomiar["cpu"])
-    print(f"\n[kryterium f] 10 plytek w {czas:.1f} s, najdluzsza przerwa petli Qt {przerwa * 1000:.0f} ms wlasna / {pomiar['przerwa'] * 1000:.0f} ms "
-          f"sciennie (prog {PROG_PRZERWY_S * 1000:.0f} ms), tykniec zegara {pomiar['tykniec']}, sygnalow stanu {len(stany)}, postepu {len(postepy)}\n"
-          f"[kryterium f] {rozbicie}\n[kryterium f] {pw.opis()}")
-    assert not pomiar["odmowy"], pomiar["odmowy"]
-    assert len(s.plytki) == 10 and all(p.status == "przyjety" and len(p.prace) == 19 for p in s.plytki) and pomiar["decyzji"] == 10
-    assert len(s.do_dofrezowania_biezaca) == 10
-    assert pomiar["tykniec"] >= 100 and len(postepy) >= 20 and len(stany) >= 20  # petla naprawde pracowala, okno dostawalo postep i stan
-    assert przerwa <= PROG_PRZERWY_S, f"przerwa petli Qt {przerwa * 1000:.0f} ms (czas wlasny); {rozbicie}; {pw.opis()}"
+    powtorki = PC.Powtorki()
+    st = stanowiska()
+    try:
+        while True:
+            ocena, opis = proba(st)
+            print(f"\n[kryterium f] proba {len(powtorki.historia) + 1}: {ocena}; {opis}")
+            if not powtorki.dalej(ocena, opis):
+                break
+            st.koniec()  # poprzednie stanowisko zamkniete (ponowne zamkniecie po tescie jest bez skutku)
+            st = StanowiskoAplikacji(tmp_path / f"powtorka_{len(powtorki.historia)}")  # nowe stanowisko, czyste dane
+            dodatkowe.append(st)
+    finally:
+        for s in dodatkowe:
+            s.koniec()
+    assert ocena == PC.OK, f"kryterium (f): {powtorki.opis()}"
 
 
 # ----------------------------------------------------------------------------
