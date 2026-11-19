@@ -1,0 +1,25 @@
+wkladka pod kolnierzem pokrywki (r 50.25..51.85): max Z 6.0000 (dol kolnierza 6.5 -> luz 0.5000)
+  maks Z wkladki ogolnie (strzalki): 6.6000 przy -32.199999999999996 -51.8
+  obszar Z > 6.01 (strzalki): x -33.40..33.40, y -52.10..-50.20, r min 58.79
+wieczorna luz promieniowy (Z 4.75 / 6.5): 0.3966..4.4229; w osi sciecia 0.3999
+   spod plytki Z 2.5000; wierzch wystepu (0, 48.7) 2.5000
+   Z 2.7: rowek +v 1.8000 -v 1.8000; kolek +v 1.4962 -v 1.4962 -> luz 0.3038 / 0.3039
+   Z 3.5: rowek +v 1.8000 -v 1.8000; kolek +v 1.4962 -v 1.4962 -> luz 0.3038 / 0.3039
+   Z 3.9: rowek +v 1.8000 -v 1.8000; kolek +v 1.4962 -v 1.4962 -> luz 0.3038 / 0.3039
+   sufit rowka nad kolkiem Z 5.0000, wierzch kolka 4.5000 -> 0.5000
+   koniec rowka r 43.0000; kolek od r 43.5038 -> szczelina 0.5038
+   A: os kieszeni (-31.8198, -31.8198), os Halla (-31.8198, -31.8198), odchylka 0.0000
+   B: os kieszeni (-31.8198, 31.8198), os Halla (-31.8198, 31.8198), odchylka 0.0000
+   C: os kieszeni (31.8198, 31.8198), os Halla (31.8198, 31.8198), odchylka 0.0000
+   sufit kieszeni Z 4.7000 -> spod magnesu 2.0 przy suficie Z 2.7000; wierzch czujnika (1.5 nad dyfuzorem Z 0) 1.5 -> szczelina 1.2000
+poranna luz promieniowy (Z 4.75 / 6.5): 0.3966..4.4229; w osi sciecia 0.3999
+   spod plytki Z 2.5000; wierzch wystepu (0, 48.7) 2.5000
+   Z 2.7: rowek +v 1.8000 -v 1.8000; kolek +v 1.4962 -v 1.4962 -> luz 0.3038 / 0.3039
+   Z 3.5: rowek +v 1.8000 -v 1.8000; kolek +v 1.4962 -v 1.4962 -> luz 0.3038 / 0.3039
+   Z 3.9: rowek +v 1.8000 -v 1.8000; kolek +v 1.4962 -v 1.4962 -> luz 0.3038 / 0.3039
+   sufit rowka nad kolkiem Z 5.0000, wierzch kolka 4.5000 -> 0.5000
+   koniec rowka r 43.0000; kolek od r 43.5038 -> szczelina 0.5038
+   A: os kieszeni (-31.8198, -31.8198), os Halla (-31.8198, -31.8198), odchylka 0.0000
+   B: os kieszeni (-31.8198, 31.8198), os Halla (-31.8198, 31.8198), odchylka 0.0000
+   C: os kieszeni (31.8198, 31.8198), os Halla (31.8198, 31.8198), odchylka 0.0000
+   sufit kieszeni Z 4.7000 -> spod magnesu 2.0 przy suficie Z 2.7000; wierzch czujnika (1.5 nad dyfuzorem Z 0) 1.5 -> szczelina 1.2000

@@ -1,0 +1,56 @@
+--- sha256_stl_po_R58.txt
+OK  stl/ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl 7f80acf3c8ba03a3 7f80acf3c8ba03a3
+OK  stl/ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl f6e24d4991920dde f6e24d4991920dde
+OK  stl/ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl 3c78322049b49d2c 3c78322049b49d2c
+OK  stl/ramka_plytka_okragla_ramkowa_poranna_v2.stl 44d67d1980a96708 44d67d1980a96708
+OK  stl/ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl f50c60de374d73e0 f50c60de374d73e0
+OK  stl/ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl 34c91cba851b580a 34c91cba851b580a
+OK  stl/ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl 6b8ceabc7d232c39 6b8ceabc7d232c39
+OK  stl/ramka_plytka_okragla_ramkowa_wieczorna_v2.stl 18089783cd0ad015 18089783cd0ad015
+OK  stl/ramka_wkladka_okragla_v2.stl 0ca13cd723c2e3f3 0ca13cd723c2e3f3
+OK  stl/ramka_pokrywka_okragla_v2.stl 86e9976b6e38b605 86e9976b6e38b605
+OK  json/uklad_gniazd_okragla_ramkowa_poranna.json 20fce19e53ca1079 20fce19e53ca1079
+OK  json/uklad_gniazd_okragla_ramkowa_wieczorna.json 16c4544b70ccd4c5 16c4544b70ccd4c5
+--- R58_wdrozenie_zmiany.md
+OK  ramka_plytka_okragla_ramkowa_wieczorna_v2.stl 18089783cd0ad015 18089783cd0ad015
+OK  ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl f50c60de374d73e0 f50c60de374d73e0
+OK  ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl 34c91cba851b580a 34c91cba851b580a
+OK  ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl 6b8ceabc7d232c39 6b8ceabc7d232c39
+OK  ramka_plytka_okragla_ramkowa_poranna_v2.stl 44d67d1980a96708 44d67d1980a96708
+OK  ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl 7f80acf3c8ba03a3 7f80acf3c8ba03a3
+OK  ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl f6e24d4991920dde f6e24d4991920dde
+OK  ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl 3c78322049b49d2c 3c78322049b49d2c
+OK  ramka_wkladka_okragla_v2.stl 0ca13cd723c2e3f3 0ca13cd723c2e3f3
+OK  ramka_pokrywka_okragla_v2.stl 86e9976b6e38b605 86e9976b6e38b605
+OK  json/uklad_gniazd_okragla_ramkowa_wieczorna.json 16c4544b70ccd4c5 16c4544b70ccd4c5
+OK  json/uklad_gniazd_okragla_ramkowa_poranna.json 20fce19e53ca1079 20fce19e53ca1079
+--- sekcja 8 vs pliki
+OK  ramka_blat_v2.stl 8c48856eb9addee2
+OK  ramka_korpus_P_v2.stl aadb91c9364cf39f
+OK  ramka_korpus_W_v2.stl bd55871c88cf2604
+OK  ramka_plytka_okragla_poranna_n9_v2.stl f9444e6f14e37d9d
+OK  ramka_plytka_okragla_poranna_v2.stl e35835d7618e6665
+OK  ramka_plytka_okragla_wieczorna_n8_v2.stl d5591f652ea1b6b2
+OK  ramka_plytka_okragla_wieczorna_v2.stl aad8033e6c1d1f34
+OK  ramka_plytka_poranna_n4_v2.stl 20f15f2214f6c9a9
+OK  ramka_plytka_poranna_n5_v2.stl a275775b9c9b5ddd
+OK  ramka_plytka_poranna_n6_v2.stl c44be370c8b9ad2b
+OK  ramka_plytka_poranna_v2.stl a306032651bbdb0c
+OK  ramka_plytka_wieczorna_n1_v2.stl 3b0db5452a0cd953
+OK  ramka_plytka_wieczorna_n2_v2.stl b87026134b25cf32
+OK  ramka_plytka_wieczorna_n3_v2.stl 59e615d596771c6c
+OK  ramka_plytka_wieczorna_v2.stl 604ef8f207918446
+OK  ramka_podkladka_panelu_05_v2.stl 4260d1f1957f32d1
+OK  ramka_podkladka_panelu_1_v2.stl e79a805121499f8d
+OK  ramka_podkladka_panelu_2_v2.stl 9c47aea4fbc946c1
+OK  ramka_pokrywka_v2.stl ad23444483ac9573
+OK  ramka_tulejka_dc_v2.stl b393256cd8cafdac
+OK  ramka_wkladka_v2.stl f4196fbc64045099
+OK  uklad_gniazd_okragla_poranna.json b943e6c5dd54a8b3
+OK  uklad_gniazd_okragla_wieczorna.json c07791f4bb976be2
+OK  uklad_gniazd_poranna.json 46e474b759c4b78b
+OK  uklad_gniazd_wieczorna.json 7ae07ba861950724
+--- SHA256SUMS_2026-11-16_R59.txt
+ZLE 03_Druk_wlasny/PETG_FDM/ramka_plytka_wieczorna_n1_v2_TEST_SKANERA.stl 3b0db5452a0cd953 BRAK
+zgodnych 25 z 26
+STL w glownym repo: 21  JSON w worktree: ['uklad_gniazd_okragla_poranna.json', 'uklad_gniazd_okragla_ramkowa_poranna.json', 'uklad_gniazd_okragla_ramkowa_wieczorna.json', 'uklad_gniazd_okragla_wieczorna.json', 'uklad_gniazd_poranna.json', 'uklad_gniazd_wieczorna.json']
