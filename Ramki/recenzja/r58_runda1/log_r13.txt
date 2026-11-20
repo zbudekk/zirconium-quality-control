@@ -1,0 +1,27 @@
+bbox (wierzch Z 0) [-51.8 -51.8 -20. ] [51.8 51.8  0. ]
+Z -3: r wewn 50.2963..50.3000, zewn 51.7961..51.8000 (144)
+Z -10: r wewn 50.2963..50.3000, zewn 51.7961..51.8000 (144)
+Z -16.5: r wewn 50.2963..50.3000, zewn 51.7961..51.8000 (144)
+Z -19.5: r wewn 50.2963..50.3000, zewn 51.7961..51.8000 (118)
+spod wierzchu Z -2.000000000000001
+sektory garbow (r < 50.25): [[np.float64(19.5), np.float64(30.5)], [np.float64(149.5), np.float64(160.5)], [np.float64(199.5), np.float64(210.5)], [np.float64(329.5), np.float64(340.5)]]
+Z -18 bez trafienia (wyciecia): katy 73.25 ... 286.75 liczba 270
+   srodek 25.00, rozpietosc 11.00 st. (= 9.66 mm na r 50.3), min r 49.5998 (wystep 0.7002)
+   srodek 155.00, rozpietosc 11.00 st. (= 9.66 mm na r 50.3), min r 49.5998 (wystep 0.7002)
+   srodek 205.00, rozpietosc 11.00 st. (= 9.66 mm na r 50.3), min r 49.5998 (wystep 0.7002)
+   srodek 335.00, rozpietosc 11.00 st. (= 9.66 mm na r 50.3), min r 49.5998 (wystep 0.7002)
+profil garbu 25 (Z -19..-17 co 0.1): [np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.546), np.float64(0.646), np.float64(0.673), np.float64(0.7), np.float64(0.673), np.float64(0.646), np.float64(0.546), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003)]
+   na r 49.95: Z -18.387..-17.613
+profil garbu 155 (Z -19..-17 co 0.1): [np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.546), np.float64(0.646), np.float64(0.673), np.float64(0.7), np.float64(0.673), np.float64(0.646), np.float64(0.546), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003)]
+   na r 49.95: Z -18.387..-17.613
+profil garbu 205 (Z -19..-17 co 0.1): [np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.546), np.float64(0.646), np.float64(0.673), np.float64(0.7), np.float64(0.673), np.float64(0.646), np.float64(0.546), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003)]
+   na r 49.95: Z -18.387..-17.613
+profil garbu 335 (Z -19..-17 co 0.1): [np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.546), np.float64(0.646), np.float64(0.673), np.float64(0.7), np.float64(0.673), np.float64(0.646), np.float64(0.546), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003), np.float64(0.003)]
+   na r 49.95: Z -18.387..-17.613
+wyciecie przod: szerokosc na Z -19.5 (y -48.8): 30.000, os x 0.000; gora wyciecia Z -17.000
+    y -48.30: szer 30.000
+    y -49.30: szer 30.000
+wyciecie tyl: szerokosc na Z -19.5 (y 48.8): 30.000, os x 0.000; gora wyciecia Z -17.000
+    y 48.30: szer 30.000
+    y 49.30: szer 30.000
+polowa kata wyciecia na r 50.3: 17.35 st.

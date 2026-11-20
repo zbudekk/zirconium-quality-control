@@ -1,0 +1,25 @@
+=== wieczorna klucze ramkowa: ['code_dimples', 'coords', 'cover_groove', 'd', 'flat', 'key_slot', 'leds', 'magnet_pockets', 'markers', 'number_relief', 'plate', 'shape', 'size', 'sockets', 'thickness', 'units', 'version']
+  rozni sie od okraglej: cover_groove : {"z": 2, "w": 1.0, "depth": 0.8, "opis": "rowek na ca\u0142ym obwodzie (tak\u017ce przez \u015bci\u0119cie): od walca R do R \u2212 depth, \u015brodek z pod wierzchem, wysoko\u015b\u0107 w"} | stara: null
+  rozni sie od okraglej: key_slot : {"angle_deg": -45.0, "r0": 43, "w": 3.6, "h": 2.5, "opis": "rowek klucza od spodu: szeroko\u015b\u0107 w, o\u015b na kierunku angle_deg, od promienia r0 na zewn\u0105trz przez kraw\u0119d\u017a, wysoko\u015b\u0107 h od spodu"} | stara: null
+  rozni sie od okraglej: magnet_pockets : [{"corner": "A", "angle_deg": 225.0, "x": -31.8198, "y": -31.8198, "d": 5.2, "depth": 2.2}, {"corner": "B", "angle_deg": 135.0, "x": -31.8198, "y": 31.8198, "d": 5.2, "depth": 2.2}, {"corner": "C", "angle_deg": 45.0, "x": 31.8198, "y": 31.8198, "d": 5.2, "depth": 2.2}] | stara: []
+  rozni sie od okraglej: plate : "okragla_ramkowa_wieczorna" | stara: "okragla_wieczorna"
+  sockets == kwadrat: True  markers == okragla: True  code_dimples == okragla: True
+=== poranna klucze ramkowa: ['code_dimples', 'coords', 'cover_groove', 'd', 'flat', 'key_slot', 'leds', 'magnet_pockets', 'markers', 'number_relief', 'plate', 'shape', 'size', 'sockets', 'thickness', 'units', 'version']
+  rozni sie od okraglej: cover_groove : {"z": 2, "w": 1.0, "depth": 0.8, "opis": "rowek na ca\u0142ym obwodzie (tak\u017ce przez \u015bci\u0119cie): od walca R do R \u2212 depth, \u015brodek z pod wierzchem, wysoko\u015b\u0107 w"} | stara: null
+  rozni sie od okraglej: key_slot : {"angle_deg": -45.0, "r0": 43, "w": 3.6, "h": 2.5, "opis": "rowek klucza od spodu: szeroko\u015b\u0107 w, o\u015b na kierunku angle_deg, od promienia r0 na zewn\u0105trz przez kraw\u0119d\u017a, wysoko\u015b\u0107 h od spodu"} | stara: null
+  rozni sie od okraglej: magnet_pockets : [{"corner": "A", "angle_deg": 225.0, "x": -31.8198, "y": -31.8198, "d": 5.2, "depth": 2.2}, {"corner": "B", "angle_deg": 135.0, "x": -31.8198, "y": 31.8198, "d": 5.2, "depth": 2.2}, {"corner": "C", "angle_deg": 45.0, "x": 31.8198, "y": 31.8198, "d": 5.2, "depth": 2.2}] | stara: []
+  rozni sie od okraglej: plate : "okragla_ramkowa_poranna" | stara: "okragla_poranna"
+  sockets == kwadrat: True  markers == okragla: True  code_dimples == okragla: True
+parametry R58: {'round_magnet_r': 45, 'round_key_slot_w': 3.6, 'round_key_slot_r0': 43, 'round_key_slot_h': 2.5, 'plate_numbers_round_frame': {'wieczorna': [1, 2, 3], 'poranna': [4, 5, 6]}, 'round_cover_snap_angles': [25, 155, 205, 335], 'round_insert_clearance': 0.4, 'round_insert_ledge_r': 47, 'round_insert_shelf': 10, 'round_key_pin_d': 3.0, 'round_key_pin_h': 2.0, 'round_key_pin_chamfer': 0.5, 'magnet_pocket_d': 5.2, 'magnet_pocket_depth': 2.2, 'cover_groove_w': 1.0, 'cover_groove_depth': 0.8, 'cover_groove_z': 2, 'cover_clearance': 0.3, 'cover_skirt_t': 1.5, 'cover_snap_bump': 0.7, 'cover_snap_hgt': 0.8, 'cover_snap_w': 10, 'cover_snap_z': -18, 'cover_snap_r': 0.4, 'insert_shelf_h': 2.5, 'insert_h': 6, 'insert_chamfer': 1, 'hall_pocket_w': 5.0, 'hall_pocket_l': 5.5, 'hall_lead_channel_w': 2.5, 'hall_lead_channel_h': 1.0, 'hall_wall_pass_h': 1.5, 'finger_cut_w': 30, 'round_flat_w': 16, 'round_flat_angle': -45, 'plate_round_d': 100, 'orient_post': 4.4, 'orient_post_h': 5, 'tab_t': 3, 'insert_wall_w': 4, 'insert_opening': 96.8}
+quantities_r58: {'ramka_plytka_okragla_ramkowa_wieczorna_n1': 1, 'ramka_plytka_okragla_ramkowa_wieczorna_n2': 1, 'ramka_plytka_okragla_ramkowa_wieczorna_n3': 1, 'ramka_plytka_okragla_ramkowa_poranna_n4': 1, 'ramka_plytka_okragla_ramkowa_poranna_n5': 1, 'ramka_plytka_okragla_ramkowa_poranna_n6': 1, 'ramka_wkladka_okragla': 3, 'ramka_pokrywka_okragla': 4}
+materials_r58: {'ramka_plytka_okragla_ramkowa_wieczorna_n1': 'PA12 drukarnia', 'ramka_plytka_okragla_ramkowa_wieczorna_n2': 'PA12 drukarnia', 'ramka_plytka_okragla_ramkowa_wieczorna_n3': 'PA12 drukarnia', 'ramka_plytka_okragla_ramkowa_poranna_n4': 'PA12 drukarnia', 'ramka_plytka_okragla_ramkowa_poranna_n5': 'PA12 drukarnia', 'ramka_plytka_okragla_ramkowa_poranna_n6': 'PA12 drukarnia', 'ramka_wkladka_okragla': 'PA12 drukarnia', 'ramka_pokrywka_okragla': 'PETG FDM (w?asny)'}
+ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl liczb -0.0: 0
+ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl liczb -0.0: 0
+ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl liczb -0.0: 0
+ramka_plytka_okragla_ramkowa_poranna_v2.stl liczb -0.0: 0
+ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl liczb -0.0: 0
+ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl liczb -0.0: 0
+ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl liczb -0.0: 0
+ramka_plytka_okragla_ramkowa_wieczorna_v2.stl liczb -0.0: 0
+ramka_pokrywka_okragla_v2.stl liczb -0.0: 0
+ramka_wkladka_okragla_v2.stl liczb -0.0: 0

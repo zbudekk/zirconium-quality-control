@@ -1,0 +1,9 @@
+trojkaty czapki zebra (Z > 6): 10; zasieg u 46.500..49.200, |v| <= 1.500, Z 6.000..7.000
+polozenia plytki dopuszczalne: 4179 (obrot -0.8..0.8 co 0.2, przesuniecie co 0.02)
+   max przesuniecie plytki 0.397; od zebra (wzdluz -u) 0.396; w strone zebra 0.396
+   pokrywka: max przesuniecie wzgl. plytki 0.300, od zebra 0.297
+pokrywka osadzona (garby nie siadaja na dnie rowka): ustawien 2962911; luz w rzucie lico kolnierza - czapka zebra min 0.383 przy (obrot, plytka, pokrywka wzgl. plytki) (np.float64(-0.2), (np.float64(-0.28), np.float64(0.28)), (np.float64(-0.18), np.float64(0.24))); ustawien z wierzcholkiem czapki Z>=6,5 w kolnierzu: 0; 1 s
+   odleglosc 3D dolna krawedz lica kolnierza (Z 6,5) - czapka zebra w tym ustawieniu: 0.626
+   pokrywka: max przesuniecie wzgl. plytki 0.300, od zebra 0.297
+pokrywka tylko kolnierz-plytka: ustawien 2962911; luz w rzucie lico kolnierza - czapka zebra min 0.383 przy (obrot, plytka, pokrywka wzgl. plytki) (np.float64(-0.2), (np.float64(-0.28), np.float64(0.28)), (np.float64(-0.18), np.float64(0.24))); ustawien z wierzcholkiem czapki Z>=6,5 w kolnierzu: 0; 1 s
+   odleglosc 3D dolna krawedz lica kolnierza (Z 6,5) - czapka zebra w tym ustawieniu: 0.626
