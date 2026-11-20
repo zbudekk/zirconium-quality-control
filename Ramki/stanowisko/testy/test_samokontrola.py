@@ -602,6 +602,49 @@ def test_baza_uszkodzona_quick_check_blad(kat):
     assert hashlib.sha256(kat.baza.read_bytes()).hexdigest() == przed  # samokontrola niczego nie naprawia
 
 
+def test_baza_przerwany_zapis_goracy_dziennik_ostrzezenie_bez_zmiany_plikow(kat, tmp_path):
+    """Kopia bazy zrobiona w trakcie duzej transakcji = stan po wylaczeniu pradu w czasie zapisu: baza + plik -journal.
+    Program cofa taki zapis przy starcie; samokontrola (tylko odczyt) nie moze ani tego zglosic jako uszkodzenia, ani ruszyc plikow."""
+    zrodlo = tmp_path / "zrodlo" / "stanowisko.sqlite"
+    B.otworz(zrodlo).zamknij()
+    pol = sqlite3.connect(zrodlo, isolation_level=None)
+    pol.execute("PRAGMA cache_size = 5")
+    pol.execute("BEGIN IMMEDIATE")
+    pol.executemany("INSERT INTO zdarzenia (czas, zrodlo, typ, dane) VALUES ('2026-11-20T10:00:00', 'system', 'test', ?)",
+                    [("x" * 500,) for _ in range(4000)])
+    kat.dane.mkdir()
+    for p in list(zrodlo.parent.iterdir()):
+        (kat.dane / p.name).write_bytes(p.read_bytes())
+    pol.execute("ROLLBACK")
+    pol.close()
+    assert sorted(p.name for p in kat.dane.iterdir()) == ["stanowisko.sqlite", "stanowisko.sqlite-journal"]
+    kat.zapisz(pula_wpisow="true")
+    przed = odcisk(kat.dane)
+    wynik = kat.wykonaj()
+    s = wynik.sprawdzenie("baza")
+    assert s.poziom == S.OSTRZEZENIE and "niedokonczony zapis" in s.opis and "-journal" in s.rada, s
+    assert wynik.sprawdzenie("pula").poziom == S.OSTRZEZENIE and "nie da sie teraz odczytac" in wynik.sprawdzenie("pula").opis
+    assert odcisk(kat.dane) == przed and wynik.kod_wyjscia == 0
+    B.otworz(kat.baza).zamknij()  # program przy starcie cofa przerwany zapis - baza jest potem w porzadku
+    assert kat.wykonaj().sprawdzenie("baza").poziom == S.OK
+
+
+def test_baza_quick_check_ograniczony_limitem_krotszym_niz_czekanie_programu(kat, monkeypatch):
+    kat.zaloz_baze()
+    pol = sqlite3.connect(kat.baza)
+    with pol:
+        pol.executemany("INSERT INTO zdarzenia (czas, zrodlo, typ, dane) VALUES ('2026-11-20T10:00:00', 'system', 'test', ?)",
+                        [("x" * 200,) for _ in range(3000)])
+    pol.close()
+    assert kat.wykonaj().sprawdzenie("baza").poziom == S.OK
+    monkeypatch.setattr(S, "LIMIT_QUICK_CHECK_S", -1.0)  # limit minal, zanim sprawdzanie sie zaczelo
+    monkeypatch.setattr(S, "KROK_QUICK_CHECK", 50)
+    s = kat.wykonaj().sprawdzenie("baza")
+    assert s.poziom == S.OSTRZEZENIE and "quick_check nie zakonczyl sie" in s.opis and "spojnosci nie sprawdzono" in s.opis
+    monkeypatch.undo()
+    assert S.LIMIT_QUICK_CHECK_S * 1000 < B.CZEKAJ_NA_BLOKADE_MS  # samokontrola obok pracujacego programu nie blokuje jego zapisu za dlugo
+
+
 def test_baza_pusty_plik_jak_brak(kat):
     kat.dane.mkdir()
     kat.baza.write_bytes(b"")

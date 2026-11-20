@@ -86,7 +86,10 @@ MIEJSCE_OSTRZEZENIE_GB = 10.0
 LIMIT_RAMKI_S = 3.0  # najdluzsza proba polaczenia z jedna ramka (obie proby rownolegle); nazwa .local bywa rozwiazywana kilka sekund
 LIMIT_FOLDERU_S = 5.0  # folder pracy, ktory nie odpowiada tyle sekund (udzial sieciowy), jest zglaszany jako niedostepny
 LIMIT_LICZENIA_S = 5.0  # liczenie plikow STL puli: po tylu sekundach wynik "co najmniej N"
-LIMIT_QUICK_CHECK_S = 10.0  # PRAGMA quick_check przerywany po tylu sekundach (duza baza) - OSTRZEZENIE "nie sprawdzono"
+# PRAGMA quick_check przerywany po tylu sekundach (duza baza) - OSTRZEZENIE "nie sprawdzono". Krocej niz program czeka na
+# baze zajeta (baza.CZEKAJ_NA_BLOKADE_MS = 5 s; test): samokontrola uruchomiona obok pracujacego programu nie wywola w nim "nie zapisano".
+LIMIT_QUICK_CHECK_S = 4.0
+KROK_QUICK_CHECK = 20000  # co tyle krokow maszyny SQLite sprawdzany jest limit czasu
 CZEKAJ_NA_BAZE_MS = 1000  # tyle czekania na baze zajeta przez inny program, potem OSTRZEZENIE "zajeta"
 MAKS_ROZNIC = 10  # tyle pierwszych roznic sum jest wypisywanych
 NAZWY_SYNCHRONIZOWANE = ("onedrive", "sharepoint")  # czesc sciezki zaczynajaca sie od "OneDrive" albo zawierajaca "SharePoint"
@@ -219,6 +222,7 @@ class _Kontekst:
     bez_sieci: bool
     limit_ramki_s: float
     foldery: dict = dataclasses.field(default_factory=dict)  # klucz [sciezki] -> "ok" / "brak" / "nie_folder" / "blad" / "limit"
+    baza_jest: bool = False  # plik bazy istnieje i nie jest pusty
     baza_czytelna: bool = False  # plik bazy dal sie otworzyc do odczytu (indeks puli mozna policzyc)
     baza_zajeta: bool = False
 
@@ -600,7 +604,7 @@ def _zajeta(e: sqlite3.Error) -> bool:
 def _quick_check(pol: sqlite3.Connection) -> list:
     """``PRAGMA quick_check`` z limitem czasu; ["ok"] = baza spojna. Przekroczenie limitu = ``sqlite3.OperationalError`` (interrupted)."""
     koniec = time.monotonic() + LIMIT_QUICK_CHECK_S
-    pol.set_progress_handler(lambda: 1 if time.monotonic() > koniec else 0, 20000)
+    pol.set_progress_handler(lambda: 1 if time.monotonic() > koniec else 0, KROK_QUICK_CHECK)
     try:
         return [str(w[0]) for w in pol.execute("PRAGMA quick_check(5)")]
     finally:
@@ -621,6 +625,7 @@ def _baza(k: _Kontekst) -> list:
     except OSError as e:
         return [_blad("baza", f"pliku bazy nie da sie odczytac ({type(e).__name__}): {plik}", "sprawdz dostep do folderu danych")]
     program = max(B.MIGRACJE)
+    k.baza_jest = True
     etap, pol = "otwarcie", None
     try:
         pol = _polacz_do_odczytu(plik)
@@ -637,6 +642,10 @@ def _baza(k: _Kontekst) -> list:
             k.baza_zajeta = True
             return [_ostrzezenie("baza", f"baza zajeta przez inny program (czekano {CZEKAJ_NA_BAZE_MS / 1000:g} s) - wersji schematu i spojnosci nie sprawdzono",
                                  "to nie blad - uruchom samokontrole ponownie za chwile albo po zamknieciu programu")]
+        if (getattr(e, "sqlite_errorcode", None) or 0) & 0xFF == 8:  # SQLITE_READONLY_ROLLBACK: obok bazy lezy dziennik przerwanego zapisu
+            return [_ostrzezenie("baza", "baza ma niedokonczony zapis po przerwanej pracy (plik dziennika obok bazy) - program cofnie go sam przy starcie, "
+                                 "wersji schematu i spojnosci nie sprawdzono",
+                                 "uruchom program, zamknij go i uruchom samokontrole ponownie - pliku z koncowka -journal nie usuwaj i nie kopiuj bazy bez niego")]
         if etap == "quick_check" and "interrupt" in str(e).lower():
             return [_ostrzezenie("baza", f"wersja schematu {wersja}, quick_check nie zakonczyl sie w {LIMIT_QUICK_CHECK_S:g} s (duza baza: "
                                  f"{rozmiar_mb:.0f} MB) - spojnosci nie sprawdzono", "to nie blad - baza jest duza, program jej uzywa bez przeszkod")]
@@ -803,7 +812,9 @@ def _pula_z_folderu(k: _Kontekst) -> Sprawdzenie:
 def _pula_wpisow(k: _Kontekst) -> Sprawdzenie:
     tryb = "pula per praca (pula_wpisow = true)"
     if not k.baza_czytelna:
-        powod = "baza zajeta - indeksu zlecen nie odczytano" if k.baza_zajeta else "brak bazy - indeks zlecen powstanie przy pierwszym starcie programu"
+        powod = ("baza zajeta - indeksu zlecen nie odczytano" if k.baza_zajeta else
+                 "bazy nie da sie teraz odczytac (wiersz baza) - indeksu zlecen nie odczytano" if k.baza_jest else
+                 "brak bazy - indeks zlecen powstanie przy pierwszym starcie programu")
         return _ostrzezenie("pula", f"{tryb}: {powod}", "uruchom program i poczekaj na zbudowanie puli, potem uruchom samokontrole ponownie")
     try:
         pol = _polacz_do_odczytu(k.sciezka("baza"))
