@@ -17,7 +17,7 @@ dofrezowania. Komunikaty i pytania programu pojawiaja sie nad mapa.
 |--------------------|--------------------|
 | zielony "OK" | nic - praca rozpoznana, bez ubytku |
 | czerwony "UBYTEK" | obejrzyj w reku i zdecyduj |
-| zolty "sprawdz", "nie sprawdzono", "sprawdz ulozenie" | program nie jest pewny - obejrzyj i zdecyduj |
+| zolty "sprawdz", "nie sprawdzono", "sprawdz ulozenie", "blad kontroli" | program nie jest pewny - obejrzyj i zdecyduj |
 | szary "bez projektu" | program nie zna tej pracy - obejrzyj golym okiem jak dotad i zdecyduj |
 | pomaranczowy "poprawiana recznie" | ksztalt rozni sie gladko od projektu - obejrzyj i zdecyduj |
 | zolty "popraw ulozenie", "skan poruszony", "powtorz skan"; fioletowy "dwie prace"; ciemnoczerwony "poza gniazdem" | popraw ulozenie i zeskanuj plytke jeszcze raz |
@@ -28,13 +28,17 @@ dofrezowania. Komunikaty i pytania programu pojawiaja sie nad mapa.
 <!-- kolumny -->
 
 1. **Zacznij zmiane.** Uruchom program: `Stanowisko.cmd` albo skrot na pulpicie. Na pytanie "Kto teraz pracuje?" kliknij
-   swoje nazwisko - bez tego decyzje sie nie zapisza. W pasku u gory sprawdz: tryb "Wieczor", a przy "Folder projektow"
-   liczba plikow (np. "plikow projektow: 16"). Gdy jest "brak plikow projektow", kliknij "Odswiez pule".
+   swoje nazwisko - bez tego decyzje sie nie zapisza. W pasku u gory sprawdz tryb: ma byc "Wieczor". Gdy jest "Poranek"
+   (program pamieta tryb z rana), kliknij obok przycisk ze strzalka i napisem "Wieczor". Przy "Folder projektow" ma byc
+   liczba plikow (np. "plikow projektow: 16"); gdy jest "brak plikow projektow", kliknij "Odswiez pule".
 2. **Uloz prace i zeskanuj plytke.** Prace klad do gniazd brzegiem do gory, jedna praca w jednym gniezdzie; most do
    podluznej rynienki z przodu. Wsun plytke do skanera do oporu i uruchom skan w programie skanera. Plik skanu program
    bierze sam - w pasku przy "Analiza" widac postep. W tym czasie ukladaj nastepna plytke.
 3. **Przeczytaj mape.** Po analizie widzisz mape plytki: kazde gniazdo ma kolor i podpis (tabela wyzej). Napis nad mapa,
-   np. "do obejrzenia: 4", mowi, ile prac czeka na Twoja decyzje.
+   np. "do obejrzenia: 4", mowi, ile prac czeka na Twoja decyzje. Gdy poprzednia plytka ma jeszcze prace bez decyzji,
+   ekran zostaje na niej, a nowa czeka: z lewej, nad lista plytek, jest przycisk "Pokaz nowy wynik: Plytka 2", a pod nim
+   zolte pole "Nowy wynik czeka: Plytka 2". Dokoncz plytke albo kliknij ten przycisk - komunikaty i pytania o nowej
+   plytce zobaczysz dopiero wtedy. Numer ogladanej plytki jest w naglowku mapy.
 4. **Obejrzyj wskazane prace.** Wyjmij plytke. Kliknij czerwone albo zolte gniazdo - z prawej pojawi sie praca: kuweta,
    zab, rozmiar ubytku i obraz z zaznaczonym miejscem. Wez te prace do reki i obejrzyj to miejsce.
 5. **Zdecyduj.** "Ukruszona" (klawisz U) - odloz prace na bok; program dopisze ja do listy do dofrezowania.
@@ -54,7 +58,8 @@ praca na tej plytce nie jest potwierdzona.
 ![Komunikat o powtorzeniu skanu](obrazki/wieczor_popraw.png)
 
 Popraw prace w gniezdzie i zeskanuj plytke jeszcze raz. Na pytanie "Ponowny skan tej samej plytki?" odpowiedz
-"Tak, to ponowny skan" (te same prace) albo "Nie, to nowy wsad" (na plytce leza juz inne prace).
+"Tak, to ponowny skan" (te same prace) albo "Nie, to nowy wsad" (na plytce leza juz inne prace). Po "Tak, to ponowny skan"
+liczy sie tylko nowy skan: decyzje z poprzedniego skanu tej plytki zaznacz od nowa i sprawdz liste do dofrezowania.
 
 ![Pytanie o ponowny skan](obrazki/wieczor_ponowny.png)
 

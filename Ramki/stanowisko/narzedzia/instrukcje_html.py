@@ -19,6 +19,14 @@ Uzycie (z katalogu stanowisko/):
     py -3.12 narzedzia/instrukcje_html.py --sprawdz       kod 1, gdy cytat nie istnieje w programie albo strona jest nieaktualna
     py -3.12 narzedzia/instrukcje_html.py --cytaty        tabela: dokument, cytat, plik programu (zrodlo)
     py -3.12 narzedzia/instrukcje_html.py --pdf KATALOG [--chrome SCIEZKA]   druk do PDF przegladarka i liczba stron
+    py -3.12 narzedzia/instrukcje_html.py --zrodla        slownik cytat -> {plik programu: liczba pasujacych napisow}
+    py -3.12 narzedzia/instrukcje_html.py --zapisz-zrodla wpisz ten slownik do testy/test_instrukcje.py (po PRZEGLADZIE zmian)
+
+Zrodla cytatow (runda 2, uwaga P4 recenzji): ten sam napis bywa w programie w kilku miejscach (np. podpis gniazda w
+``statusy`` i napis przycisku w ``porownaj``), wiec samo "cytat istnieje" nie wykrywa zmiany napisu na ekranie. Test
+porownuje dla kazdego cytatu LICZBE pasujacych napisow w plikach ekranu (``statusy.py``, ``ui/``) z liczba zapisana w
+``testy/test_instrukcje.py`` - zmiana, usuniecie albo dodanie takiego napisu konczy sie bledem i wymaga przejrzenia
+instrukcji, a potem ``--zapisz-zrodla``.
 """
 from __future__ import annotations
 
@@ -41,8 +49,8 @@ CHROME = Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
 # dokument -> (plik md, uklad strony, szerokosci obrazkow wg nazwy pliku)
 DOKUMENTY = {
     "wieczor": (INSTRUKCJE / "wieczor.md", "pion",
-                {"wieczor_ekran.png": "100%", "wieczor_praca.png": "70%", "wieczor_popraw.png": "100%", "wieczor_ponowny.png": "100%",
-                 "wieczor_lista.png": "70%"}),
+                {"wieczor_ekran.png": "100%", "wieczor_praca.png": "54%", "wieczor_popraw.png": "100%", "wieczor_ponowny.png": "100%",
+                 "wieczor_lista.png": "62%"}),
     "poranek": (INSTRUKCJE / "poranek.md", "pion",
                 {"rano_ekran.png": "100%", "rano_kandydaci.png": "52%", "rano_braki.png": "56%", "rano_excel.png": "92%"}),
     "co_robic_gdy_nie_dziala": (INSTRUKCJE / "co_robic_gdy_nie_dziala.md", "poziom", {}),
@@ -184,6 +192,51 @@ class Indeks:
         return None
 
 
+def _pasujace(self, cytat: str) -> list[tuple[str, str]]:
+    """Wszystkie napisy programu pasujace do cytatu - (napis, plik), kazdy napis programu osobno. Te same trzy reguly co
+    ``znajdz`` (caly napis; wzor z polami; fragment z trzema kropkami), ale bez wybierania jednego zrodla."""
+    cytat = cytat.strip()
+    z_lewej = cytat.startswith("...")
+    z_prawej = cytat.endswith("...") and len(cytat) > 3
+    rdzen = cytat[3 if z_lewej else 0: len(cytat) - 3 if z_prawej else len(cytat)].strip()
+    wynik = [(czesci[0], plik) for plik, czesci, zlozone in self._wpisy if len(czesci) == 1 and zlozone[0][0].strip() == cytat]
+    if not rdzen:
+        return wynik
+    for plik, czesci, zlozone in self._wpisy:
+        if not (z_lewej or z_prawej):
+            stale = "".join(t for t, _ in zlozone)
+            if len(czesci) == 1 or _litery(stale) < 4 or 2 * _litery(stale) < _litery(rdzen):
+                continue
+            teksty = [t for t, _ in zlozone]
+            teksty[0], teksty[-1] = teksty[0].lstrip(), teksty[-1].rstrip()
+            if re.fullmatch("(.+?)".join(re.escape(t) for t in teksty), rdzen) is not None:
+                wynik.append(("".join(czesci), plik))
+            continue
+        if _litery(rdzen) < 5 or (len(czesci) == 1 and zlozone[0][0].strip() == cytat):
+            continue
+        for i, (tekst, _) in enumerate(zlozone):
+            trafienia = [m.start() for m in re.finditer(re.escape(rdzen), tekst)]
+            if any((z_lewej or (i == 0 and not tekst[:s].strip())) and (z_prawej or (i == len(zlozone) - 1 and not tekst[s + len(rdzen):].strip()))
+                   for s in trafienia):
+                wynik.append(("".join(czesci), plik))
+                break
+    return wynik
+
+
+def _zrodla(self, cytat: str) -> dict[str, int]:
+    """Plik programu -> liczba napisow pasujacych do cytatu. Gdy cytat ma napis w plikach ekranu (``statusy.py``, ``ui/``),
+    licza sie tylko one (tam sa napisy, ktore widzi technik); inaczej wszystkie pliki programu."""
+    wszystkie: dict[str, int] = {}
+    for _, plik in self.pasujace(cytat):
+        wszystkie[plik] = wszystkie.get(plik, 0) + 1
+    ekran = {plik: n for plik, n in wszystkie.items() if plik == "statusy.py" or plik.startswith("ui/")}
+    return dict(sorted((ekran or wszystkie).items()))
+
+
+Indeks.pasujace = _pasujace
+Indeks.zrodla = _zrodla
+
+
 def tekst_bez_kodu(md: str) -> str:
     """Tresc instrukcji bez nazw plikow i polecen (`...`) oraz bez sciezek obrazkow - tam cudzyslow nie jest cytatem."""
     md = WZOR_OBRAZKA.sub(lambda m: m.group(1), md)
@@ -210,6 +263,36 @@ def obrazki(md: str) -> list[str]:
 
 def brakujace_cytaty(md: str, indeks: Indeks) -> list[str]:
     return [c for c in cytaty(md) if indeks.znajdz(c) is None]
+
+
+OPISY_T14 = ("README.md", "scenariusz_symulatora.md")  # opisy proby dla prowadzacego - tez cytuja napisy z ekranu
+PLIK_TESTU = STANOWISKO / "testy" / "test_instrukcje.py"
+ZNACZNIK_ZRODEL = ("# >>> ZRODLA_CYTATOW (generowane: narzedzia/instrukcje_html.py --zapisz-zrodla)", "# <<< ZRODLA_CYTATOW")
+
+
+def wszystkie_cytaty() -> list[str]:
+    """Cytaty ze wszystkich dokumentow (instrukcje, zestaw T14, opisy proby), posortowane, bez powtorzen."""
+    teksty = [plik.read_text(encoding="ascii") for plik, _, _ in DOKUMENTY.values()]
+    teksty += [(T14 / nazwa).read_text(encoding="ascii") for nazwa in OPISY_T14]
+    return sorted({c for tekst in teksty for c in cytaty(tekst)})
+
+
+def zrodla_cytatow(indeks: Indeks | None = None) -> dict[str, dict[str, int]]:
+    indeks = indeks or Indeks()
+    return {c: indeks.zrodla(c) for c in wszystkie_cytaty()}
+
+
+def zrodla_jako_kod(zrodla: dict) -> str:
+    """Slownik zrodel jako kod Pythona (ASCII, jeden cytat w wierszu) do wklejenia w ``testy/test_instrukcje.py``."""
+    wiersze = [ZNACZNIK_ZRODEL[0], "ZRODLA_CYTATOW = {"]
+    wiersze += [f"    {cytat!r}: {pliki!r}," for cytat, pliki in zrodla.items()]
+    return "\n".join(wiersze + ["}", ZNACZNIK_ZRODEL[1]])
+
+
+def zapisz_zrodla(zrodla: dict, plik: Path = PLIK_TESTU) -> None:
+    tekst = plik.read_text(encoding="ascii")
+    start, koniec = tekst.index(ZNACZNIK_ZRODEL[0]), tekst.index(ZNACZNIK_ZRODEL[1]) + len(ZNACZNIK_ZRODEL[1])
+    plik.write_text(tekst[:start] + zrodla_jako_kod(zrodla) + tekst[koniec:], encoding="ascii", newline="\n")
 
 
 # ----------------------------------------------------------------------------
@@ -241,9 +324,11 @@ tr { break-inside: avoid; }
 """
 UKLADY = {
     "pion": {"orientacja": "portrait", "margines": "8mm 9mm", "pismo": "8.4pt", "szerokosc": "192mm",
-             "dodatki": ".obok table { font-size: 7.7pt; }"},
+             # punkt listy moze przejsc do nastepnej kolumny (tekst w lewej, jego obrazek w prawej) - bez tego pod lewa kolumna
+             # zostaje pusty pas, a prawa wychodzi na druga strone (pomiar rundy 2)
+             "dodatki": ".obok table { font-size: 7.7pt; } li { break-inside: auto; orphans: 2; widows: 2; }"},
     "poziom": {"orientacja": "landscape", "margines": "7mm 8mm", "pismo": "7.3pt", "szerokosc": "279mm",
-               "dodatki": "th, td { padding: 1pt 2.5pt; } h1 { font-size: 13pt; } p { margin: 1pt 0 2pt 0; }"},
+               "dodatki": "body { line-height: 1.15; } th, td { padding: 0.8pt 2.5pt; } h1 { font-size: 13pt; } p { margin: 1pt 0 2pt 0; }"},
     "poziom2": {"orientacja": "landscape", "margines": "8mm 9mm", "pismo": "9.6pt", "szerokosc": "279mm",
                 "dodatki": ".kolumny { column-gap: 9mm; } h2 { font-size: 13pt; } li { margin-bottom: 3pt; }"},
     "arkusz": {"orientacja": "portrait", "margines": "10mm 11mm", "pismo": "9pt", "szerokosc": "188mm",
@@ -454,8 +539,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cytaty", action="store_true", help="wypisz cytaty z plikiem programu, z ktorego pochodza")
     parser.add_argument("--pdf", type=Path, metavar="KATALOG", help="wydrukuj strony do PDF (przegladarka bez okna) i policz strony")
     parser.add_argument("--chrome", type=Path, default=CHROME, help="program przegladarki do --pdf")
+    parser.add_argument("--zrodla", action="store_true", help="wypisz slownik: cytat -> {plik programu: liczba pasujacych napisow}")
+    parser.add_argument("--zapisz-zrodla", action="store_true", help="wpisz ten slownik do testy/test_instrukcje.py")
     args = parser.parse_args(argv)
     indeks = Indeks()
+    if args.zrodla or args.zapisz_zrodla:
+        zrodla = zrodla_cytatow(indeks)
+        bez = [c for c, pliki in zrodla.items() if not pliki]
+        for c in bez:
+            print(f"BLAD: cytatu nie ma w programie: \"{c}\"", file=sys.stderr)
+        if args.zapisz_zrodla and not bez:
+            zapisz_zrodla(zrodla)
+            print(f"{PLIK_TESTU.name}: zapisano zrodla {len(zrodla)} cytatow")
+        else:
+            print(zrodla_jako_kod(zrodla))
+        return 1 if bez else 0
     bledy = 0
     for nazwa in DOKUMENTY:
         plik_html, strona, zrodla = zloz_dokument(nazwa, indeks)

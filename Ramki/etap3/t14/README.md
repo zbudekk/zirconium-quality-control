@@ -16,12 +16,17 @@ Probe prowadzi wlasciciel. Ten katalog daje wszystko, co trzeba przygotowac; sam
 
 ## Przygotowanie (ok. 15 minut)
 
-1. Komputer z ekranem 1920 x 1080, mysz i klawiatura. Najlepiej laptop stanowiska; moze byc PC.
+1. Komputer z mysza i klawiatura, najlepiej laptop stanowiska. Ekran: po uwzglednieniu skalowania Windows co najmniej
+   1280 x 720 punktow - czyli ekran 1920 x 1080 ze skalowaniem 100 %, 125 % albo 150 % (Ustawienia - Ekran - Skala).
+   Okno programu ma byc zmaksymalizowane. Przycisk "To ten projekt" (zadanie R2) jest widoczny bez przewijania w oknach
+   1920 x 1080, 1600 x 900, 1536 x 864 i 1280 x 720 (sprawdzone bez ekranu, na programie po paczce E3-P14); mniejszych okien
+   i skalowania 175 % nie sprawdzano - nie uzywaj ich w probie.
 2. Wydrukuj `jedna_strona.html` i `arkusz_obserwacji.html`: otworz w przegladarce, Drukuj, A4, skala 100 %, bez
    naglowkow i stopek przegladarki, z grafika tla. Kazdy plik ma dac jedna strone.
-3. W oknie polecen, w tym katalogu, uruchom sprawdzenie: `PY symulator_t14.py --sprawdz` (co to jest `PY` - patrz
-   `scenariusz_symulatora.md`). Ostatni wiersz: `SPRAWDZENIE T14 BEZ EKRANU: zgodne 18 z 18 krokow`. Inny wynik = nie
-   zaczynaj proby, zglos.
+3. Uruchom sprawdzenie: `PY symulator_t14.py --sprawdz`. `PY` i sciezki - patrz `scenariusz_symulatora.md`, sekcja
+   Polecenia; na laptopie z programem zainstalowanym z paczki wydania (uruchamianym przez `Stanowisko.cmd`) jest to
+   `C:\Stanowisko\Polecenie.cmd C:\T14\symulator_t14.py --sprawdz --program .`. Ostatni wiersz:
+   `SPRAWDZENIE T14 BEZ EKRANU: zgodne 22 z 22 krokow`. Inny wynik = nie zaczynaj proby, zglos.
 4. Przygotuj stoper (telefon) i dlugopis. Opcjonalnie: plytka wieczorna i poranna z kilkoma starymi pracami oraz dwie
    kuwety - osoba moze wtedy naprawde przekladac prace. Bez nich osoba mowi glosno, co by przelozyla.
 5. Osoba badana nie moze wczesniej widziec programu ani instrukcji `wieczor` i `poranek`.
@@ -33,7 +38,8 @@ Probe prowadzi wlasciciel. Ten katalog daje wszystko, co trzeba przygotowac; sam
 2. Daj kartke `jedna_strona`. Uruchom czesc wieczorna: `PY symulator_t14.py wieczor --dziennik t14_wieczor.log`.
 3. Czytaj polecenia W1-W5 z arkusza, po jednym. Po kazdym zapisz: wykonane, interwencja, zawahanie ponad 10 s (gdzie, ile).
 4. Zamknij okno programu. Uruchom czesc poranna: `PY symulator_t14.py rano --dziennik t14_rano.log`. Polecenia R1-R6.
-5. Zamknij okno. Podsumowanie z okna polecen (albo z plikow dziennika) porownaj z arkuszem.
+5. Zamknij okno. Wiersze `osoba: ...` i podsumowanie z okna polecen (albo z plikow dziennika) porownaj z arkuszem:
+   dziennik podaje z godzina decyzje, cofniecia, kuwety rozlozone i zamkniecie pieca; czasu zawahania nie mierzy.
 
 ## Czego nie mowic i nie robic
 

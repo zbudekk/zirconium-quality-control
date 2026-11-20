@@ -12,8 +12,10 @@ Uzycie (wiersz polecen w katalogu Ramki/etap3/t14; PY = python 3.12 z pakietami 
 Opcje: --program KATALOG (katalog programu z pakietem ``stanowisko``; domyslnie ../../stanowisko), --scenariusz PLIK,
 --opoznienie S (domyslnie 8), --dziennik PLIK (zapis tego, co skrypt wypisuje w oknie polecen).
 
-W oknie polecen skrypt wypisuje dla prowadzacego: kazda Spacje, kazdy podany skan i - po zamknieciu okna - podsumowanie
-(ile plytek, decyzji, pozycji listy; rano: piec, zlecenia kompletne, braki). Kod wyjscia: 0; ``--sprawdz``: 0 = wszystkie
+W oknie polecen skrypt wypisuje dla prowadzacego: kazda Spacje, kazdy podany skan, kazde polecenie osoby widoczne w stanie
+programu (wiersze "osoba: ..." z godzina: decyzja, cofniecie, odpowiedz na pytanie, kuweta rozlozona / cofnieta / wybrana,
+wybor projektu, zamkniecie pieca) i - po zamknieciu okna - podsumowanie (ile plytek, decyzji, pozycji listy; rano: piec,
+kuwety rozlozone wg dziennika, zlecenia kompletne, braki). Kod wyjscia: 0; ``--sprawdz``: 0 = wszystkie
 kroki zgodne, 1 = ktorys niezgodny.
 """
 from __future__ import annotations
@@ -74,6 +76,8 @@ class Symulator:
 
         self.k, self.tryb, self.skany, self.opoznienie, self.dziennik = kontroler, tryb, list(skany), float(opoznienie), dziennik
         self.podane: list[int] = []  # skan_id kolejnych skanow
+        self.rozlozone: list[str] = []  # kuwety potwierdzone przez osobe (po zamknieciu pieca stan programu ich juz nie podaje)
+        self._obraz: dict | None = None  # ostatnio widziany stan programu (do wierszy "osoba: ...")
         self._widziane = len(kontroler.starty_skanu)
         self._od: float | None = None
         self._zegar = QTimer()
@@ -83,6 +87,19 @@ class Symulator:
 
     def zatrzymaj(self) -> None:
         self._zegar.stop()
+
+    def obserwuj(self) -> None:
+        """Polecenia osoby odczytane ze zmiany stanu programu -> wiersze "osoba: ..." w dzienniku (D9 recenzji PR #40)."""
+        try:
+            nowy = _obraz_stanu(self.k, self.tryb)
+        except Exception:  # noqa: BLE001 - np. baza zajeta przez chwile: nastepny odczyt za 100 ms
+            return
+        if self._obraz is not None:
+            for wiersz in _wiersze_osoby(self._obraz, nowy, self.tryb):
+                self.dziennik(wiersz)
+        if self.tryb == "rano" and nowy.get("otwarty"):
+            self.rozlozone = list(nowy["rozlozone"])
+        self._obraz = nowy
 
     def _tyk(self) -> None:
         nacisniec = len(self.k.starty_skanu)
@@ -95,6 +112,7 @@ class Symulator:
             else:
                 self._od = time.monotonic()
                 self.dziennik(f"Spacja - skan {len(self.podane) + 1} z {len(self.skany)} za {self.opoznienie:g} s")
+        self.obserwuj()
         if self._od is None:
             return
         udzial = (time.monotonic() - self._od) / self.opoznienie if self.opoznienie > 0 else 1.0
@@ -109,6 +127,56 @@ class Symulator:
             skan_id = self.k.symuluj_skan(skan["rodzaj"], numer=skan["numer"], gniazda=skan["gniazda"], projekty=skan.get("projekty"))
         self.podane.append(skan_id)
         self.dziennik(f"skan podany: {skan['co']}")
+
+
+def _obraz_stanu(k, tryb: str) -> dict:
+    """To, co polecenia osoby zmieniaja w stanie programu (porownywane co 100 ms)."""
+    s = k.stan()
+    if tryb == "wieczor":
+        return {"decyzje": {(pl.skan_id, pl.numer, g.nr, i): p.decyzja for pl in s.plytki for g in pl.gniazda
+                            for i, p in enumerate(g.prace) if p.decyzja},
+                "pytania": sum(1 for q in s.pytania if q.rodzaj == "ponowny_skan"), "lista": len(s.do_dofrezowania_biezaca),
+                "osoba": s.operator or ""}
+    r = s.rano
+    if r is None:
+        return {"osoba": s.operator or ""}
+    return {"osoba": s.operator or "", "piec": r.sesja_pieca_id, "otwarty": bool(r.otwarty), "plytek": len(r.plytki),
+            "rozlozone": [x.kuweta for x in r.kuwety if x.potwierdzona], "biezaca": r.kuweta_biezaca or "",
+            "bez_rozstrzygniecia": sum(ile for _, ile in dict(r.nierozstrzygniete).items())}
+
+
+def _wiersze_osoby(stary: dict, nowy: dict, tryb: str) -> list[str]:
+    """Roznica dwoch obrazow stanu jako wiersze dziennika "osoba: ..."."""
+    w = []
+    if nowy.get("osoba") != stary.get("osoba"):
+        w.append("osoba: wybrana osoba" if nowy.get("osoba") else "osoba: brak wybranej osoby")
+    if tryb == "wieczor":
+        sd, nd = stary.get("decyzje", {}), nowy.get("decyzje", {})
+        for klucz in sorted(set(sd) | set(nd), key=str):
+            if sd.get(klucz) != nd.get(klucz):
+                miejsce = f"plytka {klucz[1] if klucz[1] is not None else '?'}, gniazdo {klucz[2]}"
+                w.append(f"osoba: decyzja {nd[klucz]} - {miejsce}" if klucz in nd else f"osoba: decyzja cofnieta albo uniewazniona - {miejsce}")
+        if nowy.get("pytania", 0) < stary.get("pytania", 0):
+            w.append("osoba: odpowiedz na pytanie o ponowny skan")
+        if nowy.get("lista") != stary.get("lista"):
+            w.append(f"lista do dofrezowania: {nowy.get('lista')}")
+        return w
+    if nowy.get("piec") != stary.get("piec") or "otwarty" not in stary:
+        return w
+    if stary["otwarty"] and not nowy["otwarty"]:
+        return w + ["osoba: piec zamkniety"]
+    if not stary["otwarty"] and nowy["otwarty"]:
+        w.append("osoba: piec otwarty ponownie")
+    if nowy["otwarty"]:
+        w += [f"osoba: kuweta {x} rozlozona" for x in nowy["rozlozone"] if x not in stary["rozlozone"]]
+        w += [f"osoba: kuweta {x} cofnieta" for x in stary["rozlozone"] if x not in nowy["rozlozone"]]
+        if nowy["biezaca"] != stary["biezaca"] and nowy["rozlozone"] == stary["rozlozone"] and nowy["biezaca"] and nowy["plytek"] == stary["plytek"]:
+            w.append(f"osoba: wybrana kuweta {nowy['biezaca']}")
+        if nowy["plytek"] == stary["plytek"] and nowy["bez_rozstrzygniecia"] < stary["bez_rozstrzygniecia"]:
+            w.append(f"osoba: praca rozstrzygnieta (bez rozstrzygniecia zostalo: {nowy['bez_rozstrzygniecia']})")
+        elif nowy["plytek"] == stary["plytek"] and nowy["bez_rozstrzygniecia"] > stary["bez_rozstrzygniecia"]:
+            w.append(f"osoba: wybor cofniety (bez rozstrzygniecia: {nowy['bez_rozstrzygniecia']})")
+    return w
 
 
 def przygotuj_qt(bez_ekranu: bool):
@@ -132,7 +200,7 @@ def nowy_kontroler(tryb: str, zegar=None):
     return k
 
 
-def podsumowanie(k, tryb: str) -> list[str]:
+def podsumowanie(k, tryb: str, rozlozone: list | None = None) -> list[str]:
     """Stan po probie odczytany z kontrolera - pomoc dla prowadzacego przy wypelnianiu arkusza (nie zastepuje obserwacji)."""
     s = k.stan()
     wiersze = [f"PODSUMOWANIE ({tryb}): osoba: {'wybrana' if s.operator else 'NIE WYBRANA'}"]
@@ -147,7 +215,9 @@ def podsumowanie(k, tryb: str) -> list[str]:
         piec = 'brak (nie bylo skanu)' if r.sesja_pieca_id is None else 'otwarty' if r.otwarty else 'ZAMKNIETY'
         wiersze.append(f"piec: {piec}; plytek: {len(r.plytki)}; nierozstrzygniete: "
                        + (", ".join(f"{n} {ile}" for n, ile in dict(r.nierozstrzygniete).items()) or "0"))
-        wiersze.append(f"kuwety rozlozone: {', '.join(x.kuweta for x in r.kuwety if x.potwierdzona) or 'brak'}; biezaca: {r.kuweta_biezaca or '-'}")
+        if rozlozone is None:
+            rozlozone = [x.kuweta for x in r.kuwety if x.potwierdzona]
+        wiersze.append(f"kuwety rozlozone przed zamknieciem pieca (wg dziennika): {', '.join(rozlozone) or 'brak'}; biezaca: {r.kuweta_biezaca or '-'}")
         wiersze.append(f"kompletne: {', '.join(z.kuweta for z in r.kompletne) or 'brak'}; braki: {', '.join(z.kuweta for z in r.braki) or 'brak'}"
                        + ("" if not r.otwarty else " (piec otwarty - stan prowizoryczny)"))
     return wiersze
@@ -170,8 +240,9 @@ def proba(tryb: str, scenariusz: dict, opoznienie: float, dziennik, zamknij_po: 
 
         QTimer.singleShot(int(zamknij_po * 1000), app.quit)
     app.exec()
+    symulator.obserwuj()
     symulator.zatrzymaj()
-    for wiersz in podsumowanie(k, tryb):
+    for wiersz in podsumowanie(k, tryb, symulator.rozlozone):
         dziennik(wiersz)
     lacznik.zatrzymaj()
     k.zamknij()
@@ -194,7 +265,7 @@ class Kroki:
 def _ekran(program: Path):
     narzedzia = program / "narzedzia"
     if not (narzedzia / "zrzuty_instrukcji.py").is_file():
-        raise SystemExit(f"BLAD: --sprawdz wymaga {narzedzia / 'zrzuty_instrukcji.py'} (kopia repozytorium, nie sama paczka wydania)")
+        raise SystemExit(f"BLAD: --sprawdz wymaga {narzedzia / 'zrzuty_instrukcji.py'} (katalog programu z podkatalogiem narzedzia: kopia repozytorium albo program z paczki wydania)")
     sys.path.insert(0, str(narzedzia))
     import zrzuty_instrukcji as Z
 
@@ -230,25 +301,32 @@ def sprawdz_wieczor(Z, scenariusz: dict, krok: Kroki, dziennik) -> None:
              e.jest("widok_pracy") and N.NAJWIEKSZY_UBYTEK.split("{")[0] in e.teksty())
         # zadanie 3: jedna ukruszona, jedna OK
         e.klik("przycisk_ukruszona")
+        e.odczekaj(250)
         krok('W3 "Ukruszona": podpis gniazda UKRUSZONA', e.okno.mapa.podpisy()[czerwone[0]] == ST.STATUSY["ukruszona"].napis)
         e.klik_gniazdo(czerwone[1])
         e.klik("przycisk_ok")
+        e.odczekaj(250)
         krok('W3 "OK": podpis gniazda "OK - zatwierdzona"', e.okno.mapa.podpisy()[czerwone[1]] == ST.STATUSY["zatwierdzona_ok"].napis)
         e.klawisz(Qt.Key.Key_Escape)
         # zadanie 4: popraw ulozenie
         e.klawisz(Qt.Key.Key_Space)
         e.czekaj(lambda: len(symulator.podane) == 2, 20.0, "druga plytka")
-        e.czekaj(lambda: e.jest("przycisk_nowa_plytka") or e.jest("komunikat_skan_do_powtorzenia"), 5.0, "sygnal nowej plytki")
-        if e.jest("przycisk_nowa_plytka"):  # na plytce 1 zostaly prace do obejrzenia - ekran nie przelacza sam
-            e.klik("przycisk_nowa_plytka")
+        # na plytce 1 zostaly 2 prace do obejrzenia - ekran nie przelacza sam: przycisk nad lista plytek i pole pod nim
+        e.czekaj(lambda: e.jest("przycisk_nowa_plytka") and e.jest("panel_nowy_wynik"), 5.0, "sygnal nowej plytki")
+        nowa = N.PLYTKA_NR.format(numer=ocz["plytka_do_poprawienia"])
+        krok('W4 ekran zostaje na plytce 1: przycisk "Pokaz nowy wynik" i pole "Nowy wynik czeka" nazywaja plytke 2, komunikatu jeszcze nie widac',
+             nowa in e.w("przycisk_nowa_plytka").text() and N.NOWY_WYNIK_TYTUL.format(plytki=nowa) in e.teksty()
+             and not e.jest("komunikat_skan_do_powtorzenia"))
+        e.klik("przycisk_nowa_plytka")
         e.czekaj(lambda: e.jest("komunikat_skan_do_powtorzenia"), 5.0, "komunikat o powtorzeniu skanu")
         powod = ST.POWODY_POWTORZENIA["popraw_ulozenie"].format(gniazda=ocz["popraw_ulozenie"])
         krok('W4 komunikat "Skan do powtorzenia" z powodem i gniazdem', powod in e.teksty()
              and e.okno.mapa.podpisy()[ocz["popraw_ulozenie"]] == ST.STATUSY["popraw_ulozenie"].napis, powod)
         e.klawisz(Qt.Key.Key_Space)
         e.czekaj(lambda: len(symulator.podane) == 3 and e.jest("pytanie_ponowny_skan"), 20.0, "pytanie o ponowny skan")
+        e.odczekaj(250)  # czlowiek czyta pytanie; dziennik zdazy je zobaczyc (odczyt stanu co 100 ms)
         e.klik("odp_potwierdz_ponowny_skan")
-        e.odczekaj(100)
+        e.odczekaj(250)
         zielone = [e.okno.mapa.podpisy()[nr] for nr in scenariusz["wieczor"]["skany"][2]["gniazda"]]
         krok('W4 po ponownym skanie i "Tak, to ponowny skan": plytka 2 zielona, komunikat zniknal',
              not e.jest("komunikat_skan_do_powtorzenia") and set(zielone) == {ST.STATUSY["zielony"].napis}, f"podpisy {zielone}")
@@ -257,6 +335,11 @@ def sprawdz_wieczor(Z, scenariusz: dict, krok: Kroki, dziennik) -> None:
         krok("W5 lista do dofrezowania ma jedna pozycje (kuweta, zab, krazek)", N.LISTA_TYTUL.format(n=1) in e.teksty()
              and tabela.rowCount() == 1 and all(tabela.item(0, i).text() for i in range(3)),
              ", ".join(tabela.item(0, i).text() for i in range(3)) if tabela.rowCount() else "pusta")
+        e.odczekaj(250)
+        osoba = [w.split(" ", 1)[1] for w in dziennik.wiersze if " osoba: " in w]
+        krok("dziennik notuje polecenia osoby (2 decyzje z miejscem, odpowiedz na pytanie)",
+             f"osoba: decyzja ukruszona - plytka 1, gniazdo {czerwone[0]}" in osoba and f"osoba: decyzja ok - plytka 1, gniazdo {czerwone[1]}" in osoba
+             and "osoba: odpowiedz na pytanie o ponowny skan" in osoba, f"wierszy osoby: {len(osoba)}")
         for wiersz in podsumowanie(k, "wieczor"):
             dziennik(wiersz)
     finally:
@@ -295,9 +378,19 @@ def sprawdz_rano(Z, scenariusz: dict, krok: Kroki, dziennik) -> None:
         skan = symulator.podane[0]
         zolte = [nr for nr, kolor in e.okno.ekran_rano.mapy()[skan].kolory().items() if kolor == ST.status_rano("dwuznaczna").hex]
         krok("R2 zolte gniazdo jak w scenariuszu", zolte == [ocz["zolte"]], f"zolte {zolte}")
+        # "Zamknij piec" przed rozstrzygnieciem zoltej pracy: program pyta, Esc wraca do rozstrzygania (piec zostaje otwarty)
+        e.klik("przycisk_zamknij_piec")
+        e.czekaj(lambda: e.jest("pytanie_zamknij_mimo"), 5.0, "pytanie przed zamknieciem pieca")
+        pytanie = NR.ZAMKNIJ_MIMO_TYTUL in e.teksty() and e.jest("zamknij_mimo_wroc") and e.jest("zamknij_mimo_tak")
+        e.klawisz(Qt.Key.Key_Escape)
+        e.odczekaj(100)
+        krok('R6 za wczesnie: pytanie "Zamknac piec mimo prac bez rozstrzygniecia?", Esc = powrot, piec otwarty',
+             pytanie and not e.jest("pytanie_zamknij_mimo") and k.stan().rano.otwarty)
+        e.klawisz(Qt.Key.Key_Escape)
         e.klik_gniazdo(ocz["zolte"], skan)
         e.czekaj(lambda: e.jest("kandydat_1_wybierz"), 5.0, "dwaj kandydaci")
         e.klik("kandydat_1_wybierz")
+        e.odczekaj(250)
         krok('R2 po "To ten projekt" gniazdo zielone (przypisana)',
              e.okno.ekran_rano.mapy()[skan].kolory()[ocz["zolte"]] == ST.status_rano("przypisana").hex)
         e.klawisz(Qt.Key.Key_Escape)
@@ -305,18 +398,22 @@ def sprawdz_rano(Z, scenariusz: dict, krok: Kroki, dziennik) -> None:
         pierwsza = biezaca()
         obwiedzione = sum(len(m.biezace()) for m in e.okno.ekran_rano.mapy().values())
         e.klawisz(Qt.Key.Key_Return)
+        e.odczekaj(250)
         krok("R3 biezaca kuweta obwiedziona na plytkach, Enter = rozlozona", obwiedzione > 0 and stan_kuwety(pierwsza) == NR.KUWETA_STAN_ROZLOZONA,
              f"kuweta {pierwsza}, gniazd {obwiedzione}")
         # zadanie 4: pomylka
         druga = biezaca()
         e.klawisz(Qt.Key.Key_Return)
+        e.odczekaj(250)
         e.klawisz(Qt.Key.Key_Backspace)
+        e.odczekaj(250)
         krok("R4 Backspace cofa ostatnia kuwete (znowu biezaca)", biezaca() == druga and stan_kuwety(druga) != NR.KUWETA_STAN_ROZLOZONA,
              f"kuweta {druga}")
         # zadanie 5: kuweta po numerze
         e.wpisz(ocz["kuweta_do_znalezienia"])
         wpisany = NR.BUFOR.split("{")[0] in e.teksty()
         e.klawisz(Qt.Key.Key_Return)
+        e.odczekaj(250)
         krok("R5 numer wpisany cyframi i Enter: ta kuweta jest biezaca", wpisany and biezaca() == ocz["kuweta_do_znalezienia"],
              f"kuweta {biezaca()}")
         # zadanie 6: zamknij piec i braki
@@ -326,7 +423,15 @@ def sprawdz_rano(Z, scenariusz: dict, krok: Kroki, dziennik) -> None:
         braki = [w[0] for w in teksty_tabeli(e.w("tabela_braki"))]
         krok('R6 po "Zamknij piec": zlecenia kompletne i braki jak w scenariuszu', kompletne == ocz["kompletne"] and braki == ocz["braki"]
              and not k.stan().rano.otwarty, f"kompletne {kompletne}, braki {braki}")
-        for wiersz in podsumowanie(k, "rano"):
+        e.odczekaj(250)
+        osoba = [w.split(" ", 1)[1] for w in dziennik.wiersze if " osoba: " in w]
+        wiersze = podsumowanie(k, "rano", symulator.rozlozone)
+        krok("dziennik notuje polecenia osoby (wybor projektu, kuweta rozlozona i cofnieta, kuweta wybrana, piec zamkniety)",
+             all(x in osoba for x in (f"osoba: kuweta {pierwsza} rozlozona", f"osoba: kuweta {druga} rozlozona", f"osoba: kuweta {druga} cofnieta",
+                                      f"osoba: wybrana kuweta {ocz['kuweta_do_znalezienia']}", "osoba: piec zamkniety"))
+             and any(x.startswith("osoba: praca rozstrzygnieta") for x in osoba)
+             and any(f"(wg dziennika): {pierwsza};" in x for x in wiersze), f"wierszy osoby: {len(osoba)}")
+        for wiersz in wiersze:
             dziennik(wiersz)
     finally:
         symulator.zatrzymaj()
