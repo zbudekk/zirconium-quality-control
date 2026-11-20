@@ -55,7 +55,7 @@ PELNA_LISTA_OD = 1000
 WIERSZY_ZWINIETYCH = 2
 LOKALNE_ZAMKNIJ_MIMO_WROC = "_zamknij_mimo_wroc"  # E3-P14 (N3): odpowiedzi na pytanie ekranu przed "Zamknij piec"
 LOKALNE_ZAMKNIJ_MIMO_TAK = "_zamknij_mimo_tak"
-PYTANE ={"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "pomin_skan"}  # rano: plytki nie z trybu nie dopuszcza sie (A6)
+PYTANE = {"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "pomin_skan"}  # rano: plytki nie z trybu nie dopuszcza sie (A6)
 
 
 def blad_programu(komunikat) -> bool:
@@ -1047,6 +1047,15 @@ class EkranRano(QWidget):
             return True
         if zdarzenie.isAutoRepeat() and klawisz != Qt.Key.Key_Backspace:
             return klawisz in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Escape)
+        # E3-P14 runda 2 (D2): otwarte pytanie "Zamknac piec mimo prac bez rozstrzygniecia?" przejmuje Enter i Esc - Enter
+        # wcisniety "na pytanie" nie zapisuje "Rozlozona" biezacej kuwety (zaden klawisz pieca nie zamyka), Esc = "Wroc do
+        # rozstrzygania". Ramka poranna nie wysyla klawiszy do okna (zdarzenia ida przez kontroler) - jej Enter dziala jak dotad
+        if self._pytanie_zamkniecia is not None and not self._bufor:
+            if klawisz in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                return True
+            if klawisz == Qt.Key.Key_Escape:
+                self._odpowiedz_zamkniecia(LOKALNE_ZAMKNIJ_MIMO_WROC)
+                return True
         if klawisz in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             if self._bufor:
                 bufor, self._bufor = self._bufor, ""

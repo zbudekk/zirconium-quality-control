@@ -111,8 +111,11 @@ przeniesienia. Zrzuty: zmienna `E3_ZRZUTY`.
   wlasciwym" (`napisy_rano.OPIS_W_WIDOKU`); opis w legendzie ("kliknij gniazdo ...") bez zmian.
 - **"Zamknij piec" z pracami bez rozstrzygniecia (N3).** Gdy `StanRano.nierozstrzygniete_prace` nie jest puste, przycisk
   NIE zamyka: nad plytkami pojawia sie pytanie ekranu `pytanie_zamknij_mimo` (ile prac, plytka i gniazdo kazdej, skutek)
-  z odpowiedziami "Wroc do rozstrzygania" (pierwsza, wyrozniona; piec zostaje otwarty, otwiera sie pierwsza taka praca)
-  i "Zamknij piec mimo to" (polecenie `zamknij_piec`). Strona "Kompletne i braki" nazywa te prace w osobnej grupie
+  z odpowiedziami "Zamknij piec mimo to" (polecenie `zamknij_piec`) i "Wroc do rozstrzygania" (wyrozniona; piec zostaje
+  otwarty, otwiera sie pierwsza taka praca). Runda 2 (P2): "Wroc do rozstrzygania" stoi po prawej - pod miejscem, w ktorym
+  przed pytaniem byl przycisk "Zamknij piec" - drugie klikniecie w to samo miejsce (dwuklik) nie zamyka pieca (test
+  geometrii w 4 rozmiarach okna). Runda 2 (D2): przy otwartym pytaniu Esc = "Wroc do rozstrzygania", Enter nie potwierdza
+  kuwety (ramka poranna nie wysyla klawiszy do okna - bez zmian). Strona "Kompletne i braki" nazywa te prace w osobnej grupie
   (`rano_nierozstrzygniete`): w otwartym piecu "jeszcze NIE policzone", po zamknieciu "NIE policzone w tym piecu ... zeby
   w brakach jako "nie wyszedl z pieca" albo zlecenia nie ma na zadnej liscie" z rada "Otworz piec ponownie". Klawisz
   "Zamknij piec" ramki porannej i polecenie kontrolera nie pytaja (decyzja wlasciciela - raport E3-P14).

@@ -325,6 +325,50 @@ def test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_pono
     assert ocena == PC.OK, f"N1 {polecenie}: {powtorki.opis()}"
 
 
+def test_r2_p4_zalegly_stan_po_udanym_zapisie_nadrabia_zegar_okna(atrapa, monkeypatch):
+    """Runda 2 (P4 b, wstrzykniecie M14 recenzenta): zapis decyzji udany, odczyt stanu zaraz po nim raz nieudany (baza zajeta) -
+    ekran pokazuje jeszcze prace bez decyzji, w bazie decyzja jest. Zegar okna (``przetworz``) po ``OKRES_NADRABIANIA_STANU_S``
+    czyta stan ponownie: ekran pokazuje decyzje, ``_stan_zalegly`` False. Bez nadrabiania ekran zostaje sprzeczny z baza."""
+    from stanowisko import kontroler_api as K
+
+    atrapa.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("zwykla", numer=1)
+    p9 = atrapa.stan().plytka(skan).gniazdo(9).praca.praca_id
+    prawdziwy, proby = atrapa._zbuduj, []
+
+    def raz_zajeta():
+        proby.append(1)
+        if len(proby) == 1:
+            raise B.BladBazy("proba: baza zajeta przy odczycie stanu")
+        return prawdziwy()
+
+    monkeypatch.setattr(atrapa, "_zbuduj", raz_zajeta)
+    odp = atrapa.wykonaj("ukruszona", p9)
+    assert odp.ok and decyzja_pracy(atrapa, p9) == 1  # decyzja zapisana
+    assert atrapa._stan_zalegly and atrapa.stan().praca(p9).decyzja is None  # ekran jeszcze jej nie pokazuje
+    t0 = time.monotonic()
+    while atrapa._stan_zalegly and time.monotonic() - t0 < K.OKRES_NADRABIANIA_STANU_S + 2.0:
+        atrapa.przetworz()
+        time.sleep(0.05)
+    czas = time.monotonic() - t0
+    print(f"\n[P4b] stan nadrobiony po {czas:.2f} s (okres {K.OKRES_NADRABIANIA_STANU_S} s), odczytow {len(proby)}")
+    assert not atrapa._stan_zalegly and atrapa.stan().praca(p9).decyzja == "ukruszona", f"po {czas:.2f} s ekran nadal bez decyzji"
+    assert len(atrapa.stan().do_dofrezowania) == 1
+
+
+def test_r2_d3_kazde_polecenie_ponawiane_ma_napis_dla_technika(atrapa):
+    """Runda 2 (D3): komunikat "NIE zapisano" nazywa polecenie napisem dla technika (``ST.PRZYCISKI``), nigdy nazwa
+    programisty - dla kazdego polecenia, ktore moze trafic na liste do ponowienia (bylo: "wybierz_wpis", "cofnij_wpis")."""
+    from stanowisko import kontroler_api as K
+
+    ponawiane = set(K.PONAWIANE_Z_LICZB) | set(K.DECYZJE_O_PRACY) | {"podaj_numer_plytki", "przelacz_tryb", "zamknij_piec_i_przenies",
+                                                                   "zamknij_brak_recznie", "potwierdz_kuwete", "cofnij_kuwete"}
+    assert not sorted(n for n in ponawiane if n not in ST.PRZYCISKI)
+    for nazwa in sorted(ponawiane):
+        opis = atrapa._opis_polecenia(nazwa, (1, 1))
+        assert nazwa not in opis and "_" not in opis, (nazwa, opis)
+
+
 def test_r2_d7_zapisz_liste_przy_zajetej_bazie_czeka_na_baze_raz(atrapa, obcy, monkeypatch):
     """Runda 2 (D7): "Zapisz liste do pliku" przy bazie trzymanej na wylacznosc - odmowa ``lista_nie_zapisana`` (komunikat z
     przyciskiem ponowienia) po JEDNEJ probie odczytu stanu (bylo: dwie proby po ok. 0,46 s = 934 ms przy limicie 1 s); po

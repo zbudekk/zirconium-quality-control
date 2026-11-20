@@ -291,7 +291,10 @@ D4: czas ladowania modulow z DLL w logu startu (z Open3D przy `pula_wpisow`) - d
   komunikatami ulotnymi (`_pokaz_komunikaty` - bez czytania bazy), a zegar okna ponawia odczyt co
   `OKRES_NADRABIANIA_STANU_S` = 1 s jedna proba bez czekania, ok. 30 ms (`_nadrob_stan`; `KontrolerSesji.przetworz` i
   `Aplikacja.przetworz`). Zmierzone (atrapa, baza trzymana przez drugie polaczenie `BEGIN EXCLUSIVE`): przed 14,7-14,9 s,
-  po 0,65-0,68 s - tabela w raporcie E3-P14.
+  po 0,65-0,68 s - tabela w raporcie E3-P14. Runda 2 (P1): polecenia plytki (`potwierdz_ponowny_skan`,
+  `cofnij_zastapienie`, `dopusc_plytke`, `cofnij_dopuszczenie`, `podaj_numer_plytki`) czytaja tryb skanu POD ta oslona
+  (`_polecenie_plytki`) - wczesniej odczyt przed `_polecenie` zatrzymywal okno na 7,4 s i konczyl sie wyjatkiem.
+  `zapisz_liste` przy zajetej bazie: jedna proba odczytu stanu (0,45 s zamiast 0,93 s).
 - `Aplikacja.start_skanu` (Spacja): wpis `start_skanu` w dzienniku czeka na baze tak samo krotko; gdy baza jest zajeta,
   Spacja dziala (program czeka na plik), brakuje tylko wpisu dziennika (ostrzezenie w logu) - wczesniej 5 s i wyjatek.
 - **`StanRano.nierozstrzygniete_prace`** (N3): krotka `NierozstrzygnietaRano` (`praca_id`, `skan_id`, `numer_plytki`,

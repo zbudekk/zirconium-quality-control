@@ -257,6 +257,10 @@ PRZYCISKI = {
     # poranek - runda 4 sesji porannej (A6): zapomniany "Zamknij piec"
     "zamknij_piec_i_przenies": "Tak, zamknij piec i przenieś nowe skany",
     "cofnij_przeniesienie": "Cofnij przeniesienie",
+    # E3-P14 runda 2 (D3): wybor krazka pracy (pula per praca) - nazwa polecenia w komunikacie "decyzja NIE zostala zapisana";
+    # brzmienie jak napisy ekranu ``ui.napisy.KRAZEK_*`` (bez polskich znakow - poz. 5 recenzji, do zmiany razem z nimi)
+    "wybierz_wpis": "Wybor krazka",
+    "cofnij_wpis": "Cofnij wybor krazka",
 }
 # E3-P14 (N1): komunikat "decyzja NIE zostala zapisana" - zamiast "Zamknij" (zamkniecie = swiadoma rezygnacja z tej decyzji)
 PRZYCISK_REZYGNUJE = "Rezygnuję — nie zapisuj"

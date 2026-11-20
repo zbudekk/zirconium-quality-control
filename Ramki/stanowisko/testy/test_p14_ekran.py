@@ -423,6 +423,53 @@ def test_n3_bez_prac_nierozstrzygnietych_zamknij_piec_nie_pyta(swiat):
     assert not k.stan().rano.otwarty and not e.jest("pytanie_zamknij_mimo") and not e.jest("rano_nierozstrzygniete")
 
 
+def test_r2_d2_przy_pytaniu_o_zamkniecie_esc_wraca_do_rozstrzygania_a_enter_nie_potwierdza_kuwety(swiat):
+    """Runda 2 (D2): pytanie "Zamknac piec mimo prac bez rozstrzygniecia?" przejmuje klawisze - Enter NIE zapisuje "Rozlozona"
+    biezacej kuwety (bylo: 0 -> 1 wpis ``kuweta_potwierdzona``), pytanie zostaje, piec otwarty; Esc = "Wroc do rozstrzygania"
+    (pytanie znika, otwiera sie pierwsza praca bez rozstrzygniecia). Bez pytania Enter potwierdza kuwete jak dotad."""
+    from PySide6.QtCore import Qt
+
+    k, zegar = swiat.rano()
+    p4, _ = poranek_t14(k, zegar)
+    e = swiat.ekran(k, (1536, 864))
+    potwierdzone = lambda: k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE typ = 'kuweta_potwierdzona'")["n"]  # noqa: E731
+    przed = potwierdzone()
+    e.klik("przycisk_zamknij_piec")
+    assert e.jest("pytanie_zamknij_mimo")
+    e.klawisz(Qt.Key.Key_Return)
+    e.klawisz(Qt.Key.Key_Enter)
+    assert potwierdzone() == przed and e.jest("pytanie_zamknij_mimo") and k.stan().rano.otwarty
+    e.klawisz(Qt.Key.Key_Escape)
+    assert not e.jest("pytanie_zamknij_mimo") and k.stan().rano.otwarty and potwierdzone() == przed
+    assert e.rano.pokazana_praca().praca_id == k.stan().rano.plytka(p4).gniazdo(3).praca.praca_id
+    e.klik("praca_rano_zamknij")
+    e.klawisz(Qt.Key.Key_Return)
+    assert potwierdzone() == przed + 1
+
+
+def test_r2_p4_jedyna_nieznana_z_bez_projektu_nie_jest_praca_bez_rozstrzygniecia(swiat):
+    """Runda 2 (P4 a, wstrzykniecie M5 recenzenta): jedyna praca "nieznana" pieca, o ktorej osoba zdecydowala swiadomie
+    "Bez projektu", NIE jest praca bez rozstrzygniecia - ``nierozstrzygniete_prace == ()``, "Zamknij piec" nie pyta, po
+    zamknieciu nie ma grupy "Prace bez rozstrzygniecia". Przed decyzja ta sama praca JEST na liscie (i ekran by zapytal)."""
+    from stanowisko import kontroler_api as K
+
+    k, zegar = swiat.rano()
+    k.przelacz_tryb("rano")
+    k.wybierz_operatora("Technik A")
+    K.indeks_rano_sztuczny(k.sesja.baza, k.sesja.teraz())
+    p4 = k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "nieznana"}, projekty={1: 307, 2: 308, 3: 309})
+    assert [(x.numer_plytki, x.gniazdo, x.klasa) for x in k.stan().rano.nierozstrzygniete_prace] == [(4, 3, "nieznana")]
+    e = swiat.ekran(k, (1536, 864))
+    e.klik_rano(p4, 3)
+    e.klik("praca_rano_bez_projektu")
+    assert k.stan().rano.nierozstrzygniete_prace == (), k.stan().rano.nierozstrzygniete_prace
+    if e.rano.pokazana_praca() is not None:
+        e.klik("praca_rano_zamknij")
+    e.klik("przycisk_zamknij_piec")
+    assert not e.jest("pytanie_zamknij_mimo"), e.tekst_elementu("pytanie_zamknij_mimo")
+    assert not k.stan().rano.otwarty and not e.jest("rano_nierozstrzygniete")
+
+
 # ----------------------------------------------------------------------------
 # poz. 8: nowy skan przed odpowiedzia na "ponowny skan?"
 # ----------------------------------------------------------------------------
