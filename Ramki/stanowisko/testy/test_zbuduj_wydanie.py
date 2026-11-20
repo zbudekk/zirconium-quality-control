@@ -26,6 +26,7 @@ DATA = dt.datetime(2026, 11, 20, 12, 0, 0, tzinfo=dt.timezone.utc)
 ATRAPA_SAMOKONTROLI = '''"""ATRAPA samokontroli wg umowy A11s - tylko do prob instalatora (prawdziwy modul: paczka E3-A11s)."""
 import argparse
 import hashlib
+import os
 import sys
 import tomllib
 from pathlib import Path
@@ -50,6 +51,7 @@ def main(argv=None):
         print("Nie mozna wczytac pliku ustawien (%s) - popraw plik i uruchom samokontrole ponownie." % type(e).__name__)
         return 2
     wiersze = [("OK", "python", "Python %d.%d" % sys.version_info[:2], "")]
+    wiersze.append(("OK", "zmienne", "PYTHONPATH=%s PYTHONHOME=%s" % (os.environ.get("PYTHONPATH"), os.environ.get("PYTHONHOME")), ""))
     program = Path(__file__).resolve().parent.parent
     if a.sumy:
         roznice, n = [], 0
@@ -102,6 +104,7 @@ def sciezka_bazy(ust):
 
 ATRAPA_APLIKACJI = '''"""Atrapa programu: wypisuje wersje i konczy (proba uruchomienia przez Stanowisko.cmd)."""
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -114,6 +117,7 @@ def main(argv=None):
     a = p.parse_args(argv)
     wersja = (Path(__file__).resolve().parent.parent / "WERSJA").read_text(encoding="ascii").strip()
     print("STANOWISKO wersja=%s atrapa=%s ustawienia=%s" % (wersja, a.atrapa, Path(a.ustawienia).is_file()))
+    print("ZMIENNE PYTHONPATH=%s PYTHONHOME=%s" % (os.environ.get("PYTHONPATH"), os.environ.get("PYTHONHOME")))
     return 0
 
 

@@ -9,6 +9,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -699,20 +700,25 @@ def test_p1_powtorzona_proba_aktualizacji_nie_mnozy_kopii(zainstalowane, tmp_pat
     assert [stan_bazy(k)[2] for k in kopie_bazy(st)] == [3, 4]  # baza sie zmienila: nowa kopia, stara zostaje
 
 
-@pytest.mark.parametrize("nr_zamiany", [1, 2])
+@pytest.mark.parametrize("nr_zamiany", [1, 2, "na_plik_bazy"])
 @pytest.mark.parametrize("blad", [PermissionError(13, "Access is denied"), Zabicie()], ids=["blad_systemu", "zabicie"])
 def test_p2_przerwane_przywrocenie_kopii_nie_zostawia_stanowiska_bez_bazy(zainstalowane, tmp_path, capsys, monkeypatch, nr_zamiany, blad):
-    """Blad systemu albo zabicie przy ktorejkolwiek zamianie plikow w folderze bazy: plik bazy caly czas istnieje i jest caly,
-    komunikat "wersja biezaca bez zmian" jest prawdziwy, a ponowny powrot dokonuje przywrocenia (nie konczy "GOTOWY" bez bazy)."""
+    """Blad systemu albo zabicie przy ktorejkolwiek zamianie plikow w folderze bazy (pierwsza, druga albo ta, ktora wstawia kopie
+    w miejsce pliku bazy): plik bazy caly czas istnieje i jest caly, komunikat "wersja biezaca bez zmian" jest prawdziwy,
+    a ponowny powrot dokonuje przywrocenia (nie konczy "GOTOWY" bez bazy). Plik bazy nie moze byc przy tym przenoszony
+    (miedzy przeniesieniem a wstawieniem kopii stanowisko nie mialoby bazy - tak dzialala runda 1)."""
     st = zainstalowane
     assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0", migracje="{1: (), 2: ()}")) == 0
     st.zaloz_baze(schemat=2, wiersze=2)
-    prawdziwe, licznik = os.replace, {"n": 0}
+    prawdziwe, licznik, baza_przenoszona = os.replace, {"n": 0, "bledy": 0}, []
 
     def zamiana(a, b):
         if Path(b).parent in (st.baza.parent, st.baza.parent / "kopie"):
             licznik["n"] += 1
-            if licznik["n"] == nr_zamiany:
+            if Path(a) == st.baza:
+                baza_przenoszona.append(Path(b).name)
+            if licznik["n"] == nr_zamiany or (nr_zamiany == "na_plik_bazy" and Path(b) == st.baza):
+                licznik["bledy"] += 1
                 raise blad
         return prawdziwe(a, b)
 
@@ -724,7 +730,8 @@ def test_p2_przerwane_przywrocenie_kopii_nie_zostawia_stanowiska_bez_bazy(zainst
         kod = None
     monkeypatch.setattr(I.os, "replace", prawdziwe)
     wyjscie = capsys.readouterr().out
-    assert licznik["n"] >= nr_zamiany  # blad naprawde wstrzykniety
+    assert licznik["bledy"] == 1  # blad naprawde wstrzykniety
+    assert baza_przenoszona == []  # plik bazy nie zmienia nazwy ani miejsca: kopia jest wstawiana jedna zamiana na jego miejsce
     assert st.baza.is_file() and stan_bazy(st.baza) == ([("ok",)], 2, 5, 0)  # baza jest i jest cala (nadal wersja 2.0)
     assert st.biezaca == "2.0" and st.poprzednia == "1.0"
     if kod is not None:
@@ -1099,6 +1106,7 @@ def test_zainstaluj_cmd_prawdziwe_srodowisko_i_skrypty(st, tmp_path):
     assert (venv / "Scripts" / "python.exe").is_file() and (st.katalog / "wersje" / "1.0" / "pip.log").is_file()
     wynik = cmd(st.katalog / "Stanowisko.cmd", "--atrapa", "--zamknij-po", "1")
     assert wynik.returncode == 0 and "STANOWISKO wersja=1.0 atrapa=True ustawienia=True" in wynik.stdout, wynik.stdout + wynik.stderr
+    assert "ZMIENNE PYTHONPATH=None PYTHONHOME=None" in wynik.stdout  # program nie dostaje zmiennych z zewnatrz
     wynik = cmd(st.katalog / "Polecenie.cmd", "-c", "import sys, os, pakiecik, testowy; print(sys.prefix); print(sys.path); "
                 "print('ZMIENNE', os.environ.get('PYTHONPATH'), os.environ.get('PYTHONHOME'))")
     assert wynik.returncode == 0 and str(venv).lower() in wynik.stdout.splitlines()[0].lower(), wynik.stdout + wynik.stderr
@@ -1106,6 +1114,7 @@ def test_zainstaluj_cmd_prawdziwe_srodowisko_i_skrypty(st, tmp_path):
     assert "ZMIENNE None None" in wynik.stdout
     wynik = cmd(st.katalog / "Samokontrola.cmd", "--bez-sieci")
     assert wynik.returncode == 0 and "SAMOKONTROLA: ZIELONA" in wynik.stdout and "OK sumy: zgodne" in wynik.stdout
+    assert "OK zmienne: PYTHONPATH=None PYTHONHOME=None" in wynik.stdout
     wynik = cmd(st.katalog / "Wersje.cmd", "/bez-pauzy")
     assert wynik.returncode == 0 and wynik.stdout.split()[0] == "1.0" and "BIEZACA" in wynik.stdout
     z_pauza = cmd(st.katalog / "Wersje.cmd")
@@ -1114,3 +1123,26 @@ def test_zainstaluj_cmd_prawdziwe_srodowisko_i_skrypty(st, tmp_path):
     assert wynik.returncode == I.KOD_BRAK_WERSJI and "nie ma poprzedniej wersji" in wynik.stdout
     assert ostatni(wynik).startswith("POWROT: NIEUDANA (kod 9)")
     assert not list((st.katalog / "wersje" / "1.0" / "program").rglob("__pycache__"))
+
+
+def test_p6_kazdy_skrypt_cmd_czysci_zmienne_pythona_a_instalator_startuje_z_opcja_izolacji():
+    """Dwie warstwy ochrony przed zmiennymi innego programu (D1, P6) w kazdym z 6 skryptow: (1) ``set "PYTHONHOME="``
+    i ``set "PYTHONPATH="`` przed pierwszym uruchomieniem Pythona, (2) instalator i proby interpretera uruchamiane z ``-I``.
+
+    Test z prawdziwym srodowiskiem (wyzej) wykrywa brak OBU warstw naraz. Brak jednej nie zmienia zachowania, dopoki dziala
+    druga (``-I`` kaze Pythonowi pominac wszystkie zmienne ``PYTHON*``), wiec kazdej z osobna pilnuje ten test - po tresci."""
+    skrypty = [STANOWISKO / "instalacja" / "zainstaluj.cmd"] + sorted((STANOWISKO / "instalacja" / "wzory").glob("*.cmd"))
+    assert [s.name for s in skrypty] == ["zainstaluj.cmd", "Polecenie.cmd", "Samokontrola.cmd", "Stanowisko.cmd", "Wersje.cmd",
+                                         "Wroc_do_poprzedniej.cmd"]
+    for skrypt in skrypty:
+        polecenia = [w.strip() for w in skrypt.read_text(encoding="ascii").splitlines()]
+        polecenia = [w for w in polecenia if w and not w.lower().startswith(("rem ", "echo "))]
+        # uruchomienie Pythona: wiersz zaczynajacy sie od programu w cudzyslowie albo petla for /f z poleceniem py / python
+        starty = [i for i, w in enumerate(polecenia)
+                  if re.match(r'"(%PY%|%~1|%W%\\venv\\Scripts\\python\.exe)" ', w) or re.match(r"for /f .*\('(py|python) ", w)]
+        assert starty, skrypt.name
+        for zmienna in ("PYTHONHOME", "PYTHONPATH"):
+            assert f'set "{zmienna}="' in polecenia[:starty[0]], f"{skrypt.name}: {zmienna} nie jest czyszczona przed startem Pythona"
+        for i in starty:
+            if "instalator.py" in polecenia[i] or " -c " in polecenia[i]:
+                assert " -I " in polecenia[i], f"{skrypt.name}: {polecenia[i][:60]}"
