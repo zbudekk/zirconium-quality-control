@@ -154,7 +154,9 @@ def drzewo_programu(katalog: Path, *, migracje: str = "{1: ()}", kod_samokontrol
     (katalog / "instalacja" / "zamrozone.txt").write_text("# lista testowa\npakiecik==1.0\n", encoding="ascii")
     (katalog / "instalacja" / "zamrozone_testy.txt").write_text("testowy==2.0\n", encoding="ascii")
     for nazwa, tresc in (("modele_plytek/wieczorna/uklad.json", "{}"), ("narzedzia/narzedzie.py", "print('narzedzie')\n"),
-                         ("ramka/__init__.py", ""), ("instrukcje/wieczor.md", "# instrukcja\n"),
+                         ("ramka/__init__.py", ""), ("ramka/protokol.py", "X = 1\n"), ("instrukcje/wieczor.md", "# instrukcja\n"),
+                         ("instrukcje/wieczor.html", "<html><body>instrukcja</body></html>\n"),
+                         ("instrukcje/dodatki/karta.html", "<html><body>karta</body></html>\n"),
                          # ponizsze NIE moga trafic do paczki
                          ("narzedzia/zbuduj_wydanie.py", "# budowa\n"), ("testy/test_x.py", "def test_x(): pass\n"),
                          ("raporty/raport.md", "raport\n"), ("dane/stanowisko.sqlite", "dane"), ("ustawienia.toml", "[sciezki]\n"),
@@ -207,7 +209,9 @@ def test_zawartosc_paczki(tmp_path):
     pliki = sorted(p.relative_to(paczka).as_posix() for p in paczka.rglob("*") if p.is_file())
     for nazwa in ("zainstaluj.cmd", "CZYTAJ.txt", "SHA256SUMS", "wydanie.json", "program/SUMY_PROGRAMU.sha256", "program/WERSJA",
                   "program/stanowisko/samokontrola.py", "program/stanowisko/aplikacja.py", "program/modele_plytek/wieczorna/uklad.json",
-                  "program/narzedzia/narzedzie.py", "program/ramka/__init__.py", "program/instrukcje/wieczor.md", "program/requirements.txt",
+                  "program/narzedzia/narzedzie.py", "program/ramka/__init__.py", "program/ramka/protokol.py", "program/requirements.txt",
+                  # caly katalog instrukcje/ - kazdy plik, takze .html i podkatalogi (instrukcje technika dostarcza paczka A11d)
+                  "program/instrukcje/wieczor.md", "program/instrukcje/wieczor.html", "program/instrukcje/dodatki/karta.html",
                   "program/ustawienia.przyklad.toml", "program/instalacja/instalator.py", "program/instalacja/wzory/Stanowisko.cmd",
                   "program/instalacja/zamrozone.txt", "kola/pakiecik-1.0-py3-none-any.whl", "kola_testy/testowy-2.0-py3-none-any.whl"):
         assert nazwa in pliki, nazwa
@@ -224,6 +228,35 @@ def test_zawartosc_paczki(tmp_path):
     assert all(len(s) == 64 and not n.startswith(("/", "program/")) for n, s in sumy_programu.items())
     assert sorted(sumy_programu) == sorted(n[len("program/"):] for n in pliki if n.startswith("program/") and n != "program/SUMY_PROGRAMU.sha256")
     assert all(sha(paczka / "program" / n) == s for n, s in sumy_programu.items())
+    # samokontrola A11s liczy jako nadmiarowy kazdy plik katalogu programu spoza listy: lista obejmuje wiec takze ramka/,
+    # requirements.txt (z nim porownuje wersje pakietow) i kazdy plik katalogu glownego programu
+    for nazwa in ("requirements.txt", "WERSJA", "ustawienia.przyklad.toml", "ramka/__init__.py", "ramka/protokol.py", "instrukcje/wieczor.html"):
+        assert nazwa in sumy_programu, nazwa
+    assert sorted(p.name for p in (paczka / "program").iterdir() if p.is_file()) == \
+        ["SUMY_PROGRAMU.sha256", "WERSJA", "requirements.txt", "ustawienia.przyklad.toml"]
+
+
+def test_numer_wersji_i_lista_wydan(tmp_path):
+    """Numeracja wydan: numer jest nazwa katalogu w Windows; budowa pod numerem juz opublikowanym (inna suma) ostrzega."""
+    for dobry in ("0.3.0", "0.3.1", "0.3.12", "1.0-rc1", "2.5-proba", "7", "0.3.2-migracja", "a" * 32):
+        assert ZW.poprawna_wersja(dobry) and I.poprawna_wersja(dobry), dobry
+    for zly in ("1.0.", "1.0 ", " 1.0", "1.0-", "1.0_", ".1", "-1", "", "nul", "NUL.1", "com1", "LPT9.x", "a/b", "a\\b", "1 0", "a" * 33, None, 3):
+        assert not ZW.poprawna_wersja(zly) and not I.poprawna_wersja(zly), zly
+    assert ZW.WZOR_WERSJI.pattern == I.WZOR_WERSJI.pattern  # budowa i instalator maja te sama regule
+    zrodlo, kola = drzewo_programu(tmp_path / "zrodlo"), kola_testowe(tmp_path / "kola")
+    lista = tmp_path / "SHA256SUMS_wydania.txt"
+    pierwsza = ZW.zbuduj(tmp_path / "a", kola, zrodlo=zrodlo, data=DATA, wersja="0.3.1", lista_wydan=lista)
+    assert pierwsza["ostrzezenia"] == []  # numeru nie ma jeszcze na liscie
+    lista.write_text(f"{'0' * 64}  Stanowisko_0.3.0.zip\n{pierwsza['sha256']}  Stanowisko_0.3.1.zip\n", encoding="ascii")
+    assert ZW.wydania_opublikowane(lista) == {"0.3.0": "0" * 64, "0.3.1": pierwsza["sha256"]}
+    assert ZW.zbuduj(tmp_path / "b", kola, zrodlo=zrodlo, data=DATA, wersja="0.3.1", lista_wydan=lista)["ostrzezenia"] == []  # ta sama paczka
+    (zrodlo / "stanowisko" / "aplikacja.py").write_text(ATRAPA_APLIKACJI + "# zmiana\n", encoding="ascii")
+    inna = ZW.zbuduj(tmp_path / "c", kola, zrodlo=zrodlo, data=DATA, wersja="0.3.1", lista_wydan=lista)
+    assert inna["sha256"] != pierwsza["sha256"] and len(inna["ostrzezenia"]) == 1 and "jest juz na liscie wydan" in inna["ostrzezenia"][0]
+    assert ZW.zbuduj(tmp_path / "d", kola, zrodlo=zrodlo, data=DATA, wersja="0.3.2", lista_wydan=lista)["ostrzezenia"] == []
+    # numer w pliku WERSJA repozytorium nie moze byc numerem juz opublikowanym (kazda opublikowana budowa = nowy numer)
+    numer = (STANOWISKO / "WERSJA").read_text(encoding="ascii").strip()
+    assert ZW.poprawna_wersja(numer) and numer.casefold() not in ZW.wydania_opublikowane(STANOWISKO / ZW.LISTA_WYDAN)
 
 
 def test_wydanie_json_i_skrypty_crlf(tmp_path):
@@ -243,6 +276,7 @@ def test_wydanie_json_i_skrypty_crlf(tmp_path):
     assert wynik["plik"].name == "Stanowisko_2.5-proba.zip"
     assert wydanie["wersja"] == "2.5-proba" and wydanie["commit"] == "abc123" and wydanie["data_commita"] == "2026-11-20T12:00:00Z"
     assert wydanie["python"] == "3.12" and wydanie["platforma"] == "win_amd64" and wydanie["samokontrola"] is True and wydanie["zrodlo"] == "katalog"
+    assert wydanie["python_sprawdzony"] == "3.12.10"  # instalator: inne 3.12.x przyjmuje z ostrzezeniem w dzienniku
     assert [(k["pakiet"], k["wersja"]) for k in wydanie["kola"]] == [("pakiecik", "1.0")]
     assert [(k["pakiet"], k["wersja"]) for k in wydanie["kola_testy"]] == [("testowy", "2.0")]
     assert wydanie["kola"][0]["sha256"] == sha(tmp_path / "kola" / "pakiecik-1.0-py3-none-any.whl")

@@ -39,8 +39,13 @@ WYMAGANE = ("stanowisko/aplikacja.py", "stanowisko/ustawienia.py", "stanowisko/b
             "instalacja/wzory/Wersje.cmd", "instalacja/wzory/Polecenie.cmd")
 MODUL_SAMOKONTROLI = "stanowisko/samokontrola.py"
 LISTA_PROGRAMU, LISTA_TESTOW = "instalacja/zamrozone.txt", "instalacja/zamrozone_testy.txt"
-WZOR_WERSJI = re.compile(r"[0-9A-Za-z][0-9A-Za-z._-]{0,31}")
+# Numer wersji = nazwa katalogu wersji w Windows (te same reguly co instalacja/instalator.py): zaczyna sie i konczy litera
+# albo cyfra (kropka na koncu znika z nazwy katalogu), do 32 znakow, nie jest nazwa urzadzenia (NUL, COM1...).
+WZOR_WERSJI = re.compile(r"[0-9A-Za-z](?:[0-9A-Za-z._-]{0,30}[0-9A-Za-z])?")
+_NAZWY_URZADZEN = frozenset(["CON", "PRN", "AUX", "NUL"] + [f"{n}{i}" for n in ("COM", "LPT") for i in range(10)])
 PYTHON, PLATFORMA = "3.12", "win_amd64"
+PYTHON_SPRAWDZONY = "3.12.10"  # interpreter, na ktorym przechodza testy; instalator przyjmuje inne 3.12.x z ostrzezeniem w dzienniku
+LISTA_WYDAN = Path("..") / "etap3" / "wydania" / "SHA256SUMS_wydania.txt"  # wzgledem katalogu stanowisko: sumy opublikowanych budow
 SKRYPTY_CRLF = (".cmd", ".bat", ".ps1")
 FORMAT_WYDANIA = 1
 
@@ -55,6 +60,25 @@ def sha256(dane: bytes) -> str:
 
 def normalizuj_nazwe(nazwa: str) -> str:
     return re.sub(r"[-_.]+", "-", nazwa).lower()
+
+
+def poprawna_wersja(wersja: object) -> bool:
+    return (isinstance(wersja, str) and WZOR_WERSJI.fullmatch(wersja) is not None
+            and wersja.split(".")[0].upper() not in _NAZWY_URZADZEN)
+
+
+def wydania_opublikowane(lista: Path) -> dict[str, str]:
+    """{numer wersji malymi literami: suma SHA-256} z pliku sum wydan (``<sha256>  Stanowisko_<wersja>.zip``); brak pliku = {}."""
+    try:
+        wiersze = lista.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return {}
+    wynik = {}
+    for wiersz in wiersze:
+        m = re.fullmatch(r"([0-9a-f]{64}) [ *]Stanowisko_(.+)[.]zip", wiersz.strip())
+        if m:
+            wynik[m.group(2).casefold()] = m.group(1)
+    return wynik
 
 
 def _git(repo: Path, *argumenty: str, wejscie: bytes | None = None) -> bytes:
@@ -140,8 +164,12 @@ def dobierz_kola(katalog: Path, pakiety: dict[str, str], opis: str) -> list[Path
 
 
 def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path | None = None, commit: str | None = None,
-           data: dt.datetime | None = None, bez_samokontroli: bool = False, stanowisko: Path = STANOWISKO, rewizja: str = "HEAD") -> dict:
-    """Buduje ``Stanowisko_<wersja>.zip`` i plik ``.sha256`` obok. Zwraca {plik, sha256, rozmiar, wersja, commit, ...}."""
+           data: dt.datetime | None = None, bez_samokontroli: bool = False, stanowisko: Path = STANOWISKO, rewizja: str = "HEAD",
+           lista_wydan: Path | None = None) -> dict:
+    """Buduje ``Stanowisko_<wersja>.zip`` i plik ``.sha256`` obok. Zwraca {plik, sha256, rozmiar, wersja, commit, ...}.
+
+    ``lista_wydan``: plik sum opublikowanych budow (domyslnie ``Ramki/etap3/wydania/SHA256SUMS_wydania.txt``) - budowa pod
+    numerem, ktory juz tam jest, a o innej sumie, daje OSTRZEZENIE: kazda opublikowana budowa dostaje nowy numer."""
     ostrzezenia = []
     if zrodlo is not None:
         if data is None:
@@ -165,8 +193,9 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
         if "WERSJA" not in pliki:
             raise BladBudowy("brak pliku WERSJA w zrodle i brak opcji --wersja")
         wersja = pliki["WERSJA"].decode("ascii", "replace").strip()
-    if not WZOR_WERSJI.fullmatch(wersja):
-        raise BladBudowy(f"niepoprawny numer wersji {wersja!r} (litery, cyfry, kropka, podkreslenie, myslnik; do 32 znakow)")
+    if not poprawna_wersja(wersja):
+        raise BladBudowy(f"niepoprawny numer wersji {wersja!r} (litery, cyfry, kropka, podkreslenie, myslnik; pierwszy i ostatni znak "
+                         "to litera albo cyfra; do 32 znakow) - numer jest nazwa katalogu wersji w Windows")
     pliki["WERSJA"] = (wersja + "\n").encode("ascii")
     for nazwa in pliki:
         if nazwa.lower().endswith(SKRYPTY_CRLF):  # skrypty Windows zawsze z CRLF, niezaleznie od ustawien gita
@@ -188,12 +217,13 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
             pakiet, wersja_pakietu = kolo_zgodne(p.name)
             opis_kol[katalog].append({"plik": p.name, "pakiet": pakiet, "wersja": wersja_pakietu, "sha256": sha256(dane), "rozmiar": len(dane)})
     wydanie = {"format": FORMAT_WYDANIA, "nazwa": "Stanowisko", "wersja": wersja, "commit": commit, "data_commita": data.strftime("%Y-%m-%dT%H:%M:%SZ"),
-               "zrodlo": tryb, "python": PYTHON, "platforma": PLATFORMA, "samokontrola": samokontrola, "pliki_programu": len(pliki) + 1,
+               "zrodlo": tryb, "python": PYTHON, "python_sprawdzony": PYTHON_SPRAWDZONY, "platforma": PLATFORMA,
+               "samokontrola": samokontrola, "pliki_programu": len(pliki) + 1,
                "kola": opis_kol["kola"], "kola_testy": opis_kol["kola_testy"]}
     paczka["wydanie.json"] = (json.dumps(wydanie, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii")
     paczka["CZYTAJ.txt"] = "\r\n".join([
         f'Program "Stanowisko" - paczka wydania {wersja} (commit {commit[:12]}, {data:%Y-%m-%d}).', "",
-        f"1. Raz, recznie: Python {PYTHON} (64-bit) z python.org.",
+        f"1. Raz, recznie: Python {PYTHON} (64-bit) z python.org - sprawdzona wersja to {PYTHON_SPRAWDZONY}.",
         "2. Rozpakuj CALA paczke do dowolnego katalogu i uruchom zainstaluj.cmd (bez internetu).",
         "3. Instrukcja (instalacja, aktualizacja, powrot, komunikaty bledow): program\\instrukcje\\instalacja_i_aktualizacja.md", "",
         "Sprawdzenie paczki: zainstaluj.cmd sam liczy sumy z pliku SHA256SUMS; niezgodnosc zatrzymuje instalacje.", ""]).encode("ascii")
@@ -224,6 +254,10 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
         for kawalek in iter(lambda: f.read(1 << 20), b""):
             h.update(kawalek)
     plik.with_name(plik.name + ".sha256").write_bytes(f"{h.hexdigest()}  {plik.name}\n".encode("ascii"))
+    opublikowana = wydania_opublikowane(lista_wydan if lista_wydan is not None else stanowisko / LISTA_WYDAN).get(wersja.casefold())
+    if opublikowana is not None and opublikowana != h.hexdigest():
+        ostrzezenia.append(f"numer wersji {wersja} jest juz na liscie wydan z INNA suma ({opublikowana[:12]}...) - kazda opublikowana budowa "
+                           "dostaje nowy numer (plik WERSJA albo --wersja); instalator nie zastapi ta paczka uzywanej wersji o tym numerze")
     return {"plik": plik, "sha256": h.hexdigest(), "rozmiar": plik.stat().st_size, "wersja": wersja, "commit": commit, "pliki": len(paczka) - 1,
             "pliki_programu": len(pliki) + 1, "kola": len(kola_programu), "kola_testy": len(kola_testow), "samokontrola": samokontrola,
             "ostrzezenia": ostrzezenia}
