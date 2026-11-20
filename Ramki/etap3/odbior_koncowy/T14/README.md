@@ -34,7 +34,7 @@ Komputer: ekran 1920 x 1080, mysz, klawiatura; Python 3.12 zainstalowany. Moze b
    jeszcze raz. Na koncu samokontrola ma byc zielona.
 2. Skopiuj katalog `Ramki\etap3\t14` z repozytorium na ten komputer (np. `C:\Stanowisko_t14`). Paczka wydania go nie
    zawiera **[DO POTWIERDZENIA PO SCALENIU - jesli A11d dolozy zestaw do paczki, ten krok odpada]**.
-3. Otworz okno polecen w `C:\Stanowisko_t14` i sprawdz zestaw (bez ekranu, ok. 1 minuty):
+3. Otworz okno polecen w `C:\Stanowisko_t14` i sprawdz zestaw (bez ekranu, ok. 10 s wg A11d):
 
    ```
    C:\Stanowisko\Polecenie.cmd C:\Stanowisko_t14\symulator_t14.py --program . --sprawdz

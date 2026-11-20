@@ -28,7 +28,7 @@ Zasady wykonania (obowiazuja kazdego wykonawce):
 | `<ZIP_N>`, `<ZIP_N1>` | paczki wydania `<PC-katalog>\wydania\Stanowisko_<N>.zip` i `Stanowisko_<N+1>.zip` (buduje koordynator, p. "Krok wspolny") |
 | `<P1>`, `<P2>` | rozpakowane paczki: `<PC-katalog>\t0\paczka_N`, `<PC-katalog>\t0\paczka_N1` |
 | `<K>` | katalog instalacji z paczki: `<PC-katalog>\t0\<nazwa>` (T0: `czysta`; kazdy wykonawca ma wlasny: `w1`, `w2`, `w3`) |
-| `<DANE>` | `<K>\dane` (baza `stanowisko.sqlite`, `logi\stanowisko.log`, `wyniki\`, `log_excel.csv`) - **[DO POTWIERDZENIA PO SCALENIU]**: instalator trzyma ustawienia i dane poza katalogiem wersji; dokladna sciezke wypisuje `Samokontrola.cmd` i jest w `<K>\ustawienia.toml`, sekcja `[sciezki]` |
+| `<DANE>` | `<K>\dane` (baza `stanowisko.sqlite`, `logi\stanowisko.log`, `wyniki\`, `log_excel.csv`, kopie bazy `kopie\`) - sprawdzone w `instalator.py` galezi `e3/a11i` (dane poza katalogiem wersji; sciezki bezwzgledne w `<K>\ustawienia.toml`, sekcja `[sciezki]`) |
 | `<REPO>` | czysta kopia `main` z TEGO SAMEGO commita, z ktorego zbudowano `<ZIP_N>`: `<PC-katalog>\t0\repo` (zaklada koordynator: `git -C <PC-katalog>\qc worktree add --detach <PC-katalog>\t0\repo <commit>`) |
 | `<ST>` | `<REPO>\Ramki\stanowisko` |
 | `<ODB>` | `<REPO>\Ramki\etap3\odbior_koncowy` (skrypty: `<ODB>\narzedzia\`) |
@@ -107,8 +107,8 @@ stanowiska (`ODLOZONE.md`, D4).
 5. Ponownie krok 3. Oczekiwane: **kod 0**, "juz zainstalowana i zgodna", samokontrola ZIELONA. Czas 6-15 s.
 6. `<K>\Samokontrola.cmd --bez-sieci` - oczekiwane: kod 0, wiersz podsumowania "ZIELONA" z licznikami (ok / ostrzezenia /
    bledy = n / m / 0). Kody: 0 zielona, 1 bledy, 2 nie dalo sie wykonac. Zapisz tez wersje JSON:
-   `<K>\Polecenie.cmd -m stanowisko.samokontrola --ustawienia <K>\ustawienia.toml --json --bez-sieci > <ROB>\t0_samokontrola.json`
-   **[DO POTWIERDZENIA PO SCALENIU]**: czy `Samokontrola.cmd` przekazuje `--json`.
+   `<K>\Samokontrola.cmd --bez-sieci --json > <ROB>\t0_samokontrola.json` (wzor `Samokontrola.cmd` przekazuje opcje
+   dalej - `%*` - i sam dodaje `--ustawienia` oraz `--sumy`; sprawdzone w pliku wzoru na galezi `e3/a11i`).
 7. Start programu: `set QT_QPA_PLATFORM=offscreen` i `<K>\Stanowisko.cmd --atrapa --zamknij-po 5` (kod 0), potem
    `<K>\Stanowisko.cmd --zamknij-po 20` (prawdziwy kontroler, kod 0). W `<DANE>\logi\stanowisko.log` 0 wierszy `Traceback`.
 8. Kontrola srodowiska wersji (latka A11w): `<K>\Polecenie.cmd -c "import stanowisko, sys; print(sys.modules.get('_wmi', 'brak'))"`
@@ -152,7 +152,8 @@ programu). **Dane:** `<ZIP_N1>`; do czesci B paczka z probna migracja (nizej).
 (`WERSJA_SCHEMATU` bez zmian w etapie 3), wiec zwykla aktualizacja niczego nie migruje. Migracje sprawdza sie na paczce
 probnej z dodatkowa pozycja `MIGRACJE[2]` zbudowanej z kopii drzewa (`zbuduj_wydanie.py --zrodlo <kopia> --data <data
 commita> --wersja <X>`); przepis: `<PC-katalog>\koordynator\robocze\a11i\proby2_0_budowa.sh`, caly scenariusz dwoch
-powrotow: `proby2_B.sh` w tym samym katalogu **[DO POTWIERDZENIA PO SCALENIU: nazwy plikow w `robocze\a11i`]**.
+powrotow: `proby2_B.sh` w tym samym katalogu (oba pliki sa tam 20.11; to skrypty prob wykonawcy A11i, nie czesc repo -
+przeczytaj je przed uzyciem, sciezki `ROB` trzeba dopasowac).
 Oczekiwane: po aktualizacji obok bazy jest kopia sprzed migracji (identyczna bajtowo z baza sprzed aktualizacji -
 porownaj SHA-256), `PRAGMA user_version` wzrasta, powrot zglasza kod 8 i po `/przywroc-kopie` baza = kopia. Paczki
 probnej NIE publikowac i nie wpisywac do `SHA256SUMS_wydania.txt`. Uzupelniajaco: `test_instalacja.py` (69 testow) i
@@ -390,12 +391,13 @@ prawdy) i `syntetyczne_R59_P3a` (16 + 16) = 40 skanow (kopia tych samych zestawo
 
 | Liczba | Pole |
 |---|---|
-| wyrownanie n z 40 | `zbiorczo.plate_match.wyrownanie_ok` / `zbiorczo.plate_match.skanow` |
-| top-1 "dobrze" | `zbiorczo.top1_per_scenariusz.dobrze` (licznik prac i `top1_bledny` = 0) |
-| falszywe czerwone na pracach calych | wiersz logu `PRACE CALE: ..., z czerwonym N` (N = 0) |
+| wyrownanie n z 40 | `plate_match.wyrownanie_ok` / `plate_match.skanow` (w sekcji zbiorczej pliku wyniku) |
+| top-1 "dobrze" | `top1_per_scenariusz.dobrze`: `prac` i `top1_bledny` (= 0) |
+| falszywe czerwone na pracach calych | wiersz logu zaczynajacy sie od `PRACE CA` (w logu z polska litera): `..., z czerwonym N` (N = 0; liczby `prac_calych`, `prace_cale_z_czerwonym`) |
 
 Punkt odniesienia: R59 pkt 6.2 (`raporty/R59_2026-11-14.md`): 40 / 40, 276 / 276, 0 / 127; E3-A5 runda 4 (pula): 40 / 40,
-276 / 276, 0 / 132. **[DO POTWIERDZENIA]** nazwy pol przez podglad pliku wyniku z `--limit 2`.
+276 / 276, 0 / 132. Nazwy pol sprawdzone w kodzie `metryki_P3a.py` (wiersze 188-233); nazwe sekcji zbiorczej w pliku
+JSON potwierdz podgladem wyniku proby z `--limit 2` (2 skany, ok. 2 min, lekki krok).
 
 **Dowody w `T10/`:** `t10_metryki.json` (bez sciezek do zlecen - sprawdz `t9_dane_osobowe.py` przed dodaniem; w razie
 trafien dodaj tylko `t10_wynik.md`), `t10.log` (ta sama kontrola), `t10_wynik.md`.
@@ -469,8 +471,8 @@ wspolczynniku 1,20 i 1,25 na jednej plytce). Zestaw do przebiegu przez program: 
 Pierwszy przebieg zaczyna od pustych `<ROB>\pamiec` i `<ROB>\linie` (pula zimna), drugi korzysta z tego, co zapisal
 pierwszy (pula ciepla). Opcje `czas` sprawdzone przez `--help`: `--katalog` (wymagana), `--wyjscie`, `--nazwa`, `--pamiec`
 ("pusty = pamiec zimna"), `--linie`, `--wpisow`, `--plytek`, `--procesy`, `--seed`, `--limit`, `--ustawienia`.
-**[DO POTWIERDZENIA]**: te same opcje w `jakosc` (`POL narzedzia\metryki_pula.py jakosc --help`); gdy narzedzie probuje
-pisac obok zestawu w `<PC-katalog>\e3` (tylko odczyt), skopiuj zestaw do `<ROB>\pula400` (`robocopy /E`).
+Podpolecenie `jakosc` ma te same opcje (`jakosc --help` uruchomione 20.11). Gdy narzedzie mimo `--wyjscie` probuje pisac
+obok zestawu w `<PC-katalog>\e3` (tylko odczyt), skopiuj zestaw do `<ROB>\pula400` (`robocopy /E`) i podaj te kopie.
 
 **Liczby kryterium:**
 
@@ -534,11 +536,13 @@ przechodzi przez stos sieciowy, ale nie przez kabel ani Wi-Fi. Prawdziwa siec = 
 2. Posrednik z zapisem ruchu (po jednym na ramke):
    `python <ODB>\narzedzia\posrednik_ruchu.py --sluchaj <adres PC>:8766 --cel <adres PC>:8765 --zapis <ROB>\ruch_ramka_w.bin`
    (ramka P: `--sluchaj <adres PC>:8768 --cel <adres PC>:8767 --zapis <ROB>\ruch_ramka_p.bin`).
-3. `<K>\ustawienia.toml`, `[ramki]`: `wieczorna_host` / `poranna_host` = `<adres PC>`, `port` = port posrednika.
-   **[DO POTWIERDZENIA]**: `[ramki] port` jest jeden dla obu ramek - wtedy dwa posredniki na roznych adresach (np.
-   127.0.0.1 i adres karty) albo proba ramek po kolei.
-4. Wieczor: T2 czesc A z 3 skanami wieczornymi (ramka W ma dostac plan i kolory; na atrapie `plytka 1`, `stan`,
-   `klawisz <nazwa>` **[DO POTWIERDZENIA: nazwy klawiszy w `atrapa_ramki.py`]**). Tryb poranny wybiera sie na ekranie
+3. `<K>\ustawienia.toml`, `[ramki]`: `port` = 8766 (port posrednika), `wieczorna_host` = `<adres PC>`. Uwaga: `[ramki]
+   port` jest JEDEN dla obu ramek (sprawdzone w `ustawienia.py` i `indicate.py`), a obie atrapy stoja na jednym
+   komputerze - dlatego posrednik ramki P musi sluchac na tym samym porcie pod innym adresem: `--sluchaj 127.0.0.1:8766
+   --cel <adres PC>:8767`, `poranna_host` = `127.0.0.1` (posrednik ramki W: `--sluchaj <adres PC>:8766`).
+4. Wieczor: T2 czesc A z 3 skanami wieczornymi (ramka W ma dostac plan i kolory; w konsoli atrapy: `plytka 1`, `stan`,
+   `klawisz enter` - klawisze ramki: `enter`, `backspace`, `zamknij_piec`, cyfry `0`-`9`; Spacja to klawisz laptopa, nie
+   ramki - sprawdzone w `ramka\protokol.py`). Tryb poranny wybiera sie na ekranie
    (opcja `--rano` dziala tylko z `--atrapa` - sprawdzone w kodzie), wiec ramka P w programie z paczki bez czlowieka
    przy ekranie NIE jest sprawdzana - jej ruch pokrywa `test_aplikacja_rano.py` z czesci A i test `test_zz_k8`.
 5. Zatrzymaj posredniki (Ctrl+C): zapisz wiersz `POSREDNIK koniec: polaczen N, ... bajtow ...` (N > 0 - inaczej program
@@ -595,8 +599,10 @@ z testow (kolumna `folder`) to dane sztuczne - mimo to nie kopiowac go do dowodo
 **Kryterium (plan):** raport jednym poleceniem na bazie z T2 i T3 - wartosci = policzone recznie.
 
 **Gdzie:** `POL narzedzia\raport_metryk.py` na dwoch bazach: (W) baza wieczoru z T2 czesc A (`<DANE>\stanowisko.sqlite`
-instalacji roboczej wykonawcy T2 - kopia do `<ROB>\baza_t2.sqlite`), (R) baza SE10 z T3 (`<ROB T3>\t3_tmp\...\*.sqlite` -
-znajdz `dir /s /b <ROB>\t3_tmp\*.sqlite`; **[DO POTWIERDZENIA]**: test SE10 zostawia plik bazy w katalogu `--basetemp`).
+instalacji roboczej wykonawcy T2 - kopia do `<ROB>\baza_t2.sqlite`), (R) baza SE10 z T3: plik
+`<ROB T3>\t3_tmp\se10*\dane\stanowisko.sqlite` (test zaklada baze w pliku w katalogu `tmp_path_factory.mktemp("se10")` -
+sprawdzone w `test_session_rano.py`; znajdz: `dir /s /b <ROB>\t3_tmp\*.sqlite`; gdy pliku nie ma, pytest posprzatal -
+zapisz to i policz metryki poranne tylko testem `test_metryki.py`).
 
 **Kroki:**
 
@@ -757,7 +763,11 @@ Kolejnosc i zaleznosci:
 |---|---|
 | `narzedzia\symulator_skanera.py`: `--folder --zrodla --ile --odstep --rownolegle --zle uciety --seed --dziennik --analiza --projekty --wyjscie --ustawienia`; pola dziennika `zapisy`, `analizy` | `--help` (rozpoznanie) + kod (wiersze 284-396) |
 | `narzedzia\metryki_P3a.py`: `--skany --projekty --wyjscie --nazwa --procesy --ustawienia --limit --wzorzec` | kod (argparse, wiersze 135-144) |
-| `narzedzia\metryki_pula.py`: podpolecenia `przygotuj czas jakosc r59 ranking pamiec`; `czas`: `--katalog --wyjscie --nazwa --pamiec --linie --wpisow --plytek --procesy --ustawienia` | `czas --help` uruchomione przeze mnie; `jakosc` - do potwierdzenia |
+| `narzedzia\metryki_pula.py`: podpolecenia `przygotuj czas jakosc r59 ranking pamiec`; `czas` i `jakosc`: `--katalog --wyjscie --nazwa --pamiec --linie --wpisow --plytek --procesy --ustawienia` | `czas --help` i `jakosc --help` uruchomione przeze mnie |
+| `narzedzia\metryki_P3a.py`: pola wyniku `plate_match.skanow`, `plate_match.wyrownanie_ok`, `top1_per_scenariusz.<s>.prac` / `top1_bledny`, wiersz `PRACE CA...: N, z czerwonym M` | kod (wiersze 188-233) |
+| `Samokontrola.cmd` (wzor, `e3/a11i`): przekazuje opcje (`%*`), sam dodaje `--ustawienia` i `--sumy`; dane instalacji w `<K>\dane` | tresc pliku wzoru; `instalator.py` wiersze 10, 1243 |
+| `[ramki] port` jeden dla obu ramek; klawisze ramki `enter backspace zamknij_piec 0-9` | `ustawienia.py` 105-107, `indicate.py` 1267-1271, `ramka\protokol.py` 42 |
+| baza SE10 w pliku `<katalog testu>\dane\stanowisko.sqlite` | `test_session_rano.py`, klasa `Stanowisko` |
 | `narzedzia\raport_metryk.py`: `--od --do --tryb --baza --ustawienia --json`; kody 0 / 3 / 4 / 2 | `--help` (rozpoznanie) |
 | `narzedzia\auto_uklad.py`: `--skany --wyjscie --procesy --limit --ustawienia` | `--help` (rozpoznanie) |
 | `narzedzia\arkusz_syntetyczny.py`: `--wierszy --zapytan --seed --csv` | `--help` (rozpoznanie) |
@@ -767,7 +777,7 @@ Kolejnosc i zaleznosci:
 | `zainstaluj.cmd` (galaz `e3/a11i`): `/katalog /python /skrot /testy /bez-sieci /bez-pauzy`; kody 0-11 | plik `.cmd` wiersz 3; raport A11i p. 12.7 |
 | `Polecenie.cmd`, `Stanowisko.cmd` (wzory, `e3/a11i`): przekazuja argumenty, `cd` do `wersje\<wersja>\program` | tresc plikow |
 | `narzedzia\zbuduj_wydanie.py` (`e3/a11i`): `--wyjscie --wersja --kola --rewizja --zrodlo --commit --data --pobierz-kola`; paczka = `program\{stanowisko, modele_plytek, narzedzia, ramka, instrukcje, instalacja}`, bez `testy\` | kod (wiersze 9-12, 33, 332-341) |
-| 36 nazw testow pytest wymienionych w T2, T3, T5, T6, T7, T8, T11 | `grep` nazwy funkcji w pliku testu (0 brakow) |
+| wszystkie nazwy testow pytest wymienione w planie: 19 plikow, 64 nazwy funkcji (takze przedrostki z `-k`) | `grep "def <nazwa>"` w `testy*.py` (`main` 9ba9e91; `test_p14_baza_zajeta.py` na galezi `e3/p14`): 0 brakow |
 | tabele `zlecenia` (`folder`), `skany` (`uklad`, `uklad_zrodlo`, `uklad_zgodny`, `czas_pliku`, `czas_analizy`, `czas_s`, `status`), `prace` (`skan_id`, `status_gniazda`, `kandydat1_sha16`), `zdarzenia` (`zrodlo`, `typ`, `skan_id`, `dane`) | `stanowisko\baza.py` (wiersze 80-210) + rozpoznanie |
 | katalogi danych i liczby plikow (T2, T4, T10, T11) | listowanie 20.11: R59_P2 24 + 24, R59_P3a 16 + 16, r54_P2 24 + 24, r54_P3a 16 + 16, pula400 `plytki` 10 + 10, `a5i\t4\eksport` 10, `Prace_test` 15 folderow, `a5i` Cyrkon 47 folderow |
 | `symulator_t14.py` (`e3/a11d`): `wieczor` / `rano`, `--sprawdz --program --scenariusz --opoznienie --dziennik --zamknij-po` | kod (argparse, wiersze 354-360) |
