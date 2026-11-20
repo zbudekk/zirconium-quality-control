@@ -112,6 +112,7 @@ class OknoWieczor(QWidget):
         self._obraz_dla: int | None = None
         self._sygnatury: dict = {}
         self._mapa_podpis = None
+        self._wys_paneli: dict = {}  # E3-P15: wysokosc paneli nad mapa ("bledy", "uwagi") po ich ostatniej wymianie
         self._tab_podpis = None
         self._w_poleceniu = False  # stan przychodzacy w trakcie polecenia technika = skutek jego decyzji (bez ochrony mapy)
         self._wstrzymaj = False  # seria polecen (zamkniecie grupy komunikatow): jedno odswiezenie ekranu na koniec
@@ -322,7 +323,15 @@ class OknoWieczor(QWidget):
             self._mapa_podpis = None
             if not self._w_poleceniu:
                 self.setFocus(Qt.FocusReason.OtherFocusReason)
+        # E3-P15: stan z tla (nie skutek polecenia technika), po ktorym panele nad mapa zmieniaja wysokosc (komunikat ogolny
+        # doszedl, urosl albo zniknal), przesuwa mape pod kursorem - ta sama ochrona klikniec co po zmianie zawartosci mapy
+        # (A-P2). Sama zmiana tekstu komunikatu (np. "plik zajety od 13 s") wysokosci nie zmienia i mapy nie przygasza
+        przed = dict(self._wys_paneli)
+        klikalna = self._mapa_podpis is not None and bool(self._mapa_podpis[1] or self._mapa_podpis[2])
         self._odswiez()
+        if klikalna and not self._w_poleceniu and self._wys_paneli != przed:
+            self._ochrona.start()
+            self.mapa.przygas(True)
 
     def pokazana_plytka(self) -> int | None:
         """``skan_id`` plytki, ktorej mapa jest na ekranie."""
@@ -840,6 +849,7 @@ class OknoWieczor(QWidget):
         if len(budowa) > PANELI:
             self.uwagi.uklad.addWidget(etykieta(N.JESZCZE.format(n=len(budowa) - PANELI), "uwaga", "uwagi_jeszcze", zawijaj=True))
         self.uwagi.odswiez()
+        self._wys_paneli["uwagi"] = self.uwagi.sizeHint().height()
 
     def _odswiez_bledy(self, stan, bledy: list) -> None:
         """Pasek bledow programu nad calym ekranem (A-P3): bledy pierwsze, potem trwale; jednakowe razem; bez limitu paneli."""
@@ -853,6 +863,7 @@ class OknoWieczor(QWidget):
             panel.polecenie.connect(self._polecenie_panelu)
             self.bledy.uklad.addWidget(panel)
         self.bledy.odswiez()
+        self._wys_paneli["bledy"] = self.bledy.sizeHint().height()
 
     def _polecenie_panelu(self, nazwa: str, argumenty: tuple) -> None:
         if nazwa == LOKALNE_NUMER_BEZ_ZMIAN and self.rano():
