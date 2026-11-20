@@ -168,3 +168,14 @@ def test_p15_zmiana_samego_tekstu_i_wlasne_zamkniecie_komunikatu_nie_przygaszaja
     e.odczekaj(40)
     assert not ogolne(k) and not e.jest("komunikat_plik_zajety") and not e.okno.ochrona_aktywna()
     assert P14._geometria_mapy(e) != g  # mapa wrocila na miejsce po decyzji technika - bez przygaszenia
+
+
+def test_p15_komunikat_ogolny_bez_gniazd_na_mapie_nie_wlacza_ochrony(swiat):
+    """Regula A-P2 zostaje: gdy mapa nie ma gniazd do klikniecia (nie ma jeszcze zadnej plytki), nie ma czego chronic -
+    komunikat ogolny z tla nie przygasza mapy i niczego nie blokuje."""
+    k, zegar = swiat.wieczor()
+    e = swiat.ekran(k, (1600, 900))
+    assert e.okno.pokazana_plytka() is None and not e.mapa.numery()
+    k.symuluj_komunikat("plik_zajety")
+    e.odczekaj(40)
+    assert e.jest("komunikat_plik_zajety") and not e.okno.ochrona_aktywna() and not e.mapa.przygaszona()
