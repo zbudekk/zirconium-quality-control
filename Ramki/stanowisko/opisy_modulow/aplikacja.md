@@ -267,3 +267,36 @@ programu / bibliotek - nowy odcisk pamieci) = minuty czekania pierwszego skanu z
 dopasowane do puli biezacego trybu sa szare); komunikat ulotny (nie wraca po restarcie). D6: `cofnij_wpis(praca_id, decyzja_id)`,
 `Praca.wybor_wpisu_id` - ekran podaje id pokazanego wyboru (podwojne klikniecie nie cofa drugiego; wieczorne "Cofnij" bez zmian).
 D4: czas ladowania modulow z DLL w logu startu (z Open3D przy `pula_wpisow`) - do pomiaru na laptopie.
+
+## Baza zajeta w chwili polecenia (E3-P14, 20.11.2026; N1 z recenzji PR #40)
+
+- **Polecenie nie ginie po cichu (wariant "ponawia osoba").** Polecenie z `POLECENIA`, ktore przy zapisie trafia na baze
+  zajeta przez inny program, konczy sie odmowa `baza_zajeta` i komunikatem TRWALYM poziomu "blad": `decyzja_niezapisana`
+  (decyzje o pracy: `ukruszona`, `ok`, `cofnij`, `wybierz_wpis`, `cofnij_wpis`, `wybierz_kandydata`, `przypisz_recznie`,
+  `cofnij_przypisanie`) albo `polecenie_niezapisane` (pozostale). Tekst mowi wprost "NIE", nazywa polecenie (napis
+  przycisku) i miejsce (plytka i gniazdo albo kuweta). Kontroler pamieta nazwe i argumenty polecenia pod id komunikatu.
+- **21. polecenie `ponow_polecenie(id komunikatu)`** ("Ponow teraz"): wykonuje to samo polecenie jeszcze raz - wszystkie
+  sprawdzenia od nowa, osoba = wybrana teraz. Udane: komunikat znika. Odmowa przejsciowa (`KODY_DO_PONOWIENIA`: baza nadal
+  zajeta, brak osoby, trwa analiza / skanowanie, blad polecenia): polecenie czeka dalej. Inna odmowa (np. `session` nie
+  przyjmuje juz tej decyzji, biezaca kuweta jest inna): wpis znika, powod jest w komunikacie odmowy.
+- Komunikat znika takze, gdy osoba kliknie te sama decyzje jeszcze raz i zapis sie uda (jedna pozycja na prace: nowa
+  nieudana proba zastepuje poprzednia) albo zamknie komunikat ("Rezygnuje - nie zapisuj" = `zamknij_komunikat`). Udane
+  polecenie dla INNEJ pracy go nie zdejmuje. Program sam decyzji NIE ponawia (decyzje zapisuje tylko klikniecie osoby;
+  po restarcie programu lista do ponowienia jest pusta, a praca jest nadal "do obejrzenia").
+- Polecenia, ktorych argumentow kontroler nie zna w calosci (ramki, Excel), dostaja zwykla odmowe `baza_zajeta` (bez
+  przycisku ponowienia) - jak dotad.
+- **Okno nie stoi.** Polecenie czeka na baze najwyzej `CZEKAJ_POLECENIA_MS` = 200 (`baza.Baza.czekanie`; prawdziwe
+  czekanie na Windows: 0,30 s, gdy inny program pisze, 0,68 s, gdy trzyma baze na wylacznosc - `baza.md`), odczyt stanu
+  po poleceniu / zdarzeniu `CZEKAJ_STANU_MS` = 100. Gdy stanu nie da sie odczytac, okno dostaje poprzedni stan z BIEZACYMI
+  komunikatami ulotnymi (`_pokaz_komunikaty` - bez czytania bazy), a zegar okna ponawia odczyt co
+  `OKRES_NADRABIANIA_STANU_S` = 1 s jedna proba bez czekania (`_nadrob_stan`; `KontrolerSesji.przetworz` i
+  `Aplikacja.przetworz`). Zmierzone (atrapa, baza trzymana przez drugie polaczenie `BEGIN EXCLUSIVE`): przed 14,7-14,9 s,
+  po 0,7 s - tabela w raporcie E3-P14.
+- `Aplikacja.start_skanu` (Spacja): wpis `start_skanu` w dzienniku czeka na baze tak samo krotko; gdy baza jest zajeta,
+  Spacja dziala (program czeka na plik), brakuje tylko wpisu dziennika (ostrzezenie w logu) - wczesniej 5 s i wyjatek.
+- **`StanRano.nierozstrzygniete_prace`** (N3): krotka `NierozstrzygnietaRano` (`praca_id`, `skan_id`, `numer_plytki`,
+  `gniazdo`, `klasa`) - prace dwuznaczne i nieznane BEZ decyzji osoby (nieznana ze swiadomym "Bez projektu" jest
+  rozstrzygnieta), dla pieca otwartego, zamknietego i `ostatni_zamkniety`. Reguly liczenia `session_rano` bez zmian
+  (takie prace nie licza sie przy "Zamknij piec"); pole sluzy oknu: pytanie przed zamknieciem i nazwanie prac po nim
+  (`ui_rano.md`). Polecenie `zamknij_piec` kontrolera i klawisz "Zamknij piec" ramki NIE pytaja - pyta okno.
+- Testy: `testy/test_p14_baza_zajeta.py` (11), `testy/test_p14_ekran.py` (N3).
