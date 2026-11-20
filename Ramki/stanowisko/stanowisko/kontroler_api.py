@@ -3764,11 +3764,13 @@ class KontrolerSesji(Kontroler):
         if not k:
             return ()
         try:
-            wiersze = self.sesja.baza.wiersze(
-                "SELECT p.id AS projekt_id, p.zlecenie_id, p.zeby, p.typ, p.sha16, z.kuweta, z.zrodlo, sp.stan FROM projekty p "
-                "JOIN zlecenia z ON z.id = p.zlecenie_id LEFT JOIN stan_punktow sp ON sp.projekt_id = p.id "
-                "WHERE p.usuniety = 0 AND COALESCE(z.usuniety, 0) = 0 AND z.kuweta = ? ORDER BY p.zlecenie_id, p.id LIMIT ?", (k, MAX_PROJEKTOW_KUWETY))
-            mini = self._miniatury([w["sha16"] for w in wiersze])
+            with self._czekanie_okna(CZEKAJ_POLECENIA_MS):  # E3-P14 runda 2 (P1): odczyt w watku okna - bez 5 s czekania na zajeta baze
+                wiersze = self.sesja.baza.wiersze(
+                    "SELECT p.id AS projekt_id, p.zlecenie_id, p.zeby, p.typ, p.sha16, z.kuweta, z.zrodlo, sp.stan FROM projekty p "
+                    "JOIN zlecenia z ON z.id = p.zlecenie_id LEFT JOIN stan_punktow sp ON sp.projekt_id = p.id "
+                    "WHERE p.usuniety = 0 AND COALESCE(z.usuniety, 0) = 0 AND z.kuweta = ? ORDER BY p.zlecenie_id, p.id LIMIT ?",
+                    (k, MAX_PROJEKTOW_KUWETY))
+                mini = self._miniatury([w["sha16"] for w in wiersze])
         except (sqlite3.Error, B.BladBazy) as e:
             LOG.warning("kontroler: projektow kuwety nie da sie odczytac (%s)", type(e).__name__)
             return ()
@@ -3871,15 +3873,20 @@ class KontrolerSesji(Kontroler):
         praca = self.stan().praca(praca_id)
         if praca is None or self._zamkniety:
             return None
-        wpis = self._inspekcje(praca.skan_id).get((praca.gniazdo, praca.nr_fragmentu)) or {}
+        try:  # E3-P14 runda 2 (P1): okno wola to w swoim watku (klikniecie gniazda) - zajeta baza = brak szczegolow, nie 7 s i wyjatek
+            with self._czekanie_okna(CZEKAJ_POLECENIA_MS):
+                wpis = self._inspekcje(praca.skan_id).get((praca.gniazdo, praca.nr_fragmentu)) or {}
+                plik_podgladu = self._plik_podgladu(praca.skan_id)
+        except (B.BladBazy, sqlite3.OperationalError):
+            LOG.warning("kontroler: baza zajeta - szczegolow pracy nie da sie teraz odczytac")
+            return None
         inspekcja = wpis.get("inspekcja") or {}
         ubytki = tuple({k: u.get(k) for k in ("x", "y", "z", "srednica_mm", "glebokosc_mm", "metoda", "kolor", "na_krawedzi", "filar")}
                        for u in inspekcja.get("ubytki") or [])
         uwagi = tuple(str(u) for u in (wpis.get("uwagi") or []) + (inspekcja.get("uwagi") or []))
         kandydaci = tuple({"sha16": k.get("id"), "zeby": k.get("zeby"), "typ": k.get("typ"), "pokrycie": k.get("pokrycie")}
                           for k in wpis.get("kandydaci") or [])
-        return SzczegolyPracy(praca=praca, ubytki=zamroz(ubytki), uwagi=uwagi, kandydaci=zamroz(kandydaci),
-                              plik_podgladu=self._plik_podgladu(praca.skan_id))
+        return SzczegolyPracy(praca=praca, ubytki=zamroz(ubytki), uwagi=uwagi, kandydaci=zamroz(kandydaci), plik_podgladu=plik_podgladu)
 
     def _plik_podgladu(self, skan_id: int) -> Path | None:
         """Plik ``*_podglad.npz`` skanu: nazwa z dziennika (wpis ``podglad`` kontrolera), katalog podaje klasa pochodna."""

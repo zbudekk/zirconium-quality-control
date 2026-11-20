@@ -356,6 +356,27 @@ def test_r2_p4_zalegly_stan_po_udanym_zapisie_nadrabia_zegar_okna(atrapa, monkey
     assert len(atrapa.stan().do_dofrezowania) == 1
 
 
+def test_r2_p1_odczyty_okna_przy_zajetej_bazie_nie_stoja_i_nie_rzucaja(atrapa, obcy):
+    """Runda 2 (P1, przeglad wszystkich wywolan z okna): odczyty, ktore okno robi w swoim watku - ``szczegoly_pracy`` (klikniecie
+    gniazda: obraz odchylek) i ``projekty_kuwety`` (przypisanie reczne) - przy bazie trzymanej na wylacznosc nie czekaja 5 s i
+    nie rzucaja (bylo 7,4 s; ``szczegoly_pracy``: wyjatek ``BladBazy`` w slocie okna): wynik "brak" (None / pusta krotka), po
+    zwolnieniu bazy odczyt dziala. Limit 2,5 s z zapasem na obciazony PC (czekanie ok. 0,7 s)."""
+    atrapa.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("zwykla", numer=1)
+    p2 = atrapa.stan().plytka(skan).gniazdo(2).praca.praca_id
+    assert atrapa.szczegoly_pracy(p2) is not None
+    obcy.zajmij()
+    t0 = time.perf_counter()
+    szczegoly = atrapa.szczegoly_pracy(p2)
+    t1 = time.perf_counter()
+    projekty = atrapa.projekty_kuwety("9001")
+    t2 = time.perf_counter()
+    obcy.zwolnij()
+    print(f"\n[P1 odczyty] szczegoly_pracy {(t1 - t0) * 1000:.0f} ms, projekty_kuwety {(t2 - t1) * 1000:.0f} ms")
+    assert szczegoly is None and projekty == () and max(t1 - t0, t2 - t1) < 2.5, (szczegoly, projekty, t1 - t0, t2 - t1)
+    assert atrapa.szczegoly_pracy(p2) is not None
+
+
 def test_r2_d3_kazde_polecenie_ponawiane_ma_napis_dla_technika(atrapa):
     """Runda 2 (D3): komunikat "NIE zapisano" nazywa polecenie napisem dla technika (``ST.PRZYCISKI``), nigdy nazwa
     programisty - dla kazdego polecenia, ktore moze trafic na liste do ponowienia (bylo: "wybierz_wpis", "cofnij_wpis")."""
