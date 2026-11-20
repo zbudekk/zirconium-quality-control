@@ -100,6 +100,8 @@ def zrzut(e, nazwa: str) -> None:
     katalog = os.environ.get("P14_ZRZUTY")
     if katalog:
         Path(katalog).mkdir(parents=True, exist_ok=True)
+        if not e.okno.rano():
+            e.po_ochronie()  # mapa wieczorna bez przygaszenia po zmianie zawartosci
         e.obraz().save(str(Path(katalog) / f"{nazwa}.png"), "PNG")
 
 
@@ -345,7 +347,7 @@ def test_poz6_przycisk_skanu_mowi_co_robi_i_nie_wyglada_jak_start_skanu(swiat):
     b = e.w("przycisk_skanuj")
     tekst = b.text()
     assert tekst == N.SKANUJ_ATRAPA and not tekst.lower().startswith("skanuj"), tekst
-    assert "czeka na plik" in tekst and "programie skanera" in tekst and "Spacja" in tekst
+    assert "na plik skanu" in tekst and "programie skanera" in tekst and "Spacja" in tekst
     assert b.property("rola") != "glowny" and b.toolTip() == N.SKANUJ_ATRAPA_OPIS
     zrzut(e, "po_poz6_pasek_stanu")
     e.klawisz(Qt.Key.Key_Space)
@@ -384,6 +386,8 @@ def test_poz7_opis_zoltej_pracy_w_widoku_nie_kaze_klikac_gniazda(swiat):
 
 def test_poz3_lista_brakow_wszystkie_piece_kolumna_stan_nieucieta(swiat):
     """"Lista brakow (wszystkie piece)": napis stanu ("nie wyszedl z pieca") miesci sie w kolumnie przy 1920 x 1080 i 1536 x 864."""
+    from PySide6.QtWidgets import QStyle
+
     k, _ = swiat.rano()
     skany = k.scenariusz_poranny()
     k.przypisz_recznie(k.stan().rano.plytka(skany[6]).gniazdo(11).praca.praca_id, None)
@@ -395,8 +399,10 @@ def test_poz3_lista_brakow_wszystkie_piece_kolumna_stan_nieucieta(swiat):
         t = e.w("tabela_braki_biezace")
         wiersze = e.tabela("tabela_braki_biezace")
         assert wiersze and any(ST.STANY_PUNKTU["brak_po_piecu"] in w[2] for w in wiersze)
-        uciete = [(w[kol], t.columnWidth(kol)) for w in wiersze for kol in range(t.columnCount())
-                  if t.fontMetrics().horizontalAdvance(w[kol]) + 10 > t.columnWidth(kol)]
+        # Qt ucina napis komorki ("..."), gdy jest szerszy niz kolumna bez marginesu ramki fokusu z obu stron
+        margines = 2 * (t.style().pixelMetric(QStyle.PixelMetric.PM_FocusFrameHMargin, None, t) + 1)
+        uciete = [(w[kol], t.fontMetrics().horizontalAdvance(w[kol]), t.columnWidth(kol)) for w in wiersze for kol in range(t.columnCount())
+                  if t.fontMetrics().horizontalAdvance(w[kol]) + margines > t.columnWidth(kol)]
         assert not uciete, f"{rozmiar}: napisy szersze niz kolumna: {uciete}"
         if rozmiar == (1536, 864):
             zrzut(e, "po_poz3_lista_brakow_1536x864")
