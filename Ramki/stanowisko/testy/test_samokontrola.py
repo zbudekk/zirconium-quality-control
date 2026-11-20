@@ -283,16 +283,19 @@ def test_kod_2_nieznana_opcja(capsys):
 
 def test_polecenie_modulu_w_osobnym_procesie(kat):
     """Umowa: ``python -m stanowisko.samokontrola`` - prawdziwy proces, prawdziwe moduly z DLL, kod wyjscia, czas (kryterium 4)."""
+    # wlasna konsola potomka: na PC proces testow bywa w stanie, w ktorym potomek podlaczony do jego konsoli ginie z kodem
+    # 0xC0000142, zanim wykona linie Pythona (raporty/E3-A2p_2026-11-18.md) - to nie dotyczy sprawdzanego polecenia
+    proces = {"cwd": str(STANOWISKO), "capture_output": True, "text": True, "encoding": "utf-8", "timeout": 120,
+              "creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
     polecenie = [sys.executable, "-m", "stanowisko.samokontrola", "--ustawienia", str(kat.plik), "--bez-sieci"]
-    p = subprocess.run(polecenie + ["--json"], cwd=str(STANOWISKO), capture_output=True, text=True, encoding="utf-8", timeout=120)
+    p = subprocess.run(polecenie + ["--json"], **proces)
     assert p.returncode == 0 and "Traceback" not in p.stdout + p.stderr, p.stdout + p.stderr
     d = json.loads(p.stdout)
     poziomy = {s["kod"]: s["poziom"] for s in d["sprawdzenia"]}
     assert list(poziomy) == list(KODY) and d["samokontrola"] == "ZIELONA" and ZIELONA.fullmatch(d["podsumowanie"])
     assert poziomy["moduly"] in ("OK", "OSTRZEZENIE") and poziomy["pakiety"] in ("OK", "OSTRZEZENIE"), d  # OSTRZEZENIE: komputer bez pywin32
     assert d["czas_s"] < 20.0, d["czas_s"]  # pelna samokontrola z --bez-sieci, prawdziwy import PySide6 i Open3D
-    p = subprocess.run([sys.executable, "-m", "stanowisko.samokontrola", "--ustawienia", str(kat.tmp / "nie_ma.toml")],
-                       cwd=str(STANOWISKO), capture_output=True, text=True, encoding="utf-8", timeout=120)
+    p = subprocess.run([sys.executable, "-m", "stanowisko.samokontrola", "--ustawienia", str(kat.tmp / "nie_ma.toml")], **proces)
     assert p.returncode == 2 and p.stdout.startswith("BLAD ustawienia: ") and "Traceback" not in p.stdout + p.stderr
 
 
@@ -992,6 +995,16 @@ def test_czas_pelnej_samokontroli_bez_sieci(kat, monkeypatch):
     kat.zaloz_baze()
     wynik = kat.wykonaj()
     assert wynik.czas_s < 20.0 and wynik.do_slownika()["czas_s"] == round(wynik.czas_s, 1)
+
+
+def test_opis_modulu_wymienia_kazdy_kod_wiersza(kat):
+    """Instrukcje (A11d) cytuja kody z opisu modulu: opis ma kazdy kod, ktory samokontrola wypisuje, i zaden inny w tabeli."""
+    opis = (STANOWISKO / "opisy_modulow" / "samokontrola.md").read_text(encoding="ascii")
+    assert tuple(S.KODY) == KODY == tuple(s.kod for s in kat.wykonaj())
+    tabela = re.findall(r"(?m)^\| \d+ \| `([a-z0-9_]+)` \|", opis)
+    assert tabela == list(KODY)
+    for tekst in (S.PLIK_SUM, "SAMOKONTROLA: ZIELONA (ok N, ostrzezenia M)", "SAMOKONTROLA: NIEWYKONANA", "--bez-sieci", "--sumy PLIK"):
+        assert tekst in opis
 
 
 def test_wyjscie_bez_nazw_zlecen_takze_przy_bledach(kat, capsys):
