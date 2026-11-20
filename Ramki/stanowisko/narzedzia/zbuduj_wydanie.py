@@ -48,6 +48,12 @@ PYTHON_SPRAWDZONY = "3.12.10"  # interpreter, na ktorym przechodza testy; instal
 LISTA_WYDAN = Path("..") / "etap3" / "wydania" / "SHA256SUMS_wydania.txt"  # wzgledem katalogu stanowisko: sumy opublikowanych budow
 SKRYPTY_CRLF = (".cmd", ".bat", ".ps1")
 FORMAT_WYDANIA = 1
+# Latka E3-A11w: ``pip`` interpretera bazowego pyta WMI przez modul ``platform`` (2 zapytania na proces); gdy WMI nie odpowie
+# w limicie, porzucony watek zapytania zamyka po ok. 5 s losowy uchwyt procesu (zawieszenie albo awaria - raport E3-A11w).
+# Dlatego pip rusza tu nie przez ``python -m pip``, tylko z modulem _wmi zablokowanym PRZED importem pip. Sam proces tego
+# narzedzia modulu ``platform`` nie wczytuje (proba: robocze a11i, logi_r2/65_*).
+PIP_BEZ_WMI = ("-I", "-c", "import sys; sys.modules['_wmi'] = None; import runpy; "
+               "runpy.run_module('pip', run_name='__main__', alter_sys=True)")
 
 
 class BladBudowy(Exception):
@@ -294,7 +300,7 @@ def pobierz_kola(python: Path, kola: Path, stanowisko: Path = STANOWISKO) -> tup
             wymagania.append(wiersz)
     testowe = [w for w in wymagania if normalizuj_nazwe(re.split(r"[=<>!~; ]", w, maxsplit=1)[0]) == "pytest"]
     programowe = [w for w in wymagania if w not in testowe]
-    ograniczenia = subprocess.run([str(python), "-I", "-m", "pip", "freeze", "--disable-pip-version-check"], capture_output=True, text=True,
+    ograniczenia = subprocess.run([str(python), *PIP_BEZ_WMI, "freeze", "--disable-pip-version-check"], capture_output=True, text=True,
                                   check=True).stdout
     (kola / "_ograniczenia.txt").write_text(ograniczenia, encoding="ascii")
     wspolne = ["--isolated", "--disable-pip-version-check", "--no-cache-dir", "--only-binary=:all:", "-c", str(kola / "_ograniczenia.txt")]
@@ -303,9 +309,9 @@ def pobierz_kola(python: Path, kola: Path, stanowisko: Path = STANOWISKO) -> tup
     for nazwa, lista in (("program", programowe), ("testy", testowe)):
         plik = kola / f"_wymagania_{nazwa}.txt"
         plik.write_text("\n".join(lista) + "\n", encoding="ascii")
-        subprocess.run([str(python), "-I", "-m", "pip", "download", *wspolne, *cel, "-d", str(kola), "-r", str(plik)], check=True)
+        subprocess.run([str(python), *PIP_BEZ_WMI, "download", *wspolne, *cel, "-d", str(kola), "-r", str(plik)], check=True)
         raport = kola / f"_raport_{nazwa}.json"
-        subprocess.run([str(python), "-I", "-m", "pip", "install", *wspolne, "--no-index", "--find-links", str(kola), "--dry-run",
+        subprocess.run([str(python), *PIP_BEZ_WMI, "install", *wspolne, "--no-index", "--find-links", str(kola), "--dry-run",
                         "--ignore-installed", "--quiet", "--report", str(raport), "-r", str(plik)], check=True)
         zestawy[nazwa] = {normalizuj_nazwe(w["metadata"]["name"]): (w["metadata"]["name"], w["metadata"]["version"])
                           for w in json.loads(raport.read_text(encoding="utf-8"))["install"]}

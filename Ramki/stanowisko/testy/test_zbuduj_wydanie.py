@@ -10,6 +10,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -417,3 +418,34 @@ def test_listy_zamrozone_w_repo_zgodne_z_requirements():
     assert {n: program.get(n) for n in przypiete} == przypiete
     assert "pytest" not in program and "pip" not in program
     assert ZW.WZOR_WERSJI.fullmatch((STANOWISKO / "WERSJA").read_text(encoding="ascii").strip())
+
+
+def test_a11w_pip_przy_pobieraniu_kol_startuje_z_zablokowanym_wmi(tmp_path, monkeypatch):
+    """Latka E3-A11w: procesy ``pip`` interpretera bazowego (``--pobierz-kola``: freeze, download, install --dry-run) pytalyby
+    WMI przez modul ``platform`` (porzucony watek zapytania zamyka losowy uchwyt procesu) - pip startuje przez ``PIP_BEZ_WMI``."""
+    assert ZW.PIP_BEZ_WMI[:2] == ("-I", "-c") and ZW.PIP_BEZ_WMI[2].startswith("import sys; sys.modules['_wmi'] = None; ")
+    wynik = subprocess.run([sys.executable, *ZW.PIP_BEZ_WMI, "--version"], capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                           timeout=300)
+    assert wynik.returncode == 0 and wynik.stdout.startswith("pip "), wynik.stdout + wynik.stderr  # pip dziala tak uruchomiony
+    proba = ZW.PIP_BEZ_WMI[2].split("import runpy")[0] + "import platform; print(bool(platform.machine()), sys.modules.get('_wmi', 'brak'))"
+    wynik = subprocess.run([sys.executable, "-I", "-c", proba], capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=120)
+    assert wynik.returncode == 0 and wynik.stdout.split() == ["True", "None"], wynik.stdout + wynik.stderr
+    stanowisko = tmp_path / "stanowisko"
+    (stanowisko / "instalacja").mkdir(parents=True)
+    (stanowisko / "requirements.txt").write_text("pakiecik==1.0\npytest==9.1.1\n", encoding="ascii")
+    polecenia = []
+
+    def falszywe(polecenie, **_):
+        polecenia.append([str(c) for c in polecenie])
+        if "--report" in polecenie:
+            pakiet = "testowy" if "_wymagania_testy" in polecenie[-1] else "pakiecik"
+            raport = {"install": [{"metadata": {"name": pakiet, "version": "1.0"}}]}
+            Path(polecenie[polecenie.index("--report") + 1]).write_text(json.dumps(raport), encoding="utf-8")
+        return subprocess.CompletedProcess(polecenie, 0, "pakiecik==1.0\n", "")
+
+    monkeypatch.setattr(ZW.subprocess, "run", falszywe)
+    assert ZW.pobierz_kola(Path("python-bazowy"), tmp_path / "kola", stanowisko) == (1, 1)
+    assert [p[4] for p in polecenia] == ["freeze", "download", "install", "download", "install"]
+    for polecenie in polecenia:  # kazdy proces pip: python -I -c "<blokada _wmi>; runpy pip" ..., nigdy "python -m pip"
+        assert polecenie[:4] == ["python-bazowy", *ZW.PIP_BEZ_WMI] and "-m" not in polecenie, polecenie[:5]
+    assert (stanowisko / "instalacja" / "zamrozone.txt").read_text(encoding="ascii").splitlines()[-1] == "pakiecik==1.0"

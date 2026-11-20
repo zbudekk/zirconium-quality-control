@@ -95,9 +95,10 @@ i uruchamia `instalator.py zainstaluj`:
    (`<baza>.nowy` bez bazy) = kod 6 - wszystko PRZED instalacja pakietow,
 5. katalog wersji: numer zapisany inaczej niz istniejacy katalog (wielkosc liter) = kod 3; katalog o numerze paczki, ktorego
    nie zalozyl instalator = kod 6; miejsce na dysku (rozmiar kol po rozpakowaniu x 1,3 + program + 300 MB), znacznik,
-   pliki programu (kontrola sum), `python -m venv --copies`, `pip install --isolated --no-index --only-binary=:all:
-   --find-links kola -r zamrozone.txt`, porownanie `pip list` z lista zamrozona (n z n; `pip` zalozony przez venv nie jest
-   liczony), `instalacja.json`, zdjecie znacznika. Wersja juz zainstalowana z tej samej paczki i cala = bez zmian - od razu
+   pliki programu (kontrola sum), `python -m venv --copies --without-pip`, plik `stanowisko_bez_wmi.pth`, `ensurepip`
+   (patrz "Srodowisko wersji bez zapytan WMI"), `pip install --isolated --no-index --only-binary=:all:
+   --find-links kola -r zamrozone.txt`, porownanie `pip list` z lista zamrozona (n z n; `pip` zalozony przez `ensurepip` nie
+   jest liczony), `instalacja.json`, zdjecie znacznika. Wersja juz zainstalowana z tej samej paczki i cala = bez zmian - od razu
    samokontrola i przelaczenie (z `/testy` dokladany jest sam zestaw testowy). Wersja uszkodzona = NAPRAWA: stary katalog
    jest odkladany jako `wersje\_stara_<wersja>` (zmiana nazwy pod blokada programu), nowy powstaje od zera, a przy bledzie
    albo przerwaniu stary wraca na miejsce - wersja biezaca nie zostaje w polowie. Paczka o tym samym numerze, ale innej
@@ -159,12 +160,42 @@ koncowy `INSTALACJA: WSTRZYMANA - uzupelnij ustawienia.toml i uruchom zainstaluj
   OBCY KATALOG); `/usun WERSJA` usuwa katalog wersji zalozony przez instalator, ktora nie jest ani biezaca, ani
   poprzednia. Ustawien i danych nie dotyka.
 
+## Srodowisko wersji bez zapytan WMI (latka E3-A11w)
+
+Przyczyna (raport `raporty/E3-A11w_2026-11-20.md`): modul `platform` Pythona 3.12 pyta WMI w osobnym watku systemowym; gdy
+WMI nie odpowie w limicie, porzucony watek po ok. 5 s zamyka LOSOWY uchwyt procesu - proces potem zawisa albo pada
+(zawieszenia testow silnika w srodowisku wersji, `0xc000070a`, `0xC0000005`). Pytaja m.in. `import trimesh` i `pip`.
+
+Co robi instalator: srodowisko powstaje bez `pip` (`python -m venv --copies --without-pip`), potem instalator zapisuje
+w `wersje\<wersja>\venv\Lib\site-packages` plik `stanowisko_bez_wmi.pth` (jeden wiersz: `import sys; sys.modules['_wmi'] =
+None`), i dopiero potem zaklada `pip` (`python -I -m ensurepip --upgrade --default-pip` - to samo polecenie, ktore
+wykonalby `venv`: kolo `pip` dolaczone do Pythona, bez sieci). Plik `.pth` wykonuje sie przy starcie KAZDEGO procesu
+interpretera wersji (takze z `-I`), wiec zaden z nich - program, proces roboczy silnika, samokontrola, `pip`, pytest (T1),
+narzedzia przez `Polecenie.cmd` - nie laduje `_wmi`, a `platform` bierze dane ze sciezek zapasowych (`platform.machine()`,
+`system()`, `win32_ver()` dzialaja). Kontrole:
+
+- po zalozeniu srodowiska interpreter wersji ma odpowiedziec `sys.modules.get('_wmi') is None`; inaczej stop (kod 6),
+- plik jest sprawdzany przy KAZDYM `zainstaluj.cmd` (pierwsza instalacja, aktualizacja, naprawa, `/testy`, wersja juz
+  zainstalowana) i przy `Wroc_do_poprzedniej.cmd`: brak albo inna tresc (wersja zalozona starszym instalatorem) = plik
+  jest dokladany bez zakladania srodowiska od nowa, z wierszem `dolozono plik stanowisko_bez_wmi.pth` w dzienniku,
+- pliku nie da sie zapisac: instalacja zatrzymuje sie kodem 6 z komunikatem (wersja nie zostaje przelaczona); powrot do
+  poprzedniej wersji NIE jest zatrzymywany (operacja awaryjna) - zostaje `OSTRZEZENIE` na ekranie i w dzienniku,
+- plik nie nalezy do zadnego pakietu, wiec `pip install` / `pip uninstall` go nie usuwa; nie lezy w katalogu programu,
+  wiec nie wchodzi do `SUMY_PROGRAMU.sha256`.
+
+Granice: plik chroni tylko procesy interpretera WERSJI. Procesy interpretera bazowego uruchamiane przez instalator
+(`instalator.py`, `python -m venv`, zapytanie programu o schemat bazy) modulu `platform` nie wczytuja (proba z
+`-X importtime`: 6 polecen, 0 wczytan). `narzedzia/zbuduj_wydanie.py --pobierz-kola` uruchamia `pip` interpretera bazowego
+przez `PIP_BEZ_WMI` (blokada `_wmi` przed importem `pip`). Reczne `python -m pip ...` interpreterem bazowym chronione nie jest.
+
 ## Kryterium "dziala"
 
 `testy/test_zbuduj_wydanie.py` (budowa: dwie budowy = ten sam ZIP, zawartosc, sumy, kola, tryb commita, numer wersji)
 i `testy/test_instalacja.py` (instalacja, aktualizacja, powrot, bledy - na malej paczce w `tmp_path`; baza z przerwanym
 zapisem, przerwane przywrocenie kopii, drugi powrot, cudze katalogi, pisownia numeru, przerwana naprawa; polecenia
-`venv` / `pip`; jeden test z prawdziwym `python -m venv` i skryptami `.cmd` przy wrogim `PYTHONPATH` / `PYTHONHOME`).
+`venv` / `ensurepip` / `pip` i kolejnosc "plik `.pth` przed pierwszym procesem srodowiska"; plik `.pth` w kazdej sciezce
+instalacji i powrotu; jeden test z prawdziwym `python -m venv` i skryptami `.cmd` przy wrogim `PYTHONPATH` / `PYTHONHOME`,
+ktory sprawdza tez `_wmi = None`, `platform.machine()` i `pip --version` w interpreterze wersji).
 Proby na PC z pelna paczka i liczby: `raporty/E3-A11i_2026-11-20.md`.
 
 ## Zalozenia i granice

@@ -984,7 +984,10 @@ def test_a11w_plik_blokady_wmi_jest_w_kazdym_srodowisku_wersji(zainstalowane, tm
     assert "jest juz zainstalowana i zgodna z paczka" in wyjscie and f"dolozono plik {I.PLIK_BEZ_WMI}" in wyjscie
     assert st.zainstaluj(paczka_1) == 0
     assert "dolozono plik" not in capsys.readouterr().out                 # drugi raz: plik jest, nic do zrobienia
-    plik("1.0").write_text("import os\n", encoding="ascii")               # plik o innej tresci tez nie chroni
+    plik("1.0").write_text("import os\n", encoding="ascii")               # plik o innej tresci nie chroni: jest zastepowany
+    assert st.zainstaluj(paczka_1) == 0
+    assert f"dolozono plik {I.PLIK_BEZ_WMI}" in capsys.readouterr().out and jest("1.0") and st.srodowisko.instalacje == 1
+    plik("1.0").unlink()
     plik_programu = st.katalog / "wersje" / "1.0" / "program" / "stanowisko" / "aplikacja.py"
     plik_programu.write_text("uszkodzony\n", encoding="ascii")
     assert st.zainstaluj(paczka_1) == 0        # naprawa wersji biezacej
