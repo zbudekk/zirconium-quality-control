@@ -1,0 +1,43 @@
+{
+  "opis": "Scenariusz proby T14 (dane wylacznie sztuczne). Kuwety i gniazda INNE niz na obrazkach jednej strony (zrzuty_instrukcji.PIEC, PLYTKA_1) - obrazek nie moze zdradzac odpowiedzi. Kazde nacisniecie Spacji = kolejny skan z listy trybu. Rodzaje prac: kontroler_api.RODZAJE_PRAC (wieczor) i RODZAJE_PRAC_RANO (rano); projekty = numery sztucznych projektow atrapy.",
+  "wieczor": {
+    "skany": [
+      {"co": "plytka 1: dwie prace czerwone (gniazda 3 i 11), jedna zolta (6), jedna szara (15), reszta zielona",
+       "rodzaj": "zwykla", "numer": 1,
+       "gniazda": {"1": "zielony", "3": "czerwony", "5": "zielony", "6": "zolty", "8": "zielony", "10": "zielony", "11": "czerwony",
+                   "12": "zielony", "14": "zielony", "15": "szary", "17": "zielony"},
+       "projekty": null},
+      {"co": "plytka 2: praca w gniezdzie 4 lezy zle - popraw ulozenie, skan do powtorzenia",
+       "rodzaj": "do_powtorzenia", "numer": 2,
+       "gniazda": {"2": "zielony", "4": "popraw_ulozenie", "7": "zielony", "9": "zielony"},
+       "projekty": {"2": 21, "4": 22, "7": 23, "9": 24}},
+      {"co": "plytka 2 po poprawieniu: te same prace, wszystkie zielone - program pyta o ponowny skan",
+       "rodzaj": "czysta", "numer": 2,
+       "gniazda": {"2": "zielony", "4": "zielony", "7": "zielony", "9": "zielony"},
+       "projekty": {"2": 21, "4": 22, "7": 23, "9": 24}},
+      {"co": "zapas (gdyby osoba nacisnela Spacje jeszcze raz): plytka 3, same zielone",
+       "rodzaj": "czysta", "numer": 3,
+       "gniazda": {"1": "zielony", "2": "zielony", "3": "zielony"},
+       "projekty": {"1": 26, "2": 27, "3": 28}}
+    ],
+    "oczekiwane": {"czerwone": [3, 11], "do_obejrzenia": [3, 6, 11, 15], "popraw_ulozenie": 4, "plytka_do_poprawienia": 2}
+  },
+  "rano": {
+    "skany": [
+      {"co": "plytka 6 pieca: gniazdo 7 zolte (dwaj kandydaci), reszta rozpoznana",
+       "numer": 6,
+       "gniazda": {"1": "pewna", "4": "pewna", "7": "zolta", "9": "pewna", "10": "pewna", "12": "pewna"},
+       "projekty": {"1": 329, "4": 330, "7": [331, 338], "9": 325, "10": 326, "12": 327}},
+      {"co": "plytka 5 pieca: trzy prace rozpoznane",
+       "numer": 5,
+       "gniazda": {"2": "pewna", "5": "pewna", "8": "pewna"},
+       "projekty": {"2": 328, "5": 332, "8": 335}},
+      {"co": "zapas (gdyby osoba nacisnela Spacje jeszcze raz): plytka 4, dwie prace rozpoznane",
+       "numer": 4,
+       "gniazda": {"2": "pewna", "3": "pewna"},
+       "projekty": {"2": 340, "3": 341}}
+    ],
+    "oczekiwane": {"plytka_z_zoltym": 6, "zolte": 7, "kuweta_do_znalezienia": "3298", "kompletne": ["3277", "3284", "3291"],
+                   "braki": ["3298", "3305"]}
+  }
+}

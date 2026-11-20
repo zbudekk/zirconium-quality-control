@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Proba T14 - arkusz obserwacji</title>
+<style>
+@page { size: A4 portrait; margin: 10mm 11mm; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 9pt; line-height: 1.28; color: #111; margin: 0; }
+h1 { font-size: 15pt; margin: 0 0 3pt 0; border-bottom: 1.5pt solid #1e4e8c; padding-bottom: 2pt; }
+h2 { font-size: 10.5pt; margin: 6pt 0 2pt 0; color: #1e4e8c; break-after: avoid; }
+p { margin: 2pt 0 3pt 0; }
+ol, ul { margin: 2pt 0 3pt 0; padding-left: 15pt; }
+li { margin: 0 0 2.5pt 0; break-inside: avoid; }
+img { display: block; max-width: 100%; height: auto; margin: 2pt 0 3pt 0; border: 0.5pt solid #9aa3ad; border-radius: 3pt; }
+b.n { font-weight: 700; white-space: normal; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 95%; background: #eef1f5; padding: 0 2pt; border-radius: 2pt; }
+table { border-collapse: collapse; width: 100%; margin: 2pt 0 4pt 0; }
+th, td { border: 0.5pt solid #7d8792; padding: 1.5pt 3pt; vertical-align: top; text-align: left; }
+th { background: #e3e8ee; }
+tr { break-inside: avoid; }
+.kolumny { column-count: 2; column-gap: 6mm; }
+.obok { display: flex; gap: 4mm; align-items: flex-start; }
+.obok img, .obok table, .obok h2 { margin-top: 0; }
+.stopka { font-size: 7pt; color: #555; margin-top: 3pt; }
+td { height: 21pt; } li { margin-bottom: 1pt; }
+@media screen { body { max-width: 188mm; margin: 8mm auto; } }
+</style>
+</head>
+<body>
+<h1>Proba T14 - arkusz obserwacji</h1>
+<p>Data: ....................  Osoba badana (inicjaly, czy widziala program: tak / nie): ....................  Obserwator: ....................</p>
+<p>Obserwator czyta polecenie i milczy. Interwencja = kazda podpowiedz slowem, gestem albo wskazaniem ekranu. Zawahanie = ponad 10 s bez ruchu albo z bledna proba.</p>
+<table><colgroup><col style="width:3.7%"><col style="width:29.9%"><col style="width:25.2%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:13.1%"><col style="width:13.1%"></colgroup><tr><th>Nr</th><th>Polecenie czytane osobie</th><th>Zaliczone, gdy</th><th>Wykonane (tak / nie)</th><th>Interwencja (tak / nie)</th><th>Zawahanie ponad 10 s: gdzie, ile s</th><th>Uwagi</th></tr><tr><td>W1</td><td>Zeskanuj plytke.</td><td>wybrana osoba, po Spacji mapa plytki 1 na ekranie</td><td></td><td></td><td></td><td></td></tr><tr><td>W2</td><td>Wskaz prace, ktore trzeba obejrzec.</td><td>wskazuje gniazda 3 i 11 (czerwone) oraz 6 (zolte); szare 15 mile widziane</td><td></td><td></td><td></td><td></td></tr><tr><td>W3</td><td>Jedna z tych prac jest ukruszona, druga cala. Zapisz to w programie.</td><td>jedna decyzja <b class="n">&#8222;Ukruszona&#8221;</b> i jedna <b class="n">&#8222;OK&#8221;</b></td><td></td><td></td><td></td><td></td></tr><tr><td>W4</td><td>Zeskanuj druga plytke i zrob to, o co prosi program.</td><td>po komunikacie skanuje ponownie i potwierdza ponowny skan; plytka 2 zielona</td><td></td><td></td><td></td><td></td></tr><tr><td>W5</td><td>Pokaz liste prac do dofrezowania.</td><td>wskazuje liste z jedna pozycja</td><td></td><td></td><td></td><td></td></tr><tr><td>R1</td><td>Zeskanuj dwie plytki pieca.</td><td>wybrana osoba, dwie plytki (6 i 5) na ekranie</td><td></td><td></td><td></td><td></td></tr><tr><td>R2</td><td>Program nie jest pewny jednej pracy. Rozstrzygnij to.</td><td>gniazdo 7 plytki 6 po wyborze zielone</td><td></td><td></td><td></td><td></td></tr><tr><td>R3</td><td>Rozloz kuwete, ktora pokazuje program.</td><td>wskazuje obwiedzione prace i potwierdza Enterem albo przyciskiem</td><td></td><td></td><td></td><td></td></tr><tr><td>R4</td><td>Potwierdz nastepna kuwete. To byla pomylka - cofnij ja.</td><td>kuweta znowu jest biezaca (Backspace albo przycisk)</td><td></td><td></td><td></td><td></td></tr><tr><td>R5</td><td>Masz w reku kuwete 3298. Pokaz jej prace.</td><td>wpisuje numer i Enter; biezaca kuweta 3298</td><td></td><td></td><td></td><td></td></tr><tr><td>R6</td><td>Zamknij piec i powiedz, czego brakuje.</td><td>piec zamkniety; odczytuje braki kuwet 3298 i 3305</td><td></td><td></td><td></td><td></td></tr></table>
+<h2>Podsumowanie</h2>
+<ul><li>Wykonane: ........ z 11. Interwencji obserwatora: ........ . Zawahan ponad 10 s: ........ .</li><li>Kryterium zaliczenia (plan etapu 3, test T14): 11 z 11 zadan wykonanych, 0 interwencji obserwatora; miejsca zawahania dluzszego niz 10 s spisane i poprawione albo swiadomie zostawione.</li><li>Wynik: ZALICZONE / NIEZALICZONE (skresl). Podpis obserwatora: ....................</li></ul>
+<h2>Miejsca zawahania i decyzja</h2>
+<table><colgroup><col style="width:6.2%"><col style="width:46.9%"><col style="width:46.9%"></colgroup><tr><th>Zadanie</th><th>Co osoba probowala zrobic, czego szukala</th><th>Decyzja: poprawic (co) / zostawic (dlaczego)</th></tr><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></table>
+<p class="stopka">Zadania wg planu etapu 3, sekcja 7, T14 (wieczor 5, rano 6). Numery gniazd i kuwet wg scenariusz_t14.json. E3-A11d, 20.11.2026.</p>
+</body>
+</html>
