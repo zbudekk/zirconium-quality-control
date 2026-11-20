@@ -71,7 +71,7 @@ class KartaKandydata(QFrame):
         calosc = QVBoxLayout(self)
         calosc.setContentsMargins(*((6, 4, 6, 4) if r.zwarty else (8, 6, 8, 6)))
         calosc.setSpacing(0 if r.zwarty else 2)
-        # E3-P14 (poz. 9): "Kandydat n · pasuje w x %" jednym wierszem na cala szerokosc karty (nad miniatura) - karta nizsza
+        # E3-P14 (poz. 9): "Kandydat n", kropka srodkowa, "pasuje w x %" jednym wierszem na cala szerokosc karty (nad miniatura) - karta nizsza
         # o wiersz, przycisk wyboru wyzej
         naglowek = NR.KANDYDAT_NR.format(nr=nr)
         if kandydat.pokrycie is not None:
