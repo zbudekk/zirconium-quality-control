@@ -289,9 +289,9 @@ D4: czas ladowania modulow z DLL w logu startu (z Open3D przy `pula_wpisow`) - d
   czekanie na Windows: 0,30 s, gdy inny program pisze, 0,68 s, gdy trzyma baze na wylacznosc - `baza.md`), odczyt stanu
   po poleceniu / zdarzeniu `CZEKAJ_STANU_MS` = 100. Gdy stanu nie da sie odczytac, okno dostaje poprzedni stan z BIEZACYMI
   komunikatami ulotnymi (`_pokaz_komunikaty` - bez czytania bazy), a zegar okna ponawia odczyt co
-  `OKRES_NADRABIANIA_STANU_S` = 1 s jedna proba bez czekania (`_nadrob_stan`; `KontrolerSesji.przetworz` i
+  `OKRES_NADRABIANIA_STANU_S` = 1 s jedna proba bez czekania, ok. 30 ms (`_nadrob_stan`; `KontrolerSesji.przetworz` i
   `Aplikacja.przetworz`). Zmierzone (atrapa, baza trzymana przez drugie polaczenie `BEGIN EXCLUSIVE`): przed 14,7-14,9 s,
-  po 0,7 s - tabela w raporcie E3-P14.
+  po 0,65-0,68 s - tabela w raporcie E3-P14.
 - `Aplikacja.start_skanu` (Spacja): wpis `start_skanu` w dzienniku czeka na baze tak samo krotko; gdy baza jest zajeta,
   Spacja dziala (program czeka na plik), brakuje tylko wpisu dziennika (ostrzezenie w logu) - wczesniej 5 s i wyjatek.
 - **`StanRano.nierozstrzygniete_prace`** (N3): krotka `NierozstrzygnietaRano` (`praca_id`, `skan_id`, `numer_plytki`,
