@@ -333,6 +333,16 @@ def test_k3_rozkladanie_enter_i_cofniecie_backspace(atrapa, ekrany):
 # ----------------------------------------------------------------------------
 # (4) "Zamknij piec": kompletne i braki = wynik A6
 # ----------------------------------------------------------------------------
+def zamknij_piec(e: Ekran, *, pytanie: bool) -> None:
+    """Klikniecie "Zamknij piec". E3-P14 (N3): gdy piec ma prace bez rozstrzygniecia, przycisk nie zamyka - ekran pyta; test
+    zamyka wtedy swiadomie odpowiedzia "Zamknij piec mimo to" (samo pytanie sprawdza ``test_p14_ekran``). Runda 2 (P4):
+    ``pytanie`` - jawne oczekiwanie testu, czy ekran ma zapytac (falszywe pytanie albo jego brak = test pada)."""
+    e.klik("przycisk_zamknij_piec")
+    assert e.jest("pytanie_zamknij_mimo") == pytanie, f"pytanie przed zamknieciem pieca: jest {e.jest('pytanie_zamknij_mimo')}, oczekiwane {pytanie}"
+    if pytanie:
+        e.klik("zamknij_mimo_tak")
+
+
 def rozstrzygnij_konflikt(e: Ekran, atrapa, skany: dict) -> None:
     e.klik_rano(skany[6], 11)
     assert e.jest("praca_rano_konflikt")
@@ -347,7 +357,7 @@ def test_k4_zamknij_piec_kompletne_i_braki_rowne_wynikowi_A6(atrapa, ekrany):
     assert e.jest("przycisk_zamknij_piec") and not e.aktywny("przycisk_zamknij_piec") and e.jest("rano_blokady")
     rozstrzygnij_konflikt(e, atrapa, skany)
     assert e.aktywny("przycisk_zamknij_piec") and not e.jest("rano_blokady")
-    e.klik("przycisk_zamknij_piec")
+    zamknij_piec(e, pytanie=True)
     rano = SR.SesjaRano(atrapa.sesja)
     piec = atrapa.stan().rano
     wynik = rano.wynik_pieca(piec.sesja_pieca_id)
@@ -377,7 +387,7 @@ def test_k5_bez_ramki_i_excela_komunikat_program_dziala_dalej(atrapa, ekrany):
     assert e.jest("komunikat_ramka_niedostepna") and ST.KOMUNIKATY["ramka_niedostepna"].tytul in e.tekst()
     assert not atrapa.stan().rano.ramka and not atrapa.stan().rano.excel
     rozstrzygnij_konflikt(e, atrapa, skany)
-    e.klik("przycisk_zamknij_piec")
+    zamknij_piec(e, pytanie=True)
     assert e.jest("komunikat_excel_niedostepny")
     kompletne = atrapa.stan().rano.kompletne
     assert kompletne and all(z.kuweta in e.tekst_elementu("komunikat_excel_niedostepny") for z in kompletne)  # wlasna lista kuwet (P1)
@@ -494,7 +504,7 @@ def test_a6r2_reczne_zamkniecie_braku_ponowne_otwarcie_pieca_i_zamkniecie_w_trak
     atrapa.symuluj_postep(udzial=None)
     e.zdarzenia()
     assert e.aktywny("przycisk_zamknij_piec")
-    e.klik("przycisk_zamknij_piec")
+    zamknij_piec(e, pytanie=True)
     assert e.jest("przycisk_otworz_piec") and not e.jest("przycisk_zamknij_piec")
     biezace = atrapa.stan().rano.braki_biezace
     t = e.w("tabela_braki_biezace")
@@ -588,12 +598,12 @@ def zbuduj_scene(atrapa, ekrany, scena: str, rozmiar: tuple) -> Ekran:
         e.klik_rano(skany[5], 3)
     elif scena == "zamknij_piec_wynik":
         atrapa.przypisz_recznie(atrapa.stan().rano.plytka(skany[6]).gniazdo(11).praca.praca_id, None)
-        e.klik("przycisk_zamknij_piec")
+        zamknij_piec(e, pytanie=True)
     elif scena == "poprawka_bursztyn":
         e.klik_rano(skany[6], 2)
     elif scena == "ostatni_zamkniety_piec":  # P1: piec zamkniety, skan nastepnego pieca, lista do Excela w zakladce
         atrapa.przypisz_recznie(atrapa.stan().rano.plytka(skany[6]).gniazdo(11).praca.praca_id, None)
-        e.klik("przycisk_zamknij_piec")
+        zamknij_piec(e, pytanie=True)
         atrapa.symuluj_skan_rano(4, {1: "pewna", 2: "zolta", 3: "pewna"}, projekty={1: 380, 2: (381, 382), 3: 383})
         e.zdarzenia()
         e.klik("rano_strona_ostatni")
@@ -765,7 +775,7 @@ def test_t14_szesc_zadan_porannych(atrapa, ekrany, zegar):
     assert e.w("rano_kuweta_biezaca").text() == "Kuweta 3221"
     zadania.append("kuweta po numerze")
     # (6) zamknij piec i odczytaj braki
-    e.klik("przycisk_zamknij_piec")
+    zamknij_piec(e, pytanie=False)
     braki = {w[0]: w[1] for w in e.tabela("tabela_braki")}
     kompletne = [w[0] for w in e.tabela("tabela_kompletne")]
     # zlecenia: 3221 = projekty 307-310 (4 z 4 w piecu), 3228 = 311-312, 3235 = 313, 3242 = 314-316 (w piecu tylko 314)
@@ -816,7 +826,7 @@ def test_r2_p1_zakladka_ostatni_zamkniety_piec_po_skanie_nastepnego(atrapa, ekra
     skany = atrapa.scenariusz_poranny()
     e = ekrany(atrapa)
     rozstrzygnij_konflikt(e, atrapa, skany)
-    e.klik("przycisk_zamknij_piec")
+    zamknij_piec(e, pytanie=True)
     piec = atrapa.stan().rano.sesja_pieca_id
     assert e.w("rano_strona_wynik").isChecked() and not e.jest("rano_strona_ostatni")  # zamkniety piec jest jeszcze glownym widokiem
     nowy = atrapa.symuluj_skan_rano(4, {1: "pewna"}, projekty={1: 380})

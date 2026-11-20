@@ -174,6 +174,9 @@ QPushButton[rola="cyfra"] {{ font-size: {r.cyfra}px; font-weight: 700; min-width
 QPushButton[rola="osoba"] {{ font-size: {r.osoba}px; font-weight: 700; min-height: {r.min_osoby}px; padding: {r.dopelnienie_osoby}; }}
 QPushButton[rola="lacze"] {{ border: 1px solid #8a929c; font-size: {r.lacze}px; font-weight: 600; color: {TEKST}; padding: {r.dopelnienie_lacza}; }}
 QPushButton[rola="lacze"]:focus {{ border: 2px dashed #101418; }}
+QPushButton[rola="czekanie"] {{ background: {AKCENT_JASNY}; border: 1px dashed {AKCENT}; color: {TEKST}; font-size: {r.lacze}px; font-weight: 600;
+                               padding: {r.dopelnienie_lacza}; }}
+QPushButton[rola="czekanie"]:focus {{ border: 2px dashed #101418; }}
 QFrame[rola="kafelek"] {{ background: {TLO_PANELU}; border: 2px solid {RAMKA}; border-radius: 8px; }}
 QFrame[rola="kafelek"][wybrany="true"] {{ background: {AKCENT_JASNY}; border: 3px solid {AKCENT}; }}
 QFrame[rola="kafelek"]:focus {{ border: 3px dashed #101418; }}

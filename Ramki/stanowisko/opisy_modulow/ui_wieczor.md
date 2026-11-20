@@ -67,3 +67,30 @@ Pasek stanu: przy budowie puli wpisow w silniku (`pula.budowa_razem`, `budowa_go
 z przyciskiem na kazdy `Praca.wpisy_do_wyboru` (napis = krazek, wybrany z dopiskiem "(wybrany)", podpowiedz ze wspolczynnikiem);
 klik = `wybierz_wpis(praca_id, frezowanie_id)` dla pracy pokazanej w widoku (`WidokPracy.wybor_wpisu`), przyciski aktywne tylko
 z wybrana osoba i "wybierz_wpis" w `dozwolone`. Test: `testy/test_pula_aplikacja.py::test_ui_*`.
+
+## Poprawki przed T7 / T14 (E3-P14, 20.11.2026)
+
+- **Nowy wynik czeka (N2).** Gdy wynik nowej plytki przyszedl, a ekran zostal na ogladanej (regula A-P2 bez zmian), w
+  kolumnie "Plytki tej zmiany" pod przyciskiem "Pokaz nowy wynik: Plytka n" stoi TRWALY panel `panel_nowy_wynik`: "Nowy
+  wynik czeka: Plytka n" (kilka: "Nowe wyniki czekaja (k): ..."), wiersz z tytulami otwartych pytan i komunikatow
+  czekajacych plytek ("Plytka 2 (skan z 19:03): pytanie "Ponowny skan tej samej plytki?"") i rada. Runda 2 (P3): panel
+  jest w kolumnie plytek (`ListaPlytek.ustaw_panel_nowego`; stala szerokosc, poza przewijaniem kafelkow), NIE nad mapa -
+  jego pojawienie sie, wzrost i znikniecie nie zmieniaja polozenia ani rozmiaru mapy ogladanej plytki (nad mapa przesuwal
+  ja o 75 px pod reka technika); wlasnego przycisku nie ma - sluzy mu przycisk nad nim. Poziom "ostrzezenie", gdy jest
+  pytanie albo komunikat, inaczej "info"; bez "Zamknij" - znika, gdy technik obejrzy plytke. Panel jest poza limitem 3
+  paneli (nie spycha pytan pokazanej plytki). Mapa ogladanej plytki i otwarta praca zostaja. Pokazanie plytki z pytaniem
+  o ponowny skan zdejmuje z "nowych" takze jej poprzedni skan. Przycisk nad lista plytek, znaczki "NOWA" / "ma
+  komunikat" i blysk paska - jak dotad.
+- **Nowy skan przed odpowiedzia (poz. 8).** Plytka z otwartym pytaniem "Ponowny skan tej samej plytki?" ma w naglowku
+  mapy i na kafelku stan "nowy skan, czeka na odpowiedz" (nie "sprawdzona" i nie "do obejrzenia: n"), a kafelek skanu,
+  ktory pytanie proponuje zastapic - napis "poprzedni skan tej plytki". Po odpowiedzi wracaja zwykle napisy.
+- **Przycisk skanu (poz. 6).** Dopoki start skanu jest atrapa: napis "Program czeka na plik skanu [Spacja] / Skan
+  uruchamiasz w programie skanera", wyglad informacyjny (rola `czekanie`: jasne tlo, przerywana ramka, male pismo) - nie
+  przycisk glowny. Dzialanie Spacji i klikniecia bez zmian (`start_skanu`).
+- **Decyzja NIE zostala zapisana (N1).** Komunikaty `decyzja_niezapisana` / `polecenie_niezapisane` (pasek bledow
+  programu) maja przyciski "Ponow teraz" (`komunikat_ponow_polecenie` -> `ponow_polecenie(id)`) i "Rezygnuje - nie
+  zapisuj" (zamiast "Zamknij"); opis w `aplikacja.md`.
+- **Lista pusta (poz. 4).** Godzina zapisu listy: "Zapisano do pliku o GG:MM" (bylo "Lista zapisana do pliku ..." obok
+  "Lista jest pusta.").
+- Testy: `testy/test_p14_ekran.py` (przyciski decyzji i pytania widoczne bez przewijania przy 1920 x 1080, 1600 x 900,
+  1536 x 864 i 1280 x 720; N2; poz. 8; poz. 6; poz. 4), `testy/test_p14_baza_zajeta.py` (okno przy zajetej bazie).

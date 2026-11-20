@@ -17,6 +17,7 @@ Wlasny stan panelu to wybor osoby: wybrana pozycja (piec, zlecenie) i wskazany w
 """
 from __future__ import annotations
 
+import logging
 import weakref
 
 from PySide6.QtCore import Qt
@@ -26,6 +27,7 @@ from . import napisy_rano as NR
 from . import styl
 from .czesci import UkladPlynny, dzien, etykieta, przycisk, wyczysc
 
+LOG = logging.getLogger(__name__)
 KLASA_WSKAZ = "wskaz_wiersz"
 
 
@@ -71,6 +73,7 @@ class PanelExcela(QFrame):
     def __init__(self, ekran):
         super().__init__()
         self._ekran = weakref.ref(ekran)
+        self._zalogowane: set = set()  # ostrzezenia Excela zapisane juz w logu w pelnym brzmieniu (E3-P14, poz. 1)
         self.setObjectName("excel_panel")
         self.setProperty("rola", "panel")
         self._r = styl.ZWYKLE
@@ -228,7 +231,11 @@ class PanelExcela(QFrame):
         self.tytul.setText(NR.EXCEL_TYTUL.format(nr=ex.nr_w_dniu or "?", doba=dzien(data) if data else "?"))
         teksty = ([NR.EXCEL_W_TOKU.format(n=ex.w_toku)] if ex.w_toku else []) + [NR.EXCEL_TRYB.get(ex.tryb, ""),
                                                                                NR.EXCEL_ZOSTALO.format(n=ex.do_zalatwienia, razem=len(pozycje))]
-        self.ostrzezenia.setText(" ".join(t for t in teksty + list(ex.ostrzezenia) if t))
+        for surowe in ex.ostrzezenia:  # E3-P14 (poz. 1): pelny tekst (sekcje ustawien, oznaczenia) do logu, raz
+            if surowe not in self._zalogowane:
+                self._zalogowane.add(surowe)
+                LOG.info("okno Excela: ostrzezenie dla programisty: %s", surowe)
+        self.ostrzezenia.setText(" ".join(t for t in teksty + [NR.dla_technika(x) for x in ex.ostrzezenia] if t))
         self.blad.setText(ex.blad or "")
         self.blad.setVisible(bool(ex.blad))
         wyczysc(self._zalegle)
@@ -258,7 +265,7 @@ class PanelExcela(QFrame):
             self._wiersz = None
         self.folder.setText(NR.EXCEL_FOLDER.format(kuweta=p.kuweta or NR.LISTA_PUSTA, folder=szczegoly.folder or NR.LISTA_PUSTA)
                             if p is not None and szczegoly is not None else "")
-        self.powod.setText(p.powod if p is not None else "")
+        self.powod.setText(NR.dla_technika(p.powod) if p is not None else "")  # E3-P14 (poz. 2): bez "regula N:"
         self.sprawdz.setVisible(p is not None and p.do_sprawdzenia and not p.zalatwiona)
         if p is not None and p.poprzedni_blad and not p.zalatwiona:
             w = p.poprzedni_wiersz

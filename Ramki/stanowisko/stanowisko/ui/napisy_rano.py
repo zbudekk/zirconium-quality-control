@@ -6,6 +6,8 @@ diakrytycznymi (czyta je osoba rozkladajaca piec); plik UTF-8, bez Qt. Do zatwie
 """
 from __future__ import annotations
 
+import re
+
 # --- przelacznik trybu (pasek stanu) ----------------------------------------------------------------
 PRZELACZ_NA = "→ {tryb}"
 PRZELACZ_OPIS = "Przełącz program na tryb „{tryb}” — nowe skany trafią do tego trybu."
@@ -60,6 +62,8 @@ PRACA_PUSTY_WIDOK = ("Kliknij gniazdo na płytce, żeby zobaczyć pracę.\n\nŻ�
                      "(przymierz na modelach albo przypisz ręcznie), czerwone — konflikt.")
 PRACA_TYTUL = "{plytka} — gniazdo {gniazdo}"
 PRACA_TYTUL_POZA = "{plytka} — praca poza gniazdem"
+# E3-P14 (poz. 7): opis statusu w WIDOKU PRACY (gniazdo jest juz klikniete) - inny niz opis w legendzie ("kliknij gniazdo ...")
+OPIS_W_WIDOKU = {"rano_dwuznaczna": "Program waha się między dwoma projektami — porównaj je z pracą i kliknij „{wybierz}” przy właściwym."}
 KUWETA = "Kuweta"
 ZAB = "Ząb"
 TYP = "Typ"
@@ -103,7 +107,23 @@ POPRAWKI_TYTUL = "Ząb dofrezowany do zlecenia odhaczonego (tylko log): {lista}"
 JUZ_ROZPOZNANE_TYTUL = "Ząb już rozpoznany we wcześniejszym piecu, zlecenie z brakami — sprawdź (tylko log): {lista}"
 WYNIK_TYTUL_OSTATNI = "Ostatni zamknięty piec: piec {nr} · doba {doba} · zamknięty o {godzina} ({osoba})"
 KUWETA_COFNIETA = "Cofnięto rozłożenie kuwety {kuweta} — znowu jest bieżąca."
-NIEROZSTRZYGNIETE = "Nierozstrzygnięte (nie liczą się): wybierz {dwuznaczne}, nieznane {nieznane}"
+# E3-P14 (N3): prace bez rozstrzygniecia nazwane (plytka, gniazdo, napis statusu) - w otwartym piecu i po "Zamknij piec"
+NIEROZSTRZYGNIETE = "Prace bez rozstrzygnięcia — jeszcze NIE policzone ({n}): {lista}. Rozstrzygnij je przed „Zamknij piec”."
+NIEROZSTRZYGNIETE_ZAMKNIETY = ("Prace bez rozstrzygnięcia — NIE policzone w tym piecu ({n}): {lista}. Ich zęby są w brakach jako „{brak}” "
+                               "albo zlecenia nie ma na żadnej liście. Żeby je policzyć: „Otwórz piec ponownie”, rozstrzygnij je i zamknij "
+                               "piec jeszcze raz.")
+NIEROZSTRZYGNIETA = "{plytka}, gniazdo {gniazdo} ({napis})"
+NIEROZSTRZYGNIETA_POZA = "{plytka}, poza gniazdem ({napis})"
+NIEROZSTRZYGNIETE_ODSTEP = "; "
+NIEROZSTRZYGNIETE_DALEJ = "; … i jeszcze {n}"
+NIEROZSTRZYGNIETYCH_W_NAPISIE = 8
+# pytanie ekranu przed "Zamknij piec" z pracami bez rozstrzygniecia (domyslna, pierwsza odpowiedz: powrot do rozstrzygania)
+ZAMKNIJ_MIMO_TYTUL = "Zamknąć piec mimo prac bez rozstrzygnięcia?"
+ZAMKNIJ_MIMO_TEKST = ("W tym piecu {ile} bez rozstrzygnięcia: {lista}. Po zamknięciu pieca te prace NIE zostaną policzone — ich zęby "
+                      "trafią do braków jako „{brak}” albo zlecenia nie będzie na żadnej liście.")
+ZAMKNIJ_MIMO_ILE = ("{n} praca jest", "{n} prace są", "{n} prac jest")
+ZAMKNIJ_MIMO_WROC = "Wróć do rozstrzygania"
+ZAMKNIJ_MIMO_TAK = "Zamknij piec mimo to"
 KOLUMNY_KOMPLETNE = ("Kuweta", "Punkty", "Uwagi")
 KOLUMNY_BRAKI = ("Kuweta", "Brakuje", "Stan")
 KOLUMNY_BRAKI_BIEZACE = ("Kuweta", "Brakuje", "Stan", "Piec")
@@ -159,5 +179,29 @@ EXCEL_POPRZEDNI_BLAD = "POPRZEDNIA PRÓBA: błąd — zapis mógł dojść; spra
 EXCEL_POPRZEDNI_BLAD_BEZ_WIERSZA = "POPRZEDNIA PRÓBA: błąd — sprawdź w Excelu, czy pole B tego zlecenia nie jest już zaznaczone."
 EXCEL_UWAGA_BLAD = "poprzednio błąd"
 EXCEL_ZALEGLE = "Inne piece do odhaczenia:"
+# E3-P14 (poz. 1, 2): ostrzezenia i powody z ``excel`` niosa oznaczenia programisty ("regula 2: ...", "(D2)", "[excel] ...",
+# "ustawienia.toml") - panel pokazuje tresc dla osoby, pelny tekst zostaje w logu programu
+EXCEL_AKTYWNY_SKOROSZYT = ("Program używa skoroszytu otwartego w Excelu: „{skoroszyt}”, arkusz „{arkusz}” — sprawdź przed pierwszym "
+                           "zatwierdzeniem, czy to właściwy plik zleceń.")
+_WZOR_REGULY = re.compile(r"^regula \d+:\s*", re.IGNORECASE)
+_WZOR_OZNACZENIA = re.compile(r"\s*\([A-Z]{1,2}\d+\)\s*$")
+_WZOR_SEKCJI = re.compile(r"^\[[a-z_]+\]\s*")
+_WZOR_SKOROSZYTU = re.compile(r"skoroszyt '([^']*)', arkusz '([^']*)'")
+
+
+def dla_technika(tekst: str | None) -> str:
+    """Tekst z modulu ``excel`` bez oznaczen programisty: bez "regula N:", bez "(D2)" na koncu, bez "[sekcja]" na poczatku;
+    ostrzezenie o skoroszycie niewskazanym w ustawieniach - jako zdanie dla osoby (nazwy skoroszytu i arkusza zostaja)."""
+    t = (tekst or "").strip()
+    if not t:
+        return ""
+    if t.startswith("[excel] skoroszyt"):
+        m = _WZOR_SKOROSZYTU.search(t)
+        if m:
+            return EXCEL_AKTYWNY_SKOROSZYT.format(skoroszyt=m[1], arkusz=m[2])
+    bez_reguly = _WZOR_REGULY.sub("", t)
+    if bez_reguly != t:  # powod wyboru wiersza: zdanie od wielkiej litery
+        bez_reguly = bez_reguly[:1].upper() + bez_reguly[1:]
+    return _WZOR_SEKCJI.sub("", _WZOR_OZNACZENIA.sub("", bez_reguly))
 EXCEL_ZALEGLY = "Piec {nr} ({doba}) — {ile}"
 RAMKA_UTRACONE = "utracone zdarzenia ramki {rola}: {n}"

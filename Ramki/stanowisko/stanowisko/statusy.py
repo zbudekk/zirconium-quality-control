@@ -237,6 +237,7 @@ PRZYCISKI = {
     "zamknij": "Zamknij program",
     "zapisz_liste": "Zapisz listę do pliku",
     "ponow_zapis": "Ponów zapis",
+    "ponow_polecenie": "Ponów teraz",  # E3-P14 (N1): ponowienie polecenia odrzuconego przy zajetej bazie
     # poranek (E3-A7)
     "przelacz_tryb": "Przełącz tryb",
     "wybierz_kandydata": "To ten projekt",
@@ -256,7 +257,21 @@ PRZYCISKI = {
     # poranek - runda 4 sesji porannej (A6): zapomniany "Zamknij piec"
     "zamknij_piec_i_przenies": "Tak, zamknij piec i przenieś nowe skany",
     "cofnij_przeniesienie": "Cofnij przeniesienie",
+    # E3-P14 runda 2 (D3): wybor krazka pracy (pula per praca) - nazwa polecenia w komunikacie "decyzja NIE zostala zapisana";
+    # brzmienie jak napisy ekranu ``ui.napisy.KRAZEK_*`` (bez polskich znakow - poz. 5 recenzji, do zmiany razem z nimi)
+    "wybierz_wpis": "Wybor krazka",
+    "cofnij_wpis": "Cofnij wybor krazka",
 }
+# E3-P14 (N1): komunikat "decyzja NIE zostala zapisana" - zamiast "Zamknij" (zamkniecie = swiadoma rezygnacja z tej decyzji)
+PRZYCISK_REZYGNUJE = "Rezygnuję — nie zapisuj"
+KOMUNIKATY_DO_PONOWIENIA = ("decyzja_niezapisana", "polecenie_niezapisane")
+# opis polecenia w tych komunikatach (pole ``co``): „Ukruszona” — płytka 1, gniazdo 2 / „Rozłożona” — kuweta 3221 / „Zamknij piec”
+POLECENIE_NAZWA = "„{napis}”"
+POLECENIE_Z_MIEJSCEM = "„{napis}” — {miejsce}"
+MIEJSCE_GNIAZDO = "{plytka}, gniazdo {gniazdo}"
+MIEJSCE_POZA_GNIAZDEM = "{plytka}, praca poza gniazdem"
+MIEJSCE_KUWETA = "kuweta {kuweta}"
+NAPIS_NIC_DO_PONOWIENIA = "Tego polecenia nie ma już na liście do ponowienia (zostało zapisane albo z niego zrezygnowano)."
 PRZYCISK_NUMER_MIMO = "Zmień numer na {numer} mimo to"  # A6 runda 4: zmiana numeru plytki przy nowym wsadzie - tylko swiadomie
 PRZYCISK_NUMER_BEZ_ZMIANY = "Nie zmieniaj"
 ZLECENIA_ODMIANA = ("zlecenie", "zlecenia", "zleceń")
@@ -364,6 +379,15 @@ KOMUNIKATY: dict[str, Wzor] = {
     "nowa_zmiana": Wzor(POZIOM_INFO, "Nowa zmiana", "Zaczęła się zmiana {zmiana} — wybierz osobę, która teraz pracuje."),
     "odmowa": Wzor(POZIOM_OSTRZEZENIE, "Nie można tego zrobić", "{powod}"),
     "baza_zajeta": Wzor(POZIOM_BLAD, "Baza jest zajęta", "Inny program trzyma bazę stanowiska — niczego nie zapisano. Spróbuj ponownie za chwilę."),
+    # E3-P14 (N1): polecenie technika odrzucone, bo baza byla zajeta - komunikat TRWALY z przyciskiem "Ponów teraz" (ponawia
+    # dokladnie to polecenie); znika po udanym zapisie albo po "Rezygnuję". ``co`` - nazwa polecenia i miejsce (plytka, gniazdo)
+    "decyzja_niezapisana": Wzor(POZIOM_BLAD, "Decyzja NIE została zapisana",
+                                "{co} — decyzja NIE jest zapisana: baza stanowiska była zajęta przez inny program. Kliknij "
+                                "„Ponów teraz”; jeśli znowu się nie uda, odczekaj chwilę i kliknij jeszcze raz. Dopóki widzisz ten "
+                                "komunikat, tej decyzji nie ma w programie."),
+    "polecenie_niezapisane": Wzor(POZIOM_BLAD, "Polecenie NIE zostało wykonane — baza zajęta",
+                                  "{co} — NIE wykonano i niczego nie zapisano: baza stanowiska była zajęta przez inny program. Kliknij "
+                                  "„Ponów teraz”; jeśli znowu się nie uda, odczekaj chwilę i kliknij jeszcze raz."),
     "program_zamkniety": Wzor(POZIOM_INFO, "Program się zamyka", "Program się zamyka — polecenie nie zostało wykonane."),
     "start_skanu_nieudany": Wzor(POZIOM_OSTRZEZENIE, "Skaner nie odpowiedział",
                                  "Nie udało się uruchomić skanu z programu — naciśnij Spację w programie skanera."),
