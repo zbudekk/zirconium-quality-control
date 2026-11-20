@@ -6,6 +6,7 @@ Dane w pelni sztuczne; testy pisza tylko do tmp_path.
 """
 from __future__ import annotations
 
+import os
 import sqlite3
 
 import pytest
@@ -427,6 +428,43 @@ def test_d2_kolejne_nieudane_migracje_nie_mnoza_kopii_pliku(tmp_path, monkeypatc
     with pytest.raises(B.BladBazy):
         B.otworz(plik)
     assert len(list(tmp_path.glob("*kopia_v1*"))) == 2
+
+
+def test_d2_baza_zmieniona_bez_zmiany_rozmiaru_i_czasu_dostaje_nowa_kopie(tmp_path, monkeypatch):
+    """E3-T0d: o tym, czy kopia sprzed migracji jest aktualna, decyduje tresc pliku, a nie jego rozmiar i czas zmiany.
+    Proba odtwarza w sposob pewny to, co w `test_d2_kolejne...` zdarzalo sie przypadkiem (zapis bazy w tej samej jednostce
+    zegara systemu): tresc bazy inna, rozmiar ten sam, czas zmiany przywrocony przez `os.utime`."""
+    plik = tmp_path / "stanowisko.sqlite"
+    b = B.otworz(plik)
+    b.wstaw("skany", plik="skan_x.stl", status="przyjety")
+    b.zamknij()
+    monkeypatch.setitem(B.MIGRACJE, 2, ("CREATE TABLE probna_tabela (a INTEGER)", "TO NIE JEST POLECENIE SQL"))
+    for _ in range(2):  # proba 1 robi kopie, proba 2 porownuje ja z baza (identyczne) i jej nie powiela
+        with pytest.raises(B.BladBazy, match="migracja do wersji 2 nie powiodla sie"):
+            B.otworz(plik)
+    kopie = list(tmp_path.glob("*kopia_v1*"))
+    assert len(kopie) == 1
+    stara, tresc_starej = kopie[0], kopie[0].read_bytes()
+    assert tresc_starej == plik.read_bytes()
+    przed = plik.stat()
+    pol = sqlite3.connect(plik)  # baza zmienila sie miedzy probami
+    pol.execute("INSERT INTO skany (plik, status) VALUES ('skan_y.stl', 'przyjety')")
+    pol.commit()
+    pol.close()
+    os.utime(plik, ns=(przed.st_atime_ns, przed.st_mtime_ns))
+    po = plik.stat()
+    # warunki proby: plik bazy ma inna tresc przy tym samym rozmiarze i tym samym czasie zmiany
+    assert (po.st_size, po.st_mtime_ns, po.st_mtime) == (przed.st_size, przed.st_mtime_ns, przed.st_mtime)
+    assert plik.read_bytes() != tresc_starej
+    with pytest.raises(B.BladBazy, match="migracja do wersji 2 nie powiodla sie") as blad:
+        B.otworz(plik)
+    nowe = [k for k in tmp_path.glob("*kopia_v1*") if k != stara]
+    assert len(nowe) == 1, "baza o zmienionej tresci nie dostala nowej kopii przed migracja"
+    assert nowe[0].read_bytes() == plik.read_bytes() and nowe[0].name in str(blad.value)
+    assert stara.read_bytes() == tresc_starej  # stara kopia zostaje nietknieta
+    with pytest.raises(B.BladBazy) as blad:  # kolejna proba bez zmiany bazy: zwraca nowa kopie, trzeciej nie robi
+        B.otworz(plik)
+    assert len(list(tmp_path.glob("*kopia_v1*"))) == 2 and nowe[0].name in str(blad.value)
 
 
 # --- runda 3 (recenzja przyrostowa PR #16): D5 - sciezki w tekstach -------------------------------------
