@@ -4,6 +4,8 @@ Repozytorium programu stanowiska z planu wdrożenia v2 (`../Stanowisko kontroli 
 
 ## Uruchomienie (Windows, Python 3.12)
 
+**Na stanowisku program instaluje się z paczki wydania** (jedno polecenie, bez internetu) — sekcja „Instalacja z paczki wydania” niżej. Poniższe polecenia dotyczą pracy programisty na kopii repozytorium.
+
 Wszystkie polecenia z katalogu `stanowisko/`. Na tym laptopie `py` bez numeru uruchamia Pythona 3.14 — zawsze `py -3.12`.
 
 ```
@@ -128,7 +130,29 @@ Docelowy program: dwuklik `uruchom_stanowisko.bat` (albo `py -3.12 -m stanowisko
 - Nowe klucze ustawień są opcjonalne (`[scanner]`, `[silnik]`, `[sciezki] podglady / pula_cache / logi`) — plik sprzed etapu 3 działa bez zmian. Dane programu: `dane/stanowisko.sqlite`, `dane/wyniki/`, `dane/podglady/`, `dane/logi/` (log bez nazw plikow skanow - zamiast nich skrot `sha16`), `dane/do_dofrezowania_biezaca.csv` (lista "do dofrezowania" zapisywana po kazdej zmianie, bez nazw zlecen).
 - Opis, kontrakt dla okna i granice: `opisy_modulow/aplikacja.md`; liczby: `raporty/E3-A3a_2026-11-17.md`.
 
+## Instalacja z paczki wydania (E3‑A11i, 20.11.2026 — wariant B)
+
+Program trafia na stanowisko jako jeden plik `Stanowisko_<wersja>.zip` (ok. 430 MB: program, koła pip wszystkich pakietów dla Windows x64 i Pythona 3.12, instalator, sumy SHA‑256). Instrukcja na jedną stronę: `instrukcje/instalacja_i_aktualizacja.md`; opis mechanizmu, kroków i kodów wyjścia: `opisy_modulow/instalacja.md`.
+
+```
+py -3.12 narzedzia/zbuduj_wydanie.py --wyjscie C:\wydania --kola C:\wydania\kola        (budowa paczki z commita HEAD, bez internetu)
+py -3.12 narzedzia/zbuduj_wydanie.py --pobierz-kola --kola C:\wydania\kola              (raz, z internetem: koła + listy zamrożone)
+zainstaluj.cmd [/katalog C:\Stanowisko] [/python <python.exe>] [/skrot] [/testy]        (z rozpakowanej paczki: instalacja i aktualizacja)
+C:\Stanowisko\Stanowisko.cmd [--atrapa] [--zamknij-po 5]                                (program — wersja bieżąca)
+C:\Stanowisko\Samokontrola.cmd
+C:\Stanowisko\Wroc_do_poprzedniej.cmd [/przywroc-kopie]
+C:\Stanowisko\Wersje.cmd [/usun <wersja>]
+```
+
+- **Raz, ręcznie:** Python 3.12 (64‑bit) z python.org. Reszta bez internetu i bez zmian w systemie: każda wersja ma własny katalog `wersje\<wersja>\` z programem i własnym środowiskiem wirtualnym (pakiety tylko z kół paczki, w wersjach z `instalacja/zamrozone.txt`); `pytest` instaluje się tylko na żądanie (`/testy`).
+- **Ustawienia i dane leżą poza katalogiem wersji:** `C:\Stanowisko\ustawienia.toml` (przy pierwszej instalacji ze wzoru, ze ścieżkami danych bezwzględnymi `C:/Stanowisko/dane/...`; przy aktualizacji nietknięty) i `C:\Stanowisko\dane\`. Po pierwszej instalacji uzupełnij w nim foldery pracy i osoby, potem uruchom `zainstaluj.cmd` jeszcze raz — samokontrola musi być zielona, zanim wersja stanie się bieżąca.
+- **Aktualizacja:** rozpakuj nową paczkę i uruchom jej `zainstaluj.cmd`. Kolejność: sumy paczki → Python → nowy katalog wersji → kopia bazy (`dane\kopie\`) → samokontrola → dopiero wtedy przełączenie wskaźnika `wersja_biezaca.txt`. Każdy błąd zostawia wersję bieżącą bez zmian i mówi, co zrobić.
+- **Powrót:** `Wroc_do_poprzedniej.cmd` przełącza wskaźnik na poprzednią wersję. Gdy nowsza wersja zmigrowała bazę, powrót zatrzymuje się z ostrzeżeniem (ile wpisów i od kiedy przepadnie) i wymaga `/przywroc-kopie`; bieżąca baza jest wtedy odkładana, nie kasowana.
+- Numer wersji: plik `WERSJA` (albo `--wersja` przy budowie). Paczka jest powtarzalna bajtowo (ten sam commit + te same koła = ten sam SHA‑256); sumy zbudowanych wydań: `../etap3/wydania/`. Paczki ZIP i koła pip nie trafiają do repozytorium.
+
 ## Laptop firmowy — instalacja i test skanera bez Excela i SharePointa
+
+**Od 20.11.2026 program „Stanowisko” instaluje się z paczki wydania (sekcja wyżej) — kroki 1 i 2 poniżej opisują dawny sposób (kopia folderu + pip z internetu) i zostają dla pracy programisty oraz okna testu skanera.**
 
 1. **Python 3.12** z python.org (zaznaczyć „Add python.exe to PATH” i „py launcher”). Sprawdzić w wierszu poleceń: `py -3.12 --version`. Inne wersje Pythona nie przeszkadzają — program zawsze woła `py -3.12`.
 2. **Program**: skopiować cały folder `stanowisko/` (bez `dane/` — to dane lokalne) np. do `C:\stanowisko\`. W nim, w wierszu poleceń:
@@ -164,7 +188,10 @@ Każdy sztuczny skan to `skan_<plytka>_n<numer>_s<seed>.stl` + `.json` z prawdą
 | `stanowisko/` | moduły programu: `uklad` (układ płytki), `synth` (generator), `katalog` (cechy projektów bez nazw), `plate` (wyrównanie, numer, cięcie), `match` (identyfikacja), `inspect` (ukruszenia, drgnięcie, poprawka), `porownaj` (CLI: cały łańcuch), `ui_test` (okno PySide6) + `podglad3d` (Open3D, osobny proces); dalej `session`, pełne `ui`, `indicate`, `excel`, `scanner` |
 | `modele_plytek/<wieczorna|poranna|okragla_wieczorna|okragla_poranna>/` | `uklad.json` (współrzędne gniazd, znaczników, dołków kodu) i `plytka_n<N>.stl` z projektu ramek v2, układ R59 (okrągłe: n8, n9 + `plytka_bazowa.stl`) |
 | `modele_plytek/<…>_r54/` | to samo dla poprzedniego układu R54 — stare płytki fizyczne (pliki bajtowo jak przed R59) |
-| `narzedzia/` | atrapy koron, rzut z góry, katalog projektów, metryki P2 i P3a, R59: liczniki strażnika układu i pojemność płytek; później kalibracja ramek |
+| `narzedzia/` | atrapy koron, rzut z góry, katalog projektów, metryki P2 i P3a, R59: liczniki strażnika układu i pojemność płytek; później kalibracja ramek; `zbuduj_wydanie.py` — paczka wydania (E3‑A11i) |
+| `instalacja/` | instalator paczki wydania: `zainstaluj.cmd`, `instalator.py` (instalacja, aktualizacja, powrót), wzory skryptów uruchamiających, listy wersji zamrożonych (`zamrozone.txt`, `zamrozone_testy.txt`) |
+| `instrukcje/` | instrukcje jednostronicowe dla ludzi (instalacja i aktualizacja; instrukcje technika — paczka A11d) |
+| `WERSJA` | numer wersji programu (jeden wiersz) — nazwa paczki `Stanowisko_<wersja>.zip` i katalogu wersji |
 | `testy/` | pytest, dane syntetyczne |
 | `opisy_modulow/` | jeden plik na moduł: co robi, wejście, wyjście, kryterium „działa” — czytać przed zmianą kodu |
 | `ustawienia.toml` | jedyny plik ustawień: ścieżki, progi, parametry (lokalny; wzór `ustawienia.przyklad.toml`) |

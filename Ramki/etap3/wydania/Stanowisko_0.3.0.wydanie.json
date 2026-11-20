@@ -1,0 +1,548 @@
+{
+ "commit": "14376218b891eaced32578a91885effc4fb77d22",
+ "data_commita": "2026-11-20T10:03:13Z",
+ "format": 1,
+ "kola": [
+  {
+   "pakiet": "annotated-types",
+   "plik": "annotated_types-0.8.0-py3-none-any.whl",
+   "rozmiar": 13427,
+   "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0",
+   "wersja": "0.8.0"
+  },
+  {
+   "pakiet": "asttokens",
+   "plik": "asttokens-3.0.2-py3-none-any.whl",
+   "rozmiar": 28702,
+   "sha256": "9da13157f5b28becde0bd374fc677dcd3c290614264eff096f167c469cd9f933",
+   "wersja": "3.0.2"
+  },
+  {
+   "pakiet": "attrs",
+   "plik": "attrs-26.1.0-py3-none-any.whl",
+   "rozmiar": 67548,
+   "sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
+   "wersja": "26.1.0"
+  },
+  {
+   "pakiet": "beautifulsoup4",
+   "plik": "beautifulsoup4-4.15.0-py3-none-any.whl",
+   "rozmiar": 109924,
+   "sha256": "d6f88de62e1d4e38ecb1077eb9724cd0eff29d2a08ca16a401e9b9e93f117cf9",
+   "wersja": "4.15.0"
+  },
+  {
+   "pakiet": "blinker",
+   "plik": "blinker-1.9.0-py3-none-any.whl",
+   "rozmiar": 8458,
+   "sha256": "ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc",
+   "wersja": "1.9.0"
+  },
+  {
+   "pakiet": "certifi",
+   "plik": "certifi-2026.10.23-py3-none-any.whl",
+   "rozmiar": 135082,
+   "sha256": "e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1",
+   "wersja": "2026.10.23"
+  },
+  {
+   "pakiet": "charset-normalizer",
+   "plik": "charset_normalizer-3.5.2-cp312-cp312-win_amd64.whl",
+   "rozmiar": 207486,
+   "sha256": "780fbe7cab297b81dad9fb8dc5eb003c0468ffb0d9e5f65068c53a34661a96bc",
+   "wersja": "3.5.2"
+  },
+  {
+   "pakiet": "click",
+   "plik": "click-8.5.0-py3-none-any.whl",
+   "rozmiar": 125251,
+   "sha256": "255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360",
+   "wersja": "8.5.0"
+  },
+  {
+   "pakiet": "colorama",
+   "plik": "colorama-0.4.6-py2.py3-none-any.whl",
+   "rozmiar": 25335,
+   "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+   "wersja": "0.4.6"
+  },
+  {
+   "pakiet": "comm",
+   "plik": "comm-0.2.3-py3-none-any.whl",
+   "rozmiar": 7294,
+   "sha256": "c615d91d75f7f04f095b30d1c1711babd43bdc6419c1be9886a85f2f4e489417",
+   "wersja": "0.2.3"
+  },
+  {
+   "pakiet": "configargparse",
+   "plik": "configargparse-1.8.0-py3-none-any.whl",
+   "rozmiar": 34611,
+   "sha256": "bb25b307c3cd46a3e868e7f7aa51487eb8003a9f01cac3ae129b66ec26eb794c",
+   "wersja": "1.8.0"
+  },
+  {
+   "pakiet": "dash",
+   "plik": "dash-4.4.1-py3-none-any.whl",
+   "rozmiar": 8945027,
+   "sha256": "72120a91b10ee4d73f9446efd5d6a4ec218086feed7b1b479d2259844d1f658f",
+   "wersja": "4.4.1"
+  },
+  {
+   "pakiet": "executing",
+   "plik": "executing-2.3.0-py3-none-any.whl",
+   "rozmiar": 29393,
+   "sha256": "736e859c9f8701f11fcf516856f26f562e04776387824b43a35a1dfe21c84122",
+   "wersja": "2.3.0"
+  },
+  {
+   "pakiet": "fastjsonschema",
+   "plik": "fastjsonschema-2.22.2-py3-none-any.whl",
+   "rozmiar": 27413,
+   "sha256": "0fb3915616adac85ccfdd737d26be1089845d2019819505b42d39888458f74d4",
+   "wersja": "2.22.2"
+  },
+  {
+   "pakiet": "flask",
+   "plik": "flask-3.1.3-py3-none-any.whl",
+   "rozmiar": 103424,
+   "sha256": "f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c",
+   "wersja": "3.1.3"
+  },
+  {
+   "pakiet": "idna",
+   "plik": "idna-3.20-py3-none-any.whl",
+   "rozmiar": 69583,
+   "sha256": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c",
+   "wersja": "3.20"
+  },
+  {
+   "pakiet": "importlib-metadata",
+   "plik": "importlib_metadata-10.1.0-py3-none-any.whl",
+   "rozmiar": 32221,
+   "sha256": "cf45ce66a929c64e994185a809c04840d0501db17e663810d993d0f4829265c7",
+   "wersja": "10.1.0"
+  },
+  {
+   "pakiet": "ipython",
+   "plik": "ipython-9.17.1-py3-none-any.whl",
+   "rozmiar": 639038,
+   "sha256": "6d1645743cfd1a07eb695d85aa2b5fa66721f8cbae9431d4049f7084bbf06509",
+   "wersja": "9.17.1"
+  },
+  {
+   "pakiet": "ipython-pygments-lexers",
+   "plik": "ipython_pygments_lexers-1.1.1-py3-none-any.whl",
+   "rozmiar": 8074,
+   "sha256": "a9462224a505ade19a605f71f8fa63c2048833ce50abc86768a0d81d876dc81c",
+   "wersja": "1.1.1"
+  },
+  {
+   "pakiet": "ipywidgets",
+   "plik": "ipywidgets-8.1.9-py3-none-any.whl",
+   "rozmiar": 140101,
+   "sha256": "f2b8cbcaae10252b809fbe4d7470db75c09b769a32cbf816d20e5ca6d3c5a79d",
+   "wersja": "8.1.9"
+  },
+  {
+   "pakiet": "itsdangerous",
+   "plik": "itsdangerous-2.2.0-py3-none-any.whl",
+   "rozmiar": 16234,
+   "sha256": "c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef",
+   "wersja": "2.2.0"
+  },
+  {
+   "pakiet": "janus",
+   "plik": "janus-2.0.0-py3-none-any.whl",
+   "rozmiar": 12161,
+   "sha256": "7e6449d34eab04cd016befbd7d8c0d8acaaaab67cb59e076a69149f9031745f9",
+   "wersja": "2.0.0"
+  },
+  {
+   "pakiet": "jedi",
+   "plik": "jedi-0.20.1-py2.py3-none-any.whl",
+   "rozmiar": 4885980,
+   "sha256": "0fb16d86c4a4c73c37ba518c77419975e30fcc620658a8d14fbb5720cdd34142",
+   "wersja": "0.20.1"
+  },
+  {
+   "pakiet": "jinja2",
+   "plik": "jinja2-3.1.6-py3-none-any.whl",
+   "rozmiar": 134899,
+   "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+   "wersja": "3.1.6"
+  },
+  {
+   "pakiet": "jsonschema",
+   "plik": "jsonschema-4.26.0-py3-none-any.whl",
+   "rozmiar": 90630,
+   "sha256": "d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
+   "wersja": "4.26.0"
+  },
+  {
+   "pakiet": "jsonschema-specifications",
+   "plik": "jsonschema_specifications-2025.9.1-py3-none-any.whl",
+   "rozmiar": 18437,
+   "sha256": "98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe",
+   "wersja": "2025.9.1"
+  },
+  {
+   "pakiet": "jupyter-core",
+   "plik": "jupyter_core-5.9.1-py3-none-any.whl",
+   "rozmiar": 29032,
+   "sha256": "ebf87fdc6073d142e114c72c9e29a9d7ca03fad818c5d300ce2adc1fb0743407",
+   "wersja": "5.9.1"
+  },
+  {
+   "pakiet": "jupyterlab-widgets",
+   "plik": "jupyterlab_widgets-3.0.17-py3-none-any.whl",
+   "rozmiar": 217292,
+   "sha256": "40ac1e9955acf116c4d995d9bfa082d86ad9ec6d91c4f134827cf5e0a5eb75e0",
+   "wersja": "3.0.17"
+  },
+  {
+   "pakiet": "markupsafe",
+   "plik": "markupsafe-3.0.4-cp312-cp312-win_amd64.whl",
+   "rozmiar": 14303,
+   "sha256": "11935df9bf455ed0c04eb87bcd720f02b1fe5e02128a9430f23aed6f93336fc7",
+   "wersja": "3.0.4"
+  },
+  {
+   "pakiet": "matplotlib-inline",
+   "plik": "matplotlib_inline-0.2.2-py3-none-any.whl",
+   "rozmiar": 9534,
+   "sha256": "3c821cf1c209f59fb2d2d64abbf5b23b67bcb2210d663f9918dd851c6da1fcf6",
+   "wersja": "0.2.2"
+  },
+  {
+   "pakiet": "narwhals",
+   "plik": "narwhals-2.27.1-py3-none-any.whl",
+   "rozmiar": 483211,
+   "sha256": "d057df13f5852b8e157596e82eb5e955fad267425df5e420e0ee9863da483b31",
+   "wersja": "2.27.1"
+  },
+  {
+   "pakiet": "nbformat",
+   "plik": "nbformat-5.11.1-py3-none-any.whl",
+   "rozmiar": 79849,
+   "sha256": "cc6698fa75f4fab8755ead786317815f13a6fee3b53311c0abb1a8b51d52f7ec",
+   "wersja": "5.11.1"
+  },
+  {
+   "pakiet": "nest-asyncio",
+   "plik": "nest_asyncio-1.6.0-py3-none-any.whl",
+   "rozmiar": 5195,
+   "sha256": "87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c",
+   "wersja": "1.6.0"
+  },
+  {
+   "pakiet": "numpy",
+   "plik": "numpy-2.5.4-cp312-cp312-win_amd64.whl",
+   "rozmiar": 12573091,
+   "sha256": "a7b1b6353e36a7e50de2973a38d705c88ee93adcf120673cee7f45a4a3fa223a",
+   "wersja": "2.5.4"
+  },
+  {
+   "pakiet": "open3d",
+   "plik": "open3d-0.20.0-cp312-cp312-win_amd64.whl",
+   "rozmiar": 77497277,
+   "sha256": "60010f21d44f13557ba007893bc13a69827faa4dc49eedd923d1397096c20d92",
+   "wersja": "0.20.0"
+  },
+  {
+   "pakiet": "packaging",
+   "plik": "packaging-26.3-py3-none-any.whl",
+   "rozmiar": 129956,
+   "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+   "wersja": "26.3"
+  },
+  {
+   "pakiet": "parso",
+   "plik": "parso-0.8.7-py2.py3-none-any.whl",
+   "rozmiar": 107025,
+   "sha256": "a8926eb2a1b915486941fdbd31e86a4baf88fe8c210f25f2f35ecec5b574ca1c",
+   "wersja": "0.8.7"
+  },
+  {
+   "pakiet": "pillow",
+   "plik": "pillow-13.0.0-cp312-cp312-win_amd64.whl",
+   "rozmiar": 7272166,
+   "sha256": "ff3fe9eb621fbb9db4c4be33ab946f6bac5f98ab50ca8d3260503653656c961b",
+   "wersja": "13.0.0"
+  },
+  {
+   "pakiet": "platformdirs",
+   "plik": "platformdirs-4.13.6-py3-none-any.whl",
+   "rozmiar": 32767,
+   "sha256": "21fc198fb09f3e78cadcdfd8a6ae4fd65cadc64a3cba78b694321c2996114a3e",
+   "wersja": "4.13.6"
+  },
+  {
+   "pakiet": "plotly",
+   "plik": "plotly-7.1.0-py3-none-any.whl",
+   "rozmiar": 9692368,
+   "sha256": "dbb7fa18afce40d0a8e80d1bf162eceb3faa0ce5a77fe741ad09a74cf78f53f3",
+   "wersja": "7.1.0"
+  },
+  {
+   "pakiet": "prompt-toolkit",
+   "plik": "prompt_toolkit-3.0.53-py3-none-any.whl",
+   "rozmiar": 392288,
+   "sha256": "01c0891d7f9237d5e339f7d3e42cdae80b7534abb1c7c0e3352efba6231492f2",
+   "wersja": "3.0.53"
+  },
+  {
+   "pakiet": "psutil",
+   "plik": "psutil-7.2.2-cp37-abi3-win_amd64.whl",
+   "rozmiar": 137737,
+   "sha256": "eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988",
+   "wersja": "7.2.2"
+  },
+  {
+   "pakiet": "pure-eval",
+   "plik": "pure_eval-0.2.4-py3-none-any.whl",
+   "rozmiar": 11893,
+   "sha256": "96cae060a313cfaad51bb761278bfb0e62dc0248d9315a81173752dc546cd37a",
+   "wersja": "0.2.4"
+  },
+  {
+   "pakiet": "pydantic",
+   "plik": "pydantic-2.14.1-py3-none-any.whl",
+   "rozmiar": 488106,
+   "sha256": "9195d967ec791692a04438115466764fb8b9a27b31f14a760437694f40d6b454",
+   "wersja": "2.14.1"
+  },
+  {
+   "pakiet": "pydantic-core",
+   "plik": "pydantic_core-2.50.1-cp312-cp312-win_amd64.whl",
+   "rozmiar": 2172522,
+   "sha256": "132529c83901437ff642f585216831bf5fd7a91df66829907e155192ead62498",
+   "wersja": "2.50.1"
+  },
+  {
+   "pakiet": "pygments",
+   "plik": "pygments-2.21.0-py3-none-any.whl",
+   "rozmiar": 1250147,
+   "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+   "wersja": "2.21.0"
+  },
+  {
+   "pakiet": "pypdf",
+   "plik": "pypdf-6.21.2-py3-none-any.whl",
+   "rozmiar": 407766,
+   "sha256": "1d44d1a3a200f25062adff0085b02040e4646431ac2ccac22e42679e91466084",
+   "wersja": "6.21.2"
+  },
+  {
+   "pakiet": "pyside6",
+   "plik": "pyside6-6.12.0-cp310-abi3-win_amd64.whl",
+   "rozmiar": 578958,
+   "sha256": "31a8d2893f2f28ab483b1534dde0438f27af6e234593de30425cb4729052d8f8",
+   "wersja": "6.12.0"
+  },
+  {
+   "pakiet": "pyside6-addons",
+   "plik": "pyside6_addons-6.12.0-cp310-abi3-win_amd64.whl",
+   "rozmiar": 40522402,
+   "sha256": "98d8d62010da6605344cee83e5c96fb846170a1f2d924523f10f5d92078b02b0",
+   "wersja": "6.12.0"
+  },
+  {
+   "pakiet": "pyside6-essentials",
+   "plik": "pyside6_essentials-6.12.0-cp310-abi3-win_amd64.whl",
+   "rozmiar": 82153795,
+   "sha256": "c9a95102aa23c1f86516a30d5a9be37552d324eee7e567eb7508973f1218cb42",
+   "wersja": "6.12.0"
+  },
+  {
+   "pakiet": "pyside6-pdf",
+   "plik": "pyside6_pdf-6.12.0.140-cp310-abi3-win_amd64.whl",
+   "rozmiar": 2983516,
+   "sha256": "4971ba1a0ca15e7c29cfd808e9600aeb46b2305dad01456eb09fa3197166268e",
+   "wersja": "6.12.0.140"
+  },
+  {
+   "pakiet": "pyside6-webengine",
+   "plik": "pyside6_webengine-6.12.0.140-cp310-abi3-win_amd64.whl",
+   "rozmiar": 131697708,
+   "sha256": "f9b61b1d457a591ee590a6b80515f25a3e61e2576a2a0a70566380f9d9de4ab0",
+   "wersja": "6.12.0.140"
+  },
+  {
+   "pakiet": "pywin32",
+   "plik": "pywin32-312-cp312-cp312-win_amd64.whl",
+   "rozmiar": 6914841,
+   "sha256": "b457f6d628a47e8a7346ce22acb7e1a46a4a78b52e1d17e1af56871bd19a93bc",
+   "wersja": "312"
+  },
+  {
+   "pakiet": "referencing",
+   "plik": "referencing-0.37.0-py3-none-any.whl",
+   "rozmiar": 26766,
+   "sha256": "381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231",
+   "wersja": "0.37.0"
+  },
+  {
+   "pakiet": "requests",
+   "plik": "requests-2.34.2-py3-none-any.whl",
+   "rozmiar": 73075,
+   "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0",
+   "wersja": "2.34.2"
+  },
+  {
+   "pakiet": "retrying",
+   "plik": "retrying-1.4.2-py3-none-any.whl",
+   "rozmiar": 10859,
+   "sha256": "bbc004aeb542a74f3569aeddf42a2516efefcdaff90df0eb38fbfbf19f179f59",
+   "wersja": "1.4.2"
+  },
+  {
+   "pakiet": "rpds-py",
+   "plik": "rpds_py-2026.9.1-cp312-cp312-win_amd64.whl",
+   "rozmiar": 222923,
+   "sha256": "5ce8943f79c2210f7abcc28e86367b03b28d95027fd01c46d2472373ae70c86f",
+   "wersja": "2026.9.1"
+  },
+  {
+   "pakiet": "rtree",
+   "plik": "rtree-1.4.1-py3-none-win_amd64.whl",
+   "rozmiar": 389358,
+   "sha256": "efe125f416fd27150197ab8521158662943a40f87acab8028a1aac4ad667a489",
+   "wersja": "1.4.1"
+  },
+  {
+   "pakiet": "scipy",
+   "plik": "scipy-1.18.1-cp312-cp312-win_amd64.whl",
+   "rozmiar": 36658278,
+   "sha256": "5e4d44984abc0020154ea81b247adeddcc3ac5527b975ff798bd1ba0adc513c2",
+   "wersja": "1.18.1"
+  },
+  {
+   "pakiet": "setuptools",
+   "plik": "setuptools-84.2.1-py3-none-any.whl",
+   "rozmiar": 876263,
+   "sha256": "ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2",
+   "wersja": "84.2.1"
+  },
+  {
+   "pakiet": "shiboken6",
+   "plik": "shiboken6-6.12.0-cp310-abi3-win_amd64.whl",
+   "rozmiar": 1265476,
+   "sha256": "a1906cb8116869178c64b6bab52623bbc8b4ceed7b30bfc3c9aa0f6e67f6438e",
+   "wersja": "6.12.0"
+  },
+  {
+   "pakiet": "soupsieve",
+   "plik": "soupsieve-3.0.4-py3-none-any.whl",
+   "rozmiar": 42458,
+   "sha256": "8412826614f9c632227067d0985aeb9f584bd15efc852955430e097a9fe7afbf",
+   "wersja": "3.0.4"
+  },
+  {
+   "pakiet": "stack-data",
+   "plik": "stack_data-0.6.3-py3-none-any.whl",
+   "rozmiar": 24521,
+   "sha256": "d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695",
+   "wersja": "0.6.3"
+  },
+  {
+   "pakiet": "traitlets",
+   "plik": "traitlets-5.16.1-py3-none-any.whl",
+   "rozmiar": 86211,
+   "sha256": "f775618166caa0396c8e337099240f2bd3e5e917d203b2e6fbe21a58d3cb1f6b",
+   "wersja": "5.16.1"
+  },
+  {
+   "pakiet": "trimesh",
+   "plik": "trimesh-5.2.0-py3-none-any.whl",
+   "rozmiar": 751459,
+   "sha256": "04db2c7ec62afdd7763fb04c82bb5f257ddd984993a19ee83697f475fc58fd29",
+   "wersja": "5.2.0"
+  },
+  {
+   "pakiet": "typing-extensions",
+   "plik": "typing_extensions-4.16.0-py3-none-any.whl",
+   "rozmiar": 45571,
+   "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+   "wersja": "4.16.0"
+  },
+  {
+   "pakiet": "typing-inspection",
+   "plik": "typing_inspection-0.4.4-py3-none-any.whl",
+   "rozmiar": 14750,
+   "sha256": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147",
+   "wersja": "0.4.4"
+  },
+  {
+   "pakiet": "urllib3",
+   "plik": "urllib3-2.8.0-py3-none-any.whl",
+   "rozmiar": 135717,
+   "sha256": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3",
+   "wersja": "2.8.0"
+  },
+  {
+   "pakiet": "watchdog",
+   "plik": "watchdog-6.0.0-py3-none-win_amd64.whl",
+   "rozmiar": 79070,
+   "sha256": "cbafb470cf848d93b5d013e2ecb245d4aa1c8fd0504e863ccefa32445359d680",
+   "wersja": "6.0.0"
+  },
+  {
+   "pakiet": "wcwidth",
+   "plik": "wcwidth-0.9.4-cp310-abi3-win_amd64.whl",
+   "rozmiar": 597780,
+   "sha256": "f28d77153303450ee13ebbe888297e75cf532c754555b6cabafc9bdda16c421c",
+   "wersja": "0.9.4"
+  },
+  {
+   "pakiet": "werkzeug",
+   "plik": "werkzeug-3.1.9-py3-none-any.whl",
+   "rozmiar": 228700,
+   "sha256": "6392e50c78460ba618e5b21f08a71f59c99ce99cdc6cf6e3dd7e6ccca8754fab",
+   "wersja": "3.1.9"
+  },
+  {
+   "pakiet": "widgetsnbextension",
+   "plik": "widgetsnbextension-4.0.16-py3-none-any.whl",
+   "rozmiar": 2225148,
+   "sha256": "a31a8774885b96fe825462f5d6496166f0c7cae111195b6465c801d230eb5a4e",
+   "wersja": "4.0.16"
+  },
+  {
+   "pakiet": "zipp",
+   "plik": "zipp-4.1.2-py3-none-any.whl",
+   "rozmiar": 10581,
+   "sha256": "b30cb6cd253122169c47de245ca24a86bac2a5d3802ba15bf7ba6414eb9e144d",
+   "wersja": "4.1.2"
+  }
+ ],
+ "kola_testy": [
+  {
+   "pakiet": "iniconfig",
+   "plik": "iniconfig-2.3.1-py3-none-any.whl",
+   "rozmiar": 7552,
+   "sha256": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7",
+   "wersja": "2.3.1"
+  },
+  {
+   "pakiet": "pluggy",
+   "plik": "pluggy-1.7.0-py3-none-any.whl",
+   "rozmiar": 27082,
+   "sha256": "7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec",
+   "wersja": "1.7.0"
+  },
+  {
+   "pakiet": "pytest",
+   "plik": "pytest-9.1.1-py3-none-any.whl",
+   "rozmiar": 386536,
+   "sha256": "37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c",
+   "wersja": "9.1.1"
+  }
+ ],
+ "nazwa": "Stanowisko",
+ "platforma": "win_amd64",
+ "pliki_programu": 122,
+ "python": "3.12",
+ "samokontrola": false,
+ "wersja": "0.3.0",
+ "zrodlo": "git"
+}
