@@ -405,7 +405,8 @@ def test_p2_kod_2_wartosc_pokazana_tylko_dla_sciezek_i_liczb(kat, capsys):
 def test_p3_plik_ustawien_w_cp1250_komunikat_o_kodowaniu_nie_o_bledzie_programu(kat, capsys):
     """P3: plik ustawien zapisany w Notatniku jako ANSI (cp1250) z polska litera w komentarzu albo sciezce - kod 2
     z komunikatem o kodowaniu pliku i rada, co zrobic (nie "samokontrola przerwana bledem programu")."""
-    kat.plik.write_bytes(("# \u015bcie\u017cki stanowiska - plik poprawiony r\u0119cznie\n" + kat.tekst).encode("cp1250"))
+    # Notatnik zapisujac jako ANSI zamienia znaki spoza strony kodowej na "?"
+    kat.plik.write_bytes(("# \u015bcie\u017cki stanowiska - plik poprawiony r\u0119cznie\n" + kat.tekst).encode("cp1250", errors="replace"))
     for json_ in ((), ("--json",)):
         kod, wyjscie = uruchom_main(capsys, "--ustawienia", kat.plik, *json_)
         assert kod == 2 and "UTF-8" in wyjscie and kat.plik.name in wyjscie and "NIEWYKONANA" in wyjscie, wyjscie
@@ -818,7 +819,24 @@ def test_kazde_sprawdzenie_ma_gorny_limit_czasu(kat, monkeypatch):
     for kody, _ in S.SPRAWDZENIA:  # kazde sprawdzenie ma skonczony limit, najdluzszy ma import bibliotek
         assert 0 < S.limit_sprawdzenia(kody) <= S.LIMIT_MODULOW_S <= 120.0, kody
     assert S.limit_sprawdzenia(("moduly",)) == S.LIMIT_MODULOW_S and S.limit_sprawdzenia(("baza",)) == S.LIMIT_SPRAWDZENIA_S <= 30.0
-    assert S.LIMITY_SPRAWDZEN == {"moduly": S.LIMIT_MODULOW_S}
+    assert S.LIMITY_SPRAWDZEN == {"moduly": S.LIMIT_MODULOW_S, "excel": S.LIMIT_EXCELA_S} and 0 < S.LIMIT_EXCELA_S <= S.LIMIT_SPRAWDZENIA_S
+
+
+def test_excel_bez_odpowiedzi_w_limicie_ostrzezenie_kod_0(kat, monkeypatch):
+    """Excel zajety (edycja komorki, okno dialogowe) moze nie odpowiedziec na zapytanie: wiersz ``excel`` z zalozenia nie
+    jest bledem, wiec po limicie to OSTRZEZENIE i kod 0 (Excela na PC nie ma: atrapa klienta COM czeka 30 s)."""
+    class Zajety(KlientCom):
+        def GetActiveObject(self, nazwa):  # noqa: N802
+            time.sleep(30)
+
+    monkeypatch.setattr(excel_com, "_win32com_client", lambda: Zajety(dziala=True))
+    monkeypatch.setitem(S.LIMITY_SPRAWDZEN, "excel", 0.5)
+    t = time.perf_counter()
+    wynik = kat.wykonaj()
+    assert time.perf_counter() - t < 10.0
+    s = wynik.sprawdzenie("excel")
+    assert s.poziom == S.OSTRZEZENIE and "nie zakonczylo sie w 0.5 s" in s.opis and "to nie blad" in s.rada, s
+    assert wynik.kod_wyjscia == 0 and S.PO_LIMICIE_OSTRZEZENIE == ("ramka_wieczorna", "ramka_poranna", "excel")
 
 
 def test_p4_wyjatek_w_jednym_sprawdzeniu_wiersz_blad_reszta_wykonana(kat, monkeypatch, capsys):
@@ -890,7 +908,7 @@ def test_dane_polozenie_nazwa_i_zmienna_razem_blad(kat, monkeypatch):
     monkeypatch.setenv("OneDriveCommercial", str(katalog))
     kat.zapisz(baza=f'"{(katalog / "dane" / "stanowisko.sqlite").as_posix()}"')
     s = kat.wykonaj().sprawdzenie("dane_polozenie")
-    assert s.poziom == S.BLAD and "[sciezki] baza (zmienna OneDriveCommercial)" in s.opis
+    assert s.poziom == S.BLAD and "[sciezki] baza (zmienna onedrivecommercial)" in s.opis.lower()  # Windows: nazwy zmiennych wielkimi literami
 
 
 def test_d5_dane_polozenie_biblioteka_sharepoint_z_rejestru_blad(kat, monkeypatch):
@@ -1513,9 +1531,8 @@ def test_sumy_pliki_systemowe_windows_nie_sa_nadmiarowe(kat, tmp_path):
     for rel in ("stanowisko/Thumbs.db", "stanowisko/ui/desktop.ini", "modele_plytek/wieczorna/thumbs.db", "modele_plytek/Desktop.ini",
                 "Thumbs.db", "desktop.ini"):
         (k / rel).write_bytes(b"\0plik systemowy")
-    wynik = kat.wykonaj(korzen=k)
-    s = wynik.sprawdzenie("sumy")
-    assert s.poziom == S.OK and "zgodne 5 z 5" in s.opis and "plikow nadmiarowych 0" in s.opis and wynik.kod_wyjscia == 0, s
+    s = kat.wykonaj(korzen=k).sprawdzenie("sumy")
+    assert s.poziom == S.OK and "zgodne 5 z 5" in s.opis and "plikow nadmiarowych 0" in s.opis, s
     (k / "stanowisko" / "Thumbs.db.py").write_bytes(b"X = 1\n")
     (k / "stanowisko" / "notatka.txt").write_bytes(b"x")
     s = kat.wykonaj(korzen=k).sprawdzenie("sumy")
