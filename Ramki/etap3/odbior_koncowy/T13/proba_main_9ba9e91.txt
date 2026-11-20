@@ -1,0 +1,24 @@
+T13 higiena repo: 2537f6f..9ba9e91, zmienionych plikow 579, w tym nowych 503
+grupa             nowe  zmien.  usun.
+E3                 164      22      0
+R58                242       4      0
+R59                 97      34     16
+NARUSZENIA (grupa E3 i sciezki poza listami): 7
+  A Ramki/stanowisko/stanowisko/dzien_skanera.py -> nie ASCII (859 bajtow)
+  A Ramki/stanowisko/stanowisko/dzien_skanera_kroki.toml -> nie ASCII (1783 bajtow)
+  A Ramki/stanowisko/stanowisko/dzien_skanera_rdzen.py -> nie ASCII (946 bajtow)
+  A Ramki/stanowisko/stanowisko/statusy.py -> nie ASCII (1550 bajtow)
+  A Ramki/stanowisko/stanowisko/ui/napisy.py -> nie ASCII (282 bajtow)
+  A Ramki/stanowisko/stanowisko/ui/napisy_rano.py -> nie ASCII (586 bajtow)
+  A Ramki/stanowisko/testy/test_dzien_skanera.py -> nie ASCII (171 bajtow)
+UWAGI w grupach spoza etapu 3 (nie licza sie do wyniku T13, do oceny koordynatora): 128
+  R58: duzy plik: 1
+  R58: konce linii: 23
+  R58: nie ASCII: 23
+  R58: plik danych: 2
+  R59: STL poza modele_plytek: 2
+  R59: duzy plik: 10
+  R59: konce linii: 18
+  R59: nie ASCII: 44
+  R59: plik danych: 5
+WYNIK T13: FAIL (7 naruszen)
