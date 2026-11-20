@@ -332,7 +332,7 @@ def test_modul_bazy_tylko_biblioteka_standardowa():
     drzewo = ast.parse(Path(B.__file__).read_text(encoding="utf-8"))
     importy = {a.name.split(".")[0] for w in ast.walk(drzewo) if isinstance(w, ast.Import) for a in w.names}
     importy |= {w.module.split(".")[0] for w in ast.walk(drzewo) if isinstance(w, ast.ImportFrom) and w.level == 0 and w.module}
-    assert importy <= {"__future__", "contextlib", "datetime", "filecmp", "json", "pathlib", "re", "shutil", "sqlite3", "typing"}, importy
+    assert importy <= {"__future__", "contextlib", "datetime", "json", "pathlib", "re", "shutil", "sqlite3", "typing"}, importy
 
 
 # --- runda 2 (recenzja PR #16): P1 - schemat a sekcja 3.4 ------------------------------------------
@@ -465,6 +465,35 @@ def test_d2_baza_zmieniona_bez_zmiany_rozmiaru_i_czasu_dostaje_nowa_kopie(tmp_pa
     with pytest.raises(B.BladBazy) as blad:  # kolejna proba bez zmiany bazy: zwraca nowa kopie, trzeciej nie robi
         B.otworz(plik)
     assert len(list(tmp_path.glob("*kopia_v1*"))) == 2 and nowe[0].name in str(blad.value)
+
+
+def test_d2_porownanie_tresci_idzie_blokami_i_nie_pamieta_wyniku(tmp_path, monkeypatch):
+    """E3-T0d: porownanie bazy z kopia czyta pliki blokami (tu blok 7 bajtow, pliki na kilka blokow) i za kazdym razem od nowa."""
+    monkeypatch.setattr(B, "_BLOK_POROWNANIA", 7)
+    a, b = tmp_path / "a.bin", tmp_path / "b.bin"
+    for dlugosc in (49, 50):  # dokladnie 7 blokow oraz 7 blokow i 1 bajt
+        tresc = bytes(range(dlugosc))
+        a.write_bytes(tresc)
+        b.write_bytes(tresc)
+        czas = b.stat()
+        assert B._ta_sama_tresc(a, b) and B._ta_sama_tresc(b, a)
+        for i in (0, 6, 7, 48, dlugosc - 1):  # roznica w pierwszym bloku, na granicy blokow i w ostatnim bajcie
+            inna = bytearray(tresc)
+            inna[i] ^= 0xFF
+            b.write_bytes(inna)
+            os.utime(b, ns=(czas.st_atime_ns, czas.st_mtime_ns))  # ten sam rozmiar i czas zmiany, inna tresc
+            assert not B._ta_sama_tresc(a, b), (dlugosc, i)
+            b.write_bytes(tresc)
+            os.utime(b, ns=(czas.st_atime_ns, czas.st_mtime_ns))
+            assert B._ta_sama_tresc(a, b), (dlugosc, i)
+        b.write_bytes(tresc[:-1])  # inny rozmiar: krotszy i dluzszy
+        assert not B._ta_sama_tresc(a, b)
+        b.write_bytes(tresc + b"\x00")
+        assert not B._ta_sama_tresc(a, b)
+    a.write_bytes(b"")
+    b.write_bytes(b"")
+    assert B._ta_sama_tresc(a, b)  # dwa puste pliki
+    assert not B._ta_sama_tresc(tmp_path, a) and not B._ta_sama_tresc(tmp_path / "brak.bin", a)  # katalog, brak pliku
 
 
 # --- runda 3 (recenzja przyrostowa PR #16): D5 - sciezki w tekstach -------------------------------------

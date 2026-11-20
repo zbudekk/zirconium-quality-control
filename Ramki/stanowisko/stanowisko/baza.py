@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import contextlib
 import datetime as dt
-import filecmp
 import json
 import re
 import shutil
@@ -344,10 +343,30 @@ def _za_nowa(plik: Path, wersja: int, docelowa: int) -> BladBazy:
                     f"zaktualizuj program (bazy nie zmieniono): {plik}")
 
 
+_BLOK_POROWNANIA = 1024 * 1024  # bajtow na jeden odczyt przy porownaniu bazy z kopia sprzed migracji
+
+
+def _ta_sama_tresc(a: Path, b: Path) -> bool:
+    """Czy dwa pliki maja identyczna tresc: bajt po bajcie, blokami, za kazdym razem od nowa.
+
+    Nie ``filecmp.cmp``: ono pamieta wynik pod kluczem (sciezki, rozmiar, czas zmiany), wiec plik zmieniony bez zmiany
+    rozmiaru i w tej samej jednostce zegara systemu uchodzil w tym samym procesie za nadal identyczny (E3-T0d).
+    """
+    if not (a.is_file() and b.is_file()) or a.stat().st_size != b.stat().st_size:
+        return False
+    with open(a, "rb") as fa, open(b, "rb") as fb:
+        while True:
+            blok_a, blok_b = fa.read(_BLOK_POROWNANIA), fb.read(_BLOK_POROWNANIA)
+            if blok_a != blok_b:
+                return False
+            if not blok_a:
+                return True
+
+
 def _kopia_przed_migracja(plik: Path, wersja: int, teraz: dt.datetime) -> Path:
     """Kopia pliku bazy przed migracja; gdy identyczna kopia tej wersji juz jest (poprzednia nieudana proba), zwraca ja."""
     for istniejaca in sorted(plik.parent.glob(f"{plik.stem}.kopia_v{wersja}_*.sqlite")):
-        if filecmp.cmp(istniejaca, plik, shallow=False):
+        if _ta_sama_tresc(istniejaca, plik):
             return istniejaca
     znacznik = teraz.strftime("%Y%m%d_%H%M%S")
     cel = plik.with_name(f"{plik.stem}.kopia_v{wersja}_{znacznik}.sqlite")
