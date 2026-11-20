@@ -242,12 +242,12 @@ liczba prac z ubytkiem. Projekty: `folder_cyrkon` = kopia `<PC-katalog>\app\Prac
 2. Okno 1 (tor 2, proces odlaczony): `<K>\Stanowisko.cmd --zamknij-po 1500 > <ROB>\t2_program.log 2>&1`
 3. Okno 2, po 60 s od startu programu (pula zbudowana - w logu wiersz o puli):
    `<K>\Polecenie.cmd narzedzia\symulator_skanera.py --folder <folder_eksportu_skanera> --zrodla <ROB>\zestaw10 --ile 10 --odstep 60 --rownolegle 1 --zle uciety --seed 1 --dziennik <ROB>\t2_symulator.json`
-   **[DO POTWIERDZENIA]**: `--zrodla` przyjmuje katalog i bierze pliki w kolejnosci nazw; ile i w ktorym miejscu staje
-   plik uciety (`--help` i dziennik, pole `zapisy`).
+   (`--zrodla` przyjmuje pliki STL albo katalogi - sprawdzone w kodzie; kolejnosc plikow i miejsce pliku ucietego
+   odczytaj z dziennika, pole `zapisy`, i wpisz do `t2_zestaw.md`).
 4. Po zamknieciu programu (kod 0) policz:
    - statusy: `python <ODB>\narzedzia\sql_odczyt.py --baza <DANE>\stanowisko.sqlite "SELECT id, status, uklad, uklad_zrodlo, uklad_zgodny, czas_pliku, czas_analizy, czas_s FROM skany ORDER BY id"`
      i porownaj z `t2_zestaw.md` (10 z 10); plik uciety: `SELECT typ, count(*) FROM zdarzenia WHERE zrodlo='scanner' GROUP BY typ`
-     (ma byc 1 x `plik_odrzucony`, 10 x `nowy_skan`) **[DO POTWIERDZENIA: nazwy kolumn `zrodlo`, `typ` w `zdarzenia`]**;
+     (ma byc 1 x `plik_odrzucony`, 10 x `nowy_skan`; kolumny `zrodlo`, `typ` sprawdzone w `baza.py`);
    - mapa: dla kazdego skanu `czas_analizy - czas_pliku` (rozdzielczosc 1 s) i `czas_s`; mediana z 10 ma byc <= 40 s;
      podaj tez maksimum i wartosc pierwszej plytki (pierwsza liczy linie brzegu od zera: 63-68 s w raportach A5 / A5i);
    - log: `findstr /c:"przyjety jako" <DANE>\logi\stanowisko.log` (10 wierszy minus skany nieprzyjete - zgodnie z
@@ -427,7 +427,7 @@ wynik zawiera nazwy plikow projektow = dane - do repo idzie tylko to, co przeszl
    `plytka_nie_z_trybu` - uklad ma byc mimo to zapisany. **Wariant pelny** (40 skanow) tylko gdy starczy czasu toru.
 3. `python <ODB>\narzedzia\sql_odczyt.py --baza <DANE>\stanowisko.sqlite "SELECT id, status, uklad, uklad_zrodlo, uklad_zgodny FROM skany ORDER BY id"`
    i `"SELECT s.id, s.status, s.uklad, sum(p.status_gniazda='zielony') AS zielonych FROM skany s LEFT JOIN prace p ON p.skan_id = s.id GROUP BY s.id"`
-   **[DO POTWIERDZENIA: nazwa kolumny `prace.skan_id`]**.
+   (kolumny `prace.skan_id` i `prace.status_gniazda` sprawdzone w `baza.py`).
 4. Zly uklad (wymuszony recznie) - testy: `<K>\Polecenie.cmd -m pytest <ST>\testy\test_session_wieczor.py <ST>\testy\test_straznik.py <ST>\testy\test_kontroler_api.py <ST>\testy\test_auto_uklad.py -q -rA -p no:cacheprovider --rootdir <ST> -k "niezgodny_uklad or niezgodna_z_ukladem or auto or innego_ukladu"`.
 
 **Liczby kryterium:** (a) `uklad` z bazy = `plytka` z prawdy + `_r54` dla n z 24 skanow (ma byc 24 z 24), `uklad_zrodlo`
@@ -461,14 +461,16 @@ wspolczynniku 1,20 i 1,25 na jednej plytce). Zestaw do przebiegu przez program: 
 **Kroki (tor 2; pamiec podreczna puli w nowym, pustym katalogu `<ROB>\pamiec`):**
 
 ```
-<K>\Polecenie.cmd narzedzia\metryki_pula.py jakosc --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --ustawienia <K>\ustawienia.toml > <ROB>\t4_jakosc.log 2>&1
-<K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_ciepla.log 2>&1
-<K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec_zimna --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_zimna.log 2>&1
+<K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_czas_zimna.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_zimna.log 2>&1
+<K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_czas_ciepla.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_ciepla.log 2>&1
+<K>\Polecenie.cmd narzedzia\metryki_pula.py jakosc --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_jakosc.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_jakosc.log 2>&1
 ```
 
-**[DO POTWIERDZENIA przez `POL narzedzia\metryki_pula.py czas --help`]**: nazwa opcji katalogu zestawu (`--katalog`), gdzie
-laduje plik wyniku (`--wyjscie` / `--nazwa`); narzedzie nie moze pisac do `<PC-katalog>\e3` - gdy pisze obok zestawu,
-skopiuj zestaw do `<ROB>\pula400` (`robocopy /E`).
+Pierwszy przebieg zaczyna od pustych `<ROB>\pamiec` i `<ROB>\linie` (pula zimna), drugi korzysta z tego, co zapisal
+pierwszy (pula ciepla). Opcje `czas` sprawdzone przez `--help`: `--katalog` (wymagana), `--wyjscie`, `--nazwa`, `--pamiec`
+("pusty = pamiec zimna"), `--linie`, `--wpisow`, `--plytek`, `--procesy`, `--seed`, `--limit`, `--ustawienia`.
+**[DO POTWIERDZENIA]**: te same opcje w `jakosc` (`POL narzedzia\metryki_pula.py jakosc --help`); gdy narzedzie probuje
+pisac obok zestawu w `<PC-katalog>\e3` (tylko odczyt), skopiuj zestaw do `<ROB>\pula400` (`robocopy /E`).
 
 **Liczby kryterium:**
 
@@ -535,8 +537,10 @@ przechodzi przez stos sieciowy, ale nie przez kabel ani Wi-Fi. Prawdziwa siec = 
 3. `<K>\ustawienia.toml`, `[ramki]`: `wieczorna_host` / `poranna_host` = `<adres PC>`, `port` = port posrednika.
    **[DO POTWIERDZENIA]**: `[ramki] port` jest jeden dla obu ramek - wtedy dwa posredniki na roznych adresach (np.
    127.0.0.1 i adres karty) albo proba ramek po kolei.
-4. Wieczor: T2 czesc A z 3 skanami (ramka W ma dostac plan i kolory); rano: `<K>\Stanowisko.cmd --rano` **[DO
-   POTWIERDZENIA: opcja trybu porannego]** z 2 skanami plytek porannych, na atrapie `plytka 4`, `klawisz Enter`, `klawisz Spacja`.
+4. Wieczor: T2 czesc A z 3 skanami wieczornymi (ramka W ma dostac plan i kolory; na atrapie `plytka 1`, `stan`,
+   `klawisz <nazwa>` **[DO POTWIERDZENIA: nazwy klawiszy w `atrapa_ramki.py`]**). Tryb poranny wybiera sie na ekranie
+   (opcja `--rano` dziala tylko z `--atrapa` - sprawdzone w kodzie), wiec ramka P w programie z paczki bez czlowieka
+   przy ekranie NIE jest sprawdzana - jej ruch pokrywa `test_aplikacja_rano.py` z czesci A i test `test_zz_k8`.
 5. Zatrzymaj posredniki (Ctrl+C): zapisz wiersz `POSREDNIK koniec: polaczen N, ... bajtow ...` (N > 0 - inaczej program
    nie szedl przez posrednik i proba jest niewazna).
 
@@ -660,9 +664,8 @@ kazdej instalacji (tabele `zlecenia.folder`, `projekty.plik`), `--baza <baza SE1
 5. Dowod "nazwy tylko w `dane/`": `... N --cel <DANE> --dozwolone stanowisko.sqlite --dozwolone log_excel.csv > <DOW>\t9_dane.txt`
    - "Trafienia w miejscach dozwolonych" > 0 (baza zawiera nazwy - to dowod, ze skrypt umie je znalezc),
    "TRAFIENIA calych nazw poza miejscami dozwolonymi" = 0.
-6. Kontrola skryptu przed uzyciem (proba dodatnia): `echo <jedna nazwa folderu wpisana z klawiatury> > <ROB>\probka.txt`
-   NIE - nazwy nie wpisujemy recznie; zamiast tego krok 5 jest proba dodatnia (baza). Gdy krok 5 da 0 trafien dozwolonych,
-   skrypt nie widzi nazw: wynik calego T9 = "NIE ZMIERZONO", szukaj przyczyny (kodowanie, pusta baza).
+6. Proba dodatnia skryptu = krok 5 (nazw nie wpisujemy recznie do zadnego pliku). Gdy krok 5 da 0 trafien w miejscach
+   dozwolonych, skrypt nie widzi nazw: wynik calego T9 = "NIE ZMIERZONO", szukaj przyczyny (kodowanie, pusta baza).
 
 **Liczby kryterium:** suma "TRAFIENIA calych nazw poza miejscami dozwolonymi" z krokow 1-5 = 0 (kod wyjscia 0 w kazdym).
 "Czlony nazw do wyjasnienia" (pojedyncze slowa z nazw, np. zwykle slowa i numery) NIE sa kryterium - wykonawca opisuje
@@ -754,18 +757,18 @@ Kolejnosc i zaleznosci:
 |---|---|
 | `narzedzia\symulator_skanera.py`: `--folder --zrodla --ile --odstep --rownolegle --zle uciety --seed --dziennik --analiza --projekty --wyjscie --ustawienia`; pola dziennika `zapisy`, `analizy` | `--help` (rozpoznanie) + kod (wiersze 284-396) |
 | `narzedzia\metryki_P3a.py`: `--skany --projekty --wyjscie --nazwa --procesy --ustawienia --limit --wzorzec` | kod (argparse, wiersze 135-144) |
-| `narzedzia\metryki_pula.py`: podpolecenia `przygotuj czas jakosc r59 ranking pamiec`; `--wpisow --pamiec --ustawienia` | `--help` (rozpoznanie); opcja `--katalog` w `czas` / `jakosc` - do potwierdzenia |
+| `narzedzia\metryki_pula.py`: podpolecenia `przygotuj czas jakosc r59 ranking pamiec`; `czas`: `--katalog --wyjscie --nazwa --pamiec --linie --wpisow --plytek --procesy --ustawienia` | `czas --help` uruchomione przeze mnie; `jakosc` - do potwierdzenia |
 | `narzedzia\raport_metryk.py`: `--od --do --tryb --baza --ustawienia --json`; kody 0 / 3 / 4 / 2 | `--help` (rozpoznanie) |
 | `narzedzia\auto_uklad.py`: `--skany --wyjscie --procesy --limit --ustawienia` | `--help` (rozpoznanie) |
 | `narzedzia\arkusz_syntetyczny.py`: `--wierszy --zapytan --seed --csv` | `--help` (rozpoznanie) |
 | `narzedzia\atrapa_ramki.py`: `--rola --port --host --sterowanie --bez-konsoli --limit-lacznosci --konfiguracja`; `python -m ramka`: `--rola --sprzet --host --port --konfiguracja --sterowanie-atrapy --gadatliwie` | `--help` (rozpoznanie) |
-| `stanowisko.aplikacja`: `--ustawienia --zamknij-po --atrapa --rano` | kod / test `test_main_uruchamia_program_i_zamyka_go_czysto` (rozpoznanie); `--rano` bez atrapy - do potwierdzenia |
+| `stanowisko.aplikacja`: `--ustawienia --zamknij-po --atrapa --rano` (`--rano` tylko z `--atrapa`) | kod (argparse, wiersze 1652-1655) |
 | `stanowisko.samokontrola` (galaz `e3/a11s`): `--ustawienia --sumy --json --bez-sieci`; kody 0 / 1 / 2 | kod (argparse, wiersze 1380-1384) |
 | `zainstaluj.cmd` (galaz `e3/a11i`): `/katalog /python /skrot /testy /bez-sieci /bez-pauzy`; kody 0-11 | plik `.cmd` wiersz 3; raport A11i p. 12.7 |
 | `Polecenie.cmd`, `Stanowisko.cmd` (wzory, `e3/a11i`): przekazuja argumenty, `cd` do `wersje\<wersja>\program` | tresc plikow |
 | `narzedzia\zbuduj_wydanie.py` (`e3/a11i`): `--wyjscie --wersja --kola --rewizja --zrodlo --commit --data --pobierz-kola`; paczka = `program\{stanowisko, modele_plytek, narzedzia, ramka, instrukcje, instalacja}`, bez `testy\` | kod (wiersze 9-12, 33, 332-341) |
 | 36 nazw testow pytest wymienionych w T2, T3, T5, T6, T7, T8, T11 | `grep` nazwy funkcji w pliku testu (0 brakow) |
-| tabela `zlecenia` (`folder`), `skany` (`uklad`, `uklad_zrodlo`, `uklad_zgodny`, `czas_pliku`, `czas_analizy`, `czas_s`, `status`) | `stanowisko\baza.py` (wiersze 80-155) + rozpoznanie |
+| tabele `zlecenia` (`folder`), `skany` (`uklad`, `uklad_zrodlo`, `uklad_zgodny`, `czas_pliku`, `czas_analizy`, `czas_s`, `status`), `prace` (`skan_id`, `status_gniazda`, `kandydat1_sha16`), `zdarzenia` (`zrodlo`, `typ`, `skan_id`, `dane`) | `stanowisko\baza.py` (wiersze 80-210) + rozpoznanie |
 | katalogi danych i liczby plikow (T2, T4, T10, T11) | listowanie 20.11: R59_P2 24 + 24, R59_P3a 16 + 16, r54_P2 24 + 24, r54_P3a 16 + 16, pula400 `plytki` 10 + 10, `a5i\t4\eksport` 10, `Prace_test` 15 folderow, `a5i` Cyrkon 47 folderow |
 | `symulator_t14.py` (`e3/a11d`): `wieczor` / `rano`, `--sprawdz --program --scenariusz --opoznienie --dziennik --zamknij-po` | kod (argparse, wiersze 354-360) |
 | skrypty `odbior_koncowy\narzedzia\*.py` | proby na danych sztucznych - `E3-ODB_raport_2026-11-20.md` |
