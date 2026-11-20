@@ -130,5 +130,5 @@ Kazdy blad: `BLAD: ...`, `CO ZROBIC: ...`, `INSTALACJA: NIEUDANA (kod N) - wersj
   zmienila. Kopie i odlozone bazy nie sa kasowane.
 - Skrot na pulpicie zalezy od polityki komputera (PowerShell w trybie ograniczonym nie zalozy skrotu) - wtedy dwuklik
   `Stanowisko.cmd`. Na laptopie firmowym nie sprawdzono (plan etapu 3, sekcja 12.1, poz. 14).
-- `kola/` zawiera caly zestaw zaleznosci Open3D i PySide6 (m.in. dash, plotly, PySide6 WebEngine - ok. 190 MB), ktorych
+- `kola/` zawiera caly zestaw zaleznosci Open3D i PySide6 (m.in. PySide6 WebEngine 132 MB, plotly 10 MB, dash 9 MB - razem co najmniej ok. 160 MB), ktorych
   program nie importuje, ale ktorych wymaga pip przy instalacji przypietych wersji.
