@@ -191,10 +191,10 @@ def test_poz9_wieczor_przyciski_decyzji_i_pytania_widoczne_bez_przewijania(swiat
     k.symuluj_skan("do_powtorzenia", numer=2, projekty=PROJEKTY_2)
     ustaw_rozmiar(e, rozmiar)
     assert e.okno.pokazana_plytka() == s1 and not e.okno.rano()
-    usterki = [f"otwarta praca: {u}" for u in niewidoczne_w_calosci(e, WIECZOR_DECYZJE + ("przycisk_nowa_plytka", "nowy_wynik_pokaz"))]
+    usterki = [f"otwarta praca: {u}" for u in niewidoczne_w_calosci(e, WIECZOR_DECYZJE + ("przycisk_nowa_plytka", "panel_nowy_wynik"))]
     zegar.przesun(2)
     s3 = k.symuluj_skan("czysta", numer=2, projekty=PROJEKTY_2)
-    e.klik("nowy_wynik_pokaz")
+    e.klik("przycisk_nowa_plytka")
     assert e.okno.pokazana_plytka() == s3
     ustaw_rozmiar(e, rozmiar)
     usterki += [f"pytanie: {u}" for u in niewidoczne_w_calosci(e, WIECZOR_PYTANIE + ("przycisk_skanuj",))]
@@ -237,10 +237,62 @@ def test_n2_nowa_plytka_z_komunikatem_i_pytaniem_ma_trwaly_sygnal(swiat):
     e.klik_gniazdo(2)  # technik pracuje dalej na plytce 1: panel nie zabiera mu pracy i nie znika
     e.klik("przycisk_ukruszona")
     assert e.jest("panel_nowy_wynik") and e.okno.pokazana_plytka() == s1 and k.stan().plytka(s1).gniazdo(2).praca.decyzja == "ukruszona"
-    e.klik("nowy_wynik_pokaz")
+    e.klik("przycisk_nowa_plytka")
     assert e.okno.pokazana_plytka() == s3 and e.jest("pytanie_ponowny_skan")
     assert not e.jest("panel_nowy_wynik"), e.tekst_elementu("panel_nowy_wynik")  # poprzedni skan tej plytki (s2) tlumaczy pytanie
     assert s2 in e.plytki()
+
+
+def _geometria_mapy(e) -> tuple:
+    """(prostokat mapy w oknie, {gniazdo: srodek w oknie}) - to, w co celuje reka technika."""
+    from PySide6.QtCore import QPoint, QRect
+
+    e.zdarzenia()
+    mapa = e.mapa
+    return (QRect(mapa.mapTo(e.okno, QPoint(0, 0)), mapa.size()),
+            {nr: mapa.mapTo(e.okno, mapa.srodek_gniazda(nr).toPoint()) for nr in mapa.numery()})
+
+
+@pytest.mark.parametrize("rozmiar", ROZMIARY, ids=lambda r: f"{r[0]}x{r[1]}")
+def test_r2_p3_panel_nowego_wyniku_nie_przesuwa_mapy_ogladanej_plytki(swiat, rozmiar):
+    """Runda 2 (P3, proba ``proby_przesuniecie.py`` recenzenta): technik oglada plytke 1 i siega po gniazdo; przychodzi wynik
+    nastepnej plytki. Panel "Nowy wynik czeka" NIE moze przesunac ani zmniejszyc mapy ogladanej plytki - gdy sie pojawia,
+    gdy rosnie (kolejny wynik) i gdy znika: prostokat mapy i srodki 19 gniazd w oknie zostaja te same, ochrona klikniec nie
+    jest potrzebna (regula A-P2 "klikniecie trafia w ogladana plytke" zostaje), klikniecie w stary srodek gniazda otwiera
+    TO gniazdo."""
+    k, zegar = swiat.wieczor()
+    s1 = k.symuluj_skan("zwykla", numer=1)
+    e = swiat.ekran(k, rozmiar)
+    e.po_ochronie()
+    przed = _geometria_mapy(e)
+    assert len(przed[1]) == 19 and not e.jest("panel_nowy_wynik")
+    zegar.przesun(1)
+    s2 = k.symuluj_skan("czysta", numer=2, projekty=PROJEKTY_2)
+    e.odczekaj(50)
+    assert e.jest("panel_nowy_wynik") and e.okno.pokazana_plytka() == s1 and not e.okno.ochrona_aktywna()
+    po = _geometria_mapy(e)
+    przesuniete = [nr for nr in przed[1] if po[1][nr] != przed[1][nr]]
+    assert po[0] == przed[0] and not przesuniete, f"panel sie pojawil: mapa {przed[0]} -> {po[0]}, przesunietych gniazd {len(przesuniete)} z 19"
+    zegar.przesun(1)
+    s3 = k.symuluj_skan("do_powtorzenia", numer=3, projekty={1: 31, 2: 32, 3: 33, 4: 34})
+    e.odczekaj(50)
+    assert N.NOWE_WYNIKI_TYTUL.format(n=2, plytki="").rstrip() in e.tekst_elementu("panel_nowy_wynik") and e.okno.pokazana_plytka() == s1
+    po = _geometria_mapy(e)
+    przesuniete = [nr for nr in przed[1] if po[1][nr] != przed[1][nr]]
+    assert po[0] == przed[0] and not przesuniete, f"panel urosl: mapa {przed[0]} -> {po[0]}, przesunietych gniazd {len(przesuniete)} z 19"
+    zrzut(e, f"r2_nowy_wynik_{rozmiar[0]}x{rozmiar[1]}")
+    _klik_w_punkt(e, przed[1][9])
+    assert e.jest("widok_pracy") and e.okno._gniazdo == 9  # klikniecie w stary srodek gniazda 9 otwiera gniazdo 9
+    e.klik("przycisk_zamknij_prace")
+    e.klik("przycisk_nowa_plytka")
+    e.klik("przycisk_nowa_plytka")
+    assert e.okno.pokazana_plytka() in (s2, s3) and not e.jest("panel_nowy_wynik")
+    e.po_ochronie()
+    e.klik(f"plytka_{s1}")
+    e.po_ochronie()
+    po = _geometria_mapy(e)
+    przesuniete = [nr for nr in przed[1] if po[1][nr] != przed[1][nr]]
+    assert e.okno.pokazana_plytka() == s1 and po[0] == przed[0] and not przesuniete, f"panel zniknal: mapa {przed[0]} -> {po[0]}"
 
 
 def test_n2_bez_nowej_plytki_i_po_samoczynnym_przelaczeniu_panelu_nie_ma(swiat):
@@ -347,6 +399,8 @@ def test_r2_p2_drugie_klikniecie_w_miejsce_zamknij_piec_nie_zamyka_pieca(swiat, 
             trafione = (_klik_w_punkt(e, punkt), None)
             assert trafione[0] == "przycisk_zamknij_piec" and e.jest("pytanie_zamknij_mimo") and k.stan().rano.otwarty, (miejsce, trafione)
             mimo = _w_oknie(e, "zamknij_mimo_tak")
+            if miejsce == "srodek":
+                zrzut(e, f"r2_n3_pytanie_{rozmiar[0]}x{rozmiar[1]}_{'z_komunikatem' if komunikat_nad_piecem else 'bez_komunikatu'}")
             if stary.intersects(mimo):
                 usterki.append(f"{miejsce}: stary przycisk {stary} ma czesc wspolna z 'Zamknij piec mimo to' {mimo}")
             trafione = (trafione[0], _klik_w_punkt(e, punkt))

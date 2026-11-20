@@ -683,19 +683,19 @@ class PanelUwagi(QFrame):
     polecenie = Signal(str, tuple)
 
     def __init__(self, nazwa: str, poziom: str, tytul: str, tekst: str, przyciski: list, *, rada: str = "", ostrzezenie: str = "",
-                 wyjasnienie: str = "", przyciski_pod_tekstem: bool = False, r: styl.Rozmiary = styl.ZWYKLE):
+                 wyjasnienie: str = "", przyciski_pod_tekstem: bool = False, waski: bool = False, r: styl.Rozmiary = styl.ZWYKLE):
         super().__init__()
         self.setObjectName(nazwa)
         tlo, pasek, _ = styl.POZIOMY.get(poziom, styl.POZIOMY["ostrzezenie"])
         self.setStyleSheet(f"QFrame#{nazwa} {{ background: {tlo}; border: 1px solid {pasek}; border-left: 10px solid {pasek}; border-radius: 6px; }}")
         uklad = QHBoxLayout(self)
-        uklad.setContentsMargins(*((14, 4, 8, 4) if r.zwarty else (18, 8, 12, 8)))
+        uklad.setContentsMargins(*((6, 4, 4, 4) if waski else (14, 4, 8, 4) if r.zwarty else (18, 8, 12, 8)))  # ``waski``: kolumna plytek
         uklad.setSpacing(10 if r.zwarty else 14)
         kolumna = QVBoxLayout()
         kolumna.setSpacing(1 if r.zwarty else 3)
         kolumna.addWidget(etykieta(tytul, "naglowek", zawijaj=True))
         if rada:
-            kolumna.addWidget(etykieta(rada, "duzy", zawijaj=True))
+            kolumna.addWidget(etykieta(rada, None if waski else "duzy", zawijaj=True))
         if tekst:
             kolumna.addWidget(etykieta(tekst, zawijaj=True))
         if ostrzezenie:
@@ -782,8 +782,9 @@ def sprawy_nowych_plytek(stan, nowe: list) -> tuple:
 def panel_nowego_wyniku(sprawy: tuple, r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
     """E3-P14 (N2): trwaly panel "Nowy wynik czeka: Plytka n" - wynik nowej plytki przyszedl, a ekran zostal na ogladanej
     (regula A-P2). Wymienia pytania i komunikaty czekajacych plytek (technik nie przeoczy, ze nowa plytka o cos pyta);
-    poziom "ostrzezenie", gdy jest o co pytac, inaczej "info". Jedyny przycisk: "Pokaz nowy wynik" (bez "Zamknij" - panel
-    znika, gdy technik obejrzy plytke)."""
+    poziom "ostrzezenie", gdy jest o co pytac, inaczej "info". Runda 2 (P3): panel stoi w kolumnie "Plytki zmiany" pod
+    przyciskiem "Pokaz nowy wynik: Plytka n" (``ListaPlytek.ustaw_panel_nowego``) i sam przycisku nie ma - nad mapa przesuwal
+    ja pod reka technika. Bez "Zamknij": znika, gdy technik obejrzy plytke."""
     nazwy = ", ".join(dict.fromkeys(s[0] for s in sprawy))
     tytul = N.NOWY_WYNIK_TYTUL.format(plytki=nazwy) if len(sprawy) == 1 else N.NOWE_WYNIKI_TYTUL.format(n=len(sprawy), plytki=nazwy)
     wiersze = []
@@ -791,8 +792,8 @@ def panel_nowego_wyniku(sprawy: tuple, r: styl.Rozmiary = styl.ZWYKLE) -> PanelU
         czesci = [N.NOWY_WYNIK_PYTANIE.format(tytul=t) for t in pytania] + [N.NOWY_WYNIK_KOMUNIKAT.format(tytul=t) for t in komunikaty]
         if czesci:
             wiersze.append(N.NOWY_WYNIK_SPRAWY.format(plytka=nazwa, godzina=czas or N.BRAK_DANYCH, sprawy=", ".join(czesci)))
-    return PanelUwagi("panel_nowy_wynik", "ostrzezenie" if wiersze else "info", tytul, N.NOWY_WYNIK_RADA,
-                      [("nowy_wynik_pokaz", N.NOWY_WYNIK_POKAZ, LOKALNE_POKAZ_NOWA, (), True, "glowny")], rada=" ".join(wiersze), r=r)
+    return PanelUwagi("panel_nowy_wynik", "ostrzezenie" if wiersze else "info", tytul, N.NOWY_WYNIK_RADA, [], rada=" ".join(wiersze),
+                      przyciski_pod_tekstem=True, waski=True, r=r)
 
 
 def panel_komunikatu(komunikaty: tuple, plytka: str = "", dodatek: str = "", r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
@@ -942,6 +943,11 @@ class ListaPlytek(QFrame):
         self.przycisk_nowa.setVisible(False)
         self._uklad.addWidget(self.przycisk_nowa)
         self._nowe = None
+        # E3-P14 runda 2 (P3): miejsce panelu "Nowy wynik czeka" - w tej kolumnie (stala szerokosc, poza przewijaniem), zeby
+        # jego pojawienie sie, wzrost i znikniecie nie zmienialy polozenia ani rozmiaru mapy ogladanej plytki
+        self._miejsce_panelu = QVBoxLayout()
+        self._miejsce_panelu.setContentsMargins(0, 0, 0, 0)
+        self._uklad.addLayout(self._miejsce_panelu)
         self._przewijanie = QScrollArea()
         self._przewijanie.setWidgetResizable(True)
         self._przewijanie.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -964,6 +970,12 @@ class ListaPlytek(QFrame):
         self._uklad.setSpacing(4 if r.zwarty else 6)
         self._kafelki.setSpacing(4 if r.zwarty else 6)
         self._sygnatura = None
+
+    def ustaw_panel_nowego(self, panel: QWidget | None) -> None:
+        """Panel "Nowy wynik czeka" pod przyciskiem "Pokaz nowy wynik" (None = bez panelu)."""
+        wyczysc(self._miejsce_panelu)
+        if panel is not None:
+            self._miejsce_panelu.addWidget(panel)
 
     def ustaw_nowe(self, plytka: str | None, ile: int) -> None:
         """"Pokaz nowy wynik: Plytka n" - najnowsza plytka, na ktora ekran sie nie przelaczyl (``ile`` takich plytek)."""
