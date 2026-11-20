@@ -1,0 +1,70 @@
+===== ramka_plytka_okragla_ramkowa_wieczorna_v2.stl
+  promien Z -1.0: 49.9962..50.0000
+  promien Z -2.0: 49.1963..49.2000
+  promien Z -4.0: 49.9962..50.0000
+  promien Z -7.5: 49.9962..50.0000
+  sciecie v -4.9 Z -4.0: 49.3559
+  sciecie v -4.9 Z -7.5: 49.3559
+  sciecie v -4.9 Z -2.0: 48.9545
+  sciecie v -4.9 Z -1.0: 49.3559
+  sciecie v +4.9 Z -4.0: 49.3559
+  sciecie v +4.9 Z -7.5: 49.3559
+  sciecie v +4.9 Z -2.0: 48.9545
+  sciecie v +4.9 Z -1.0: 49.3559
+  rowek u 46.2: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  rowek u 47.0: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  rowek u 48.0: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  rowek u 49.0: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  rowek u 49.3: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  koniec rowka (v -1.5, Z -7.5): r0 46.0000
+  koniec rowka (v +0.0, Z -7.5): r0 46.0000
+  koniec rowka (v +1.5, Z -7.5): r0 46.0000
+  koniec rowka (v -1.5, Z -5.0): r0 46.0000
+  koniec rowka (v +0.0, Z -5.0): r0 46.0000
+  koniec rowka (v +1.5, Z -5.0): r0 46.0000
+  koniec rowka (v -1.5, Z -3.2): r0 46.0000
+  koniec rowka (v +0.0, Z -3.2): r0 46.0000
+  koniec rowka (v +1.5, Z -3.2): r0 46.0000
+  nad sufitem rowka u 46.50: przeciecia w gore [-0.0001]
+  nad sufitem rowka u 48.00: przeciecia w gore [-0.0001]
+  nad sufitem rowka u 49.00: przeciecia w gore [-0.0001]
+  nad sufitem rowka u 49.25: przeciecia w gore [-2.5001e+00 -1.5001e+00 -1.0000e-04]
+  nad sufitem rowka u 49.30: przeciecia w gore [-2.5001e+00 -1.5001e+00 -1.0000e-04]
+  sufit rowka ->  {'wierzch': (3.0, (np.float64(35.92), np.float64(-33.52), np.float64(-0.0)), np.float64(49.1), np.float64(1.7), 90, 0), 'wewn': (2.927, (np.float64(28.95), np.float64(-33.14), np.float64(-1.54)), np.float64(46.1), np.float64(-1.7), 30, 165), 'obrys': (0.065, (np.float64(36.1), np.float64(-33.7), np.float64(-2.97)), np.float64(49.3), np.float64(1.7), 30, 315), 'rowek_pokr': (0.5, (np.float64(36.06), np.float64(-33.66), np.float64(-2.5)), np.float64(49.3), np.float64(1.7), 90, 0)}
+  boki rowka ->  {'spod': (0.107, (np.float64(32.92), np.float64(-32.07), np.float64(-8.0)), np.float64(46.3), -7.6, 1, -30, 30), 'obrys': (0.008, (np.float64(33.98), np.float64(-35.82), np.float64(-3.0)), np.float64(47.1), -4.5, -1, 30, 60), 'wewn': (2.86, (np.float64(28.5), np.float64(-33.05), np.float64(-3.2)), np.float64(49.1), -3.2, -1, 0, -60), 'wierzch': (3.464, (np.float64(35.94), np.float64(-33.49), np.float64(0.0)), np.float64(46.1), -6.0, 1, 60, -60), 'rowek_pokr': (0.577, (np.float64(35.87), np.float64(-33.78), np.float64(-2.5)), np.float64(46.7), -7.6, 1, 60, -60)}
+  czolo rowka ->  {'wewn': (3.204, (np.float64(28.14), np.float64(-33.71), np.float64(-3.2)), np.float64(-0.68), -3.2, 0, 45), 'obrys': (68.107, (np.float64(33.96), np.float64(36.7), np.float64(-4.5)), np.float64(1.02), -4.5, 0, -45), 'wierzch': (3.464, (np.float64(32.03), np.float64(-31.84), np.float64(0.0)), np.float64(-1.7), -4.5, 60, -45)}
+===== ramka_plytka_okragla_ramkowa_poranna_v2.stl
+  promien Z -1.0: 49.9962..50.0000
+  promien Z -2.0: 49.1963..49.2000
+  promien Z -4.0: 49.9962..50.0000
+  promien Z -7.5: 49.9962..50.0000
+  sciecie v -4.9 Z -4.0: 49.3559
+  sciecie v -4.9 Z -7.5: 49.3559
+  sciecie v -4.9 Z -2.0: 48.9545
+  sciecie v -4.9 Z -1.0: 49.3559
+  sciecie v +4.9 Z -4.0: 49.3559
+  sciecie v +4.9 Z -7.5: 49.3559
+  sciecie v +4.9 Z -2.0: 48.9545
+  sciecie v +4.9 Z -1.0: 49.3559
+  rowek u 46.2: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  rowek u 47.0: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  rowek u 48.0: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  rowek u 49.0: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  rowek u 49.3: Z -7.9: 3.6000 (os -0.0000); Z -5.5: 3.6000 (os -0.0000); Z -3.1: 3.6000 (os -0.0000); sufit Z -3.0000
+  koniec rowka (v -1.5, Z -7.5): r0 46.0000
+  koniec rowka (v +0.0, Z -7.5): r0 46.0000
+  koniec rowka (v +1.5, Z -7.5): r0 46.0000
+  koniec rowka (v -1.5, Z -5.0): r0 46.0000
+  koniec rowka (v +0.0, Z -5.0): r0 46.0000
+  koniec rowka (v +1.5, Z -5.0): r0 46.0000
+  koniec rowka (v -1.5, Z -3.2): r0 46.0000
+  koniec rowka (v +0.0, Z -3.2): r0 46.0000
+  koniec rowka (v +1.5, Z -3.2): r0 46.0000
+  nad sufitem rowka u 46.50: przeciecia w gore [-0.0001]
+  nad sufitem rowka u 48.00: przeciecia w gore [-0.0001]
+  nad sufitem rowka u 49.00: przeciecia w gore [-0.0001]
+  nad sufitem rowka u 49.25: przeciecia w gore [-2.5001e+00 -1.5001e+00 -1.0000e-04]
+  nad sufitem rowka u 49.30: przeciecia w gore [-2.5001e+00 -1.5001e+00 -1.0000e-04]
+  sufit rowka ->  {'wierzch': (3.0, (np.float64(35.92), np.float64(-33.52), np.float64(0.0)), np.float64(49.1), np.float64(1.7), 90, 0), 'obrys': (0.065, (np.float64(36.1), np.float64(-33.7), np.float64(-2.97)), np.float64(49.3), np.float64(1.7), 30, 315), 'rowek_pokr': (0.5, (np.float64(36.06), np.float64(-33.66), np.float64(-2.5)), np.float64(49.3), np.float64(1.7), 90, 0)}
+  boki rowka ->  {'spod': (0.107, (np.float64(32.92), np.float64(-32.07), np.float64(-8.0)), np.float64(46.3), -7.6, 1, -30, 30), 'obrys': (0.008, (np.float64(33.98), np.float64(-35.82), np.float64(-3.0)), np.float64(47.1), -4.5, -1, 30, 60), 'wewn': (6.652, (np.float64(32.07), np.float64(-24.84), np.float64(-3.2)), np.float64(49.1), -3.2, 1, 0, 60), 'wierzch': (3.464, (np.float64(35.94), np.float64(-33.49), np.float64(0.0)), np.float64(46.1), -6.0, 1, 60, -60), 'rowek_pokr': (0.577, (np.float64(35.87), np.float64(-33.78), np.float64(-2.5)), np.float64(46.7), -7.6, 1, 60, -60)}
+  czolo rowka ->  {'wewn': (7.129, (np.float64(33.71), np.float64(-24.21), np.float64(-3.2)), np.float64(0.68), -3.2, 0, -45), 'wierzch': (3.464, (np.float64(32.03), np.float64(-31.84), np.float64(0.0)), np.float64(-1.7), -4.5, 60, -45), 'obrys': (68.107, (np.float64(33.96), np.float64(36.7), np.float64(-4.5)), np.float64(1.02), -4.5, 0, -45)}

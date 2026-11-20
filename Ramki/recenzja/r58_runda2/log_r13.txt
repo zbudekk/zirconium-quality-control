@@ -1,0 +1,20 @@
+bbox [-51.8 -51.8 -20. ] [51.8 51.8  0. ]
+Z -19.50: sektory bez sciany (srodek, szer. st.): ['17.58/1.10', '32.43/1.10', '90.00/33.65', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '270.00/33.65', '327.58/1.10', '342.43/1.10']
+Z -18.00: sektory bez sciany (srodek, szer. st.): ['17.58/1.10', '32.43/1.10', '90.00/33.65', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '270.00/33.65', '327.58/1.10', '342.43/1.10']
+Z -15.00: sektory bez sciany (srodek, szer. st.): ['17.58/1.10', '32.43/1.10', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '327.58/1.10', '342.43/1.10']
+Z -12.00: sektory bez sciany (srodek, szer. st.): ['17.58/1.10', '32.43/1.10', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '327.58/1.10', '342.43/1.10']
+Z -8.50: sektory bez sciany (srodek, szer. st.): ['17.58/1.10', '32.43/1.10', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '327.58/1.10', '342.43/1.10']
+Z -8.05: sektory bez sciany (srodek, szer. st.): ['17.58/1.10', '32.43/1.10', '147.57/1.10', '162.43/1.10', '197.58/1.10', '212.43/1.10', '327.58/1.10', '342.43/1.10']
+Z -7.95: sektory bez sciany (srodek, szer. st.): []
+Z -7.00: sektory bez sciany (srodek, szer. st.): []
+Z -3.00: sektory bez sciany (srodek, szer. st.): []
+szczelina 17.6 st.: szerokosc (styczna na r 51.05, Z -15) 1.0000, os przesunieta -0.0036; gora szczeliny Z -8.0000
+szczelina 32.4 st.: szerokosc (styczna na r 51.05, Z -15) 1.0000, os przesunieta 0.0036; gora szczeliny Z -8.0000
+szczelina 147.6 st.: szerokosc (styczna na r 51.05, Z -15) 1.0000, os przesunieta -0.0036; gora szczeliny Z -8.0000
+szczelina 162.4 st.: szerokosc (styczna na r 51.05, Z -15) 1.0000, os przesunieta 0.0036; gora szczeliny Z -8.0000
+szczelina 197.6 st.: szerokosc (styczna na r 51.05, Z -15) 1.0000, os przesunieta -0.0036; gora szczeliny Z -8.0000
+szczelina 212.4 st.: szerokosc (styczna na r 51.05, Z -15) 1.0000, os przesunieta 0.0036; gora szczeliny Z -8.0000
+szczelina 327.6 st.: szerokosc (styczna na r 51.05, Z -15) 1.0000, os przesunieta -0.0036; gora szczeliny Z -8.0000
+szczelina 342.4 st.: szerokosc (styczna na r 51.05, Z -15) 1.0000, os przesunieta 0.0036; gora szczeliny Z -8.0000
+roznice promieni vs runda 1: 384 probek; Z -19.9..-8.4
+   katy roznic (zaokr.): [18, 32, 148, 162, 198, 212, 328, 342]

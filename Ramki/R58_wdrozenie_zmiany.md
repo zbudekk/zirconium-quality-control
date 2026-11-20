@@ -1,10 +1,131 @@
-# R58 - komplet okragly do ramki: plytki okragle ramkowe, wkladka okragla, pokrywka okragla (lista edycji w zrodle prawdy; runda 2 po recenzji)
+# R58 - komplet okragly do ramki: plytki okragle ramkowe, wkladka okragla, pokrywka okragla (lista edycji w zrodle prawdy; runda 3 po recenzji)
 
 Data: 2026-11-19. Zlecenie wlasciciela 19.11.2026 (decyzje zamkniete): plytki OKRAGLE pod produkt koncowy, czyli lezace na ramce swietlnej - zarezerwowana zmiana R58 ("wkladka i pokrywka plytki okraglej"). Projekt luzow koordynatora: `narzedzia/studium_R58.py` (0 bledow). Wykonawca: R58-A.
-Zakres edycji: `parametry.json`, `ramka_generator.py`, `plan_ramki_v2.md`, `protokol_weryfikacji_v2.md`, `wyniki_v2/` (10 nowych STL poza gitem, 2 nowe JSON, raporty, rzuty kontrolne), ten plik.
-NIE dotknieto: `stanowisko/`, `Ramki_do_wgrania/`, `Ramki_pakiet/`, `00_NADZOR_STAN.md`, dokumentow dla wlasciciela (`Zakupy i druk...`, `Budowa ramki...`, `Stanowisko kontroli...`), arkuszy `R59_*`, `narzedzia/`, `wyniki_v2/arkusze/`, `wyniki_v2/render/`, `wyniki_v2/ramka_v2.blend`, `wyniki_v2/README.md`, `wyniki_v2/do_v3.md`, 21 STL i 4 JSON ukladu R59 (plikow plytek okraglych n8/n9 tez nie).
+Zakres edycji: `parametry.json`, `ramka_generator.py`, `plan_ramki_v2.md`, `protokol_weryfikacji_v2.md`, `wyniki_v2/` (10 nowych STL poza gitem, 2 nowe JSON, raporty, rzuty kontrolne), ten plik; od rundy 2 takze `narzedzia/studium_R58.py` (warunki pod nowa geometrie) i `narzedzia/test_R58_p3_d1.py`.
+NIE dotknieto: `stanowisko/`, `Ramki_do_wgrania/`, `Ramki_pakiet/`, `00_NADZOR_STAN.md`, dokumentow dla wlasciciela (`Zakupy i druk...`, `Budowa ramki...`, `Stanowisko kontroli...`), arkuszy `R59_*`, `narzedzia/` poza dwoma plikami wyzej (m.in. `arkusz_zamowienia_R58.py` koordynatora), `wyniki_v2/arkusze/`, `wyniki_v2/render/`, `wyniki_v2/ramka_v2.blend`, `wyniki_v2/README.md`, `wyniki_v2/do_v3.md`, 21 STL i 4 JSON ukladu R59 (plikow plytek okraglych n8/n9 tez nie).
 
-# STAN PO RUNDZIE 2 (poprawki po recenzji `recenzja/raport_recenzenta_R58_runda1.md`, B 1 / P 3 / D 8) - obowiazuje
+# STAN PO RUNDZIE 3 (poprawki po recenzji `recenzja/raport_recenzenta_R58_runda2.md`, B 0 / P 2 / D 6) - obowiazuje
+
+Sekcje R3-0 ... R3-7 opisuja stan oddany po rundzie 3. Sekcje R2-* (runda 2) i 0 ... 12 (runda 1) nizej to historia - tam, gdzie R3 mowi inaczej, obowiazuje R3 (liczby, SHA wkladki i pokrywki, ryzyka 2 i 8, "co dalej").
+
+## R3-0. Wynik
+
+- Zmienily sie tylko `ramka_wkladka_okragla_v2.stl` i `ramka_pokrywka_okragla_v2.stl`. 8 STL plytek i 2 JSON bajtowo jak w rundzie 2 (porownanie 10 / 10 w R3-4; pliki rundy 2 odlozone w `wyniki_v2/stl_r58_runda2/` na MSI i PC przed przebudowa).
+- `--etap R58_SPRAWDZ --iter 5 --r58-poprzednie stl_r58_runda1 --r58-runda2 stl_r58_runda2` na plikach oddanych: 19 ZAL, 0 N/D, 0 NIE (B 0 / P 0 / D 0); 1862 sondy, 0 niezgodnych, 0 blizej niz 0,1 od sciany.
+- Budowa `--etap R58 --iter 8` (generator koncowy 1518e4c2...): 19 ZAL / 0 NIE; wkladka z tej budowy = wariant najczestszy (R3-0 nizej), pokrywka deterministyczna.
+- `--etap SPRAWDZ --iter 17` (stare pliki, generator koncowy): 58 ZAL, 5 N/D, 0 NIE (jak `SPRAWDZ_iter16`; K-60: zrzut sprzed R58 bez zadnego z 20 kluczy R58 = zgodny).
+- 25 plikow R59 bez zmian: 25 / 25 na PC po wszystkich przebiegach rundy 3 (`SHA256SUMS_2026-11-16_R59.txt`); na MSI worktree ma z nich tylko 4 JSON - 4 / 4.
+- `narzedzia/studium_R58.py`: BLEDY 0, kod 0 (nowe warunki: wierzch zebra nad wkladka 0,70 >= 0,5; zapas w rzucie lico kolnierza - koniec czesci gornej zebra 0,40 >= 0,2).
+- Plan <-> JSON: 0 roznic; walidator R14: 307 kluczy (287 + 20 R58), LICZONE 0,0000. `narzedzia/test_R58_p3_d1.py`: bez zmian wyniku (P3 i D1 jak w R2-8; D1 liczy teraz 20 kluczy R58).
+
+Pliki oddane (STL w `Ramki/wyniki_v2/stl/` worktree, poza gitem; lista `wyniki_v2/raport/sha256_stl_po_R58.txt` - SHA nizej skopiowane z tej listy skryptem; objetosc i gabaryt z raportu `R58_SPRAWDZ_iter5`, orientacja druku):
+
+| Plik | SHA-256 (runda 3) | Objetosc [cm3] | Gabaryt X x Y x Z [mm] | Szt. / material | Zmiana w rundzie 3 |
+|---|---|---|---|---|---|
+| `ramka_plytka_okragla_ramkowa_wieczorna_v2.stl` (bazowy) | 322eb892b7acf81ce5e0ff5f437436b44f22490a662f1b1bd9939353b4a4125c | 48,90 | 100,000 x 100,000 x 8,000 | - (wzorzec) | brak (= runda 2) |
+| `ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl` | 84d361e2389bef12fd07278bf3e2e65fd170c83d4012f8fbbfa12b8ad172325f | 48,91 | 100,000 x 100,000 x 8,600 | 1 / PA12 drukarnia | brak |
+| `ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl` | 7848aa2395638b338e4bd2e83473b1329c53c61500a7ec1ba5a63a8c5aaaaa94 | 48,91 | 100,000 x 100,000 x 8,600 | 1 / PA12 drukarnia | brak |
+| `ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl` | 1b8ac3d390870f0a4607b3289f50201ef28cf2049801ac853aaa1427735321aa | 48,91 | 100,000 x 100,000 x 8,600 | 1 / PA12 drukarnia | brak |
+| `ramka_plytka_okragla_ramkowa_poranna_v2.stl` (bazowy) | 845e4bd61b40562010dec24b18ee873e90d8937f07728f81589c407f826ba266 | 49,18 | 100,000 x 100,000 x 8,000 | - (wzorzec) | brak |
+| `ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl` | 5d81f55b8b114ba9cf307bb4ba63e70083aa6570ab0bb646acef69b8cd6cceb5 | 49,20 | 100,000 x 100,000 x 8,600 | 1 / PA12 drukarnia | brak |
+| `ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl` | 64867b5b63a31db88715c9c9636c33015566bbe48af2c8f4a90330797f063381 | 49,20 | 100,000 x 100,000 x 8,600 | 1 / PA12 drukarnia | brak |
+| `ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl` | 7630a029157b2fc65144c5f6b32ad28c02048f0642855cc3d23c2570ea28991e | 49,20 | 100,000 x 100,000 x 8,600 | 1 / PA12 drukarnia | brak |
+| `ramka_wkladka_okragla_v2.stl` | 287e001fddd655f9df91663d7fb7a8cf6a9b3aa89d8bc2e470bf50f59f8be6c5 | 22,45 (22,446) | 130,000 x 148,400 x 10,500 | 3 / PA12 drukarnia | P1: czesc zebra nad wierzchem do r 49,2 z faza |
+| `ramka_pokrywka_okragla_v2.stl` | f1a133cf19fda391bf749797c1a7e1480a8a0062b7d49eee2d248fd5c8d70889 | 25,06 | 103,600 x 103,600 x 20,000 | 4 / PETG FDM (wlasny) | P2: szczeliny 15 z otworem o2,0 |
+| `json/uklad_gniazd_okragla_ramkowa_wieczorna.json` | d66ef99b799f37c241b83b73d979ab70a5810cec7fc4aec369f3e0da6c4c17a9 | - | - | - | brak |
+| `json/uklad_gniazd_okragla_ramkowa_poranna.json` | ab6e02a0a9602216d4b9251a725d4281a4e04c1db6d1261af6a7ab97e4517412 | - | - | - | brak |
+
+Wkladka - warianty bajtowe (D4 recenzji rundy 2; boolean EXACT, jak w rundach 1 i 2): 17 budow rundy 3 (`R58_iter8` + 8 osobnych procesow Blendera po 2 budowy, skrypt `r3_warianty.py` z tymi samymi funkcjami i eksportem co `--etap R58`) dalo 3 warianty, rozniace sie tylko 1 wierzcholkiem na wierzchu wkladki (Z 6,0, przy reliefie do Z 6,4; dwa punkty symetryczne wzgledem osi D) o 0,00085 mm i triangulacja 5 trojkatow; objetosc 22,446169 cm3 we wszystkich, gabaryt identyczny:
+- `287e001fddd655f9df91663d7fb7a8cf6a9b3aa89d8bc2e470bf50f59f8be6c5` 9 x (iter8, a1, b0, c1, d0, e0, f1, g1, h1) - ODDANY (najczestszy; raport `R58_SPRAWDZ_iter5` dotyczy dokladnie tego pliku);
+- `faa7a964552df24e2d07ce5be4759c64c26702ed9f94ee1724d11bb91d7f54ec` 4 x (b1, c0, d1, f0);
+- `1335fe927f2d1180ebc53241e4ec04f34d6db4fb0b8e7e7c6c923dedecb02c82` 4 x (a0, e1, g0, h0).
+Pokrywka: 17 / 17 budow `f1a133cf19fda391bf749797c1a7e1480a8a0062b7d49eee2d248fd5c8d70889` (deterministyczna). Przy pakowaniu brac pliki oddane, nie przebudowywac.
+
+Komplet do drukarni (sekcja 7 raportu `R58_SPRAWDZ_iter5`): 6 plytek x 48,91 / 49,20 + 3 wkladki x 22,45 = 361,66 cm3 -> 325...579 zl (bez zmian wzgledem rundy 2); druk wlasny: 4 pokrywki x 25,06 PETG.
+
+Zrodla (stan koncowy rundy 3): `ramka_generator.py` 1518e4c2624482a33e1e370b57b4b1480320738ab517a96042629aebb8713e60 (runda 2: 54aebd7c...), `parametry.json` bdcca0f709890f6e31a1e62c1ca72345fbce7e044ff9f702799dde8554307297 (runda 2: d90d5759...); plan i protokol - SHA w commicie (tabele 3 planu w przebiegach rundy 3 takie jak w commicie; porownanie 0 roznic).
+
+## R3-1. Co zmieniono (geometria i parametry)
+
+| Klucz `parametry.json` | Runda 2 | Runda 3 | Powod |
+|---|---|---|---|
+| `round_key_rib_top_r1` (nowy) | - (czesc gorna do lica sciecia 49,756) | 49,2 | P1: kolnierz pokrywki (lico r 50,3, dol Z 6,5) przy plytce przesunietej o luz 0,4 i pokrywce o luz 0,3 od strony zebra schodzil na osi zebra do r 49,6 i siadal na czesci zebra nad wierzchem wkladki (wnikanie 0,16) |
+| `round_cover_slit_h` | 12 | 15 | P2: dluzszy jezyk (garb 13 od nasady) - odksztalcenie nasady z rachunku recenzenta ok. 0,53 % nominalnie / 0,93 % w najgorszym przypadku (runda 2: 0,90 / 1,57 %) |
+| `round_cover_slit_end_d` (nowy) | - (koniec szczeliny ostry prostokat) | 2,0 | P2: zaokraglony koniec - otwor przelotowy o2,0 przez scianke kolnierza, srodek na osi szczeliny na jej gornym koncu (dziurka od klucza) |
+
+Opisy zmienione (wartosci bez zmian): `round_key_rib_r0` (powyzej Z 6 koniec na `round_key_rib_top_r1`), `round_key_rib_chamfer` (faza takze na krawedzi zewnetrznej czesci gornej).
+
+- Wkladka: czesc zebra powyzej wierzchu wkladki (Z 6...7) konczy sie promieniowo na r 49,2; faza 1,0 x 45 st. takze na nowej krawedzi zewnetrznej (bryla bez komplikacji: ta sama bryla z pierscieni, gorny pierscien u 47,5...48,2 zamiast 47,5...49,756) -> wierzch 1,0 x 0,7; ponizej Z 6 zebro bez zmian (do lica sciecia 49,756, zrosniete ze sciana, faza otworu za zebrem wypelniona). Wysokosc 4,5, szerokosc 3,0, r0 46,5, faza 1,0 bez zmian. Objetosc -0,002 cm3.
+- Pokrywka: 8 szczelin 1,0 szerokosci, od dolnej krawedzi kolnierza do Z -5 (15), na gornym koncu otwor o2,0 (srodek Z -5, gorny koniec Z -4,0; do spodu wierzchu pokrywki Z -2 zostaje 2,0 >= 1,5; do wierzchu 4,0). Polozenia katowe bez zmian (garb +-7,4 st.).
+
+## R3-2. Generator (`ramka_generator.py`) - zmiany rundy 3
+
+- `KLUCZE_R58` + `round_key_rib_top_r1`, `round_cover_slit_end_d` (20 kluczy).
+- `bryly_zebra_klucza`: gorny pierscien czesci gornej do `r1 - c` (faza na krawedzi zewnetrznej), pierscienie dolne do `r1`; walidacja `r0 + 2c < r1 <= lico sciecia` (inaczej `BladProjektu`, bez cichej zmiany).
+- `zbuduj_pokrywke_okragla`: szczelina do `-wys + round_cover_slit_h`, otwor koncowy = walec wzdluz promienia (`bm_stozek_os('X', ...)` obrocony na kat szczeliny); walidacja: otwor >= szerokosc szczeliny, gorny koniec ponizej spodu wierzchu.
+- K-65 (e): wierzch mierzony w srodku wierzchu (u (r0 + r1)/2); koniec czesci gornej z 2 promieni poziomych z zewnatrz (Z 6,25 / 6,75) -> r1 i nachylenie fazy; sondy fazy zewnetrznej i pustki nad wierzchem za koncem zebra.
+- K-66: szczelina - szerokosc czesci prostej (Z -13), otwor koncowy - srodek Z i srednica z promieni pionowych z wnetrza otworu (v +-0,75), szerokosc na Z srodka, gorny koniec (promien od dolu w osi) i odstep do spodu wierzchu (>= 1,5); przeglad co 0,1 st. na Z -13 i na Z -5 (8 sektorow, szerokosc otworow 2,21 st.); odstepy katowe szczelin i otworow od siebie, od garbow i od wyciec (otwor i jego wlasna szczelina pominiete); sondy przelotowosci otworu przy obu licach.
+- K-67: luz nad zebrem w srodku wierzchu; nowa funkcja `kolnierz_w_skrajnych` (+ `swobodny_przesuw`, `probki_krawedzi`, `wierzcholki_skurczone`, `opis_kolnierza`): kolnierz w ustawieniach skrajnych i kontrola czulosci na geometrii rundy 2 (argument `--r58-runda2 <katalog wzgledem --out>`; bez niego K-67 pisze "nie wykonana").
+- `narzedzia/studium_R58.py`: argument `--zebro_r1` (domyslnie z `parametry.json`), 2 nowe warunki (R3-0).
+
+## R3-3. Wyniki K rundy 3 (`raport_wykonawcy_R58_SPRAWDZ_iter5.md`, pliki oddane; te same wartosci w `R58_iter8`)
+
+| K | Wynik | Kluczowe wartosci (z siatek) |
+|---|---|---|
+| K-01...K-16, K-61, K-62, K-64 | ZAL | plytki i JSON bez zmian - wartosci jak w rundzie 2 |
+| K-65 | ZAL | sondy 90 / 90; (e) zebro: szerokosc 3,000, poczatek r 46,500, wierzch Z 7,000; czesc nad wierzchem: koniec zewnetrzny u 48,950 / 48,450 na Z 6,25 / 6,75 -> koniec r 49,200 (zadane 49,2), nachylenie fazy -1,00 (45 st.); nad wierzchem przy licu sciecia pusto (sonda) |
+| K-66 | ZAL | sondy 133 / 133; 8 szczelin (17,60 / 32,40 / 147,60 / 162,40 / 197,60 / 212,40 / 327,60 / 342,40 st.): szerokosc 1,000, srodek otworu 15,000 od dolu kolnierza (Z -5,000), o otworu 1,991 z promieni pionowych przy v +-0,75 (32-kat) / 2,000 na Z srodka, gorny koniec Z -4,000, odstep do spodu wierzchu (Z -2,000) **2,000**; przeglad: 8 sektorow na Z -13 i 8 na Z -5 (szerokosc 2,2 st., oczekiwane 2,21); odstepy katowe: garb-szczelina 1,14 st. (1,00 mm), garb-otwor 0,57 st. (0,50 mm; otwor 12 mm wyzej niz garb), otwor-otwor 12,53 st., otwor-szczelina 13,10 st., szczelina-szczelina 13,67 st., otwor-wyciecie 39,11 st., szczelina-wyciecie 39,68 st. - wszystkie > 0 |
+| K-67 | ZAL | nominal jak w rundzie 2 (17 par bez kolizji, luz 0,4, zebro w rowku 0,3 / 0,3, czolo 0,5, nad zebrem 0,5, garby 0,4, kolnierz nad wkladka 0,500); **kolnierz w ustawieniach skrajnych**: 8 kierunkow od osi D co 45 st.; przesuw plytki (swobodny z siatek, max 0,4): 0,400 / 0,398 / 0,300 / 0,400 / 0,399 / 0,400 / 0,300 / 0,400 (kierunki -45 / 0 / 45 / 90 / 135 / 180 / 225 / 270 st.; styczne do zebra 0,300 - zebro w rowku), pokrywka wzgledem plytki 0,300 we wszystkich; 8 plytek x 64 = 512 ustawien (63 rozne polozenia pokrywki): kolizje wkladka-plytka / plytka-pokrywka / wkladka-pokrywka 0 / 0 / 0; **najmniejszy odstep 3D kolnierz-zebro 0,620** (plytka 0,399 + pokrywka 0,300 w kierunku 135 st., tj. od zebra - lico kolnierza po stronie zebra najblizej zebra; najblizej dolna krawedz kolnierza Z 6,5 - faza zewnetrzna zebra); luz w rzucie lico kolnierza - zebro nad wierzchem min 0,375 (na narozach zebra v +-1,5; na osi zebra 49,601 - 49,2 = 0,40); kolnierz - wkladka 0,500; czulosc przesuwow: swobodny + 0,12 daje kolizje w 8 / 8 kierunkach (plytka-wkladka i pokrywka-plytka); **czulosc na geometrii rundy 2**: to samo ustawienie (0,399 + 0,300 od zebra) - kolizja wkladka-pokrywka 11 par, luz w rzucie -0,180 (recenzent na osi: -0,16), kolizja w 3 / 63 polozeniach pokrywki; ulozenia plaskie: kazda z 8 plytek okno -0,75...+0,75 st. (jedyne, bez zmian), poza strefa naprowadzenia +-2,00 st. (runda 2: +-1,75) plytka lezy na zebrze: uniesienie 4,48 (bez zmian), przechyl 2,61 st., krawedz +4,56 (runda 2: 2,59 st.; punkt oparcia na wierzchu zebra blizej srodka plytki, r ok. 48,3); geometria rundy 1 nadal odtwarza okna 90/180/270 st. |
+
+## R3-4. Porownanie SHA plytek i JSON z runda 2 (10 / 10)
+
+Lista rundy 2 = `sha256_stl_po_R58.txt` z commita 2be8676 (kopia przed poprawka); runda 3 = ta sama lista po rundzie 3. Roznia sie tylko 2 wiersze (wkladka, pokrywka).
+
+| Plik | Runda 2 | Runda 3 | Bajtowo |
+|---|---|---|---|
+| `stl/ramka_plytka_okragla_ramkowa_poranna_n4_v2.stl` | 5d81f55b8b114ba9cf307bb4ba63e70083aa6570ab0bb646acef69b8cd6cceb5 | 5d81f55b8b114ba9cf307bb4ba63e70083aa6570ab0bb646acef69b8cd6cceb5 | tak |
+| `stl/ramka_plytka_okragla_ramkowa_poranna_n5_v2.stl` | 64867b5b63a31db88715c9c9636c33015566bbe48af2c8f4a90330797f063381 | 64867b5b63a31db88715c9c9636c33015566bbe48af2c8f4a90330797f063381 | tak |
+| `stl/ramka_plytka_okragla_ramkowa_poranna_n6_v2.stl` | 7630a029157b2fc65144c5f6b32ad28c02048f0642855cc3d23c2570ea28991e | 7630a029157b2fc65144c5f6b32ad28c02048f0642855cc3d23c2570ea28991e | tak |
+| `stl/ramka_plytka_okragla_ramkowa_poranna_v2.stl` | 845e4bd61b40562010dec24b18ee873e90d8937f07728f81589c407f826ba266 | 845e4bd61b40562010dec24b18ee873e90d8937f07728f81589c407f826ba266 | tak |
+| `stl/ramka_plytka_okragla_ramkowa_wieczorna_n1_v2.stl` | 84d361e2389bef12fd07278bf3e2e65fd170c83d4012f8fbbfa12b8ad172325f | 84d361e2389bef12fd07278bf3e2e65fd170c83d4012f8fbbfa12b8ad172325f | tak |
+| `stl/ramka_plytka_okragla_ramkowa_wieczorna_n2_v2.stl` | 7848aa2395638b338e4bd2e83473b1329c53c61500a7ec1ba5a63a8c5aaaaa94 | 7848aa2395638b338e4bd2e83473b1329c53c61500a7ec1ba5a63a8c5aaaaa94 | tak |
+| `stl/ramka_plytka_okragla_ramkowa_wieczorna_n3_v2.stl` | 1b8ac3d390870f0a4607b3289f50201ef28cf2049801ac853aaa1427735321aa | 1b8ac3d390870f0a4607b3289f50201ef28cf2049801ac853aaa1427735321aa | tak |
+| `stl/ramka_plytka_okragla_ramkowa_wieczorna_v2.stl` | 322eb892b7acf81ce5e0ff5f437436b44f22490a662f1b1bd9939353b4a4125c | 322eb892b7acf81ce5e0ff5f437436b44f22490a662f1b1bd9939353b4a4125c | tak |
+| `stl/ramka_wkladka_okragla_v2.stl` | baf94bf89665987d0f3866433e5fa19908f86ccaed2d3307aefea4df04bc0fdb | 287e001fddd655f9df91663d7fb7a8cf6a9b3aa89d8bc2e470bf50f59f8be6c5 | NIE (zmiana rundy 3) |
+| `stl/ramka_pokrywka_okragla_v2.stl` | 8e2385350d459540c272748f04b26b0d9e1e5d8ba1c8cf73d5255f09d9223787 | f1a133cf19fda391bf749797c1a7e1480a8a0062b7d49eee2d248fd5c8d70889 | NIE (zmiana rundy 3) |
+| `json/uklad_gniazd_okragla_ramkowa_poranna.json` | ab6e02a0a9602216d4b9251a725d4281a4e04c1db6d1261af6a7ab97e4517412 | ab6e02a0a9602216d4b9251a725d4281a4e04c1db6d1261af6a7ab97e4517412 | tak |
+| `json/uklad_gniazd_okragla_ramkowa_wieczorna.json` | d66ef99b799f37c241b83b73d979ab70a5810cec7fc4aec369f3e0da6c4c17a9 | d66ef99b799f37c241b83b73d979ab70a5810cec7fc4aec369f3e0da6c4c17a9 | tak |
+
+## R3-5. Przebiegi rundy 3 (PC, `<PC-katalog>\r58\Ramki`, Blender 5.2.3 LTS, jeden moj proces naraz, wolny RAM 17,25 GB przed startem, bez innego Blendera; logi `_r58\*.log`)
+
+| # | Przebieg | Wynik |
+|---|---|---|
+| 1 | kopia 10 STL rundy 2 do `wyniki_v2/stl_r58_runda2/` (MSI i PC; SHA = lista rundy 2) | 10 plikow |
+| 2 | `--etap R58 --iter 8 --r58-poprzednie stl_r58_runda1 --r58-runda2 stl_r58_runda2` | 19 ZAL / 0 NIE; plytki + JSON 10 / 10 = runda 2; wkladka 287e001f, pokrywka f1a133cf |
+| 3 | `r3_warianty.py` w 8 osobnych procesach (a...h) po 2 budowy wkladki i pokrywki | warianty wkladki R3-0; pokrywka 16 / 16 f1a133cf |
+| 4 | `--etap R58_SPRAWDZ --iter 5 --r58-poprzednie stl_r58_runda1 --r58-runda2 stl_r58_runda2` (pliki oddane) | 19 ZAL / 0 N/D / 0 NIE |
+| 5 | `--etap SPRAWDZ --iter 17` | 58 ZAL / 5 N/D / 0 NIE |
+| 6 | SHA wszystkich plikow `wyniki_v2/stl` i `json` na PC | 25 / 25 R59; 12 plikow R58 = lista rundy 3 |
+
+## R3-6. Odpowiedz na recenzje runda 2 (kazda uwaga)
+
+- **P1** (kolnierz na wierzchu zebra, wnikanie 0,16) - poprawione wg decyzji koordynatora: `round_key_rib_top_r1` 49,2 (czesc nad Z 6), faza 1,0 takze na krawedzi zewnetrznej (nie komplikuje bryly). K-67 dopisane: ustawienia skrajne 8 x 8 kierunkow (w tym w strone zebra -45 st. i od zebra 135 st.) dla kazdej z 8 plytek - 0 kolizji, odstep 3D kolnierz-zebro 0,620, w rzucie 0,375 (naroza) / 0,40 (os); kontrola czulosci: geometria rundy 2 daje kolizje w ustawieniu 0,40 + 0,30 od zebra (11 par, -0,180). Okno plytki -0,75...+0,75 st. (jedyne) bez zmian, uniesienie w zlym obrocie 4,48.
+- **P2** (jezyk pokrywki) - poprawione: `round_cover_slit_h` 15 i otwor koncowy `round_cover_slit_end_d` 2,0; K-66 mierzy wysokosc 15, otwor (o, srodek), odstep konca od spodu wierzchu 2,0 i rozlacznosc. Ryzyko zostaje: **1 sztuka probna przed seria** (rachunek recenzenta: ok. 0,53 % nominalnie, ok. 0,93 % w najgorszym przypadku; 3,7...6,5 N na garb) - ryzyko 2 w R3-7.
+- **D1** (pasek 0,5 x 0,156 przy scieciu) - bez zmiany (zgodnie z recenzja; plytki bez zmian).
+- **D2** (odczyt w zlym obrocie na zebrze: czujniki A i C ok. 3,95 mm od magnesu, prog D5 przy 4 mm) - dopisane do ryzyk i "co dalej" jako wymaganie dla paczki programu (R3-7).
+- **D3** (plan 13, wpis R58; plan 14 p. 30) - poprawione: z glownej kolumny wpisu R58 usuniete `round_key_pin_*` (w ich miejscu klucze zebra rundy 2 i 3 oraz szczelin), dopisek rundy 2 bez nazw kluczy kolka, dopisek rundy 3; p. 30 odsyla do sekcji R2-0...R2-9, nowy p. 31 (runda 3) do R3-0...R3-7. Zostal tylko wiersz skreslony w tabeli 3.4 (konwencja usunietych kluczy).
+- **D4** (warianty bajtowe wkladki) - oddany wariant najczestszy 287e001f (9 / 17), wszystkie SHA w R3-0; raport `R58_SPRAWDZ_iter5` na tym pliku; przy pakowaniu tylko ten plik.
+- **D5** (uwagi rundy 1 D4, D5, D8 otwarte swiadomie) - bez zmian (poza geometria; arkusz zamowienia R58 nie byl ruszany).
+- **D6** (metoda K-67: siatka 0,1, erozja 1 wezla) - bez zmian; wynik rundy 3 ta sama metoda: okno -0,75...+0,75 st. dla 8 plytek.
+
+## R3-7. Ryzyka i co dalej - zmiany wzgledem sekcji 11 i 12
+
+- Ryzyko 2 (zatrzask pokrywki) - stan rundy 3: garb na jezyku 12 x 15 x 1,5 (13 od nasady) miedzy szczelinami zakonczonymi otworem o2,0 (bez ostrego naroza na koncu szczeliny); rachunek recenzenta: odksztalcenie nasady ok. 0,53 % nominalnie / 0,93 % w najgorszym przypadku (runda 2: 0,90 / 1,57 %), 3,7...6,5 N na garb; druk wierzchem w dol - naprezenie przy nasadzie w poprzek warstw. **Wydrukowac 1 sztuke probna przed 4**; jesli zatrzask za slaby / za mocny - `cover_snap_bump`, `round_cover_slit_h` albo katy, nowa sztuka probna.
+- Ryzyko 8 (klucz, zly obrot) - stan rundy 3: plytka lezy plasko tylko w oknie -0,75...+0,75 st.; w zlym obrocie lezy na zebrze (uniesienie 4,48, przechyl 2,61 st., krawedz +4,56) - wyraznie widoczne. **Wymaganie dla paczki programu (D2 recenzji rundy 2):** przy takim przechyle czujniki A i C sa ok. 3,95 mm od magnesu (prog D5 przy 4 mm), wiec ramka moze odczytac numer obroconej plytki - program ma ostrzegac, gdy odczytany numer nie pasuje do roli ramki (n1-n3 na P, n4-n6 na W), i nie przyjmowac takiego odczytu bez potwierdzenia.
+- Nowe (informacyjnie): czesc zebra nad wierzchem wkladki to czapka 1,0 wysokosci z fazami ze wszystkich stron (wierzch 1,0 x 0,7); upuszczona plytka moze wgniesc krawedz fazy (kosmetycznie, ocena recenzenta dla rundy 2 dotyczy tej samej czapki); nizej zebro zrosniete ze sciana.
+- Co dalej (zamiast sekcji 12 p. 1 i 3): (1) recenzja rundy 3 - tylko wkladka i pokrywka (plytki i JSON bajtowo jak w recenzji rundy 2); (2) paczka programu: ostrzezenie o numerze niepasujacym do roli ramki (D2) i kalibracja z ukladu kwadratowego po numerze (ryzyko 9); (3) pakiet i SHA256SUMS: wkladka 287e001f, pokrywka f1a133cf, plytki i JSON bez zmian; (4) pokrywka: 1 sztuka probna przed seria.
+
+# STAN PO RUNDZIE 2 (poprawki po recenzji `recenzja/raport_recenzenta_R58_runda1.md`, B 1 / P 3 / D 8) (historia)
 
 Sekcje R2-0 ... R2-9 opisuja stan oddany po rundzie 2. Sekcje 0 ... 12 nizej to zapis rundy 1 (historia; liczby i SHA rundy 1 nieaktualne tam, gdzie R2 mowi inaczej).
 

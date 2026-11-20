@@ -6,6 +6,8 @@ odleglosci nowych cech od otworow o3, obrysow gniazd i krawedzi. Uruchomienie: p
 [--slot_r0 46 --slot_h 5 --zebro_w 3 --zebro_r0 46.5 --zebro_h 4.5]. Domyslne wartosci rowka i zebra = parametry.json.
 Runda 2 (B1 recenzji): kolek klucza zastapiony zebrem przy scieciu; sciecie NIE blokuje obrotu (plytka wnika w sciecie wkladki
 tylko 0,244 przy luzie 0,4) - obrot blokuje zebro, ktore nie miesci sie w kieszeni magnesu (warunek nizej); okno wejscia liczy K-67.
+Runda 3 (P1 recenzji rundy 2): czesc zebra nad wierzchem wkladki konczy sie na round_key_rib_top_r1 (--zebro_r1) - warunek zapasu
+do lica kolnierza pokrywki w najgorszym ustawieniu (plytka o luz otworu + pokrywka o luz pokrywki od strony zebra); K-67 mierzy z siatek.
 Tylko biblioteka standardowa. Wynik na stdout; kod 0 = wszystkie warunki spelnione.
 """
 import argparse
@@ -115,6 +117,7 @@ def main():
     ap.add_argument('--zebro_w', type=float, default=P['round_key_rib_w'])
     ap.add_argument('--zebro_r0', type=float, default=P['round_key_rib_r0'])
     ap.add_argument('--zebro_h', type=float, default=P['round_key_rib_h'])
+    ap.add_argument('--zebro_r1', type=float, default=P['round_key_rib_top_r1'], help='koniec czesci zebra nad wierzchem wkladki (runda 3)')
     a = ap.parse_args()
     R = P['plate_round_d'] / 2
     T = P['plate_thickness']
@@ -170,6 +173,11 @@ def main():
     war('czolo zebra - koniec rowka plytki (r %.1f - %.1f)' % (a.zebro_r0, a.slot_r0), a.zebro_r0 - a.slot_r0, 0.4)
     war('nad zebrem: rowek %.1f - zebro %.1f' % (a.slot_h, a.zebro_h), a.slot_h - a.zebro_h, 0.4)
     war('zebro wyzsze niz kieszen magnesu (plytka w zlym obrocie nie siada): %.1f - %.1f' % (a.zebro_h, mdep), a.zebro_h - mdep, 1.0)
+    c_z = P['round_key_rib_chamfer']
+    war('wierzch zebra nad wkladka: dlugosc promieniowa (r1 - faza) - (r0 + faza) = %.1f - %.1f' % (a.zebro_r1 - c_z, a.zebro_r0 + c_z),
+        (a.zebro_r1 - c_z) - (a.zebro_r0 + c_z), 0.5)
+    rk = P['plate_round_d'] / 2 + P['cover_clearance'] - luz_o - P['cover_clearance']
+    war('czesc zebra nad wierzchem wkladki: lico kolnierza w najgorszym ustawieniu r %.2f - koniec r1 %.2f (w rzucie)' % (rk, a.zebro_r1), rk - a.zebro_r1, 0.2)
     print('Sciecie: wnikanie plytki w sciecie wkladki %.3f < luz %.1f - sciecie NIE blokuje obrotu (tylko znak wzrokowy i oparcie zebra); '
           'plytka w zlym obrocie lezy na zebrze %.1f nad polka: przechyl ok. %.1f st.' % (R - do, luz_o, a.zebro_h, math.degrees(math.atan2(a.zebro_h, do + R))))
     zw = P['insert_opening'] / 2 + P['insert_wall_w']

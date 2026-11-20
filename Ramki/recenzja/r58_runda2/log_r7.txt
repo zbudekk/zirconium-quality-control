@@ -1,0 +1,68 @@
+wkladka runda2 vs runda1: z gory roznic 1993, od spodu 0
+   z gory: x 30.40..36.90 y -36.90..-30.40; u 43.56..50.70 v -1.48..1.48
+vs kwadratowa poza |x|,|y| > 51.35: z gory 0, od spodu 0 roznic
+bbox montazowy [-65.  -52.4  -3.5] [65. 96.  7.]
+  zebro Z 2.6 u 46.7: v -1.5000..1.5000 szer 3.0000
+  zebro Z 2.6 u 47.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 2.6 u 48.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 2.6 u 49.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 2.6 u 49.7: v -1.5000..1.5000 szer 3.0000
+  zebro Z 3.5 u 46.7: v -1.5000..1.5000 szer 3.0000
+  zebro Z 3.5 u 47.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 3.5 u 48.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 3.5 u 49.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 3.5 u 49.7: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.0 u 46.7: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.0 u 47.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.0 u 48.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.0 u 49.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.0 u 49.7: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.9 u 46.7: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.9 u 47.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.9 u 48.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.9 u 49.5: v -1.5000..1.5000 szer 3.0000
+  zebro Z 5.9 u 49.7: v -1.5000..1.5000 szer 3.0000
+  zebro Z 6.1 u 46.7: v -1.4000..1.4000 szer 2.8000
+  zebro Z 6.1 u 47.5: v -1.4000..1.4000 szer 2.8000
+  zebro Z 6.1 u 48.5: v -1.4000..1.4000 szer 2.8000
+  zebro Z 6.1 u 49.5: v -1.4000..1.4000 szer 2.8000
+  zebro Z 6.1 u 49.7: v -1.4000..1.4000 szer 2.8000
+  Z 6.5 u 46.7: brak
+  zebro Z 6.5 u 47.5: v -1.0000..1.0000 szer 2.0000
+  zebro Z 6.5 u 48.5: v -1.0000..1.0000 szer 2.0000
+  zebro Z 6.5 u 49.5: v -1.0000..1.0000 szer 2.0000
+  zebro Z 6.5 u 49.7: v -1.0000..1.0000 szer 2.0000
+  Z 6.9 u 46.7: brak
+  zebro Z 6.9 u 47.5: v -0.6000..0.6000 szer 1.2000
+  zebro Z 6.9 u 48.5: v -0.6000..0.6000 szer 1.2000
+  zebro Z 6.9 u 49.5: v -0.6000..0.6000 szer 1.2000
+  zebro Z 6.9 u 49.7: v -0.6000..0.6000 szer 1.2000
+  czolo zebra Z 2.60: u 46.5000
+  czolo zebra Z 4.00: u 46.5000
+  czolo zebra Z 5.50: u 46.5000
+  czolo zebra Z 6.50: u 47.0000
+  czolo zebra Z 6.95: u 47.4500
+  wierzch w osi u 46.60: Z 6.1000
+  wierzch w osi u 47.00: Z 6.5000
+  wierzch w osi u 47.60: Z 7.0000
+  wierzch w osi u 48.50: Z 7.0000
+  wierzch w osi u 49.50: Z 7.0000
+  wierzch w osi u 49.74: Z 7.0000
+  wierzch w osi u 49.80: Z 6.0000
+  wierzch w osi u 50.20: Z 6.0000
+  wierzch u 48.5 v 0.0: Z 7.0000
+  wierzch u 48.5 v 0.6: Z 6.9000
+  wierzch u 48.5 v 1.2: Z 6.3000
+  sciecie v -4.0 Z 2.60: 49.7558
+  sciecie v -4.0 Z 4.75: 49.7559
+  sciecie v -2.5 Z 2.60: 49.7558
+  sciecie v -2.5 Z 4.75: 49.7559
+  sciecie v +2.5 Z 2.60: 49.7558
+  sciecie v +2.5 Z 4.75: 49.7559
+  sciecie v +4.0 Z 2.60: 49.7558
+  sciecie v +4.0 Z 4.75: 49.7559
+  Hall A: 5.0000 x 5.5000, srodek (-31.8198, -31.8198)
+  Hall B: 5.0000 x 5.5000, srodek (-31.8198, 31.8198)
+  Hall C: 5.0000 x 5.5000, srodek (31.8198, 31.8198)
+  otwor r (Z 4.75, 0/90/180 st.): [50.3974, 50.3989, 50.3989, 50.397, 50.3966]
+  wystep r (Z 1.25, 0/90/180): [46.9965, 46.9965, 46.9965]
