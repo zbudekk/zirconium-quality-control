@@ -224,7 +224,7 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
         for kawalek in iter(lambda: f.read(1 << 20), b""):
             h.update(kawalek)
     plik.with_name(plik.name + ".sha256").write_bytes(f"{h.hexdigest()}  {plik.name}\n".encode("ascii"))
-    return {"plik": plik, "sha256": h.hexdigest(), "rozmiar": plik.stat().st_size, "wersja": wersja, "commit": commit, "pliki": len(paczka),
+    return {"plik": plik, "sha256": h.hexdigest(), "rozmiar": plik.stat().st_size, "wersja": wersja, "commit": commit, "pliki": len(paczka) - 1,
             "pliki_programu": len(pliki) + 1, "kola": len(kola_programu), "kola_testy": len(kola_testow), "samokontrola": samokontrola,
             "ostrzezenia": ostrzezenia}
 

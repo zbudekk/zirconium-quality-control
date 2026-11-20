@@ -546,7 +546,8 @@ def test_skrot_nie_zatrzymuje_instalacji(tmp_path):
 @pytest.mark.skipif(os.name != "nt", reason="skrypty .cmd dzialaja tylko w Windows")
 def test_zainstaluj_cmd_prawdziwe_srodowisko_i_skrypty(st, tmp_path):
     """Jedyny test z prawdziwym ``python -m venv`` i pip (jedno male kolo, bez sieci): zainstaluj.cmd -> Stanowisko.cmd -> Wersje.cmd."""
-    paczka = zbuduj_paczke(tmp_path, "1.0")
+    paczka = Path(shutil.move(zbuduj_paczke(tmp_path, "1.0"), tmp_path / "Paczka ze spacja"))  # sciezki ze spacjami: paczka i katalog
+    st.katalog = tmp_path / "Katalog ze spacja" / "Stanowisko"
     st.ustawienia_gotowe()
     srodowisko = {k: v for k, v in os.environ.items() if k.upper() not in ("PYTHONPATH", "STANOWISKO_PYTHON")}
 

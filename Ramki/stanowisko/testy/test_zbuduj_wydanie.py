@@ -196,6 +196,8 @@ def test_dwie_budowy_daja_ten_sam_zip(tmp_path):
     assert a["sha256"] == b["sha256"] == sha(a["plik"])
     assert (tmp_path / "a" / "Stanowisko_1.0.zip.sha256").read_text(encoding="ascii") == f"{a['sha256']}  Stanowisko_1.0.zip\n"
     assert a["rozmiar"] == a["plik"].stat().st_size
+    with zipfile.ZipFile(a["plik"]) as z:  # liczba plikow w komunikacie = pliki paczki bez samego SHA256SUMS
+        assert a["pliki"] == len(z.namelist()) - 1 == len(z.read("SHA256SUMS").splitlines())
     inna_data = ZW.zbuduj(tmp_path / "c", kola, zrodlo=zrodlo, data=DATA + dt.timedelta(days=1))
     assert inna_data["sha256"] != a["sha256"]  # data wpisow wchodzi do paczki - dlatego jest stala (data commita)
 
