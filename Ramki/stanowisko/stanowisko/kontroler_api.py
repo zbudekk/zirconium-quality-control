@@ -3271,7 +3271,7 @@ class KontrolerSesji(Kontroler):
         return None
 
     def _polecenie(self, funkcja: Callable[[], Any], *, operator: bool = True, nazwa: str = "", liczby: tuple = (),
-                   punkty: bool | None = None, argumenty: tuple | None = None) -> Odpowiedz:
+                   punkty: bool | Callable[[], bool] | None = None, argumenty: tuple | None = None) -> Odpowiedz:
         """Wspolna obsluga polecenia: zamkniety program, zle argumenty (``liczby`` - identyfikatory, ktore musza byc liczbami
         calkowitymi; D1), brak operatora, odmowa ``session``, baza zajeta, inny blad (``blad_polecenia``); potem nowy stan.
         ``punkty`` - czy udane polecenie moze zmienic stan punktow zlecen (pamiec listy brakow, P2); None = wg ``NIE_RUSZA_PUNKTOW``.
@@ -3303,6 +3303,8 @@ class KontrolerSesji(Kontroler):
             self._usun_komunikat(f"odmowa:{kod}")  # polecenie przeszlo: stare odmowy nieaktualne
         if do_ponowienia is not None:  # ta decyzja / to polecenie jest zapisane: komunikat "NIE zapisano" o nim znika
             self._zdejmij_ponowienie(self._klucz_ponowienia(nazwa, do_ponowienia))
+        if callable(punkty):  # runda 2 (P1): wartosc znana dopiero po wykonaniu (tryb skanu czytany pod oslona)
+            punkty = punkty()
         if punkty if punkty is not None else nazwa not in NIE_RUSZA_PUNKTOW:
             self._uniewaznij_punkty()
         self._odswiez()
@@ -3451,13 +3453,22 @@ class KontrolerSesji(Kontroler):
             plytka = stan.rano.plytka(skan_id)
         return plytka
 
-    def _wieczorny(self, skan_id: int) -> bool:
-        """Polecenie plytki dla skanu wieczornego (moze zmienic stan punktow - P2); skan poranny punktow nie rusza."""
-        return self._sesja_skanu(skan_id) is self.sesja
+    def _polecenie_plytki(self, nazwa: str, skan_id: int, metoda: str) -> Odpowiedz:
+        """Polecenie plytki ``nazwa`` = metoda ``metoda`` sesji, ktora obsluguje skan. E3-P14 runda 2 (P1): tryb skanu jest czytany
+        z bazy WEWNATRZ ``_polecenie`` (krotkie czekanie, odmowa ``baza_zajeta`` z "Ponow teraz") - odczyt przed oslona zatrzymywal
+        okno na ponad 7 s i konczyl sie wyjatkiem w slocie okna, gdy inny program trzymal baze na wylacznosc."""
+        wieczorny = [False]
+
+        def wykonaj() -> Any:
+            sesja = self._sesja_skanu(skan_id)
+            wynik = getattr(sesja, metoda)(skan_id)
+            wieczorny[0] = sesja is self.sesja  # skan wieczorny: polecenie moglo zmienic stan punktow (P2)
+            return wynik
+
+        return self._polecenie(wykonaj, nazwa=nazwa, liczby=(skan_id,), punkty=lambda: wieczorny[0])
 
     def potwierdz_ponowny_skan(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).zastap_skan(skan_id), nazwa="potwierdz_ponowny_skan", liczby=(skan_id,),
-                               punkty=_jest_liczba(skan_id) and self._wieczorny(skan_id))
+        return self._polecenie_plytki("potwierdz_ponowny_skan", skan_id, "zastap_skan")
 
     def odrzuc_ponowny_skan(self, skan_id: int) -> Odpowiedz:
         def wykonaj() -> int:
@@ -3472,16 +3483,13 @@ class KontrolerSesji(Kontroler):
         return self._polecenie(wykonaj, nazwa="odrzuc_ponowny_skan", liczby=(skan_id,))
 
     def cofnij_zastapienie(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).cofnij_zastapienie(skan_id), nazwa="cofnij_zastapienie", liczby=(skan_id,),
-                               punkty=_jest_liczba(skan_id) and self._wieczorny(skan_id))
+        return self._polecenie_plytki("cofnij_zastapienie", skan_id, "cofnij_zastapienie")
 
     def dopusc_plytke(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).dopusc_plytke(skan_id), nazwa="dopusc_plytke", liczby=(skan_id,),
-                               punkty=_jest_liczba(skan_id) and self._wieczorny(skan_id))
+        return self._polecenie_plytki("dopusc_plytke", skan_id, "dopusc_plytke")
 
     def cofnij_dopuszczenie(self, skan_id: int) -> Odpowiedz:
-        return self._polecenie(lambda: self._sesja_skanu(skan_id).cofnij_dopuszczenie(skan_id), nazwa="cofnij_dopuszczenie", liczby=(skan_id,),
-                               punkty=_jest_liczba(skan_id) and self._wieczorny(skan_id))
+        return self._polecenie_plytki("cofnij_dopuszczenie", skan_id, "cofnij_dopuszczenie")
 
     def podaj_numer_plytki(self, skan_id: int, numer: int, mimo_nowego_wsadu: bool = False) -> Odpowiedz:
         """Numer plytki podany recznie. Skan poranny (A6 runda 4): zmiana numeru plytki, ktora ma drugi skan innego wsadu
@@ -3499,7 +3507,11 @@ class KontrolerSesji(Kontroler):
                 n = 0
         if not (_jest_liczba(skan_id) and _jest_liczba(n)):
             return self._zle_argumenty("podaj_numer_plytki")
-        sesja = self._sesja_skanu(skan_id)
+        try:  # E3-P14 runda 2 (P1): odczyt trybu skanu pod krotkim czekaniem - zajeta baza = odmowa z "Ponow teraz", nie wyjatek
+            with self._czekanie_okna(CZEKAJ_POLECENIA_MS):
+                sesja = self._sesja_skanu(skan_id)
+        except (B.BladBazy, sqlite3.OperationalError):
+            return self._odmowa_bazy("podaj_numer_plytki", (skan_id, n, mimo_nowego_wsadu))
         if sesja is self.rano and not mimo_nowego_wsadu and self.sesja.operator is not None:
             rano = self.stan().rano
             p = rano.plytka(skan_id) if rano is not None else None
@@ -3796,6 +3808,10 @@ class KontrolerSesji(Kontroler):
             self._lista_zapisana, self._lista_blad = None, False
             self._odswiez()
             if self._lista_zapisana is None:
+                if self._stan_zalegly:  # E3-P14 runda 2 (D7): baza zajeta - odmowa BEZ drugiego czekania na odczyt stanu (bylo 2 x 0,46 s)
+                    k = self._komunikat("lista_nie_zapisana", id_="odmowa:lista_nie_zapisana")
+                    self._pokaz_komunikaty()
+                    return Odpowiedz(False, k.tekst, "lista_nie_zapisana")
                 return self._odmowa("lista_nie_zapisana")
             nazwa = PLIK_LISTY
         else:
@@ -4233,7 +4249,11 @@ class AtrapaKontrolera(KontrolerSesji):
         self.starty_skanu.append(self._teraz())
         udany = self._start_udany
         self._czeka_na_skan = udany
-        self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany, "tryb": self.tryb}, czas=self.starty_skanu[-1])  # tryb: prosba A10
+        try:  # E3-P14 runda 2 (D8): jak ``Aplikacja.start_skanu`` - zajeta baza nie zatrzymuje Spacji i nie konczy sie wyjatkiem
+            with self._czekanie_okna(CZEKAJ_POLECENIA_MS):
+                self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany, "tryb": self.tryb}, czas=self.starty_skanu[-1])  # tryb: prosba A10
+        except (B.BladBazy, sqlite3.OperationalError):  # drugi: pierwszy zapis do tabeli w tym polaczeniu (``Baza.wstaw`` czyta kolumny)
+            LOG.warning("atrapa: baza zajeta - start skanu bez wpisu w dzienniku")
         if not udany:
             return self._odmowa("start_skanu_nieudany")
         self._ramka_w_spacja()  # E3-A12: ramka wieczorna w stan "skanowanie"
