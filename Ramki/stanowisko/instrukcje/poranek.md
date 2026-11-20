@@ -17,8 +17,8 @@ Ekran: z lewej piec i jego plytki (w gniezdzie numer kuwety i zab), z prawej kuw
 | zielony z numerem kuwety | nic - praca rozpoznana |
 | zolty "wybierz" | kliknij gniazdo i wybierz jeden z dwoch projektow |
 | bialy "nieznana" | przymierz na modelach, potem "Przypisz recznie" albo "Bez projektu" |
-| czerwony "konflikt" | ten sam projekt w dwoch gniazdach - dla jednej z prac wybierz inny projekt albo "Bez projektu" |
-| bursztynowy "zab dofrezowany" | zab do zlecenia juz odhaczonego - idzie do kuwety, Excel bez zmian |
+| czerwony z numerem kuwety (w legendzie "konflikt") | ten sam projekt w dwoch gniazdach - dla jednej z prac wybierz inny projekt albo "Bez projektu" |
+| bursztynowy z numerem kuwety (w legendzie "zab dofrezowany" albo "zab juz rozpoznany") | zab idzie do kuwety, Excel bez zmian; przy "zab juz rozpoznany" kliknij gniazdo i sprawdz, czy to nie pomylka |
 | zolty "powtorz skan" | zeskanuj te plytke jeszcze raz |
 
 <!-- koniec obok -->
@@ -40,7 +40,9 @@ Ekran: z lewej piec i jego plytki (w gniezdzie numer kuwety i zab), z prawej kuw
 5. **Pomylka i szukanie kuwety.** Enter za wczesnie: Backspace ("Cofnij [Backspace]") cofa ostatnia kuwete. Masz w reku
    inna kuwete: wpisz jej numer cyframi (program pokaze "Wpisany numer kuwety: ...") i nacisnij Enter - obwiedzione
    zostana jej prace.
-6. **Zamknij piec.** Po ostatniej plytce kliknij "Zamknij piec". Program przejdzie na "Kompletne i braki":
+6. **Zamknij piec.** Po rozlozeniu ostatniej kuwety (zolte i biale rozstrzygniete) kliknij "Zamknij piec". Na pytanie
+   "Zamknac piec mimo prac bez rozstrzygniecia?" kliknij "Wroc do rozstrzygania" i dokoncz te prace - po
+   "Zamknij piec mimo to" nie beda policzone. Po zamknieciu program przejdzie na "Kompletne i braki":
    "Zlecenia kompletne - do odhaczenia w Excelu: 3" oraz "Braki w tym piecu: 1" - kuweta i zeby, ktorych brakuje (sa
    w innym piecu, w dofrezowaniu albo zaginely). Kuwete z brakami odstaw do nastepnego pieca.
    "Lista brakow (wszystkie piece): 1" pamieta braki miedzy piecami i dniami. Gdy przycisk jest szary, nad plytkami jest

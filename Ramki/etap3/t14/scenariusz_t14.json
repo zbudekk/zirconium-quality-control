@@ -1,5 +1,5 @@
 {
-  "opis": "Scenariusz proby T14 (dane wylacznie sztuczne). Kazde nacisniecie Spacji = kolejny skan z listy trybu. Rodzaje prac: kontroler_api.RODZAJE_PRAC (wieczor) i RODZAJE_PRAC_RANO (rano); projekty = numery sztucznych projektow atrapy.",
+  "opis": "Scenariusz proby T14 (dane wylacznie sztuczne). Kuwety i gniazda INNE niz na obrazkach jednej strony (zrzuty_instrukcji.PIEC, PLYTKA_1) - obrazek nie moze zdradzac odpowiedzi. Kazde nacisniecie Spacji = kolejny skan z listy trybu. Rodzaje prac: kontroler_api.RODZAJE_PRAC (wieczor) i RODZAJE_PRAC_RANO (rano); projekty = numery sztucznych projektow atrapy.",
   "wieczor": {
     "skany": [
       {"co": "plytka 1: dwie prace czerwone (gniazda 3 i 11), jedna zolta (6), jedna szara (15), reszta zielona",
@@ -24,20 +24,20 @@
   },
   "rano": {
     "skany": [
-      {"co": "plytka 4 pieca: gniazdo 5 zolte (dwaj kandydaci), reszta rozpoznana",
-       "numer": 4,
-       "gniazda": {"2": "pewna", "3": "pewna", "5": "zolta", "6": "pewna", "7": "pewna", "8": "pewna"},
-       "projekty": {"2": 311, "3": 312, "5": [313, 320], "6": 307, "7": 308, "8": 309}},
+      {"co": "plytka 6 pieca: gniazdo 7 zolte (dwaj kandydaci), reszta rozpoznana",
+       "numer": 6,
+       "gniazda": {"1": "pewna", "4": "pewna", "7": "zolta", "9": "pewna", "10": "pewna", "12": "pewna"},
+       "projekty": {"1": 329, "4": 330, "7": [331, 338], "9": 325, "10": 326, "12": 327}},
       {"co": "plytka 5 pieca: trzy prace rozpoznane",
        "numer": 5,
-       "gniazda": {"1": "pewna", "4": "pewna", "6": "pewna"},
-       "projekty": {"1": 310, "4": 314, "6": 317}},
-      {"co": "zapas (gdyby osoba nacisnela Spacje jeszcze raz): plytka 6, dwie prace rozpoznane",
-       "numer": 6,
+       "gniazda": {"2": "pewna", "5": "pewna", "8": "pewna"},
+       "projekty": {"2": 328, "5": 332, "8": 335}},
+      {"co": "zapas (gdyby osoba nacisnela Spacje jeszcze raz): plytka 4, dwie prace rozpoznane",
+       "numer": 4,
        "gniazda": {"2": "pewna", "3": "pewna"},
-       "projekty": {"2": 322, "3": 323}}
+       "projekty": {"2": 340, "3": 341}}
     ],
-    "oczekiwane": {"plytka_z_zoltym": 4, "zolte": 5, "kuweta_do_znalezienia": "3242", "kompletne": ["3221", "3228", "3235"],
-                   "braki": ["3242", "3249"]}
+    "oczekiwane": {"plytka_z_zoltym": 6, "zolte": 7, "kuweta_do_znalezienia": "3298", "kompletne": ["3277", "3284", "3291"],
+                   "braki": ["3298", "3305"]}
   }
 }

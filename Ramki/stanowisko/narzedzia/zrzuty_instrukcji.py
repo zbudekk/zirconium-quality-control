@@ -34,6 +34,7 @@ KATALOG_DOMYSLNY = STANOWISKO / "instrukcje" / "obrazki"
 FONTY_WINDOWS = Path(r"C:\Windows\Fonts")
 OKNO = (1600, 900)  # uklad zwykly (opisy_modulow/ui_wieczor.md)
 OKNO_RANO = (1920, 1080)  # ekran laptopa stanowiska (opisy_modulow/ui_rano.md)
+OKNO_EXCEL = (1280, 720)  # panel Excela w malym oknie: na wydruku (ok. 83 mm) napisy i przycisk "Zatwierdz wiersz" sa czytelne
 WIECZOR = dt.datetime(2026, 11, 17, 19, 0, 0)  # wtorek, zmiana 2
 RANO = dt.datetime(2026, 11, 18, 7, 10, 0)  # sroda, zmiana 1
 OSOBA = "Technik A"  # jedna z dwoch fikcyjnych osob atrapy
@@ -284,7 +285,7 @@ def scena_wieczor_lista(katalog: Path):
     return Ekran(k), k, "lista_dofrezowania"
 
 
-def _poranek(katalog: Path, *, wybor: bool = True):
+def _poranek(katalog: Path, *, wybor: bool = True, rozmiar: tuple = OKNO_RANO):
     """Poranek na ekranie stanowiska (1920 x 1080): dwie plytki pieca; ``wybor`` - zolte gniazdo 3 plytki 4 juz rozstrzygniete."""
     from PySide6.QtCore import Qt
 
@@ -298,7 +299,7 @@ def _poranek(katalog: Path, *, wybor: bool = True):
     for numer, gniazda, projekty in PIEC:
         zegar.przesun(2)
         skany[numer] = k.symuluj_skan_rano(numer, gniazda, projekty=projekty)
-    e = Ekran(k, OKNO_RANO)
+    e = Ekran(k, rozmiar)
     e.czekaj(lambda: len(e.okno.ekran_rano.mapy()) == 2, 5.0, "dwie plytki pieca")
     if wybor:
         e.klik_gniazdo(3, skany[4])
@@ -366,11 +367,14 @@ def scena_rano_excel(katalog: Path):
     from stanowisko import excel as EX
     from stanowisko import ustawienia as UST
 
-    e, k, _ = _poranek(katalog)
+    e, k, _ = _poranek(katalog, rozmiar=OKNO_EXCEL)
+    arkusz = _arkusz_zlecen(RANO.date())
     ust = copy.deepcopy(UST.wczytaj_ustawienia(UST.PLIK_PRZYKLADU))
     ust["sciezki"]["log_excel"] = (katalog / "dane" / "log_excel.csv").as_posix()
     ust["excel"]["tryb"] = "pytaj"
-    k.podlacz_excel(EX.Excel.z_ustawien(ust, zrodlo=_arkusz_zlecen(RANO.date()), baza=k.sesja.baza, zegar=lambda: RANO))
+    # stanowisko skonfigurowane: skoroszyt i arkusz wskazane w ustawieniach - panel bez ostrzezenia o pliku "aktywnym" (P3)
+    ust["excel"]["skoroszyt"], ust["excel"]["arkusz"] = arkusz.skoroszyt, arkusz.nazwa
+    k.podlacz_excel(EX.Excel.z_ustawien(ust, zrodlo=arkusz, baza=k.sesja.baza, zegar=lambda: RANO))
     e.klik("przycisk_zamknij_piec")
     e.czekaj(lambda: e.jest("excel_panel") and k.stan().excel.w_toku == 0, 10.0, "panel Excela")
     tabela = e.w("excel_tabela")
