@@ -1313,6 +1313,15 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
                                  "Przenies albo usun ten katalog recznie (albo wybierz inny katalog instalacji: /katalog) i uruchom "
                                  "zainstaluj.cmd ponownie. Wersja biezaca bez zmian.")
         if stan == "zainstalowana":
+            # latka E3-A11w w wersji zalozonej STARSZYM instalatorem (bez pliku blokady zapytan WMI): plik ma byc w srodowisku
+            # PRZED pierwszym procesem pip (``pip list`` w _zgodna_z_paczka, ``pip install`` w _doinstaluj_testy). Srodowisko bez
+            # interpretera albo bez mozliwosci zapisu = uszkodzone: ocenia je kontrola ponizej (naprawa) i krok po instalacji (kod 6).
+            venv_wersji = katalog_wersji(katalog, wersja) / "venv"
+            try:
+                if srodowisko.python(venv_wersji).is_file() and srodowisko.zablokuj_wmi(venv_wersji):
+                    dziennik.krok(f"      dolozono plik {PLIK_BEZ_WMI} (blokada zapytan WMI w srodowisku wersji {wersja})")
+            except BladInstalacji:
+                pass
             zgodna, powod = _zgodna_z_paczka(paczka, katalog, wersja, testy, srodowisko)
             if zgodna:
                 dziennik.krok(f"      wersja {wersja} jest juz zainstalowana i zgodna z paczka - pliki bez zmian")
