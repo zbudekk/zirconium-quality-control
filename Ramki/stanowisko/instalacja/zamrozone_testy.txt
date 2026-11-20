@@ -1,0 +1,5 @@
+# Zestaw TESTOWY (kola w paczce: kola_testy/): pytest i jego zaleznosci, ktorych nie ma w zamrozone.txt.
+# Instalowany tylko na zadanie: zainstaluj.cmd /testy (odbior koncowy), nigdy domyslnie na stanowisku.
+iniconfig==2.3.1
+pluggy==1.7.0
+pytest==9.1.1
