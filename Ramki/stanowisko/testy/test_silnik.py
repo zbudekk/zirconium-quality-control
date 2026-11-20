@@ -89,9 +89,10 @@ def analiza_probna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, *r
     time.sleep(0.05)
     if postep is not None:
         postep("proba: koniec", 0.9)
-    import platform
+    if dane.startswith(b"WMI"):  # E3-A11w: tylko na zadanie (runda 1, D1) - inne zadania probne maja sciezke jak przed paczka
+        import platform
 
-    platform.system()  # E3-A11w: jak ``import trimesh`` w prawdziwej analizie; ``wmi`` = czy proces roboczy zaladowal przy tym modul _wmi
+        platform.system()  # jak ``import trimesh`` w prawdziwej analizie; ``wmi`` = czy proces roboczy zaladowal przy tym modul _wmi
     wynik = {"skan": Path(skan).name, "plytka": plytka, "numer": numer, "wspolczynnik": wspolczynnik, "bajtow": len(dane), "qt": "PySide6" in sys.modules,
              "pid": os.getpid(), "start": t0, "koniec": time.time(), "gniazda": [], "czas_s": {"razem": round(time.time() - t0, 3)}, "sciezka": str(skan),
              "wmi": sys.modules.get("_wmi") is not None}
@@ -2045,7 +2046,7 @@ def test_a11w_import_pakietu_wylacza_zapytania_wmi(poczatek):
 def test_a11w_proces_roboczy_nie_laduje_wmi(tmp_path, silnik_probny):
     """Proces roboczy silnika: ``platform.system()`` (jak przy ``import trimesh`` w analizie) nie laduje modulu ``_wmi``."""
     p = tmp_path / "a.stl"
-    p.write_bytes(b"dobry")
+    p.write_bytes(b"WMI")  # tresc pliku = zadanie dla ``analiza_probna``: wywolaj ``platform.system()``
     s, odb = silnik_probny()
     s.zlec(_zadanie(p))
     z = odb.czekaj_na_koncowe(1)[0]
@@ -2070,3 +2071,28 @@ def test_a11w_proces_testow_nie_pyta_wmi(monkeypatch):
     monkeypatch.setattr(wmi, "exec_query", podglad)
     assert platform.win32_ver()[0]  # wersja systemu ze sciezki zapasowej
     assert zapytania == []
+
+
+KOD_CONFTEST = """
+import sys
+zapytania = []
+sys.addaudithook(lambda zdarzenie, argumenty: zapytania.append(argumenty) if zdarzenie == "_wmi.exec_query" else None)
+sys.path.insert(0, {testy!r})
+import conftest  # noqa: F401
+print("ZAPYTAN_WMI", len(zapytania), conftest.__file__, flush=True)
+"""
+
+
+@WINDOWS
+def test_a11w_conftest_importuje_pakiet_przed_trimesh():
+    """Runda 1, P2: sam import ``testy/conftest.py`` (to robi proces testow, zanim ruszy pierwszy test) nie wysyla zadnego
+    zapytania WMI. Zapytania liczy zdarzenie audytu ``_wmi.exec_query`` (szpieg nie importuje ``_wmi`` i niczego nie
+    podmienia), wiec widac takze te wyslane PRZED blokada. Gdy ``conftest.py`` zaimportuje ``trimesh`` (albo cokolwiek, co
+    wola ``platform.system()`` / ``machine()``) przed pakietem ``stanowisko``: 2 zapytania i test pada."""
+    testy = STANOWISKO / "testy"
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)}
+    w = subprocess.run([sys.executable, "-c", KOD_CONFTEST.format(testy=str(testy))], cwd=str(STANOWISKO), capture_output=True, text=True, env=env, timeout=300)
+    assert w.returncode == 0, w.stdout[-2000:] + w.stderr[-2000:]
+    wiersz = [x for x in w.stdout.splitlines() if x.startswith("ZAPYTAN_WMI")][-1].split(maxsplit=2)
+    assert Path(wiersz[2]) == testy / "conftest.py", wiersz  # sprawdzony zostal ten plik, nie inny conftest ze sciezki
+    assert wiersz[1] == "0", f"conftest.py wyslal zapytania WMI przed blokada pakietu stanowisko: {wiersz[1]}"
