@@ -203,6 +203,33 @@ W oknie Qt: `lacznik = lacznik_qt(silnik)` - obiekt z sygnalami `gotowy()`, `sta
 - Proces roboczy, ktory zglasza gotowosc i ginie bez zadania, jest uruchamiany od nowa bez licznika (D4 b, malo
   prawdopodobne).
 
+## Zapytania WMI modulu `platform` wylaczone w procesach programu (E3-A11w, 20.11.2026)
+
+**Objaw.** `testy/test_silnik.py` uruchomiony w srodowisku wersji z paczki wydania zawisal (proces testow bez pracy procesora,
+watki stoja w module ladujacym Windows: `LdrShutdownThread` / `LdrInitializeThunk`) albo konczyl sie naruszeniem pamieci;
+wczesniej na PC: "DLL load failed while importing Shiboken / _sqlite3", znikajacy uchwyt `\KnownDlls`, procesy potomne
+z kodem 0xC0000142 (E3-A2, E3-A2p).
+
+**Przyczyna (raport `raporty/E3-A11w_2026-11-20.md`).** `import trimesh` wola `platform.system()`, a od Pythona 3.12 jest to
+zapytanie WMI (modul `_wmi` biblioteki standardowej) wykonywane w osobnym watku systemowym z limitem czasu (ok. 1 s na
+inicjalizacje, 0,1 s na polaczenie). Gdy WMI nie odpowie w limicie - na koncie bez dostepu do WMI (PC, konto `<konto-PC>`:
+kazde wywolanie) albo przy wolnej usludze WMI (dowolny komputer) - wywolanie wraca z bledem, a porzucony watek po ok. 5 s
+wykonuje `CloseHandle` na wartosci odczytanej ze stosu watku wywolujacego (struktura lokalna funkcji, ktora juz wrocila).
+Zamyka wiec LOSOWY uchwyt procesu: okna, procesu roboczego albo procesu testow. Proba `wmi_dowod.py` (uchwyt-przyneta
+rozlozony na stosie): zamkniety po 5,0 s w 3 z 3 prob w interpreterze bazowym i 3 z 3 w srodowisku wersji; bez zapytania
+0 z 2; z zablokowanym `_wmi` 0 z 2.
+
+**Poprawka.** `stanowisko/__init__.py` przy imporcie pakietu (czyli przed `trimesh` i Open3D w kazdym procesie programu:
+okno, proces roboczy silnika, wiersz polecen, samokontrola) blokuje modul `_wmi` (`sys.modules["_wmi"] = None`), a gdy
+`platform` jest juz zaladowany - podmienia jego funkcje zapytania na zglaszajaca `OSError`. `platform` bierze wtedy te same
+dane ze sciezek zapasowych (`sys.getwindowsversion()`, zmienne srodowiska). `testy/conftest.py` importuje pakiet PRZED
+`trimesh`. Testy: `test_a11w_*` w `testy/test_silnik.py` (bez poprawki: 4 z 4 nie przechodza).
+
+**Granice.** Skrypt, ktory importuje `trimesh` (albo wola `platform.system()` / `machine()` / `win32_ver()`) PRZED pakietem
+`stanowisko`, nie jest chroniony (narzedzia z `narzedzia/`, ktore zaczynaja od `import trimesh`). Obejscia z E3-A2 / E3-A2p
+(Qt i `sqlite3` ladowane przed silnikiem, wlasna konsola procesu roboczego, limit startu) zostaja - chronia takze przed innymi
+przyczynami. Blad jest w bibliotece standardowej Pythona 3.12 (modul `_wmi`), nie w `trimesh`.
+
 ## Pula per praca w silniku (E3-A5i, 19.11.2026)
 
 **Opis puli.** `OpisPuli(wpisy=..., sciezki=..., korzenie=...)`: `wpisy` - wpisy puli dnia (`pula.Wpis` albo slowniki: `sha16`,

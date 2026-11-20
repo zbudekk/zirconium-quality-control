@@ -89,8 +89,12 @@ def analiza_probna(skan, foldery, plytka, ust, wspolczynnik=None, numer=None, *r
     time.sleep(0.05)
     if postep is not None:
         postep("proba: koniec", 0.9)
+    import platform
+
+    platform.system()  # E3-A11w: jak ``import trimesh`` w prawdziwej analizie; ``wmi`` = czy proces roboczy zaladowal przy tym modul _wmi
     wynik = {"skan": Path(skan).name, "plytka": plytka, "numer": numer, "wspolczynnik": wspolczynnik, "bajtow": len(dane), "qt": "PySide6" in sys.modules,
-             "pid": os.getpid(), "start": t0, "koniec": time.time(), "gniazda": [], "czas_s": {"razem": round(time.time() - t0, 3)}, "sciezka": str(skan)}
+             "pid": os.getpid(), "start": t0, "koniec": time.time(), "gniazda": [], "czas_s": {"razem": round(time.time() - t0, 3)}, "sciezka": str(skan),
+             "wmi": sys.modules.get("_wmi") is not None}
     if uwagi:
         wynik["uwagi"] = uwagi
     return wynik
@@ -1993,3 +1997,76 @@ def test_skany_odniesienia_qt_offscreen(wyniki_ref):
     assert m["przerwa_s"] <= PROG_PRZERWY_S
     _sprawdz_rownosc(typ, cli[typ], m["wynik"], "skany odniesienia, Qt", wymagany=3)
     assert m["czas_s"] <= PROG_PLYTKI_S  # na koncu: czas zalezy od obciazenia komputera, pozostale warunki nie
+
+
+# ----------------------------------------------------------------------------
+# E3-A11w: zaden proces programu nie pyta WMI przez modul ``platform`` (raport E3-A11w)
+# ----------------------------------------------------------------------------
+# ``import trimesh`` wola ``platform.system()``; od Pythona 3.12 to zapytanie WMI (modul ``_wmi``) w osobnym watku systemowym
+# z limitem czasu. Po przekroczeniu limitu (konto bez dostepu do WMI: zawsze; wolna usluga WMI: czasem) porzucony watek po
+# ok. 5 s zamyka uchwyt odczytany ze stosu watku wywolujacego - losowy uchwyt procesu (zawieszenia i naruszenia pamieci
+# ``test_silnik.py`` w srodowisku wersji, "DLL load failed", potomkowie z 0xC0000142). Pakiet ``stanowisko`` wylacza te
+# zapytania przy imporcie (``stanowisko/__init__.py``), a ``testy/conftest.py`` importuje pakiet PRZED ``trimesh``.
+KOD_WMI = """
+import sys
+{poczatek}
+zapytania = []
+try:
+    import _wmi
+except ImportError:  # modul zablokowany przez pakiet stanowisko (albo Python bez _wmi)
+    _wmi = None
+if _wmi is not None:
+    def podglad(zapytanie):
+        zapytania.append(zapytanie)
+        raise OSError("proba")
+    _wmi.exec_query = podglad
+import stanowisko  # noqa: F401
+import trimesh  # noqa: F401 - wola platform.system()
+import platform
+print("ZAPYTAN_WMI", len(zapytania), platform.system(), platform.machine() or "?", platform.release() or "?", flush=True)
+"""
+
+
+@WINDOWS
+@pytest.mark.parametrize("poczatek", ["import stanowisko", "import platform"])
+def test_a11w_import_pakietu_wylacza_zapytania_wmi(poczatek):
+    """Proces, ktory zaimportowal pakiet ``stanowisko`` (okno, proces roboczy, wiersz polecen, samokontrola), nie wysyla zapytan
+    WMI przy ``import trimesh`` ani pozniej - takze gdy ``platform`` byl zaladowany wczesniej (np. przez pytest); ``platform``
+    dalej podaje system i architekture (sciezki zapasowe). Bez poprawki: 2 zapytania (system operacyjny, procesor)."""
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)}
+    w = subprocess.run([sys.executable, "-c", KOD_WMI.format(poczatek=poczatek)], cwd=str(STANOWISKO), capture_output=True, text=True, env=env, timeout=300)
+    assert w.returncode == 0, w.stdout[-2000:] + w.stderr[-2000:]
+    wiersz = [x for x in w.stdout.splitlines() if x.startswith("ZAPYTAN_WMI")][-1].split()
+    assert wiersz[1] == "0", w.stdout[-2000:]
+    assert wiersz[2] == "Windows" and wiersz[3] != "?" and wiersz[4] != "?", wiersz
+
+
+@WINDOWS
+def test_a11w_proces_roboczy_nie_laduje_wmi(tmp_path, silnik_probny):
+    """Proces roboczy silnika: ``platform.system()`` (jak przy ``import trimesh`` w analizie) nie laduje modulu ``_wmi``."""
+    p = tmp_path / "a.stl"
+    p.write_bytes(b"dobry")
+    s, odb = silnik_probny()
+    s.zlec(_zadanie(p))
+    z = odb.czekaj_na_koncowe(1)[0]
+    assert z.typ == "wynik", z.blad
+    assert z.wynik["wmi"] is False
+
+
+@WINDOWS
+def test_a11w_proces_testow_nie_pyta_wmi(monkeypatch):
+    """Proces testow (``conftest.py`` importuje pakiet przed ``trimesh``): ``platform.win32_ver()`` nie wola ``_wmi.exec_query``."""
+    import platform
+
+    wmi = sys.modules.get("_wmi")
+    if wmi is None:
+        return  # modul zablokowany albo Python bez _wmi - platform nie ma czym pytac
+    zapytania = []
+
+    def podglad(zapytanie):
+        zapytania.append(zapytanie)
+        raise OSError("proba")
+
+    monkeypatch.setattr(wmi, "exec_query", podglad)
+    assert platform.win32_ver()[0]  # wersja systemu ze sciezki zapasowej
+    assert zapytania == []
