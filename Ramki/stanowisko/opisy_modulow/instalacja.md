@@ -109,9 +109,12 @@ i uruchamia `instalator.py zainstaluj`:
    kopii (`PRAGMA quick_check` = ok, ta sama wersja schematu). Kopii nie da sie zrobic albo nie przechodzi kontroli = stop
    (kod 6), wersja nie jest przelaczana; kopii "niesprawdzonej" nie ma nigdy,
 7. samokontrola nowej wersji: `python -m stanowisko.samokontrola --ustawienia <KATALOG>\ustawienia.toml --sumy
-   program\SUMY_PROGRAMU.sha256 [--bez-sieci]`; kod 1 albo 2 = wersja zostaje zainstalowana, ale NIE biezaca. Kod spoza
-   umowy 0 / 1 / 2 (proces samokontroli zginal, np. `0xC0000005`) = do 2 powtorzen po 3 s przerwy, kazde z wierszem
-   `UWAGA samokontrola: ...` na ekranie i w dzienniku; trzecia awaria z rzedu = kod 2 instalatora z rada "uruchom ponownie",
+   program\SUMY_PROGRAMU.sha256 [--bez-sieci]`; kod 1 albo 2 = wersja zostaje zainstalowana, ale NIE biezaca. Wynik to kod
+   wyjscia ORAZ ostatni wiersz wyjscia (umowa A11s): kod 0 liczy sie tylko z ostatnim wierszem `SAMOKONTROLA: ZIELONA ...`,
+   kod 1 tylko z `SAMOKONTROLA: CZERWONA ...`. Kod spoza umowy 0 / 1 / 2 (proces samokontroli zginal, np. `0xC0000005`) albo
+   kod 0 / 1 bez takiego wiersza (np. blad importu modulu = kod 1 Pythona i sam slad wyjatku) = do 2 powtorzen po 3 s
+   przerwy, kazde z wierszem `UWAGA samokontrola: ...` na ekranie i w dzienniku; trzeci taki wynik z rzedu = kod 2
+   instalatora ("zakonczyla sie awaryjnie" / "nie podala wyniku") z rada "to nie blad ustawien, uruchom ponownie",
 8. zapis skryptow ze wzorow i przelaczenie wskaznika (pod blokada programu); poprzednia wersja zapamietana,
 9. skrot na pulpicie tylko z `/skrot` (PowerShell `WScript.Shell`; niepowodzenie = ostrzezenie).
 
@@ -119,24 +122,29 @@ Wiersz koncowy: `INSTALACJA: GOTOWA - wersja biezaca X ...`; przy bledzie `BLAD:
 `INSTALACJA: NIEUDANA (kod N) - wersja biezaca bez zmian: X` (gdy katalog wersji biezacej jest niekompletny po zamknieciu
 okna w trakcie naprawy: `... - UWAGA: wersja biezaca X jest niekompletna ...`); bledy samego `zainstaluj.cmd` (kod 4,
 brak instalatora): `INSTALACJA: NIEUDANA (kod N) - niczego nie zmieniono.` **Pierwsza instalacja** (nie ma jeszcze wersji
-biezacej), gdy samokontrola daje kod 1: zasada "wersja biezaca zawsze po zielonej samokontroli" zostaje, ale to zamierzony
-etap, nie niepowodzenie - wiersze `BLAD ...` samokontroli, `Plik ustawien: <pelna sciezka>`, `CO ZROBIC: ...` i wiersz
-koncowy `INSTALACJA: WSTRZYMANA - uzupelnij ustawienia.toml i uruchom zainstaluj.cmd ponownie (kod 10)`. Ponowne
-`zainstaluj.cmd` tej samej paczki nie buduje srodowiska od nowa (kilka sekund).
+biezacej), gdy samokontrola daje kod 1 i WSZYSTKIE wiersze `BLAD <sprawdzenie>: ...` dotycza ustawien (`blad_ustawien`:
+sprawdzenia `folder_*`, `operatorzy`, `ustawienia` - to, co technik wpisuje w `ustawienia.toml`): zasada "wersja biezaca
+zawsze po zielonej samokontroli" zostaje, ale to zamierzony etap, nie niepowodzenie - wiersze `BLAD ...` samokontroli,
+`Plik ustawien: <pelna sciezka>`, `CO ZROBIC: ...` i wiersz koncowy `INSTALACJA: WSTRZYMANA - uzupelnij ustawienia.toml
+i uruchom zainstaluj.cmd ponownie (kod 10)`. Ponowne `zainstaluj.cmd` tej samej paczki nie buduje srodowiska od nowa
+(kilka sekund). Choc jeden blad spoza ustawien (`baza`, `moduly`, `pakiety`, `sumy`, `python`, `pula`, `dane_*`, `modele`,
+kazde nieznane sprawdzenie) - takze przy pierwszej instalacji - to kod 1: `Bledy samokontroli wersji X (n):`, wiersze `BLAD`,
+`BLAD: samokontrola ... zglosila bledy`, `CO ZROBIC:` z lista sprawdzen spoza ustawien, `INSTALACJA: NIEUDANA (kod 1)`.
 
 | Kod | Znaczenie |
 |---|---|
 | 0 | wersja z paczki jest wersja biezaca |
-| 1 / 2 | samokontrola przy aktualizacji: bledy / nie dalo sie wykonac - wersja zainstalowana, nie przelaczona |
+| 1 | samokontrola czerwona (aktualizacja; pierwsza instalacja, gdy choc jeden blad nie dotyczy ustawien) - wersja zainstalowana, nie przelaczona |
+| 2 | samokontroli nie dalo sie wykonac: kod 2 modulu, proces zginal w 3 probach albo kod 0 / 1 bez wiersza koncowego `SAMOKONTROLA:` - wersja zainstalowana, nie przelaczona |
 | 3 | paczka: sumy, braki, blad wydania, inna budowa albo inna pisownia numeru wersji uzywanej |
-| 4 | brak Pythona 3.12 albo zla wersja |
-| 5 | program uruchomiony albo baza zajeta przez inny program |
+| 4 | `zainstaluj.cmd`: brak Pythona 3.12 albo zla wersja; skrypty katalogu instalacji (`Stanowisko.cmd`, `Samokontrola.cmd`, `Wroc_do_poprzedniej.cmd`, `Wersje.cmd`, `Polecenie.cmd`): nie ma gotowej wersji biezacej (brak wskaznika, brak srodowiska albo znacznik `NIEDOKONCZONA.txt`) - "uruchom zainstaluj.cmd z rozpakowanej paczki wydania" |
+| 5 | program uruchomiony albo baza zajeta przez inny program (takze odmowa dostepu przy zamianie pliku bazy w powrocie i plik `-journal` obok bazy) |
 | 6 | katalog, miejsce na dysku, venv, pip, przerwanie, baza nieczytelna / kopia bazy nieudana, druga instalacja naraz |
 | 7 | ustawienia: blad pliku, BOM albo sciezki wzgledne w `[sciezki]` |
 | 8 | powrot: baza nowsza niz poprzednia wersja - potrzebna zgoda `/przywroc-kopie` albo brak sprawdzonej kopii |
 | 9 | brak wersji (powrot bez poprzedniej; usuwanie biezacej, poprzedniej albo nieistniejacej) |
-| 10 | pierwsza instalacja WSTRZYMANA: wersja zainstalowana, samokontrola czeka na uzupelnienie `ustawienia.toml` |
-| 11 | powrot ANULOWANY: odpowiedz na pytanie T / N inna niz T - nic nie zmieniono |
+| 10 | pierwsza instalacja WSTRZYMANA: wersja zainstalowana, wszystkie bledy samokontroli dotycza ustawien - czeka na uzupelnienie `ustawienia.toml` |
+| 11 | powrot ANULOWANY: odpowiedz na pytanie T / N inna niz `T` / `t` (takze sam Enter, `tak`, brak konsoli) - nic nie zmieniono |
 
 ## Wroc_do_poprzedniej.cmd [/tak] [/przywroc-kopie] [/bez-pauzy], Wersje.cmd [/usun WERSJA] [/bez-pauzy]
 
@@ -152,7 +160,8 @@ koncowy `INSTALACJA: WSTRZYMANA - uzupelnij ustawienia.toml i uruchom zainstaluj
     `dane\kopie\<baza>_przed_*` i kopie programu sprzed migracji `<baza>.kopia_v*`.
   - Z `/przywroc-kopie`: (1) sprawdzona kopia biezacej bazy do `dane\kopie\<baza>_odlozona_v<schemat>_<czas>.sqlite`
     (kopia tresci mechanizmem SQLite), (2) sprawdzona kopia wybranego pliku jako `<baza>.nowy`, (3) jedna zamiana atomowa
-    `<baza>.nowy` -> `<baza>`. Plik bazy istnieje i jest caly w kazdej chwili; blad = baza bez zmian, kod 6.
+    `<baza>.nowy` -> `<baza>`. Plik bazy istnieje i jest caly w kazdej chwili; blad = baza bez zmian, kod 6 (odmowa
+    dostepu przy samej zamianie pliku bazy albo niepusty `-journal` obok niej = inny program trzyma baze: kod 5).
   - Baza STARSZA niz schemat wersji docelowej ("powrot" do nowszej wersji, ktora zmigruje baze przy starcie): przed
     przelaczeniem powstaje kopia `<baza>_przed_<wersja>_...` - tak jak przy aktualizacji.
   - Bez roznicy schematu baza nie jest ruszana. Po przelaczeniu samokontrola wersji docelowej - informacyjnie.
