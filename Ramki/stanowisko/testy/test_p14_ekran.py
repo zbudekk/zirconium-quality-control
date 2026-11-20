@@ -272,7 +272,9 @@ def test_n3_zamknij_piec_pyta_o_prace_nierozstrzygniete_i_nazywa_je_po_zamknieci
     tekst = e.tekst_elementu("pytanie_zamknij_mimo")
     assert N.PLYTKA_NR.format(numer=4) in tekst and "gniazdo 3" in tekst and "1 " in tekst and "NIE" in tekst
     przyciski = [b.objectName() for b in e.w("pytanie_zamknij_mimo").findChildren(type(e.w("zamknij_mimo_wroc")))]
-    assert przyciski == ["zamknij_mimo_wroc", "zamknij_mimo_tak"]  # domyslna (pierwsza, wyrozniona): powrot do rozstrzygania
+    # domyslna (wyrozniona) odpowiedz: powrot do rozstrzygania; runda 2 (P2): stoi po prawej - pod miejscem "Zamknij piec"
+    assert przyciski == ["zamknij_mimo_tak", "zamknij_mimo_wroc"]
+    assert _w_oknie(e, "zamknij_mimo_tak").right() < _w_oknie(e, "zamknij_mimo_wroc").left()
     assert e.w("zamknij_mimo_wroc").property("rola") == "glowny" and e.w("zamknij_mimo_tak").property("rola") != "glowny"
     assert not niewidoczne_w_calosci(e, ("zamknij_mimo_wroc", "zamknij_mimo_tak"))
     zrzut(e, "po_n3_pytanie_przed_zamknieciem")
@@ -291,6 +293,69 @@ def test_n3_zamknij_piec_pyta_o_prace_nierozstrzygniete_i_nazywa_je_po_zamknieci
     kuwety = [w[0] for w in e.tabela("tabela_kompletne")] + [w[0] for w in e.tabela("tabela_braki")]
     assert len(kuwety) == len(set(kuwety))
     zrzut(e, "po_p5_rano_zamkniety_za_wczesnie")
+
+
+def _w_oknie(e, nazwa: str):
+    from PySide6.QtCore import QPoint, QRect
+
+    w = e.w(nazwa)
+    return QRect(w.mapTo(e.okno, QPoint(0, 0)), w.size())
+
+
+def _klik_w_punkt(e, punkt, dwuklik: bool = False) -> str | None:
+    """Klikniecie (albo dwuklik) w punkt OKNA - w to, co tam teraz lezy; zwraca nazwe trafionego elementu."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    cel = e.okno.childAt(punkt) or e.okno
+    (QTest.mouseDClick if dwuklik else QTest.mouseClick)(cel, Qt.MouseButton.LeftButton, pos=cel.mapFrom(e.okno, punkt))
+    e.zdarzenia()
+    return cel.objectName() or None
+
+
+@pytest.mark.parametrize("rozmiar", ROZMIARY, ids=lambda r: f"{r[0]}x{r[1]}")
+@pytest.mark.parametrize("komunikat_nad_piecem", (False, True), ids=("bez_komunikatu", "z_komunikatem"))
+def test_r2_p2_drugie_klikniecie_w_miejsce_zamknij_piec_nie_zamyka_pieca(swiat, rozmiar, komunikat_nad_piecem):
+    """Runda 2 (P2, proba ``proby_dwuklik.py`` recenzenta): piec z praca zolta; technik klika "Zamknij piec" i drugi raz W TO
+    SAMO MIEJSCE (niecierpliwe klikniecie albo dwuklik). Pytanie wlasnie sie pojawilo - drugie klikniecie NIE moze trafic w
+    "Zamknij piec mimo to": piec zostaje otwarty w kazdym z 4 rozmiarow okna, z komunikatem nad piecem i bez (srodek i 4 rogi
+    starego przycisku + dwuklik w srodek), a prostokat starego przycisku nie ma czesci wspolnej z "Zamknij piec mimo to"."""
+    from PySide6.QtCore import QPoint
+
+    k, zegar = swiat.rano()
+    poranek_t14(k, zegar)
+    if not komunikat_nad_piecem:
+        for x in list(k.stan().komunikaty):
+            k.zamknij_komunikat(x.id)
+    assert bool([x for x in k.stan().komunikaty if not x.ukryte]) == komunikat_nad_piecem
+    e = swiat.ekran(k, rozmiar)
+    usterki = []
+    for miejsce in ("srodek", "lewy_gorny", "prawy_gorny", "lewy_dolny", "prawy_dolny", "dwuklik"):
+        if e.jest("pytanie_zamknij_mimo"):  # stan wyjsciowy: bez pytania, bez otwartej pracy
+            e.klik("zamknij_mimo_wroc")
+        if e.rano.pokazana_praca() is not None:
+            e.klik("praca_rano_zamknij")
+        e.zdarzenia()
+        assert not e.jest("pytanie_zamknij_mimo") and e.rano.pokazana_praca() is None and k.stan().rano.otwarty
+        stary = _w_oknie(e, "przycisk_zamknij_piec")
+        punkt = {"srodek": stary.center(), "dwuklik": stary.center(), "lewy_gorny": stary.topLeft() + QPoint(3, 3),
+                 "prawy_gorny": stary.topRight() + QPoint(-3, 3), "lewy_dolny": stary.bottomLeft() + QPoint(3, -3),
+                 "prawy_dolny": stary.bottomRight() + QPoint(-3, -3)}[miejsce]
+        if miejsce == "dwuklik":
+            trafione = (_klik_w_punkt(e, punkt, dwuklik=True),)
+        else:
+            trafione = (_klik_w_punkt(e, punkt), None)
+            assert trafione[0] == "przycisk_zamknij_piec" and e.jest("pytanie_zamknij_mimo") and k.stan().rano.otwarty, (miejsce, trafione)
+            mimo = _w_oknie(e, "zamknij_mimo_tak")
+            if stary.intersects(mimo):
+                usterki.append(f"{miejsce}: stary przycisk {stary} ma czesc wspolna z 'Zamknij piec mimo to' {mimo}")
+            trafione = (trafione[0], _klik_w_punkt(e, punkt))
+        if not k.stan().rano.otwarty:
+            usterki.append(f"{miejsce}: piec ZAMKNIETY po drugim kliknieciu w ({punkt.x()}, {punkt.y()}); trafione {trafione}")
+            break
+        if trafione[-1] == "zamknij_mimo_tak":
+            usterki.append(f"{miejsce}: drugie klikniecie trafilo w 'Zamknij piec mimo to' (nieaktywny?)")
+    assert not usterki, f"okno {rozmiar[0]} x {rozmiar[1]}, komunikat nad piecem {komunikat_nad_piecem}:\n" + "\n".join(usterki)
 
 
 def test_n3_bez_prac_nierozstrzygnietych_zamknij_piec_nie_pyta(swiat):

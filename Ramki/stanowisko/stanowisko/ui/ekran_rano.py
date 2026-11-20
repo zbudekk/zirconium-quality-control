@@ -872,12 +872,14 @@ class EkranRano(QWidget):
         return prace
 
     def _panel_zamkniecia(self, prace: tuple):
-        """Panel pytania "Zamknac piec mimo prac bez rozstrzygniecia?" - pierwsza, wyrozniona odpowiedz: powrot do rozstrzygania."""
+        """Panel pytania "Zamknac piec mimo prac bez rozstrzygniecia?" - wyrozniona odpowiedz: powrot do rozstrzygania. Runda 2
+        (P2): "Wroc do rozstrzygania" stoi PO PRAWEJ - pod miejscem przycisku "Zamknij piec", ktory wlasnie zjechal w dol; drugie
+        klikniecie w to samo miejsce (dwuklik, niecierpliwosc) nie trafia w "Zamknij piec mimo to" (test geometrii w 4 oknach)."""
         ile = ST.odmiana(len(prace), *NR.ZAMKNIJ_MIMO_ILE).format(n=len(prace))
         panel = PanelUwagi("pytanie_zamknij_mimo", "ostrzezenie", NR.ZAMKNIJ_MIMO_TYTUL,
                            NR.ZAMKNIJ_MIMO_TEKST.format(ile=ile, lista=lista_nierozstrzygnietych(prace), brak=ST.STANY_PUNKTU["brak_po_piecu"]),
-                           [("zamknij_mimo_wroc", NR.ZAMKNIJ_MIMO_WROC, LOKALNE_ZAMKNIJ_MIMO_WROC, (), True, "glowny"),
-                            ("zamknij_mimo_tak", NR.ZAMKNIJ_MIMO_TAK, LOKALNE_ZAMKNIJ_MIMO_TAK, (), self._stan.operator is not None, None)],
+                           [("zamknij_mimo_tak", NR.ZAMKNIJ_MIMO_TAK, LOKALNE_ZAMKNIJ_MIMO_TAK, (), self._stan.operator is not None, None),
+                            ("zamknij_mimo_wroc", NR.ZAMKNIJ_MIMO_WROC, LOKALNE_ZAMKNIJ_MIMO_WROC, (), True, "glowny")],
                            r=self._r)
         panel.polecenie.connect(slaba(self._odpowiedz_zamkniecia))
         return panel
