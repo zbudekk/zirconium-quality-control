@@ -33,11 +33,20 @@ WSTRZYMANE_PULA = "czekają na projekty: {n}"
 WSTRZYMANE_ANALIZA = "czekają na analizę: {n}"
 WSTRZYMANE_ZAPIS = "czekają na zapis: {n}"
 ODSTEP_KOLEJKI = " · "
-# start skanu jest atrapa do dnia skanera (B2): skan uruchamia technik w programie skanera, program czeka na plik
-SKANUJ_ATRAPA = "Skanuj w programie skanera\nSpacja: program czeka na plik"
+# start skanu jest atrapa do dnia skanera (B2): skan uruchamia technik w programie skanera, program czeka na plik.
+# E3-P14 (poz. 6): przycisk nie zaczyna sie od "Skanuj" i nie jest przyciskiem glownym - mowi, co robi Spacja (program czeka na plik)
+SKANUJ_ATRAPA = "Czekam na plik skanu  [Spacja]\nSkanujesz w programie skanera"  # nie szerszy niz poprzedni (okno 1240 x 640)
 SKANUJ_ATRAPA_OPIS = "Program sam nie uruchamia skanera. Uruchom skan w programie skanera — program przyjmie plik skanu sam."
 NOWA_PLYTKA = "Pokaż nowy wynik:\n{plytka}"
 NOWE_PLYTKI = "Pokaż nowe wyniki ({n}):\n{plytka}"
+# E3-P14 (N2): trwaly panel nad lista plytek i mapa, gdy wynik nowej plytki czeka, a ekran zostal na ogladanej plytce
+NOWY_WYNIK_TYTUL = "Nowy wynik czeka: {plytki}"
+NOWE_WYNIKI_TYTUL = "Nowe wyniki czekają ({n}): {plytki}"
+NOWY_WYNIK_SPRAWY = "{plytka} (skan z {godzina}): {sprawy}."
+NOWY_WYNIK_PYTANIE = "pytanie „{tytul}”"
+NOWY_WYNIK_KOMUNIKAT = "„{tytul}”"
+NOWY_WYNIK_RADA = "Ekran został na oglądanej płytce. Dokończ ją albo kliknij „Pokaż nowy wynik”."
+NOWY_WYNIK_POKAZ = "Pokaż nowy wynik"
 
 # --- pasek bledow programu (A-P3) ----------------------------------------------------------------
 BLEDY_PROGRAMU = "Błędy programu: {n}"
@@ -58,6 +67,9 @@ PLYTKA_KOMUNIKAT = "ma komunikat"
 PLYTKA_BEZ_PRAC = "brak prac"
 PLYTKA_DO_OBEJRZENIA = "do obejrzenia: {n}"
 PLYTKA_SPRAWDZONA = "sprawdzona"
+# E3-P14 (poz. 8): do odpowiedzi na "Ponowny skan tej samej plytki?" nowy skan nie jest "sprawdzony", a poprzedni ma znacznik
+PLYTKA_NOWY_SKAN = "nowy skan, czeka na odpowiedź"
+PLYTKA_POPRZEDNI_SKAN = "poprzedni skan"  # krotko: kafelek w ukladzie zwartym ma 180 punktow szerokosci
 PLYTKA_DOPUSZCZONA = "{jaka} — dopuszczona świadomie"
 PRAC = "prac: {n}"
 WCZESNIEJSZE_POKAZ = "Pokaż wcześniejsze zmiany ({n})"
@@ -129,7 +141,7 @@ LISTA_WSZYSTKIE = "Wszystkie otwarte"
 LISTA_PUSTA = "Lista jest pusta."
 KOLUMNY_LISTY = ("Kuweta", "Ząb", "Krążek", "Płytka", "Gniazdo", "Doba", "Zmiana")
 POWTORZONY = "oznaczony {n} razy"
-LISTA_PLIK = "Lista zapisana do pliku o {godzina}"
+LISTA_PLIK = "Zapisano do pliku o {godzina}"  # E3-P14 (poz. 4): obok "Lista jest pusta." bylo "Lista zapisana ..." - dwa razy "Lista"
 
 # --- rady do pytan (uzupelnienie tekstu pytania ze ``statusy``; patrz POTRZEBUJE w raporcie) --------
 RADA_PLYTKA_PORANNA = "Przełóż prace na płytkę wieczorną i zeskanuj ponownie."

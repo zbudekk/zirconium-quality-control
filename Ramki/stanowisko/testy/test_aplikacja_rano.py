@@ -75,6 +75,16 @@ class ZegarRano(UW.Zegar):
 # ----------------------------------------------------------------------------
 # atrapa ramki w osobnym procesie i ruch laptopa
 # ----------------------------------------------------------------------------
+def zamknij_piec(e, *, pytanie: bool) -> None:
+    """Klikniecie "Zamknij piec". E3-P14 (N3): gdy piec ma prace bez rozstrzygniecia, przycisk nie zamyka - ekran pyta; test
+    zamyka wtedy swiadomie odpowiedzia "Zamknij piec mimo to" (samo pytanie sprawdza ``test_p14_ekran``). Runda 2 (P4):
+    ``pytanie`` - jawne oczekiwanie testu, czy ekran ma zapytac (falszywe pytanie albo jego brak = test pada)."""
+    e.klik("przycisk_zamknij_piec")
+    assert e.jest("pytanie_zamknij_mimo") == pytanie, f"pytanie przed zamknieciem pieca: jest {e.jest('pytanie_zamknij_mimo')}, oczekiwane {pytanie}"
+    if pytanie:
+        e.klik("zamknij_mimo_tak")
+
+
 def wolny_port() -> int:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("127.0.0.1", 0))
@@ -734,7 +744,7 @@ def test_k3_excel_pytaj_propozycje_rowne_kompletnym_i_tylko_kolor_wlasciwych_kom
         przed = arkusz.zrzut()
         petla = Petla()
         with e.bez_zegara():  # zegar okna zatrzymany: widac stan zaraz po poleceniu
-            e.klik("przycisk_zamknij_piec")
+            zamknij_piec(e, pytanie=True)
             assert not e.jest("excel_panel") and k.stan().excel.w_toku == 1  # P1: Excel odroczony - najpierw ekran (i ramka)
         e.czekaj(lambda: e.jest("excel_panel") and k.stan().excel.w_toku == 0, 10.0, "okno Excela po kolejnych obiegach petli")
         wynik = SR.SesjaRano(k.sesja).wynik_pieca(k.stan().rano.sesja_pieca_id)
@@ -929,7 +939,7 @@ def test_k5_wylaczona_ramka_i_brak_excela_ostrzezenie_i_dalsza_praca(tmp_path, e
         e.klik("przycisk_przelacz_tryb")
         assert e.jest("komunikat_ramka_niedostepna") and not k.stan().rano.ramka
         skany = {4: k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "pewna", 5: "pewna"}, projekty={1: 301, 2: 302, 3: 303, 5: 304})}
-        e.klik("przycisk_zamknij_piec")
+        zamknij_piec(e, pytanie=False)
         assert not k.stan().rano.otwarty  # piec zamkniety mimo wylaczonej ramki i braku Excela
         e.czekaj(lambda: e.jest("komunikat_excel_blad"), 5.0, "komunikat Excela")
         assert not e.jest("excel_panel")
@@ -986,7 +996,7 @@ def test_okno_1920x1080_bez_obciec_z_paskiem_ramek_i_oknem_excela(tmp_path, ekra
         e = ekrany(k, (1920, 1080))
         e.klik_rano(skany[6], 11)
         e.klik("praca_rano_bez_projektu")
-        e.klik("przycisk_zamknij_piec")
+        zamknij_piec(e, pytanie=True)
         # okno Excela jest odroczone o kilka obiegow petli okna (A12 P1) - czekanie z limitem zamiast sprawdzenia od razu (E3-A5i r3)
         e.czekaj(lambda: e.jest("excel_panel"), 20.0, "okno Excela po Zamknij piec")
         assert e.jest("excel_panel") and e.jest("napis_ramki") and e.jest("przycisk_test_led")
@@ -1091,7 +1101,7 @@ def test_b1_podwojne_klikniecie_zatwierdz_i_pomin_jeden_zapis(tmp_path, ekrany):
         arkusz, _ = _excel_pytaj(k, tmp_path)
         k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
         e = ekrany(k)
-        e.klik("przycisk_zamknij_piec")
+        zamknij_piec(e, pytanie=False)
         e.czekaj(lambda: e.jest("excel_panel") and k.stan().excel.w_toku == 0, 10.0, "okno Excela")
         assert [p.kuweta for p in k.stan().excel.pozycje] == ["3200", "3207"] and not e.aktywny("excel_zatwierdz") and e.jest("excel_wybierz")
         e.klik_wiersz("excel_tabela", 0)
@@ -1483,13 +1493,13 @@ def test_pn3_zalegly_piec_osiagalny_z_ekranu_gdy_ostatni_zalatwiony(tmp_path, ek
         _excel_pytaj(k, tmp_path)
         e = ekrany(k)
         k.symuluj_skan_rano(4, PLYTKA_4[0], projekty=PLYTKA_4[1])
-        e.klik("przycisk_zamknij_piec")
+        zamknij_piec(e, pytanie=False)
         e.czekaj(lambda: e.jest("excel_panel"), 10.0, "okno Excela pieca 1")
         piec1 = k.stan().excel.sesja_pieca_id
         e.klik("excel_pozniej")
         assert not e.jest("excel_panel")
         k.symuluj_skan_rano(5, {1: "pewna", 2: "pewna"}, projekty={1: 305, 2: 306})
-        e.klik("przycisk_zamknij_piec")
+        zamknij_piec(e, pytanie=False)
         e.czekaj(lambda: e.jest("excel_panel") and k.stan().excel.sesja_pieca_id != piec1, 10.0, "okno Excela pieca 2")
         e.klik_wiersz("excel_tabela", 0)
         e.klik("excel_pomin")
