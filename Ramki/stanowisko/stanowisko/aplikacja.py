@@ -1117,7 +1117,11 @@ class Aplikacja(K.KontrolerSesji):
         self._starty_skanu += 1
         self._ostatni_start_skanu = self._teraz()
         self._czeka_na_skan = udany
-        self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany, "tryb": self.tryb}, czas=self._ostatni_start_skanu)  # tryb: prosba A10
+        try:  # E3-P14 (N1): baza zajeta przez inny program - Spacja nie stoi 5 s i nie konczy sie wyjatkiem; brakuje tylko wpisu dziennika
+            with self._czekanie_okna(K.CZEKAJ_POLECENIA_MS):
+                self.sesja.baza.zdarzenie("ui", "start_skanu", {"udany": udany, "tryb": self.tryb}, czas=self._ostatni_start_skanu)  # tryb: prosba A10
+        except B.BladBazy:
+            LOG.warning("stanowisko: baza zajeta - start skanu bez wpisu w dzienniku (program czeka na plik skanu jak zwykle)")
         if not udany:
             return self._odmowa("start_skanu_nieudany")
         self._ramka_w_spacja()  # E3-A12: ramka wieczorna w stan "skanowanie" (gasi poprzedni wynik)
@@ -1172,6 +1176,8 @@ class Aplikacja(K.KontrolerSesji):
             LOG.exception("stanowisko: blad obslugi ramek / Excela")
         if "stan" in zmiany:
             self._odswiez()
+        elif self._nadrob_stan():  # E3-P14 (N1): stan zalegly po zajetej bazie - odczyt ponowiony z zegara okna
+            pass
         elif "zywe" in zmiany:
             self._odswiez_zywe()
         elif "postep" in zmiany:
