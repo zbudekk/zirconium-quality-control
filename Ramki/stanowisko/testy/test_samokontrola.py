@@ -442,6 +442,20 @@ def test_foldery_pracy_ok_i_brak(kat, klucz, kod, poziom_braku):
     assert kat.wykonaj().sprawdzenie(kod).poziom == poziom_braku
 
 
+def test_foldery_puli_per_praca_brak_millbox_zatrzymuje_wieczor_blad_brak_prywatne_ostrzezenie(kat):
+    kat.zapisz(pula_wpisow="true")
+    kat.foldery["folder_millbox"].rmdir()
+    kat.foldery["folder_prywatne"].rmdir()
+    wynik = kat.wykonaj()
+    s = wynik.sprawdzenie("folder_millbox")
+    assert s.poziom == S.BLAD and S.PLIK_WSPOLCZYNNIKOW in s.opis and "[sciezki] folder_millbox" in s.rada and wynik.kod_wyjscia == 1
+    assert wynik.sprawdzenie("folder_prywatne").poziom == S.OSTRZEZENIE
+    kat.zapisz(pula_wpisow="false")
+    wynik = kat.wykonaj()
+    s = wynik.sprawdzenie("folder_millbox")
+    assert s.poziom == S.OSTRZEZENIE and "pula_wpisow = false" in s.opis and wynik.kod_wyjscia == 0
+
+
 def test_folder_nieczytelny_i_folder_bez_odpowiedzi(kat, monkeypatch):
     prawdziwy = S._czytaj_folder
 

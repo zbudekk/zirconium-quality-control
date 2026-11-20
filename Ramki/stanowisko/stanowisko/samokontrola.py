@@ -440,9 +440,12 @@ def _operatorzy(k: _Kontekst) -> list:
 FOLDERY_PRACY = (
     ("folder_skanera", "folder_eksportu_skanera", BLAD, "eksportu skanera", "zaden skan nie trafi do programu"),
     ("folder_cyrkon", "folder_cyrkon", BLAD, "projektow Cyrkon", "pula projektow jest pusta i skany czekaja bez wyniku"),
-    ("folder_prywatne", "folder_prywatne", OSTRZEZENIE, "projektow Prywatne", "prace prywatne nie wejda do puli per praca"),
-    ("folder_millbox", "folder_millbox", OSTRZEZENIE, "MillBox", f"program nie znajdzie pliku {PLIK_WSPOLCZYNNIKOW} - wspolczynnik krazka wpisuje sie wtedy recznie"),
+    ("folder_prywatne", "folder_prywatne", OSTRZEZENIE, "projektow Prywatne", "prace prywatne nie wejda do puli i zostana szare"),
+    ("folder_millbox", "folder_millbox", BLAD, "MillBox", f"bez pliku {PLIK_WSPOLCZYNNIKOW} pula wieczorna nie dostaje nowych prac i skany wieczorne czekaja"),
 )
+# Foldery czytane tylko przy puli per praca ([silnik] pula_wpisow = true): przy pula_wpisow = false ich brak niczego nie zatrzymuje (OSTRZEZENIE).
+FOLDERY_PULI_WPISOW = ("folder_prywatne", "folder_millbox")
+NIEUZYWANY = "przy pula_wpisow = false program z niego nie korzysta (bedzie potrzebny po wlaczeniu puli per praca)"
 
 
 def _czytaj_folder(folder: str | Path) -> str:
@@ -465,6 +468,8 @@ def _foldery(k: _Kontekst) -> list:
     stany = _z_limitem(zadania, LIMIT_FOLDERU_S)
     wynik = []
     for kod, klucz, poziom, nazwa, skutek in FOLDERY_PRACY:
+        if klucz in FOLDERY_PULI_WPISOW and not k.ust["silnik"].get("pula_wpisow"):
+            poziom, skutek = OSTRZEZENIE, NIEUZYWANY
         wartosc = k.ust["sciezki"][klucz]
         rodzaj, dane = stany.get(klucz, ("wynik", "pusty"))
         stan = dane if rodzaj == "wynik" else rodzaj
