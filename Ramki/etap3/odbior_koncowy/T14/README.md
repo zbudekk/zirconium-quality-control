@@ -13,6 +13,11 @@ dluzszego niz 10 s spisane i poprawione albo swiadomie zostawione.
 Decyzja koordynatora (20.11, do odwolania): w etapie 3 proba idzie na udawanym skanerze ("T14 na atrapie"); powtorka na
 prawdziwym skanerze jest wymagana dopiero przed praca produkcyjna.
 
+**Stan na 20.11 wieczor (E3-ODB etap 2):** paczka P14 (runda 2) zmienila nazwe przycisku nowego wyniku w oknie na
+`przycisk_nowa_plytka` (potwierdzone w kodzie kopii integracyjnej a2236c1: `stanowisko/ui`); zestaw T14 zmienia runda 2
+paczki A11d (w toku) - dlatego sciezki, liczba krokow kontroli ("18 z 18") i postac polecen ponizej zostaja
+**do potwierdzenia po scaleniu `e3/a11d`** (dwa miejsca oznaczone w tekscie).
+
 ## Co dostajesz
 
 | Plik (po scaleniu `e3/a11d`) | Do czego |

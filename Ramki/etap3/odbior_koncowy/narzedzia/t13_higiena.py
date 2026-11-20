@@ -9,6 +9,11 @@ Kontrole:
   3. konce linii nowych plikow tekstowych grupy E3: LF, a w ``.cmd`` / ``.bat`` / ``.ps1`` CRLF;
   4. brak STL (poza ``modele_plytek/``), brak plikow danych (rozszerzenia z ``DANE``) i plikow wiekszych niz ``--maks-kb``.
 
+Odstepstwo O11 (decyzja koordynatora 20.11 nr 5): pliki z listy ``t13_wyjatki_ascii.txt`` (napisy ekranu po polsku ze znakami
+diakrytycznymi - styl programu przyjety przez wlasciciela w paczkach A3 / A6) nie sa naruszeniem kontroli 2; sa wypisywane
+OSOBNO ("nie-ASCII: napisy ekranu, odstepstwo O11") z liczba wierszy i bajtow nie-ASCII w kazdym. Kazdy INNY nowy plik ze
+znakiem spoza ASCII jest nadal naruszeniem; pozostale kontrole (konce linii, dane, rozmiar) obejmuja takze pliki z listy.
+
 Wynik: tabela licznikow i lista naruszen (sciezka + powod). Kod wyjscia 0 = brak naruszen w grupie E3 i brak plikow
 poza listami, 1 = sa naruszenia, 2 = blad wywolania.
 
@@ -82,6 +87,17 @@ def tresci(repo: Path, do: str, sciezki: list[str]) -> dict[str, bytes]:
     return wynik
 
 
+def wczytaj_wyjatki(plik: Path | None) -> set[str]:
+    """Sciezki plikow z napisami ekranu (odstepstwo O11); brak pliku listy = brak wyjatkow."""
+    if plik is None or not plik.is_file():
+        return set()
+    return {w.split("#", 1)[0].strip() for w in plik.read_text(encoding="utf-8").splitlines() if w.split("#", 1)[0].strip()}
+
+
+def wiersze_nie_ascii(tresc: bytes) -> int:
+    return sum(1 for wiersz in tresc.split(b"\n") if any(bajt > 127 for bajt in wiersz))
+
+
 def ocen_nowy(sciezka: str, tresc: bytes, maks_kb: int) -> list[str]:
     powody = []
     rozszerzenie = Path(sciezka).suffix.lower()
@@ -113,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--od", default=POCZATEK_ETAPU_3, help=f"commit poczatku etapu (domyslnie {POCZATEK_ETAPU_3})")
     parser.add_argument("--do", default="main", help="commit koncowy (domyslnie main)")
     parser.add_argument("--dozwolone", type=Path, default=Path(__file__).with_name("t13_dozwolone.txt"), help="plik listy przedrostkow sciezek")
+    parser.add_argument("--wyjatki-ascii", type=Path, default=Path(__file__).with_name("t13_wyjatki_ascii.txt"),
+                        help="plik listy sciezek z napisami ekranu (odstepstwo O11: nie-ASCII raportowane osobno)")
     parser.add_argument("--maks-kb", type=int, default=1024, help="prog duzego pliku w KB (domyslnie 1024)")
     parser.add_argument("--json", type=Path, default=None, help="zapisz pelny wynik do pliku JSON")
     parser.add_argument("--pokaz", type=int, default=60, help="ile naruszen wypisac na ekran (domyslnie 60; wszystkie sa w --json)")
@@ -123,7 +141,8 @@ def main(argv: list[str] | None = None) -> int:
     nowe = [s for status, s in pary if status == "A"]
     zawartosc = tresci(args.repo, args.do, nowe)
     liczniki: dict[str, dict[str, int]] = {}
-    naruszenia, poza_etapem = [], []
+    naruszenia, poza_etapem, odstepstwo_ascii = [], [], []
+    wyjatki = wczytaj_wyjatki(args.wyjatki_ascii)
     for status, sciezka in pary:
         grupa = grupa_sciezki(sciezka, lista)
         nazwa_grupy = grupa or "POZA_LISTAMI"
@@ -135,7 +154,12 @@ def main(argv: list[str] | None = None) -> int:
             continue
         for powod in ocen_nowy(sciezka, zawartosc.get(sciezka, b""), args.maks_kb):
             wpis = {"sciezka": sciezka, "status": status, "powod": powod, "grupa": nazwa_grupy}
+            if grupa == "E3" and sciezka in wyjatki and powod.startswith("nie ASCII"):
+                wpis["wierszy_nie_ascii"] = wiersze_nie_ascii(zawartosc.get(sciezka, b""))
+                odstepstwo_ascii.append(wpis)
+                continue
             (naruszenia if grupa in ("E3", None) else poza_etapem).append(wpis)
+    nieuzyte = sorted(wyjatki - {w["sciezka"] for w in odstepstwo_ascii})
 
     hash_od = git(args.repo, "rev-parse", "--short", args.od).decode().strip()
     hash_do = git(args.repo, "rev-parse", "--short", args.do).decode().strip()
@@ -149,6 +173,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {wpis['status']} {wpis['sciezka'].encode('ascii', 'backslashreplace').decode()} -> {wpis['powod']}")
     if len(naruszenia) > args.pokaz:
         print(f"  ... i {len(naruszenia) - args.pokaz} dalszych (pelna lista w --json)")
+    print(f"nie-ASCII: napisy ekranu, odstepstwo O11 (nie licza sie do naruszen): {len(odstepstwo_ascii)} plikow z {len(wyjatki)} na liscie")
+    for wpis in odstepstwo_ascii:
+        print(f"  {wpis['status']} {wpis['sciezka']} -> {wpis['wierszy_nie_ascii']} wierszy nie-ASCII ({wpis['powod'].split('(')[1].rstrip(')')})")
+    for sciezka in nieuzyte:
+        print(f"  (pozycja listy wyjatkow bez trafienia - plik nie jest nowy albo jest juz ASCII: {sciezka})")
     print(f"UWAGI w grupach spoza etapu 3 (nie licza sie do wyniku T13, do oceny koordynatora): {len(poza_etapem)}")
     powody: dict[str, int] = {}
     for wpis in poza_etapem:
@@ -158,9 +187,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {klucz}: {powody[klucz]}")
     if args.json:
         args.json.write_text(json.dumps({"od": hash_od, "do": hash_do, "zmienionych": len(pary), "nowych": len(nowe), "liczniki": liczniki,
-                                         "naruszenia": naruszenia, "uwagi_poza_etapem": poza_etapem}, ensure_ascii=True, indent=1) + "\n",
+                                         "naruszenia": naruszenia, "odstepstwo_o11_napisy_ekranu": odstepstwo_ascii,
+                                         "wyjatki_bez_trafienia": nieuzyte, "uwagi_poza_etapem": poza_etapem}, ensure_ascii=True, indent=1) + "\n",
                              encoding="ascii", newline="\n")
-    print("WYNIK T13:", "ZAL (0 naruszen)" if not naruszenia else f"FAIL ({len(naruszenia)} naruszen)")
+    print("WYNIK T13:", (f"ZAL z odstepstwem O11 (0 naruszen; {len(odstepstwo_ascii)} plikow napisow ekranu nie-ASCII)" if odstepstwo_ascii
+                         else "ZAL (0 naruszen)") if not naruszenia else f"FAIL ({len(naruszenia)} naruszen)")
     return 0 if not naruszenia else 1
 
 

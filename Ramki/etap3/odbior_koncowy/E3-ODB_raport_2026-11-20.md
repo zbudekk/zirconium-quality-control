@@ -118,3 +118,197 @@ Zmian w plikach poza zakresem nie potrzebuje.
 - Nie sprawdzilem zadnego polecenia na prawdziwej instalacji z paczki (nie bylo paczki instalowalnej; instalacja probna
   to ciezki krok).
 - Instrukcji A11d i tresci zestawu T14 nie kopiowalem (zgodnie ze zleceniem) - `T14/README.md` tylko odsyla.
+
+## 10. Etap 2 (20.11.2026, 22:34 - ok. 23:10): sterowniki T2 i T3, decyzje koordynatora w planie testow
+
+Zlecenie: `<PC-katalog>\koordynator\zlecenia\odb-r2.md` + zmiana z promptu koordynatora (kod programu do prob z kopii
+integracyjnej `<PC-katalog>\qc-wt\integ`, commit a2236c1 = `main` 9ba9e91 + `e3/a11w` + `e3/a11s` + `e3/a11i` + `e3/p14`,
+tylko odczyt; tor blokady 4). Etap przejety po wykonawcy zatrzymanym 20.11 o 21:27: zastalem 2 pliki niezacommitowane
+(`t2_wieczor.py`, `t2_scenariusz.json` - szkic po 2 probach poprzednika, druga przerwana) i brak `t3_poranek.py`.
+Kodu programu nie zmienialem; do kopii integracyjnej nic nie zapisano (`git status --short` pusty po kazdej probie).
+
+### 10.1 Pliki etapu 2 (wszystkie w `Ramki/etap3/odbior_koncowy/`)
+
+| Plik | Stan | Co |
+|---|---|---|
+| `narzedzia/t3_poranek.py` | nowy | sterownik T3: SE10 przez okno programu (napisal pomocnik - jedna sesja, model fable; uruchomilem i sprawdzilem sam przed commitem) |
+| `narzedzia/t2_wieczor.py` | nowy (szkic poprzednika poprawiony) | sterownik T2: prawdziwy program + symulator skanera + decyzje kliknieciami + pomiar |
+| `narzedzia/t2_scenariusz.json` | nowy (szkic poprawiony) | tabela prawdy T2: 10 plikow, `sha16` kazdego skanu, odpowiedzi technika |
+| `narzedzia/t13_higiena.py` | zmieniony | decyzja nr 5: pliki napisow ekranu nie-ASCII raportowane osobno (odstepstwo O11) |
+| `narzedzia/t13_wyjatki_ascii.txt` | nowy | lista 7 plikow odstepstwa O11 |
+| `T13/proba_integ_a2236c1.txt` | nowy | proba T13 po zmianie skryptu (to nie odbior) |
+| `PLAN_TESTOW.md` | zmieniony | T2 i T3 napisane od nowa (sterowniki), decyzje nr 3-6 w T7, T11, T13, T4, naglowek, tabele na koncu |
+| `RAPORT.md` | zmieniony | liczniki T2, T3, T4, T7, T11, T13; odstepstwa O3-O7 zmienione, O11 i O12 nowe; braki B1, B2, B4-B6; decyzje 12-17; zadania wlasciciela 7-8 |
+| `T14/README.md` | zmieniony | nazwa przycisku `przycisk_nowa_plytka` (P14 runda 2); odsylacze A11d nadal do potwierdzenia |
+
+### 10.2 Kryteria etapu 2
+
+| Nr | Kryterium | Stan | Dowod |
+|---|---|---|---|
+| 1 | Oba sterowniki: proba zakonczona kodem 0 z plikiem wyniku; liczby z proby | **spelnione** | T3: kod 0, 32 z 32 (p. 10.3); T2: 4 proby z kodem 0, w tym 3 z wynikiem "zgodne n z n" (p. 10.4) |
+| 2 | Kazdy sterownik ma `--help`, limit czasu calosci i sprzata procesy takze po bledzie | **spelnione z zastrzezeniem** | `--help` obu uruchomione; T3: `--limit-s` (proba z limitem 4 s: kod 2, wynik czesciowy 9 z 32, 0 procesow); T2: `--limit` + watek-straznik - limit T2 NIE byl sprawdzony proba (sciezka kodu przeczytana); po kazdej z prob `Get-Process python` bez procesow sterownika (PID-y z `t2_pid.txt` wobec listy procesow) |
+| 3 | Pliki ASCII + LF, bez nazw zlecen; commit + push po kazdym zamknietym kroku | **spelnione** | 0 bajtow nie-ASCII i 0 CR w 9 plikach etapu; `t9_dane_osobowe.py` na calym katalogu paczki: 435 nazw, 16 plikow, 0 trafien calych nazw (czlony: 28 trafien slow pospolitych w 5 plikach, jak w etapie 1) |
+
+### 10.3 Sterownik T3 `t3_poranek.py` - proba (caly SE10, krok lekki)
+
+Polecenie (z katalogu `<PC-katalog>\qc-wt\integ\Ramki\stanowisko`):
+`<PC-katalog>\koordynator\narz\py.cmd <odb>\narzedzia\t3_poranek.py --wyjscie <PC-katalog>\koordynator\robocze\odb\t3_odbior_proba --wymagaj-100`
+
+| Liczba | Wynik proby |
+|---|---|
+| wiersze tabeli SE10 zgodne | **32 z 32**, kod 0 (z `--wymagaj-100`), czas 10,9 s; 4 starty programu (start + 3 restarty), 28 klikniec |
+| listy kompletnych i brakow odczytane z ekranu (10 wierszy) | "tak" 8 (R11, R14, R15, R21, R22, R28, R29, R30), "czesciowo" 1 (R31: po restarcie ekran pokazuje tylko ostatni zamkniety piec), "nie dotyczy" 1 (R17: listy "do dofrezowania" ekran poranny nie pokazuje) |
+| pytanie przed "Zamknij piec" (P14) | piec 1: nie / nie; piec 2: oczekiwane wg zlecenia tak, **bylo nie**; piec 3: nie / nie |
+| limit czasu | proba pomocnika `--limit-s 4`: kod 2, wynik czesciowy, 0 osieroconych procesow |
+
+Co jest prawdziwe: kontroler `Aplikacja` + `start()` (silnik i obserwator dzialaja, nic nie analizuja), sesje, baza, okno,
+WSZYSTKIE czynnosci technika kliknieciami / klawiszami po nazwach obiektow, restarty. Co sztuczne: wyniki skanow (SE10
+nie ma plikow STL; wchodza funkcja sesji wolana po analizie + `kontroler._po_skanie` / `_odswiez`), zegar staly, indeks
+zlecen wpisany funkcja testu, offscreen, ramki i Excel wylaczone. Pelna lista miejsc prywatnych - w naglowku pliku.
+
+**Do oceny koordynatora:** okno NIE pyta przed "Zamknij piec" 2, choc sesja liczy 1 prace nieznana jako nierozstrzygnieta -
+okno pyta tylko o prace bez decyzji, a ta ma decyzje "bez projektu". To zachowanie programu po P14, nie blad sterownika;
+tabela SE10 tego nie obejmuje (32 z 32).
+
+Polecenie na instalacji z paczki (po `zainstaluj.cmd /testy`; NIE uruchamiane - instalacji z paczki na PC jeszcze nie ma):
+
+```
+set QT_QPA_PLATFORM=offscreen
+<K>\Polecenie.cmd <ODB>\narzedzia\t3_poranek.py --testy <ST>\testy --wyjscie <ROB>\t3 --ustawienia-wzor <K>\ustawienia.toml
+```
+
+### 10.4 Sterownik T2 `t2_wieczor.py` - proby skrocone (prawdziwa analiza, tor 4 przez `ciezki.ps1`)
+
+**Czasy z prob NIE sa wynikiem odbioru:** odstep 5 s zamiast 60 s (pliki z definicji czekaja w kolejce za poprzednia
+plytka), a na PC biegly rownolegle pelne pytesty innych paczek (tory 1-3). Werdykty "start" i "mapa" w probach to FAIL z
+tego powodu; sterownik wypisuje w wyniku wiersz "UWAGA: PROBA SKROCONA".
+
+| Proba | Pozycje scenariusza | Zgodne z prawda | Start analizy [s] | Mapa od zapisu [s] (mediana / maks. / pierwsza) | Przerwa petli maks. (tykniec; > 200 ms) | Lista "do dofrezowania" | Kod; czas calosci |
+|---|---|---|---|---|---|---|---|
+| 3 (22:53) | 2, 4, 5, 7: R59 okragla, R54 okragla, uciety, niezgodny uklad | **4 z 4** | 0,354; 41,2; 66,6 (2 czekaly w kolejce) | 70,1 / 72,7 / 51,5 | 35,6 ms (4670; 0) | rowna, 7 z 7 decyzji | 0; 97 s |
+| 4 (22:57) | 6, 8, 9: drgniecie, R59 kwadratowa, poranna | 0 z 3 - **blad sterownika** (nie odpowiadal na pytanie "Podaj numer plytki"; statusy i uklady 3 z 3 zgodne) | 0,376; 33,3; 51,1 | 57,1 / 81,1 / 38,6 | 42,7 ms (4950; 0) | rowna, 4 z 4 | 0; 103 s |
+| 5 (23:01) | 6, 8, 9 po poprawce (numer z prawdy kliknieciem; "to nowy wsad") | **3 z 3** | 0,422; 31,5; 49,4 | 55,5 / 78,4 / 36,7 | 47,4 ms (4808; 0) | rowna, 4 z 4 | 0; 99 s |
+| 6 (23:03) | 1, 2, 3 (`--plytki 3`): R59 kwadratowa, R59 okragla, R54 kwadratowa - wersja zacommitowana | **3 z 3** | 0,377; 34,9; 48,2 | 54,2 / 63,4 / 40,2 | 34,3 ms (4143; 0) | rowna, 12 z 12 | 0; 86 s |
+
+Proby 4 i 5 szly w srodowisku jak z `Polecenie.cmd` (python bazowy, `PYTHONPATH` BEZ katalogu programu, katalog biezacy =
+katalog programu): sterownik, proces silnika i symulator znalazly moduly programu. Proby 3 i 6 przez `narz\py.cmd`.
+Po kazdej probie: 0 procesow sterownika (`procesy potomne po sprzataniu: []`, kontrola `Get-Process python`).
+Katalogi: `<PC-katalog>\koordynator\robocze\odb\t2_proba3` .. `t2_proba6` (`t2_wynik.txt`, `t2_wynik.json`).
+
+Co sterownik mierzy:
+
+| Liczba kryterium | Jak | Rodzaj pomiaru |
+|---|---|---|
+| 10 z 10 zgodnie z prawda | status, uklad, numer plytki ze stanu programu wobec pliku prawdy; nieprzyjete: 0 zielonych; uciety: brak plytki + 1 zdarzenie `plik_odrzucony` w bazie | doslownie |
+| start analizy < 1 s | `analiza.od` stanu programu (czas zdarzenia "start" procesu silnika) minus koniec zapisu pliku z dziennika symulatora; dla wszystkich plikow dobrych, pliki czekajace w kolejce wskazane osobno | **doslownie** (0,35-0,42 s dla pliku przy pustej kolejce w 3 probach) |
+| mapa do 40 s (mediana) | pierwszy odczyt plytki w `stan().plytki` (zegar 20 ms w watku okna) minus koniec zapisu; obok chwila, w ktorej okno samo pokazalo mape (`w_oknie`) i `czas_s` programu | **gorne ograniczenie** (dokladnosc: okres zegara + przerwa petli) |
+| okno bez przerw > 200 ms | zegar Qt 20 ms w watku okna, odstep kolejnych tykniec, od pierwszego tykniecia w petli okna do tykniecia zamykajacego | doslownie w tym zakresie; **NIE ZMIERZONO**: start programu przed pokazaniem okna i zamykanie programu (ostatnie tykniecie trwa ok. 1,3 s - podane osobno) |
+| lista "do dofrezowania" = prawda | lista biezaca programu po kliknieciach "Ukruszona" wg prawdy wobec prac z `ubytki` w prawdzie plytek przyjetych | doslownie |
+
+Poprawki wobec szkicu poprzednika (kazda sprawdzona proba): (1) kryterium startu liczone dla WSZYSTKICH plikow - szkic
+wylaczal z kryterium pliki czekajace w kolejce (oslabienie); (2) sterownik odpowiada na pytanie "Podaj numer plytki"
+kliknieciem numeru z prawdy - na plytkach kwadratowych program numeru nie odczytuje (raport R59: dolki poza polem skanu),
+bez tego 3 z 3 plytek kwadratowych bylo "niezgodnych" (proba 4); (3) `sha16` kazdego skanu w scenariuszu, sprawdzane
+przed startem; (4) plytka poranna w scenariuszu zamieniona na skan bez drgniec (poprzedni mial 2 drgniecia - dwie
+przyczyny odmowy naraz); (5) sledzenie i konczenie procesow bez `psutil` (w srodowisku programu go nie ma); (6) tykniecie
+zamykajace program liczone osobno (w szkicu wygladalo jak 1,3 s "tykniecia w trakcie pomiaru"); (7) osobne liczniki
+"do 40 s" dla pierwszej plytki (pula zimna) i kolejnych - zgodnie z decyzja nr 6; (8) zrodlo numeru plytki w wyniku.
+
+Obserwacje z prob do oceny koordynatora (to nie sa werdykty odbioru):
+- decyzje "Ukruszona" na pracach, ktorych program sam nie oznaczyl (`ukruszona_niewykryta`): proba 3: 5 z 7, proby 4 i 5:
+  3 z 4, proba 6: 7 z 12 - czyli wiekszosc prac z `ubytki` w pliku prawdy zestawu P2 nie byla czerwona w programie. Kryterium T2 tego nie
+  obejmuje (lista powstaje z decyzji technika), ale liczba jest w wyniku sterownika (`decyzje[]`) - warto ja zestawic z
+  T10 / metryka wykrywalnosci, zanim ktos uzna "lista = prawda" za dowod wykrywania.
+- pierwsza plytka (pula zimna) pod obciazeniem: 36,7-51,5 s do pojawienia sie w stanie programu; kolejne w probach
+  czekaly w kolejce (odstep 5 s) - ich czasy nic nie mowia o kryterium 40 s.
+- pytanie "to ponowny skan?" pojawilo sie dopiero po podaniu numeru (proba 5: plytki nr 6 i 8 maja ten sam uklad i
+  numer 2); plytki okragle R59 i R54 o tym samym numerze 8 (proba 3) pytania nie wywolaly.
+
+Polecenie pelnego testu na instalacji z paczki (NIE uruchamiane - instalacji z paczki na PC jeszcze nie ma; pierwsze
+uruchomienie zacznij od proby skroconej `--wybierz 2,4,5,7 --odstep 5`, ok. 2 min):
+
+```
+set QT_QPA_PLATFORM=offscreen
+<K>\Polecenie.cmd <ODB>\narzedzia\t2_wieczor.py --ustawienia-wzor <K>\ustawienia.toml --roboczy <ROB>\t2 --projekty <folder_cyrkon> > <ROB>\t2_sterownik.log 2>&1
+```
+
+Czas trwania pelnego testu: ok. 11-13 min (9 x 60 s miedzy startami plikow + start programu + ostatnia analiza);
+limit calosci domyslnie 30 min (`--limit`, potem kod 3 i wynik czesciowy). `<folder_cyrkon>` = kopia
+`<PC-katalog>\app\Prace_test`; katalog `<ROB>\t2` nowy / pusty; przez `ciezki.ps1` w torze pomiarowym, bez innych
+ciezkich krokow na PC.
+
+### 10.5 Decyzje koordynatora 1-6: gdzie wpisane
+
+| Nr | Decyzja | `PLAN_TESTOW.md` | `RAPORT.md` |
+|---|---|---|---|
+| 1 | T2 sterownik | sekcja T2 (cala od nowa), tabele na koncu | wiersz T2, O3, O4, B1, decyzja 12 |
+| 2 | T3 SE10 przez ekran | sekcja T3 (cala od nowa), tabele na koncu | wiersz T3, O5, B2, decyzja 13 |
+| 3 | T7 komunikat spoza zal. F | T7: akapit "Decyzja koordynatora 20.11 nr 3", liczby kryterium | wiersz T7, O12, B4, decyzja 14, zadanie wlasciciela 7 |
+| 4 | T11 "albo" | T11: akapit "Decyzja ... nr 4", liczby kryterium | wiersz T11, O6, B5, decyzja 15 |
+| 5 | T13 napisy ekranu nie-ASCII | T13: akapit "Decyzja ... nr 5 = O11", proba po zmianie skryptu | wiersz T13, O11, B6, decyzja 16 |
+| 6 | T4 pula zimna i ciepla | T4: akapit "Decyzja ... nr 6 (O7)", tabela liczb | wiersz T4, O7, decyzja 17, zadanie wlasciciela 8 |
+
+Skrypt `t13_higiena.py` po zmianie - proba na kopii integracyjnej a2236c1 (`T13/proba_integ_a2236c1.txt`): odstepstwo
+O11: 7 plikow z 7 na liscie (109 / 134 / 102 / 240 / 66 / 111 / 45 wierszy nie-ASCII); **naruszen 1**: nowy plik
+`stanowisko/ui/kandydaci.py` z 2 bajtami nie-ASCII (spoza listy siedmiu - zgloszony zgodnie z decyzja nr 5). Proba z pusta
+lista wyjatkow na `main` 9ba9e91: 7 naruszen jak w etapie 1 (skrypt bez listy zachowuje sie jak przedtem).
+
+### 10.6 Miejsca "[DO POTWIERDZENIA]" po etapie 2
+
+| Gdzie (stan z etapu 1) | Stan po etapie 2 |
+|---|---|
+| `PLAN_TESTOW.md`, T7: plik `testy/test_p14_baza_zajeta.py` i nazwy komunikatow po P14 | **potwierdzone** na kopii integracyjnej a2236c1: plik jest; `decyzja_niezapisana` i `polecenie_niezapisane` sa w `statusy.py` (3 wystapienia) - znacznik usuniety |
+| `T14/README.md`: czy zestaw `Ramki/etap3/t14` trafia do paczki wydania | **zostaje** - runda 2 paczki A11d w toku, galezi `e3/a11d` nie ma w kopii integracyjnej |
+| `T14/README.md`: postac polecenia na instalacji z paczki | **zostaje** (jak wyzej); dopisano nazwe przycisku `przycisk_nowa_plytka` (potwierdzona w `stanowisko/ui/czesci.py` kopii integracyjnej) |
+
+W `PLAN_TESTOW.md` nie ma juz zadnego znacznika; w `T14/README.md` zostaly 2. Potwierdzone dodatkowo na kopii
+integracyjnej: opcje `stanowisko.aplikacja` (`--ustawienia --atrapa --rano --zamknij-po`), tresc wzorow `Polecenie.cmd` i
+`Stanowisko.cmd`, nazwy 3 testow petli okna z sekcji T2, nazwy obiektow okna uzywanych przez sterowniki (uzyte w probach).
+NIE potwierdzalem ponownie pozostalych pozycji listy "sprawdzone" z etapu 1 (opcje `zainstaluj.cmd`, `samokontrola`,
+`zbuduj_wydanie.py` na galeziach po rundach poprawek) - brak czasu; pierwszy wykonawca T0 potwierdza je praktycznie.
+
+### 10.7 Odstepstwa etapu 2
+
+1. Sterownik T2 prowadzi program w procesie sterownika (`aplikacja.main`), nie przez plik `Stanowisko.cmd` - inaczej nie
+   da sie mierzyc petli okna ani klikac po nazwach obiektow (O3); okno offscreen (O4).
+2. T3: wyniki skanow, zegar i indeks zlecen sztuczne; 2 skladniki prywatne kontrolera (`_po_skanie`, `_odswiez`) (O5).
+3. Proba T2 miala 3-4 pliki co 5 s (zlecenie: "3 plytki co 5 s") - cztery proby zamiast jednej, bo kazda sprawdzala inna
+   czesc scenariusza (lacznie 9 z 10 pozycji scenariusza przeszlo przez program; pozycja 10 - druga okragla R54 - nie).
+4. Sterowniki NIE byly uruchomione na instalacji z paczki (nie istnieje na PC); srodowisko `Polecenie.cmd` bylo tylko
+   nasladowane zmiennymi (proby 4 i 5).
+5. Pomocnik: 1 sesja (model fable) napisala `t3_poranek.py` wg mojego opisu; plik uruchomilem i sprawdzilem sam (proba
+   `t3_odbior_proba`, przeglad naglowka i miejsc prywatnych).
+
+### 10.8 Przyjete domyslnie (etap 2)
+
+1. "Zgodnie z prawda" dla numeru plytki: numer odczytany przez program ALBO podany przez technika (sterownik) na pytanie
+   programu; zrodlo numeru jest w wyniku przy kazdej plytce. Plytka poranna wieczorem: program o numer nie pyta - numeru
+   nie porownuje sie, gdy program go nie odczytal.
+2. Na pytanie "to ponowny skan?" sterownik odpowiada "to nowy wsad" (kazdy plik zestawu to inna plytka); pytanie
+   `plytka_nie_z_trybu` zostaje bez odpowiedzi.
+3. Plik uciety = "obsluzony zgodnie z prawda", gdy nie powstala plytka i w bazie jest dokladnie 1 zdarzenie
+   `plik_odrzucony`.
+4. Kod wyjscia 0 obu sterownikow = "pomiar wykonany"; ZAL / FAIL czyta sie z pliku wyniku (T3: opcja `--wymagaj-100`).
+5. Odstepstwa nowe: O11 (T13, napisy ekranu) i O12 (T7, komunikat spoza zal. F) - numery nadane przeze mnie.
+
+### 10.9 POTRZEBUJE (etap 2)
+
+Zmian w plikach poza zakresem nie potrzebuje. Do decyzji / zrobienia przez koordynatora:
+
+| Nr | Co | Dla |
+|---|---|---|
+| 1 | `Ramki/stanowisko/stanowisko/ui/kandydaci.py`: 2 bajty nie-ASCII w nowym pliku (spoza listy O11) - poprawka przez paczke, ktora go dodala, albo dopisanie do `t13_wyjatki_ascii.txt` decyzja | T13 (inaczej FAIL: 1 naruszenie) |
+| 2 | okno nie pyta przed "Zamknij piec", gdy jedyna praca nierozstrzygnieta ma decyzje "bez projektu" - czy to zamierzone (P14) | T3 (informacja; nie zmienia 32 z 32) |
+| 3 | pierwsze uruchomienie obu sterownikow na instalacji z paczki (proba skrocona T2, caly T3) przed wlasciwym testem | T2, T3 |
+| 4 | prace z `ubytki` w prawdzie zestawu P2 w wiekszosci nieoznaczone przez program (15 z 23 decyzji `ukruszona_niewykryta` w probach 3, 5 i 6) - do zestawienia z T10 | T2 (interpretacja "lista = prawda") |
+
+### 10.10 Czego nie zrobiono (etap 2)
+
+- Pelnego T2 (10 plikow co 60 s) nie wykonano - to odbior (zgodnie ze zleceniem).
+- Limit czasu sterownika T2 (`--limit`, straznik, kod 3) nie byl sprawdzony proba; pozycja 10 scenariusza nie przeszla
+  przez program w zadnej probie.
+- Sterowniki nie byly uruchomione przez prawdziwe `Polecenie.cmd` (brak instalacji z paczki).
+- `t3_poranek.py`: nie sprawdzono, czy proces roboczy silnika faktycznie wystartowal (silnik nic nie analizuje w T3;
+  zamkniecie czyste, 0 procesow potomnych do zabicia).
+- Sekcji 1-9 tego raportu (etap 1) nie przepisywalem: tam, gdzie mowia "brak B1 / B2", "POTRZEBUJE 1-7", "zostaly 3
+  miejsca do potwierdzenia", obowiazuje stan z sekcji 10.
