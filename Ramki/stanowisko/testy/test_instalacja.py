@@ -910,18 +910,28 @@ def test_p6_polecenia_srodowiska_bez_sieci_i_bez_pakietow_bazowych(tmp_path, mon
     srodowisko = I.Srodowisko()
     venv, lista = tmp_path / "venv", tmp_path / "zamrozone.txt"
 
+    plik_bez_wmi = venv / "Lib" / "site-packages" / I.PLIK_BEZ_WMI
+    stan_pliku = []
+
     def falszywe(polecenie, **_):
         polecenia.append([str(c) for c in polecenie])
+        stan_pliku.append(plik_bez_wmi.read_text(encoding="ascii") if plik_bez_wmi.is_file() else None)
         if "venv" in polecenia[-1]:
             srodowisko.python(venv).parent.mkdir(parents=True)
             srodowisko.python(venv).write_bytes(b"")
-        return subprocess.CompletedProcess(polecenie, 0, "True\n", "")
+            (venv / "Lib" / "site-packages").mkdir(parents=True)
+        return subprocess.CompletedProcess(polecenie, 0, "True None\n", "")
 
     monkeypatch.setattr(I, "uruchom", falszywe)
     srodowisko.utworz(PYTHON, venv)
     srodowisko.instaluj(venv, [tmp_path / "kola", tmp_path / "kola_testy"], lista, tmp_path / "pip.log")
-    tworzenie, proba, pip = polecenia
-    assert tworzenie == [str(PYTHON), "-I", "-m", "venv", "--copies", str(venv)]  # bez --system-site-packages, bez dowiazan
+    tworzenie, ensurepip, proba, pip = polecenia
+    # bez --system-site-packages, bez dowiazan; bez pip - pip zaklada instalator sam, PO zapisaniu pliku blokady WMI (latka E3-A11w)
+    assert tworzenie == [str(PYTHON), "-I", "-m", "venv", "--copies", "--without-pip", str(venv)]
+    assert ensurepip == [str(srodowisko.python(venv)), "-I", "-m", "ensurepip", "--upgrade", "--default-pip"]
+    # pierwszy proces interpretera wersji (ensurepip uruchamia pip) startuje juz z plikiem .pth - i kazdy nastepny tez
+    assert stan_pliku == [None, I.TRESC_BEZ_WMI, I.TRESC_BEZ_WMI, I.TRESC_BEZ_WMI]
+    assert I.TRESC_BEZ_WMI == "import sys; sys.modules['_wmi'] = None\n" and I.PLIK_BEZ_WMI.endswith(".pth")
     assert proba[:2] == [str(srodowisko.python(venv)), "-I"]
     assert pip[:5] == [str(srodowisko.python(venv)), "-I", "-m", "pip", "install"] and pip[-2:] == ["-r", str(lista)]
     for opcja in ("--no-index", "--isolated", "--only-binary=:all:", "--no-cache-dir"):
@@ -929,6 +939,87 @@ def test_p6_polecenia_srodowiska_bez_sieci_i_bez_pakietow_bazowych(tmp_path, mon
     assert [pip[i + 1] for i, c in enumerate(pip) if c == "--find-links"] == [str(tmp_path / "kola"), str(tmp_path / "kola_testy")]
     zakazane = ("--index-url", "--extra-index-url", "-i", "--trusted-host", "--proxy", "--pre", "--no-binary", "--system-site-packages")
     assert not [c for c in pip + tworzenie if c.split("=")[0] in zakazane or "://" in c]
+
+
+@pytest.mark.parametrize("wyjscie_proby, kod_ensurepip, fragment", [
+    ("True brak\n", 0, "nie blokuje modulu _wmi"),          # plik .pth nie zadzialal (np. usuniety albo pominiety przez interpreter)
+    ("True None\n", 1, "nie udalo sie zalozyc pip"),         # ensurepip nieudany
+])
+def test_a11w_srodowisko_bez_blokady_wmi_albo_bez_pip_nie_jest_przyjmowane(tmp_path, monkeypatch, wyjscie_proby, kod_ensurepip, fragment):
+    srodowisko = I.Srodowisko()
+    venv = tmp_path / "venv"
+
+    def falszywe(polecenie, **_):
+        polecenie = [str(c) for c in polecenie]
+        if "venv" in polecenie:
+            (venv / "Lib" / "site-packages").mkdir(parents=True)
+            srodowisko.python(venv).parent.mkdir(parents=True)
+            srodowisko.python(venv).write_bytes(b"")
+        return subprocess.CompletedProcess(polecenie, kod_ensurepip if "ensurepip" in polecenie else 0, wyjscie_proby, "blad probny")
+
+    monkeypatch.setattr(I, "uruchom", falszywe)
+    with pytest.raises(I.BladInstalacji) as blad:
+        srodowisko.utworz(PYTHON, venv)
+    assert blad.value.kod == I.KOD_INSTALACJA and fragment in blad.value.opis, blad.value.opis
+
+
+def test_a11w_plik_blokady_wmi_jest_w_kazdym_srodowisku_wersji(zainstalowane, tmp_path, capsys):
+    """Latka E3-A11w: plik ``stanowisko_bez_wmi.pth`` w ``site-packages`` srodowiska KAZDEJ wersji, do ktorej prowadzi instalator
+    albo powrot - takze wersji zalozonej starszym instalatorem (bez pliku): dostaje go bez zakladania srodowiska od nowa."""
+    st = zainstalowane
+
+    def plik(wersja: str) -> Path:
+        return st.katalog / "wersje" / wersja / "venv" / "Lib" / "site-packages" / I.PLIK_BEZ_WMI
+
+    def jest(wersja: str) -> bool:
+        return plik(wersja).is_file() and plik(wersja).read_bytes() == I.TRESC_BEZ_WMI.encode("ascii")
+
+    assert jest("1.0")                                                    # pierwsza instalacja
+    capsys.readouterr()
+    plik("1.0").unlink()                                                  # wersja biezaca zalozona starszym instalatorem
+    paczka_1 = zbuduj_paczke(tmp_path / "ponownie", "1.0")
+    assert st.zainstaluj(paczka_1) == 0
+    wyjscie = capsys.readouterr().out
+    assert jest("1.0") and st.srodowisko.instalacje == 1                  # dolozony, pakiety nie byly instalowane od nowa
+    assert "jest juz zainstalowana i zgodna z paczka" in wyjscie and f"dolozono plik {I.PLIK_BEZ_WMI}" in wyjscie
+    assert st.zainstaluj(paczka_1) == 0
+    assert "dolozono plik" not in capsys.readouterr().out                 # drugi raz: plik jest, nic do zrobienia
+    plik("1.0").write_text("import os\n", encoding="ascii")               # plik o innej tresci tez nie chroni
+    plik_programu = st.katalog / "wersje" / "1.0" / "program" / "stanowisko" / "aplikacja.py"
+    plik_programu.write_text("uszkodzony\n", encoding="ascii")
+    assert st.zainstaluj(paczka_1) == 0        # naprawa wersji biezacej
+    assert "naprawa" in capsys.readouterr().out and jest("1.0") and st.srodowisko.instalacje == 2
+    paczka_2 = zbuduj_paczke(tmp_path, "2.0")
+    assert st.zainstaluj(paczka_2) == 0 and jest("2.0")                    # aktualizacja
+    plik("2.0").unlink()
+    assert st.zainstaluj(paczka_2, testy=True) == 0         # opcja /testy na wersji zainstalowanej
+    assert "dokladam zestaw testowy" in capsys.readouterr().out and jest("2.0")
+    plik("1.0").unlink()                                                  # powrot do wersji zalozonej starszym instalatorem
+    assert st.wroc() == 0 and st.biezaca == "1.0" and jest("1.0")
+    assert f"dolozono plik {I.PLIK_BEZ_WMI}" in capsys.readouterr().out and f"dolozono plik {I.PLIK_BEZ_WMI}" in st.dziennik()
+    assert list((st.katalog / "wersje").rglob("*.nowy")) == []  # zapis atomowy nie zostawia pliku tymczasowego
+
+
+def test_a11w_pliku_blokady_wmi_nie_da_sie_zapisac(zainstalowane, tmp_path, capsys):
+    """Instalacja: stop z kodem 6 i jasnym komunikatem, wersja nie zostaje przelaczona. Powrot (operacja awaryjna): ostrzezenie
+    i przelaczenie - z rada, jak plik dolozyc."""
+    st = zainstalowane
+    paczka_2 = zbuduj_paczke(tmp_path, "2.0")
+    assert st.zainstaluj(paczka_2) == 0
+    for wersja in ("1.0", "2.0"):
+        pakiety = st.katalog / "wersje" / wersja / "venv" / "Lib" / "site-packages"
+        shutil.rmtree(pakiety)
+        pakiety.write_text("plik w miejscu katalogu - zapis pliku .pth musi sie nie udac\n", encoding="ascii")
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "3.0")) == 0 and st.biezaca == "3.0" and st.poprzednia == "2.0"
+    capsys.readouterr()
+    assert st.zainstaluj(paczka_2) == I.KOD_INSTALACJA
+    wyjscie = capsys.readouterr().out
+    assert f"nie mozna zapisac pliku {I.PLIK_BEZ_WMI}" in wyjscie and "zapytania WMI" in wyjscie and "CO ZROBIC" in wyjscie
+    assert "INSTALACJA: NIEUDANA (kod 6) - wersja biezaca bez zmian: 3.0" in wyjscie and st.biezaca == "3.0" and st.poprzednia == "2.0"
+    assert st.wroc() == 0 and st.biezaca == "2.0"
+    wyjscie = capsys.readouterr().out
+    assert f"OSTRZEZENIE: nie mozna zapisac pliku {I.PLIK_BEZ_WMI}" in wyjscie and "POWROT: GOTOWY" in wyjscie
+    assert f"OSTRZEZENIE: nie mozna zapisac pliku {I.PLIK_BEZ_WMI}" in st.dziennik()
 
 
 def test_powrot_pyta_t_n_i_pokazuje_wersje(zainstalowane, tmp_path, capsys, monkeypatch):
@@ -1070,6 +1161,11 @@ def test_d5_srednik_w_sciezce_katalogu_instalacji(st, tmp_path, capsys):
 
 # --------------------------------------------------------------- prawdziwe srodowisko wirtualne i skrypty .cmd (Windows)
 
+def architektura_bez_wmi() -> str:
+    """Architektura procesora bez modulu ``platform`` (ten w procesie testow pytalby WMI): zmienne srodowiska Windows."""
+    return os.environ.get("PROCESSOR_ARCHITEW6432") or os.environ.get("PROCESSOR_ARCHITECTURE", "")
+
+
 @pytest.mark.skipif(os.name != "nt", reason="skrypty .cmd dzialaja tylko w Windows")
 def test_zainstaluj_cmd_prawdziwe_srodowisko_i_skrypty(st, tmp_path):
     """Jedyny test z prawdziwym ``python -m venv`` i pip (jedno male kolo, bez sieci): zainstaluj.cmd -> Stanowisko.cmd -> Wersje.cmd.
@@ -1104,6 +1200,19 @@ def test_zainstaluj_cmd_prawdziwe_srodowisko_i_skrypty(st, tmp_path):
     assert "pakiety zgodne z lista zamrozona: 2 z 2" in wynik.stdout and ostatni(wynik).startswith("INSTALACJA: GOTOWA - wersja biezaca 1.0")
     venv = st.katalog / "wersje" / "1.0" / "venv"
     assert (venv / "Scripts" / "python.exe").is_file() and (st.katalog / "wersje" / "1.0" / "pip.log").is_file()
+    # latka E3-A11w: plik blokady zapytan WMI jest (takze po dwoch przebiegach pip: pakiety i zestaw testowy), interpreter
+    # wersji uruchomiony z -I ma modul _wmi zablokowany, a modul platform i pip dzialaja
+    plik_bez_wmi = venv / "Lib" / "site-packages" / I.PLIK_BEZ_WMI
+    assert plik_bez_wmi.read_bytes() == I.TRESC_BEZ_WMI.encode("ascii")
+    bez_zmiennych = {k: v for k, v in os.environ.items() if not k.upper().startswith("PYTHON")}
+    wynik = subprocess.run([str(venv / "Scripts" / "python.exe"), "-I", "-c", "import sys; print(sys.modules.get('_wmi', 'brak')); "
+                            "import platform; print(platform.machine(), platform.system(), sys.modules.get('_wmi', 'brak'))"],
+                           capture_output=True, text=True, stdin=subprocess.DEVNULL, env=bez_zmiennych, timeout=120)
+    assert wynik.returncode == 0 and wynik.stdout.split() == ["None", architektura_bez_wmi(), "Windows", "None"], wynik.stdout + wynik.stderr
+    wynik = subprocess.run([str(venv / "Scripts" / "python.exe"), "-I", "-m", "pip", "--version"], capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL, env=bez_zmiennych, timeout=120)
+    assert wynik.returncode == 0 and wynik.stdout.startswith("pip ") and str(venv).lower() in wynik.stdout.lower(), wynik.stdout + wynik.stderr
+    assert (venv / "Scripts" / "pip.exe").is_file()
     wynik = cmd(st.katalog / "Stanowisko.cmd", "--atrapa", "--zamknij-po", "1")
     assert wynik.returncode == 0 and "STANOWISKO wersja=1.0 atrapa=True ustawienia=True" in wynik.stdout, wynik.stdout + wynik.stderr
     assert "ZMIENNE PYTHONPATH=None PYTHONHOME=None" in wynik.stdout  # program nie dostaje zmiennych z zewnatrz

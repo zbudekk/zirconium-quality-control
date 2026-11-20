@@ -83,7 +83,13 @@ LIMIT_SAMOKONTROLI_S = 600
 PROBY_SAMOKONTROLI = 3             # ile razy uruchomic samokontrole, gdy jej proces ginie z kodem spoza umowy 0 / 1 / 2
 PAUZA_PO_AWARII_S = 3.0            # przerwa przed powtorzeniem samokontroli po awarii procesu
 CZEKAJ_NA_BAZE_S = 5.0             # ile czekac na baze zajeta przez inny program, zanim instalator sie zatrzyma
-PAKIETY_SRODOWISKA = ("pip",)      # zaklada je sam ``python -m venv`` (ensurepip); nie naleza do listy zamrozonej
+PAKIETY_SRODOWISKA = ("pip",)      # zaklada je instalator przez ``ensurepip`` (pip dolaczony do Pythona); nie naleza do listy zamrozonej
+# Latka E3-A11w: plik w site-packages srodowiska wersji, wykonywany przy starcie KAZDEGO procesu tego interpretera (takze z -I).
+# Blokuje modul _wmi, wiec platform.system() / machine() / win32_ver() nie wysylaja zapytan WMI: gdy WMI nie odpowie w limicie,
+# porzucony watek zapytania zamyka po ok. 5 s LOSOWY uchwyt procesu (zawieszenia silnika, 0xc000070a, 0xC0000005 - raport
+# E3-A11w). Chroni wszystko, co startuje ze srodowiska wersji: program, proces roboczy silnika, samokontrole, pip, pytest, narzedzia.
+PLIK_BEZ_WMI = "stanowisko_bez_wmi.pth"
+TRESC_BEZ_WMI = "import sys; sys.modules['_wmi'] = None\n"
 
 _WIERSZ_SUM = re.compile(r"([0-9a-f]{64}) [ *](.+)")
 _OPCJE_UKOSNIK = ("katalog", "python", "paczka", "testy", "skrot", "skrot-katalog", "bez-sieci", "bez-pauzy", "przywroc-kopie",
@@ -330,17 +336,58 @@ class Srodowisko:
     """Operacje na srodowisku wirtualnym wersji (``python -m venv`` + pip bez sieci). Testy podstawiaja atrape."""
 
     def utworz(self, python: Path, venv: Path) -> None:
-        # --copies: pliki, nie dowiazania (na PC dowiazania cudzego konta daja blad 448)
-        wynik = uruchom([python, "-I", "-m", "venv", "--copies", venv], limit_s=600)
+        # --copies: pliki, nie dowiazania (na PC dowiazania cudzego konta daja blad 448).
+        # --without-pip (latka E3-A11w): pip pyta WMI (2 zapytania na proces), wiec PIERWSZY proces interpretera wersji ma ruszyc
+        # juz z plikiem blokady - kolejnosc: venv bez pip -> plik .pth -> ensurepip -> proba. Proces ``python -m venv``
+        # interpretera bazowego WMI nie pyta (raport E3-A11w, proba S3).
+        wynik = uruchom([python, "-I", "-m", "venv", "--copies", "--without-pip", venv], limit_s=600)
         if wynik.returncode != 0 or not self.python(venv).is_file():
             raise BladInstalacji(KOD_INSTALACJA, f"nie udalo sie zalozyc srodowiska wirtualnego (kod {wynik.returncode}): "
                                  + (wynik.stderr or wynik.stdout).strip()[-400:],
                                  "Sprawdz miejsce na dysku i prawa zapisu w katalogu instalacji, potem uruchom zainstaluj.cmd ponownie.")
-        proba = uruchom([self.python(venv), "-I", "-c", "import sys; print(sys.prefix != sys.base_prefix)"], limit_s=120)
-        if proba.returncode != 0 or proba.stdout.strip() != "True":
+        self.zablokuj_wmi(venv)
+        # to samo polecenie, ktore wykonalby ``python -m venv``: pip z kola dolaczonego do Pythona (Lib\\ensurepip\\_bundled),
+        # bez sieci (--no-index wewnatrz ensurepip, zmienne PIP_* usuwa ensurepip), -I = bez zmiennych PYTHON*
+        pip = uruchom([self.python(venv), "-I", "-m", "ensurepip", "--upgrade", "--default-pip"], limit_s=600)
+        if pip.returncode != 0:
+            raise BladInstalacji(KOD_INSTALACJA, f"nie udalo sie zalozyc pip w srodowisku wirtualnym (kod {pip.returncode}): "
+                                 + (pip.stderr or pip.stdout).strip()[-400:],
+                                 "Sprawdz miejsce na dysku i prawa zapisu w katalogu instalacji, potem uruchom zainstaluj.cmd ponownie; "
+                                 "gdy blad wraca - napraw instalacje Pythona 3.12 (modul ensurepip). Wersja biezaca bez zmian.")
+        proba = uruchom([self.python(venv), "-I", "-c", "import sys; print(sys.prefix != sys.base_prefix, sys.modules.get('_wmi', 'brak'))"],
+                        limit_s=120)
+        odpowiedz = proba.stdout.split()
+        if proba.returncode != 0 or odpowiedz[:1] != ["True"]:
             raise BladInstalacji(KOD_INSTALACJA, f"srodowisko wirtualne nie startuje (kod {proba.returncode}): "
                                  + (proba.stderr or proba.stdout).strip()[-400:],
                                  "Zglos ten komunikat; wersja biezaca programu zostala bez zmian.")
+        if odpowiedz[1:] != ["None"]:
+            raise BladInstalacji(KOD_INSTALACJA, f"srodowisko wirtualne nie blokuje modulu _wmi mimo pliku {PLIK_BEZ_WMI} (odpowiedz "
+                                 f"interpretera: {proba.stdout.strip()[-100:]}) - program moglby sie zawieszac przy zapytaniach WMI",
+                                 "Zglos ten komunikat; wersja biezaca programu zostala bez zmian.")
+
+    def katalog_pakietow(self, venv: Path) -> Path:
+        if os.name == "nt":
+            return venv / "Lib" / "site-packages"
+        return next(iter(sorted(venv.glob("lib/python*/site-packages"))), venv / "Lib" / "site-packages")
+
+    def zablokuj_wmi(self, venv: Path) -> bool:
+        """Plik ``PLIK_BEZ_WMI`` w ``site-packages`` srodowiska (latka E3-A11w). True = zapisany teraz (nie bylo go albo mial inna
+        tresc), False = juz byl. Nie nalezy do zadnego pakietu, wiec pip go nie usuwa; instalator sprawdza go przy kazdym
+        uruchomieniu (takze w wersji zalozonej starszym instalatorem)."""
+        plik = self.katalog_pakietow(venv) / PLIK_BEZ_WMI
+        tresc = TRESC_BEZ_WMI.encode("ascii")
+        try:
+            if plik.is_file() and plik.read_bytes() == tresc:
+                return False
+            plik.parent.mkdir(parents=True, exist_ok=True)
+            zapisz_atomowo(plik, tresc)
+        except OSError as e:
+            raise BladInstalacji(KOD_INSTALACJA, f"nie mozna zapisac pliku {PLIK_BEZ_WMI} w srodowisku wersji ({plik.parent}; "
+                                 f"{type(e).__name__}) - bez niego program wysyla zapytania WMI i moze sie zawieszac",
+                                 "Sprawdz prawa zapisu i miejsce na dysku w katalogu instalacji, zamknij programy, ktore maja otwarte "
+                                 "pliki z katalogu tej wersji, i uruchom zainstaluj.cmd z paczki tej wersji ponownie.") from e
+        return True
 
     def python(self, venv: Path) -> Path:
         return venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
@@ -1263,6 +1310,10 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
                 _instaluj_wersje(*argumenty, zegar(), wersja_pythona, int(odpowiedz["schemat"]))
         kw = katalog_wersji(katalog, wersja)
         program, python_wersji = kw / "program", srodowisko.python(kw / "venv")
+        # latka E3-A11w: plik blokady zapytan WMI ma byc w KAZDYM srodowisku wersji - swieze srodowisko dostaje go przed pierwszym
+        # procesem (Srodowisko.utworz); tu kontrola po instalacji pakietow i uzupelnienie w wersji zalozonej starszym instalatorem
+        if srodowisko.zablokuj_wmi(kw / "venv"):
+            dziennik.krok(f"      dolozono plik {PLIK_BEZ_WMI} (blokada zapytan WMI w srodowisku wersji {wersja})")
 
         print("[6/9] Kopia bazy...", flush=True)
         if ta_sama_wersja(wersja, biezaca):
@@ -1388,6 +1439,11 @@ def wroc(katalog: Path, *, przywroc: bool = False, potwierdz=None, srodowisko: S
             return KOD_ANULOWANO
         kw = katalog_wersji(katalog, poprzednia)
         program, python_wersji = kw / "program", srodowisko.python(kw / "venv")
+        try:  # wersja zalozona starszym instalatorem nie ma pliku blokady zapytan WMI (latka E3-A11w) - dostaje go przed startem
+            if srodowisko.zablokuj_wmi(kw / "venv"):
+                dziennik.krok(f"      dolozono plik {PLIK_BEZ_WMI} (blokada zapytan WMI w srodowisku wersji {poprzednia})")
+        except BladInstalacji as e:  # powrot to operacja awaryjna: brak pliku go nie zatrzymuje, ale zostaje wyrazny slad
+            dziennik.krok(f"      OSTRZEZENIE: {e.opis}. {e.rada}")
         plik_ustawien = katalog / PLIK_USTAWIEN
         suma_ustawien = sha256_pliku(plik_ustawien) if plik_ustawien.is_file() else None
         odpowiedz = zapytaj_program(python_wersji, program, plik_ustawien)
