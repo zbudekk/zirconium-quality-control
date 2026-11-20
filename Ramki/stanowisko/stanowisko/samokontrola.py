@@ -9,7 +9,8 @@ Umowa wywolania (styk z instalatorem A11i i instrukcjami A11d - nie zmieniac bez
   wiersz ``SAMOKONTROLA: ZIELONA (ok N, ostrzezenia M)`` albo ``SAMOKONTROLA: CZERWONA (ok N, ostrzezenia M, bledy K)``;
   ``--json``: to samo jako jeden obiekt JSON (``Wynik.do_slownika``);
 * kod wyjscia: 0 = brak bledow (takze z ostrzezeniami), 1 = co najmniej jeden BLAD, 2 = samokontroli nie dalo sie wykonac
-  (brak albo blad pliku ustawien: wiersz ``BLAD ustawienia: ...; ...`` i ``SAMOKONTROLA: NIEWYKONANA (...)``, bez sladu wyjatku);
+  (brak albo blad pliku ustawien, plik nie w UTF-8 albo z BOM: wiersz ``BLAD ustawienia: ...; ...`` i ``SAMOKONTROLA:
+  NIEWYKONANA (...)``, bez sladu wyjatku i bez wartosci z pliku poza sciezkami i liczbami);
 * ``--sumy PLIK``: plik w formacie ``sha256sum`` (``<64 znaki hex>  <sciezka wzgledna od katalogu programu>``); bez opcji
   sprawdzany jest ``SUMY_PROGRAMU.sha256`` z katalogu programu, a gdy go nie ma - OSTRZEZENIE "kopia robocza bez pliku sum";
 * jako funkcja: ``wykonaj(ust, ...) -> Wynik`` (``Wynik.sprawdzenia``: lista ``Sprawdzenie`` z polami kod, poziom, opis, rada).
@@ -17,14 +18,19 @@ Umowa wywolania (styk z instalatorem A11i i instrukcjami A11d - nie zmieniac bez
 Samokontrola niczego nie naprawia i nie zmienia: baze otwiera tylko do odczytu (nie zaklada, nie migruje), nie tworzy
 folderow, do ramek wysyla wylacznie ``GET /stan`` bez identyfikatora laptopa (ramka nie zapisuje kontaktu), do Excela
 podlacza sie tak jak ``excel_com`` (Excel juz uruchomiony) i nie otwiera arkusza. Jedyny zapis: plik probny w ISTNIEJACYM
-folderze danych, usuwany od razu po probie.
+folderze danych, usuwany od razu po probie. Bazy w trybie WAL nie otwiera (powstalyby pliki ``-shm`` / ``-wal``).
+
+Samokontrola nie wisi: kazde sprawdzenie dziala w watku pomocniczym z gornym limitem czasu (``LIMIT_SPRAWDZENIA_S``,
+``LIMITY_SPRAWDZEN``); po limicie wiersz to BLAD "sprawdzenie nie zakonczylo sie" (ramki i Excel: OSTRZEZENIE) i wykonywane
+sa nastepne sprawdzenia.
 
 Tylko biblioteka standardowa i moduly programu. Ciezkie moduly (PySide6, Open3D i reszta listy ``aplikacja.MODULY_DLL``)
 sa importowane wylacznie w sprawdzeniu ``moduly`` - blad importu jest wynikiem BLAD, a nie awaria samokontroli.
 
 Dane osobowe: w wyjsciu sa tylko sciezki wpisane w ``[sciezki]`` pliku ustawien (foldery glowne) i liczniki; nazwy
-podfolderow i plikow zlecen, nazwy osob z ``[sesja] operatorzy`` ani klucz ramek nie sa wypisywane (z bledow systemu
-trafia do wyjscia sam typ wyjatku). Opis, tabela sprawdzen i poziomow: ``opisy_modulow/samokontrola.md``.
+podfolderow i plikow zlecen, folder puli wybrany w programie, nazwy osob z ``[sesja] operatorzy`` (takze w komunikacie
+bledu ustawien - kod 2) ani klucz ramek nie sa wypisywane (z bledow systemu trafia do wyjscia sam typ wyjatku).
+Opis, tabela sprawdzen i poziomow: ``opisy_modulow/samokontrola.md``.
 """
 from __future__ import annotations
 
@@ -33,15 +39,17 @@ import dataclasses
 import hashlib
 import importlib.metadata
 import json
+import logging
 import os
 import re
 import shutil
 import sqlite3
 import sys
-import tempfile
 import threading
 import time
 import tomllib
+import types
+import urllib.parse
 import warnings
 from pathlib import Path
 from typing import Any, Callable, Iterator
@@ -83,8 +91,19 @@ MODULY_NIEOBOWIAZKOWE = ("pythoncom", "win32com.client")  # pywin32: bez nich ni
 MIEJSCE_BLAD_GB = 1.0
 MIEJSCE_OSTRZEZENIE_GB = 10.0
 
+# Samokontrola nie moze wisiec (runda 2): KAZDE sprawdzenie dziala w watku pomocniczym i ma gorny limit czasu - po limicie jego
+# wiersze to BLAD "sprawdzenie nie zakonczylo sie", a samokontrola idzie dalej. Limit ogolny jest wielokrotnie dluzszy niz
+# limity wewnetrzne ponizej (folder, liczenie puli, quick_check, ramki), wiec w zwyklych stanach nigdy nie zadziala.
+LIMIT_SPRAWDZENIA_S = 30.0
+LIMIT_MODULOW_S = 120.0  # sprawdzenie "moduly": pierwszy import Qt i Open3D z zimnego dysku trwa dluzej niz inne sprawdzenia
+# sprawdzenie "excel": zapytanie o uruchomiony Excel moze stac, gdy Excel jest zajety (edycja komorki, okno dialogowe) - krotko
+LIMIT_EXCELA_S = 10.0
+LIMITY_SPRAWDZEN = {"moduly": LIMIT_MODULOW_S, "excel": LIMIT_EXCELA_S}  # pierwszy kod sprawdzenia -> limit inny niz LIMIT_SPRAWDZENIA_S
+# Wiersze, ktore z zalozenia nigdy nie sa bledem (ramki i Excel: bez nich program dziala): niezakonczone w limicie = OSTRZEZENIE
+PO_LIMICIE_OSTRZEZENIE = ("ramka_wieczorna", "ramka_poranna", "excel")
 LIMIT_RAMKI_S = 3.0  # najdluzsza proba polaczenia z jedna ramka (obie proby rownolegle); nazwa .local bywa rozwiazywana kilka sekund
-LIMIT_FOLDERU_S = 5.0  # folder pracy, ktory nie odpowiada tyle sekund (udzial sieciowy), jest zglaszany jako niedostepny
+# folder pracy albo folder danych, ktory nie odpowiada tyle sekund (udzial sieciowy), jest zglaszany jako niedostepny
+LIMIT_FOLDERU_S = 5.0
 LIMIT_LICZENIA_S = 5.0  # liczenie plikow STL puli: po tylu sekundach wynik "co najmniej N"
 # PRAGMA quick_check przerywany po tylu sekundach (duza baza) - OSTRZEZENIE "nie sprawdzono". Krocej niz program czeka na
 # baze zajeta (baza.CZEKAJ_NA_BLOKADE_MS = 5 s; test): samokontrola uruchomiona obok pracujacego programu nie wywola w nim "nie zapisano".
@@ -97,6 +116,14 @@ NAZWY_SYNCHRONIZOWANE = ("onedrive", "sharepoint")  # czesc sciezki zaczynajaca 
 # nazwy folderow zlecen; plik bazy synchronizowany w trakcie pracy ulega uszkodzeniu)
 KLUCZE_DANYCH = ("baza", "log_excel", "wyniki", "podglady", "pula_cache", "logi", "kalibracja_ramek")
 ROZSZERZENIA_KODU = (".py", ".pyw", ".pyd", ".pth", ".dll")  # plik nadmiarowy w katalogu glownym programu: tylko taki, ktory Python zaladuje
+# Pliki, ktore Eksplorator Windows sam tworzy w folderze (miniatury, widok folderu): nie zmieniaja dzialania programu, wiec nie sa
+# plikami nadmiarowymi (decyzja koordynatora po recenzji PR #38, uwaga D4). Porownanie bez rozrozniania wielkosci liter.
+PLIKI_SYSTEMOWE = ("thumbs.db", "desktop.ini")
+PROBY_PLIKU_PROBNEGO = 3  # tyle losowych nazw pliku probnego jest probowanych, gdy nazwa jest zajeta
+NAGLOWEK_SQLITE = b"SQLite format 3\x00"  # pierwsze 16 bajtow pliku bazy; bajty 18-19: wersja formatu zapisu (2 = tryb WAL), 60-63: user_version
+SQLITE_NIE_BAZA = (11, 26)  # SQLITE_CORRUPT, SQLITE_NOTADB: tylko te kody znacza "plik nie jest baza albo jest uszkodzony"
+# [sekcje] pliku ustawien, ktorych wartosc wolno pokazac w komunikacie bledu ustawien (sciezki glowne); z pozostalych tylko liczby
+SEKCJE_Z_WARTOSCIA = ("sciezki", "plytki")
 RADA_PACZKA = "zainstaluj program ponownie z paczki wydania"
 RADA_PROGRAMISTA = "zglos ten wiersz osobie, ktora instaluje program"
 
@@ -225,6 +252,14 @@ class _Kontekst:
     baza_jest: bool = False  # plik bazy istnieje i nie jest pusty
     baza_czytelna: bool = False  # plik bazy dal sie otworzyc do odczytu (indeks puli mozna policzyc)
     baza_zajeta: bool = False
+    dane_odpowiadaja: bool = True  # False: folder danych nie odpowiedzial w LIMIT_FOLDERU_S (wiersze danych bez dotykania dysku)
+    _pula: tuple | None = None
+
+    def folder_puli(self) -> tuple:
+        """Folder puli, z ktorego program naprawde korzysta przy ``pula_wpisow = false`` (``_folder_puli``; liczone raz)."""
+        if self._pula is None:
+            self._pula = _folder_puli(self)
+        return self._pula
 
     def sciezka(self, klucz: str) -> Path:
         """Sciezka z ``[sciezki]``; wzgledna liczona od katalogu programu (jak ``baza.sciezka_z_ustawien``)."""
@@ -441,11 +476,14 @@ FOLDERY_PRACY = (
     ("folder_skanera", "folder_eksportu_skanera", BLAD, "eksportu skanera", "zaden skan nie trafi do programu"),
     ("folder_cyrkon", "folder_cyrkon", BLAD, "projektow Cyrkon", "pula projektow jest pusta i skany czekaja bez wyniku"),
     ("folder_prywatne", "folder_prywatne", OSTRZEZENIE, "projektow Prywatne", "prace prywatne nie wejda do puli i zostana szare"),
-    ("folder_millbox", "folder_millbox", BLAD, "MillBox", f"bez pliku {PLIK_WSPOLCZYNNIKOW} pula wieczorna nie dostaje nowych prac i skany wieczorne czekaja"),
+    # MillBox: OSTRZEZENIE takze przy puli per praca (decyzja koordynatora po recenzji PR #38): folder bywa udzialem komputera
+    # frezarki, a wylaczony komputer frezarki nie moze blokowac aktualizacji programu - skany czekaja wtedy na wspolczynnik
+    ("folder_millbox", "folder_millbox", OSTRZEZENIE, "MillBox", f"bez pliku {PLIK_WSPOLCZYNNIKOW} pula wieczorna nie dostaje nowych prac"),
 )
-# Foldery czytane tylko przy puli per praca ([silnik] pula_wpisow = true): przy pula_wpisow = false ich brak niczego nie zatrzymuje (OSTRZEZENIE).
+# Foldery czytane tylko przy puli per praca ([silnik] pula_wpisow = true): przy pula_wpisow = false program z nich nie korzysta.
 FOLDERY_PULI_WPISOW = ("folder_prywatne", "folder_millbox")
 NIEUZYWANY = "przy pula_wpisow = false program z niego nie korzysta (bedzie potrzebny po wlaczeniu puli per praca)"
+PULA_WYBRANA = "program korzysta z folderu puli wybranego w programie (wiersz pula), a nie z tego folderu"
 
 
 def _czytaj_folder(folder: str | Path) -> str:
@@ -466,10 +504,21 @@ def _foldery(k: _Kontekst) -> list:
         if k.ust["sciezki"][klucz].strip():
             zadania[klucz] = (lambda p=k.sciezka(klucz): _czytaj_folder(p))
     stany = _z_limitem(zadania, LIMIT_FOLDERU_S)
+    pula_wpisow = bool(k.ust["silnik"].get("pula_wpisow"))
+    plik = k.plik_ustawien if k.plik_ustawien is not None else UST.PLIK_USTAWIEN.name
     wynik = []
     for kod, klucz, poziom, nazwa, skutek in FOLDERY_PRACY:
-        if klucz in FOLDERY_PULI_WPISOW and not k.ust["silnik"].get("pula_wpisow"):
+        # rada podaje doslownie plik i klucz do edycji (pierwsza instalacja ze wzorem ustawien konczy sie tymi wierszami)
+        rada = (f"otworz plik ustawien {plik} i popraw klucz [sciezki] {klucz} (wiersz {klucz} = \"...\", sciezka z ukosnikami /) "
+                "albo utworz / podlacz ten folder")
+        if klucz in FOLDERY_PULI_WPISOW and not pula_wpisow:
             poziom, skutek = OSTRZEZENIE, NIEUZYWANY
+        elif klucz == "folder_millbox":
+            rada = "wlacz komputer z folderem MillBox albo podlacz ten folder - do tego czasu skany beda czekac na wspolczynnik, albo " + rada
+        elif klucz == "folder_cyrkon" and not pula_wpisow and k.folder_puli()[1] and k.folder_puli()[2] is None:
+            # B1 (recenzja PR #38): program bierze pule z folderu wybranego w programie i tego klucza w ogole nie czyta
+            # (nie dotyczy pliku wyboru, ktorego program nie umie wczytac: po jego usunieciu wraca folder z ustawien)
+            poziom, skutek = OSTRZEZENIE, PULA_WYBRANA
         wartosc = k.ust["sciezki"][klucz]
         rodzaj, dane = stany.get(klucz, ("wynik", "pusty"))
         stan = dane if rodzaj == "wynik" else rodzaj
@@ -482,7 +531,6 @@ def _foldery(k: _Kontekst) -> list:
                 "nie_folder": f"sciezka folderu {nazwa} nie jest folderem: {wartosc}",
                 "limit": f"folder {nazwa} nie odpowiada w {LIMIT_FOLDERU_S:g} s: {wartosc}",
                 "blad": f"folderu {nazwa} nie da sie czytac ({type(dane).__name__}): {wartosc}"}[stan]
-        rada = f"utworz albo podlacz ten folder, albo popraw [sciezki] {klucz} w pliku ustawien"
         wynik.append(_sprawdzenie(kod, poziom, f"{opis} - {skutek}", rada))
     return wynik
 
@@ -490,13 +538,24 @@ def _foldery(k: _Kontekst) -> list:
 # ----------------------------------------------------------------------------- 5. folder danych
 
 def _proba_zapisu(folder: Path) -> None:
-    """Zapisuje i usuwa plik probny w ``folder`` (jedyny zapis samokontroli); blad = wyjatek ``OSError``."""
-    uchwyt, nazwa = tempfile.mkstemp(prefix="samokontrola_", suffix=".tmp", dir=folder)
-    try:
-        os.write(uchwyt, b"samokontrola")
-    finally:
-        os.close(uchwyt)
-        os.unlink(nazwa)
+    """Zapisuje i usuwa plik probny ``samokontrola_*.tmp`` w ``folder`` (jedyny zapis samokontroli); blad = wyjatek ``OSError``.
+
+    Bez ``tempfile.mkstemp``: w Windows (Python 3.12) ``mkstemp`` w folderze, w ktorym uprawnienia zabraniaja tworzenia plikow,
+    uznaje odmowe za "nazwa zajeta" i ponawia probe 2^31 razy - samokontrola wisialaby godzinami na 100 % rdzenia dokladnie
+    w stanie, ktory ma wykryc (stwierdzone 20.11.2026). Tu: jedno ``os.open`` z nowa nazwa, odmowa konczy probe od razu."""
+    for _ in range(PROBY_PLIKU_PROBNEGO):
+        nazwa = Path(folder) / f"samokontrola_{os.getpid()}_{os.urandom(4).hex()}.tmp"
+        try:
+            uchwyt = os.open(nazwa, os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0), 0o600)
+        except FileExistsError:
+            continue  # nazwa zajeta (praktycznie niemozliwe) - inna nazwa; istniejacego pliku nigdy nie nadpisuje
+        try:
+            os.write(uchwyt, b"samokontrola")
+        finally:
+            os.close(uchwyt)
+            os.unlink(nazwa)
+        return
+    raise FileExistsError(17, "nazwy pliku probnego sa zajete")
 
 
 def _wolne_miejsce(folder: Path) -> int:
@@ -513,8 +572,10 @@ def _dane_folder(k: _Kontekst) -> list:
             return [_blad("dane_folder", f"w folderze danych nie udal sie zapis pliku probnego ({type(e).__name__}): {folder}", rada)]
         return [_ok("dane_folder", f"folder danych istnieje, zapis mozliwy: {folder}")]
     przodek = _istniejacy_przodek(folder)
+    # os.access w Windows widzi tylko atrybut "tylko do odczytu", nie uprawnienia: prawo zapisu jest sprawdzane dopiero plikiem
+    # probnym, gdy folder danych juz istnieje (samokontrola nie tworzy folderow)
     if folder.exists() or not przodek.is_dir() or not os.access(przodek, os.W_OK):
-        return [_blad("dane_folder", f"folderu danych nie da sie utworzyc (na sciezce lezy plik albo brak prawa zapisu): {folder}", rada)]
+        return [_blad("dane_folder", f"folderu danych nie da sie utworzyc (na sciezce lezy plik albo folder nadrzedny jest tylko do odczytu): {folder}", rada)]
     return [_ostrzezenie("dane_folder", f"folder danych nie istnieje - zostanie zalozony przy pierwszym starcie programu (zapisu nie sprawdzono): {folder}",
                          "nic nie rob - po pierwszym uruchomieniu programu uruchom samokontrole jeszcze raz")]
 
@@ -557,16 +618,18 @@ def _foldery_z_rejestru() -> list:
     return wynik
 
 
-def _powod_synchronizacji(sciezka: Path, zmienne: list, rejestr: list) -> str | None:
+def _powod_synchronizacji(sciezka: Path, zmienne: list, rejestr: list) -> tuple | None:
+    """(powod, czy pewny) albo None. Pewny = sciezka lezy w folderze, ktory system zna jako synchronizowany (zmienna srodowiska
+    ``OneDrive*`` albo wpis OneDrive w rejestrze); niepewny = tylko nazwa katalogu na sciezce wyglada na OneDrive / SharePoint."""
     for nazwa, folder in zmienne:
         if _wewnatrz(sciezka, folder):
-            return f"zmienna {nazwa}"
+            return f"zmienna {nazwa}", True
     if any(_wewnatrz(sciezka, folder) for folder in rejestr):
-        return "folder synchronizowany przez OneDrive"
+        return "folder synchronizowany przez OneDrive wg rejestru", True
     for czesc in Path(os.path.abspath(sciezka)).parts:
         c = czesc.casefold()
         if c.startswith(NAZWY_SYNCHRONIZOWANE[0]) or NAZWY_SYNCHRONIZOWANE[1] in c:
-            return f"katalog {czesc}"
+            return f"katalog {czesc}", False
     return None
 
 
@@ -574,15 +637,21 @@ def _dane_polozenie(k: _Kontekst) -> list:
     zmienne = [(n, v) for n, v in sorted(os.environ.items()) if n.upper().startswith("ONEDRIVE") and v.strip()]
     rejestr = _foldery_z_rejestru()
     klucze = [x for x in KLUCZE_DANYCH if str(k.ust["sciezki"].get(x, "")).strip()]
-    zle = []
+    pewne, po_nazwie = [], []
     for klucz in klucze:
         powod = _powod_synchronizacji(k.sciezka(klucz), zmienne, rejestr)
         if powod is not None:
-            zle.append(f"[sciezki] {klucz} ({powod})")
-    if zle:
-        return [_blad("dane_polozenie", "dane programu leza w folderze synchronizowanym OneDrive / SharePoint: " + ", ".join(zle),
+            (pewne if powod[1] else po_nazwie).append(f"[sciezki] {klucz} ({powod[0]})")
+    if pewne:
+        return [_blad("dane_polozenie", "dane programu leza w folderze synchronizowanym OneDrive / SharePoint: " + ", ".join(pewne + po_nazwie),
                       "przenies dane poza folder synchronizowany i popraw te sciezki w pliku ustawien - synchronizacja uszkadza plik bazy "
                       "i wysyla nazwy zlecen poza komputer")]
+    if po_nazwie:
+        # sama nazwa katalogu to za malo na BLAD (decyzja koordynatora po recenzji PR #38: "OneDriveTemp", "Archiwum SharePoint 2024")
+        return [_ostrzezenie("dane_polozenie", "sciezka danych programu ma katalog o nazwie jak folder OneDrive / SharePoint - rozpoznano tylko po "
+                             "nazwie, synchronizacji nie potwierdzono: " + ", ".join(po_nazwie),
+                             "sprawdz, czy ten katalog jest synchronizowany (ikona chmury w Eksploratorze): jesli tak - przenies dane poza niego "
+                             "i popraw te sciezki w pliku ustawien (synchronizacja uszkadza plik bazy), jesli nie - nic nie rob")]
     if (k.korzen / PLIK_SUM).is_file() and _wewnatrz(k.folder_danych(), k.korzen):
         return [_ostrzezenie("dane_polozenie", "folder danych lezy w katalogu programu zainstalowanego z paczki wydania - po aktualizacji "
                              "nowa wersja programu nie zobaczy tej bazy",
@@ -593,12 +662,32 @@ def _dane_polozenie(k: _Kontekst) -> list:
 
 # ----------------------------------------------------------------------------- 6. baza i 11. drugi egzemplarz
 
+def _uri_do_odczytu(plik: str | Path) -> str:
+    """Adres SQLite ``file:...?mode=ro`` pliku bazy. Sciezka sieciowa (``//serwer/udzial/...``) musi miec pusta nazwe hosta,
+    czyli cztery ukosniki (``file:////serwer/udzial/...``): ``Path.as_uri()`` daje ``file://serwer/...``, co SQLite odrzuca
+    przed otwarciem pliku ("invalid uri authority"), choc program otwiera taka baze zwykla sciezka (recenzja PR #38, P1)."""
+    sciezka = Path(os.path.abspath(plik)).as_posix()
+    if not sciezka.startswith("/"):
+        sciezka = "/" + sciezka  # C:/dane/x -> /C:/dane/x
+    return "file://" + urllib.parse.quote(sciezka, safe="/:") + "?mode=ro"
+
+
 def _polacz_do_odczytu(plik: Path) -> sqlite3.Connection:
     """Polaczenie tylko do odczytu (``mode=ro``): niczego nie zaklada, nie migruje i nie zapisuje."""
-    pol = sqlite3.connect(f"{Path(os.path.abspath(plik)).as_uri()}?mode=ro", uri=True, isolation_level=None,
-                          timeout=CZEKAJ_NA_BAZE_MS / 1000)
-    pol.execute(f"PRAGMA busy_timeout = {int(CZEKAJ_NA_BAZE_MS)}")
+    pol = sqlite3.connect(_uri_do_odczytu(plik), uri=True, isolation_level=None, timeout=CZEKAJ_NA_BAZE_MS / 1000)
+    try:
+        pol.execute(f"PRAGMA busy_timeout = {int(CZEKAJ_NA_BAZE_MS)}")
+    except BaseException:
+        pol.close()
+        raise
     return pol
+
+
+def _naglowek_bazy(plik: Path) -> bytes:
+    """Pierwsze 100 bajtow pliku bazy (naglowek SQLite) czytane zwyklym otwarciem pliku - bez SQLite, wiec bez tworzenia
+    plikow ``-shm`` / ``-wal`` przy bazie w trybie WAL. Plik trzymany przez inny program bez wspoldzielenia = ``OSError``."""
+    with open(plik, "rb") as f:
+        return f.read(100)
 
 
 def _zajeta(e: sqlite3.Error) -> bool:
@@ -631,6 +720,24 @@ def _baza(k: _Kontekst) -> list:
         return [_blad("baza", f"pliku bazy nie da sie odczytac ({type(e).__name__}): {plik}", "sprawdz dostep do folderu danych")]
     program = max(B.MIGRACJE)
     k.baza_jest = True
+    # P1 (recenzja PR #38): plik, ktorego nie da sie otworzyc, to nie "uszkodzona baza" - rada nie moze kazac przywracac kopii
+    rada_dostep = ("zamknij program, ktory trzyma plik bazy (archiwizacja dysku, antywirus, przegladarka bazy), sprawdz dostep do folderu danych "
+                   "i uruchom samokontrole ponownie - to nie jest uszkodzenie bazy, pliku bazy niczym nie zastepuj")
+    try:
+        naglowek = _naglowek_bazy(plik)
+    except OSError as e:
+        return [_blad("baza", f"pliku bazy nie da sie otworzyc ({type(e).__name__}: zajety przez inny program albo brak dostepu) - "
+                      f"pliku nie zmieniono: {plik}", rada_dostep)]
+    if naglowek[:16] == NAGLOWEK_SQLITE and len(naglowek) >= 64 and 2 in (naglowek[18], naglowek[19]):
+        # D1: otwarcie bazy w trybie WAL, takze tylko do odczytu, tworzy obok pliki -shm i -wal - samokontrola jej nie otwiera
+        wersja = int.from_bytes(naglowek[60:64], "big")
+        if wersja > program:
+            return [_blad("baza", f"baza nowsza niz program: wersja schematu {wersja} (z naglowka pliku, baza w trybie WAL), a program obsluguje "
+                          f"do {program} - bazy nie zmieniono",
+                          "zainstaluj wersje programu, ktora zalozyla te baze, albo nowsza - nie uruchamiaj na niej starszego programu")]
+        return [_ostrzezenie("baza", f"baza w trybie zapisu WAL (program go nie ustawia - przestawil ja inny program, np. przegladarka bazy), "
+                             f"wersja schematu z naglowka pliku {wersja}, program ma {program} - bazy nie otwierano, spojnosci nie sprawdzono",
+                             "to nie blad - program pracuje na takiej bazie, a samokontrola jej nie otwiera, zeby nie tworzyc obok plikow -shm i -wal")]
     etap, pol = "otwarcie", None
     try:
         pol = _polacz_do_odczytu(plik)
@@ -654,9 +761,15 @@ def _baza(k: _Kontekst) -> list:
         if etap == "quick_check" and "interrupt" in str(e).lower():
             return [_ostrzezenie("baza", f"wersja schematu {wersja}, quick_check nie zakonczyl sie w {LIMIT_QUICK_CHECK_S:g} s (duza baza: "
                                  f"{rozmiar_mb:.0f} MB) - spojnosci nie sprawdzono", "to nie blad - baza jest duza, program jej uzywa bez przeszkod")]
-        if etap == "quick_check":
-            return [_blad("baza", f"baza uszkodzona: quick_check przerwany bledem ({type(e).__name__})", rada_kopia)]
-        return [_blad("baza", f"plik nie jest baza SQLite albo jest uszkodzony ({type(e).__name__}) - pliku nie zmieniono: {plik}", rada_kopia)]
+        nazwa = _linia(getattr(e, "sqlite_errorname", None) or type(e).__name__)
+        if (getattr(e, "sqlite_errorcode", None) or 0) & 0xFF in SQLITE_NIE_BAZA:
+            if etap == "quick_check":
+                return [_blad("baza", f"baza uszkodzona: quick_check przerwany bledem ({nazwa})", rada_kopia)]
+            return [_blad("baza", f"plik nie jest baza SQLite albo jest uszkodzony ({nazwa}) - pliku nie zmieniono: {plik}", rada_kopia)]
+        # kazdy inny blad (SQLITE_CANTOPEN, SQLITE_IOERR, SQLITE_PERM, blad adresu pliku): plik moze byc dobry, tylko niedostepny
+        co = "otworzyc" if etap == "otwarcie" else "odczytac do konca"
+        return [_blad("baza", f"pliku bazy nie da sie {co} ({nazwa}: zajety przez inny program albo brak dostepu) - pliku nie zmieniono: {plik}",
+                      rada_dostep)]
     finally:
         if pol is not None:
             pol.close()
@@ -778,32 +891,67 @@ def _licz_stl(folder: Path, limit_s: float) -> tuple:
     return n, True
 
 
+class _BezWpisowTegoWatku(logging.Filter):
+    """Zatrzymuje wpisy logu z watku, ktory zalozyl filtr: ostrzezenie programu o pliku wyboru puli wywolane przez
+    samokontrole nie moze trafic do logu programu ani na wyjscie bledow (wpisy innych watkow przechodza bez zmian)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.watek = threading.get_ident()
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.thread != self.watek
+
+
 def _folder_puli(k: _Kontekst) -> tuple:
-    """(folder puli albo None, czy wybrany w programie): jak ``Aplikacja._wczytaj_pule`` - plik ``PLIK_PULI`` obok bazy
-    ma pierwszenstwo przed ``[sciezki] folder_cyrkon``."""
+    """(folder puli albo None, czy wybrany w programie, typ bledu wczytania wyboru albo None) - folder, z ktorego program
+    NAPRAWDE bierze pule przy ``pula_wpisow = false``.
+
+    Ta sama droga, co program (B1, recenzja PR #38): wywolywana jest metoda programu ``Aplikacja._wczytaj_pule`` na obiekcie
+    zastepczym z tymi polami, ktore ustawia konstruktor programu (folder danych, folder domyslny = ``[sciezki] folder_cyrkon``).
+    Plik ``PLIK_PULI`` obok bazy ma pierwszenstwo przed ustawieniami - takze czesciowo bledny (zgodnosc pilnuje test na
+    prawdziwym ``Aplikacja``). Wyjatek z metody programu = program nie wystartuje na tym pliku (trzeci element wyniku).
+    Bez odpowiedzi folderu danych albo bez modulu programu (BLAD w wierszu ``moduly``): folder z ustawien."""
     domyslny = k.sciezka("folder_cyrkon")
+    if not k.dane_odpowiadaja:
+        return domyslny, False, None
     try:
-        dane = json.loads((k.folder_danych() / PLIK_PULI).read_text(encoding="utf-8"))
-        folder = Path(dane["folder"]) if dane.get("folder") else None
-    except (OSError, ValueError, KeyError, TypeError, AttributeError):
-        return domyslny, False
+        from . import aplikacja as A  # noqa: PLC0415 - modul okna bez Qt na poziomie modulu
+    except Exception:  # noqa: BLE001
+        return domyslny, False, None
+    stan = types.SimpleNamespace(katalog_danych=k.folder_danych(), _pula_folder=domyslny, _pula_wspolczynnik=None)
+    filtr = _BezWpisowTegoWatku()
+    A.LOG.addFilter(filtr)
+    try:
+        A.Aplikacja._wczytaj_pule(stan)
+    except Exception as e:  # noqa: BLE001 - np. plik z lista zamiast obiektu: program konczy start bledem
+        return None, True, type(e).__name__
+    finally:
+        A.LOG.removeFilter(filtr)
+    folder = stan._pula_folder
     if folder is not None and os.path.normcase(os.path.abspath(folder)) == os.path.normcase(os.path.abspath(domyslny)):
-        return domyslny, False
-    return folder, True
+        return domyslny, False, None
+    return (Path(folder) if folder is not None else None), True, None
 
 
 def _pula_z_folderu(k: _Kontekst) -> Sprawdzenie:
     tryb = "pula z jednego folderu (pula_wpisow = false)"
     rada = "skopiuj projekty STL do folderu puli i uzyj w programie Odswiez pule - bez projektow skany czekaja"
-    folder, wybrany = _folder_puli(k)
+    folder, wybrany, _ = k.folder_puli()
     skad = "folder wybrany w programie" if wybrany else "[sciezki] folder_cyrkon"
+    # B1 (recenzja PR #38): brak folderu, z ktorego program naprawde bierze pule, zatrzymuje prace tak samo jak brak
+    # folder_cyrkon - BLAD jest tu (folder wybrany w programie; sciezki nie wypisuje - moze zawierac nazwe zlecenia)
+    rada_wyboru = "podlacz ten folder albo wskaz w programie inny folder puli projektow"
     if folder is None:
-        return _ostrzezenie("pula", f"{tryb}: folder puli nie jest ustawiony w programie", "wskaz folder puli w programie")
+        return _blad("pula", f"{tryb}: folder puli nie jest ustawiony w programie - pula pusta, skany czekaja bez wyniku",
+                     "wskaz w programie folder puli projektow")
     if not wybrany and k.foldery.get("folder_cyrkon") != "ok":
         return _ostrzezenie("pula", f"{tryb}: {skad} niedostepny - pula pusta, skany beda czekac", "popraw folder (wiersz folder_cyrkon)")
     rodzaj, dane = _z_limitem({"pula": lambda: _licz_stl(folder, LIMIT_LICZENIA_S) if folder.is_dir() else None},
                               LIMIT_LICZENIA_S + 1.0)["pula"]
     if rodzaj != "wynik" or dane is None:
+        if wybrany:
+            return _blad("pula", f"{tryb}: {skad} niedostepny - pula pusta, skany czekaja bez wyniku", rada_wyboru)
         return _ostrzezenie("pula", f"{tryb}: {skad} niedostepny - pula pusta, skany beda czekac", rada)
     n, do_konca = dane
     opis = f"{tryb}: {n} {odmiana(n, 'plik', 'pliki', 'plikow')} STL, {skad}"
@@ -847,6 +995,10 @@ def _pula_wpisow(k: _Kontekst) -> Sprawdzenie:
 
 
 def _pula(k: _Kontekst) -> list:
+    blad_wyboru = k.folder_puli()[2]
+    if blad_wyboru is not None:  # program wczytuje plik wyboru puli przy kazdym starcie, takze przy puli per praca
+        return [_blad("pula", f"pliku wyboru puli {PLIK_PULI} w folderze danych program nie umie wczytac ({blad_wyboru}) - program nie wystartuje",
+                      f"usun plik {PLIK_PULI} z folderu danych i po uruchomieniu programu wskaz folder puli projektow ponownie, " + RADA_PROGRAMISTA)]
     return [_pula_wpisow(k) if k.ust["silnik"].get("pula_wpisow") else _pula_z_folderu(k)]
 
 
@@ -1022,7 +1174,8 @@ def _klucz_pliku(rel: str) -> str:
 
 def nadmiarowe(korzen: Path, sumy: dict, plik_sum: Path | None = None) -> list:
     """Pliki nadmiarowe = pliki w strefie programu, ktorych nie ma na liscie sum. Strefa: (1) katalogi najwyzszego poziomu
-    wymienione na liscie (np. ``stanowisko``, ``ramka``, ``modele_plytek``) z podkatalogami, bez ``__pycache__`` i ``*.pyc``;
+    wymienione na liscie (np. ``stanowisko``, ``ramka``, ``modele_plytek``) z podkatalogami, bez ``__pycache__``, ``*.pyc``
+    i plikow systemowych Windows (``PLIKI_SYSTEMOWE``: ``Thumbs.db``, ``desktop.ini``);
     (2) w katalogu glownym programu pliki, ktore Python moze zaladowac zamiast wlasciwego modulu (``ROZSZERZENIA_KODU``),
     i katalogi z ``__init__.py`` spoza listy. Pliki lokalne (``ustawienia.toml``, ``dane/``, srodowisko wersji) nie sa nadmiarowe."""
     znane = {_klucz_pliku(r) for r in sumy}
@@ -1033,7 +1186,7 @@ def nadmiarowe(korzen: Path, sumy: dict, plik_sum: Path | None = None) -> list:
             podkatalogi[:] = sorted(d for d in podkatalogi if d != "__pycache__")
             for nazwa in sorted(pliki):
                 rel = (Path(katalog) / nazwa).relative_to(korzen).as_posix()
-                if not nazwa.endswith((".pyc", ".pyo")) and _klucz_pliku(rel) not in znane:
+                if not nazwa.endswith((".pyc", ".pyo")) and nazwa.casefold() not in PLIKI_SYSTEMOWE and _klucz_pliku(rel) not in znane:
                     wynik.append(rel)
     klucze_stref = {_klucz_pliku(s) for s in strefy}
     try:
@@ -1112,6 +1265,11 @@ SPRAWDZENIA = (
     (("sumy",), _sumy),
 )
 KODY = tuple(kod for kody, _ in SPRAWDZENIA for kod in kody)
+# Wiersze, ktore czytaja folder danych (folder pliku bazy): gdy ten folder nie odpowiada, sa zglaszane bez dotykania dysku (D2)
+ZALEZNE_OD_FOLDERU_DANYCH = ("dane_folder", "dane_miejsce", "baza", "pula", "pamiec_puli", "egzemplarz")
+RADA_LIMIT = "uruchom samokontrole ponownie, a gdy ten wiersz wraca - " + RADA_PROGRAMISTA
+RADA_LIMIT_BEZ_BLEDU = ("to nie blad - bez ramek i bez Excela program dziala, uruchom samokontrole ponownie (Excel: zakoncz edycje komorki "
+                        "i zamknij okna dialogowe)")
 
 
 def wykonaj(ust: dict, *, plik_ustawien: str | Path | None = None, sumy: str | Path | None = None, bez_sieci: bool = False,
@@ -1121,23 +1279,93 @@ def wykonaj(ust: dict, *, plik_ustawien: str | Path | None = None, sumy: str | P
     ``plik_ustawien`` - plik, z ktorego wczytano ``ust`` (do listy kluczy domyslnych; None = wywolanie z programu);
     ``sumy`` - plik sum (None = ``SUMY_PROGRAMU.sha256`` z katalogu programu, jesli jest); ``bez_sieci`` - bez proby ramek;
     ``korzen`` - katalog programu (domyslnie ten, z ktorego dziala modul); ``limit_ramki_s`` - limit proby jednej ramki.
-    Nigdy nie rzuca wyjatku z powodu stanu komputera: sprawdzenie przerwane bledem ma poziom BLAD.
+    Nigdy nie rzuca wyjatku z powodu stanu komputera i nigdy nie wisi: sprawdzenie przerwane bledem albo niezakonczone w swoim
+    limicie czasu (``limit_sprawdzenia``) ma poziom BLAD, pozostale sa wykonywane. Kazde sprawdzenie dziala w watku
+    pomocniczym; watek, ktory nie skonczyl w limicie (np. dysk sieciowy bez odpowiedzi), zostaje w tle do konca procesu.
     """
     start = time.monotonic()
     k = _Kontekst(ust=ust, korzen=Path(korzen) if korzen is not None else UST.KORZEN,
                   plik_ustawien=Path(plik_ustawien) if plik_ustawien is not None else None,
                   sumy=Path(sumy) if sumy is not None else None, bez_sieci=bool(bez_sieci),
                   limit_ramki_s=float(limit_ramki_s) if limit_ramki_s is not None else LIMIT_RAMKI_S)
+    try:  # D2: jedno wstepne sprawdzenie folderu danych z limitem - bez odpowiedzi wiersze danych nie dotykaja dysku
+        folder_danych = k.folder_danych()
+        k.dane_odpowiadaja = _z_limitem({"dane": lambda: _folder_odpowiada(folder_danych)}, LIMIT_FOLDERU_S)["dane"][0] != "limit"
+    except Exception:  # noqa: BLE001 - zle ``ust`` przekazane funkcji: bledy pokaza poszczegolne sprawdzenia
+        k.dane_odpowiadaja = True
     sprawdzenia = []
     for kody, funkcja in SPRAWDZENIA:
-        powod = "brak wyniku"
-        try:
-            gotowe = {s.kod: s for s in funkcja(k)}
-        except Exception as e:  # noqa: BLE001 - samokontrola ma dojsc do konca i pokazac, co sie nie udalo
-            gotowe, powod = {}, f"{type(e).__name__}: {B.bez_sciezek(str(e))[:120]}"
+        if not k.dane_odpowiadaja and set(kody) <= set(ZALEZNE_OD_FOLDERU_DANYCH):
+            sprawdzenia += [_dane_nie_odpowiadaja(k, kod) for kod in kody]
+            continue
+        limit = limit_sprawdzenia(kody)
+        rodzaj, dane = _z_limitem({kody[0]: lambda f=funkcja: {s.kod: s for s in f(k)}}, limit)[kody[0]]
+        if rodzaj == "wynik":
+            gotowe, powod = dane, "sprawdzenie przerwane bledem programu (brak wyniku)"
+        elif rodzaj == "blad":  # samokontrola ma dojsc do konca i pokazac, co sie nie udalo
+            gotowe, powod = {}, f"sprawdzenie przerwane bledem programu ({type(dane).__name__}: {B.bez_sciezek(str(dane))[:120]})"
+        else:
+            gotowe, powod = {}, f"sprawdzenie nie zakonczylo sie w {limit:g} s - samokontrola nie czekala dluzej"
         for kod in kody:
-            sprawdzenia.append(gotowe.get(kod) or _blad(kod, f"sprawdzenie przerwane bledem programu ({powod})", RADA_PROGRAMISTA))
+            if kod in gotowe:
+                sprawdzenia.append(gotowe[kod])
+            elif rodzaj == "limit" and kod in PO_LIMICIE_OSTRZEZENIE:
+                sprawdzenia.append(_ostrzezenie(kod, powod, RADA_LIMIT_BEZ_BLEDU))
+            else:
+                sprawdzenia.append(_blad(kod, powod, RADA_LIMIT if rodzaj == "limit" else RADA_PROGRAMISTA))
     return Wynik(sprawdzenia, czas_s=time.monotonic() - start)
+
+
+def limit_sprawdzenia(kody: tuple) -> float:
+    """Gorny limit czasu (s) sprawdzenia o kodach ``kody``: ``LIMITY_SPRAWDZEN`` dla pierwszego kodu albo ``LIMIT_SPRAWDZENIA_S``."""
+    return float(LIMITY_SPRAWDZEN.get(kody[0], LIMIT_SPRAWDZENIA_S))
+
+
+def _folder_odpowiada(folder: Path) -> bool:
+    """Jedno zapytanie systemu o folder danych; na dysku sieciowym, ktory nie odpowiada, stoi (wtedy dziala limit wolajacego)."""
+    return os.path.exists(folder)
+
+
+def _dane_nie_odpowiadaja(k: _Kontekst, kod: str) -> Sprawdzenie:
+    if kod == "dane_folder":
+        return _blad(kod, f"folder danych nie odpowiada w {LIMIT_FOLDERU_S:g} s (dysk sieciowy niedostepny?): {k.folder_danych()}",
+                     "podlacz dysk folderu danych albo popraw [sciezki] baza w pliku ustawien")
+    return _ostrzezenie(kod, "nie sprawdzono - folder danych nie odpowiada (wiersz dane_folder)",
+                        "usun przyczyne z wiersza dane_folder i uruchom samokontrole ponownie")
+
+
+_WZOR_KLUCZA_BLEDU = re.compile(r"(?s)(?P<p>.*?: \[(?P<sekcja>[^\]]*)\] [^:]*: )(?P<co>.*)")
+_WZOR_WARTOSCI = re.compile(r"(?s)(?P<przed>.*?)(?: \(jest (?P<a>.*)\)|, jest (?P<b>.*))")
+_WZOR_LICZBY = re.compile(r"[-+]?(?:\d+(?:\.\d*)?(?:[eE][-+]?\d+)?|inf|nan)|True|False|\[[-+0-9.eE, ]*\]")
+
+
+def _bez_wartosci(komunikat: str) -> str:
+    """Komunikat ``BladUstawien`` bez wartosci wpisanej w pliku (P2, recenzja PR #38: w ``[sesja] operatorzy`` sa nazwy osob,
+    a wyjscie samokontroli trafia na ekran instalatora). Wartosc zostaje tylko dla sekcji ``SEKCJE_Z_WARTOSCIA`` (sciezki
+    glowne) i wtedy, gdy jest liczba albo lista liczb; w pozostalych przypadkach komunikat konczy sie na nazwie klucza
+    i opisie wymagania (ewentualnie z typem wartosci)."""
+    m = _WZOR_KLUCZA_BLEDU.fullmatch(komunikat)
+    if m is None or m.group("sekcja") in SEKCJE_Z_WARTOSCIA:
+        return komunikat
+    w = _WZOR_WARTOSCI.fullmatch(m.group("co"))
+    if w is None:
+        return komunikat
+    if w.group("a") is not None:  # "<wymaganie> (jest <wartosc>)"
+        return komunikat if _WZOR_LICZBY.fullmatch(w.group("a")) else m.group("p") + w.group("przed") + " (wartosci nie pokazano)"
+    typ = re.fullmatch(r"(?s)(?P<v>.*) \((?P<typ>\w+)\)", w.group("b"))  # "oczekiwano <typ>, jest <wartosc> (<typ>)"
+    if typ is None:
+        return komunikat if re.fullmatch(r"\w+", w.group("b")) else m.group("p") + w.group("przed") + ", jest inna wartosc"
+    if _WZOR_LICZBY.fullmatch(typ.group("v")):
+        return komunikat
+    return m.group("p") + w.group("przed") + f", jest wartosc typu {typ.group('typ')}"
+
+
+def _ma_bom(plik: Path) -> bool:
+    try:
+        with open(plik, "rb") as f:
+            return f.read(3) == b"\xef\xbb\xbf"
+    except OSError:
+        return False
 
 
 def _niewykonana(opis: str, rada: str) -> Wynik:
@@ -1162,6 +1390,7 @@ def main(argv: list[str] | None = None) -> int:
             pass
     plik = args.ustawienia if args.ustawienia is not None else UST.PLIK_USTAWIEN
     rada = f"popraw plik ustawien (wzor: {UST.PLIK_PRZYKLADU.name}) albo podaj wlasciwy plik w --ustawienia"
+    notatnik = "Notatnik: Plik - Zapisz jako - Kodowanie"
     try:
         ust = UST.wczytaj_ustawienia(plik)
         wynik = wykonaj(ust, plik_ustawien=plik, sumy=args.sumy, bez_sieci=args.bez_sieci)
@@ -1169,7 +1398,14 @@ def main(argv: list[str] | None = None) -> int:
         wynik = _niewykonana(f"brak pliku ustawien: {plik}",
                              f"skopiuj {UST.PLIK_PRZYKLADU.name} jako {UST.PLIK_USTAWIEN.name} i uzupelnij sciezki albo podaj plik w --ustawienia")
     except UST.BladUstawien as e:
-        wynik = _niewykonana("plik ustawien niepoprawny - " + _bez_ogonkow(str(e)), rada)
+        if _ma_bom(plik):  # modul ustawien zglasza wtedy "blad skladni TOML ... line 1, column 1" - czlowiekowi nic to nie mowi
+            wynik = _niewykonana(f"plik ustawien zaczyna sie od znacznika BOM (zapisany jako UTF-8 z BOM): {plik}",
+                                 f"zapisz plik w kodowaniu UTF-8 bez BOM ({notatnik}: UTF-8, nie UTF-8 z BOM) i uruchom samokontrole ponownie")
+        else:  # P2: bez wartosci z pliku (nazwy osob), poza sciezkami i liczbami
+            wynik = _niewykonana("plik ustawien niepoprawny - " + _bez_wartosci(_bez_ogonkow(str(e))), rada)
+    except UnicodeDecodeError:  # P3: plik zapisany w Notatniku jako ANSI (cp1250) albo "Unicode" (UTF-16)
+        wynik = _niewykonana(f"plik ustawien nie jest zapisany w kodowaniu UTF-8: {plik}",
+                             f"zapisz plik w kodowaniu UTF-8 ({notatnik}: UTF-8) i uruchom samokontrole ponownie")
     except OSError as e:
         wynik = _niewykonana(f"pliku ustawien nie da sie odczytac ({type(e).__name__}): {plik}", rada)
     except Exception as e:  # noqa: BLE001 - komunikat dla czlowieka zamiast sladu wyjatku
