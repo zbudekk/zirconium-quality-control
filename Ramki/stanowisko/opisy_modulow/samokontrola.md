@@ -154,9 +154,9 @@ zawiera sciezke). Testy: `test_wyjscie_bez_nazw_zlecen_takze_przy_bledach`, `tes
 `LIMIT_RAMKI_S` 3 s (obie ramki rownolegle, nazwa `.local` bez odpowiedzi tez konczy sie w limicie), `LIMIT_FOLDERU_S` 5 s,
 `LIMIT_LICZENIA_S` 5 s (liczenie STL puli - potem "co najmniej N"), `LIMIT_QUICK_CHECK_S` 4 s, `CZEKAJ_NA_BAZE_MS` 1000,
 `MIEJSCE_OSTRZEZENIE_GB` 10, `MIEJSCE_BLAD_GB` 1, `MAKS_ROZNIC` 10. Zmierzone na PC 20.11.2026 (swiezy katalog, ustawienia ze
-wzoru, foldery istnieja): z `--bez-sieci` 1,8-2,0 s (caly proces 2,3-4,0 s), z proba nieobecnych ramek 4,7 s.
+wzoru, foldery istnieja): z `--bez-sieci` 1,8-2,4 s (caly proces 2,3-4,0 s; 9 pomiarow), z proba nieobecnych ramek 4,7-4,9 s.
 
-**Kryterium "dziala".** `testy/test_samokontrola.py` (90 testow): kazde sprawdzenie w stanie OK i w stanie zlym, kody
+**Kryterium "dziala".** `testy/test_samokontrola.py` (91 testow): kazde sprawdzenie w stanie OK i w stanie zlym, kody
 wyjscia 0 / 1 / 2, format wierszy i `--json`, `--sumy` (zgodne, zmieniony, brakujacy, nadmiarowy, zly plik sum), swiezy
 katalog ze wzoru ustawien = 0 bledow i ramki = ostrzezenie, brak zmian w bazie / ustawieniach / folderach, prawdziwe
 polecenie `python -m stanowisko.samokontrola` w osobnym procesie ponizej 20 s.
