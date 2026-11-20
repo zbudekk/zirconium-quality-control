@@ -657,6 +657,21 @@ def test_p1_baza_nieczytelna_zatrzymuje_aktualizacje_bez_zmian(zainstalowane, tm
     assert kopie_bazy(st) == [] and st.srodowisko.instalacje == 1  # zadnej "kopii" pliku uszkodzonego, pakiety nie instalowane
 
 
+def test_p1_kopia_ktora_nie_przechodzi_kontroli_zatrzymuje_przed_samokontrola(zainstalowane, tmp_path, capsys):
+    """Baza z czytelnym naglowkiem i zamazana strona danych: kopie da sie zrobic, ale ``quick_check`` jej nie przepuszcza -
+    wersja zostaje zainstalowana, NIE przelaczona, a pliku "kopii" nie ma (powrot nie mialby czego blednie wybrac)."""
+    st = zainstalowane
+    dane = st.baza.read_bytes()
+    st.baza.write_bytes(dane[:4096] + b"\xa5" * (len(dane) - 4096))
+    przed = st.baza.read_bytes()
+    capsys.readouterr()
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0")) == I.KOD_INSTALACJA
+    wyjscie = capsys.readouterr().out
+    assert "kopia nie przeszla kontroli" in wyjscie and "[7/9]" not in wyjscie and "INSTALACJA: NIEUDANA (kod 6) - wersja biezaca bez zmian: 1.0" in wyjscie
+    assert st.biezaca == "1.0" and I.stan_wersji(st.katalog, "2.0") == "zainstalowana" and st.baza.read_bytes() == przed
+    assert list((st.katalog / "dane" / "kopie").iterdir()) == []  # ani kopii, ani pliku tymczasowego
+
+
 def test_p1_powrot_pomija_kopie_ktora_nie_przechodzi_kontroli(zainstalowane, tmp_path, capsys):
     st = zainstalowane
     assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0", migracje="{1: (), 2: ()}")) == 0
@@ -962,6 +977,36 @@ def test_python_inna_wersja_poprawkowa_przyjeta_z_ostrzezeniem_w_dzienniku(st, t
                         if "-c" in polecenie and "struct" in polecenie[polecenie.index("-c") + 1] else prawdziwe(polecenie, **kw))
     assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0")) == 0
     assert "OSTRZEZENIE: Python" not in capsys.readouterr().out and st.dziennik().count("OSTRZEZENIE: Python") == 1
+
+
+def test_samokontrola_zakonczona_awaryjnie_jest_powtarzana_raz(zainstalowane, tmp_path, capsys, monkeypatch):
+    """Proces samokontroli, ktory ginie z kodem spoza umowy 0 / 1 / 2 (na PC: 0xC0000005 przy zamykaniu bibliotek PO wypisaniu
+    wyniku), jest uruchamiany drugi raz; wynik awaryjny nigdy nie przelacza wersji, a komunikat nie wini ustawien."""
+    st = zainstalowane
+    prawdziwe, licznik = I.uruchom, {"n": 0, "awarie": 1}
+
+    def falszywe(polecenie, **kw):
+        wynik = prawdziwe(polecenie, **kw)
+        if "stanowisko.samokontrola" in [str(c) for c in polecenie]:
+            licznik["n"] += 1
+            if licznik["n"] <= licznik["awarie"]:
+                wynik.returncode = 3221225477
+        return wynik
+
+    monkeypatch.setattr(I, "uruchom", falszywe)
+    monkeypatch.setattr(I, "PAUZA_PO_AWARII_S", 0.0)
+    assert I.PROBY_SAMOKONTROLI == 3
+    capsys.readouterr()
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0")) == 0 and st.biezaca == "2.0" and licznik["n"] == 2
+    uwaga = "UWAGA samokontrola: proces zakonczyl sie awaryjnie (kod 0xC0000005), proba 1 z 3 - powtarzam"
+    assert uwaga in capsys.readouterr().out and uwaga in st.dziennik()
+    licznik.update(n=0, awarie=3)
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "3.0")) == I.KOD_SAMOKONTROLA_NIEWYKONANA and st.biezaca == "2.0" and licznik["n"] == 3
+    wyjscie = capsys.readouterr().out
+    assert "samokontrola wersji 3.0 zakonczyla sie awaryjnie (kod 0xC0000005, proby: 3) - wersja biezaca zostaje 2.0" in wyjscie
+    assert "proba 3 z 3" in wyjscie and "proba 3 z 3 - powtarzam" not in wyjscie
+    assert "To nie jest blad ustawien" in wyjscie and "samokontrola: kod wyjscia 0xC0000005" in st.dziennik()
+    assert I.opis_kodu(3221225477) == I.opis_kodu(-1073741819) == "0xC0000005" and I.opis_kodu(2) == "2"
 
 
 def test_d2_drugi_instalator_w_tym_samym_katalogu_czeka_na_pierwszego(zainstalowane, tmp_path, capsys):

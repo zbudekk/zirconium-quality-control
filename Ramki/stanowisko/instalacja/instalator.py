@@ -36,6 +36,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import time
 import traceback
 import zipfile
 from pathlib import Path
@@ -79,6 +80,8 @@ ZAPAS_PYC = 1.3
 ZAPAS_MB = 300
 LIMIT_SCIEZKI = 259                # Windows bez dlugich sciezek: najdluzsza sciezka pliku
 LIMIT_SAMOKONTROLI_S = 600
+PROBY_SAMOKONTROLI = 3             # ile razy uruchomic samokontrole, gdy jej proces ginie z kodem spoza umowy 0 / 1 / 2
+PAUZA_PO_AWARII_S = 3.0            # przerwa przed powtorzeniem samokontroli po awarii procesu
 CZEKAJ_NA_BAZE_S = 5.0             # ile czekac na baze zajeta przez inny program, zanim instalator sie zatrzyma
 PAKIETY_SRODOWISKA = ("pip",)      # zaklada je sam ``python -m venv`` (ensurepip); nie naleza do listy zamrozonej
 
@@ -945,13 +948,30 @@ def uruchom_samokontrole(python: Path, program: Path, ustawienia: Path, bez_siec
                              "Zglos budujacemu paczke; wersja biezaca bez zmian.")
     polecenie = [python, "-B", "-X", "utf8", "-m", "stanowisko.samokontrola", "--ustawienia", ustawienia,
                  "--sumy", program / PLIK_SUM_PROGRAMU] + (["--bez-sieci"] if bez_sieci else [])
-    try:
-        wynik = uruchom(polecenie, cwd=program, env=srodowisko_procesu(), limit_s=LIMIT_SAMOKONTROLI_S)
-    except subprocess.TimeoutExpired:
-        return KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontrola nie skonczyla sie w {LIMIT_SAMOKONTROLI_S} s"
-    except OSError as e:
-        return KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontroli nie dalo sie uruchomic ({type(e).__name__})"
-    return wynik.returncode, (wynik.stdout + ("\n" + wynik.stderr if wynik.stderr.strip() else "")).strip()
+    uwagi = []
+    for proba in range(1, PROBY_SAMOKONTROLI + 1):
+        try:
+            wynik = uruchom(polecenie, cwd=program, env=srodowisko_procesu(), limit_s=LIMIT_SAMOKONTROLI_S)
+        except subprocess.TimeoutExpired:
+            return KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontrola nie skonczyla sie w {LIMIT_SAMOKONTROLI_S} s"
+        except OSError as e:
+            return KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontroli nie dalo sie uruchomic ({type(e).__name__})"
+        if wynik.returncode in (0, 1, 2):
+            break
+        # Kod spoza umowy = proces zginal (na PC: 0xC0000005 zaraz po zalozeniu srodowiska - raz przed wypisaniem czegokolwiek,
+        # raz po wypisaniu wyniku; znane tez 0xC0000142). Samokontrola niczego nie zmienia, wiec wolno ja powtorzyc;
+        # wynik awaryjny nigdy nie liczy sie jako zielony.
+        uwagi.append(f"UWAGA samokontrola: proces zakonczyl sie awaryjnie (kod {opis_kodu(wynik.returncode)}), proba {proba} z "
+                     f"{PROBY_SAMOKONTROLI}" + (" - powtarzam" if proba < PROBY_SAMOKONTROLI else ""))
+        if proba < PROBY_SAMOKONTROLI:
+            time.sleep(PAUZA_PO_AWARII_S)
+    wyjscie = (wynik.stdout + ("\n" + wynik.stderr if wynik.stderr.strip() else "")).strip()
+    return wynik.returncode, "\n".join(uwagi + [wyjscie])
+
+
+def opis_kodu(kod: int) -> str:
+    """Kod wyjscia procesu do komunikatu: kody awarii Windows (np. 3221225477) szesnastkowo (0xC0000005)."""
+    return f"0x{kod & 0xFFFFFFFF:08X}" if kod < 0 or kod > 255 else str(kod)
 
 
 def streszczenie_samokontroli(wyjscie: str) -> list[str]:
@@ -961,7 +981,7 @@ def streszczenie_samokontroli(wyjscie: str) -> list[str]:
         m = re.match(r"(OSTRZEZENIE|BLAD) ([^:\s]+):", wiersz)
         if m:
             wiersze.append(f"samokontrola: {m.group(1)} {m.group(2)}")
-        elif wiersz.startswith("SAMOKONTROLA:"):
+        elif wiersz.startswith(("SAMOKONTROLA:", "UWAGA samokontrola:")):
             wiersze.append(wiersz.strip())
     return wiersze
 
@@ -1260,7 +1280,7 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
         print("\n".join("      " + w for w in wyjscie.splitlines()), flush=True)
         for wiersz in streszczenie_samokontroli(wyjscie):
             dziennik.wpis(wiersz)
-        dziennik.wpis(f"samokontrola: kod wyjscia {kod}")
+        dziennik.wpis(f"samokontrola: kod wyjscia {opis_kodu(kod)}")
         if suma_ustawien is not None and sha256_pliku(plik_ustawien) != suma_ustawien:
             raise BladInstalacji(KOD_INSTALACJA, f"{plik_ustawien.name} zmienil sie w trakcie instalacji", "Zglos ten komunikat.")
         if kod == 1 and biezaca is None:
@@ -1280,6 +1300,11 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
                 raise BladInstalacji(KOD_SAMOKONTROLA_CZERWONA, f"samokontrola wersji {wersja} zglosila bledy - {zostaje}",
                                      f"Popraw to, co wskazuja wiersze BLAD powyzej (zwykle foldery w {plik_ustawien}), i uruchom "
                                      "zainstaluj.cmd ponownie - pakiety nie beda instalowane drugi raz.")
+            if kod != 2:  # kod spoza umowy 0 / 1 / 2: proces samokontroli zginal w kazdej probie
+                raise BladInstalacji(KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontrola wersji {wersja} zakonczyla sie awaryjnie (kod "
+                                     f"{opis_kodu(kod)}, proby: {PROBY_SAMOKONTROLI}) - {zostaje}",
+                                     "To nie jest blad ustawien. Uruchom zainstaluj.cmd ponownie (pakiety nie beda instalowane drugi raz); "
+                                     "gdy to sie powtarza, zglos ten komunikat razem z plikiem dziennik_instalacji.txt.")
             raise BladInstalacji(KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontroli wersji {wersja} nie dalo sie wykonac (kod {kod}) - {zostaje}",
                                  f"Popraw przyczyne podana powyzej (zwykle plik {plik_ustawien}) i uruchom zainstaluj.cmd ponownie.")
 
@@ -1330,10 +1355,13 @@ def _zglos(dziennik: Dziennik, operacja: str, e: BladInstalacji) -> int:
 def zapytaj_konsole(pytanie: str) -> bool:
     """Pytanie T / N na konsoli; odpowiedz inna niz T / TAK (takze brak konsoli) = nie."""
     try:
-        return input(pytanie).strip().lower() in ("t", "tak")
+        odpowiedz = input(pytanie)
     except (EOFError, OSError):
         print(flush=True)
         return False
+    if not sys.stdin.isatty():  # odpowiedz z potoku albo pliku: Enter nie pojawil sie na ekranie
+        print(odpowiedz, flush=True)
+    return odpowiedz.strip().lower() in ("t", "tak")
 
 
 def wroc(katalog: Path, *, przywroc: bool = False, potwierdz=None, srodowisko: Srodowisko | None = None, zegar=dt.datetime.now) -> int:
@@ -1409,7 +1437,7 @@ def wroc(katalog: Path, *, przywroc: bool = False, potwierdz=None, srodowisko: S
             for wiersz in streszczenie_samokontroli(wyjscie):
                 dziennik.wpis(wiersz)
             if kod != 0:
-                dziennik.krok(f"      OSTRZEZENIE: samokontrola wersji {poprzednia} zakonczyla sie kodem {kod} - popraw wskazane sprawy")
+                dziennik.krok(f"      OSTRZEZENIE: samokontrola wersji {poprzednia} zakonczyla sie kodem {opis_kodu(kod)} - popraw wskazane sprawy")
         except BladInstalacji as e:
             dziennik.krok(f"      OSTRZEZENIE: {e.opis}")
         dziennik.krok(f"POWROT: GOTOWY - wersja biezaca {poprzednia} (poprzednia: {biezaca}). Ponowne Wroc_do_poprzedniej.cmd wraca do {biezaca}.")

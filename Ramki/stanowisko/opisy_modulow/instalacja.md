@@ -108,7 +108,9 @@ i uruchamia `instalator.py zainstaluj`:
    kopii (`PRAGMA quick_check` = ok, ta sama wersja schematu). Kopii nie da sie zrobic albo nie przechodzi kontroli = stop
    (kod 6), wersja nie jest przelaczana; kopii "niesprawdzonej" nie ma nigdy,
 7. samokontrola nowej wersji: `python -m stanowisko.samokontrola --ustawienia <KATALOG>\ustawienia.toml --sumy
-   program\SUMY_PROGRAMU.sha256 [--bez-sieci]`; kod 1 albo 2 = wersja zostaje zainstalowana, ale NIE biezaca,
+   program\SUMY_PROGRAMU.sha256 [--bez-sieci]`; kod 1 albo 2 = wersja zostaje zainstalowana, ale NIE biezaca. Kod spoza
+   umowy 0 / 1 / 2 (proces samokontroli zginal, np. `0xC0000005`) = do 2 powtorzen po 3 s przerwy, kazde z wierszem
+   `UWAGA samokontrola: ...` na ekranie i w dzienniku; trzecia awaria z rzedu = kod 2 instalatora z rada "uruchom ponownie",
 8. zapis skryptow ze wzorow i przelaczenie wskaznika (pod blokada programu); poprzednia wersja zapamietana,
 9. skrot na pulpicie tylko z `/skrot` (PowerShell `WScript.Shell`; niepowodzenie = ostrzezenie).
 

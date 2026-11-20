@@ -51,7 +51,7 @@ Nie sa kasowane same (kazda to ok. 1,5 GB w `wersje\`); kopie bazy tez nie. List
 | Kod | Komunikat (`BLAD: ...`) | Co zrobic |
 |---|---|---|
 | 1 | samokontrola ... zglosila bledy (aktualizacja) | popraw to, co wskazuja wiersze `BLAD` (zwykle foldery w `ustawienia.toml`), uruchom `zainstaluj.cmd` ponownie |
-| 2 | samokontroli ... nie dalo sie wykonac | popraw przyczyne podana nad komunikatem (zwykle plik `ustawienia.toml`), uruchom ponownie |
+| 2 | samokontroli ... nie dalo sie wykonac / samokontrola ... zakonczyla sie awaryjnie | popraw przyczyne podana nad komunikatem (zwykle plik `ustawienia.toml`), uruchom ponownie; "awaryjnie" = po prostu uruchom ponownie |
 | 3 | sumy SHA-256 paczki niezgodne / w paczce brakuje ... / blad wydania / wersja juz zainstalowana z INNEJ budowy / numer zapisany inaczej | paczka uszkodzona albo niepelna: pobierz i rozpakuj ja ponownie w calosci; "blad wydania", "inna budowa" i "numer zapisany inaczej" zglos budujacemu paczke (potrzebna paczka z nowym numerem wersji) |
 | 4 | nie znaleziono Pythona 3.12 / zla wersja Pythona / brak Pythona (wiersz koncowy: `... - niczego nie zmieniono.`) | zainstaluj Pythona 3.12 (64-bit) albo wskaz go: `zainstaluj.cmd /python <sciezka>\python.exe` |
 | 5 | program "Stanowisko" jest uruchomiony / baza jest zajeta przez inny program | zamknij program (i inne programy z otwarta baza), uruchom polecenie ponownie |
