@@ -73,7 +73,10 @@ Skrypty ustawiaja `PYTHONUTF8=1`, `PYTHONDONTWRITEBYTECODE=1` (katalog programu 
    (kontrola sum), `python -m venv --copies`, `pip install --no-index --only-binary=:all: --find-links kola -r zamrozone.txt`,
    porownanie `pip list` z lista zamrozona (n z n; `pip` zalozony przez venv nie jest liczony), `instalacja.json`,
    zdjecie znacznika. Wersja juz zainstalowana z tej samej paczki i cala = bez zmian (z `/testy` dokladany jest sam
-   zestaw testowy: `--find-links kola --find-links kola_testy -r zamrozone_testy.txt`); uszkodzona = od nowa,
+   zestaw testowy: `--find-links kola --find-links kola_testy -r zamrozone_testy.txt`); uszkodzona = od nowa (miejsce
+   na dysku sprawdzane przed usunieciem). Paczka o tym samym numerze wersji, ale innej tresci (inne sumy `wydanie.json`
+   albo `SUMY_PROGRAMU.sha256` niz w `instalacja.json`) nie zastepuje wersji biezacej ani poprzedniej (kod 3) - nowe
+   wydanie = nowy numer; wersje nieuzywana zastepuje,
 6. kopia bazy `dane\kopie\<baza>_przed_<wersja>_<data>_<godzina>_v<schemat>.sqlite` (mechanizm kopii SQLite), gdy wersja
    inna niz biezaca i baza istnieje,
 7. samokontrola nowej wersji: `python -m stanowisko.samokontrola --ustawienia <KATALOG>\ustawienia.toml --sumy

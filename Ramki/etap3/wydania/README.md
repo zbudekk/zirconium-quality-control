@@ -19,7 +19,7 @@ python narzedzia\zbuduj_wydanie.py --wyjscie <PC-katalog>\wydania --kola <PC-kat
 - Kazdy commit zmienia paczke (numer commita i data sa w `wydanie.json`), takze commit, ktory zmienia tylko pliki spoza
   paczki. Wczesniejsze wydanie odtwarza `--rewizja <commit z tabeli>`.
 - Numer wersji: plik `Ramki/stanowisko/WERSJA` (jeden wiersz) albo `--wersja`. Paczka o tym samym numerze i innej tresci
-  nie zastapi zainstalowanej wersji biezacej - nowe wydanie = nowy numer.
+  nie zastapi zainstalowanej wersji biezacej ani poprzedniej (instalator: kod 3) - nowe wydanie = nowy numer.
 
 ## Wydania
 

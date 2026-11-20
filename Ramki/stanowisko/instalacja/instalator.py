@@ -722,7 +722,7 @@ def _instaluj_wersje(paczka: Path, sumy: dict[str, str], wydanie: dict, katalog:
     dziennik.krok(f"      pakiety zgodne z lista zamrozona: {len(oczekiwane)} z {len(oczekiwane)}")
     zapis = {"wersja": wersja, "commit": wydanie.get("commit"), "zainstalowano": f"{teraz:%Y-%m-%d %H:%M:%S}", "python": wersja_pythona,
              "pakiety": len(oczekiwane), "testy": bool(testy), "schemat_bazy": schemat,
-             "sha256_wydania": sha256_pliku(kw / PLIK_WYDANIA)}
+             "sha256_wydania": sha256_pliku(kw / PLIK_WYDANIA), "sha256_sum_programu": sha256_pliku(program / PLIK_SUM_PROGRAMU)}
     (kw / PLIK_INSTALACJI).write_text(json.dumps(zapis, indent=1, sort_keys=True) + "\n", encoding="ascii")
     (kw / ZNACZNIK_NIEDOKONCZONEJ).unlink()
 
@@ -757,14 +757,26 @@ def _doinstaluj_testy(paczka: Path, katalog: Path, wersja: str, srodowisko: Srod
     dziennik.krok(f"      pakiety zgodne z lista zamrozona: {len(oczekiwane)} z {len(oczekiwane)}")
 
 
+INNA_BUDOWA = "inna budowa o tym samym numerze wersji"
+
+
 def _zgodna_z_paczka(paczka: Path, katalog: Path, wersja: str, testy: bool, srodowisko: Srodowisko) -> tuple[bool, str]:
-    """Czy zainstalowana wersja jest ta sama budowa co paczka i jest cala: (True, "") albo (False, powod)."""
+    """Czy zainstalowana wersja jest ta sama budowa co paczka i jest cala: (True, "") albo (False, powod).
+
+    Budowe rozpoznaje zapis instalacji (sumy ``wydanie.json`` i ``SUMY_PROGRAMU.sha256`` paczki, z ktorej wersja powstala):
+    inny zapis = ``INNA_BUDOWA`` (paczka o tym samym numerze i innej tresci), ten sam zapis i inne pliki = uszkodzenie."""
     kw = katalog_wersji(katalog, wersja)
-    if not (kw / PLIK_WYDANIA).is_file() or (kw / PLIK_WYDANIA).read_bytes() != (paczka / PLIK_WYDANIA).read_bytes():
-        return False, "inna budowa o tym samym numerze wersji"
+    try:
+        zapis = json.loads((kw / PLIK_INSTALACJI).read_text(encoding="ascii"))
+        budowa = (zapis["sha256_wydania"], zapis["sha256_sum_programu"])
+    except (OSError, ValueError, KeyError, TypeError):
+        budowa = None
+    if budowa != (sha256_pliku(paczka / PLIK_WYDANIA), sha256_pliku(paczka / "program" / PLIK_SUM_PROGRAMU)):
+        return False, INNA_BUDOWA
     program = kw / "program"
-    if not (program / PLIK_SUM_PROGRAMU).is_file() or (program / PLIK_SUM_PROGRAMU).read_bytes() != (paczka / "program" / PLIK_SUM_PROGRAMU).read_bytes():
-        return False, "brak albo zmieniony plik sum programu"
+    if (not (kw / PLIK_WYDANIA).is_file() or sha256_pliku(kw / PLIK_WYDANIA) != budowa[0]
+            or not (program / PLIK_SUM_PROGRAMU).is_file() or sha256_pliku(program / PLIK_SUM_PROGRAMU) != budowa[1]):
+        return False, "brak albo zmieniony plik wydania albo sum programu"
     roznice = sprawdz_sumy(program, wczytaj_sumy(program / PLIK_SUM_PROGRAMU))
     if roznice:
         return False, f"pliki programu niezgodne z sumami ({len(roznice)})"
@@ -856,13 +868,15 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
             elif powod == BRAK_TESTOW:
                 dziennik.krok(f"      wersja {wersja} jest juz zainstalowana i zgodna z paczka - dokladam zestaw testowy")
                 _doinstaluj_testy(paczka, katalog, wersja, srodowisko, dziennik)
+            elif powod == INNA_BUDOWA and wersja in (biezaca, czytaj_wskaznik(katalog, PLIK_POPRZEDNIEJ)):
+                raise BladInstalacji(KOD_PACZKA, f"wersja {wersja} jest juz zainstalowana z INNEJ budowy o tym samym numerze i jest wersja "
+                                     + ("biezaca" if wersja == biezaca else "poprzednia"),
+                                     "Paczka nie zastepuje uzywanej wersji o tym samym numerze - zbuduj paczke z nowym numerem wersji (plik "
+                                     "WERSJA albo --wersja) i zainstaluj ja jako aktualizacje. Wersja biezaca bez zmian.")
             else:
                 dziennik.krok(f"      wersja {wersja} jest zainstalowana, ale: {powod} - naprawa (instalacja od nowa)")
                 stan = "do_naprawy"
         if stan != "zainstalowana":
-            if stan != "brak":
-                with BlokadaProgramu(plik_bazy):  # naprawa wersji biezacej tylko przy zamknietym programie
-                    usun_katalog(katalog_wersji(katalog, wersja))
             potrzeba = int(bajty_kol * ZAPAS_PYC + sum((paczka / n).stat().st_size for n in sumy if n.startswith("program/"))) // 2**20 + ZAPAS_MB
             potrzeba = potrzeba if min_wolne_mb is None else min_wolne_mb
             wolne = shutil.disk_usage(katalog).free // 2**20
@@ -871,6 +885,9 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
                                      "Zwolnij miejsce albo wybierz inny dysk (/katalog) i uruchom zainstaluj.cmd ponownie. "
                                      "Wersja biezaca bez zmian.")
             dziennik.krok(f"      miejsce na dysku: potrzeba ok. {potrzeba} MB, wolne {wolne} MB")
+            if stan != "brak":  # dopiero po kontroli miejsca; naprawa wersji biezacej tylko przy zamknietym programie
+                with BlokadaProgramu(plik_bazy):
+                    usun_katalog(katalog_wersji(katalog, wersja))
             _instaluj_wersje(paczka, sumy, wydanie, katalog, python, testy, srodowisko, dziennik, zegar(), wersja_pythona,
                              int(odpowiedz["schemat"]))
         kw = katalog_wersji(katalog, wersja)

@@ -46,7 +46,7 @@ tylko wersji, ktora nie jest ani biezaca, ani poprzednia.
 |---|---|---|
 | 1 | samokontrola ... zglosila bledy | popraw to, co wskazuja wiersze `BLAD` (zwykle foldery w `ustawienia.toml`), uruchom `zainstaluj.cmd` ponownie |
 | 2 | samokontroli ... nie dalo sie wykonac | popraw przyczyne podana nad komunikatem (zwykle plik `ustawienia.toml`), uruchom ponownie |
-| 3 | sumy SHA-256 paczki niezgodne / w paczce brakuje ... / blad wydania | paczka uszkodzona albo niepelna: pobierz i rozpakuj ja ponownie w calosci; "blad wydania" zglos budujacemu paczke |
+| 3 | sumy SHA-256 paczki niezgodne / w paczce brakuje ... / blad wydania / wersja juz zainstalowana z INNEJ budowy | paczka uszkodzona albo niepelna: pobierz i rozpakuj ja ponownie w calosci; "blad wydania" i "inna budowa" zglos budujacemu paczke (potrzebna paczka z nowym numerem wersji) |
 | 4 | nie znaleziono Pythona 3.12 / zla wersja Pythona / brak Pythona | zainstaluj Pythona 3.12 (64-bit) albo wskaz go: `zainstaluj.cmd /python <sciezka>\python.exe` |
 | 5 | program "Stanowisko" jest uruchomiony | zamknij program i uruchom polecenie ponownie |
 | 6 | za malo miejsca na dysku / pip zakonczyl sie bledem / instalacja przerwana / katalog w folderze synchronizowanym / sciezka za dluga / nie mozna pisac | zwolnij miejsce albo wybierz inny katalog (`/katalog`, krotki, poza OneDrive) i uruchom ponownie - niedokonczona wersja sprzata sie sama |

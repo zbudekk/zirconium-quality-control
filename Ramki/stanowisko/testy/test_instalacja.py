@@ -462,6 +462,41 @@ def test_ponowna_instalacja_tej_samej_wersji_jest_bezpieczna(zainstalowane, tmp_
     assert I.sprawdz_sumy(st.katalog / "wersje" / "1.0" / "program", I.wczytaj_sumy(st.katalog / "wersje" / "1.0" / "program" / I.PLIK_SUM_PROGRAMU)) == []
 
 
+def test_inna_budowa_o_tym_samym_numerze_nie_zastepuje_wersji_uzywanej(zainstalowane, tmp_path, capsys):
+    """Paczka 1.0 o innej tresci (tu: samokontrola z bledem) nie moze podmienic wersji biezacej ani poprzedniej - inaczej
+    nieudana samokontrola zostawilaby stanowisko z zepsuta wersja biezaca."""
+    st = zainstalowane
+    inna = zbuduj_paczke(tmp_path / "inna", "1.0", kod_samokontroli=1)
+
+    def stan_wersji_1():
+        return {p: sha(p) for p in (st.katalog / "wersje" / "1.0").rglob("*") if p.is_file()}
+
+    przed = stan_wersji_1()
+    capsys.readouterr()
+    assert st.zainstaluj(inna) == I.KOD_PACZKA  # 1.0 jest biezaca
+    wyjscie = capsys.readouterr().out
+    assert "wersja 1.0 jest juz zainstalowana z INNEJ budowy o tym samym numerze i jest wersja biezaca" in wyjscie and "nowym numerem wersji" in wyjscie
+    assert stan_wersji_1() == przed and st.biezaca == "1.0" and st.srodowisko.instalacje == 1
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0")) == 0
+    assert st.zainstaluj(inna) == I.KOD_PACZKA  # 1.0 jest poprzednia
+    assert "jest wersja poprzednia" in capsys.readouterr().out and stan_wersji_1() == przed and st.biezaca == "2.0"
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "3.0")) == 0  # 1.0 nie jest juz ani biezaca, ani poprzednia
+    assert st.zainstaluj(inna) == I.KOD_SAMOKONTROLA_CZERWONA  # zastapiona nowa budowa; ta nie przechodzi samokontroli
+    wyjscie = capsys.readouterr().out
+    assert "inna budowa o tym samym numerze wersji - naprawa (instalacja od nowa)" in wyjscie and "wersja biezaca zostaje 3.0" in wyjscie
+    assert stan_wersji_1() != przed and I.stan_wersji(st.katalog, "1.0") == "zainstalowana"
+    assert st.biezaca == "3.0" and st.poprzednia == "2.0"
+
+
+def test_naprawa_sprawdza_miejsce_przed_usunieciem_wersji(zainstalowane, tmp_path, capsys):
+    st = zainstalowane
+    aplikacja = st.katalog / "wersje" / "1.0" / "program" / "stanowisko" / "aplikacja.py"
+    aplikacja.write_text("uszkodzony\n", encoding="ascii")
+    assert st.zainstaluj(zbuduj_paczke(tmp_path / "ponownie", "1.0"), min_wolne_mb=10**9) == I.KOD_INSTALACJA
+    assert "za malo miejsca na dysku" in capsys.readouterr().out
+    assert aplikacja.read_text(encoding="ascii") == "uszkodzony\n" and I.stan_wersji(st.katalog, "1.0") == "zainstalowana"  # nic nie usunieto
+
+
 def test_zestaw_testowy_tylko_na_zadanie(zainstalowane, tmp_path, capsys):
     st = zainstalowane
     pakiety = json.loads((st.katalog / "wersje" / "1.0" / "venv" / "pakiety.json").read_text(encoding="ascii"))
