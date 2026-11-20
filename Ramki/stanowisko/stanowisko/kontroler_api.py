@@ -55,6 +55,7 @@ Modul uzywa tylko biblioteki standardowej; PySide6 jest importowane dopiero w ``
 from __future__ import annotations
 
 import collections
+import contextlib
 import dataclasses
 import datetime as dt
 import hashlib
@@ -97,6 +98,15 @@ CZAS_NA_POLACZENIE_RAMEK_S = 2.0  # komunikat "ramka nie odpowiada" dopiero po t
 OKRES_PONOWIENIA_PLANU_S = 2.0  # P2: plan ramki porannej, ktorego nie dalo sie zbudowac - ponowienie co tyle sekund
 OKRES_PONOWIENIA_ZDARZEN_S = 1.0  # r3 D-N1: zdarzenia ramki odlozone przy zajetej bazie - ponowienie najczesciej co tyle sekund
 CZEKAJ_ZDARZENIA_MS = 150  # r3 D-N1 / r4 D-R3-1: zapis zdarzen ramki czeka na zajeta baze najwyzej tyle (ponizej progu petli okna 200 ms)
+# E3-P14 (N1): baza zajeta przez inny program - polecenie wywolane kliknieciem czeka najwyzej tyle (zamiast 5 s polaczenia), potem
+# odmowa ``baza_zajeta`` z komunikatem do ponowienia; cel: okno odpowiada w ciagu 1 s. UWAGA - to wartosci ``busy_timeout``
+# SQLite, a prawdziwe czekanie na Windows jest dluzsze (pomiar na PC 20.11.2026, raport E3-P14): 100 ms -> 0,17 s, gdy inny
+# program pisze (blokada RESERVED), i 0,46 s, gdy trzyma baze na wylacznosc (EXCLUSIVE); 200 ms -> 0,30 s / 0,68 s;
+# 400 ms -> 0,53 s / 0,96 s. 200 ms przepuszcza krotka blokade czytelnika (raport metryk: do 0,3 s na bazie 200 MB).
+CZEKAJ_POLECENIA_MS = 200
+CZEKAJ_STANU_MS = 100  # odczyt stanu z bazy po poleceniu / zdarzeniu w watku okna; nieudany = stan zalegly, nadrabiany pozniej
+CZEKAJ_NADRABIANIA_MS = 0  # ponowny odczyt zaleglego stanu z zegara okna: jedna proba bez czekania (pomiar: ok. 30 ms przy zajetej bazie)
+OKRES_NADRABIANIA_STANU_S = 1.0  # co ile zegar okna probuje odczytac zalegly stan, dopoki baza jest zajeta
 ZALEGLE_EXCELA_H = 48  # P5: piece zamkniete w ostatnich tylu godzinach z niezalatwionymi zleceniami Excela - przypomnienie przy starcie
 ZALEGLE_EXCELA_PIECE = 5
 MAX_PROJEKTOW_KUWETY = 60  # najwyzej tyle projektow zwraca ``projekty_kuwety``
@@ -133,6 +143,23 @@ POLECENIA = POLECENIA + POLECENIA_A12
 # pula per praca (E3-A5i): wybor krazka (wpisu puli) pracy, ktorej wynik dopasowania nie rozstrzygnal
 POLECENIA_A5I = ("wybierz_wpis", "cofnij_wpis")  # runda 2 (D9): cofniecie wyboru krazka
 POLECENIA = POLECENIA + POLECENIA_A5I
+# E3-P14 (N1): ponowienie polecenia odrzuconego, bo baza byla zajeta (argument: id komunikatu ``decyzja_niezapisana`` /
+# ``polecenie_niezapisane``)
+POLECENIA_P14 = ("ponow_polecenie",)
+POLECENIA = POLECENIA + POLECENIA_P14
+# decyzje o jednej pracy (pierwszy argument = ``praca_id``): nowa nieudana proba albo udana decyzja dla tej samej pracy zastepuje /
+# zdejmuje komunikat "decyzja NIE zostala zapisana" poprzedniej
+DECYZJE_O_PRACY = ("ukruszona", "ok", "cofnij", "wybierz_wpis", "cofnij_wpis", "wybierz_kandydata", "przypisz_recznie", "cofnij_przypisanie")
+# polecenia, ktorych komplet argumentow to ``liczby`` podane ``_polecenie`` (pozostale podaja ``argumenty`` wprost) - tylko takie
+# i te z ``argumenty`` dostaja komunikat z przyciskiem "Ponow teraz"
+PONAWIANE_Z_LICZB = frozenset(("ukruszona", "ok", "cofnij", "wybierz_wpis", "cofnij_wpis", "potwierdz_ponowny_skan", "odrzuc_ponowny_skan",
+                               "cofnij_zastapienie", "dopusc_plytke", "cofnij_dopuszczenie", "przypisz_recznie", "cofnij_przypisanie",
+                               "zamknij_piec", "cofnij_przeniesienie", "otworz_piec_ponownie", "pomin_skan", "cofnij_pominiecie",
+                               "cofnij_zamkniecie_reczne"))
+# odmowy, po ktorych polecenie do ponowienia ZOSTAJE na liscie (przyczyna przejsciowa); kazda inna odmowa ponowienia zdejmuje je
+# (np. odmowa sesji: tej decyzji nie da sie juz zapisac - powod jest w komunikacie odmowy)
+KODY_DO_PONOWIENIA = ("baza_zajeta", "brak_operatora", "pusta_lista_operatorow", "analiza_trwa", "skanowanie_trwa", "blad_polecenia",
+                      "program_zamkniety")
 # sygnaly kontrolera do okna (``ZdarzenieKontrolera.typ``; w ``lacznik_qt``: stan_zmieniony, postep, komunikat, pytanie, zamkniety)
 SYGNALY = ("stan", "postep", "komunikat", "pytanie", "zamkniety")
 RODZAJE_PYTAN = ("ponowny_skan", "plytka_nie_z_trybu", "brak_numeru_plytki",
@@ -629,6 +656,19 @@ class PoprawkaRano:
 
 
 @dataclasses.dataclass(frozen=True)
+class NierozstrzygnietaRano:
+    """E3-P14 (N3): praca pieca bez rozstrzygniecia - dwuznaczna ("wybierz") albo nieznana, o ktorej osoba NIE podjela decyzji
+    (praca nieznana ze swiadomym "Bez projektu" jest rozstrzygnieta). Taka praca nie liczy sie przy "Zamknij piec" (regula
+    ``session_rano`` bez zmian); okno pyta o nie przed zamknieciem i nazywa je po zamknieciu."""
+
+    praca_id: int
+    skan_id: int
+    numer_plytki: int | None
+    gniazdo: int | None
+    klasa: str
+
+
+@dataclasses.dataclass(frozen=True)
 class ProjektPuli:
     """Projekt (punkt zlecenia) do przypisania recznego - wynik ``projekty_kuwety(kuweta)``; bez nazw folderow i plikow."""
 
@@ -689,6 +729,7 @@ class StanRano:
     kuweta_do_cofniecia: str | None = None
     nowy_wsad: NowyWsad | None = None
     ostatni_zamkniety: "StanRano | None" = None
+    nierozstrzygniete_prace: tuple = ()  # E3-P14 (N3): ``NierozstrzygnietaRano`` pieca (otwartego i zamknietego), wg plytki i gniazda
 
     def plytka(self, skan_id: int) -> Plytka | None:
         return next((p for p in self.plytki if p.skan_id == skan_id), None)
@@ -963,6 +1004,13 @@ class Kontroler:
         ``ok`` True = nic juz nie czeka; ``dane`` = ile pozycji czeka nadal."""
         raise NotImplementedError
 
+    def ponow_polecenie(self, komunikat_id: str) -> Odpowiedz:
+        """E3-P14 (N1): ponawia polecenie technika odrzucone, bo baza byla zajeta przez inny program - dokladnie to polecenie
+        (nazwa i argumenty z chwili klikniecia), ktore opisuje komunikat ``komunikat_id`` (``decyzja_niezapisana`` /
+        ``polecenie_niezapisane``). Zwraca odpowiedz ponowionego polecenia; udane = komunikat znika. Program sam takiego
+        polecenia NIE ponawia (decyzje zapisuje tylko klikniecie osoby)."""
+        raise NotImplementedError
+
     # --- poranek (wersja 3, E3-A7)
     def przelacz_tryb(self, tryb: str) -> Odpowiedz:
         """Tryb pracy programu: ``wieczor`` / ``rano`` (Z1 - wybiera czlowiek; nie wymaga osoby). Nowe skany ida do sesji
@@ -1226,6 +1274,11 @@ class KontrolerSesji(Kontroler):
         self._odswiez_potrzebne = False
         self._ramki_od = 0.0
         self._ramki_po_czasie = False
+        # E3-P14 (N1): polecenia odrzucone przy zajetej bazie, czekajace na "Ponow teraz": id komunikatu -> (klucz, nazwa, argumenty)
+        self._do_ponowienia: dict[str, tuple] = {}
+        self._ulotne_w_stanie: set[str] = set()  # id komunikatow ulotnych obecnych w ostatnio zbudowanym stanie
+        self._stan_zalegly = False  # stanu nie dalo sie odczytac z bazy (zajeta) - zegar okna nadrabia co OKRES_NADRABIANIA_STANU_S
+        self._stan_ponow_od = 0.0
 
     # --- sygnaly ---------------------------------------------------------------------------------
     def subskrybuj(self, funkcja: Callable[[ZdarzenieKontrolera], None]) -> None:
@@ -1254,12 +1307,22 @@ class KontrolerSesji(Kontroler):
             self._stan = self._zbuduj()
         return self._stan
 
-    def _odswiez(self) -> StanAplikacji:
-        """Stan od nowa z bazy + sygnaly: ``stan``, potem ``komunikat`` / ``pytanie`` dla kazdej nowej pozycji."""
+    def _czekanie_okna(self, czekaj_ms: int):
+        """Blok, w ktorym na baze zajeta przez inny program czeka sie najwyzej ``czekaj_ms`` (``baza.Baza.czekanie``; E3-P14, N1)."""
+        baza = self.sesja.baza
+        if getattr(baza, "polaczenie", None) is None or not hasattr(baza, "czekanie"):
+            return contextlib.nullcontext()
+        return baza.czekanie(czekaj_ms)
+
+    def _odswiez(self, czekaj_ms: int = CZEKAJ_STANU_MS) -> StanAplikacji:
+        """Stan od nowa z bazy + sygnaly: ``stan``, potem ``komunikat`` / ``pytanie`` dla kazdej nowej pozycji. Baza zajeta
+        dluzej niz ``czekaj_ms`` (E3-P14: okno nie stoi) albo blad dysku: zostaje poprzedni stan z BIEZACYMI komunikatami
+        ulotnymi (odmowy, "decyzja NIE zostala zapisana" - ``_pokaz_komunikaty``), a zegar okna nadrabia odczyt (``_nadrob_stan``)."""
         if self._zamkniety:
             return self.stan()
         try:
-            self._stan = stan = self._zbuduj()
+            with self._czekanie_okna(czekaj_ms):
+                self._stan = stan = self._zbuduj()
         except Exception as e:  # noqa: BLE001 - baza zajeta, blad dysku: zostaje poprzedni stan, nastepne odswiezenie go nadrobi
             if isinstance(e, B.BladBazy):
                 LOG.warning("kontroler: baza zajeta - stan nie zostal odswiezony")
@@ -1267,7 +1330,18 @@ class KontrolerSesji(Kontroler):
                 LOG.exception("kontroler: stanu nie da sie odczytac z bazy - zostaje poprzedni")
             if self._stan is None:
                 raise
+            if isinstance(e, (B.BladBazy, sqlite3.OperationalError)):  # baza zajeta: nadrabianie z zegara okna
+                self._stan_zalegly = True
+                self._stan_ponow_od = time.monotonic() + OKRES_NADRABIANIA_STANU_S
+            self._pokaz_komunikaty()
             return self._stan
+        self._stan_zalegly = False
+        self._oglos(stan)
+        self._po_odswiezeniu(stan)  # E3-A12: plan ramki porannej, wynik na ramce wieczornej
+        return stan
+
+    def _oglos(self, stan: StanAplikacji) -> None:
+        """Sygnal ``stan``, potem ``komunikat`` / ``pytanie`` dla kazdej pozycji, o ktorej okno jeszcze nie dostalo sygnalu."""
         self._powiadom("stan", stan=stan)
         for k in stan.komunikaty:
             if k.id not in self._ogloszone:
@@ -1277,8 +1351,29 @@ class KontrolerSesji(Kontroler):
             if p.id not in self._ogloszone:
                 self._ogloszone.add(p.id)
                 self._powiadom("pytanie", pytanie=p, stan=stan)
-        self._po_odswiezeniu(stan)  # E3-A12: plan ramki porannej, wynik na ramce wieczornej
-        return stan
+
+    def _pokaz_komunikaty(self) -> None:
+        """E3-P14 (N1): nowy stan BEZ czytania bazy - poprzedni stan z biezaca lista komunikatow ulotnych (dodane, zmienione,
+        usuniete od ostatniego odczytu); komunikaty wynikajace ze stanu skanow zostaja, jak byly. Uzywane, gdy baza jest zajeta:
+        technik widzi odmowe i komunikat "NIE zapisano" od razu, a nie dopiero po zwolnieniu bazy."""
+        if self._stan is None or self._zamkniety:
+            return
+        zostaja = [k for k in self._stan.komunikaty if k.id not in self._ulotne_w_stanie and k.id not in self._komunikaty]
+        komunikaty = tuple(sorted(zostaja + list(self._komunikaty.values()), key=lambda k: (k.czas, k.id)))
+        self._ulotne_w_stanie = set(self._komunikaty)
+        if komunikaty == self._stan.komunikaty:
+            return
+        self._wersja += 1
+        self._stan = dataclasses.replace(self._stan, wersja=self._wersja, komunikaty=komunikaty)
+        self._oglos(self._stan)
+
+    def _nadrob_stan(self) -> bool:
+        """Zegar okna: stan, ktorego nie dalo sie odczytac przy zajetej bazie, czytany ponownie (najczesciej co
+        ``OKRES_NADRABIANIA_STANU_S``, czekanie najwyzej ``CZEKAJ_NADRABIANIA_MS``). True = stan odczytany."""
+        if not self._stan_zalegly or self._zamkniety or time.monotonic() < self._stan_ponow_od:
+            return False
+        self._odswiez(CZEKAJ_NADRABIANIA_MS)
+        return not self._stan_zalegly
 
     def _odswiez_zywe(self, sygnal: str = "stan") -> None:
         """Podmienia w stanie tylko czesc "zywa" (postep, kolejka, pula, skaner) - bez czytania bazy. Rano: gdy zmienila sie
@@ -1324,6 +1419,8 @@ class KontrolerSesji(Kontroler):
             n = 0
         if self._sprawdz_zmiane():
             self._odswiez()
+            return n + 1
+        if self._nadrob_stan():  # E3-P14: stan zalegly po zajetej bazie
             return n + 1
         return n + (1 if self._sprawdz_zajetosc() else 0)
 
@@ -1420,6 +1517,7 @@ class KontrolerSesji(Kontroler):
             if w is None or not w.polaczona:  # E3-A12: bez ramki wieczornej program dziala wedlug ekranu
                 trwale.append(self._nowy_komunikat(ID_RAMKA_WIECZORNA, "ramka_wieczorna_niedostepna", czas=sw["data"]))
         komunikaty = sorted(list(self._komunikaty.values()) + trwale, key=lambda k: (k.czas, k.id))
+        self._ulotne_w_stanie = set(self._komunikaty)
         aktywne = [p.skan_id for p in plytki]
         liczniki: dict[str, int] = {}  # po klasie koloru, tylko plytki aktywne (plytka bez numeru nie ma zielonych)
         for p in plytki:
@@ -1872,7 +1970,12 @@ class KontrolerSesji(Kontroler):
             liczniki=zamroz(st["liczniki"]), nierozstrzygniete=zamroz(st["nierozstrzygniete"]),
             kompletne=tuple(zlecenie(z) for z in st["kompletne"]), braki=tuple(zlecenie(z) for z in st["braki"]), poprawki=poprawki,
             kolejnosc=self._kolejnosc, wynik=zamroz(wynik) if wynik is not None else None, ramka=self._ramka_poranna_dostepna(),
-            excel=self._excel_dostepny())
+            excel=self._excel_dostepny(),
+            nierozstrzygniete_prace=tuple(sorted(
+                (NierozstrzygnietaRano(praca_id=p["id"], skan_id=s["id"], numer_plytki=s["numer_plytki"], gniazdo=p["gniazdo"], klasa=p["klasa"])
+                 for s in st["skany"] if s["aktywny"] for p in s["prace"]
+                 if p["klasa"] in (SR.KLASA_DWUZNACZNA, SR.KLASA_NIEZNANA) and p["decyzja"] is None),
+                key=lambda x: (x.numer_plytki is None, x.numer_plytki or 0, x.gniazdo is None, x.gniazdo or 0, x.praca_id))))
         if not plytki:
             return StanRano(**wspolne)
         surowe: dict = {}
@@ -3168,10 +3271,13 @@ class KontrolerSesji(Kontroler):
         return None
 
     def _polecenie(self, funkcja: Callable[[], Any], *, operator: bool = True, nazwa: str = "", liczby: tuple = (),
-                   punkty: bool | None = None) -> Odpowiedz:
+                   punkty: bool | None = None, argumenty: tuple | None = None) -> Odpowiedz:
         """Wspolna obsluga polecenia: zamkniety program, zle argumenty (``liczby`` - identyfikatory, ktore musza byc liczbami
         calkowitymi; D1), brak operatora, odmowa ``session``, baza zajeta, inny blad (``blad_polecenia``); potem nowy stan.
-        ``punkty`` - czy udane polecenie moze zmienic stan punktow zlecen (pamiec listy brakow, P2); None = wg ``NIE_RUSZA_PUNKTOW``."""
+        ``punkty`` - czy udane polecenie moze zmienic stan punktow zlecen (pamiec listy brakow, P2); None = wg ``NIE_RUSZA_PUNKTOW``.
+        E3-P14 (N1): na baze zajeta przez inny program polecenie czeka najwyzej ``CZEKAJ_POLECENIA_MS`` (okno nie stoi); odmowa
+        ``baza_zajeta`` zostawia komunikat TRWALY z przyciskiem "Ponow teraz" (``_odmowa_bazy``; ``argumenty`` - komplet
+        argumentow polecenia do ponowienia, gdy nie sa nim same ``liczby``)."""
         if self._zamkniety:
             return self._zamkniety_odp()
         if not all(_jest_liczba(x) for x in liczby):
@@ -3180,12 +3286,14 @@ class KontrolerSesji(Kontroler):
             odmowa = self._bez_operatora()
             if odmowa is not None:
                 return odmowa
+        do_ponowienia = argumenty if argumenty is not None else (tuple(liczby) if nazwa in PONAWIANE_Z_LICZB else None)
         try:
-            dane = funkcja()
+            with self._czekanie_okna(CZEKAJ_POLECENIA_MS):
+                dane = funkcja()
         except SE.BladSesji as e:
             return self._odmowa("odmowa", powod=str(e))
         except B.BladBazy:
-            return self._odmowa("baza_zajeta")
+            return self._odmowa_bazy(nazwa, do_ponowienia)
         except Exception:  # noqa: BLE001 - D1: polecenie okna nigdy nie konczy sie wyjatkiem w slocie Qt
             LOG.exception("kontroler: polecenie %s nie powiodlo sie", nazwa)
             self._uniewaznij_punkty()  # recenzja PR #26, D2: wyjatek mogl wypasc PO zapisie w bazie - lista brakow od nowa
@@ -3193,10 +3301,94 @@ class KontrolerSesji(Kontroler):
         for kod in ("brak_operatora", "pusta_lista_operatorow", "odmowa", "baza_zajeta", "osoba_spoza_listy", KOD_ZLE_ARGUMENTY, "blad_polecenia",
                     "kuweta_zmienila_sie", "analiza_trwa", "skanowanie_trwa"):
             self._usun_komunikat(f"odmowa:{kod}")  # polecenie przeszlo: stare odmowy nieaktualne
+        if do_ponowienia is not None:  # ta decyzja / to polecenie jest zapisane: komunikat "NIE zapisano" o nim znika
+            self._zdejmij_ponowienie(self._klucz_ponowienia(nazwa, do_ponowienia))
         if punkty if punkty is not None else nazwa not in NIE_RUSZA_PUNKTOW:
             self._uniewaznij_punkty()
         self._odswiez()
         return Odpowiedz(True, dane=dane)
+
+    # --- E3-P14 (N1): polecenie odrzucone przy zajetej bazie nie ginie po cichu -------------------
+    @staticmethod
+    def _klucz_ponowienia(nazwa: str, argumenty: tuple) -> tuple:
+        """Jedno miejsce na liscie do ponowienia: decyzje o tej samej pracy zastepuja sie (ostatnia wola technika), inne
+        polecenia - to samo polecenie z tymi samymi argumentami."""
+        if nazwa in DECYZJE_O_PRACY and argumenty:
+            return ("praca", argumenty[0])
+        return (nazwa, *argumenty)
+
+    def _zdejmij_ponowienie(self, klucz: tuple) -> bool:
+        zdjete = [i for i, wpis in self._do_ponowienia.items() if wpis[0] == klucz]
+        for id_ in zdjete:
+            del self._do_ponowienia[id_]
+            self._usun_komunikat(id_)
+        return bool(zdjete)
+
+    def _miejsce_pracy(self, praca_id: Any) -> str:
+        """"plytka 1, gniazdo 2" pracy ze stanu (wieczor albo piec poranny); pusty napis, gdy pracy nie ma w stanie."""
+        stan = self._stan
+        if stan is None:
+            return ""
+        for plytka in tuple(stan.plytki) + (tuple(stan.rano.plytki) if stan.rano is not None else ()):
+            for p in plytka.prace:
+                if p.praca_id == praca_id:
+                    nazwa = (ST.PLYTKA_W_BLOKADZIE.format(numer=plytka.numer) if plytka.numer is not None else ST.PLYTKA_BEZ_NUMERU_W_BLOKADZIE)
+                    if p.gniazdo is None:
+                        return ST.MIEJSCE_POZA_GNIAZDEM.format(plytka=nazwa)
+                    return ST.MIEJSCE_GNIAZDO.format(plytka=nazwa, gniazdo=p.gniazdo)
+        return ""
+
+    def _opis_polecenia(self, nazwa: str, argumenty: tuple) -> str:
+        """Nazwa polecenia dla technika (napis przycisku) z miejscem: plytka i gniazdo pracy albo numer kuwety."""
+        napis = ST.PRZYCISKI.get(nazwa, nazwa)
+        if nazwa == "przypisz_recznie" and len(argumenty) == 1:
+            napis = ST.PRZYCISK_BEZ_PROJEKTU
+        miejsce = ""
+        if nazwa in DECYZJE_O_PRACY and argumenty:
+            miejsce = self._miejsce_pracy(argumenty[0])
+        elif nazwa in ("potwierdz_kuwete", "cofnij_kuwete") and argumenty:
+            miejsce = ST.MIEJSCE_KUWETA.format(kuweta=argumenty[0])
+        return ST.POLECENIE_Z_MIEJSCEM.format(napis=napis, miejsce=miejsce) if miejsce else ST.POLECENIE_NAZWA.format(napis=napis)
+
+    def _odmowa_bazy(self, nazwa: str, argumenty: tuple | None) -> Odpowiedz:
+        """Polecenie odrzucone, bo baza jest zajeta przez inny program. Polecenie z ``POLECENIA`` ze znanymi argumentami:
+        komunikat TRWALY (``decyzja_niezapisana`` dla decyzji o pracy, inaczej ``polecenie_niezapisane``) z nazwa polecenia
+        i miejscem, wpis na liscie do ponowienia (``ponow_polecenie``) - jeden na prace / polecenie; stan BEZ czytania bazy
+        (ta jest zajeta - okno nie czeka drugi raz). Inne polecenie: zwykla odmowa ``baza_zajeta``."""
+        if argumenty is None or nazwa not in POLECENIA:
+            k = self._komunikat("baza_zajeta", id_="odmowa:baza_zajeta")
+            LOG.warning("kontroler: baza zajeta - polecenie %s odrzucone", nazwa)
+        else:
+            argumenty = tuple(argumenty)
+            self._zdejmij_ponowienie(self._klucz_ponowienia(nazwa, argumenty))
+            self._nr_komunikatu += 1
+            id_ = f"do_ponowienia:{self._nr_komunikatu}"
+            rodzaj = "decyzja_niezapisana" if nazwa in DECYZJE_O_PRACY else "polecenie_niezapisane"
+            k = self._komunikat(rodzaj, id_=id_, trwaly=True, co=self._opis_polecenia(nazwa, argumenty))
+            self._do_ponowienia[id_] = (self._klucz_ponowienia(nazwa, argumenty), nazwa, argumenty)
+            self._usun_komunikat("odmowa:baza_zajeta")
+            LOG.warning("kontroler: baza zajeta - polecenie %s czeka na ponowienie przez osobe", nazwa)
+        self._stan_zalegly = True  # stan mogl sie zestarzec; zegar okna odczyta go po zwolnieniu bazy
+        self._stan_ponow_od = time.monotonic() + OKRES_NADRABIANIA_STANU_S
+        self._pokaz_komunikaty()
+        return Odpowiedz(False, k.tekst, "baza_zajeta")
+
+    def ponow_polecenie(self, komunikat_id: str) -> Odpowiedz:
+        """"Ponow teraz": wykonuje jeszcze raz polecenie z komunikatu ``komunikat_id`` (te same argumenty, wszystkie sprawdzenia
+        polecenia od nowa, osoba = wybrana teraz). Udane albo odrzucone trwale (np. odmowa sesji) - wpis i komunikat znikaja;
+        przyczyna przejsciowa (``KODY_DO_PONOWIENIA``: baza nadal zajeta, brak osoby, trwa analiza) - polecenie czeka dalej."""
+        if self._zamkniety:
+            return self._zamkniety_odp()
+        if not isinstance(komunikat_id, str):
+            return self._zle_argumenty("ponow_polecenie")
+        wpis = self._do_ponowienia.get(komunikat_id)
+        if wpis is None:
+            return self._odmowa("odmowa", powod=ST.NAPIS_NIC_DO_PONOWIENIA)
+        klucz, nazwa, argumenty = wpis
+        odpowiedz = getattr(self, nazwa)(*argumenty)
+        if not odpowiedz.ok and odpowiedz.kod not in KODY_DO_PONOWIENIA and self._zdejmij_ponowienie(klucz):
+            self._odswiez()
+        return odpowiedz
 
     # --- polecenia -------------------------------------------------------------------------------
     def wybierz_operatora(self, nazwa: str | None) -> Odpowiedz:
@@ -3327,7 +3519,8 @@ class KontrolerSesji(Kontroler):
                 self._numer_mimo = None
             return wynik
 
-        return self._polecenie(wykonaj, nazwa="podaj_numer_plytki", liczby=(skan_id, n), punkty=sesja is self.sesja)
+        return self._polecenie(wykonaj, nazwa="podaj_numer_plytki", liczby=(skan_id, n), punkty=sesja is self.sesja,
+                               argumenty=(skan_id, n, mimo_nowego_wsadu))
 
     # --- polecenia poranne (E3-A7) ----------------------------------------------------------------
     def przelacz_tryb(self, tryb: str) -> Odpowiedz:
@@ -3345,14 +3538,15 @@ class KontrolerSesji(Kontroler):
                 self.tryb = tryb
             return tryb
 
-        return self._polecenie(wykonaj, operator=False, nazwa="przelacz_tryb")
+        return self._polecenie(wykonaj, operator=False, nazwa="przelacz_tryb", argumenty=(tryb,))
 
     def wybierz_kandydata(self, praca_id: int, sha16: str) -> Odpowiedz:
         if self._zamkniety:
             return self._zamkniety_odp()
         if not isinstance(sha16, str):
             return self._zle_argumenty("wybierz_kandydata")
-        return self._polecenie(lambda: self.rano.wybierz_kandydata(praca_id, sha16), nazwa="wybierz_kandydata", liczby=(praca_id,))
+        return self._polecenie(lambda: self.rano.wybierz_kandydata(praca_id, sha16), nazwa="wybierz_kandydata", liczby=(praca_id,),
+                               argumenty=(praca_id, sha16))
 
     def przypisz_recznie(self, praca_id: int, projekt_id: int | None = None) -> Odpowiedz:
         liczby = (praca_id,) if projekt_id is None else (praca_id, projekt_id)
@@ -3412,7 +3606,7 @@ class KontrolerSesji(Kontroler):
             self._po_zamknieciu_pieca(wynik.get("zamkniety") or {})
             return zamroz(wynik)
 
-        return self._polecenie(wykonaj, nazwa="zamknij_piec_i_przenies", liczby=(sesja_pieca_id,))
+        return self._polecenie(wykonaj, nazwa="zamknij_piec_i_przenies", liczby=(sesja_pieca_id,), argumenty=(sesja_pieca_id, tuple(skany)))
 
     def cofnij_przeniesienie(self, sesja_pieca_id: int) -> Odpowiedz:
         """Cofa "zamknij piec i przenies" (``session_rano.cofnij_przeniesienie``, A6 runda 5): skany wracaja do poprzedniego pieca,
@@ -3444,7 +3638,8 @@ class KontrolerSesji(Kontroler):
             return self._zamkniety_odp()
         if not isinstance(powod, str) or powod not in SR.POWODY_ZAMKNIECIA:
             return self._zle_argumenty("zamknij_brak_recznie")
-        return self._polecenie(lambda: self.rano.zamknij_brak_recznie(projekt_id, powod=powod), nazwa="zamknij_brak_recznie", liczby=(projekt_id,))
+        return self._polecenie(lambda: self.rano.zamknij_brak_recznie(projekt_id, powod=powod), nazwa="zamknij_brak_recznie", liczby=(projekt_id,),
+                               argumenty=(projekt_id, powod))
 
     def cofnij_zamkniecie_reczne(self, projekt_id: int) -> Odpowiedz:
         return self._polecenie(lambda: self.rano.cofnij_zamkniecie_reczne(projekt_id), nazwa="cofnij_zamkniecie_reczne", liczby=(projekt_id,))
@@ -3520,7 +3715,7 @@ class KontrolerSesji(Kontroler):
             self._kuweta_biezaca.pop(r.plan_id, None)
             return r.kuweta_biezaca
 
-        return self._polecenie(wykonaj, nazwa="potwierdz_kuwete")
+        return self._polecenie(wykonaj, nazwa="potwierdz_kuwete", argumenty=(kuweta,))
 
     def cofnij_kuwete(self, kuweta: str) -> Odpowiedz:
         """Backspace: cofa potwierdzenie kuwety ``kuweta`` (ostatnia potwierdzona pokazana na ekranie - ``kuweta_do_cofniecia``),
@@ -3546,7 +3741,7 @@ class KontrolerSesji(Kontroler):
             self._kuweta_biezaca[r.plan_id] = k
             return k
 
-        return self._polecenie(wykonaj, nazwa="cofnij_kuwete")
+        return self._polecenie(wykonaj, nazwa="cofnij_kuwete", argumenty=(kuweta,))
 
     def projekty_kuwety(self, kuweta: str) -> tuple:
         """Projekty (punkty) zlecenia o kuwecie ``kuweta`` do przypisania recznego: ``ProjektPuli`` (zab, typ, stan punktu,
@@ -3585,6 +3780,7 @@ class KontrolerSesji(Kontroler):
             return self._zamkniety_odp()
         if not isinstance(komunikat_id, str):
             return self._zle_argumenty("zamknij_komunikat")
+        self._do_ponowienia.pop(komunikat_id, None)  # E3-P14: "Rezygnuje" - polecenie nie czeka juz na ponowienie
         if not self._usun_komunikat(komunikat_id):
             self._ukryte.add(komunikat_id)  # trwaly: ukryty do konca pracy programu, zostaje przy plytce (``ukryte=True``)
         self._odswiez()

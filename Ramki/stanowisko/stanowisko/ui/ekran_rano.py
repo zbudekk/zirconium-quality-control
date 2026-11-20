@@ -36,8 +36,8 @@ from .. import statusy as ST
 from . import napisy as N
 from . import napisy_rano as NR
 from . import styl
-from .czesci import (ObszarPaneli, PanelOsoby, UkladPlynny, dzien, etykieta, godzina, panel_informacji, panel_komunikatu, panel_numeru, panel_odmowy,
-                     panel_pytania, przycisk, wyczysc, znaczek)
+from .czesci import (ObszarPaneli, PanelOsoby, PanelUwagi, UkladPlynny, dzien, etykieta, godzina, panel_informacji, panel_komunikatu, panel_numeru,
+                     panel_odmowy, panel_pytania, przycisk, wyczysc, znaczek)
 from .kandydaci import WidokPracyRano, nazwa_plytki
 from .mapa import geometria_ukladu
 from .mapa_rano import MapaRano
@@ -48,7 +48,14 @@ OCHRONA_MS = 800  # po zmianie zestawu plytek klikniecia map sa pomijane (jak A-
 KOLUMN_PLYTEK = 3
 KOLEJNOSC_KLAS = ("pewna", "przypisana", "dwuznaczna", "nieznana", "poprawka", "konflikt", "do_powtorzenia")
 MAX_BUFORA = 7
-PYTANE = {"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "pomin_skan"}  # rano: plytki nie z trybu nie dopuszcza sie (A6)
+# E3-P14 (poz. 9): przy otwartym widoku pracy lista kuwet zwija sie do WIERSZY_ZWINIETYCH wierszy, a w oknie nizszym niz
+# PELNA_LISTA_OD (np. 1536 x 864 = ekran 1920 x 1080 przy 125 %, 1600 x 900) znika do zamkniecia pracy - inaczej "To ten projekt"
+# lezalo ponizej widocznej czesci widoku pracy
+PELNA_LISTA_OD = 1000
+WIERSZY_ZWINIETYCH = 2
+LOKALNE_ZAMKNIJ_MIMO_WROC = "_zamknij_mimo_wroc"  # E3-P14 (N3): odpowiedzi na pytanie ekranu przed "Zamknij piec"
+LOKALNE_ZAMKNIJ_MIMO_TAK = "_zamknij_mimo_tak"
+PYTANE ={"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "pomin_skan"}  # rano: plytki nie z trybu nie dopuszcza sie (A6)
 
 
 def blad_programu(komunikat) -> bool:
@@ -95,6 +102,20 @@ def wypelnij(t: QTableWidget, wiersze: list, r: styl.Rozmiary, widocznych: int =
     naglowek = r.naglowek_tabeli + (10 if r.zwarty else 16)
     t.setFixedHeight(naglowek + max(1, min(widocznych, len(wiersze))) * r.wiersz_tabeli + 4)
     t.clearSelection()
+
+
+def lista_nierozstrzygnietych(prace: tuple) -> str:
+    """E3-P14 (N3): "Plytka 4, gniazdo 3 (wybierz); Plytka 5, gniazdo 22 (nieznana)" z ``StanRano.nierozstrzygniete_prace``
+    (najwyzej ``NIEROZSTRZYGNIETYCH_W_NAPISIE`` pozycji, potem "... i jeszcze n")."""
+    pozycje = []
+    for x in prace[:NR.NIEROZSTRZYGNIETYCH_W_NAPISIE]:
+        napis = ST.status_rano(x.klasa).napis
+        if x.gniazdo is None:
+            pozycje.append(NR.NIEROZSTRZYGNIETA_POZA.format(plytka=nazwa_plytki(x.numer_plytki), napis=napis))
+        else:
+            pozycje.append(NR.NIEROZSTRZYGNIETA.format(plytka=nazwa_plytki(x.numer_plytki), gniazdo=x.gniazdo, napis=napis))
+    reszta = len(prace) - len(pozycje)
+    return NR.NIEROZSTRZYGNIETE_ODSTEP.join(pozycje) + (NR.NIEROZSTRZYGNIETE_DALEJ.format(n=reszta) if reszta > 0 else "")
 
 
 def teksty_tabeli(t: QTableWidget) -> list:
@@ -197,11 +218,15 @@ class PanelKuwet(QFrame):
         self.podpowiedz.setVisible(not r.zwarty)  # maly ekran: podpowiedz w komunikacie ramki i na przyciskach
         self._sygnatura = None
 
-    def ustaw(self, stan, bufor: str) -> None:
+    def ustaw(self, stan, bufor: str, zwiniete: bool = False, bez_listy: bool = False) -> None:
+        """``zwiniete`` (E3-P14, poz. 9): otwarty jest widok pracy - lista kuwet pokazuje najwyzej ``WIERSZY_ZWINIETYCH`` wierszy
+        (biezaca kuweta widoczna, reszta przewijana) i chowa podpowiedz; ``bez_listy`` (okno nizsze niz ``PELNA_LISTA_OD``):
+        lista ukryta w calosci - zostaje biezaca kuweta z "Rozlozona" / "Cofnij" i kolejnosc. Dzieki temu przyciski decyzji widoku
+        pracy ("To ten projekt", "Bez projektu", "Cofnij wybor") sa widoczne bez przewijania; lista wraca po zamknieciu pracy."""
         rano = stan.rano
         sygnatura = (rano.kuwety if rano is not None else None, rano.kolejnosc if rano is not None else None,
                      rano.otwarty if rano is not None else None, rano.sesja_pieca_id if rano is not None else None,
-                     rano.kuweta_do_cofniecia if rano is not None else None, stan.operator, bufor, self._r.zwarty)
+                     rano.kuweta_do_cofniecia if rano is not None else None, stan.operator, bufor, self._r.zwarty, zwiniete, bez_listy)
         if sygnatura == getattr(self, "_sygnatura", None):
             return
         self._sygnatura = sygnatura
@@ -233,10 +258,14 @@ class PanelKuwet(QFrame):
             stan_k = (NR.KUWETA_STAN_BIEZACA if x.biezaca else NR.KUWETA_STAN_ROZLOZONA if x.potwierdzona else
                       NR.KUWETA_STAN_BRAKI if x.braki else NR.KUWETA_STAN_CZEKA)
             wiersze.append([x.kuweta, str(x.prac), ", ".join(map(str, x.plytki)), stan_k])
-        wypelnij(self.tabela, wiersze, self._r, widocznych=3 if self._r.zwarty else 6)  # reszta przewijana: miejsce na widok pracy
+        widocznych = min(WIERSZY_ZWINIETYCH, 3 if self._r.zwarty else 6) if zwiniete else (3 if self._r.zwarty else 6)
+        wypelnij(self.tabela, wiersze, self._r, widocznych=widocznych)  # reszta przewijana: miejsce na widok pracy
+        self.tabela.setVisible(not (zwiniete and bez_listy))
+        self.podpowiedz.setVisible(not self._r.zwarty and not zwiniete)
         indeks = next((i for i, x in enumerate(kuwety) if x.biezaca), None)
         if indeks is not None:
             self.tabela.selectRow(indeks)
+            self.tabela.scrollToItem(self.tabela.item(indeks, 0), QAbstractItemView.ScrollHint.PositionAtTop)
 
     def _klik(self, wiersz: int, _kolumna: int) -> None:
         if 0 <= wiersz < len(self._kuwety):
@@ -296,6 +325,12 @@ class PanelWyniku(QScrollArea):
         self.biezace_tytul = etykieta("", "duzy", n("rano_braki_biezace_tytul"), zawijaj=True)
         u.addWidget(self.biezace_tytul)
         self.biezace = tabela(n("tabela_braki_biezace"), NR.KOLUMNY_BRAKI_BIEZACE, styl.ZWYKLE)
+        # E3-P14 (poz. 3): 4 rowne kolumny ucinaly stan punktu ("nie wyszedl z ...") - kuweta, stan i piec wg tresci, reszta dla zebow
+        naglowek = self.biezace.horizontalHeader()
+        naglowek.setMinimumSectionSize(48)
+        for kolumna, tryb in enumerate((QHeaderView.ResizeMode.ResizeToContents, QHeaderView.ResizeMode.Stretch,
+                                        QHeaderView.ResizeMode.ResizeToContents, QHeaderView.ResizeMode.ResizeToContents)):
+            naglowek.setSectionResizeMode(kolumna, tryb)
         self.biezace.cellClicked.connect(self._klik_braku)
         u.addWidget(self.biezace)
         if ostatni:  # strona ostatniego zamknietego pieca: bez listy brakow biezacej (jest na stronie "Kompletne i braki")
@@ -425,9 +460,12 @@ class PanelWyniku(QScrollArea):
                                    NR.UWAGA_DOFREZOWANY if z.z_dofrezowaniem else ""] for z in kompletne], r)
         self.braki_tytul.setText(NR.BRAKI_TYTUL.format(n=len(braki)))
         wypelnij(self.braki, [[z.kuweta or NR.BRAK_DANYCH, self._brakuje(z), self._stany(z)] for z in braki], r)
-        nier = rano.nierozstrzygniete if rano is not None else {}
-        tekst = (NR.NIEROZSTRZYGNIETE.format(dwuznaczne=nier.get("dwuznaczne", 0), nieznane=nier.get("nieznane", 0))
-                 if nier and (nier.get("dwuznaczne") or nier.get("nieznane")) else "")
+        # E3-P14 (N3): prace bez rozstrzygniecia NAZWANE (plytka, gniazdo, napis statusu) - takze po "Zamknij piec"
+        nier = tuple(getattr(rano, "nierozstrzygniete_prace", ()) or ()) if rano is not None else ()
+        tekst = ""
+        if nier:
+            wzor = NR.NIEROZSTRZYGNIETE if rano.otwarty else NR.NIEROZSTRZYGNIETE_ZAMKNIETY
+            tekst = wzor.format(n=len(nier), lista=lista_nierozstrzygnietych(nier), brak=ST.STANY_PUNKTU["brak_po_piecu"])
         self.nierozstrzygniete.setText(tekst)
         self.nierozstrzygniete.setVisible(bool(tekst))
         poprawki = rano.poprawki if rano is not None else ()
@@ -466,6 +504,7 @@ class EkranRano(QWidget):
         self._bufor = ""
         self._strona = "rozkladanie"
         self._numer_dla: int | None = None  # skan_id plytki z otwartym panelem numeru
+        self._pytanie_zamkniecia: int | None = None  # E3-P14 (N3): piec, o ktorego zamkniecie mimo prac bez rozstrzygniecia pyta ekran
         self._piec_widziany: tuple | None = None
         self._obrazy: dict = {}
         self._karty: dict[int, KartaPlytki] = {}
@@ -673,7 +712,9 @@ class EkranRano(QWidget):
             self.widok.wyczysc()
         else:
             self.widok.ustaw(stan, plytka, gniazdo, praca, rano.otwarty)
-        self.kuwety.ustaw(stan, self._bufor)
+        okno = self.okno
+        niskie = okno is not None and okno.height() < PELNA_LISTA_OD
+        self.kuwety.ustaw(stan, self._bufor, zwiniete=plytka is not None, bez_listy=niskie)  # E3-P14 (poz. 9): miejsce na przyciski widoku pracy
         ostatni = rano.ostatni_zamkniety if rano is not None else None
         if self._strona == "ostatni" and ostatni is None:
             self._strona = "wynik"
@@ -792,10 +833,60 @@ class EkranRano(QWidget):
         self.cofnij_przeniesienie.setEnabled(stan.operator is not None)
 
     def _zamknij_piec(self) -> None:
-        """"Zamknij piec" POKAZANEGO pieca (A6 runda 2, P3: spoznione klikniecie nie zamknie nastepnego pieca)."""
+        """"Zamknij piec" POKAZANEGO pieca (A6 runda 2, P3: spoznione klikniecie nie zamknie nastepnego pieca). E3-P14 (N3): gdy
+        w piecu sa prace bez rozstrzygniecia (``StanRano.nierozstrzygniete_prace``), przycisk NIE zamyka - ekran pyta (ile prac,
+        ktore plytki i gniazda); zamyka dopiero odpowiedz "Zamknij piec mimo to" (``_odpowiedz_zamkniecia``)."""
         rano = self._stan.rano if self._stan is not None else None
-        if rano is not None and rano.sesja_pieca_id is not None:
-            self._polecenie("zamknij_piec", rano.sesja_pieca_id)
+        if rano is None or rano.sesja_pieca_id is None:
+            return
+        if getattr(rano, "nierozstrzygniete_prace", ()):
+            self._pytanie_zamkniecia = rano.sesja_pieca_id
+            self._odswiez()
+            return
+        self._polecenie("zamknij_piec", rano.sesja_pieca_id)
+
+    def _odpowiedz_zamkniecia(self, nazwa: str, _argumenty: tuple = ()) -> None:
+        """Odpowiedz na pytanie "Zamknac piec mimo prac bez rozstrzygniecia?": "Wroc do rozstrzygania" (domyslna) - piec zostaje
+        otwarty, ekran otwiera pierwsza prace bez rozstrzygniecia; "Zamknij piec mimo to" - polecenie ``zamknij_piec``."""
+        piec, self._pytanie_zamkniecia = self._pytanie_zamkniecia, None
+        rano = self._stan.rano if self._stan is not None else None
+        if rano is None or piec is None or rano.sesja_pieca_id != piec or not rano.otwarty:
+            self._odswiez()
+            return
+        if nazwa == LOKALNE_ZAMKNIJ_MIMO_TAK:
+            self._polecenie("zamknij_piec", piec)
+            return
+        pierwsza = next((x for x in rano.nierozstrzygniete_prace if x.gniazdo is not None), None)
+        if pierwsza is not None:
+            self._wybor = (pierwsza.skan_id, pierwsza.gniazdo)
+            self._strona = "rozkladanie"
+        self._odswiez()
+
+    def _prace_pytania_zamkniecia(self, rano) -> tuple:
+        """Prace, o ktore pyta ekran przed "Zamknij piec" - tylko dla pokazanego, otwartego pieca; pusta krotka = pytania nie ma
+        (piec zamkniety, inny piec, wszystko rozstrzygniete - wtedy pytanie samo znika)."""
+        prace = tuple(getattr(rano, "nierozstrzygniete_prace", ()) or ()) if rano is not None else ()
+        if self._pytanie_zamkniecia is None or rano is None or not rano.otwarty or rano.sesja_pieca_id != self._pytanie_zamkniecia or not prace:
+            self._pytanie_zamkniecia = None
+            return ()
+        return prace
+
+    def _panel_zamkniecia(self, prace: tuple):
+        """Panel pytania "Zamknac piec mimo prac bez rozstrzygniecia?" - pierwsza, wyrozniona odpowiedz: powrot do rozstrzygania."""
+        ile = ST.odmiana(len(prace), *NR.ZAMKNIJ_MIMO_ILE).format(n=len(prace))
+        panel = PanelUwagi("pytanie_zamknij_mimo", "ostrzezenie", NR.ZAMKNIJ_MIMO_TYTUL,
+                           NR.ZAMKNIJ_MIMO_TEKST.format(ile=ile, lista=lista_nierozstrzygnietych(prace), brak=ST.STANY_PUNKTU["brak_po_piecu"]),
+                           [("zamknij_mimo_wroc", NR.ZAMKNIJ_MIMO_WROC, LOKALNE_ZAMKNIJ_MIMO_WROC, (), True, "glowny"),
+                            ("zamknij_mimo_tak", NR.ZAMKNIJ_MIMO_TAK, LOKALNE_ZAMKNIJ_MIMO_TAK, (), self._stan.operator is not None, None)],
+                           r=self._r)
+        panel.polecenie.connect(slaba(self._odpowiedz_zamkniecia))
+        return panel
+
+    def resizeEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+        """Wysokosc okna decyduje, czy lista kuwet zwija sie przy otwartej pracy (E3-P14, poz. 9)."""
+        super().resizeEvent(zdarzenie)
+        if self._stan is not None and self._wybor is not None:
+            self._odswiez()
 
     def _otworz_piec(self) -> None:
         self._polecenie_pieca("otworz_piec_ponownie")
@@ -838,9 +929,11 @@ class EkranRano(QWidget):
                 numer = p
             else:
                 self._numer_dla = None
+        do_zamkniecia = self._prace_pytania_zamkniecia(rano)  # E3-P14 (N3): pytanie ekranu przed "Zamknij piec"
         sygnatura = (pokaz_osobe, okno._zmiana_osoby, stan.operator, stan.operatorzy, tuple(teksty), okno._odmowa, okno._informacja,
                      numer.skan_id if numer is not None else None, numer.numer if numer is not None else None, tuple(pytania), tuple(plytkowe),
-                     tuple(reszta), tuple((p.skan_id, p.numer, p.typ) for p in (rano.plytki if rano is not None else ())), r.zwarty)
+                     tuple(reszta), tuple((p.skan_id, p.numer, p.typ) for p in (rano.plytki if rano is not None else ())), r.zwarty,
+                     self._pytanie_zamkniecia, do_zamkniecia)
         if not self._zmienione("uwagi", sygnatura):
             return
         wyczysc(self.uwagi.uklad)
@@ -850,6 +943,8 @@ class EkranRano(QWidget):
             panel.bez_zmian.connect(okno._przelacz_zmiane_osoby)
             panel.wyloguj.connect(okno._wyloguj)
             self.uwagi.uklad.addWidget(panel)
+        if do_zamkniecia:  # pierwsze i poza limitem paneli: pytanie, na ktore osoba wlasnie czeka
+            self.uwagi.uklad.addWidget(self._panel_zamkniecia(do_zamkniecia))
         budowa = []
         if okno._informacja:
             budowa.append(lambda: panel_informacji(okno._informacja, r))

@@ -97,3 +97,27 @@ przeniesienia. Zrzuty: zmienna `E3_ZRZUTY`.
 - Cofniete moze byc tylko ostatnie reczne zamkniecie braku z ekranu i tylko do restartu okna (A6 pozwala cofnac kazde - D12,
   do decyzji, czy pokazac historie zamkniec).
 - Miniatury z indeksu (`cechy_stl.miniatura`, A4) - projekt bez miniatury: napis "brak miniatury".
+
+## Poprawki przed T7 / T14 (E3-P14, 20.11.2026)
+
+- **Przyciski decyzji bez przewijania (poz. 9 / D8).** Przy otwartym widoku pracy lista kuwet zwija sie: w oknie od
+  1000 punktow wysokosci do 2 wierszy (biezaca kuweta na gorze), w nizszym (1600 x 900, 1536 x 864 = ekran 1920 x 1080
+  przy 125 %, 1280 x 720) znika do zamkniecia pracy; podpowiedz pod przyciskami tez. Zostaja: tytul, kolejnosc, biezaca
+  kuweta, "Rozlozona" / "Cofnij". Widok pracy BEZ projektu (dwuznaczna, nieznana bez decyzji) nie pokazuje pustych pol
+  "Kuweta -, Zab -, Typ -" ani pustej miniatury; karta kandydata ma "Kandydat n" i "pasuje w x %" w jednym wierszu.
+  Sprawdzone w 4 rozmiarach okna: "To ten projekt" x 2, "Bez projektu", "Przypisz recznie", "Cofnij wybor", "Zamknij
+  [Esc]", "Rozlozona", "Cofnij", "Zamknij piec", kolejnosc x 2, przelacznik stron (`test_p14_ekran.py`).
+- **Opis w widoku pracy (poz. 7).** Dla zoltej pracy: "... porownaj je z praca i kliknij "To ten projekt" przy
+  wlasciwym" (`napisy_rano.OPIS_W_WIDOKU`); opis w legendzie ("kliknij gniazdo ...") bez zmian.
+- **"Zamknij piec" z pracami bez rozstrzygniecia (N3).** Gdy `StanRano.nierozstrzygniete_prace` nie jest puste, przycisk
+  NIE zamyka: nad plytkami pojawia sie pytanie ekranu `pytanie_zamknij_mimo` (ile prac, plytka i gniazdo kazdej, skutek)
+  z odpowiedziami "Wroc do rozstrzygania" (pierwsza, wyrozniona; piec zostaje otwarty, otwiera sie pierwsza taka praca)
+  i "Zamknij piec mimo to" (polecenie `zamknij_piec`). Strona "Kompletne i braki" nazywa te prace w osobnej grupie
+  (`rano_nierozstrzygniete`): w otwartym piecu "jeszcze NIE policzone", po zamknieciu "NIE policzone w tym piecu ... zeby
+  w brakach jako "nie wyszedl z pieca" albo zlecenia nie ma na zadnej liscie" z rada "Otworz piec ponownie". Klawisz
+  "Zamknij piec" ramki porannej i polecenie kontrolera nie pytaja (decyzja wlasciciela - raport E3-P14).
+- **Lista brakow (poz. 3).** Kolumny "Kuweta", "Stan", "Piec" wg tresci, "Brakuje" bierze reszte - stan punktu nie jest
+  ucinany.
+- **Panel Excela (poz. 1, 2).** Ostrzezenia i powod wyboru wiersza przechodza przez `napisy_rano.dla_technika`: bez
+  "regula N:", "(D2)", "[excel]"; ostrzezenie o skoroszycie niewskazanym w ustawieniach jako zdanie dla osoby (nazwa
+  skoroszytu i arkusza zostaje), pelny tekst raz w logu programu.
