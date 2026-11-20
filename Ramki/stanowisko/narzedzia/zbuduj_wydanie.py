@@ -12,7 +12,8 @@ Zawartosc ``Stanowisko_<wersja>.zip`` (rozpakowac w calosci, potem ``zainstaluj.
     kola_testy/   pytest i jego zaleznosci (instalacja/zamrozone_testy.txt) - instalowane tylko przez zainstaluj.cmd /testy
 
 Zrodlo plikow programu: domyslnie commit HEAD repozytorium (tresc z gita, nie z katalogu roboczego - zmiany
-niezacommitowane NIE wchodza); ``--zrodlo KATALOG`` bierze pliki z katalogu (proby, kopia drzewa) i wymaga ``--data``.
+niezacommitowane NIE wchodza; ``--rewizja COMMIT`` odtwarza wczesniejsze wydanie); ``--zrodlo KATALOG`` bierze pliki
+z katalogu (proby, kopia drzewa) i wymaga ``--data``.
 Paczka jest powtarzalna bajtowo: ten sam commit + te same kola = ten sam SHA-256 (stala data wpisow = data commita,
 staly porzadek, stale atrybuty; kola bez kompresji, reszta deflate 9). Budowa nie uzywa sieci. Tylko biblioteka standardowa.
 """
@@ -139,7 +140,7 @@ def dobierz_kola(katalog: Path, pakiety: dict[str, str], opis: str) -> list[Path
 
 
 def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path | None = None, commit: str | None = None,
-           data: dt.datetime | None = None, bez_samokontroli: bool = False, stanowisko: Path = STANOWISKO) -> dict:
+           data: dt.datetime | None = None, bez_samokontroli: bool = False, stanowisko: Path = STANOWISKO, rewizja: str = "HEAD") -> dict:
     """Buduje ``Stanowisko_<wersja>.zip`` i plik ``.sha256`` obok. Zwraca {plik, sha256, rozmiar, wersja, commit, ...}."""
     ostrzezenia = []
     if zrodlo is not None:
@@ -147,9 +148,9 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
             raise BladBudowy("--zrodlo wymaga --data (data wpisow paczki, np. 2026-11-20T12:00:00) - inaczej paczka nie bylaby powtarzalna")
         pliki, commit, tryb = pliki_z_katalogu(zrodlo), commit or "kopia-robocza", "katalog"
     else:
-        pliki, commit, data, czyste = pliki_z_gita(stanowisko)
+        pliki, commit, data, czyste = pliki_z_gita(stanowisko, rewizja)
         tryb = "git"
-        if not czyste:
+        if not czyste and rewizja == "HEAD":
             ostrzezenia.append("w katalogu roboczym sa zmiany niezacommitowane - paczka zawiera stan commita HEAD, bez tych zmian")
     brak = [n for n in WYMAGANE if n not in pliki]
     if brak:
@@ -291,7 +292,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--wyjscie", type=Path, help="katalog na Stanowisko_<wersja>.zip (poza repozytorium)")
     parser.add_argument("--wersja", default=None, help="numer wersji (domyslnie z pliku WERSJA)")
     parser.add_argument("--kola", type=Path, default=None, help="katalog z kolami pip (domyslnie <wyjscie>/kola)")
-    parser.add_argument("--zrodlo", type=Path, default=None, help="katalog z plikami programu zamiast commita HEAD (proby)")
+    parser.add_argument("--rewizja", default="HEAD", help="commit, z ktorego powstaje paczka (domyslnie HEAD) - odtworzenie wczesniejszego wydania")
+    parser.add_argument("--zrodlo", type=Path, default=None, help="katalog z plikami programu zamiast commita (proby)")
     parser.add_argument("--commit", default=None, help="z --zrodlo: opis pochodzenia wpisywany do wydanie.json")
     parser.add_argument("--data", default=None, help="z --zrodlo: data wpisow paczki, RRRR-MM-DDTGG:MM:SS (UTC)")
     parser.add_argument("--bez-samokontroli", action="store_true", help="pozwol zbudowac paczke bez modulu samokontroli (tylko proby)")
@@ -309,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("podaj --wyjscie KATALOG")
         data = dt.datetime.strptime(args.data, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=dt.timezone.utc) if args.data else None
         wynik = zbuduj(args.wyjscie, args.kola or args.wyjscie / "kola", wersja=args.wersja, zrodlo=args.zrodlo, commit=args.commit, data=data,
-                       bez_samokontroli=args.bez_samokontroli)
+                       bez_samokontroli=args.bez_samokontroli, rewizja=args.rewizja)
     except (BladBudowy, subprocess.CalledProcessError, ValueError) as e:
         print(f"BLAD: {e}", file=sys.stderr)
         return 1

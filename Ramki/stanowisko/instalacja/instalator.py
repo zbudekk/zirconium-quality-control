@@ -195,11 +195,11 @@ def srodowisko_procesu() -> dict:
 class Dziennik:
     """Wiersze ``data godzina | operacja | tekst`` dopisywane do ``<KATALOG>/dziennik_instalacji.txt`` (gdy katalog jest)."""
 
-    def __init__(self, katalog: Path | None, operacja: str, zegar=dt.datetime.now):
+    def __init__(self, katalog: Path, operacja: str, zegar=dt.datetime.now):
         self.katalog, self.operacja, self.zegar = katalog, operacja, zegar
 
     def wpis(self, tekst: str) -> None:
-        if self.katalog is None or not self.katalog.is_dir():
+        if not self.katalog.is_dir():
             return
         try:
             with open(self.katalog / PLIK_DZIENNIKA, "a", encoding="utf-8", newline="\r\n") as f:
@@ -325,7 +325,8 @@ class Srodowisko:
             raise BladInstalacji(KOD_INSTALACJA, f"pip zakonczyl sie bledem (kod {wynik.returncode}): "
                                  + " ".join((wynik.stderr or wynik.stdout).strip().splitlines()[-3:])[-600:],
                                  f"Szczegoly: {dziennik_pip}. Sprawdz miejsce na dysku i uruchom zainstaluj.cmd ponownie - "
-                                 "niedokonczona wersja zostanie usunieta i zalozona od nowa. Wersja biezaca bez zmian.")
+                                 "niedokonczona wersja zostanie usunieta i zalozona od nowa; gdy blad wraca, paczka jest niekompletna "
+                                 "(zglos budujacemu). Wersja biezaca bez zmian.")
 
     def pakiety(self, venv: Path) -> dict[str, str]:
         wynik = uruchom([self.python(venv), "-I", "-m", "pip", "list", "--isolated", "--format=json", "--disable-pip-version-check"],
@@ -770,7 +771,7 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
     """Instalacja albo aktualizacja z rozpakowanej paczki. Zwraca kod wyjscia (0 = wersja z paczki jest wersja biezaca)."""
     srodowisko = srodowisko or Srodowisko()
     paczka, katalog = paczka.resolve(), katalog.resolve()
-    dziennik = Dziennik(None, "zainstaluj", zegar)
+    dziennik = Dziennik(katalog, "zainstaluj", zegar)  # wpisy trafiaja do pliku dopiero, gdy katalog instalacji istnieje
     try:
         print(f"[1/9] Sumy SHA-256 paczki ({paczka})...", flush=True)
         wydanie, sumy = sprawdz_paczke(paczka)
@@ -802,7 +803,6 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
         except OSError as e:
             raise BladInstalacji(KOD_INSTALACJA, f"nie mozna pisac w katalogu instalacji ({type(e).__name__})",
                                  "Wybierz katalog, w ktorym to konto moze zapisywac: zainstaluj.cmd /katalog <KATALOG>.") from e
-        dziennik.katalog = katalog
         dziennik.wpis(f"START: paczka wersja {wersja}, commit {wydanie.get('commit')}, sumy paczki zgodne {len(sumy)} z {len(sumy)}, "
                       f"Python {wersja_pythona}")
         biezaca = czytaj_wskaznik(katalog, PLIK_BIEZACEJ)
@@ -910,7 +910,7 @@ def _zglos(dziennik: Dziennik, operacja: str, e: BladInstalacji) -> int:
     dziennik.krok(f"BLAD: {e.opis}")
     if e.rada:
         dziennik.krok(f"CO ZROBIC: {e.rada}")
-    biezaca = czytaj_wskaznik(dziennik.katalog, PLIK_BIEZACEJ) if dziennik.katalog else None
+    biezaca = czytaj_wskaznik(dziennik.katalog, PLIK_BIEZACEJ)
     dziennik.krok(f"{operacja}: NIEUDANA (kod {e.kod}) - wersja biezaca bez zmian: {biezaca or 'brak'}")
     return e.kod
 

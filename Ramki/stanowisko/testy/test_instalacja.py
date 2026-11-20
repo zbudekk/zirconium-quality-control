@@ -214,12 +214,14 @@ def test_zepsuty_plik_w_paczce_zatrzymuje_przed_jakakolwiek_zmiana(st, tmp_path,
     assert st.zainstaluj(paczka) == I.KOD_PACZKA and not st.katalog.exists()
 
 
-def test_zepsuty_plik_przy_aktualizacji_nie_rusza_wersji_biezacej(zainstalowane, tmp_path):
+def test_zepsuty_plik_przy_aktualizacji_nie_rusza_wersji_biezacej(zainstalowane, tmp_path, capsys):
     st = zainstalowane
     paczka = zbuduj_paczke(tmp_path, "2.0")
     (paczka / "program" / "stanowisko" / "baza.py").write_text("zepsute\n", encoding="ascii")
     przed = {p: sha(p) for p in st.katalog.rglob("*") if p.is_file() and p.name != I.PLIK_DZIENNIKA}
     assert st.zainstaluj(paczka) == I.KOD_PACZKA
+    assert "INSTALACJA: NIEUDANA (kod 3) - wersja biezaca bez zmian: 1.0" in capsys.readouterr().out
+    assert "sumy SHA-256 paczki niezgodne" in st.dziennik()  # przy aktualizacji nieudana proba zostaje w dzienniku
     assert {p: sha(p) for p in st.katalog.rglob("*") if p.is_file() and p.name != I.PLIK_DZIENNIKA} == przed
     assert st.biezaca == "1.0" and I.stan_wersji(st.katalog, "2.0") == "brak"
 

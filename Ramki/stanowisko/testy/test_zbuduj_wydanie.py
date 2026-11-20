@@ -354,6 +354,11 @@ def test_budowa_z_commita_nie_z_katalogu_roboczego(tmp_path):
         assert "program/stanowisko/nowy_bez_gita.py" not in z.namelist() and "program/testy/test_x.py" not in z.namelist()
         assert {w.date_time for w in z.infolist()} == {(2026, 11, 19, 10, 0, 0)}  # data commita (UTC)
     assert wydanie["commit"] == commit and wydanie["data_commita"] == "2026-11-19T10:00:00Z" and wydanie["zrodlo"] == "git"
+    # nowy commit zmienia paczke z HEAD, ale --rewizja odtwarza wczesniejsze wydanie bajt w bajt
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "druga zmiana")
+    assert ZW.zbuduj(tmp_path / "c", kola, stanowisko=stanowisko)["sha256"] != a["sha256"]
+    assert ZW.zbuduj(tmp_path / "d", kola, stanowisko=stanowisko, rewizja=commit)["sha256"] == a["sha256"]
 
 
 def test_listy_zamrozone_w_repo_zgodne_z_requirements():
