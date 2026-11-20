@@ -847,7 +847,11 @@ def przywroc_kopie(plik_bazy: Path, kopia: Path, schemat: int, teraz: dt.datetim
             dodatkowy = plik_bazy.with_name(plik_bazy.name + przyrostek)
             if dodatkowy.exists() and dodatkowy.stat().st_size > 0:
                 raise sqlite3.OperationalError(f"database is locked (obok bazy lezy plik {dodatkowy.name})")
-        os.replace(nowy, plik_bazy)
+        try:
+            os.replace(nowy, plik_bazy)
+        except PermissionError as e:  # Windows: inny program trzyma plik bazy otwarty (bez transakcji) - to nie jest blad dysku
+            raise sqlite3.OperationalError(f"database is locked (pliku {plik_bazy.name} nie da sie zamienic - {type(e).__name__}: "
+                                           "trzyma go otwarty inny program)") from e
     except (sqlite3.Error, OSError) as e:
         for zbedny in (nowy, odlozona_tymczasowa):
             try:
@@ -1471,7 +1475,8 @@ def _zglos(dziennik: Dziennik, operacja: str, e: BladInstalacji) -> int:
 # ----------------------------------------------------------------------------------------- powrot, lista, usuwanie
 
 def zapytaj_konsole(pytanie: str) -> bool:
-    """Pytanie T / N na konsoli; odpowiedz inna niz T / TAK (takze brak konsoli) = nie."""
+    """Pytanie T / N na konsoli; zgoda to wylacznie ``T`` / ``t``. Sam Enter, kazda inna odpowiedz i brak konsoli = nie
+    (skrypt lezy obok ``Stanowisko.cmd`` - odpowiedz domyslna musi byc bezpieczna)."""
     try:
         odpowiedz = input(pytanie)
     except (EOFError, OSError):
@@ -1479,7 +1484,7 @@ def zapytaj_konsole(pytanie: str) -> bool:
         return False
     if not sys.stdin.isatty():  # odpowiedz z potoku albo pliku: Enter nie pojawil sie na ekranie
         print(odpowiedz, flush=True)
-    return odpowiedz.strip().lower() in ("t", "tak")
+    return odpowiedz.strip().lower() == "t"
 
 
 def wroc(katalog: Path, *, przywroc: bool = False, potwierdz=None, srodowisko: Srodowisko | None = None, zegar=dt.datetime.now) -> int:
