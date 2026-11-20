@@ -39,10 +39,10 @@ from .. import kontroler_api as K
 from .. import statusy as ST
 from . import napisy as N
 from . import styl
-from .czesci import (LOKALNE_NUMER_BEZ_ZMIAN, LOKALNE_ZAMKNIJ_INFORMACJE, LOKALNE_ZAMKNIJ_ODPOWIEDZ, KafelekPlytki, Legenda, ListaDofrezowania,
-                     ListaPlytek, ObszarPaneli, PanelOsoby, PasekStanu, UkladPlynny, WidokPracy, do_obejrzenia, dzien, etykieta, godzina,
-                     napis_dopuszczenia, nazwa_plytki, panel_informacji, panel_komunikatu, panel_numeru, panel_odmowy, panel_pytania, przycisk,
-                     stan_obejrzenia, styl_znaczka_poziomu, wyczysc)
+from .czesci import (LOKALNE_NUMER_BEZ_ZMIAN, LOKALNE_POKAZ_NOWA, LOKALNE_ZAMKNIJ_INFORMACJE, LOKALNE_ZAMKNIJ_ODPOWIEDZ, KafelekPlytki, Legenda,
+                     ListaDofrezowania, ListaPlytek, ObszarPaneli, PanelOsoby, PasekStanu, UkladPlynny, WidokPracy, do_obejrzenia, dzien, etykieta,
+                     godzina, napis_dopuszczenia, nazwa_plytki, panel_informacji, panel_komunikatu, panel_nowego_wyniku, panel_numeru, panel_odmowy,
+                     panel_pytania, przycisk, sprawy_nowych_plytek, stan_obejrzenia, styl_znaczka_poziomu, wyczysc)
 from .ekran_rano import EkranRano
 from .mapa import MapaPlytki, geometria_ukladu
 from .obraz import WczytywaczObrazow
@@ -353,6 +353,9 @@ class OknoWieczor(QWidget):
         if self._plytka_id is None and numery:
             self._plytka_id = stan.biezaca_plytka if stan.biezaca_plytka in numery else numery[-1]
         self._nieobejrzane.discard(self._plytka_id)
+        pokazana = stan.plytka(self._plytka_id) if self._plytka_id is not None else None
+        if pokazana is not None:  # E3-P14 (N2): poprzedni skan plytki, o ktory pyta pokazana plytka, nie jest juz "nowym wynikiem"
+            self._nieobejrzane.discard(pokazana.moze_zastapic)
         if self._zmiana_osoby and stan.wymaga_operatora:
             self._zmiana_osoby = False
 
@@ -388,6 +391,8 @@ class OknoWieczor(QWidget):
         self._plytka_id, self._gniazdo, self._poza, self._nr_pracy, self._podaj_numer = skan_id, gniazdo, poza, 0, False
         self._praca_widoku = None
         self._nieobejrzane.discard(skan_id)
+        # E3-P14 (N2): pokazana plytka pyta "ponowny skan?" o swoj poprzedni skan - ten tez przestaje byc "nowym wynikiem"
+        self._nieobejrzane.discard(self._stan.plytka(skan_id).moze_zastapic)
         self._odswiez()
 
     def _pokaz_nowa(self) -> None:
@@ -642,10 +647,17 @@ class OknoWieczor(QWidget):
         widoczne = [p for p in stan.plytki if self._pokaz_wczesniejsze or p.zmiana in (None, stan.zmiana) or p.skan_id == self._plytka_id]
         wczesniejszych = sum(1 for p in stan.plytki if p.zmiana not in (None, stan.zmiana))
         z_komunikatem = {k.skan_id for k in otwarte(stan.komunikaty) if k.skan_id is not None and k.skan_id != self._plytka_id}
+        # E3-P14 (poz. 8): skan, ktory otwarte pytanie "ponowny skan?" proponuje zastapic - kafelek "poprzedni skan tej plytki"
+        poprzednie = {q.poprzedni_id for q in otwarte(stan.pytania) if q.rodzaj == "ponowny_skan" and q.poprzedni_id is not None}
         self.lista_plytek.ustaw(widoczne, self._plytka_id, self._nieobejrzane, {q.skan_id for q in otwarte(stan.pytania)}, wczesniejszych,
-                                self._pokaz_wczesniejsze, stan.niezapisane, z_komunikatem)
+                                self._pokaz_wczesniejsze, stan.niezapisane, z_komunikatem, poprzednie)
         nowe = [p for p in stan.plytki if p.skan_id in self._nieobejrzane]
         self.lista_plytek.ustaw_nowe(nazwa_plytki(nowe[-1].numer) if nowe else None, len(nowe))
+        # E3-P14 (N2): wynik nowej plytki czeka, ekran zostal na ogladanej - trwaly panel z jej pytaniami i komunikatami.
+        # Runda 2 (P3): w kolumnie plytek, nie nad mapa - mapa ogladanej plytki nie zmienia polozenia ani rozmiaru
+        sprawy = sprawy_nowych_plytek(stan, nowe)
+        if self._zmienione("nowy_wynik", (sprawy, self._r.zwarty)):
+            self.lista_plytek.ustaw_panel_nowego(panel_nowego_wyniku(sprawy, self._r) if sprawy else None)
         if self._blysk_nowej and nowe:
             self.pasek.blysk()  # krotki sygnal na pasku: przyszedl wynik, ekran zostaje na pokazanej plytce
         self._blysk_nowej = False
@@ -854,6 +866,8 @@ class OknoWieczor(QWidget):
         elif nazwa == LOKALNE_ZAMKNIJ_INFORMACJE:
             self._informacja = ""
             self._odswiez()
+        elif nazwa == LOKALNE_POKAZ_NOWA:
+            self._pokaz_nowa()
         elif nazwa == "zamknij_komunikat" and len(argumenty) > 1:  # panel jednakowych komunikatow zamyka je wszystkie, ekran raz (A-D4)
             self._wstrzymaj = True
             try:

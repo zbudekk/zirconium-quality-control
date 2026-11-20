@@ -475,6 +475,24 @@ class Baza:
     def wersja(self) -> int:
         return int(self.polaczenie.execute("PRAGMA user_version").fetchone()[0])
 
+    @contextlib.contextmanager
+    def czekanie(self, czekaj_ms: int) -> Iterator[None]:
+        """Na czas bloku: na baze zajeta przez inny program czeka sie najwyzej ``czekaj_ms`` (zamiast czekania polaczenia,
+        domyslnie 5 s) - dla zapisow i odczytow wywolanych kliknieciem w oknie, zeby okno nie stalo (E3-P14, N1). Po bloku
+        (takze po wyjatku) wraca poprzednie czekanie; bloki mozna zagniezdzac. Zmienia tylko ustawienie tego polaczenia
+        (``PRAGMA busy_timeout``) - pliku bazy nie dotyka. ``BladBazy`` podaje czas, ktory naprawde obowiazywal."""
+        poprzednie = self.czekaj_ms
+        self._ustaw_czekanie(czekaj_ms)
+        try:
+            yield
+        finally:
+            self._ustaw_czekanie(poprzednie)
+
+    def _ustaw_czekanie(self, czekaj_ms: int) -> None:
+        if self.polaczenie is not None:
+            self.polaczenie.execute(f"PRAGMA busy_timeout = {int(czekaj_ms)}")
+        self.czekaj_ms = int(czekaj_ms)
+
     def _wykonaj(self, sql: str, parametry: tuple | dict = ()) -> sqlite3.Cursor:
         """Jedno polecenie; blokada trzymana przez inny program = ``BladBazy`` z komunikatem dla czlowieka (nie surowy blad SQLite)."""
         try:

@@ -34,6 +34,7 @@ BEZ_OSOBY = ("zamknij_pytanie", "zamknij_komunikat", "odswiez_pule", "start_skan
 LOKALNE_NUMER_BEZ_ZMIAN = "_numer_bez_zmian"
 LOKALNE_ZAMKNIJ_ODPOWIEDZ = "_zamknij_odpowiedz"
 LOKALNE_ZAMKNIJ_INFORMACJE = "_zamknij_informacje"
+LOKALNE_POKAZ_NOWA = "_pokaz_nowa"  # E3-P14 (N2): "Pokaz nowy wynik" z panelu "Nowy wynik czeka"
 KLASY_LICZNIKOW = (ST.KOLOR_CZERWONY, ST.KOLOR_ZOLTY, ST.KOLOR_POMARANCZOWY, ST.KOLOR_SZARY, ST.KOLOR_ZATWIERDZONA_OK, ST.KOLOR_ZIELONY)
 SKAN_PRZYJETY = "przyjety"  # klucz ``statusy.STATUSY_PLYTKI`` skanu, ktory sie liczy i przyjmuje decyzje
 # Start skanu z programu jest atrapa do dnia skanera (kontrakt: ``aplikacja.md`` "Start skanu (DW5)"; stan nie mowi, czy
@@ -216,6 +217,11 @@ def do_obejrzenia(plytka) -> list:
             if p.decyzja is None and "ukruszona" in p.dozwolone and p.kolor is not None and p.kolor not in (ST.KOLOR_ZIELONY, ST.KOLOR_ZATWIERDZONA_OK)]
 
 
+def czeka_na_odpowiedz_o_ponowny_skan(plytka) -> bool:
+    """Plytka ma otwarte pytanie "Ponowny skan tej samej plytki?" (to ONA jest nowym skanem; pytanie zamkniete - nie)."""
+    return plytka is not None and any(q.rodzaj == "ponowny_skan" and not q.ukryte for q in plytka.pytania)
+
+
 def stan_obejrzenia(plytka) -> str:
     """Napis stanu plytki na ekranie (A-P5 poz. 1). Skan przyjety ma w ``statusy`` napis "przeanalizowana"; ekran mowi
     dokladniej: "do obejrzenia: n", dopoki sa prace do obejrzenia, a "sprawdzona" dopiero, gdy wszystkie czerwone i zolte
@@ -223,6 +229,8 @@ def stan_obejrzenia(plytka) -> str:
     bez zmian."""
     if plytka is None:
         return ""
+    if czeka_na_odpowiedz_o_ponowny_skan(plytka):
+        return N.PLYTKA_NOWY_SKAN  # E3-P14 (poz. 8): do odpowiedzi nowy skan nie jest "sprawdzony" (ani "do obejrzenia")
     if not plytka.aktywna or plytka.napis != ST.napis_plytki(SKAN_PRZYJETY):
         return plytka.napis
     n = len(do_obejrzenia(plytka))
@@ -470,7 +478,10 @@ class PasekStanu(QFrame):
         self.analiza = self._pole(w2, N.ANALIZA, "napis_analiza", self.postep)
         w2.addStretch(1)
         tekst = N.SKANUJ_ATRAPA if START_SKANU_ATRAPA else ST.PRZYCISKI["start_skanu"]
-        self.przycisk_skanuj = przycisk(tekst, "przycisk_skanuj", "glowny", self.skanuj.emit, styl.ZWYKLE.wysokosc_skanuj)
+        # E3-P14 (poz. 6): dopoki start skanu jest atrapa, przycisk NIE wyglada jak przycisk glowny "start" (jasne tlo, mniejsze
+        # pismo) - mowi tylko, ze program czeka na plik, a skan uruchamia sie w programie skanera
+        self.przycisk_skanuj = przycisk(tekst, "przycisk_skanuj", "czekanie" if START_SKANU_ATRAPA else "glowny", self.skanuj.emit,
+                                        styl.ZWYKLE.wysokosc_skanuj)
         if START_SKANU_ATRAPA:
             self.przycisk_skanuj.setToolTip(N.SKANUJ_ATRAPA_OPIS)
         self._uklad.addWidget(self.przycisk_skanuj, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -672,19 +683,19 @@ class PanelUwagi(QFrame):
     polecenie = Signal(str, tuple)
 
     def __init__(self, nazwa: str, poziom: str, tytul: str, tekst: str, przyciski: list, *, rada: str = "", ostrzezenie: str = "",
-                 wyjasnienie: str = "", przyciski_pod_tekstem: bool = False, r: styl.Rozmiary = styl.ZWYKLE):
+                 wyjasnienie: str = "", przyciski_pod_tekstem: bool = False, waski: bool = False, r: styl.Rozmiary = styl.ZWYKLE):
         super().__init__()
         self.setObjectName(nazwa)
         tlo, pasek, _ = styl.POZIOMY.get(poziom, styl.POZIOMY["ostrzezenie"])
         self.setStyleSheet(f"QFrame#{nazwa} {{ background: {tlo}; border: 1px solid {pasek}; border-left: 10px solid {pasek}; border-radius: 6px; }}")
         uklad = QHBoxLayout(self)
-        uklad.setContentsMargins(*((14, 4, 8, 4) if r.zwarty else (18, 8, 12, 8)))
+        uklad.setContentsMargins(*((6, 4, 4, 4) if waski else (14, 4, 8, 4) if r.zwarty else (18, 8, 12, 8)))  # ``waski``: kolumna plytek
         uklad.setSpacing(10 if r.zwarty else 14)
         kolumna = QVBoxLayout()
         kolumna.setSpacing(1 if r.zwarty else 3)
         kolumna.addWidget(etykieta(tytul, "naglowek", zawijaj=True))
         if rada:
-            kolumna.addWidget(etykieta(rada, "duzy", zawijaj=True))
+            kolumna.addWidget(etykieta(rada, None if waski else "duzy", zawijaj=True))
         if tekst:
             kolumna.addWidget(etykieta(tekst, zawijaj=True))
         if ostrzezenie:
@@ -757,6 +768,34 @@ def panel_informacji(tekst: str, r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
                       [("zamknij_informacje", ST.PRZYCISKI["zamknij_komunikat"], LOKALNE_ZAMKNIJ_INFORMACJE, (), True, "lacze")], r=r)
 
 
+def sprawy_nowych_plytek(stan, nowe: list) -> tuple:
+    """E3-P14 (N2): dla plytek, na ktore ekran sie nie przelaczyl - ((nazwa plytki, godzina skanu, (tytuly otwartych pytan),
+    (tytuly otwartych komunikatow)), ...) w kolejnosci skanow. Tylko czytanie stanu (``stan.pytania`` / ``stan.komunikaty``)."""
+    wynik = []
+    for p in nowe:
+        pytania = tuple(q.tytul for q in stan.pytania if not q.ukryte and q.skan_id == p.skan_id)
+        komunikaty = tuple(dict.fromkeys(k.tytul for k in stan.komunikaty if not k.ukryte and k.skan_id == p.skan_id))
+        wynik.append((nazwa_plytki(p.numer), godzina(p.czas), pytania, komunikaty))
+    return tuple(wynik)
+
+
+def panel_nowego_wyniku(sprawy: tuple, r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
+    """E3-P14 (N2): trwaly panel "Nowy wynik czeka: Plytka n" - wynik nowej plytki przyszedl, a ekran zostal na ogladanej
+    (regula A-P2). Wymienia pytania i komunikaty czekajacych plytek (technik nie przeoczy, ze nowa plytka o cos pyta);
+    poziom "ostrzezenie", gdy jest o co pytac, inaczej "info". Runda 2 (P3): panel stoi w kolumnie "Plytki zmiany" pod
+    przyciskiem "Pokaz nowy wynik: Plytka n" (``ListaPlytek.ustaw_panel_nowego``) i sam przycisku nie ma - nad mapa przesuwal
+    ja pod reka technika. Bez "Zamknij": znika, gdy technik obejrzy plytke."""
+    nazwy = ", ".join(dict.fromkeys(s[0] for s in sprawy))
+    tytul = N.NOWY_WYNIK_TYTUL.format(plytki=nazwy) if len(sprawy) == 1 else N.NOWE_WYNIKI_TYTUL.format(n=len(sprawy), plytki=nazwy)
+    wiersze = []
+    for nazwa, czas, pytania, komunikaty in sprawy:
+        czesci = [N.NOWY_WYNIK_PYTANIE.format(tytul=t) for t in pytania] + [N.NOWY_WYNIK_KOMUNIKAT.format(tytul=t) for t in komunikaty]
+        if czesci:
+            wiersze.append(N.NOWY_WYNIK_SPRAWY.format(plytka=nazwa, godzina=czas or N.BRAK_DANYCH, sprawy=", ".join(czesci)))
+    return PanelUwagi("panel_nowy_wynik", "ostrzezenie" if wiersze else "info", tytul, N.NOWY_WYNIK_RADA, [], rada=" ".join(wiersze),
+                      przyciski_pod_tekstem=True, waski=True, r=r)
+
+
 def panel_komunikatu(komunikaty: tuple, plytka: str = "", dodatek: str = "", r: styl.Rozmiary = styl.ZWYKLE) -> PanelUwagi:
     """Panel komunikatu ze stanu; ``komunikaty`` - jeden albo kilka jednakowych (ten sam rodzaj i tekst: jeden panel z licznikiem,
     "Zamknij" zamyka wszystkie). ``dodatek`` - dopisek ekranu ze stanu (np. gniazda konfliktu projektu)."""
@@ -768,7 +807,11 @@ def panel_komunikatu(komunikaty: tuple, plytka: str = "", dodatek: str = "", r: 
         przyciski.append(("komunikat_ponow_zapis", ST.PRZYCISKI["ponow_zapis"], "ponow_zapis", (), True, None))
     if komunikat.rodzaj == "lista_nie_zapisana":
         przyciski.append(("komunikat_zapisz_liste", ST.PRZYCISKI["zapisz_liste"], "zapisz_liste", (), True, None))
-    przyciski.append(("zamknij_komunikat", ST.PRZYCISKI["zamknij_komunikat"], "zamknij_komunikat", tuple(k.id for k in komunikaty), True, "lacze"))
+    zamknij = ST.PRZYCISKI["zamknij_komunikat"]
+    if komunikat.rodzaj in ST.KOMUNIKATY_DO_PONOWIENIA:  # E3-P14 (N1): polecenie odrzucone przy zajetej bazie - ponowienie TEGO polecenia
+        przyciski.append(("komunikat_ponow_polecenie", ST.PRZYCISKI["ponow_polecenie"], "ponow_polecenie", (komunikat.id,), True, "glowny"))
+        zamknij = ST.PRZYCISK_REZYGNUJE  # zamkniecie = swiadoma rezygnacja z tej decyzji
+    przyciski.append(("zamknij_komunikat", zamknij, "zamknij_komunikat", tuple(k.id for k in komunikaty), True, "lacze"))
     tytul = tytul_plytki(plytka, komunikat.tytul)
     if len(komunikaty) > 1:
         tytul = N.KILKA_RAZY.format(tytul=tytul, n=len(komunikaty))
@@ -785,7 +828,8 @@ class KafelekPlytki(QFrame):
 
     wybrano = Signal(int)
 
-    def __init__(self, plytka, wybrana: bool, nowa: bool, z_pytaniem: bool, z_komunikatem: bool = False, r: styl.Rozmiary = styl.ZWYKLE):
+    def __init__(self, plytka, wybrana: bool, nowa: bool, z_pytaniem: bool, z_komunikatem: bool = False, r: styl.Rozmiary = styl.ZWYKLE,
+                 poprzedni: bool = False):
         super().__init__()
         self.setObjectName(f"plytka_{plytka.skan_id}")
         self.setProperty("rola", "kafelek")
@@ -810,6 +854,8 @@ class KafelekPlytki(QFrame):
         znaczniki = UkladPlynny(odstep_poziomy=5, odstep_pionowy=3)
         if nowa:
             znaczniki.addWidget(znaczek(N.PLYTKA_NOWA, styl.AKCENT, "plytka_znacznik_nowa", rozmiar_px=r.znaczek))
+        if poprzedni:  # E3-P14 (poz. 8): dwa kafelki z tym samym numerem - poprzedni skan nazwany napisem, nie samym kolorem
+            znaczniki.addWidget(etykieta(N.PLYTKA_POPRZEDNI_SKAN, "uwaga", "plytka_znacznik_poprzedni"))
         if z_pytaniem:
             znaczniki.addWidget(etykieta(N.PLYTKA_PYTANIE, "uwaga"))
         if z_komunikatem:
@@ -897,6 +943,11 @@ class ListaPlytek(QFrame):
         self.przycisk_nowa.setVisible(False)
         self._uklad.addWidget(self.przycisk_nowa)
         self._nowe = None
+        # E3-P14 runda 2 (P3): miejsce panelu "Nowy wynik czeka" - w tej kolumnie (stala szerokosc, poza przewijaniem), zeby
+        # jego pojawienie sie, wzrost i znikniecie nie zmienialy polozenia ani rozmiaru mapy ogladanej plytki
+        self._miejsce_panelu = QVBoxLayout()
+        self._miejsce_panelu.setContentsMargins(0, 0, 0, 0)
+        self._uklad.addLayout(self._miejsce_panelu)
         self._przewijanie = QScrollArea()
         self._przewijanie.setWidgetResizable(True)
         self._przewijanie.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -920,6 +971,12 @@ class ListaPlytek(QFrame):
         self._kafelki.setSpacing(4 if r.zwarty else 6)
         self._sygnatura = None
 
+    def ustaw_panel_nowego(self, panel: QWidget | None) -> None:
+        """Panel "Nowy wynik czeka" pod przyciskiem "Pokaz nowy wynik" (None = bez panelu)."""
+        wyczysc(self._miejsce_panelu)
+        if panel is not None:
+            self._miejsce_panelu.addWidget(panel)
+
     def ustaw_nowe(self, plytka: str | None, ile: int) -> None:
         """"Pokaz nowy wynik: Plytka n" - najnowsza plytka, na ktora ekran sie nie przelaczyl (``ile`` takich plytek)."""
         nowe = (plytka, ile)
@@ -931,10 +988,11 @@ class ListaPlytek(QFrame):
         self.przycisk_nowa.setVisible(plytka is not None)
 
     def ustaw(self, plytki: list, wybrana: int | None, nowe: set, z_pytaniem: set, wczesniejszych: int, pokazane_wczesniejsze: bool,
-              niezapisane: tuple = (), z_komunikatem: set = frozenset()) -> None:
+              niezapisane: tuple = (), z_komunikatem: set = frozenset(), poprzednie: set = frozenset()) -> None:
+        """``poprzednie`` - skany, ktore otwarte pytanie o ponowny skan proponuje zastapic (znacznik "poprzedni skan tej plytki")."""
         sygnatura = (tuple((p.skan_id, p.numer, p.napis, p.czas, p.aktywna, p.dopuszczona, p.typ, tuple(sorted(p.liczniki.items())), stan_obejrzenia(p))
                            for p in plytki), wybrana, frozenset(nowe), frozenset(z_pytaniem), frozenset(z_komunikatem), wczesniejszych,
-                     pokazane_wczesniejsze, tuple(niezapisane))
+                     pokazane_wczesniejsze, tuple(niezapisane), frozenset(poprzednie))
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
@@ -946,7 +1004,8 @@ class ListaPlytek(QFrame):
         if not plytki and not niezapisane:
             self._kafelki.addWidget(etykieta(N.PLYTKI_BRAK, "slaby", zawijaj=True))
         for p in reversed(plytki):  # najnowsza na gorze
-            kafelek = KafelekPlytki(p, p.skan_id == wybrana, p.skan_id in nowe, p.skan_id in z_pytaniem, p.skan_id in z_komunikatem, self._r)
+            kafelek = KafelekPlytki(p, p.skan_id == wybrana, p.skan_id in nowe, p.skan_id in z_pytaniem, p.skan_id in z_komunikatem, self._r,
+                                    poprzedni=p.skan_id in poprzednie)
             kafelek.wybrano.connect(self.wybrano.emit)
             self._kafelki.addWidget(kafelek)
         if wczesniejszych:

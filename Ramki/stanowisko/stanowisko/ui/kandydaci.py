@@ -68,20 +68,26 @@ class KartaKandydata(QFrame):
         super().__init__()
         self.setObjectName(f"kandydat_{nr}")
         self.setProperty("rola", "panel")
-        uklad = QHBoxLayout(self)
-        uklad.setContentsMargins(*((6, 4, 6, 4) if r.zwarty else (8, 6, 8, 6)))
+        calosc = QVBoxLayout(self)
+        calosc.setContentsMargins(*((6, 4, 6, 4) if r.zwarty else (8, 6, 8, 6)))
+        calosc.setSpacing(0 if r.zwarty else 2)
+        # E3-P14 (poz. 9): "Kandydat n · pasuje w x %" jednym wierszem na cala szerokosc karty (nad miniatura) - karta nizsza
+        # o wiersz, przycisk wyboru wyzej
+        naglowek = NR.KANDYDAT_NR.format(nr=nr)
+        if kandydat.pokrycie is not None:
+            naglowek += NR.KROPKA + NR.KANDYDAT_POKRYCIE.format(procent=round(100 * kandydat.pokrycie))
+        calosc.addWidget(etykieta(naglowek, "podpis", f"kandydat_{nr}_naglowek", zawijaj=True))
+        uklad = QHBoxLayout()
         uklad.setSpacing(6 if r.zwarty else 8)
+        calosc.addLayout(uklad, 1)
         self.miniatura = Miniatura(f"kandydat_{nr}_miniatura", 48 if r.zwarty else MINIATURA_PX)
         self.miniatura.ustaw(kandydat.sha16, obraz)
         uklad.addWidget(self.miniatura, 0, Qt.AlignmentFlag.AlignTop)
         kolumna = QVBoxLayout()
         kolumna.setSpacing(0 if r.zwarty else 2)
-        kolumna.addWidget(etykieta(NR.KANDYDAT_NR.format(nr=nr), "podpis"))
         kolumna.addWidget(etykieta(f"{NR.KUWETA} {kandydat.kuweta or NR.BRAK_DANYCH}", "duzy", f"kandydat_{nr}_kuweta", zawijaj=True))
         opis = NR.KROPKA.join(x for x in (f"{NR.ZAB} {kandydat.zeby}" if kandydat.zeby else "", kandydat.typ or "") if x)
         kolumna.addWidget(etykieta(opis or NR.BRAK_DANYCH, nazwa=f"kandydat_{nr}_zab", zawijaj=True))
-        if kandydat.pokrycie is not None:
-            kolumna.addWidget(etykieta(NR.KANDYDAT_POKRYCIE.format(procent=round(100 * kandydat.pokrycie)), "slaby"))
         if przypisany:
             kolumna.addWidget(etykieta(NR.KANDYDAT_WYBRANY, "informacja", f"kandydat_{nr}_wybrany"))
         elif kandydat.projekt_id is None:
@@ -179,27 +185,31 @@ class WidokPracyRano(QFrame):
         status = znaczek(ST.status(zrodlo.status).napis, zrodlo.rgb, "praca_rano_status", r.status_pracy)
         status.setStyleSheet(_styl_znaczka(zrodlo.rgb, r.status_pracy) + " border: 2px solid #3a4047;")
         wiersz.addWidget(status, 0, Qt.AlignmentFlag.AlignTop)
-        wiersz.addWidget(etykieta(ST.status(zrodlo.status).opis, nazwa="praca_rano_opis", zawijaj=True), 1)
+        # E3-P14 (poz. 7): gniazdo jest juz klikniete - opis w widoku mowi, co zrobic TERAZ (legenda zostaje przy "kliknij gniazdo")
+        opis = NR.OPIS_W_WIDOKU.get(zrodlo.status, "").format(wybierz=ST.PRZYCISKI["wybierz_kandydata"]) or ST.status(zrodlo.status).opis
+        wiersz.addWidget(etykieta(opis, nazwa="praca_rano_opis", zawijaj=True), 1)
         u.addLayout(wiersz)
         if praca is None:
             return
-        # dane przypisanego projektu: miniatura, kuweta, zab, typ
-        wiersz = QHBoxLayout()
-        wiersz.setSpacing(10)
-        mini = Miniatura("praca_rano_miniatura", 48 if r.zwarty else MINIATURA_PX)
-        mini.ustaw(praca.sha16, self._obraz(praca.sha16, praca.miniatura) if praca.miniatura else None)
-        wiersz.addWidget(mini, 0, Qt.AlignmentFlag.AlignTop)
-        dane = QVBoxLayout()
-        dane.setSpacing(0)
-        for klucz, podpis, wartosc in (("kuweta", NR.KUWETA, praca.kuweta), ("zab", NR.ZAB, praca.zeby), ("typ", NR.TYP, praca.typ)):
-            linia = QHBoxLayout()
-            linia.setSpacing(6)
-            linia.addWidget(etykieta(podpis, "podpis"))
-            linia.addWidget(etykieta(wartosc or NR.BRAK_DANYCH, "duzy", f"praca_rano_{klucz}"))
-            linia.addStretch(1)
-            dane.addLayout(linia)
-        wiersz.addLayout(dane, 1)
-        u.addLayout(wiersz)
+        # dane przypisanego projektu: miniatura, kuweta, zab, typ. E3-P14 (poz. 9): praca BEZ projektu (dwuznaczna, nieznana) nie ma
+        # czego pokazac - puste pola "Kuweta -, Zab -, Typ -" zabieraly miejsce i spychaly "To ten projekt" poza widok
+        if praca.projekt_id is not None or praca.kuweta or praca.zeby or praca.typ or praca.miniatura:
+            wiersz = QHBoxLayout()
+            wiersz.setSpacing(10)
+            mini = Miniatura("praca_rano_miniatura", 48 if r.zwarty else MINIATURA_PX)
+            mini.ustaw(praca.sha16, self._obraz(praca.sha16, praca.miniatura) if praca.miniatura else None)
+            wiersz.addWidget(mini, 0, Qt.AlignmentFlag.AlignTop)
+            dane = QVBoxLayout()
+            dane.setSpacing(0)
+            for klucz, podpis, wartosc in (("kuweta", NR.KUWETA, praca.kuweta), ("zab", NR.ZAB, praca.zeby), ("typ", NR.TYP, praca.typ)):
+                linia = QHBoxLayout()
+                linia.setSpacing(6)
+                linia.addWidget(etykieta(podpis, "podpis"))
+                linia.addWidget(etykieta(wartosc or NR.BRAK_DANYCH, "duzy", f"praca_rano_{klucz}"))
+                linia.addStretch(1)
+                dane.addLayout(linia)
+            wiersz.addLayout(dane, 1)
+            u.addLayout(wiersz)
         if praca.decyzja is not None:
             opis = NR.DECYZJE.get(praca.decyzja, praca.decyzja)
             if praca.decyzja == "przypisanie_reczne" and praca.projekt_id is None:
