@@ -11,9 +11,16 @@ Uklad katalogu instalacji ``<KATALOG>`` (domyslnie ``C:\\Stanowisko``)::
     wersja_biezaca.txt       wskaznik wersji biezacej (plik tekstowy, jeden wiersz; nie dowiazanie)
     wersja_poprzednia.txt    wersja, do ktorej wraca Wroc_do_poprzedniej.cmd
     dziennik_instalacji.txt  data, wersja, kroki, wynik samokontroli (bez danych osobowych)
+    instalator.blokada       plik blokady: naraz dziala jeden instalator / powrot w tym katalogu
     wersje\\<wersja>\\program\\   pliki programu z paczki (z SUMY_PROGRAMU.sha256)
     wersje\\<wersja>\\venv\\      wlasne srodowisko wirtualne tej wersji (pakiety tylko z kol paczki, pip --no-index)
     wersje\\<wersja>\\NIEDOKONCZONA.txt   znacznik instalacji w toku / przerwanej (sprzatana przy nastepnej probie)
+    wersje\\_stara_<wersja>\\  wersja odlozona na czas naprawy / wymiany (wraca, gdy naprawa sie nie uda)
+
+Zasada nadrzedna (runda 2): zadna sciezka instalatora ani powrotu nie zostawia stanowiska bez bazy, z baza uszkodzona albo
+ze starsza trescia bez jawnej zgody. Kopie bazy powstaja mechanizmem kopii SQLite i sa sprawdzane (``PRAGMA quick_check``
++ wersja schematu); przywrocenie kopii to plik tymczasowy obok bazy i jedna zamiana atomowa. Instalator usuwa wylacznie
+katalogi wersji, ktore sam oznaczyl.
 
 Kolejnosc instalacji i kody wyjscia: ``opisy_modulow/instalacja.md``.
 """
@@ -43,13 +50,17 @@ KOD_INSTALACJA = 6                 # katalog, miejsce na dysku, venv, pip, przer
 KOD_USTAWIENIA = 7                 # ustawienia.toml: blad albo sciezki wzgledne (dane trafilyby do katalogu wersji)
 KOD_BAZA_NOWSZA = 8                # powrot: baza ma nowszy schemat niz poprzednia wersja - potrzebne /przywroc-kopie
 KOD_BRAK_WERSJI = 9                # powrot / usuwanie: brak wersji, do ktorej mozna sie odwolac
+KOD_WSTRZYMANA = 10                # PIERWSZA instalacja: wersja zainstalowana, samokontrola czeka na uzupelnienie ustawienia.toml
+KOD_ANULOWANO = 11                 # powrot: na pytanie T / N odpowiedziano inaczej niz T (nic nie zmieniono)
 
 KATALOG_DOMYSLNY = "C:\\Stanowisko"
 PLIK_BIEZACEJ = "wersja_biezaca.txt"
 PLIK_POPRZEDNIEJ = "wersja_poprzednia.txt"
 PLIK_DZIENNIKA = "dziennik_instalacji.txt"
 PLIK_USTAWIEN = "ustawienia.toml"
+PLIK_BLOKADY_INSTALATORA = "instalator.blokada"
 KATALOG_WERSJI = "wersje"
+PREFIKS_STAREJ = "_stara_"         # wersje/_stara_<wersja>: katalog wersji odlozony na czas naprawy (nazwa nie jest numerem wersji)
 ZNACZNIK_NIEDOKONCZONEJ = "NIEDOKONCZONA.txt"
 PLIK_INSTALACJI = "instalacja.json"
 PLIK_SUM_PACZKI = "SHA256SUMS"
@@ -59,17 +70,21 @@ LISTA_PROGRAMU = "instalacja/zamrozone.txt"          # wzgledem katalogu program
 LISTA_TESTOW = "instalacja/zamrozone_testy.txt"
 MODUL_SAMOKONTROLI = "stanowisko/samokontrola.py"
 WZORY_SKRYPTOW = ("Stanowisko.cmd", "Samokontrola.cmd", "Wroc_do_poprzedniej.cmd", "Wersje.cmd", "Polecenie.cmd")
-WZOR_WERSJI = re.compile(r"[0-9A-Za-z][0-9A-Za-z._-]{0,31}")
+# Numer wersji jest nazwa katalogu w Windows: zaczyna sie i konczy litera albo cyfra (kropka albo spacja na koncu znika
+# z nazwy katalogu), do 32 znakow, nie jest nazwa urzadzenia; numery rozniace sie wielkoscia liter to ten sam katalog.
+WZOR_WERSJI = re.compile(r"[0-9A-Za-z](?:[0-9A-Za-z._-]{0,30}[0-9A-Za-z])?")
+_NAZWY_URZADZEN = frozenset(["CON", "PRN", "AUX", "NUL"] + [f"{n}{i}" for n in ("COM", "LPT") for i in range(10)])
 # Zapas miejsca: pliki kol po rozpakowaniu x ZAPAS_PYC (pip dopisuje pliki .pyc) + program + ZAPAS_MB.
 ZAPAS_PYC = 1.3
 ZAPAS_MB = 300
 LIMIT_SCIEZKI = 259                # Windows bez dlugich sciezek: najdluzsza sciezka pliku
 LIMIT_SAMOKONTROLI_S = 600
+CZEKAJ_NA_BAZE_S = 5.0             # ile czekac na baze zajeta przez inny program, zanim instalator sie zatrzyma
 PAKIETY_SRODOWISKA = ("pip",)      # zaklada je sam ``python -m venv`` (ensurepip); nie naleza do listy zamrozonej
 
 _WIERSZ_SUM = re.compile(r"([0-9a-f]{64}) [ *](.+)")
 _OPCJE_UKOSNIK = ("katalog", "python", "paczka", "testy", "skrot", "skrot-katalog", "bez-sieci", "bez-pauzy", "przywroc-kopie",
-                  "min-wolne-mb", "usun")
+                  "min-wolne-mb", "usun", "tak")
 
 
 class BladInstalacji(Exception):
@@ -81,6 +96,17 @@ class BladInstalacji(Exception):
 
 
 # ---------------------------------------------------------------------------------------------------------- narzedzia
+
+def poprawna_wersja(wersja: object) -> bool:
+    """Czy ``wersja`` moze byc numerem wersji = nazwa katalogu ``wersje/<wersja>`` (patrz ``WZOR_WERSJI``)."""
+    return (isinstance(wersja, str) and WZOR_WERSJI.fullmatch(wersja) is not None
+            and wersja.split(".")[0].upper() not in _NAZWY_URZADZEN)
+
+
+def ta_sama_wersja(a: str | None, b: str | None) -> bool:
+    """Numery wersji rowne bez wzgledu na wielkosc liter (w Windows to ten sam katalog)."""
+    return a is not None and b is not None and a.casefold() == b.casefold()
+
 
 def sha256_pliku(plik: Path) -> str:
     h = hashlib.sha256()
@@ -163,7 +189,7 @@ def czytaj_wskaznik(katalog: Path, nazwa: str) -> str | None:
         tekst = (katalog / nazwa).read_text(encoding="ascii").strip()
     except (OSError, UnicodeDecodeError):
         return None
-    return tekst if WZOR_WERSJI.fullmatch(tekst) else None
+    return tekst if poprawna_wersja(tekst) else None
 
 
 def usun_katalog(katalog: Path) -> None:
@@ -240,8 +266,9 @@ def sprawdz_paczke(paczka: Path) -> tuple[dict, dict[str, str]]:
         wydanie["python"], wydanie["commit"]
     except (ValueError, KeyError, TypeError) as e:
         raise BladInstalacji(KOD_PACZKA, f"blad wydania: {PLIK_WYDANIA} nieczytelny ({type(e).__name__})", "Zglos budujacemu paczke.") from e
-    if not isinstance(wersja, str) or not WZOR_WERSJI.fullmatch(wersja):
-        raise BladInstalacji(KOD_PACZKA, f"blad wydania: niepoprawny numer wersji {wersja!r}", "Zglos budujacemu paczke.")
+    if not poprawna_wersja(wersja):
+        raise BladInstalacji(KOD_PACZKA, f"blad wydania: niepoprawny numer wersji {wersja!r} (litery, cyfry, kropka, podkreslenie, "
+                             "myslnik; pierwszy i ostatni znak to litera albo cyfra)", "Zglos budujacemu paczke. Niczego nie zmieniono.")
     return wydanie, sumy
 
 
@@ -416,7 +443,8 @@ def sprawdz_sciezki(dane: dict, katalog: Path) -> Path:
     if "blad_ustawien" in dane:
         raise BladInstalacji(KOD_USTAWIENIA, f"plik ustawien nie przechodzi kontroli tej wersji programu: {dane['blad_ustawien']}",
                              f"Popraw {plik} (wzor: ustawienia.przyklad.toml w katalogu programu) i uruchom polecenie ponownie.")
-    wzgledne = sorted(k for k, v in dane["sciezki"].items() if isinstance(v, str) and _wzgledna(v))
+    # wartosc pusta (np. folder_millbox = "") to nie sciezka wzgledna - program ja przyjmuje, ocenia ja samokontrola
+    wzgledne = sorted(k for k, v in dane["sciezki"].items() if isinstance(v, str) and v.strip() and _wzgledna(v))
     if wzgledne:
         korzen = katalog.resolve().as_posix().rstrip("/")
         wzor = "; ".join(f'{k} = "{korzen}/{dane["sciezki"][k]}"' for k in wzgledne)
@@ -477,8 +505,168 @@ class BlokadaProgramu:
                 os.close(fd)
 
 
+class BlokadaInstalatora:
+    """Jeden instalator / powrot naraz w katalogu instalacji (plik ``instalator.blokada``, blokada jak w ``BlokadaProgramu``).
+    Drugi ``zainstaluj.cmd`` uruchomiony w trakcie pierwszego (podwojny dwuklik) uznalby jego katalog wersji za niedokonczony."""
+
+    def __init__(self, katalog: Path):
+        self.plik = katalog / PLIK_BLOKADY_INSTALATORA
+        self._fd: int | None = None
+
+    def __enter__(self) -> "BlokadaInstalatora":
+        try:
+            fd = os.open(self.plik, os.O_RDWR | os.O_CREAT, 0o644)
+        except OSError as e:
+            raise BladInstalacji(KOD_INSTALACJA, f"nie mozna otworzyc pliku blokady instalatora ({type(e).__name__})",
+                                 "Sprawdz prawa zapisu w katalogu instalacji.") from e
+        try:
+            _blokuj(fd, True)
+        except OSError:
+            os.close(fd)
+            raise BladInstalacji(KOD_INSTALACJA, "inna instalacja albo powrot juz trwa w tym katalogu (drugie okno)",
+                                 "Poczekaj, az tamto okno skonczy, i dopiero wtedy uruchom polecenie ponownie. Niczego nie zmieniono.") from None
+        self._fd = fd
+        return self
+
+    def __exit__(self, *_) -> None:
+        fd, self._fd = self._fd, None
+        if fd is not None:
+            try:
+                _blokuj(fd, False)
+            except OSError:
+                pass
+            finally:
+                os.close(fd)
+
+
+# ------------------------------------------------------------------------------------------------- baza i jej kopie
+
+def _polacz_baze(plik: Path, tryb: str) -> sqlite3.Connection:
+    """Polaczenie SQLite z istniejacym plikiem: ``tryb`` = ``rw`` (baza robocza) albo ``ro`` (kopia); pliku nie zaklada."""
+    return sqlite3.connect(f"{plik.resolve().as_uri()}?mode={tryb}", uri=True, timeout=CZEKAJ_NA_BAZE_S)
+
+
+def _baza_zajeta(e: sqlite3.Error) -> bool:
+    kod = getattr(e, "sqlite_errorcode", None)
+    return (kod is not None and kod & 0xFF in (5, 6)) or "database is locked" in str(e) or "database is busy" in str(e)
+
+
+def _blad_bazy(plik_bazy: Path, e: Exception) -> BladInstalacji:
+    if isinstance(e, sqlite3.Error) and _baza_zajeta(e):
+        return BladInstalacji(KOD_PROGRAM_DZIALA, f"baza {plik_bazy.name} jest zajeta przez inny program ({e})",
+                              "Zamknij programy, ktore maja otwarta baze (program, przegladarka bazy), i uruchom polecenie ponownie. "
+                              "Niczego nie zmieniono.")
+    return BladInstalacji(KOD_INSTALACJA, f"pliku bazy nie da sie odczytac albo skopiowac ({type(e).__name__}: {e}): {plik_bazy}",
+                          "Bez sprawdzonej kopii bazy wersja nie jest przelaczana. Sprawdz dysk i miejsce na nim; gdy blad wraca, "
+                          "zglos go razem z plikiem dziennik_instalacji.txt. Bazy i wersji biezacej nie zmieniono.")
+
+
+def schemat_bazy(plik_bazy: Path) -> int | None:
+    """Wersja schematu bazy ROBOCZEJ (``PRAGMA user_version``); None, gdy pliku nie ma albo jest pusty.
+
+    Wolac tylko pod ``BlokadaProgramu``. Baza jest otwierana do zapisu: gdy obok lezy plik ``-journal`` po przerwanym zapisie
+    (zabity program, zanik zasilania), SQLite wycofuje wtedy niedokonczona transakcje - dokladnie to, co zrobilby program
+    przy starcie; otwarcie tylko do odczytu takiej bazy nie przeczyta. Baza zajeta albo nieczytelna = ``BladInstalacji``."""
+    if not plik_bazy.is_file() or plik_bazy.stat().st_size == 0:
+        return None
+    try:
+        pol = _polacz_baze(plik_bazy, "rw")
+        try:
+            pol.execute("SELECT count(*) FROM sqlite_master").fetchone()
+            return int(pol.execute("PRAGMA user_version").fetchone()[0])
+        finally:
+            pol.close()
+    except sqlite3.Error as e:
+        raise _blad_bazy(plik_bazy, e) from e
+
+
+def schemat_kopii(plik: Path) -> int | None:
+    """Wersja schematu pliku KOPII - tylko gdy kopia jest cala (``PRAGMA quick_check`` = ok); inaczej None. Tylko odczyt."""
+    if not plik.is_file() or plik.stat().st_size == 0:
+        return None
+    try:
+        pol = _polacz_baze(plik, "ro")
+        try:
+            if [tuple(w) for w in pol.execute("PRAGMA quick_check").fetchall()] != [("ok",)]:
+                return None
+            return int(pol.execute("PRAGMA user_version").fetchone()[0])
+        finally:
+            pol.close()
+    except sqlite3.Error:
+        return None
+
+
+def sprawdz_osierocony_plik(plik_bazy: Path) -> None:
+    """``<baza>.nowy`` bez pliku bazy = slad przywracania kopii przerwanego w polowie (starszy instalator): program zalozylby
+    PUSTA baze. Stop z informacja, co przywrocic - instalator niczego sam nie zgaduje. Wolac pod ``BlokadaProgramu``."""
+    nowy = plik_bazy.with_name(plik_bazy.name + ".nowy")
+    if nowy.is_file() and not plik_bazy.exists():
+        raise BladInstalacji(KOD_INSTALACJA, f"w folderze danych nie ma pliku bazy {plik_bazy.name}, a lezy {nowy.name} - slad przywracania "
+                             "kopii bazy przerwanego w polowie",
+                             f"NIE uruchamiaj programu (zalozylby pusta baze). Zmien nazwe pliku {nowy} na {plik_bazy.name} (to kopia, ktora "
+                             f"miala zostac przywrocona) albo skopiuj w to miejsce najnowszy plik {plik_bazy.stem}_odlozona_*.sqlite z folderu "
+                             f"{plik_bazy.parent / 'kopie'}, potem uruchom polecenie ponownie. Niczego nie zmieniono.")
+
+
+def _utrwal(plik: Path) -> None:
+    with open(plik, "rb+") as f:
+        os.fsync(f.fileno())
+
+
+def _kopia_sprawdzona(zrodlo: Path, cel: Path, tryb: str) -> int:
+    """Kopia bazy ``zrodlo`` do NOWEGO pliku ``cel`` mechanizmem kopii SQLite (spojna takze przy plikach ``-journal`` / ``-wal``),
+    potem kontrola kopii: ``quick_check`` = ok i ta sama wersja schematu co w zrodle. Zwraca wersje schematu. Kazdy blad
+    (``sqlite3.Error`` / ``OSError``) = pliku ``cel`` nie ma. ``tryb``: ``rw`` dla bazy roboczej, ``ro`` dla pliku kopii."""
+    cel.unlink(missing_ok=True)
+    try:
+        pol = _polacz_baze(zrodlo, tryb)
+        try:
+            schemat = int(pol.execute("PRAGMA user_version").fetchone()[0])
+            docelowa = sqlite3.connect(cel)
+            try:
+                pol.backup(docelowa)
+            finally:
+                docelowa.close()
+        finally:
+            pol.close()
+        if schemat_kopii(cel) != schemat:
+            raise sqlite3.DatabaseError("kopia nie przeszla kontroli (PRAGMA quick_check albo wersja schematu)")
+        _utrwal(cel)
+    except BaseException:
+        try:
+            cel.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+    return schemat
+
+
+_CZAS_KOPII = re.compile(r"_(\d{8})_(\d{6})(?:_v(?:\d+|x))?(?:_\d+)?\.sqlite$")
+
+
+def _czas_kopii(plik: Path) -> float:
+    """Chwila zrobienia kopii: z nazwy pliku (``..._RRRRMMDD_GGMMSS...``), a gdy nazwa jej nie ma - czas zmiany pliku."""
+    m = _CZAS_KOPII.search(plik.name)
+    if m:
+        try:
+            return dt.datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S").timestamp()
+        except (ValueError, OverflowError, OSError):
+            pass
+    return plik.stat().st_mtime
+
+
+def kandydaci_kopii(plik_bazy: Path) -> list[Path]:
+    """Wszystkie kopie bazy sprzed zmian, od najnowszej: kopie instalatora (``kopie/<baza>_przed_*``, robione przed instalacja
+    i przed powrotem do wersji o nowszym schemacie) i kopie programu sprzed migracji (``<baza>.kopia_v*`` obok bazy).
+    Bazy odlozone przy przywracaniu (``_odlozona_``) nie sa kandydatami - to stan PO pracy nowszej wersji."""
+    kandydaci = list((plik_bazy.parent / "kopie").glob(f"{plik_bazy.stem}_przed_*.sqlite"))
+    kandydaci += list(plik_bazy.parent.glob(f"{plik_bazy.stem}.kopia_v*.sqlite"))
+    return sorted(kandydaci, key=lambda p: (_czas_kopii(p), p.name), reverse=True)
+
+
 def wersja_schematu(plik_bazy: Path) -> int | None:
-    """``PRAGMA user_version`` pliku bazy otwartego tylko do odczytu; None, gdy pliku nie ma albo nie jest baza SQLite."""
+    """``PRAGMA user_version`` pliku bazy otwartego tylko do odczytu; None, gdy pliku nie ma albo nie jest baza SQLite.
+    Sam naglowek - do opisow; o tym, czy kopia jest cala, mowi ``schemat_kopii``, a o bazie roboczej ``schemat_bazy``."""
     if not plik_bazy.is_file() or plik_bazy.stat().st_size == 0:
         return None
     try:
@@ -502,86 +690,121 @@ def liczniki_tabel(plik_bazy: Path) -> dict[str, int]:
 
 
 def kopia_bazy(plik_bazy: Path, wersja: str, teraz: dt.datetime) -> Path | None:
-    """Kopia pliku bazy przed pierwszym uruchomieniem wersji ``wersja``: ``<katalog bazy>/kopie/<baza>_przed_<wersja>_
-    <data>_<godzina>_v<schemat>.sqlite`` (mechanizm kopii SQLite - spojna takze z plikiem -wal). Brak bazy = None."""
-    schemat = wersja_schematu(plik_bazy)
+    """Sprawdzona kopia bazy przed pierwszym uruchomieniem wersji ``wersja``: ``<katalog bazy>/kopie/<baza>_przed_<wersja>_
+    <data>_<godzina>_v<schemat>.sqlite``. Brak bazy = None. Wolac pod ``BlokadaProgramu``.
+
+    Kopia powstaje mechanizmem kopii SQLite z bazy otwartej do zapisu (goracy ``-journal`` jest najpierw wycofywany), jest
+    sprawdzana (``quick_check`` + wersja schematu) i dopiero wtedy dostaje wlasciwa nazwe. Kopii nie da sie zrobic albo nie
+    przechodzi kontroli = ``BladInstalacji`` (wersja nie zostanie przelaczona); pliku "kopii niesprawdzonej" nie ma nigdy."""
     if not plik_bazy.is_file() or plik_bazy.stat().st_size == 0:
         return None
     katalog = plik_bazy.parent / "kopie"
-    katalog.mkdir(parents=True, exist_ok=True)
-    rdzen = f"{plik_bazy.stem}_przed_{wersja}_{teraz:%Y%m%d_%H%M%S}_v{schemat if schemat is not None else 'x'}"
-    cel, n = katalog / f"{rdzen}.sqlite", 1
-    while cel.exists():
-        n += 1
-        cel = katalog / f"{rdzen}_{n}.sqlite"
-    tymczasowy = cel.with_name(cel.name + ".nowy")
+    tymczasowy = katalog / f"{plik_bazy.stem}_przed_{wersja}.sqlite.nowy"
     try:
-        if schemat is None:
-            raise sqlite3.DatabaseError("plik nie jest baza SQLite")
-        zrodlo = sqlite3.connect(f"{plik_bazy.resolve().as_uri()}?mode=ro", uri=True)
+        katalog.mkdir(parents=True, exist_ok=True)
+        schemat = _kopia_sprawdzona(plik_bazy, tymczasowy, "rw")
+        # powtorzona proba przy niezmienionej bazie: jedna kopia wystarczy - ale tylko gdy identyczna jest NAJNOWSZA z kopii
+        # (inaczej powrot, ktory bierze najnowsza, siegnalby po inny stan bazy)
+        najnowsze = kandydaci_kopii(plik_bazy)[:1]
+        if najnowsze and najnowsze[0].parent == katalog and najnowsze[0].stat().st_size == tymczasowy.stat().st_size \
+                and sha256_pliku(najnowsze[0]) == sha256_pliku(tymczasowy):
+            tymczasowy.unlink()
+            return najnowsze[0]
+        rdzen = f"{plik_bazy.stem}_przed_{wersja}_{teraz:%Y%m%d_%H%M%S}_v{schemat}"
+        cel, n = katalog / f"{rdzen}.sqlite", 1
+        while cel.exists():
+            n += 1
+            cel = katalog / f"{rdzen}_{n}.sqlite"
+        os.replace(tymczasowy, cel)
+        return cel
+    except (sqlite3.Error, OSError) as e:
         try:
-            docelowa = sqlite3.connect(tymczasowy)
-            try:
-                zrodlo.backup(docelowa)
-            finally:
-                docelowa.close()
-        finally:
-            zrodlo.close()
-    except sqlite3.Error:
-        shutil.copy2(plik_bazy, tymczasowy)  # plik uszkodzony albo nie-SQLite: kopia bajtowa (lepsza niz zadna)
-    suma = sha256_pliku(tymczasowy)
-    for istniejaca in sorted(katalog.glob(f"{plik_bazy.stem}_przed_{wersja}_*.sqlite"), reverse=True):
-        if istniejaca.stat().st_size == tymczasowy.stat().st_size and sha256_pliku(istniejaca) == suma:
-            tymczasowy.unlink()  # powtorzona proba instalacji tej samej wersji przy niezmienionej bazie: jedna kopia wystarczy
-            return istniejaca
-    os.replace(tymczasowy, cel)
-    return cel
+            tymczasowy.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise _blad_bazy(plik_bazy, e) from e
 
 
-def znajdz_kopie(plik_bazy: Path, wersja_biezaca: str, schemat_max: int) -> Path | None:
-    """Kopia do przywrocenia przy powrocie: najpierw zrobiona przed instalacja wersji biezacej, potem inne kopie instalatora,
-    na koncu kopie programu sprzed migracji (``<baza>.kopia_v*``) - pierwsza o schemacie nie nowszym niz ``schemat_max``."""
-    kopie = plik_bazy.parent / "kopie"
-    kandydaci = sorted(kopie.glob(f"{plik_bazy.stem}_przed_{wersja_biezaca}_*.sqlite"), reverse=True)
-    kandydaci += sorted((p for p in kopie.glob(f"{plik_bazy.stem}_przed_*.sqlite") if p not in kandydaci),
-                        key=lambda p: p.stat().st_mtime, reverse=True)
-    kandydaci += sorted(plik_bazy.parent.glob(f"{plik_bazy.stem}.kopia_v*.sqlite"), key=lambda p: p.stat().st_mtime, reverse=True)
-    for kandydat in kandydaci:
-        schemat = wersja_schematu(kandydat)
-        if schemat is not None and schemat <= schemat_max:
-            return kandydat
-    return None
+def znajdz_kopie(plik_bazy: Path, schemat_max: int) -> tuple[Path | None, dict]:
+    """Kopia do przywrocenia przy powrocie: NAJNOWSZA (czas z nazwy pliku) ze wszystkich zrodel (``kandydaci_kopii``), ktora
+    przechodzi kontrole (``quick_check`` = ok) i ma schemat nie nowszy niz ``schemat_max``. Zwraca (kopia albo None,
+    {"starsze": ile starszych kopii zostalo, "nowszy_schemat": ile nowszych pominieto, "niesprawdzone": nazwy kopii
+    nowszych od wybranej, ktore nie przeszly kontroli})."""
+    opis = {"starsze": 0, "nowszy_schemat": 0, "niesprawdzone": []}
+    kandydaci = kandydaci_kopii(plik_bazy)
+    for i, kandydat in enumerate(kandydaci):
+        schemat = schemat_kopii(kandydat)
+        if schemat is None:
+            opis["niesprawdzone"].append(kandydat.name)
+        elif schemat > schemat_max:
+            opis["nowszy_schemat"] += 1
+        else:
+            opis["starsze"] = len(kandydaci) - i - 1
+            return kandydat, opis
+    return None, opis
 
 
-def opis_strat(plik_bazy: Path, kopia: Path) -> list[str]:
-    """Wiersze ostrzezenia: ile wpisow przybylo w bazie od zrobienia kopii (liczniki tabel) i od kiedy."""
+def opis_strat(plik_bazy: Path, kopia: Path, inne: dict | None = None) -> list[str]:
+    """Wiersze ostrzezenia: ile wpisow przybylo w bazie od zrobienia kopii (liczniki tabel), z kiedy jest kopia i ile jest
+    innych kopii (starszych / pominietych)."""
     teraz, dawniej = liczniki_tabel(plik_bazy), liczniki_tabel(kopia)
     przyrosty = {t: n - dawniej.get(t, 0) for t, n in teraz.items() if n != dawniej.get(t, 0)}
-    czas = dt.datetime.fromtimestamp(kopia.stat().st_mtime)
-    wiersze = [f"Kopia sprzed aktualizacji: {kopia.name} z {czas:%Y-%m-%d %H:%M} (schemat {wersja_schematu(kopia)}).",
-               f"Po przywroceniu z bazy roboczej zniknie wszystko, co zapisano po tej chwili: {sum(max(0, v) for v in przyrosty.values())} "
-               f"wpisow w {sum(1 for v in przyrosty.values() if v > 0)} tabelach."]
+    czas = dt.datetime.fromtimestamp(_czas_kopii(kopia))
+    wiersze = [f"Kopia sprzed aktualizacji: {kopia.name} z {czas:%Y-%m-%d %H:%M} (schemat {wersja_schematu(kopia)}) - najnowsza sprawdzona."]
+    inne = inne or {}
+    if inne.get("starsze") or inne.get("nowszy_schemat") or inne.get("niesprawdzone"):
+        wiersze.append(f"Inne kopie: starszych kopii: {inne.get('starsze', 0)}; pominieto nowsze: {inne.get('nowszy_schemat', 0)} o nowszym "
+                       f"schemacie, {len(inne.get('niesprawdzone', []))} takich, ktore nie przeszly kontroli"
+                       + (" (" + ", ".join(inne["niesprawdzone"][:5]) + ")" if inne.get("niesprawdzone") else "") + ".")
+    wiersze.append(f"Po przywroceniu z bazy roboczej zniknie wszystko, co zapisano po tej chwili: {sum(max(0, v) for v in przyrosty.values())} "
+                   f"wpisow w {sum(1 for v in przyrosty.values() if v > 0)} tabelach.")
     wiersze += [f"  tabela {t}: {dawniej.get(t, 0)} w kopii, {teraz[t]} teraz ({v:+d})" for t, v in sorted(przyrosty.items())]
     return wiersze
 
 
 def przywroc_kopie(plik_bazy: Path, kopia: Path, schemat: int, teraz: dt.datetime) -> Path:
-    """Odklada biezaca baze (z plikami -wal / -shm / -journal) do ``kopie/`` i wstawia w jej miejsce ``kopia``. Nic nie kasuje."""
+    """Wstawia ``kopia`` w miejsce bazy; dotychczasowa baza zostaje jako ``kopie/<baza>_odlozona_v<schemat>_<czas>.sqlite``.
+    Wolac pod ``BlokadaProgramu``. Plik bazy istnieje i jest caly w KAZDEJ chwili:
+
+    1. sprawdzona kopia dotychczasowej bazy do ``kopie/`` (mechanizm kopii SQLite; goracy ``-journal`` najpierw wycofany),
+    2. sprawdzona kopia pliku ``kopia`` jako ``<baza>.nowy`` obok bazy,
+    3. JEDNA zamiana atomowa ``<baza>.nowy`` -> ``<baza>``.
+
+    Blad w kroku 1-3 = baza bez zmian (plik ``.nowy`` sprzatany; kopia z kroku 1 zostaje - nic nie jest kasowane, a ponowna
+    proba przy niezmienionej bazie uzyje jej zamiast robic nastepna), ``BladInstalacji``.
+    Zabicie procesu: przed zamiana baza bez zmian, po zamianie - przywrocona; nigdy brak pliku."""
     katalog = plik_bazy.parent / "kopie"
-    katalog.mkdir(parents=True, exist_ok=True)
-    rdzen = f"{plik_bazy.stem}_odlozona_v{schemat}_{teraz:%Y%m%d_%H%M%S}"
-    odlozona, n = katalog / f"{rdzen}.sqlite", 1
-    while odlozona.exists():
-        n += 1
-        odlozona = katalog / f"{rdzen}_{n}.sqlite"
-    tymczasowy = plik_bazy.with_name(plik_bazy.name + ".nowy")
-    shutil.copy2(kopia, tymczasowy)  # najpierw gotowa kopia obok, dopiero potem ruszamy baze
-    os.replace(plik_bazy, odlozona)
-    for przyrostek in ("-wal", "-shm", "-journal"):
-        dodatkowy = plik_bazy.with_name(plik_bazy.name + przyrostek)
-        if dodatkowy.exists():
-            os.replace(dodatkowy, odlozona.with_name(odlozona.name + przyrostek))
-    os.replace(tymczasowy, plik_bazy)
+    nowy = plik_bazy.with_name(plik_bazy.name + ".nowy")
+    odlozona_tymczasowa = katalog / f"{plik_bazy.stem}_odlozona.sqlite.nowy"
+    try:
+        katalog.mkdir(parents=True, exist_ok=True)
+        if _kopia_sprawdzona(plik_bazy, odlozona_tymczasowa, "rw") != schemat:
+            raise sqlite3.DatabaseError("wersja schematu bazy zmienila sie w trakcie powrotu")
+        poprzednie = sorted(katalog.glob(f"{plik_bazy.stem}_odlozona_v{schemat}_*.sqlite"), key=lambda p: (_czas_kopii(p), p.name))[-1:]
+        if poprzednie and poprzednie[0].stat().st_size == odlozona_tymczasowa.stat().st_size \
+                and sha256_pliku(poprzednie[0]) == sha256_pliku(odlozona_tymczasowa):
+            odlozona_tymczasowa.unlink()  # poprzednia, nieudana proba powrotu odlozyla juz te sama tresc
+            odlozona = poprzednie[0]
+        else:
+            rdzen = f"{plik_bazy.stem}_odlozona_v{schemat}_{teraz:%Y%m%d_%H%M%S}"
+            odlozona, n = katalog / f"{rdzen}.sqlite", 1
+            while odlozona.exists():
+                n += 1
+                odlozona = katalog / f"{rdzen}_{n}.sqlite"
+            os.replace(odlozona_tymczasowa, odlozona)
+        _kopia_sprawdzona(kopia, nowy, "ro")
+        for przyrostek in ("-journal", "-wal"):  # po zamknieciu polaczen nie powinno ich byc; obcy dziennik zepsulby nowa baze
+            dodatkowy = plik_bazy.with_name(plik_bazy.name + przyrostek)
+            if dodatkowy.exists() and dodatkowy.stat().st_size > 0:
+                raise sqlite3.OperationalError(f"database is locked (obok bazy lezy plik {dodatkowy.name})")
+        os.replace(nowy, plik_bazy)
+    except (sqlite3.Error, OSError) as e:
+        for zbedny in (nowy, odlozona_tymczasowa):
+            try:
+                zbedny.unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise _blad_bazy(plik_bazy, e) from e
     return odlozona
 
 
@@ -592,35 +815,93 @@ def katalog_wersji(katalog: Path, wersja: str) -> Path:
 
 
 def stan_wersji(katalog: Path, wersja: str) -> str:
-    """``brak`` / ``niedokonczona`` (znacznik albo brak zapisu instalacji) / ``zainstalowana``."""
+    """``brak`` / ``niedokonczona`` (znacznik ``NIEDOKONCZONA.txt`` - katalog instalatora, wolno go sprzatnac) /
+    ``zainstalowana`` (jest zapis instalacji) / ``pusty`` (katalog bez plikow) / ``obcy`` (cos innego - instalator nie rusza)."""
     kw = katalog_wersji(katalog, wersja)
-    if not kw.exists():
-        return "brak"
-    if (kw / ZNACZNIK_NIEDOKONCZONEJ).exists() or not (kw / PLIK_INSTALACJI).is_file():
+    if not kw.is_dir():
+        return "obcy" if kw.exists() else "brak"
+    if (kw / ZNACZNIK_NIEDOKONCZONEJ).is_file():
         return "niedokonczona"
-    return "zainstalowana"
+    if (kw / PLIK_INSTALACJI).is_file():
+        return "zainstalowana"
+    return "obcy" if any(kw.iterdir()) else "pusty"
+
+
+def _odlozona_wersja(wpis: Path) -> str | None:
+    """Numer wersji, gdy ``wpis`` to katalog wersji odlozony przez instalator na czas naprawy (``_stara_<wersja>`` z zapisem
+    instalacji); inaczej None."""
+    wersja = wpis.name[len(PREFIKS_STAREJ):]
+    if wpis.name.startswith(PREFIKS_STAREJ) and poprawna_wersja(wersja) and wpis.is_dir() and (wpis / PLIK_INSTALACJI).is_file():
+        return wersja
+    return None
+
+
+def obce_katalogi(katalog: Path) -> list[str]:
+    """Nazwy wpisow w ``wersje/``, ktorych nie zalozyl instalator (ani wersja zainstalowana, ani niedokonczona ze znacznikiem,
+    ani wersja odlozona na czas naprawy). Instalator ich nie usuwa i nie zmienia."""
+    obce = []
+    for wpis in sorted((katalog / KATALOG_WERSJI).iterdir()) if (katalog / KATALOG_WERSJI).is_dir() else []:
+        if _odlozona_wersja(wpis) is not None:
+            continue
+        if not wpis.is_dir() or not poprawna_wersja(wpis.name) or stan_wersji(katalog, wpis.name) in ("obcy", "pusty"):
+            obce.append(wpis.name)
+    return obce
 
 
 def lista_wersji(katalog: Path) -> list[dict]:
+    """Katalogi ``wersje/<numer wersji>`` ze stanem (``stan_wersji``); wpisy o nazwie, ktora nie jest numerem wersji, pomija."""
     biezaca, poprzednia = czytaj_wskaznik(katalog, PLIK_BIEZACEJ), czytaj_wskaznik(katalog, PLIK_POPRZEDNIEJ)
     wersje = []
     for kw in sorted((katalog / KATALOG_WERSJI).iterdir()) if (katalog / KATALOG_WERSJI).is_dir() else []:
-        if not kw.is_dir():
+        if not kw.is_dir() or not poprawna_wersja(kw.name):
             continue
         try:
             zapis = json.loads((kw / PLIK_INSTALACJI).read_text(encoding="utf-8"))
         except (OSError, ValueError):
             zapis = {}
-        wersje.append({"wersja": kw.name, "stan": stan_wersji(katalog, kw.name), "biezaca": kw.name == biezaca,
-                       "poprzednia": kw.name == poprzednia, "zainstalowano": zapis.get("zainstalowano", "?"),
+        wersje.append({"wersja": kw.name, "stan": stan_wersji(katalog, kw.name), "biezaca": ta_sama_wersja(kw.name, biezaca),
+                       "poprzednia": ta_sama_wersja(kw.name, poprzednia), "zainstalowano": zapis.get("zainstalowano", "?"),
                        "commit": zapis.get("commit", "?"), "schemat_bazy": zapis.get("schemat_bazy")})
     return wersje
+
+
+def uporzadkuj_wersje(katalog: Path, dziennik: "Dziennik") -> None:
+    """Sprzatanie po przerwanych probach - wylacznie katalogi, ktore instalator sam oznaczyl:
+
+    * ``_stara_<wersja>`` (wersja odlozona na czas naprawy, okno zamkniete w trakcie): gdy naprawa sie nie dokonczyla, stara
+      wersja WRACA na miejsce (niedokonczony katalog jest usuwany); gdy sie dokonczyla - odlozony katalog jest usuwany;
+    * katalog wersji ze znacznikiem ``NIEDOKONCZONA.txt``, ktory nie jest wersja biezaca - usuwany.
+
+    Wszystko inne w ``wersje/`` (cudze katalogi, takze o nazwie jak numer wersji) zostaje nietkniete i jest wypisane."""
+    korzen = katalog / KATALOG_WERSJI
+    for wpis in sorted(korzen.iterdir()):
+        wersja = _odlozona_wersja(wpis)
+        if wersja is None:
+            continue
+        stan = stan_wersji(katalog, wersja)
+        if stan == "zainstalowana":
+            usun_katalog(wpis)
+            dziennik.krok(f"      usunieto katalog wersji {wersja} odlozony przy zakonczonej naprawie")
+        elif stan in ("brak", "niedokonczona", "pusty"):
+            if stan != "brak":
+                usun_katalog(katalog_wersji(katalog, wersja))
+            os.rename(wpis, katalog_wersji(katalog, wersja))
+            dziennik.krok(f"      przywrocono wersje {wersja} sprzed przerwanej wymiany (naprawy)")
+    for w in lista_wersji(katalog):
+        if w["stan"] == "niedokonczona" and not w["biezaca"]:
+            usun_katalog(katalog_wersji(katalog, w["wersja"]))
+            dziennik.krok(f"      usunieto niedokonczona instalacje wersji {w['wersja']}")
+    obce = obce_katalogi(katalog)
+    if obce:
+        dziennik.krok(f"      w katalogu wersje jest wpisow: {len(obce)}, ktore nie sa wersjami programu (nie zalozyl ich instalator) - "
+                      "zostaja nietkniete:")
+        print("\n".join(f"        {n}" for n in obce[:20]) + ("\n        ..." if len(obce) > 20 else ""), flush=True)  # nazwy tylko na ekran
 
 
 def przelacz(katalog: Path, nowa: str) -> str | None:
     """Przelacza wskaznik wersji biezacej na ``nowa`` (zapis atomowy); dotychczasowa biezaca staje sie poprzednia."""
     biezaca = czytaj_wskaznik(katalog, PLIK_BIEZACEJ)
-    if biezaca == nowa:
+    if ta_sama_wersja(biezaca, nowa):
         return czytaj_wskaznik(katalog, PLIK_POPRZEDNIEJ)
     if biezaca is not None:
         zapisz_atomowo(katalog / PLIK_POPRZEDNIEJ, (biezaca + "\r\n").encode("ascii"))
@@ -692,7 +973,7 @@ def _instaluj_wersje(paczka: Path, sumy: dict[str, str], wydanie: dict, katalog:
     """Zaklada katalog wersji od zera: znacznik, pliki programu, venv, pakiety z kol paczki, kontrola wersji pakietow."""
     wersja = wydanie["wersja"]
     kw = katalog_wersji(katalog, wersja)
-    kw.mkdir(parents=True)
+    kw.mkdir(parents=True, exist_ok=True)  # istniejacy = pusty (sprawdza wolajacy)
     (kw / ZNACZNIK_NIEDOKONCZONEJ).write_text(f"Instalacja wersji {wersja} rozpoczeta {teraz:%Y-%m-%d %H:%M:%S} i niedokonczona.\r\n"
                                               "Katalog zostanie usuniety przy nastepnym uruchomieniu zainstaluj.cmd.\r\n", encoding="ascii")
     pliki = sorted(n for n in sumy if n.startswith("program/"))
@@ -796,13 +1077,48 @@ def _zgodna_z_paczka(paczka: Path, katalog: Path, wersja: str, testy: bool, srod
     return False, "pakiety srodowiska niezgodne z lista zamrozona"
 
 
+def _wymien_wersje(paczka: Path, sumy: dict[str, str], wydanie: dict, katalog: Path, python: Path, testy: bool, srodowisko: Srodowisko,
+                   dziennik: Dziennik, zegar, wersja_pythona: str, schemat: int) -> None:
+    """Naprawa / wymiana wersji juz zainstalowanej: dotychczasowy katalog jest ODKLADANY (``wersje/_stara_<wersja>``), nowy
+    powstaje od zera na wlasciwym miejscu (srodowisko wirtualne zapisuje w plikach swoja sciezke, wiec nie da sie go zbudowac
+    obok i przeniesc). Blad albo przerwanie klawiszem = niedokonczony katalog znika, a odlozony WRACA - wersja zostaje taka,
+    jaka byla. Okno zamkniete w srodku: nastepne ``zainstaluj.cmd`` cofa wymiane (``uporzadkuj_wersje``). Wolac pod ``BlokadaProgramu``."""
+    wersja = wydanie["wersja"]
+    kw = katalog_wersji(katalog, wersja)
+    odlozony = kw.with_name(PREFIKS_STAREJ + kw.name)
+    try:
+        os.rename(kw, odlozony)
+    except OSError as e:
+        raise BladInstalacji(KOD_INSTALACJA, f"nie mozna odlozyc katalogu wersji {wersja} na czas naprawy ({type(e).__name__}: {e.strerror or e})",
+                             "Zamknij programy, ktore maja otwarte pliki z katalogu tej wersji (okna Eksploratora, wiersz polecen), i "
+                             "uruchom zainstaluj.cmd ponownie. Niczego nie zmieniono.") from e
+    try:
+        _instaluj_wersje(paczka, sumy, wydanie, katalog, python, testy, srodowisko, dziennik, zegar(), wersja_pythona, schemat)
+    except BaseException:
+        try:
+            if kw.exists():
+                usun_katalog(kw)
+            os.rename(odlozony, kw)
+            dziennik.krok(f"      naprawa nieudana - przywrocono katalog wersji {wersja} sprzed naprawy")
+        except (OSError, BladInstalacji) as e:
+            dziennik.krok(f"      UWAGA: nie udalo sie przywrocic katalogu wersji {wersja} sprzed naprawy ({type(e).__name__}) - "
+                          "zrobi to nastepne uruchomienie zainstaluj.cmd")
+        raise
+    try:
+        usun_katalog(odlozony)
+    except BladInstalacji:
+        dziennik.krok(f"      OSTRZEZENIE: nie udalo sie usunac odlozonego katalogu {odlozony.name} - usunie go nastepne zainstaluj.cmd")
+
+
 def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False, skrot: bool = False, skrot_katalog: Path | None = None,
                bez_sieci: bool = False, min_wolne_mb: int | None = None, srodowisko: Srodowisko | None = None,
                zegar=dt.datetime.now) -> int:
-    """Instalacja albo aktualizacja z rozpakowanej paczki. Zwraca kod wyjscia (0 = wersja z paczki jest wersja biezaca)."""
+    """Instalacja albo aktualizacja z rozpakowanej paczki. Zwraca kod wyjscia (0 = wersja z paczki jest wersja biezaca;
+    10 = pierwsza instalacja wstrzymana do uzupelnienia ustawien)."""
     srodowisko = srodowisko or Srodowisko()
     paczka, katalog = paczka.resolve(), katalog.resolve()
     dziennik = Dziennik(katalog, "zainstaluj", zegar)  # wpisy trafiaja do pliku dopiero, gdy katalog instalacji istnieje
+    blokada = BlokadaInstalatora(katalog)
     try:
         print(f"[1/9] Sumy SHA-256 paczki ({paczka})...", flush=True)
         wydanie, sumy = sprawdz_paczke(paczka)
@@ -813,12 +1129,21 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
         print(f"[2/9] Python {wydanie['python']}...", flush=True)
         wersja_pythona = sprawdz_pythona(python, str(wydanie["python"]))
         print(f"      {python}: {wersja_pythona}", flush=True)
+        sprawdzony = str(wydanie.get("python_sprawdzony") or "")
+        uwaga_python = ""
+        if sprawdzony and wersja_pythona != sprawdzony:  # inne 3.12.x jest przyjmowane, ale zostaje slad w dzienniku
+            uwaga_python = (f"OSTRZEZENIE: Python {wersja_pythona} - paczka byla sprawdzana na Pythonie {sprawdzony}; inna wersja poprawkowa "
+                            f"jest przyjmowana, przy klopotach z instalacja pakietow zainstaluj Pythona {sprawdzony}")
+            print("      " + uwaga_python, flush=True)
 
         print(f"[3/9] Katalog instalacji {katalog}...", flush=True)
         powod = katalog_synchronizowany(katalog)
         if powod:
             raise BladInstalacji(KOD_INSTALACJA, f"katalog instalacji lezy w folderze synchronizowanym ({powod})",
                                  "Wybierz katalog poza OneDrive / SharePoint, np. zainstaluj.cmd /katalog C:\\Stanowisko.")
+        if ";" in str(katalog):  # python -m venv odmawia: srednik rozdziela sciezki w zmiennej PATH
+            raise BladInstalacji(KOD_INSTALACJA, "sciezka katalogu instalacji zawiera srednik (;) - srodowisko Pythona nie da sie w niej zalozyc",
+                                 "Wybierz katalog bez srednika w nazwie, np. zainstaluj.cmd /katalog C:\\Stanowisko. Niczego nie zmieniono.")
         kola = sorted((paczka / "kola").glob("*.whl")) + (sorted((paczka / "kola_testy").glob("*.whl")) if testy else [])
         bajty_kol, najdluzsza = rozmiary_kol(kola)
         korzen_venv = katalog_wersji(katalog, wersja) / "venv"
@@ -834,14 +1159,15 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
         except OSError as e:
             raise BladInstalacji(KOD_INSTALACJA, f"nie mozna pisac w katalogu instalacji ({type(e).__name__})",
                                  "Wybierz katalog, w ktorym to konto moze zapisywac: zainstaluj.cmd /katalog <KATALOG>.") from e
+        blokada.__enter__()  # od tej chwili do konca: jedyny instalator w tym katalogu (zwalniana w finally)
         dziennik.wpis(f"START: paczka wersja {wersja}, commit {wydanie.get('commit')}, sumy paczki zgodne {len(sumy)} z {len(sumy)}, "
                       f"Python {wersja_pythona}")
+        if uwaga_python:
+            dziennik.wpis(uwaga_python)
         biezaca = czytaj_wskaznik(katalog, PLIK_BIEZACEJ)
+        poprzednia = czytaj_wskaznik(katalog, PLIK_POPRZEDNIEJ)
         dziennik.krok(f"      wersja biezaca: {biezaca or 'brak (pierwsza instalacja)'}")
-        for w in lista_wersji(katalog):  # sprzatanie po przerwanych probach
-            if w["stan"] == "niedokonczona" and not w["biezaca"]:
-                usun_katalog(katalog_wersji(katalog, w["wersja"]))
-                dziennik.krok(f"      usunieto niedokonczona instalacje wersji {w['wersja']}")
+        uporzadkuj_wersje(katalog, dziennik)  # sprzatanie po przerwanych probach - tylko katalogi oznaczone przez instalator
 
         print("[4/9] Ustawienia...", flush=True)
         plik_ustawien = katalog / PLIK_USTAWIEN
@@ -854,13 +1180,34 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
         else:
             suma_ustawien = sha256_pliku(plik_ustawien)
             dziennik.krok(f"      istniejacy {plik_ustawien.name} zostaje bez zmian (SHA-256 {suma_ustawien[:16]}...)")
+            if plik_ustawien.read_bytes()[:3] == b"\xef\xbb\xbf":
+                raise BladInstalacji(KOD_USTAWIENIA, f"{plik_ustawien.name} zaczyna sie znakiem BOM (zapisany jako \"UTF-8 z BOM\") - program "
+                                     "takiego pliku nie wczyta",
+                                     f"Otworz {plik_ustawien} w Notatniku i zapisz ponownie: Plik -> Zapisz jako -> Kodowanie: UTF-8 "
+                                     "(UTF-8 bez BOM), potem uruchom polecenie ponownie. Pliku nie zmieniono.")
         odpowiedz = zapytaj_program(python, paczka / "program", plik_ustawien)
         plik_bazy = sprawdz_sciezki(odpowiedz, katalog)
-        with BlokadaProgramu(plik_bazy):
-            pass  # program dziala = stop juz teraz, przed dluga instalacja pakietow
+        with BlokadaProgramu(plik_bazy):  # program dziala albo baza nieczytelna = stop juz teraz, przed dluga instalacja pakietow
+            sprawdz_osierocony_plik(plik_bazy)
+            schemat_teraz = schemat_bazy(plik_bazy)
+        dziennik.krok(f"      baza: {'schemat ' + str(schemat_teraz) if schemat_teraz is not None else 'jeszcze jej nie ma'}; "
+                      f"program {wersja} obsluguje schemat {odpowiedz['schemat']}")
 
         print(f"[5/9] Katalog wersji {wersja}...", flush=True)
+        inna_pisownia = next((p.name for p in sorted((katalog / KATALOG_WERSJI).iterdir())
+                              if p.name != wersja and p.name.casefold() == wersja.casefold()), None)
+        if inna_pisownia is not None:
+            raise BladInstalacji(KOD_PACZKA, f"w katalogu instalacji jest juz wersja o numerze zapisanym inaczej ({inna_pisownia}) niz w paczce "
+                                 f"({wersja}) - w Windows to ten sam katalog",
+                                 "Paczka nie zastepuje takiej wersji - zbuduj paczke z nowym numerem wersji (plik WERSJA albo --wersja) "
+                                 "i zainstaluj ja jako aktualizacje. Wersja biezaca bez zmian.")
         stan = stan_wersji(katalog, wersja)
+        uzywana = ta_sama_wersja(wersja, biezaca) or ta_sama_wersja(wersja, poprzednia)
+        if stan == "obcy":
+            raise BladInstalacji(KOD_INSTALACJA, f"katalog {katalog_wersji(katalog, wersja)} istnieje, ale nie zalozyl go instalator (nie ma w nim "
+                                 "zapisu instalacji) - nie usuwam go",
+                                 "Przenies albo usun ten katalog recznie (albo wybierz inny katalog instalacji: /katalog) i uruchom "
+                                 "zainstaluj.cmd ponownie. Wersja biezaca bez zmian.")
         if stan == "zainstalowana":
             zgodna, powod = _zgodna_z_paczka(paczka, katalog, wersja, testy, srodowisko)
             if zgodna:
@@ -868,9 +1215,9 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
             elif powod == BRAK_TESTOW:
                 dziennik.krok(f"      wersja {wersja} jest juz zainstalowana i zgodna z paczka - dokladam zestaw testowy")
                 _doinstaluj_testy(paczka, katalog, wersja, srodowisko, dziennik)
-            elif powod == INNA_BUDOWA and wersja in (biezaca, czytaj_wskaznik(katalog, PLIK_POPRZEDNIEJ)):
+            elif powod == INNA_BUDOWA and uzywana:
                 raise BladInstalacji(KOD_PACZKA, f"wersja {wersja} jest juz zainstalowana z INNEJ budowy o tym samym numerze i jest wersja "
-                                     + ("biezaca" if wersja == biezaca else "poprzednia"),
+                                     + ("biezaca" if ta_sama_wersja(wersja, biezaca) else "poprzednia"),
                                      "Paczka nie zastepuje uzywanej wersji o tym samym numerze - zbuduj paczke z nowym numerem wersji (plik "
                                      "WERSJA albo --wersja) i zainstaluj ja jako aktualizacje. Wersja biezaca bez zmian.")
             else:
@@ -885,21 +1232,27 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
                                      "Zwolnij miejsce albo wybierz inny dysk (/katalog) i uruchom zainstaluj.cmd ponownie. "
                                      "Wersja biezaca bez zmian.")
             dziennik.krok(f"      miejsce na dysku: potrzeba ok. {potrzeba} MB, wolne {wolne} MB")
-            if stan != "brak":  # dopiero po kontroli miejsca; naprawa wersji biezacej tylko przy zamknietym programie
+            argumenty = (paczka, sumy, wydanie, katalog, python, testy, srodowisko, dziennik)
+            if stan == "do_naprawy":  # dopiero po kontroli miejsca; stara wersja wraca, gdy naprawa sie nie uda
                 with BlokadaProgramu(plik_bazy):
-                    usun_katalog(katalog_wersji(katalog, wersja))
-            _instaluj_wersje(paczka, sumy, wydanie, katalog, python, testy, srodowisko, dziennik, zegar(), wersja_pythona,
-                             int(odpowiedz["schemat"]))
+                    _wymien_wersje(*argumenty, zegar, wersja_pythona, int(odpowiedz["schemat"]))
+            else:
+                if stan == "niedokonczona":  # tylko wersja biezaca ze znacznikiem (inne sprzatnal krok 3): nie ma czego ratowac
+                    with BlokadaProgramu(plik_bazy):
+                        usun_katalog(katalog_wersji(katalog, wersja))
+                _instaluj_wersje(*argumenty, zegar(), wersja_pythona, int(odpowiedz["schemat"]))
         kw = katalog_wersji(katalog, wersja)
         program, python_wersji = kw / "program", srodowisko.python(kw / "venv")
 
         print("[6/9] Kopia bazy...", flush=True)
-        if wersja == biezaca:
+        if ta_sama_wersja(wersja, biezaca):
             dziennik.krok("      ta sama wersja co biezaca - kopia bazy niepotrzebna")
         else:
             with BlokadaProgramu(plik_bazy):
-                kopia = kopia_bazy(plik_bazy, wersja, zegar())
-            dziennik.krok(f"      kopia bazy: kopie/{kopia.name} (schemat bazy {wersja_schematu(kopia)}, program {wersja}: {odpowiedz['schemat']})"
+                sprawdz_osierocony_plik(plik_bazy)
+                kopia = kopia_bazy(plik_bazy, wersja, zegar())  # nieudana albo niesprawdzona kopia = stop (wersja nie zostanie przelaczona)
+            dziennik.krok(f"      kopia bazy: kopie/{kopia.name} - sprawdzona (quick_check ok, schemat bazy {schemat_kopii(kopia)}; "
+                          f"program {wersja}: {odpowiedz['schemat']})"
                           if kopia else "      bazy jeszcze nie ma - program zalozy ja przy pierwszym uruchomieniu")
 
         print(f"[7/9] Samokontrola wersji {wersja}...", flush=True)
@@ -910,6 +1263,17 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
         dziennik.wpis(f"samokontrola: kod wyjscia {kod}")
         if suma_ustawien is not None and sha256_pliku(plik_ustawien) != suma_ustawien:
             raise BladInstalacji(KOD_INSTALACJA, f"{plik_ustawien.name} zmienil sie w trakcie instalacji", "Zglos ten komunikat.")
+        if kod == 1 and biezaca is None:
+            # PIERWSZA instalacja: plik ustawien ze wzoru nie zna jeszcze folderow tej maszyny. Zasada "wersja biezaca zawsze po
+            # zielonej samokontroli" zostaje bez wyjatkow, ale to zamierzony etap, a nie niepowodzenie: osobny wynik i kod.
+            dziennik.krok(f"Wersja {wersja} jest zainstalowana, ale jeszcze NIE jest wersja biezaca - samokontrola wskazala, co uzupelnic:")
+            print("\n".join("  " + w.strip() for w in wyjscie.splitlines() if w.strip().startswith("BLAD ")), flush=True)
+            dziennik.krok(f"Plik ustawien: {plik_ustawien}")
+            dziennik.krok("CO ZROBIC: otworz plik ustawien w Notatniku, wpisz w [sciezki] foldery tej maszyny (z ukosnikami /) i osoby w [sesja] "
+                          "operatorzy, zapisz (UTF-8) i uruchom zainstaluj.cmd JESZCZE RAZ - pakiety nie instaluja sie drugi raz, to trwa "
+                          "kilka sekund.")
+            dziennik.krok(f"INSTALACJA: WSTRZYMANA - uzupelnij ustawienia.toml i uruchom zainstaluj.cmd ponownie (kod {KOD_WSTRZYMANA})")
+            return KOD_WSTRZYMANA
         if kod != 0:
             zostaje = f"wersja biezaca zostaje {biezaca}" if biezaca else "wersji biezacej nadal nie ma"
             if kod == 1:
@@ -943,34 +1307,57 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
         dziennik.wpis(traceback.format_exc())
         return _zglos(dziennik, "INSTALACJA", BladInstalacji(KOD_INSTALACJA, f"nieoczekiwany blad instalatora ({type(e).__name__}: {e})",
                       "Uruchom zainstaluj.cmd ponownie; gdy blad wraca, zglos go razem z plikiem dziennik_instalacji.txt."))
+    finally:
+        blokada.__exit__(None, None, None)
 
 
 def _zglos(dziennik: Dziennik, operacja: str, e: BladInstalacji) -> int:
+    """Wiersze koncowe bledu. O wersji biezacej mowi prawde: "bez zmian" tylko wtedy, gdy jej katalog jest caly."""
     dziennik.krok(f"BLAD: {e.opis}")
     if e.rada:
         dziennik.krok(f"CO ZROBIC: {e.rada}")
     biezaca = czytaj_wskaznik(dziennik.katalog, PLIK_BIEZACEJ)
-    dziennik.krok(f"{operacja}: NIEUDANA (kod {e.kod}) - wersja biezaca bez zmian: {biezaca or 'brak'}")
+    if biezaca is not None and stan_wersji(dziennik.katalog, biezaca) != "zainstalowana":
+        dziennik.krok(f"{operacja}: NIEUDANA (kod {e.kod}) - UWAGA: wersja biezaca {biezaca} jest niekompletna (przerwana naprawa) i program "
+                      f"nie wystartuje; uruchom zainstaluj.cmd z paczki wersji {biezaca} albo nowszej")
+    else:
+        dziennik.krok(f"{operacja}: NIEUDANA (kod {e.kod}) - wersja biezaca bez zmian: {biezaca or 'brak'}")
     return e.kod
 
 
 # ----------------------------------------------------------------------------------------- powrot, lista, usuwanie
 
-def wroc(katalog: Path, *, przywroc: bool = False, srodowisko: Srodowisko | None = None, zegar=dt.datetime.now) -> int:
+def zapytaj_konsole(pytanie: str) -> bool:
+    """Pytanie T / N na konsoli; odpowiedz inna niz T / TAK (takze brak konsoli) = nie."""
+    try:
+        return input(pytanie).strip().lower() in ("t", "tak")
+    except (EOFError, OSError):
+        print(flush=True)
+        return False
+
+
+def wroc(katalog: Path, *, przywroc: bool = False, potwierdz=None, srodowisko: Srodowisko | None = None, zegar=dt.datetime.now) -> int:
     """Powrot do poprzedniej wersji: przelacza wskaznik; gdy baza ma schemat nowszy niz obsluguje poprzednia wersja,
-    wymaga jawnego ``przywroc`` (opcja /przywroc-kopie) i wtedy wstawia kopie sprzed aktualizacji, a biezaca baze odklada."""
+    wymaga jawnego ``przywroc`` (opcja /przywroc-kopie) i wtedy wstawia najnowsza sprawdzona kopie sprzed aktualizacji,
+    a biezaca baze odklada. ``potwierdz``: funkcja pytania T / N (``Wroc_do_poprzedniej.cmd`` bez opcji); None = bez pytania."""
     srodowisko = srodowisko or Srodowisko()
     katalog = katalog.resolve()
     dziennik = Dziennik(katalog, "wroc", zegar)
+    blokada = BlokadaInstalatora(katalog)
     try:
         biezaca, poprzednia = czytaj_wskaznik(katalog, PLIK_BIEZACEJ), czytaj_wskaznik(katalog, PLIK_POPRZEDNIEJ)
         if biezaca is None:
             raise BladInstalacji(KOD_BRAK_WERSJI, f"w {katalog} nie ma zainstalowanej wersji biezacej", "Uruchom zainstaluj.cmd z paczki wydania.")
-        if poprzednia is None or poprzednia == biezaca or stan_wersji(katalog, poprzednia) != "zainstalowana":
+        if poprzednia is None or ta_sama_wersja(poprzednia, biezaca) or stan_wersji(katalog, poprzednia) != "zainstalowana":
             raise BladInstalacji(KOD_BRAK_WERSJI, f"nie ma poprzedniej wersji, do ktorej mozna wrocic (biezaca: {biezaca})",
                                  "Zainstaluj potrzebna wersje z jej paczki wydania (zainstaluj.cmd).")
+        blokada.__enter__()
         dziennik.operacja = f"wroc {biezaca} -> {poprzednia}"
         dziennik.krok(f"[1/4] Powrot z wersji {biezaca} do {poprzednia}...")
+        if potwierdz is not None and not potwierdz(f"Powrot z wersji {biezaca} do wersji {poprzednia}. Kontynuowac? [T/N]: "):
+            dziennik.krok(f"POWROT: ANULOWANY (kod {KOD_ANULOWANO}) - wersja biezaca bez zmian: {biezaca}. Odpowiedz T przelacza wersje; "
+                          "w skryptach: Wroc_do_poprzedniej.cmd /tak")
+            return KOD_ANULOWANO
         kw = katalog_wersji(katalog, poprzednia)
         program, python_wersji = kw / "program", srodowisko.python(kw / "venv")
         plik_ustawien = katalog / PLIK_USTAWIEN
@@ -983,25 +1370,32 @@ def wroc(katalog: Path, *, przywroc: bool = False, srodowisko: Srodowisko | None
         plik_bazy = sprawdz_sciezki(odpowiedz, katalog)
         schemat_programu = int(odpowiedz["schemat"])
         with BlokadaProgramu(plik_bazy):
-            schemat_bazy = wersja_schematu(plik_bazy)
-            dziennik.krok(f"[2/4] Baza: schemat {schemat_bazy if schemat_bazy is not None else 'brak pliku'}; wersja {poprzednia} "
+            sprawdz_osierocony_plik(plik_bazy)
+            schemat = schemat_bazy(plik_bazy)  # otwarcie do zapisu: przerwany zapis (-journal) jest najpierw wycofywany
+            dziennik.krok(f"[2/4] Baza: schemat {schemat if schemat is not None else 'brak pliku'}; wersja {poprzednia} "
                           f"obsluguje schemat do {schemat_programu}")
-            if schemat_bazy is not None and schemat_bazy > schemat_programu:
-                kopia = znajdz_kopie(plik_bazy, biezaca, schemat_programu)
+            if schemat is not None and schemat > schemat_programu:
+                kopia, inne = znajdz_kopie(plik_bazy, schemat_programu)
                 print(f"      UWAGA: wersja {biezaca} zmienila schemat bazy - wersja {poprzednia} tej bazy NIE otworzy.", flush=True)
                 if kopia is None:
-                    raise BladInstalacji(KOD_BAZA_NOWSZA, f"baza ma schemat {schemat_bazy}, a nie ma kopii bazy o schemacie do "
-                                         f"{schemat_programu} (szukano w {plik_bazy.parent / 'kopie'})",
+                    raise BladInstalacji(KOD_BAZA_NOWSZA, f"baza ma schemat {schemat}, a nie ma sprawdzonej kopii bazy o schemacie do "
+                                         f"{schemat_programu} (szukano w {plik_bazy.parent / 'kopie'}; kopii, ktore nie przeszly kontroli: "
+                                         f"{len(inne['niesprawdzone'])})",
                                          f"Powrot do {poprzednia} bez kopii nie jest mozliwy - zostan przy wersji {biezaca} albo zglos "
                                          "sprawe. Niczego nie zmieniono.")
-                for wiersz in opis_strat(plik_bazy, kopia):
+                for wiersz in opis_strat(plik_bazy, kopia, inne):
                     dziennik.krok("      " + wiersz)
                 if not przywroc:
                     raise BladInstalacji(KOD_BAZA_NOWSZA, f"powrot do {poprzednia} wymaga przywrocenia kopii bazy sprzed aktualizacji",
                                          "Jesli zgadzasz sie na utrate wpisow wymienionych powyzej, uruchom: Wroc_do_poprzedniej.cmd "
                                          "/przywroc-kopie (biezaca baza zostanie odlozona do dane\\kopie, nie skasowana). Niczego nie zmieniono.")
-                odlozona = przywroc_kopie(plik_bazy, kopia, schemat_bazy, zegar())
+                odlozona = przywroc_kopie(plik_bazy, kopia, schemat, zegar())
                 dziennik.krok(f"      przywrocono kopie {kopia.name}; dotychczasowa baza odlozona jako kopie/{odlozona.name}")
+            elif schemat is not None and schemat < schemat_programu:
+                # "powrot" do wersji o NOWSZYM schemacie: program zmigruje baze przy starcie - kopia jak przed aktualizacja
+                kopia = kopia_bazy(plik_bazy, poprzednia, zegar())
+                dziennik.krok(f"      wersja {poprzednia} zmieni schemat bazy przy starcie ({schemat} -> {schemat_programu}) - kopia bazy: "
+                              f"kopie/{kopia.name} - sprawdzona (quick_check ok)")
             else:
                 dziennik.krok("      schemat zgodny - baza zostaje bez zmian")
             dziennik.krok("[3/4] Przelaczenie wersji biezacej...")
@@ -1026,29 +1420,38 @@ def wroc(katalog: Path, *, przywroc: bool = False, srodowisko: Srodowisko | None
         dziennik.wpis(traceback.format_exc())
         return _zglos(dziennik, "POWROT", BladInstalacji(KOD_INSTALACJA, f"nieoczekiwany blad ({type(e).__name__}: {e})",
                       "Zglos ten komunikat razem z plikiem dziennik_instalacji.txt."))
+    finally:
+        blokada.__exit__(None, None, None)
+
+
+_OPISY_STANOW = {"niedokonczona": "NIEDOKONCZONA", "pusty": "PUSTY KATALOG (nie zalozyl go instalator)",
+                 "obcy": "OBCY KATALOG (nie zalozyl go instalator - nie usuwam)"}
 
 
 def wersje(katalog: Path, usun: str | None = None, zegar=dt.datetime.now) -> int:
-    """Lista zainstalowanych wersji albo usuniecie wskazanej (nie biezacej i nie poprzedniej)."""
+    """Lista zainstalowanych wersji albo usuniecie wskazanej (nie biezacej i nie poprzedniej; tylko katalog zalozony przez instalator)."""
     katalog = katalog.resolve()
     dziennik = Dziennik(katalog, "wersje", zegar)
     try:
         lista = lista_wersji(katalog)
         if usun is not None:
-            wpis = next((w for w in lista if w["wersja"] == usun), None)
-            if wpis is None:
-                raise BladInstalacji(KOD_BRAK_WERSJI, f"nie ma zainstalowanej wersji {usun!r}", "Lista wersji: Wersje.cmd")
+            wpis = next((w for w in lista if ta_sama_wersja(w["wersja"], usun)), None)
+            if wpis is None or wpis["stan"] in ("obcy", "pusty"):
+                raise BladInstalacji(KOD_BRAK_WERSJI, f"nie ma zainstalowanej wersji {usun!r}"
+                                     + (" (katalog o tej nazwie nie zostal zalozony przez instalator - nie usuwam go)" if wpis else ""),
+                                     "Lista wersji: Wersje.cmd")
             if wpis["biezaca"] or wpis["poprzednia"]:
-                raise BladInstalacji(KOD_BRAK_WERSJI, f"wersja {usun} jest {'biezaca' if wpis['biezaca'] else 'poprzednia'} - nie usuwam",
+                raise BladInstalacji(KOD_BRAK_WERSJI, f"wersja {wpis['wersja']} jest {'biezaca' if wpis['biezaca'] else 'poprzednia'} - nie usuwam",
                                      "Usunac mozna tylko wersje, ktora nie jest ani biezaca, ani poprzednia.")
-            usun_katalog(katalog_wersji(katalog, usun))
-            dziennik.krok(f"WERSJE: usunieto wersje {usun} (ustawienia i dane bez zmian)")
+            with BlokadaInstalatora(katalog):
+                usun_katalog(katalog_wersji(katalog, wpis["wersja"]))
+            dziennik.krok(f"WERSJE: usunieto wersje {wpis['wersja']} (ustawienia i dane bez zmian)")
             return KOD_OK
         if not lista:
             print(f"W {katalog} nie ma zainstalowanych wersji.")
         for w in lista:
             znaczniki = [n for n, jest in (("BIEZACA", w["biezaca"]), ("poprzednia", w["poprzednia"]),
-                                           ("NIEDOKONCZONA", w["stan"] != "zainstalowana")) if jest]
+                                           (_OPISY_STANOW.get(w["stan"], ""), w["stan"] != "zainstalowana")) if jest]
             print(f"{w['wersja']:<16} zainstalowano {w['zainstalowano']:<19} commit {str(w['commit'])[:12]:<12} "
                   f"schemat bazy {w['schemat_bazy']}  {' '.join(znaczniki)}")
         return KOD_OK
@@ -1081,8 +1484,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--bez-pauzy", action="store_true", help="(dla zainstaluj.cmd) nie czekaj na klawisz na koncu")
     p = polecenia.add_parser("wroc", help="powrot do poprzedniej wersji")
     p.add_argument("--katalog", type=Path, required=True)
-    p.add_argument("--przywroc-kopie", action="store_true", help="zgoda na przywrocenie kopii bazy sprzed aktualizacji")
-    p.add_argument("--bez-pauzy", action="store_true")
+    p.add_argument("--przywroc-kopie", action="store_true", help="zgoda na przywrocenie kopii bazy sprzed aktualizacji (bez pytania T / N)")
+    p.add_argument("--tak", action="store_true", help="bez pytania T / N przed przelaczeniem wersji (skrypty, testy)")
+    p.add_argument("--bez-pauzy", action="store_true", help="(dla Wroc_do_poprzedniej.cmd) nie czekaj na klawisz na koncu")
     p = polecenia.add_parser("wersje", help="lista wersji / usuniecie wskazanej")
     p.add_argument("--katalog", type=Path, required=True)
     p.add_argument("--usun", default=None, metavar="WERSJA", help="usun wersje (nie biezaca i nie poprzednia)")
@@ -1092,7 +1496,8 @@ def main(argv: list[str] | None = None) -> int:
         return zainstaluj(args.paczka, args.katalog, args.python, testy=args.testy, skrot=args.skrot, skrot_katalog=args.skrot_katalog,
                           bez_sieci=args.bez_sieci, min_wolne_mb=args.min_wolne_mb)
     if args.polecenie == "wroc":
-        return wroc(args.katalog, przywroc=args.przywroc_kopie)
+        # bez opcji: pytanie T / N (dwuklik lezy obok Stanowisko.cmd); /tak i /przywroc-kopie to jawna zgoda z wiersza polecen
+        return wroc(args.katalog, przywroc=args.przywroc_kopie, potwierdz=None if args.tak or args.przywroc_kopie else zapytaj_konsole)
     return wersje(args.katalog, args.usun)
 
 
