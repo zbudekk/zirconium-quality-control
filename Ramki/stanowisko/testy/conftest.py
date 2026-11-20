@@ -8,15 +8,19 @@ import json
 import sys
 from pathlib import Path
 
-import numpy as np
-import pytest
-import trimesh
-
 STANOWISKO = Path(__file__).resolve().parent.parent
 RAMKI = STANOWISKO.parent
 for p in (STANOWISKO, STANOWISKO / "narzedzia"):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
+
+# E3-A11w: pakiet ``stanowisko`` wylacza przy imporcie zapytania WMI modulu ``platform`` - MUSI byc zaimportowany PRZED
+# ``trimesh`` (``import trimesh`` wola ``platform.system()``; porzucony watek zapytania WMI zamyka losowy uchwyt procesu testow)
+import stanowisko  # noqa: E402, F401, I001
+
+import numpy as np  # noqa: E402
+import pytest  # noqa: E402
+import trimesh  # noqa: E402
 
 import atrapy_koron  # noqa: E402
 from stanowisko import uklad as U  # noqa: E402
