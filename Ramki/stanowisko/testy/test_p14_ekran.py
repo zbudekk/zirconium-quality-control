@@ -191,10 +191,10 @@ def test_poz9_wieczor_przyciski_decyzji_i_pytania_widoczne_bez_przewijania(swiat
     k.symuluj_skan("do_powtorzenia", numer=2, projekty=PROJEKTY_2)
     ustaw_rozmiar(e, rozmiar)
     assert e.okno.pokazana_plytka() == s1 and not e.okno.rano()
-    usterki = [f"otwarta praca: {u}" for u in niewidoczne_w_calosci(e, WIECZOR_DECYZJE + ("przycisk_nowa_plytka", "nowy_wynik_pokaz"))]
+    usterki = [f"otwarta praca: {u}" for u in niewidoczne_w_calosci(e, WIECZOR_DECYZJE + ("przycisk_nowa_plytka", "panel_nowy_wynik"))]
     zegar.przesun(2)
     s3 = k.symuluj_skan("czysta", numer=2, projekty=PROJEKTY_2)
-    e.klik("nowy_wynik_pokaz")
+    e.klik("przycisk_nowa_plytka")
     assert e.okno.pokazana_plytka() == s3
     ustaw_rozmiar(e, rozmiar)
     usterki += [f"pytanie: {u}" for u in niewidoczne_w_calosci(e, WIECZOR_PYTANIE + ("przycisk_skanuj",))]
@@ -237,10 +237,62 @@ def test_n2_nowa_plytka_z_komunikatem_i_pytaniem_ma_trwaly_sygnal(swiat):
     e.klik_gniazdo(2)  # technik pracuje dalej na plytce 1: panel nie zabiera mu pracy i nie znika
     e.klik("przycisk_ukruszona")
     assert e.jest("panel_nowy_wynik") and e.okno.pokazana_plytka() == s1 and k.stan().plytka(s1).gniazdo(2).praca.decyzja == "ukruszona"
-    e.klik("nowy_wynik_pokaz")
+    e.klik("przycisk_nowa_plytka")
     assert e.okno.pokazana_plytka() == s3 and e.jest("pytanie_ponowny_skan")
     assert not e.jest("panel_nowy_wynik"), e.tekst_elementu("panel_nowy_wynik")  # poprzedni skan tej plytki (s2) tlumaczy pytanie
     assert s2 in e.plytki()
+
+
+def _geometria_mapy(e) -> tuple:
+    """(prostokat mapy w oknie, {gniazdo: srodek w oknie}) - to, w co celuje reka technika."""
+    from PySide6.QtCore import QPoint, QRect
+
+    e.zdarzenia()
+    mapa = e.mapa
+    return (QRect(mapa.mapTo(e.okno, QPoint(0, 0)), mapa.size()),
+            {nr: mapa.mapTo(e.okno, mapa.srodek_gniazda(nr).toPoint()) for nr in mapa.numery()})
+
+
+@pytest.mark.parametrize("rozmiar", ROZMIARY, ids=lambda r: f"{r[0]}x{r[1]}")
+def test_r2_p3_panel_nowego_wyniku_nie_przesuwa_mapy_ogladanej_plytki(swiat, rozmiar):
+    """Runda 2 (P3, proba ``proby_przesuniecie.py`` recenzenta): technik oglada plytke 1 i siega po gniazdo; przychodzi wynik
+    nastepnej plytki. Panel "Nowy wynik czeka" NIE moze przesunac ani zmniejszyc mapy ogladanej plytki - gdy sie pojawia,
+    gdy rosnie (kolejny wynik) i gdy znika: prostokat mapy i srodki 19 gniazd w oknie zostaja te same, ochrona klikniec nie
+    jest potrzebna (regula A-P2 "klikniecie trafia w ogladana plytke" zostaje), klikniecie w stary srodek gniazda otwiera
+    TO gniazdo."""
+    k, zegar = swiat.wieczor()
+    s1 = k.symuluj_skan("zwykla", numer=1)
+    e = swiat.ekran(k, rozmiar)
+    e.po_ochronie()
+    przed = _geometria_mapy(e)
+    assert len(przed[1]) == 19 and not e.jest("panel_nowy_wynik")
+    zegar.przesun(1)
+    s2 = k.symuluj_skan("czysta", numer=2, projekty=PROJEKTY_2)
+    e.odczekaj(50)
+    assert e.jest("panel_nowy_wynik") and e.okno.pokazana_plytka() == s1 and not e.okno.ochrona_aktywna()
+    po = _geometria_mapy(e)
+    przesuniete = [nr for nr in przed[1] if po[1][nr] != przed[1][nr]]
+    assert po[0] == przed[0] and not przesuniete, f"panel sie pojawil: mapa {przed[0]} -> {po[0]}, przesunietych gniazd {len(przesuniete)} z 19"
+    zegar.przesun(1)
+    s3 = k.symuluj_skan("do_powtorzenia", numer=3, projekty={1: 31, 2: 32, 3: 33, 4: 34})
+    e.odczekaj(50)
+    assert N.NOWE_WYNIKI_TYTUL.format(n=2, plytki="").rstrip() in e.tekst_elementu("panel_nowy_wynik") and e.okno.pokazana_plytka() == s1
+    po = _geometria_mapy(e)
+    przesuniete = [nr for nr in przed[1] if po[1][nr] != przed[1][nr]]
+    assert po[0] == przed[0] and not przesuniete, f"panel urosl: mapa {przed[0]} -> {po[0]}, przesunietych gniazd {len(przesuniete)} z 19"
+    zrzut(e, f"r2_nowy_wynik_{rozmiar[0]}x{rozmiar[1]}")
+    _klik_w_punkt(e, przed[1][9])
+    assert e.jest("widok_pracy") and e.okno._gniazdo == 9  # klikniecie w stary srodek gniazda 9 otwiera gniazdo 9
+    e.klik("przycisk_zamknij_prace")
+    e.klik("przycisk_nowa_plytka")
+    e.klik("przycisk_nowa_plytka")
+    assert e.okno.pokazana_plytka() in (s2, s3) and not e.jest("panel_nowy_wynik")
+    e.po_ochronie()
+    e.klik(f"plytka_{s1}")
+    e.po_ochronie()
+    po = _geometria_mapy(e)
+    przesuniete = [nr for nr in przed[1] if po[1][nr] != przed[1][nr]]
+    assert e.okno.pokazana_plytka() == s1 and po[0] == przed[0] and not przesuniete, f"panel zniknal: mapa {przed[0]} -> {po[0]}"
 
 
 def test_n2_bez_nowej_plytki_i_po_samoczynnym_przelaczeniu_panelu_nie_ma(swiat):
@@ -272,7 +324,9 @@ def test_n3_zamknij_piec_pyta_o_prace_nierozstrzygniete_i_nazywa_je_po_zamknieci
     tekst = e.tekst_elementu("pytanie_zamknij_mimo")
     assert N.PLYTKA_NR.format(numer=4) in tekst and "gniazdo 3" in tekst and "1 " in tekst and "NIE" in tekst
     przyciski = [b.objectName() for b in e.w("pytanie_zamknij_mimo").findChildren(type(e.w("zamknij_mimo_wroc")))]
-    assert przyciski == ["zamknij_mimo_wroc", "zamknij_mimo_tak"]  # domyslna (pierwsza, wyrozniona): powrot do rozstrzygania
+    # domyslna (wyrozniona) odpowiedz: powrot do rozstrzygania; runda 2 (P2): stoi po prawej - pod miejscem "Zamknij piec"
+    assert przyciski == ["zamknij_mimo_tak", "zamknij_mimo_wroc"]
+    assert _w_oknie(e, "zamknij_mimo_tak").right() < _w_oknie(e, "zamknij_mimo_wroc").left()
     assert e.w("zamknij_mimo_wroc").property("rola") == "glowny" and e.w("zamknij_mimo_tak").property("rola") != "glowny"
     assert not niewidoczne_w_calosci(e, ("zamknij_mimo_wroc", "zamknij_mimo_tak"))
     zrzut(e, "po_n3_pytanie_przed_zamknieciem")
@@ -293,6 +347,71 @@ def test_n3_zamknij_piec_pyta_o_prace_nierozstrzygniete_i_nazywa_je_po_zamknieci
     zrzut(e, "po_p5_rano_zamkniety_za_wczesnie")
 
 
+def _w_oknie(e, nazwa: str):
+    from PySide6.QtCore import QPoint, QRect
+
+    w = e.w(nazwa)
+    return QRect(w.mapTo(e.okno, QPoint(0, 0)), w.size())
+
+
+def _klik_w_punkt(e, punkt, dwuklik: bool = False) -> str | None:
+    """Klikniecie (albo dwuklik) w punkt OKNA - w to, co tam teraz lezy; zwraca nazwe trafionego elementu."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    cel = e.okno.childAt(punkt) or e.okno
+    (QTest.mouseDClick if dwuklik else QTest.mouseClick)(cel, Qt.MouseButton.LeftButton, pos=cel.mapFrom(e.okno, punkt))
+    e.zdarzenia()
+    return cel.objectName() or None
+
+
+@pytest.mark.parametrize("rozmiar", ROZMIARY, ids=lambda r: f"{r[0]}x{r[1]}")
+@pytest.mark.parametrize("komunikat_nad_piecem", (False, True), ids=("bez_komunikatu", "z_komunikatem"))
+def test_r2_p2_drugie_klikniecie_w_miejsce_zamknij_piec_nie_zamyka_pieca(swiat, rozmiar, komunikat_nad_piecem):
+    """Runda 2 (P2, proba ``proby_dwuklik.py`` recenzenta): piec z praca zolta; technik klika "Zamknij piec" i drugi raz W TO
+    SAMO MIEJSCE (niecierpliwe klikniecie albo dwuklik). Pytanie wlasnie sie pojawilo - drugie klikniecie NIE moze trafic w
+    "Zamknij piec mimo to": piec zostaje otwarty w kazdym z 4 rozmiarow okna, z komunikatem nad piecem i bez (srodek i 4 rogi
+    starego przycisku + dwuklik w srodek), a prostokat starego przycisku nie ma czesci wspolnej z "Zamknij piec mimo to"."""
+    from PySide6.QtCore import QPoint
+
+    k, zegar = swiat.rano()
+    poranek_t14(k, zegar)
+    if not komunikat_nad_piecem:
+        for x in list(k.stan().komunikaty):
+            k.zamknij_komunikat(x.id)
+    assert bool([x for x in k.stan().komunikaty if not x.ukryte]) == komunikat_nad_piecem
+    e = swiat.ekran(k, rozmiar)
+    usterki = []
+    for miejsce in ("srodek", "lewy_gorny", "prawy_gorny", "lewy_dolny", "prawy_dolny", "dwuklik"):
+        if e.jest("pytanie_zamknij_mimo"):  # stan wyjsciowy: bez pytania, bez otwartej pracy
+            e.klik("zamknij_mimo_wroc")
+        if e.rano.pokazana_praca() is not None:
+            e.klik("praca_rano_zamknij")
+        e.zdarzenia()
+        assert not e.jest("pytanie_zamknij_mimo") and e.rano.pokazana_praca() is None and k.stan().rano.otwarty
+        stary = _w_oknie(e, "przycisk_zamknij_piec")
+        punkt = {"srodek": stary.center(), "dwuklik": stary.center(), "lewy_gorny": stary.topLeft() + QPoint(3, 3),
+                 "prawy_gorny": stary.topRight() + QPoint(-3, 3), "lewy_dolny": stary.bottomLeft() + QPoint(3, -3),
+                 "prawy_dolny": stary.bottomRight() + QPoint(-3, -3)}[miejsce]
+        if miejsce == "dwuklik":
+            trafione = (_klik_w_punkt(e, punkt, dwuklik=True),)
+        else:
+            trafione = (_klik_w_punkt(e, punkt), None)
+            assert trafione[0] == "przycisk_zamknij_piec" and e.jest("pytanie_zamknij_mimo") and k.stan().rano.otwarty, (miejsce, trafione)
+            mimo = _w_oknie(e, "zamknij_mimo_tak")
+            if miejsce == "srodek":
+                zrzut(e, f"r2_n3_pytanie_{rozmiar[0]}x{rozmiar[1]}_{'z_komunikatem' if komunikat_nad_piecem else 'bez_komunikatu'}")
+            if stary.intersects(mimo):
+                usterki.append(f"{miejsce}: stary przycisk {stary} ma czesc wspolna z 'Zamknij piec mimo to' {mimo}")
+            trafione = (trafione[0], _klik_w_punkt(e, punkt))
+        if not k.stan().rano.otwarty:
+            usterki.append(f"{miejsce}: piec ZAMKNIETY po drugim kliknieciu w ({punkt.x()}, {punkt.y()}); trafione {trafione}")
+            break
+        if trafione[-1] == "zamknij_mimo_tak":
+            usterki.append(f"{miejsce}: drugie klikniecie trafilo w 'Zamknij piec mimo to' (nieaktywny?)")
+    assert not usterki, f"okno {rozmiar[0]} x {rozmiar[1]}, komunikat nad piecem {komunikat_nad_piecem}:\n" + "\n".join(usterki)
+
+
 def test_n3_bez_prac_nierozstrzygnietych_zamknij_piec_nie_pyta(swiat):
     k, zegar = swiat.rano()
     p4, _ = poranek_t14(k, zegar)
@@ -302,6 +421,53 @@ def test_n3_bez_prac_nierozstrzygnietych_zamknij_piec_nie_pyta(swiat):
     assert k.stan().rano.nierozstrzygniete_prace == ()
     e.klik("przycisk_zamknij_piec")
     assert not k.stan().rano.otwarty and not e.jest("pytanie_zamknij_mimo") and not e.jest("rano_nierozstrzygniete")
+
+
+def test_r2_d2_przy_pytaniu_o_zamkniecie_esc_wraca_do_rozstrzygania_a_enter_nie_potwierdza_kuwety(swiat):
+    """Runda 2 (D2): pytanie "Zamknac piec mimo prac bez rozstrzygniecia?" przejmuje klawisze - Enter NIE zapisuje "Rozlozona"
+    biezacej kuwety (bylo: 0 -> 1 wpis ``kuweta_potwierdzona``), pytanie zostaje, piec otwarty; Esc = "Wroc do rozstrzygania"
+    (pytanie znika, otwiera sie pierwsza praca bez rozstrzygniecia). Bez pytania Enter potwierdza kuwete jak dotad."""
+    from PySide6.QtCore import Qt
+
+    k, zegar = swiat.rano()
+    p4, _ = poranek_t14(k, zegar)
+    e = swiat.ekran(k, (1536, 864))
+    potwierdzone = lambda: k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE typ = 'kuweta_potwierdzona'")["n"]  # noqa: E731
+    przed = potwierdzone()
+    e.klik("przycisk_zamknij_piec")
+    assert e.jest("pytanie_zamknij_mimo")
+    e.klawisz(Qt.Key.Key_Return)
+    e.klawisz(Qt.Key.Key_Enter)
+    assert potwierdzone() == przed and e.jest("pytanie_zamknij_mimo") and k.stan().rano.otwarty
+    e.klawisz(Qt.Key.Key_Escape)
+    assert not e.jest("pytanie_zamknij_mimo") and k.stan().rano.otwarty and potwierdzone() == przed
+    assert e.rano.pokazana_praca().praca_id == k.stan().rano.plytka(p4).gniazdo(3).praca.praca_id
+    e.klik("praca_rano_zamknij")
+    e.klawisz(Qt.Key.Key_Return)
+    assert potwierdzone() == przed + 1
+
+
+def test_r2_p4_jedyna_nieznana_z_bez_projektu_nie_jest_praca_bez_rozstrzygniecia(swiat):
+    """Runda 2 (P4 a, wstrzykniecie M5 recenzenta): jedyna praca "nieznana" pieca, o ktorej osoba zdecydowala swiadomie
+    "Bez projektu", NIE jest praca bez rozstrzygniecia - ``nierozstrzygniete_prace == ()``, "Zamknij piec" nie pyta, po
+    zamknieciu nie ma grupy "Prace bez rozstrzygniecia". Przed decyzja ta sama praca JEST na liscie (i ekran by zapytal)."""
+    from stanowisko import kontroler_api as K
+
+    k, zegar = swiat.rano()
+    k.przelacz_tryb("rano")
+    k.wybierz_operatora("Technik A")
+    K.indeks_rano_sztuczny(k.sesja.baza, k.sesja.teraz())
+    p4 = k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "nieznana"}, projekty={1: 307, 2: 308, 3: 309})
+    assert [(x.numer_plytki, x.gniazdo, x.klasa) for x in k.stan().rano.nierozstrzygniete_prace] == [(4, 3, "nieznana")]
+    e = swiat.ekran(k, (1536, 864))
+    e.klik_rano(p4, 3)
+    e.klik("praca_rano_bez_projektu")
+    assert k.stan().rano.nierozstrzygniete_prace == (), k.stan().rano.nierozstrzygniete_prace
+    if e.rano.pokazana_praca() is not None:
+        e.klik("praca_rano_zamknij")
+    e.klik("przycisk_zamknij_piec")
+    assert not e.jest("pytanie_zamknij_mimo"), e.tekst_elementu("pytanie_zamknij_mimo")
+    assert not k.stan().rano.otwarty and not e.jest("rano_nierozstrzygniete")
 
 
 # ----------------------------------------------------------------------------

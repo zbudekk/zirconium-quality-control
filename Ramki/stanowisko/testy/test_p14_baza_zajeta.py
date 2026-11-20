@@ -60,12 +60,13 @@ def atrapa(tmp_path, zegar):
 class ObcyProgram:
     """Drugie polaczenie z plikiem bazy: ``zajmij()`` = ``BEGIN EXCLUSIVE`` (inny program trzyma baze), ``zwolnij()``."""
 
-    def __init__(self, kontroler):
+    def __init__(self, kontroler, blokada: str = "EXCLUSIVE"):
         self.pol = sqlite3.connect(str(kontroler.sesja.baza.plik), timeout=0.1, isolation_level=None)
+        self.blokada = blokada  # runda 2 (P1): "IMMEDIATE" = inny program PISZE (blokada RESERVED - odczyt przechodzi)
         self.zajeta = False
 
     def zajmij(self) -> None:
-        self.pol.execute("BEGIN EXCLUSIVE")
+        self.pol.execute("BEGIN " + self.blokada)
         self.zajeta = True
 
     def zwolnij(self) -> None:
@@ -210,25 +211,72 @@ def _rano(k) -> dict:
             "zamknij_piec": ("zamknij_piec", (rano.sesja_pieca_id,))}
 
 
-POLECENIA_KLIKANE = (("wieczor", "ukruszona"), ("wieczor", "ok"), ("wieczor", "cofnij"), ("rano", "wybierz_kandydata"),
-                     ("rano", "przypisz_recznie"), ("rano", "potwierdz_kuwete"), ("rano", "zamknij_piec"))
+def _plytka(k, zegar) -> dict:
+    """Runda 2 (P1): 5 polecen plytki, ktore przed poprawka czytaly baze PRZED oslona ``_polecenie`` (tryb skanu). Kazde w stanie,
+    w ktorym po zwolnieniu bazy "Ponow teraz" sie udaje: pytanie o ponowny skan (i skan juz zastapiony), plytka nie z trybu
+    (i juz dopuszczona), plytka bez numeru."""
+    k.wybierz_operatora("Technik A")
+    projekty = {1: 15, 2: 16, 3: 17, 4: 18}
+    k.symuluj_skan("do_powtorzenia", numer=2, projekty=projekty)
+    zegar.przesun(2)
+    drugi = k.symuluj_skan("czysta", numer=2, projekty=projekty)
+    k.symuluj_skan("do_powtorzenia", numer=3, projekty={1: 21, 2: 22})
+    zegar.przesun(2)
+    zastapiony = k.symuluj_skan("czysta", numer=3, projekty={1: 21, 2: 22})
+    obca, dopuszczona = k.symuluj_skan("nie_z_trybu", numer=4), k.symuluj_skan("nie_z_trybu", numer=5)
+    bez = k.symuluj_skan("bez_numeru", numer=None)
+    assert k.potwierdz_ponowny_skan(zastapiony).ok and k.dopusc_plytke(dopuszczona).ok
+    stan = k.stan()
+    assert {(q.rodzaj, q.skan_id) for q in stan.pytania} >= {("ponowny_skan", drugi), ("plytka_nie_z_trybu", obca), ("brak_numeru_plytki", bez)}
+    assert "cofnij_zastapienie" in stan.plytka(zastapiony).dozwolone and "cofnij_dopuszczenie" in stan.plytka(dopuszczona).dozwolone
+    numer = next(q for q in stan.pytania if q.rodzaj == "brak_numeru_plytki" and q.skan_id == bez).numery[0]
+    return {"potwierdz_ponowny_skan": ("potwierdz_ponowny_skan", (drugi,)), "cofnij_zastapienie": ("cofnij_zastapienie", (zastapiony,)),
+            "dopusc_plytke": ("dopusc_plytke", (obca,)), "cofnij_dopuszczenie": ("cofnij_dopuszczenie", (dopuszczona,)),
+            "podaj_numer_plytki": ("podaj_numer_plytki", (bez, numer))}
 
 
-@pytest.mark.parametrize("pora,polecenie", POLECENIA_KLIKANE)
-def test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic(tmp_path, zegar, pora, polecenie):
+def _skutek_polecenia_plytki(k, polecenie: str, argumenty: tuple) -> bool:
+    """Czy polecenie plytki jest wykonane (stan po "Ponow teraz")."""
+    stan, skan_id = k.stan(), argumenty[0]
+    plytka = stan.plytka(skan_id)
+    if polecenie == "potwierdz_ponowny_skan":
+        return "cofnij_zastapienie" in plytka.dozwolone
+    if polecenie == "cofnij_zastapienie":
+        return "cofnij_zastapienie" not in plytka.dozwolone
+    if polecenie == "dopusc_plytke":
+        return bool(plytka.dopuszczona)
+    if polecenie == "cofnij_dopuszczenie":
+        return not plytka.dopuszczona
+    return plytka.numer == argumenty[1]
+
+
+POLECENIA_PLYTKI = ("potwierdz_ponowny_skan", "cofnij_zastapienie", "dopusc_plytke", "cofnij_dopuszczenie", "podaj_numer_plytki")
+POLECENIA_KLIKANE = ((("wieczor", "ukruszona", "EXCLUSIVE"), ("wieczor", "ok", "EXCLUSIVE"), ("wieczor", "cofnij", "EXCLUSIVE"),
+                      ("rano", "wybierz_kandydata", "EXCLUSIVE"), ("rano", "przypisz_recznie", "EXCLUSIVE"),
+                      ("rano", "potwierdz_kuwete", "EXCLUSIVE"), ("rano", "zamknij_piec", "EXCLUSIVE"))
+                     # runda 2 (P1): polecenia plytki - inny program trzyma baze na wylacznosc (stoi takze odczyt) albo pisze
+                     + tuple(("plytka", p, blokada) for p in POLECENIA_PLYTKI for blokada in ("EXCLUSIVE", "IMMEDIATE")))
+SCENARIUSZE = {"wieczor": lambda k, zegar: _wieczor(k), "rano": lambda k, zegar: _rano(k), "plytka": _plytka}
+
+
+@pytest.mark.parametrize("pora,polecenie,blokada", POLECENIA_KLIKANE)
+def test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic(tmp_path, zegar, pora, polecenie, blokada):
     """Kazde polecenie zapisujace, ktore technik wywoluje kliknieciem: przy zajetej bazie wraca w ``LIMIT_ODPOWIEDZI_S`` z odmowa
-    ``baza_zajeta`` i komunikatem do ponowienia; ``przetworz`` (zegar okna) tez nie stoi; po zwolnieniu bazy "Ponow teraz"
-    wykonuje polecenie (ten sam skutek w bazie, co polecenie wykonane od razu)."""
+    ``baza_zajeta`` i komunikatem do ponowienia (``wykonaj`` nie rzuca); ``przetworz`` (zegar okna) tez nie stoi; po zwolnieniu
+    bazy "Ponow teraz" wykonuje polecenie (ten sam skutek w bazie, co polecenie wykonane od razu). ``blokada``: "EXCLUSIVE" -
+    inny program trzyma baze na wylacznosc, "IMMEDIATE" - pisze (odczyt przechodzi)."""
     import pomiar_czasu as PC
 
     def proba(nr: int) -> tuple:
-        k = nowa_atrapa(tmp_path / f"{pora}_{polecenie}_{nr}", zegar)
+        k = nowa_atrapa(tmp_path / f"{pora}_{polecenie}_{blokada}_{nr}", zegar)
         obcy = None
         try:
-            nazwa, argumenty = (_wieczor if pora == "wieczor" else _rano)(k)[polecenie]
+            nazwa, argumenty = SCENARIUSZE[pora](k, zegar)[polecenie]
             dziennik = k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia")["n"]
             decyzji = k.sesja.baza.wiersz("SELECT count(*) AS n FROM decyzje")["n"]
-            obcy = ObcyProgram(k)
+            if pora == "plytka":
+                assert not _skutek_polecenia_plytki(k, polecenie, argumenty)
+            obcy = ObcyProgram(k, blokada)
             obcy.zajmij()
             with PC.PomiarOdporny(dysk=tmp_path) as pw:
                 t0 = time.perf_counter()
@@ -237,7 +285,7 @@ def test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_pono
                 k.przetworz()
                 t2 = time.perf_counter()
             czas, tykniecie = t1 - t0, t2 - t1
-            opis = (f"{polecenie}: odpowiedz po {czas * 1000:.0f} ms, przetworz {tykniecie * 1000:.0f} ms (limit {LIMIT_ODPOWIEDZI_S * 1000:.0f} ms); "
+            opis = (f"{polecenie} ({blokada}): odpowiedz po {czas * 1000:.0f} ms, przetworz {tykniecie * 1000:.0f} ms (limit {LIMIT_ODPOWIEDZI_S * 1000:.0f} ms); "
                     f"przestoj procesu {pw.przestoj(t0, t2) * 1000:.0f} ms, dysku {pw.przestoj_dysku(t0, t2) * 1000:.0f} ms")
             if max(czas, tykniecie) > LIMIT_ODPOWIEDZI_S:
                 if max(pw.wlasny(t0, t1), pw.wlasny(t1, t2)) <= LIMIT_ODPOWIEDZI_S:
@@ -254,8 +302,11 @@ def test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_pono
             ponowione = k.wykonaj("ponow_polecenie", czekajace[0].id)
             assert ponowione.ok, ponowione
             assert not niezapisane(k)
-            assert (k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia")["n"] + k.sesja.baza.wiersz("SELECT count(*) AS n FROM decyzje")["n"]
-                    > dziennik + decyzji)
+            if pora == "plytka":
+                assert _skutek_polecenia_plytki(k, polecenie, argumenty), (polecenie, k.stan().plytka(argumenty[0]))
+            else:
+                assert (k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia")["n"]
+                        + k.sesja.baza.wiersz("SELECT count(*) AS n FROM decyzje")["n"] > dziennik + decyzji)
             if polecenie == "zamknij_piec":
                 assert not k.stan().rano.otwarty
             return PC.OK, opis
@@ -272,6 +323,108 @@ def test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_pono
             break
     powtorki.ostrzez(f"N1 {polecenie}", ocena)
     assert ocena == PC.OK, f"N1 {polecenie}: {powtorki.opis()}"
+
+
+def test_r2_p4_zalegly_stan_po_udanym_zapisie_nadrabia_zegar_okna(atrapa, monkeypatch):
+    """Runda 2 (P4 b, wstrzykniecie M14 recenzenta): zapis decyzji udany, odczyt stanu zaraz po nim raz nieudany (baza zajeta) -
+    ekran pokazuje jeszcze prace bez decyzji, w bazie decyzja jest. Zegar okna (``przetworz``) po ``OKRES_NADRABIANIA_STANU_S``
+    czyta stan ponownie: ekran pokazuje decyzje, ``_stan_zalegly`` False. Bez nadrabiania ekran zostaje sprzeczny z baza."""
+    from stanowisko import kontroler_api as K
+
+    atrapa.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("zwykla", numer=1)
+    p9 = atrapa.stan().plytka(skan).gniazdo(9).praca.praca_id
+    prawdziwy, proby = atrapa._zbuduj, []
+
+    def raz_zajeta():
+        proby.append(1)
+        if len(proby) == 1:
+            raise B.BladBazy("proba: baza zajeta przy odczycie stanu")
+        return prawdziwy()
+
+    monkeypatch.setattr(atrapa, "_zbuduj", raz_zajeta)
+    odp = atrapa.wykonaj("ukruszona", p9)
+    assert odp.ok and decyzja_pracy(atrapa, p9) == 1  # decyzja zapisana
+    assert atrapa._stan_zalegly and atrapa.stan().praca(p9).decyzja is None  # ekran jeszcze jej nie pokazuje
+    t0 = time.monotonic()
+    while atrapa._stan_zalegly and time.monotonic() - t0 < K.OKRES_NADRABIANIA_STANU_S + 2.0:
+        atrapa.przetworz()
+        time.sleep(0.05)
+    czas = time.monotonic() - t0
+    print(f"\n[P4b] stan nadrobiony po {czas:.2f} s (okres {K.OKRES_NADRABIANIA_STANU_S} s), odczytow {len(proby)}")
+    assert not atrapa._stan_zalegly and atrapa.stan().praca(p9).decyzja == "ukruszona", f"po {czas:.2f} s ekran nadal bez decyzji"
+    assert len(atrapa.stan().do_dofrezowania) == 1
+
+
+def test_r2_p1_odczyty_okna_przy_zajetej_bazie_nie_stoja_i_nie_rzucaja(atrapa, obcy):
+    """Runda 2 (P1, przeglad wszystkich wywolan z okna): odczyty, ktore okno robi w swoim watku - ``szczegoly_pracy`` (klikniecie
+    gniazda: obraz odchylek) i ``projekty_kuwety`` (przypisanie reczne) - przy bazie trzymanej na wylacznosc nie czekaja 5 s i
+    nie rzucaja (bylo 7,4 s; ``szczegoly_pracy``: wyjatek ``BladBazy`` w slocie okna): wynik "brak" (None / pusta krotka), po
+    zwolnieniu bazy odczyt dziala. Limit 2,5 s z zapasem na obciazony PC (czekanie ok. 0,7 s)."""
+    atrapa.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("zwykla", numer=1)
+    p2 = atrapa.stan().plytka(skan).gniazdo(2).praca.praca_id
+    assert atrapa.szczegoly_pracy(p2) is not None
+    obcy.zajmij()
+    t0 = time.perf_counter()
+    szczegoly = atrapa.szczegoly_pracy(p2)
+    t1 = time.perf_counter()
+    projekty = atrapa.projekty_kuwety("9001")
+    t2 = time.perf_counter()
+    obcy.zwolnij()
+    print(f"\n[P1 odczyty] szczegoly_pracy {(t1 - t0) * 1000:.0f} ms, projekty_kuwety {(t2 - t1) * 1000:.0f} ms")
+    assert szczegoly is None and projekty == () and max(t1 - t0, t2 - t1) < 2.5, (szczegoly, projekty, t1 - t0, t2 - t1)
+    assert atrapa.szczegoly_pracy(p2) is not None
+
+
+def test_r2_d3_kazde_polecenie_ponawiane_ma_napis_dla_technika(atrapa):
+    """Runda 2 (D3): komunikat "NIE zapisano" nazywa polecenie napisem dla technika (``ST.PRZYCISKI``), nigdy nazwa
+    programisty - dla kazdego polecenia, ktore moze trafic na liste do ponowienia (bylo: "wybierz_wpis", "cofnij_wpis")."""
+    from stanowisko import kontroler_api as K
+
+    ponawiane = set(K.PONAWIANE_Z_LICZB) | set(K.DECYZJE_O_PRACY) | {"podaj_numer_plytki", "przelacz_tryb", "zamknij_piec_i_przenies",
+                                                                   "zamknij_brak_recznie", "potwierdz_kuwete", "cofnij_kuwete"}
+    assert not sorted(n for n in ponawiane if n not in ST.PRZYCISKI)
+    for nazwa in sorted(ponawiane):
+        opis = atrapa._opis_polecenia(nazwa, (1, 1))
+        assert nazwa not in opis and "_" not in opis, (nazwa, opis)
+
+
+def test_r2_d7_zapisz_liste_przy_zajetej_bazie_czeka_na_baze_raz(atrapa, obcy, monkeypatch):
+    """Runda 2 (D7): "Zapisz liste do pliku" przy bazie trzymanej na wylacznosc - odmowa ``lista_nie_zapisana`` (komunikat z
+    przyciskiem ponowienia) po JEDNEJ probie odczytu stanu (bylo: dwie proby po ok. 0,46 s = 934 ms przy limicie 1 s); po
+    zwolnieniu bazy zapis sie udaje i komunikat znika."""
+    atrapa.wybierz_operatora("Technik A")
+    atrapa.symuluj_skan("zwykla", numer=1)
+    proby = []
+    zbuduj = atrapa._zbuduj
+    monkeypatch.setattr(atrapa, "_zbuduj", lambda: (proby.append(1), zbuduj())[1])
+    obcy.zajmij()
+    t0 = time.perf_counter()
+    odp = atrapa.wykonaj("zapisz_liste")
+    czas = time.perf_counter() - t0
+    print(f"\n[D7] zapisz_liste przy zajetej bazie: {czas * 1000:.0f} ms, odczytow stanu {len(proby)}")
+    assert not odp.ok and odp.kod == "lista_nie_zapisana" and len(proby) == 1, (odp, proby)
+    assert [k.rodzaj for k in atrapa.stan().komunikaty if k.rodzaj == "lista_nie_zapisana"] == ["lista_nie_zapisana"]
+    obcy.zwolnij()
+    assert atrapa.wykonaj("zapisz_liste").ok
+    assert not [k for k in atrapa.stan().komunikaty if k.rodzaj == "lista_nie_zapisana"]
+
+
+def test_r2_d8_spacja_na_atrapie_przy_zajetej_bazie_nie_stoi_i_nie_rzuca(atrapa, obcy):
+    """Runda 2 (D8): ``AtrapaKontrolera.start_skanu`` ma te sama oslone co ``Aplikacja.start_skanu`` - przy zajetej bazie
+    nie czeka 5 s i nie rzuca ``BladBazy`` (bylo 7,4 s i wyjatek); brakuje tylko wpisu dziennika."""
+    wpisy = lambda: atrapa.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE typ = 'start_skanu'")["n"]  # noqa: E731
+    przed = wpisy()
+    obcy.zajmij()
+    t0 = time.perf_counter()
+    odp = atrapa.wykonaj("start_skanu")
+    czas = time.perf_counter() - t0
+    obcy.zwolnij()
+    print(f"\n[D8] atrapa start_skanu przy zajetej bazie: {czas * 1000:.0f} ms, ok={odp.ok}")
+    assert odp.ok and czas < 2.5, (odp, czas)
+    assert len(atrapa.starty_skanu) == 1 and wpisy() == przed
+    assert atrapa.wykonaj("start_skanu").ok and wpisy() == przed + 1
 
 
 def test_n1_spacja_na_prawdziwej_aplikacji_przy_zajetej_bazie_nie_stoi_i_nie_rzuca(tmp_path):

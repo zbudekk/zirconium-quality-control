@@ -653,6 +653,11 @@ class OknoWieczor(QWidget):
                                 self._pokaz_wczesniejsze, stan.niezapisane, z_komunikatem, poprzednie)
         nowe = [p for p in stan.plytki if p.skan_id in self._nieobejrzane]
         self.lista_plytek.ustaw_nowe(nazwa_plytki(nowe[-1].numer) if nowe else None, len(nowe))
+        # E3-P14 (N2): wynik nowej plytki czeka, ekran zostal na ogladanej - trwaly panel z jej pytaniami i komunikatami.
+        # Runda 2 (P3): w kolumnie plytek, nie nad mapa - mapa ogladanej plytki nie zmienia polozenia ani rozmiaru
+        sprawy = sprawy_nowych_plytek(stan, nowe)
+        if self._zmienione("nowy_wynik", (sprawy, self._r.zwarty)):
+            self.lista_plytek.ustaw_panel_nowego(panel_nowego_wyniku(sprawy, self._r) if sprawy else None)
         if self._blysk_nowej and nowe:
             self.pasek.blysk()  # krotki sygnal na pasku: przyszedl wynik, ekran zostaje na pokazanej plytce
         self._blysk_nowej = False
@@ -801,11 +806,9 @@ class OknoWieczor(QWidget):
         ogolne.sort(key=lambda k: (0 if k.poziom == ST.POZIOM_BLAD else 1, -self._nr_komunikatow.get(k.id, 0)))  # od najnowszego
         self._odswiez_bledy(stan, [k for k in ogolne if blad_programu(k)])
         reszta = [k for k in ogolne if not blad_programu(k)]
-        # E3-P14 (N2): wynik nowej plytki czeka, ekran zostal na ogladanej - trwaly panel z jej pytaniami i komunikatami
-        nowe = sprawy_nowych_plytek(stan, [p for p in stan.plytki if p.skan_id in self._nieobejrzane])
         sygnatura = (pokaz_osobe, self._zmiana_osoby, stan.operator, stan.operatorzy, tuple(teksty), self._odmowa, self._informacja, numer,
                      plytka.skan_id if plytka else None, plytka.numer if plytka else None, plytka.typ if plytka else None,
-                     tuple(pytania), tuple(komunikaty), tuple(reszta), nowe)
+                     tuple(pytania), tuple(komunikaty), tuple(reszta))
         if not self._zmienione("uwagi", sygnatura):
             return
         wyczysc(self.uwagi.uklad)
@@ -814,10 +817,6 @@ class OknoWieczor(QWidget):
             panel.wybrano.connect(self._wybrano_osobe)
             panel.bez_zmian.connect(self._przelacz_zmiane_osoby)
             panel.wyloguj.connect(self._wyloguj)
-            self.uwagi.uklad.addWidget(panel)
-        if nowe:  # poza limitem ``PANELI``: nie zabiera miejsca pytaniom pokazanej plytki i nigdy nie trafia pod "i jeszcze n"
-            panel = panel_nowego_wyniku(nowe, r)
-            panel.polecenie.connect(self._polecenie_panelu)
             self.uwagi.uklad.addWidget(panel)
         nazwa = nazwa_plytki(plytka.numer) if plytka is not None else ""
         nazwa_pytan = nazwa if plytka is not None and plytka.numer is not None else ""  # "Plytka bez numeru: Podaj numer..." - bez przedrostka

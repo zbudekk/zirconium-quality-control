@@ -55,7 +55,7 @@ PELNA_LISTA_OD = 1000
 WIERSZY_ZWINIETYCH = 2
 LOKALNE_ZAMKNIJ_MIMO_WROC = "_zamknij_mimo_wroc"  # E3-P14 (N3): odpowiedzi na pytanie ekranu przed "Zamknij piec"
 LOKALNE_ZAMKNIJ_MIMO_TAK = "_zamknij_mimo_tak"
-PYTANE ={"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "pomin_skan"}  # rano: plytki nie z trybu nie dopuszcza sie (A6)
+PYTANE = {"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "pomin_skan"}  # rano: plytki nie z trybu nie dopuszcza sie (A6)
 
 
 def blad_programu(komunikat) -> bool:
@@ -872,12 +872,14 @@ class EkranRano(QWidget):
         return prace
 
     def _panel_zamkniecia(self, prace: tuple):
-        """Panel pytania "Zamknac piec mimo prac bez rozstrzygniecia?" - pierwsza, wyrozniona odpowiedz: powrot do rozstrzygania."""
+        """Panel pytania "Zamknac piec mimo prac bez rozstrzygniecia?" - wyrozniona odpowiedz: powrot do rozstrzygania. Runda 2
+        (P2): "Wroc do rozstrzygania" stoi PO PRAWEJ - pod miejscem przycisku "Zamknij piec", ktory wlasnie zjechal w dol; drugie
+        klikniecie w to samo miejsce (dwuklik, niecierpliwosc) nie trafia w "Zamknij piec mimo to" (test geometrii w 4 oknach)."""
         ile = ST.odmiana(len(prace), *NR.ZAMKNIJ_MIMO_ILE).format(n=len(prace))
         panel = PanelUwagi("pytanie_zamknij_mimo", "ostrzezenie", NR.ZAMKNIJ_MIMO_TYTUL,
                            NR.ZAMKNIJ_MIMO_TEKST.format(ile=ile, lista=lista_nierozstrzygnietych(prace), brak=ST.STANY_PUNKTU["brak_po_piecu"]),
-                           [("zamknij_mimo_wroc", NR.ZAMKNIJ_MIMO_WROC, LOKALNE_ZAMKNIJ_MIMO_WROC, (), True, "glowny"),
-                            ("zamknij_mimo_tak", NR.ZAMKNIJ_MIMO_TAK, LOKALNE_ZAMKNIJ_MIMO_TAK, (), self._stan.operator is not None, None)],
+                           [("zamknij_mimo_tak", NR.ZAMKNIJ_MIMO_TAK, LOKALNE_ZAMKNIJ_MIMO_TAK, (), self._stan.operator is not None, None),
+                            ("zamknij_mimo_wroc", NR.ZAMKNIJ_MIMO_WROC, LOKALNE_ZAMKNIJ_MIMO_WROC, (), True, "glowny")],
                            r=self._r)
         panel.polecenie.connect(slaba(self._odpowiedz_zamkniecia))
         return panel
@@ -1045,6 +1047,15 @@ class EkranRano(QWidget):
             return True
         if zdarzenie.isAutoRepeat() and klawisz != Qt.Key.Key_Backspace:
             return klawisz in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Escape)
+        # E3-P14 runda 2 (D2): otwarte pytanie "Zamknac piec mimo prac bez rozstrzygniecia?" przejmuje Enter i Esc - Enter
+        # wcisniety "na pytanie" nie zapisuje "Rozlozona" biezacej kuwety (zaden klawisz pieca nie zamyka), Esc = "Wroc do
+        # rozstrzygania". Ramka poranna nie wysyla klawiszy do okna (zdarzenia ida przez kontroler) - jej Enter dziala jak dotad
+        if self._pytanie_zamkniecia is not None and not self._bufor:
+            if klawisz in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                return True
+            if klawisz == Qt.Key.Key_Escape:
+                self._odpowiedz_zamkniecia(LOKALNE_ZAMKNIJ_MIMO_WROC)
+                return True
         if klawisz in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             if self._bufor:
                 bufor, self._bufor = self._bufor, ""
