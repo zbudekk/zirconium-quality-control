@@ -987,9 +987,37 @@ def utworz_skrot(katalog: Path, gdzie: Path | None) -> Path | None:
     return sciezka if sciezka is not None and sciezka.is_file() else None
 
 
-def uruchom_samokontrole(python: Path, program: Path, ustawienia: Path, bez_sieci: bool) -> tuple[int, str]:
+WIERSZE_KONCOWE = {0: "SAMOKONTROLA: ZIELONA", 1: "SAMOKONTROLA: CZERWONA"}  # umowa A11s: kod wyjscia -> poczatek OSTATNIEGO wiersza
+KODY_USTAWIEN = ("ustawienia", "operatorzy")  # sprawdzenia samokontroli, ktore poprawia sie w ustawienia.toml (oraz kazde "folder_*")
+
+
+def wiersz_koncowy_zgodny(kod: int, stdout: str) -> bool:
+    """Umowa A11s: przy kodzie 0 OSTATNI wiersz wyjscia to ``SAMOKONTROLA: ZIELONA ...``, przy kodzie 1 ``SAMOKONTROLA:
+    CZERWONA ...``. Kod 0 / 1 bez takiego wiersza (np. blad importu modulu = kod 1 Pythona i sam slad wyjatku) nie jest
+    wynikiem samokontroli. Kod 2 (niewykonana) nie wymaga wiersza koncowego; kod spoza umowy = proces zginal."""
+    if kod not in WIERSZE_KONCOWE:
+        return kod == 2
+    wiersze = [w.strip() for w in stdout.splitlines() if w.strip()]
+    return bool(wiersze) and wiersze[-1].startswith(WIERSZE_KONCOWE[kod])
+
+
+def bledy_samokontroli(wyjscie: str) -> list[tuple[str, str]]:
+    """Wiersze ``BLAD <kod>: ...`` z wyjscia samokontroli: lista (kod sprawdzenia, caly wiersz)."""
+    pary = [(re.match(r"BLAD ([^:\s]+):", w.strip()), w.strip()) for w in wyjscie.splitlines()]
+    return [(m.group(1), wiersz) for m, wiersz in pary if m]
+
+
+def blad_ustawien(kod_sprawdzenia: str) -> bool:
+    """Czy blad sprawdzenia poprawia technik w pliku ustawien: foldery pracy (``folder_skanera``, ``folder_cyrkon``, ...),
+    ``operatorzy``, ``ustawienia``. Pozostale (``baza``, ``moduly``, ``pakiety``, ``sumy``, ``python``, ``pula``, ``dane_*``,
+    ``modele`` i kazde nieznane) NIE sa bledami ustawien - edycja ustawienia.toml ich nie poprawi."""
+    return kod_sprawdzenia in KODY_USTAWIEN or (kod_sprawdzenia.startswith("folder_") and len(kod_sprawdzenia) > len("folder_"))
+
+
+def uruchom_samokontrole(python: Path, program: Path, ustawienia: Path, bez_sieci: bool) -> tuple[int, str, bool]:
     """Samokontrola wersji wg umowy A11s: ``python -m stanowisko.samokontrola --ustawienia PLIK --sumy PLIK [--bez-sieci]``.
-    Zwraca (kod wyjscia, wyjscie tekstowe). Brak modulu w katalogu programu = blad wydania."""
+    Zwraca (kod wyjscia, wyjscie tekstowe, czy ostatni wiersz zgadza sie z kodem wg umowy). Brak modulu w katalogu programu =
+    blad wydania. Proces, ktory ginie (kod spoza 0 / 1 / 2) albo konczy kodem 0 / 1 bez wiersza koncowego, jest powtarzany."""
     if not (program / MODUL_SAMOKONTROLI).is_file():
         raise BladInstalacji(KOD_PACZKA, "blad wydania: w katalogu programu nie ma modulu samokontroli (stanowisko/samokontrola.py)",
                              "Zglos budujacemu paczke; wersja biezaca bez zmian.")
@@ -1000,20 +1028,29 @@ def uruchom_samokontrole(python: Path, program: Path, ustawienia: Path, bez_siec
         try:
             wynik = uruchom(polecenie, cwd=program, env=srodowisko_procesu(), limit_s=LIMIT_SAMOKONTROLI_S)
         except subprocess.TimeoutExpired:
-            return KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontrola nie skonczyla sie w {LIMIT_SAMOKONTROLI_S} s"
+            return KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontrola nie skonczyla sie w {LIMIT_SAMOKONTROLI_S} s", True
         except OSError as e:
-            return KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontroli nie dalo sie uruchomic ({type(e).__name__})"
-        if wynik.returncode in (0, 1, 2):
+            return KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontroli nie dalo sie uruchomic ({type(e).__name__})", True
+        zgodny = wiersz_koncowy_zgodny(wynik.returncode, wynik.stdout)
+        if zgodny:
             break
+        ile = f"proba {proba} z {PROBY_SAMOKONTROLI}" + (" - powtarzam" if proba < PROBY_SAMOKONTROLI else "")
+        if wynik.returncode in WIERSZE_KONCOWE:
+            # kod 0 / 1 bez wiersza koncowego: modul nie doszedl do wyniku (np. blad importu przed main = kod 1 Pythona) -
+            # to nie jest ani zielona, ani czerwona samokontrola
+            uwagi.append(f"UWAGA samokontrola: wynik niezgodny z umowa (kod wyjscia {wynik.returncode} bez ostatniego wiersza "
+                         f"{WIERSZE_KONCOWE[wynik.returncode]}), {ile}")
+            if proba < PROBY_SAMOKONTROLI:
+                time.sleep(PAUZA_PO_AWARII_S)
+            continue
         # Kod spoza umowy = proces zginal (na PC: 0xC0000005 zaraz po zalozeniu srodowiska - raz przed wypisaniem czegokolwiek,
         # raz po wypisaniu wyniku; znane tez 0xC0000142). Samokontrola niczego nie zmienia, wiec wolno ja powtorzyc;
         # wynik awaryjny nigdy nie liczy sie jako zielony.
-        uwagi.append(f"UWAGA samokontrola: proces zakonczyl sie awaryjnie (kod {opis_kodu(wynik.returncode)}), proba {proba} z "
-                     f"{PROBY_SAMOKONTROLI}" + (" - powtarzam" if proba < PROBY_SAMOKONTROLI else ""))
+        uwagi.append(f"UWAGA samokontrola: proces zakonczyl sie awaryjnie (kod {opis_kodu(wynik.returncode)}), {ile}")
         if proba < PROBY_SAMOKONTROLI:
             time.sleep(PAUZA_PO_AWARII_S)
     wyjscie = (wynik.stdout + ("\n" + wynik.stderr if wynik.stderr.strip() else "")).strip()
-    return wynik.returncode, "\n".join(uwagi + [wyjscie])
+    return wynik.returncode, "\n".join(uwagi + [wyjscie]), zgodny
 
 
 def opis_kodu(kod: int) -> str:
@@ -1327,18 +1364,30 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
                           if kopia else "      bazy jeszcze nie ma - program zalozy ja przy pierwszym uruchomieniu")
 
         print(f"[7/9] Samokontrola wersji {wersja}...", flush=True)
-        kod, wyjscie = uruchom_samokontrole(python_wersji, program, plik_ustawien, bez_sieci)
+        kod, wyjscie, zgodny = uruchom_samokontrole(python_wersji, program, plik_ustawien, bez_sieci)
         print("\n".join("      " + w for w in wyjscie.splitlines()), flush=True)
         for wiersz in streszczenie_samokontroli(wyjscie):
             dziennik.wpis(wiersz)
         dziennik.wpis(f"samokontrola: kod wyjscia {opis_kodu(kod)}")
+        zostaje = f"wersja biezaca zostaje {biezaca}" if biezaca else "wersji biezacej nadal nie ma"
+        bledy = bledy_samokontroli(wyjscie)
+        spoza_ustawien = [k for k, _ in bledy if not blad_ustawien(k)]
         if suma_ustawien is not None and sha256_pliku(plik_ustawien) != suma_ustawien:
             raise BladInstalacji(KOD_INSTALACJA, f"{plik_ustawien.name} zmienil sie w trakcie instalacji", "Zglos ten komunikat.")
-        if kod == 1 and biezaca is None:
-            # PIERWSZA instalacja: plik ustawien ze wzoru nie zna jeszcze folderow tej maszyny. Zasada "wersja biezaca zawsze po
-            # zielonej samokontroli" zostaje bez wyjatkow, ale to zamierzony etap, a nie niepowodzenie: osobny wynik i kod.
+        if kod in WIERSZE_KONCOWE and not zgodny:
+            # kod 0 / 1 bez wiersza koncowego wg umowy (w kazdej probie): samokontrola nie zostala wykonana - ani zielona
+            # (wersja nie jest przelaczana), ani "uzupelnij ustawienia" (recenzja rundy 2: P1, D3)
+            raise BladInstalacji(KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontrola wersji {wersja} nie podala wyniku (kod wyjscia {kod} bez "
+                                 f"wiersza koncowego {WIERSZE_KONCOWE[kod]}, proby: {PROBY_SAMOKONTROLI}) - {zostaje}",
+                                 "To nie jest blad ustawien - nie zmieniaj pliku ustawienia.toml. Uruchom zainstaluj.cmd ponownie (pakiety "
+                                 "nie beda instalowane drugi raz); gdy to sie powtarza, zglos ten komunikat razem z wierszami wypisanymi "
+                                 "powyzej i plikiem dziennik_instalacji.txt.")
+        if kod == 1 and biezaca is None and bledy and not spoza_ustawien:
+            # PIERWSZA instalacja i WSZYSTKIE bledy dotycza ustawien: plik ustawien ze wzoru nie zna jeszcze folderow tej maszyny.
+            # Zasada "wersja biezaca zawsze po zielonej samokontroli" zostaje bez wyjatkow, ale to zamierzony etap, a nie
+            # niepowodzenie: osobny wynik i kod. Blad spoza ustawien (baza, moduly, pakiety, sumy...) = NIEUDANA ponizej.
             dziennik.krok(f"Wersja {wersja} jest zainstalowana, ale jeszcze NIE jest wersja biezaca - samokontrola wskazala, co uzupelnic:")
-            print("\n".join("  " + w.strip() for w in wyjscie.splitlines() if w.strip().startswith("BLAD ")), flush=True)
+            print("\n".join("  " + w for _, w in bledy), flush=True)
             dziennik.krok(f"Plik ustawien: {plik_ustawien}")
             dziennik.krok("CO ZROBIC: otworz plik ustawien w Notatniku, wpisz w [sciezki] foldery tej maszyny (z ukosnikami /) i osoby w [sesja] "
                           "operatorzy, zapisz (UTF-8) i uruchom zainstaluj.cmd JESZCZE RAZ - pakiety nie instaluja sie drugi raz, to trwa "
@@ -1346,11 +1395,20 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
             dziennik.krok(f"INSTALACJA: WSTRZYMANA - uzupelnij ustawienia.toml i uruchom zainstaluj.cmd ponownie (kod {KOD_WSTRZYMANA})")
             return KOD_WSTRZYMANA
         if kod != 0:
-            zostaje = f"wersja biezaca zostaje {biezaca}" if biezaca else "wersji biezacej nadal nie ma"
             if kod == 1:
-                raise BladInstalacji(KOD_SAMOKONTROLA_CZERWONA, f"samokontrola wersji {wersja} zglosila bledy - {zostaje}",
-                                     f"Popraw to, co wskazuja wiersze BLAD powyzej (zwykle foldery w {plik_ustawien}), i uruchom "
-                                     "zainstaluj.cmd ponownie - pakiety nie beda instalowane drugi raz.")
+                print(f"Bledy samokontroli wersji {wersja} ({len(bledy)}):", flush=True)
+                print("\n".join("  " + w for _, w in bledy) if bledy else "  (samokontrola nie wypisala zadnego wiersza BLAD)", flush=True)
+                w_ustawieniach = [k for k, _ in bledy if blad_ustawien(k)]
+                if spoza_ustawien or not bledy:
+                    rada = ("Popraw to, co wskazuja wiersze BLAD powyzej - rada stoi w kazdym wierszu po sredniku. Sprawdzenia spoza "
+                            f"ustawien: {', '.join(spoza_ustawien) or 'brak wierszy BLAD'} - tego NIE poprawi wpisanie folderow w pliku "
+                            "ustawien" + (f"; foldery ({', '.join(w_ustawieniach)}) popraw w {plik_ustawien}" if w_ustawieniach else "")
+                            + ". Potem uruchom zainstaluj.cmd ponownie - pakiety nie beda instalowane drugi raz. Gdy nie wiesz, jak to "
+                            "poprawic, zglos wiersze BLAD razem z plikiem dziennik_instalacji.txt.")
+                else:
+                    rada = (f"Popraw to, co wskazuja wiersze BLAD powyzej (foldery i osoby w {plik_ustawien}), i uruchom "
+                            "zainstaluj.cmd ponownie - pakiety nie beda instalowane drugi raz.")
+                raise BladInstalacji(KOD_SAMOKONTROLA_CZERWONA, f"samokontrola wersji {wersja} zglosila bledy - {zostaje}", rada)
             if kod != 2:  # kod spoza umowy 0 / 1 / 2: proces samokontroli zginal w kazdej probie
                 raise BladInstalacji(KOD_SAMOKONTROLA_NIEWYKONANA, f"samokontrola wersji {wersja} zakonczyla sie awaryjnie (kod "
                                      f"{opis_kodu(kod)}, proby: {PROBY_SAMOKONTROLI}) - {zostaje}",
@@ -1488,12 +1546,13 @@ def wroc(katalog: Path, *, przywroc: bool = False, potwierdz=None, srodowisko: S
             raise BladInstalacji(KOD_INSTALACJA, f"{plik_ustawien.name} zmienil sie w trakcie powrotu", "Zglos ten komunikat.")
         dziennik.krok(f"[4/4] Samokontrola wersji {poprzednia} (informacyjnie)...")
         try:
-            kod, wyjscie = uruchom_samokontrole(python_wersji, program, plik_ustawien, True)
+            kod, wyjscie, zgodny = uruchom_samokontrole(python_wersji, program, plik_ustawien, True)
             print("\n".join("      " + w for w in wyjscie.splitlines()), flush=True)
             for wiersz in streszczenie_samokontroli(wyjscie):
                 dziennik.wpis(wiersz)
-            if kod != 0:
-                dziennik.krok(f"      OSTRZEZENIE: samokontrola wersji {poprzednia} zakonczyla sie kodem {opis_kodu(kod)} - popraw wskazane sprawy")
+            if kod != 0 or not zgodny:
+                dziennik.krok(f"      OSTRZEZENIE: samokontrola wersji {poprzednia} zakonczyla sie kodem {opis_kodu(kod)}"
+                              + (" bez wiersza koncowego SAMOKONTROLA: (nie podala wyniku)" if kod in WIERSZE_KONCOWE and not zgodny else "") + " - popraw wskazane sprawy")
         except BladInstalacji as e:
             dziennik.krok(f"      OSTRZEZENIE: {e.opis}")
         dziennik.krok(f"POWROT: GOTOWY - wersja biezaca {poprzednia} (poprzednia: {biezaca}). Ponowne Wroc_do_poprzedniej.cmd wraca do {biezaca}.")

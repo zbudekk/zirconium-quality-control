@@ -710,7 +710,7 @@ def test_p2_przerwane_przywrocenie_kopii_nie_zostawia_stanowiska_bez_bazy(zainst
     st = zainstalowane
     assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0", migracje="{1: (), 2: ()}")) == 0
     st.zaloz_baze(schemat=2, wiersze=2)
-    prawdziwe, licznik, baza_przenoszona = os.replace, {"n": 0, "bledy": 0}, []
+    prawdziwe, licznik, baza_przenoszona = os.replace, {"n": 0, "bledy": 0, "na_baze": 0}, []
 
     def zamiana(a, b):
         if Path(b).parent in (st.baza.parent, st.baza.parent / "kopie"):
@@ -719,6 +719,7 @@ def test_p2_przerwane_przywrocenie_kopii_nie_zostawia_stanowiska_bez_bazy(zainst
                 baza_przenoszona.append(Path(b).name)
             if licznik["n"] == nr_zamiany or (nr_zamiany == "na_plik_bazy" and Path(b) == st.baza):
                 licznik["bledy"] += 1
+                licznik["na_baze"] += Path(b) == st.baza
                 raise blad
         return prawdziwe(a, b)
 
@@ -735,7 +736,13 @@ def test_p2_przerwane_przywrocenie_kopii_nie_zostawia_stanowiska_bez_bazy(zainst
     assert st.baza.is_file() and stan_bazy(st.baza) == ([("ok",)], 2, 5, 0)  # baza jest i jest cala (nadal wersja 2.0)
     assert st.biezaca == "2.0" and st.poprzednia == "1.0"
     if kod is not None:
-        assert kod == I.KOD_INSTALACJA and "POWROT: NIEUDANA (kod 6) - wersja biezaca bez zmian: 2.0" in wyjscie
+        # runda 3 (recenzja rundy 2, D4): odmowa dostepu przy zamianie SAMEGO pliku bazy = plik trzyma inny program (kod 5,
+        # "zamknij programy"), a nie blad dysku (kod 6); blad zamiany w kopie\ zostaje kodem 6
+        oczekiwany = I.KOD_PROGRAM_DZIALA if licznik["na_baze"] else I.KOD_INSTALACJA
+        assert licznik["na_baze"] == (nr_zamiany != 1)
+        assert kod == oczekiwany and f"POWROT: NIEUDANA (kod {oczekiwany}) - wersja biezaca bez zmian: 2.0" in wyjscie
+        assert ("jest zajeta przez inny program" in wyjscie and "Zamknij programy" in wyjscie) == (oczekiwany == 5)
+        assert ("Sprawdz dysk" in wyjscie) == (oczekiwany == 6)
         assert not st.baza.with_name(st.baza.name + ".nowy").exists()
     assert st.wroc(przywroc=True) == 0  # ponowna proba: pelne przywrocenie
     assert "POWROT: GOTOWY - wersja biezaca 1.0" in capsys.readouterr().out
@@ -1108,6 +1115,221 @@ def test_samokontrola_zakonczona_awaryjnie_jest_powtarzana_raz(zainstalowane, tm
     assert "proba 3 z 3" in wyjscie and "proba 3 z 3 - powtarzam" not in wyjscie
     assert "To nie jest blad ustawien" in wyjscie and "samokontrola: kod wyjscia 0xC0000005" in st.dziennik()
     assert I.opis_kodu(3221225477) == I.opis_kodu(-1073741819) == "0xC0000005" and I.opis_kodu(2) == "2"
+
+
+# ------------------------------------------------------------- runda 3, P1: co znaczy czerwona samokontrola przy instalacji
+
+BLAD_SKANER = "BLAD folder_skanera: brak folderu eksportu skanera: C:/Aidite/Scandata; wpisz w [sciezki] folder_eksportu_skanera"
+BLAD_CYRKON = "BLAD folder_cyrkon: brak folderu projektow Cyrkon: C:/sciezka/do/OneDrive/Cyrkon; wpisz w [sciezki] folder_cyrkon"
+BLAD_BAZA = "BLAD baza: baza nowsza niz program (schemat 5, program obsluguje 1); zainstaluj nowsza wersje programu"
+BLAD_MODULY = "BLAD moduly: modulow programu nie da sie zaladowac (ImportError: DLL load failed); zainstaluj program ponownie z paczki"
+SLAD_WYJATKU = 'Traceback (most recent call last):\n  File "<frozen runpy>", line 198, in _run_module_as_main\nImportError: brak modulu\n'
+
+
+def wyjscie_samokontroli(*bledy: str, koniec: str | None = None) -> str:
+    """Wyjscie samokontroli wg umowy A11s: wiersze sprawdzen i OSTATNI wiersz ``SAMOKONTROLA: ...``."""
+    wiersze = ["OK python: Python 3.12", "OSTRZEZENIE operatorzy: lista osob jest pusta; wpisz osoby w [sesja] operatorzy", *bledy]
+    if koniec is None:
+        koniec = f"SAMOKONTROLA: CZERWONA (ok 1, ostrzezenia 1, bledy {len(bledy)})" if bledy else "SAMOKONTROLA: ZIELONA (ok 1, ostrzezenia 1)"
+    return "\n".join(wiersze + ([koniec] if koniec else [])) + "\n"
+
+
+def podstaw_samokontrole(monkeypatch, kod: int, stdout: str, stderr: str = "") -> dict:
+    """Proces samokontroli zastapiony wynikiem o podanym kodzie wyjscia i tresci; zwraca licznik uruchomien."""
+    prawdziwe, licznik = I.uruchom, {"n": 0}
+
+    def falszywe(polecenie, **kw):
+        if "stanowisko.samokontrola" in [str(c) for c in polecenie]:
+            licznik["n"] += 1
+            return subprocess.CompletedProcess(polecenie, kod, stdout, stderr)
+        return prawdziwe(polecenie, **kw)
+
+    monkeypatch.setattr(I, "uruchom", falszywe)
+    monkeypatch.setattr(I, "PAUZA_PO_AWARII_S", 0.0)
+    return licznik
+
+
+def test_r3_p1_pierwsza_instalacja_same_bledy_ustawien_to_wstrzymana(st, tmp_path, capsys, monkeypatch):
+    """Kod 10 / WSTRZYMANA nalezy sie tylko wtedy, gdy WSZYSTKIE wiersze BLAD samokontroli dotycza ustawien (foldery do wpisania)."""
+    licznik = podstaw_samokontrole(monkeypatch, 1, wyjscie_samokontroli(BLAD_SKANER, BLAD_CYRKON))
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "1.0")) == I.KOD_WSTRZYMANA == 10 and licznik["n"] == 1
+    koniec = capsys.readouterr().out.strip().splitlines()
+    assert koniec[-1] == "INSTALACJA: WSTRZYMANA - uzupelnij ustawienia.toml i uruchom zainstaluj.cmd ponownie (kod 10)"
+    ogon = koniec[next(i for i, w in enumerate(koniec) if w.startswith("Wersja 1.0 jest zainstalowana")):]
+    assert [w.strip() for w in ogon if w.strip().startswith("BLAD ")] == [BLAD_SKANER, BLAD_CYRKON]
+    assert st.biezaca is None and I.stan_wersji(st.katalog, "1.0") == "zainstalowana"
+    assert all(I.blad_ustawien(k) for k in ("folder_skanera", "folder_cyrkon", "folder_eksportu_skanera", "operatorzy", "ustawienia"))
+    assert not any(I.blad_ustawien(k) for k in ("baza", "moduly", "pakiety", "sumy", "python", "pula", "dane_folder", "modele", "folder"))
+
+
+@pytest.mark.parametrize("bledy, spoza", [
+    ((BLAD_BAZA,), "baza"),
+    ((BLAD_MODULY,), "moduly"),
+    ((BLAD_SKANER, BLAD_BAZA, BLAD_CYRKON), "baza"),  # mieszane: poprawa samych folderow nie wystarczy
+], ids=["baza", "moduly", "foldery_i_baza"])
+def test_r3_p1_pierwsza_instalacja_blad_spoza_ustawien_to_nieudana_a_nie_wstrzymana(st, tmp_path, capsys, monkeypatch, bledy, spoza):
+    """Recenzja rundy 2, P1: ``BLAD baza: baza nowsza niz program`` przy pierwszej instalacji dawal "WSTRZYMANA - uzupelnij
+    ustawienia.toml" (kod 10) - technik poprawial dobry plik bez konca. Ma byc NIEUDANA (kod 1) z wierszami BLAD samokontroli."""
+    st.ustawienia_gotowe()
+    licznik = podstaw_samokontrole(monkeypatch, 1, wyjscie_samokontroli(*bledy))
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "1.0")) == I.KOD_SAMOKONTROLA_CZERWONA == 1 and licznik["n"] == 1
+    wyjscie = capsys.readouterr().out
+    koniec = wyjscie.strip().splitlines()
+    assert koniec[-1] == "INSTALACJA: NIEUDANA (kod 1) - wersja biezaca bez zmian: brak"
+    assert "WSTRZYMANA" not in wyjscie and "uzupelnij ustawienia" not in wyjscie
+    ogon = koniec[next(i for i, w in enumerate(koniec) if w.startswith("Bledy samokontroli")):]
+    assert ogon[0] == f"Bledy samokontroli wersji 1.0 ({len(bledy)}):"
+    assert [w.strip() for w in ogon if w.strip().startswith("BLAD ") and not w.startswith("BLAD: ")] == list(bledy)  # wymienione w komunikacie
+    assert "BLAD: samokontrola wersji 1.0 zglosila bledy - wersji biezacej nadal nie ma" in ogon
+    rada = next(w for w in ogon if w.startswith("CO ZROBIC: "))
+    assert f"spoza ustawien: {spoza}" in rada and "zainstaluj.cmd ponownie" in rada
+    assert ("folder_skanera, folder_cyrkon" in rada) == (len(bledy) == 3)  # foldery wymienione tylko wtedy, gdy tez sa bledne
+    assert st.biezaca is None and not (st.katalog / "Stanowisko.cmd").exists()  # wersja nadal NIE jest przelaczana
+    assert I.stan_wersji(st.katalog, "1.0") == "zainstalowana" and "samokontrola: BLAD " + spoza in st.dziennik()
+    assert "baza nowsza" not in st.dziennik() and "DLL load failed" not in st.dziennik()  # dziennik: kod sprawdzenia bez opisu
+
+
+@pytest.mark.parametrize("pierwsza", [True, False], ids=["pierwsza_instalacja", "aktualizacja"])
+@pytest.mark.parametrize("kod, stdout, stderr", [
+    (1, "", SLAD_WYJATKU),                                                              # blad importu przed main: kod 1 Pythona
+    (1, wyjscie_samokontroli(BLAD_SKANER, koniec=""), ""),                             # wiersze BLAD, ale bez wiersza koncowego
+    (1, wyjscie_samokontroli(BLAD_SKANER) + "wiersz po wyniku\n", ""),                  # wiersz koncowy nie jest OSTATNI
+    (1, wyjscie_samokontroli(BLAD_SKANER, koniec="SAMOKONTROLA: ZIELONA (ok 1, ostrzezenia 1)"), ""),   # kod przeczy wierszowi
+    (0, wyjscie_samokontroli(koniec=""), ""),                                           # kod 0 bez "ZIELONA" nie jest zielony
+    (0, wyjscie_samokontroli(BLAD_BAZA), ""),                                           # kod 0 z wierszem "CZERWONA"
+], ids=["slad_wyjatku", "bez_wiersza", "wiersz_nie_ostatni", "kod1_zielona", "kod0_bez_wiersza", "kod0_czerwona"])
+def test_r3_p1_brak_wiersza_koncowego_to_samokontrola_niewykonana(st, tmp_path, capsys, monkeypatch, pierwsza, kod, stdout, stderr):
+    """Umowa A11s: wynik to kod wyjscia ORAZ ostatni wiersz ``SAMOKONTROLA: ...``. Kod 0 / 1 bez zgodnego wiersza koncowego =
+    samokontrola niewykonana (kod 2 instalatora) po powtorzeniach - nigdy WSTRZYMANA, nigdy zielona, wersja nieprzelaczona."""
+    st.ustawienia_gotowe()
+    if not pierwsza:
+        assert st.zainstaluj(zbuduj_paczke(tmp_path, "0.9")) == 0
+    capsys.readouterr()
+    licznik = podstaw_samokontrole(monkeypatch, kod, stdout, stderr)
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "1.0")) == I.KOD_SAMOKONTROLA_NIEWYKONANA == 2
+    assert licznik["n"] == I.PROBY_SAMOKONTROLI == 3
+    wyjscie = capsys.readouterr().out
+    zostaje = "wersji biezacej nadal nie ma" if pierwsza else "wersja biezaca zostaje 0.9"
+    assert f"BLAD: samokontrola wersji 1.0 nie podala wyniku (kod wyjscia {kod} bez wiersza koncowego SAMOKONTROLA: " \
+           f"{'ZIELONA' if kod == 0 else 'CZERWONA'}, proby: 3) - {zostaje}" in wyjscie
+    assert f"INSTALACJA: NIEUDANA (kod 2) - wersja biezaca bez zmian: {'brak' if pierwsza else '0.9'}" in wyjscie
+    assert "WSTRZYMANA" not in wyjscie and "GOTOWA" not in wyjscie and "To nie jest blad ustawien" in wyjscie
+    assert st.biezaca == (None if pierwsza else "0.9") and I.stan_wersji(st.katalog, "1.0") == "zainstalowana"
+    assert "UWAGA samokontrola: wynik niezgodny z umowa" in st.dziennik() and "proba 3 z 3" in st.dziennik()
+
+
+def test_r3_p1_aktualizacja_z_bledami_ustawien_zostaje_nieudana_kod_1(zainstalowane, tmp_path, capsys, monkeypatch):
+    """Aktualizacja: czerwona samokontrola to zawsze NIEUDANA (kod 1) - takze gdy bledy dotycza samych folderow."""
+    st = zainstalowane
+    capsys.readouterr()
+    podstaw_samokontrole(monkeypatch, 1, wyjscie_samokontroli(BLAD_SKANER))
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0")) == I.KOD_SAMOKONTROLA_CZERWONA
+    wyjscie = capsys.readouterr().out
+    assert "WSTRZYMANA" not in wyjscie and "INSTALACJA: NIEUDANA (kod 1) - wersja biezaca bez zmian: 1.0" in wyjscie
+    assert "Bledy samokontroli wersji 2.0 (1):" in wyjscie and wyjscie.count(BLAD_SKANER) == 2 and st.biezaca == "1.0"
+    assert "spoza ustawien" not in wyjscie and "ustawienia.toml" in next(w for w in wyjscie.splitlines() if w.startswith("CO ZROBIC: "))
+
+
+# ------------------------------------------------- runda 3: luka latki .pth (raport 12.11; recenzja rundy 2: D2)
+
+def test_r3_plik_blokady_wmi_jest_przed_pierwszym_procesem_pip_w_wersji_starszego_instalatora(zainstalowane, tmp_path, capsys):
+    """Wersja zalozona STARSZYM instalatorem nie ma pliku ``stanowisko_bez_wmi.pth``. ``zainstaluj.cmd`` (takze z ``/testy``)
+    doklada go PRZED pierwszym procesem pip w tym srodowisku: ``pip list`` kontroli wersji i ``pip install`` zestawu testowego
+    nie moga wystartowac bez blokady zapytan WMI (w rundzie 2 plik byl dokladany dopiero po kroku 5)."""
+    st = zainstalowane
+    plik = st.katalog / "wersje" / "1.0" / "venv" / "Lib" / "site-packages" / I.PLIK_BEZ_WMI
+    procesy, prawdziwe_pakiety, prawdziwe_instaluj = [], st.srodowisko.pakiety, st.srodowisko.instaluj
+
+    def jest() -> bool:
+        return plik.is_file() and plik.read_bytes() == I.TRESC_BEZ_WMI.encode("ascii")
+
+    def pakiety(venv):
+        procesy.append(("pip list", jest()))
+        return prawdziwe_pakiety(venv)
+
+    def instaluj(venv, *argumenty):
+        procesy.append(("pip install", jest()))
+        return prawdziwe_instaluj(venv, *argumenty)
+
+    st.srodowisko.pakiety, st.srodowisko.instaluj = pakiety, instaluj
+    for testy in (False, True):
+        plik.unlink()
+        procesy.clear()
+        capsys.readouterr()
+        assert st.zainstaluj(zbuduj_paczke(tmp_path / f"testy_{testy}", "1.0"), testy=testy) == 0
+        wyjscie = capsys.readouterr().out
+        assert wyjscie.count(f"dolozono plik {I.PLIK_BEZ_WMI}") == 1 and jest()
+        assert ("dokladam zestaw testowy" in wyjscie) == testy
+        assert [n for n, _ in procesy] == (["pip list", "pip install", "pip list"] if testy else ["pip list"])
+        assert all(byl for _, byl in procesy), procesy  # w chwili startu KAZDEGO procesu pip plik juz jest
+        assert wyjscie.index(f"dolozono plik {I.PLIK_BEZ_WMI}") < wyjscie.index("jest juz zainstalowana i zgodna z paczka")
+
+
+# ------------------------------------- runda 3: testy do wstrzykniec niewykrytych w recenzji rundy 2 (D6: R4, R2, R6) i D4
+
+def test_r3_pytanie_t_n_sam_enter_i_kazda_odpowiedz_inna_niz_t_to_brak_zgody(zainstalowane, tmp_path, capsys, monkeypatch):
+    """``Wroc_do_poprzedniej.cmd`` lezy obok ``Stanowisko.cmd``: odpowiedz domyslna musi byc bezpieczna. Zgoda to wylacznie
+    ``T`` / ``t`` (ze spacjami dookola); sam Enter, spacja, ``n``, ``tak`` i wszystko inne = kod 11, wersja bez zmian."""
+    st = zainstalowane
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0")) == 0
+    monkeypatch.setattr(I, "Srodowisko", SrodowiskoAtrapa)  # main() nie przyjmuje atrapy srodowiska
+    odpowiedzi = ["", " ", "\t", "n", "N", "nie", "tak", "TAK", "y", "yes", "1", "0", "t t", "tn", "T/N", "[T/N]", "t."]
+    for odpowiedz in odpowiedzi:
+        monkeypatch.setattr("builtins.input", lambda pytanie="", o=odpowiedz: o)
+        assert I.zapytaj_konsole("Kontynuowac? [T/N]: ") is False, repr(odpowiedz)
+        capsys.readouterr()
+        assert I.main(["wroc", "/katalog", str(st.katalog), "/bez-pauzy"]) == I.KOD_ANULOWANO == 11, repr(odpowiedz)
+        assert "POWROT: ANULOWANY (kod 11) - wersja biezaca bez zmian: 2.0" in capsys.readouterr().out
+        assert st.biezaca == "2.0" and st.poprzednia == "1.0"
+    assert st.dziennik().count("POWROT: ANULOWANY") == len(odpowiedzi)
+    for odpowiedz in ("T", "t", " t ", "T\r"):
+        monkeypatch.setattr("builtins.input", lambda pytanie="", o=odpowiedz: o)
+        assert I.zapytaj_konsole("Kontynuowac? [T/N]: ") is True, repr(odpowiedz)
+    assert I.main(["wroc", "/katalog", str(st.katalog), "/bez-pauzy"]) == 0 and st.biezaca == "1.0"
+
+
+def test_r3_przywrocenie_kopii_zatrzymuje_plik_journal_obok_bazy(zainstalowane, tmp_path, capsys, monkeypatch):
+    """Miedzy przygotowaniem ``<baza>.nowy`` a zamiana inny program zaczal zapis do bazy (niepusty ``-journal`` obok niej):
+    zamiana pliku bazy pod obcym dziennikiem zepsulaby nowa baze - powrot staje (kod 5, "zamknij programy"), baza bez zmian."""
+    st = zainstalowane
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "2.0", migracje="{1: (), 2: ()}")) == 0
+    st.zaloz_baze(schemat=2, wiersze=2)
+    prawdziwa, obcy = I._kopia_sprawdzona, st.baza.with_name(st.baza.name + "-journal")
+
+    def kopia(zrodlo, cel, tryb):
+        wynik = prawdziwa(zrodlo, cel, tryb)
+        if Path(cel) == st.baza.with_name(st.baza.name + ".nowy"):  # kopia do wstawienia gotowa: teraz pojawia sie obcy dziennik
+            obcy.write_bytes(b"\xd9\xd5\x05\xf9\x20\xa1\x63\xd7" + bytes(504))
+        return wynik
+
+    monkeypatch.setattr(I, "_kopia_sprawdzona", kopia)
+    przed = sha(st.baza)
+    capsys.readouterr()
+    assert st.wroc(przywroc=True) == I.KOD_PROGRAM_DZIALA == 5
+    wyjscie = capsys.readouterr().out
+    assert obcy.is_file() and f"obok bazy lezy plik {obcy.name}" in wyjscie and "Zamknij programy" in wyjscie
+    assert "POWROT: NIEUDANA (kod 5) - wersja biezaca bez zmian: 2.0" in wyjscie
+    assert sha(st.baza) == przed and st.biezaca == "2.0" and not st.baza.with_name(st.baza.name + ".nowy").exists()
+    obcy.unlink()
+    monkeypatch.setattr(I, "_kopia_sprawdzona", prawdziwa)
+    assert st.wroc(przywroc=True) == 0 and st.biezaca == "1.0" and stan_bazy(st.baza) == ([("ok",)], 1, 3, 0)
+
+
+def test_r3_kopia_bazy_jest_pomijana_tylko_przy_identycznej_najnowszej_kopii(zainstalowane):
+    """Powtorzona proba przy niezmienionej bazie nie mnozy kopii - ale tylko gdy identyczna jest NAJNOWSZA kopia. Baza, ktora
+    wrocila do tresci STARSZEJ kopii, dostaje nowa kopie: powrot bierze najnowsza, wiec siegnalby po inny stan bazy."""
+    st = zainstalowane
+    teraz = dt.datetime(2026, 11, 20, 13, 0, 0)
+    stan_a = st.baza.read_bytes()
+    k1 = I.kopia_bazy(st.baza, "2.0", teraz)
+    assert I.kopia_bazy(st.baza, "2.0", teraz + dt.timedelta(minutes=1)) == k1 and kopie_bazy(st) == [k1]
+    st.zaloz_baze(wiersze=2)  # baza sie zmienia: 5 skanow
+    k2 = I.kopia_bazy(st.baza, "2.0", teraz + dt.timedelta(minutes=2))
+    assert k2 != k1 and liczba_skanow(k2) == 5
+    st.baza.write_bytes(stan_a)  # baza wraca do tresci sprzed zmiany (3 skany) - identycznej ze STARSZA kopia k1
+    k3 = I.kopia_bazy(st.baza, "2.0", teraz + dt.timedelta(minutes=3))
+    assert k3 not in (k1, k2) and liczba_skanow(k3) == 3 and sha(k3) == sha(k1)
+    assert I.kandydaci_kopii(st.baza)[0] == k3 and len(kopie_bazy(st)) == 3  # najnowsza kopia = obecny stan bazy
 
 
 def test_d2_drugi_instalator_w_tym_samym_katalogu_czeka_na_pierwszego(zainstalowane, tmp_path, capsys):
