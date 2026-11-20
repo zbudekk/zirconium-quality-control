@@ -37,8 +37,8 @@ dofrezowania. Komunikaty i pytania programu pojawiaja sie nad mapa.
 3. **Przeczytaj mape.** Po analizie widzisz mape plytki: kazde gniazdo ma kolor i podpis (tabela wyzej). Napis nad mapa,
    np. "do obejrzenia: 4", mowi, ile prac czeka na Twoja decyzje. Gdy poprzednia plytka ma jeszcze prace bez decyzji,
    ekran zostaje na niej, a nowa czeka: z lewej, nad lista plytek, jest przycisk "Pokaz nowy wynik: Plytka 2", a pod nim
-   zolte pole "Nowy wynik czeka: Plytka 2". Dokoncz plytke albo kliknij ten przycisk. Numer plytki, ktora ogladasz, jest
-   w naglowku mapy - komunikaty i pytania o nowej plytce zobaczysz dopiero po przejsciu na nia.
+   zolte pole "Nowy wynik czeka: Plytka 2". Dokoncz plytke albo kliknij ten przycisk - komunikaty i pytania o nowej
+   plytce zobaczysz dopiero wtedy. Numer ogladanej plytki jest w naglowku mapy.
 4. **Obejrzyj wskazane prace.** Wyjmij plytke. Kliknij czerwone albo zolte gniazdo - z prawej pojawi sie praca: kuweta,
    zab, rozmiar ubytku i obraz z zaznaczonym miejscem. Wez te prace do reki i obejrzyj to miejsce.
 5. **Zdecyduj.** "Ukruszona" (klawisz U) - odloz prace na bok; program dopisze ja do listy do dofrezowania.

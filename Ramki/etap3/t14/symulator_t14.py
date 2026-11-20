@@ -265,7 +265,7 @@ class Kroki:
 def _ekran(program: Path):
     narzedzia = program / "narzedzia"
     if not (narzedzia / "zrzuty_instrukcji.py").is_file():
-        raise SystemExit(f"BLAD: --sprawdz wymaga {narzedzia / 'zrzuty_instrukcji.py'} (kopia repozytorium, nie sama paczka wydania)")
+        raise SystemExit(f"BLAD: --sprawdz wymaga {narzedzia / 'zrzuty_instrukcji.py'} (katalog programu z podkatalogiem narzedzia: kopia repozytorium albo program z paczki wydania)")
     sys.path.insert(0, str(narzedzia))
     import zrzuty_instrukcji as Z
 

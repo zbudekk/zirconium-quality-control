@@ -24,7 +24,7 @@ Probe prowadzi wlasciciel. Ten katalog daje wszystko, co trzeba przygotowac; sam
 2. Wydrukuj `jedna_strona.html` i `arkusz_obserwacji.html`: otworz w przegladarce, Drukuj, A4, skala 100 %, bez
    naglowkow i stopek przegladarki, z grafika tla. Kazdy plik ma dac jedna strone.
 3. Uruchom sprawdzenie: `PY symulator_t14.py --sprawdz`. `PY` i sciezki - patrz `scenariusz_symulatora.md`, sekcja
-   "Polecenia"; na laptopie z programem zainstalowanym z paczki wydania (uruchamianym przez `Stanowisko.cmd`) jest to
+   Polecenia; na laptopie z programem zainstalowanym z paczki wydania (uruchamianym przez `Stanowisko.cmd`) jest to
    `C:\Stanowisko\Polecenie.cmd C:\T14\symulator_t14.py --sprawdz --program .`. Ostatni wiersz:
    `SPRAWDZENIE T14 BEZ EKRANU: zgodne 22 z 22 krokow`. Inny wynik = nie zaczynaj proby, zglos.
 4. Przygotuj stoper (telefon) i dlugopis. Opcjonalnie: plytka wieczorna i poranna z kilkoma starymi pracami oraz dwie

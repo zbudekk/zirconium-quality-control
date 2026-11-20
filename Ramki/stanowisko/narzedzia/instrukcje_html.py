@@ -49,8 +49,8 @@ CHROME = Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
 # dokument -> (plik md, uklad strony, szerokosci obrazkow wg nazwy pliku)
 DOKUMENTY = {
     "wieczor": (INSTRUKCJE / "wieczor.md", "pion",
-                {"wieczor_ekran.png": "100%", "wieczor_praca.png": "70%", "wieczor_popraw.png": "100%", "wieczor_ponowny.png": "100%",
-                 "wieczor_lista.png": "70%"}),
+                {"wieczor_ekran.png": "100%", "wieczor_praca.png": "54%", "wieczor_popraw.png": "100%", "wieczor_ponowny.png": "100%",
+                 "wieczor_lista.png": "62%"}),
     "poranek": (INSTRUKCJE / "poranek.md", "pion",
                 {"rano_ekran.png": "100%", "rano_kandydaci.png": "52%", "rano_braki.png": "56%", "rano_excel.png": "92%"}),
     "co_robic_gdy_nie_dziala": (INSTRUKCJE / "co_robic_gdy_nie_dziala.md", "poziom", {}),
@@ -328,7 +328,7 @@ UKLADY = {
              # zostaje pusty pas, a prawa wychodzi na druga strone (pomiar rundy 2)
              "dodatki": ".obok table { font-size: 7.7pt; } li { break-inside: auto; orphans: 2; widows: 2; }"},
     "poziom": {"orientacja": "landscape", "margines": "7mm 8mm", "pismo": "7.3pt", "szerokosc": "279mm",
-               "dodatki": "body { line-height: 1.2; } th, td { padding: 0.8pt 2.5pt; } h1 { font-size: 13pt; } p { margin: 1pt 0 2pt 0; }"},
+               "dodatki": "body { line-height: 1.15; } th, td { padding: 0.8pt 2.5pt; } h1 { font-size: 13pt; } p { margin: 1pt 0 2pt 0; }"},
     "poziom2": {"orientacja": "landscape", "margines": "8mm 9mm", "pismo": "9.6pt", "szerokosc": "279mm",
                 "dodatki": ".kolumny { column-gap: 9mm; } h2 { font-size: 13pt; } li { margin-bottom: 3pt; }"},
     "arkusz": {"orientacja": "portrait", "margines": "10mm 11mm", "pismo": "9pt", "szerokosc": "188mm",

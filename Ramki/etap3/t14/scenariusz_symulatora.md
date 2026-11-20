@@ -80,7 +80,7 @@ Trzecia Spacja (zapas): plytka 4, dwie prace rozpoznane. Czwarta i dalsze: nic n
 ## Co sprawdzono 20.11.2026 na PC, a czego nie
 
 - Sprawdzone automatycznie, bez ekranu (`--sprawdz`): 22 z 22 krokow - skrypt sam naciska Spacje, klika gniazda i przyciski
-  w oknie programu i czyta wynik z ekranu; obejmuje 11 z 11 zadan T14, pole "Nowy wynik czeka" (krok 8), pytanie przed
+  w oknie programu i czyta wynik z ekranu; obejmuje 11 z 11 zadan T14, pole "Nowy wynik czeka: Plytka 2" (krok 8), pytanie przed
   zamknieciem pieca (krok 16) i wiersze `osoba: ...` dziennika (kroki 12 i 22). Uruchomienie `wieczor` i `rano` bez ekranu
   z samym otwarciem i zamknieciem okna (`--zamknij-po 3`): kod 0. Stan programu: po paczkach E3-P14, A11s, A11i, A11w.
 - NIE sprawdzone: uruchomienie przez `Polecenie.cmd` z programu zainstalowanego z paczki wydania (na PC sprawdzono tylko
