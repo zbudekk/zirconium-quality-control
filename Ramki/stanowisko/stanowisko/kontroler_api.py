@@ -105,7 +105,7 @@ CZEKAJ_ZDARZENIA_MS = 150  # r3 D-N1 / r4 D-R3-1: zapis zdarzen ramki czeka na z
 # 400 ms -> 0,53 s / 0,96 s. 200 ms przepuszcza krotka blokade czytelnika (raport metryk: do 0,3 s na bazie 200 MB).
 CZEKAJ_POLECENIA_MS = 200
 CZEKAJ_STANU_MS = 100  # odczyt stanu z bazy po poleceniu / zdarzeniu w watku okna; nieudany = stan zalegly, nadrabiany pozniej
-CZEKAJ_NADRABIANIA_MS = 0  # ponowny odczyt zaleglego stanu z zegara okna: jedna proba bez czekania (pomiar: ok. 50 ms przy zajetej bazie)
+CZEKAJ_NADRABIANIA_MS = 0  # ponowny odczyt zaleglego stanu z zegara okna: jedna proba bez czekania (pomiar: ok. 30 ms przy zajetej bazie)
 OKRES_NADRABIANIA_STANU_S = 1.0  # co ile zegar okna probuje odczytac zalegly stan, dopoki baza jest zajeta
 ZALEGLE_EXCELA_H = 48  # P5: piece zamkniete w ostatnich tylu godzinach z niezalatwionymi zleceniami Excela - przypomnienie przy starcie
 ZALEGLE_EXCELA_PIECE = 5

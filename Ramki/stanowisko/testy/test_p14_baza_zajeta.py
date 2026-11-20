@@ -274,6 +274,33 @@ def test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_pono
     assert ocena == PC.OK, f"N1 {polecenie}: {powtorki.opis()}"
 
 
+def test_n1_spacja_na_prawdziwej_aplikacji_przy_zajetej_bazie_nie_stoi_i_nie_rzuca(tmp_path):
+    """``Aplikacja.start_skanu`` (Spacja) zapisuje wpis ``start_skanu`` w dzienniku: przy zajetej bazie nie czeka 5 s i nie konczy
+    sie wyjatkiem w slocie okna (bylo: ``BladBazy`` po 5 s) - program czeka na plik skanu jak zwykle, brakuje tylko wpisu
+    dziennika; po zwolnieniu bazy wpis jest zapisywany normalnie. Limit 2,5 s z zapasem na obciazony PC (czekanie ok. 0,7 s)."""
+    from test_kontroler_api import StanowiskoAplikacji
+
+    st = StanowiskoAplikacji(tmp_path)
+    obcy = None
+    try:
+        wpisy = lambda: st.k.sesja.baza.wiersz("SELECT count(*) AS n FROM zdarzenia WHERE typ = 'start_skanu'")["n"]  # noqa: E731
+        przed = wpisy()
+        obcy = ObcyProgram(st.k)
+        obcy.zajmij()
+        t0 = time.perf_counter()
+        odp = st.k.wykonaj("start_skanu")
+        czas = time.perf_counter() - t0
+        obcy.zwolnij()
+        print(f"\n[N1 aplikacja] start_skanu przy zajetej bazie: {czas * 1000:.0f} ms, odpowiedz ok={odp.ok} kod={odp.kod!r}")
+        assert odp.ok and czas < 2.5, (odp, czas)
+        assert st.k.stan().skaner.czeka_na_skan and wpisy() == przed
+        assert st.k.wykonaj("start_skanu").ok and wpisy() == przed + 1
+    finally:
+        if obcy is not None:
+            obcy.zamknij()
+        st.koniec()
+
+
 # ----------------------------------------------------------------------------
 # okno: klikniecie "Ukruszona" przy zajetej bazie
 # ----------------------------------------------------------------------------
