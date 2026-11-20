@@ -222,11 +222,27 @@ rozlozony na stosie): zamkniety po 5,0 s w 3 z 3 prob w interpreterze bazowym i 
 **Poprawka.** `stanowisko/__init__.py` przy imporcie pakietu (czyli przed `trimesh` i Open3D w kazdym procesie programu:
 okno, proces roboczy silnika, wiersz polecen, samokontrola) blokuje modul `_wmi` (`sys.modules["_wmi"] = None`), a gdy
 `platform` jest juz zaladowany - podmienia jego funkcje zapytania na zglaszajaca `OSError`. `platform` bierze wtedy te same
-dane ze sciezek zapasowych (`sys.getwindowsversion()`, zmienne srodowiska). `testy/conftest.py` importuje pakiet PRZED
-`trimesh`. Testy: `test_a11w_*` w `testy/test_silnik.py` (bez poprawki: 4 z 4 nie przechodza).
+dane ze sciezek zapasowych: `sys.getwindowsversion()`, zmienne srodowiska i **podproces `cmd.exe /c ver`**
+(`platform._syscmd_ver`) - raz na proces przy pierwszym `platform.system()` (czyli raz na start okna i raz na start procesu
+roboczego; ok. 0,07-0,09 s), kolejny raz przy kazdym `win32_ver()` / `platform()`. Okno konsoli nie mignie, bo program
+startuje przez `Stanowisko.cmd` (`python.exe` z konsola), a proces roboczy ma wlasna niewidoczna konsole (E3-A2p); przy
+starcie przez `pythonw.exe` mignelaby. Gdy `cmd` nie wystartuje, `platform` lapie blad i zostaje przy `getwindowsversion()`.
+To ta sama sciezka, ktora Python mial przed 3.12; wartosci `platform` sa takie same jak bez blokady.
+`testy/conftest.py` importuje pakiet PRZED `trimesh` (pilnuje tego `test_a11w_conftest_importuje_pakiet_przed_trimesh`:
+import `conftest.py` w podprocesie pod szpiegiem zdarzenia audytu `_wmi.exec_query` - 0 zapytan; przy odwroconej kolejnosci 2).
+Testy: 5 x `test_a11w_*` w `testy/test_silnik.py` (bez poprawki w pakiecie: 4 z 4 pierwszych nie przechodza).
 
 **Granice.** Skrypt, ktory importuje `trimesh` (albo wola `platform.system()` / `machine()` / `win32_ver()`) PRZED pakietem
-`stanowisko`, nie jest chroniony (narzedzia z `narzedzia/`, ktore zaczynaja od `import trimesh`). Obejscia z E3-A2 / E3-A2p
+`stanowisko`, nie jest chroniony. Lista (interpreter bazowy; w srodowisku wersji ma je chronic plik `.pth` instalatora,
+raport E3-A11w p. 6.1): narzedzia zaczynajace od `import trimesh` - `narzedzia/rzut_z_gory.py`, `metryki_P2.py`,
+`metryki_krawedz.py`, `metryki_skala.py`, `drzewo_syntetyczne.py`, `pomiar_skanu/pomiar_skanu.py`,
+`pomiar_skanu/c_wspolne.py`, `atrapy_koron.py` uruchamiany jako skrypt (i kazdy skrypt importujacy `atrapy_koron` przed
+pakietem); procesy puli `narzedzia/auto_uklad.py` i `narzedzia/straznik_R59.py` (w funkcji procesu potomnego `import trimesh`
+stoi przed `from stanowisko import`; proces glowny nie pyta); procesy `pip` (`ensurepip`, `pip install`). Drugie, poza
+`trimesh`, zrodlo zapytan w pakietach srodowiska: `import numpy.testing` (`numpy/testing/_private/utils.py` wola
+`platform.machine()`); sam `import numpy` nie pyta. Trwale dla narzedzi: `import stanowisko` jako pierwszy import (poza
+zakresem E3-A11w). Luka blokady: `_wmi` zaladowany wczesniej, a `platform` jeszcze nie (dzis nikt poza `platform` nie
+importuje `_wmi`). Obejscia z E3-A2 / E3-A2p
 (Qt i `sqlite3` ladowane przed silnikiem, wlasna konsola procesu roboczego, limit startu) zostaja - chronia takze przed innymi
 przyczynami. Blad jest w bibliotece standardowej Pythona 3.12 (modul `_wmi`), nie w `trimesh`.
 
