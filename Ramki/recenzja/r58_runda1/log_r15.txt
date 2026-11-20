@@ -1,0 +1,10 @@
+sciecie plytki: polowa kata 9.21 st.; wnikanie obrysu w sciecie wkladki przy obrocie: 0.244 mm (luz promieniowy 0.397)
+plytka bazowa (3 kieszenie puste): plytka lezy PLASKO dla obrotow: 0.00..0.80 st. (kolek w: rowek); 88.30..91.70 st. (kolek w: kieszen A); 178.30..181.70 st. (kolek w: kieszen B); 268.30..271.70 st. (kolek w: kieszen C); 359.20..359.90 st. (kolek w: rowek)
+n1 (magnesy A): plytka lezy PLASKO dla obrotow: 0.00..0.80 st. (kolek w: rowek; odczyt ramki n=1); 178.30..181.70 st. (kolek w: kieszen B; odczyt ramki n=4 ZLY); 268.30..271.70 st. (kolek w: kieszen C; odczyt ramki n=2 ZLY); 359.20..359.90 st. (kolek w: rowek; odczyt ramki n=1)
+n2 (magnesy B): plytka lezy PLASKO dla obrotow: 0.00..0.80 st. (kolek w: rowek; odczyt ramki n=2); 88.30..91.70 st. (kolek w: kieszen A; odczyt ramki n=1 ZLY); 268.30..271.70 st. (kolek w: kieszen C; odczyt ramki n=4 ZLY); 359.20..359.90 st. (kolek w: rowek; odczyt ramki n=2)
+n3 (magnesy AB): plytka lezy PLASKO dla obrotow: 0.00..0.80 st. (kolek w: rowek; odczyt ramki n=3); 268.30..271.70 st. (kolek w: kieszen C; odczyt ramki n=6 ZLY); 359.20..359.90 st. (kolek w: rowek; odczyt ramki n=3)
+n4 (magnesy C): plytka lezy PLASKO dla obrotow: 0.00..0.80 st. (kolek w: rowek; odczyt ramki n=4); 88.30..91.70 st. (kolek w: kieszen A; odczyt ramki n=2 ZLY); 178.30..181.70 st. (kolek w: kieszen B; odczyt ramki n=1 ZLY); 359.20..359.90 st. (kolek w: rowek; odczyt ramki n=4)
+n5 (magnesy AC): plytka lezy PLASKO dla obrotow: 0.00..0.80 st. (kolek w: rowek; odczyt ramki n=5); 178.30..181.70 st. (kolek w: kieszen B; odczyt ramki n=5); 359.20..359.90 st. (kolek w: rowek; odczyt ramki n=5)
+n6 (magnesy BC): plytka lezy PLASKO dla obrotow: 0.00..0.80 st. (kolek w: rowek; odczyt ramki n=6); 88.30..91.70 st. (kolek w: kieszen A; odczyt ramki n=3 ZLY); 359.20..359.90 st. (kolek w: rowek; odczyt ramki n=6)
+przechyl (kolek pod pelnym spodem): podniesienie 2.0 -> kat 1.21 st.; krawedz plytki przy kolku +2.11; czujniki A i C +1.05, B +0.10
+przechyl (kolek pod kieszenia z magnesem (0,2 wolne)): podniesienie 1.8 -> kat 1.09 st.; krawedz plytki przy kolku +1.90; czujniki A i C +0.94, B +0.09
