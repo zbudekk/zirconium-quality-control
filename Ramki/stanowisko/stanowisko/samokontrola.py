@@ -515,8 +515,9 @@ def _foldery(k: _Kontekst) -> list:
             poziom, skutek = OSTRZEZENIE, NIEUZYWANY
         elif klucz == "folder_millbox":
             rada = "wlacz komputer z folderem MillBox albo podlacz ten folder - do tego czasu skany beda czekac na wspolczynnik, albo " + rada
-        elif klucz == "folder_cyrkon" and not pula_wpisow and k.folder_puli()[1]:
+        elif klucz == "folder_cyrkon" and not pula_wpisow and k.folder_puli()[1] and k.folder_puli()[2] is None:
             # B1 (recenzja PR #38): program bierze pule z folderu wybranego w programie i tego klucza w ogole nie czyta
+            # (nie dotyczy pliku wyboru, ktorego program nie umie wczytac: po jego usunieciu wraca folder z ustawien)
             poziom, skutek = OSTRZEZENIE, PULA_WYBRANA
         wartosc = k.ust["sciezki"][klucz]
         rodzaj, dane = stany.get(klucz, ("wynik", "pusty"))

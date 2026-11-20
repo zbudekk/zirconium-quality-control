@@ -1250,6 +1250,21 @@ def test_b1_wybor_w_programie_rowny_folder_cyrkon_albo_pula_per_praca_brak_folde
     assert s.poziom == S.BLAD and "wybran" not in s.opis and wynik.kod_wyjscia == 1
 
 
+@pytest.mark.parametrize("pula_wpisow", ["false", "true"])
+def test_b1_plik_wyboru_puli_ktorego_program_nie_wczyta_blad_pula_a_folder_cyrkon_nadal_blad(kat, pula_wpisow):
+    """Plik wyboru puli o tresci, na ktorej program konczy start bledem (JSON niebedacy obiektem): BLAD ``pula`` w obu trybach
+    puli (program wczytuje ten plik przy kazdym starcie); brak ``folder_cyrkon`` zostaje wtedy BLAD - po usunieciu pliku
+    wyboru program wraca do folderu z ustawien."""
+    kat.dane.mkdir()
+    (kat.dane / AP.PLIK_PULI).write_text("[1, 2]", encoding="utf-8")
+    kat.zapisz(pula_wpisow=pula_wpisow)
+    kat.foldery["folder_cyrkon"].rmdir()
+    wynik = kat.wykonaj()
+    s = wynik.sprawdzenie("pula")
+    assert s.poziom == S.BLAD and "program nie wystartuje" in s.opis and AP.PLIK_PULI in s.opis and "usun plik" in s.rada, s
+    assert wynik.sprawdzenie("folder_cyrkon").poziom == S.BLAD and wynik.bledy == 2
+
+
 TRESCI_PLIKU_PULI = ['{"folder": "%(inny)s", "wspolczynnik": 1.22}', '{"folder": null, "wspolczynnik": 1.2}', '{"folder": ""}',
                      '{"wspolczynnik": 1.2}', '{"folder": "%(inny)s", "wspolczynnik": "abc"}', '{"folder": "%(cyrkon)s"}',
                      '{"folder": 5}', '{zly json', '', '[1, 2]', '"napis"', '5', 'null']
