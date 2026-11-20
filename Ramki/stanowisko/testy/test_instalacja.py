@@ -471,6 +471,15 @@ def test_zestaw_testowy_tylko_na_zadanie(zainstalowane, tmp_path, capsys):
     pakiety = json.loads((st.katalog / "wersje" / "2.0" / "venv" / "pakiety.json").read_text(encoding="ascii"))
     assert pakiety == {"pakiecik": "1.0", "testowy": "2.0"}
     assert json.loads((st.katalog / "wersje" / "2.0" / "instalacja.json").read_text(encoding="ascii"))["testy"] is True
+    # /testy na wersji juz zainstalowanej: sam zestaw testowy, bez zakladania wersji od nowa
+    assert st.wroc() == 0 and st.biezaca == "1.0"
+    instalacje = st.srodowisko.instalacje
+    assert st.zainstaluj(zbuduj_paczke(tmp_path / "ponownie", "1.0"), testy=True) == 0
+    assert "dokladam zestaw testowy" in capsys.readouterr().out and st.srodowisko.instalacje == instalacje + 1
+    assert json.loads((st.katalog / "wersje" / "1.0" / "venv" / "pakiety.json").read_text(encoding="ascii")) == pakiety
+    zapis = json.loads((st.katalog / "wersje" / "1.0" / "instalacja.json").read_text(encoding="ascii"))
+    assert zapis["testy"] is True and zapis["pakiety"] == 2 and zapis["wersja"] == "1.0"
+    assert st.zainstaluj(zbuduj_paczke(tmp_path / "trzeci", "1.0")) == 0 and st.srodowisko.instalacje == instalacje + 1  # bez /testy: zgodna
     assert I.porownaj_pakiety({"pakiecik": "1.1", "obcy": "3", "pip": "25"}, {"pakiecik": "1.0", "drugi": "2"}) == [
         "brak drugi==2", "pakiecik: jest 1.1, ma byc 1.0", "nadmiarowy obcy==3"]
 

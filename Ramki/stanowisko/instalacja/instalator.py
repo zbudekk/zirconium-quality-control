@@ -738,6 +738,25 @@ def _instaluj_testy(paczka: Path, program: Path, venv: Path, kw: Path, srodowisk
     return pakiety
 
 
+BRAK_TESTOW = "brak zestawu testowego"
+
+
+def _doinstaluj_testy(paczka: Path, katalog: Path, wersja: str, srodowisko: Srodowisko, dziennik: Dziennik) -> None:
+    """``/testy`` na wersji juz zainstalowanej: doklada sam zestaw testowy (bez zakladania wersji od nowa) i sprawdza pakiety."""
+    kw = katalog_wersji(katalog, wersja)
+    program, venv = kw / "program", kw / "venv"
+    oczekiwane = wczytaj_liste_zamrozona(program / LISTA_PROGRAMU)
+    oczekiwane.update(_instaluj_testy(paczka, program, venv, kw, srodowisko, dziennik))
+    roznice = porownaj_pakiety(srodowisko.pakiety(venv), oczekiwane)
+    if roznice:
+        raise BladInstalacji(KOD_INSTALACJA, "pakiety srodowiska niezgodne z lista zamrozona: " + "; ".join(roznice[:10]),
+                             "Usun te wersje (Wersje.cmd /usun) albo uruchom zainstaluj.cmd ponownie.")
+    zapis = json.loads((kw / PLIK_INSTALACJI).read_text(encoding="ascii"))
+    zapis.update(pakiety=len(oczekiwane), testy=True)
+    zapisz_atomowo(kw / PLIK_INSTALACJI, (json.dumps(zapis, indent=1, sort_keys=True) + "\n").encode("ascii"))
+    dziennik.krok(f"      pakiety zgodne z lista zamrozona: {len(oczekiwane)} z {len(oczekiwane)}")
+
+
 def _zgodna_z_paczka(paczka: Path, katalog: Path, wersja: str, testy: bool, srodowisko: Srodowisko) -> tuple[bool, str]:
     """Czy zainstalowana wersja jest ta sama budowa co paczka i jest cala: (True, "") albo (False, powod)."""
     kw = katalog_wersji(katalog, wersja)
@@ -761,7 +780,7 @@ def _zgodna_z_paczka(paczka: Path, katalog: Path, wersja: str, testy: bool, srod
     if porownaj_pakiety(zainstalowane, z_testami) == []:
         return True, ""
     if porownaj_pakiety(zainstalowane, oczekiwane) == []:
-        return (False, "brak zestawu testowego (/testy)") if testy else (True, "")
+        return (False, BRAK_TESTOW) if testy else (True, "")
     return False, "pakiety srodowiska niezgodne z lista zamrozona"
 
 
@@ -834,6 +853,9 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
             zgodna, powod = _zgodna_z_paczka(paczka, katalog, wersja, testy, srodowisko)
             if zgodna:
                 dziennik.krok(f"      wersja {wersja} jest juz zainstalowana i zgodna z paczka - pliki bez zmian")
+            elif powod == BRAK_TESTOW:
+                dziennik.krok(f"      wersja {wersja} jest juz zainstalowana i zgodna z paczka - dokladam zestaw testowy")
+                _doinstaluj_testy(paczka, katalog, wersja, srodowisko, dziennik)
             else:
                 dziennik.krok(f"      wersja {wersja} jest zainstalowana, ale: {powod} - naprawa (instalacja od nowa)")
                 stan = "do_naprawy"
