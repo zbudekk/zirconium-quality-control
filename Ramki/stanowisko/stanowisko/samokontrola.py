@@ -864,13 +864,27 @@ def _wada_ukladu(nazwa: str, katalog: Path) -> str | None:
 
 
 def _modele(k: _Kontekst) -> list:
+    """Uklady z ``[plytki]`` oraz (E3-O3) uklady dostarczane z programem, ktorych w ``[plytki]`` nie ma. Uklad wbudowany
+    (``ustawienia.UKLADY_WBUDOWANE`` - 10 ukladow, w tym okragle ramkowe) program dopisuje do ``[plytki]`` sam, o ile jego
+    katalog z ``uklad.json`` istnieje - brak takiego ukladu w ustawieniach znaczy wiec, ze w katalogu programu nie ma jego
+    modelu (niepelna instalacja), a nie ze ktos go wylaczyl. Bez tego wiersza stary plik ustawien (sprzed E3-O1) i brak katalogu
+    modelu ramkowego dawaly "poprawne 8 z 8" i zielona samokontrole programu, ktory plytek ramkowych nie zna."""
     plytki = k.ust["plytki"]
     wady = []
     for nazwa, wartosc in plytki.items():
         wada = _wada_ukladu(nazwa, k.wzgledna(wartosc))
         if wada is not None:
             wady.append(f"{nazwa}: {wada}")
-    opis = f"uklady plytek z [plytki]: poprawne {len(plytki) - len(wady)} z {len(plytki)}"
+    razem = len(plytki)
+    for nazwa in UST.UKLADY_WBUDOWANE:
+        if nazwa in plytki:
+            continue
+        wzgledny = f"{UST.KATALOG_MODELI_WZGLEDNY}/{nazwa}"
+        wada = _wada_ukladu(nazwa, k.korzen / UST.KATALOG_MODELI_WZGLEDNY / nazwa)
+        razem += 1
+        if wada is not None:
+            wady.append(f"{nazwa}: {wada} modelu dostarczanego z programem ({wzgledny})")
+    opis = f"uklady plytek z [plytki]: poprawne {razem - len(wady)} z {razem}"
     if wady:
         return [_blad("modele", opis + " - " + ", ".join(wady),
                       RADA_PACZKA + " (katalog modele_plytek) albo popraw [plytki] w pliku ustawien")]

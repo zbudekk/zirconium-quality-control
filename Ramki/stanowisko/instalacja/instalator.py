@@ -5,7 +5,8 @@ i z katalogu instalacji przez ``Wroc_do_poprzedniej.cmd`` / ``Wersje.cmd``. Tylk
 
 Uklad katalogu instalacji ``<KATALOG>`` (domyslnie ``C:\\Stanowisko``)::
 
-    Stanowisko.cmd, Samokontrola.cmd, Wroc_do_poprzedniej.cmd, Wersje.cmd, Polecenie.cmd   skrypty uruchamiajace (wzory)
+    Stanowisko.cmd, Samokontrola.cmd, Wroc_do_poprzedniej.cmd, Wersje.cmd, Polecenie.cmd,
+    Dzien_skanera.cmd        skrypty uruchamiajace (wzory)
     ustawienia.toml          ustawienia tej maszyny - POZA katalogiem wersji, przy aktualizacji nietkniete
     dane\\                    baza, wyniki, logi, kopie bazy (dane\\kopie\\) - POZA katalogiem wersji
     wersja_biezaca.txt       wskaznik wersji biezacej (plik tekstowy, jeden wiersz; nie dowiazanie)
@@ -70,7 +71,7 @@ PLIK_WYDANIA = "wydanie.json"
 LISTA_PROGRAMU = "instalacja/zamrozone.txt"          # wzgledem katalogu programu
 LISTA_TESTOW = "instalacja/zamrozone_testy.txt"
 MODUL_SAMOKONTROLI = "stanowisko/samokontrola.py"
-WZORY_SKRYPTOW = ("Stanowisko.cmd", "Samokontrola.cmd", "Wroc_do_poprzedniej.cmd", "Wersje.cmd", "Polecenie.cmd")
+WZORY_SKRYPTOW = ("Stanowisko.cmd", "Samokontrola.cmd", "Wroc_do_poprzedniej.cmd", "Wersje.cmd", "Polecenie.cmd", "Dzien_skanera.cmd")
 # Numer wersji jest nazwa katalogu w Windows: zaczyna sie i konczy litera albo cyfra (kropka albo spacja na koncu znika
 # z nazwy katalogu), do 32 znakow, nie jest nazwa urzadzenia; numery rozniace sie wielkoscia liter to ten sam katalog.
 WZOR_WERSJI = re.compile(r"[0-9A-Za-z](?:[0-9A-Za-z._-]{0,30}[0-9A-Za-z])?")

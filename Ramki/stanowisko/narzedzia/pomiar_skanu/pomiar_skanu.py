@@ -14,7 +14,9 @@ Wyjscie: raport tekstowy (ekran + <wyj>\raport.txt) i <wyj>\pomiar.json:
   3. (opcja --powtorka SKAN2) powtarzalnosc: drugi skan tej samej plytki bez ruszania.
 
 Uzycie (PC / laptop z programem):  pomiar_skanu.py SKAN.stl [--projekty FOLDER] [--wspolczynnik 1.22] [--wyj KATALOG]
-                                     [--powtorka SKAN2.stl] [--bez-plytki]
+                                     [--powtorka SKAN2.stl] [--bez-plytki] [--ustawienia PLIK]
+W instalacji (katalog instalacji):  Polecenie.cmd narzedzia\pomiar_skanu\pomiar_skanu.py SKAN.stl ...  (plik ustawien
+instalacji narzedzie znajduje samo; E3-O4)
 """
 from __future__ import annotations
 
@@ -34,8 +36,13 @@ from scipy.sparse.csgraph import connected_components
 from scipy.spatial import cKDTree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+# E3-O4: katalog programu (dwa katalogi wyzej) na sciezce importu - skrot instalacji Polecenie.cmd czysci PYTHONPATH,
+# a Python uruchomiony z plikiem skryptu dodaje do sciezki tylko katalog skryptu ("ModuleNotFoundError: stanowisko")
+_PROGRAM = str(Path(__file__).resolve().parent.parent.parent)
+if _PROGRAM not in sys.path:
+    sys.path.insert(1, _PROGRAM)
 import c_wspolne as CW  # noqa: E402  (linie krawedzi z projektu, kopia z T3)
-from stanowisko import match as M, ustawienia as U  # noqa: E402
+from stanowisko import dzien_skanera_rdzen as DR, match as M, ustawienia as U  # noqa: E402
 
 PROG_PLASZCZYZNY = 0.12   # mm: wierzcholek nalezy do plaszczyzny plytki
 KAT_PLASZCZYZNY = 30.0    # st.: normalna trojkata plaszczyzny (luzno: drobne trojkaty skanu maja zaszumione normalne)
@@ -642,6 +649,22 @@ def _json(o):
     raise TypeError(type(o))
 
 
+def wczytaj_ustawienia_pomiaru(podany: str | None) -> tuple[dict, Path]:
+    """(ustawienia, plik). E3-O4: plik z ``--ustawienia`` (tak podaje go okno "Dzien skanera"); bez opcji - w instalacji
+    ``<instalacja>/ustawienia.toml`` (w katalogu wersji pliku ustawien nie ma), z repo ``ustawienia.toml`` programu jak dotad.
+    Runda 2 (P1): w instalacji bez pliku ustawien komunikat wskazuje plik INSTALACJI i ``zainstaluj.cmd`` - nigdy nie radzi
+    zalozenia ``ustawienia.toml`` w katalogu wersji i nie czyta pliku stamtad."""
+    if podany:
+        return U.wczytaj_ustawienia(Path(podany)), Path(podany)
+    plik = DR.plik_ustawien_instalacji()
+    if plik is None:
+        plik = U.PLIK_USTAWIEN
+    elif not plik.is_file():
+        raise FileNotFoundError(f"brak pliku ustawien instalacji {plik} - uruchom zainstaluj.cmd z paczki wydania (zalozy plik "
+                                f"ze wzoru) albo podaj inny plik opcja --ustawienia")
+    return U.wczytaj_ustawienia(plik), plik
+
+
 def main():
     ap = argparse.ArgumentParser(description="Pomiar wlasciwosci skanu (T10)")
     ap.add_argument("skan")
@@ -650,14 +673,20 @@ def main():
     ap.add_argument("--wyj", default=None)
     ap.add_argument("--powtorka", default=None)
     ap.add_argument("--bez-plytki", action="store_true")
+    ap.add_argument("--ustawienia", default=None, help="plik ustawien programu (domyslnie: plik instalacji albo ustawienia.toml programu)")
     a = ap.parse_args()
+    try:  # E3-O4: ustawienia PRZED wczytaniem skanu - blad pliku ustawien widac od razu, nie po minutach liczenia
+        ust, plik_ust = wczytaj_ustawienia_pomiaru(a.ustawienia)
+    except (FileNotFoundError, U.BladUstawien) as e:
+        print(f"blad: ustawienia: {e}", file=sys.stderr)
+        return 2
+    print(f"ustawienia: {plik_ust}", flush=True)
     sk = Path(a.skan)
     wyj = Path(a.wyj) if a.wyj else sk.parent / (sk.stem + "_pomiar")
     wyj.mkdir(parents=True, exist_ok=True)
     print("wczytuje", sk.name, flush=True)
     m = wczytaj_siatke(sk)
     m2 = wczytaj_siatke(Path(a.powtorka)) if a.powtorka else None
-    ust = U.wczytaj_ustawienia()
     pula = None
     if a.projekty:
         sciezki = [Path(x) for x in a.projekty.split(";")]
@@ -679,7 +708,8 @@ def main():
         kr.pop("T", None)
     (wyj / "pomiar.json").write_text(json.dumps(w2, indent=1, ensure_ascii=False, default=_json), encoding="utf-8")
     print("\nzapisano:", wyj / "raport.txt", "i", wyj / "pomiar.json")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

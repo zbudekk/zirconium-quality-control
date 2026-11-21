@@ -36,7 +36,7 @@ POMIJANE = re.compile(r"(^|/)__pycache__/|\.py[co]$|^narzedzia/zbuduj_wydanie\.[
 WYMAGANE = ("stanowisko/aplikacja.py", "stanowisko/ustawienia.py", "stanowisko/baza.py", "ustawienia.przyklad.toml", "requirements.txt",
             "instalacja/instalator.py", "instalacja/zainstaluj.cmd", "instalacja/zamrozone.txt", "instalacja/zamrozone_testy.txt",
             "instalacja/wzory/Stanowisko.cmd", "instalacja/wzory/Samokontrola.cmd", "instalacja/wzory/Wroc_do_poprzedniej.cmd",
-            "instalacja/wzory/Wersje.cmd", "instalacja/wzory/Polecenie.cmd")
+            "instalacja/wzory/Wersje.cmd", "instalacja/wzory/Polecenie.cmd", "instalacja/wzory/Dzien_skanera.cmd")
 MODUL_SAMOKONTROLI = "stanowisko/samokontrola.py"
 LISTA_PROGRAMU, LISTA_TESTOW = "instalacja/zamrozone.txt", "instalacja/zamrozone_testy.txt"
 # Numer wersji = nazwa katalogu wersji w Windows (te same reguly co instalacja/instalator.py): zaczyna sie i konczy litera
