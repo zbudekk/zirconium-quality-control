@@ -1,0 +1,25 @@
+T13 higiena repo: 2537f6f..16f209d, zmienionych plikow 1051, w tym nowych 973
+grupa             nowe  zmien.  usun.
+E3                 634      24      0
+R58                242       4      0
+R59                 97      34     16
+NARUSZENIA (grupa E3 i sciezki poza listami): 0
+nie-ASCII: napisy ekranu, odstepstwo O11 (nie licza sie do naruszen): 7 plikow z 7 na liscie
+  A Ramki/stanowisko/stanowisko/dzien_skanera.py -> 109 wierszy nie-ASCII (859 bajtow)
+  A Ramki/stanowisko/stanowisko/dzien_skanera_kroki.toml -> 134 wierszy nie-ASCII (1783 bajtow)
+  A Ramki/stanowisko/stanowisko/dzien_skanera_rdzen.py -> 102 wierszy nie-ASCII (946 bajtow)
+  A Ramki/stanowisko/stanowisko/statusy.py -> 240 wierszy nie-ASCII (1665 bajtow)
+  A Ramki/stanowisko/stanowisko/ui/napisy.py -> 66 wierszy nie-ASCII (318 bajtow)
+  A Ramki/stanowisko/stanowisko/ui/napisy_rano.py -> 111 wierszy nie-ASCII (710 bajtow)
+  A Ramki/stanowisko/testy/test_dzien_skanera.py -> 45 wierszy nie-ASCII (171 bajtow)
+UWAGI w grupach spoza etapu 3 (nie licza sie do wyniku T13, do oceny koordynatora): 126
+  R58: duzy plik: 1
+  R58: konce linii: 23
+  R58: nie ASCII: 23
+  R58: plik danych: 2
+  R59: STL poza modele_plytek: 2
+  R59: duzy plik: 10
+  R59: konce linii: 17
+  R59: nie ASCII: 43
+  R59: plik danych: 5
+WYNIK T13: ZAL z odstepstwem O11 (0 naruszen; 7 plikow napisow ekranu nie-ASCII)

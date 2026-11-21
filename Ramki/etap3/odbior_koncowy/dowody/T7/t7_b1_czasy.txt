@@ -1,0 +1,5 @@
+b1_0 samokontrola z folderem START sob. 21.11.2026  3:03:17,50 
+b1_1 program bez folderu START sob. 21.11.2026  3:03:20,40 
+b1_1 program bez folderu KONIEC sob. 21.11.2026  3:03:53,60 
+b1_4 program po przywroceniu START sob. 21.11.2026  3:03:58,96 
+b1_4 program po przywroceniu KONIEC sob. 21.11.2026  3:04:32,18 

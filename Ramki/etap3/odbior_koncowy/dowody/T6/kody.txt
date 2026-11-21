@@ -1,0 +1,7 @@
+t6_arkusz START sob. 21.11.2026  2:54:31,55 
+t6_arkusz KOD=0 
+t6_excel START sob. 21.11.2026  2:54:31,85 
+t6_excel KOD=0 
+t6_aplikacja START sob. 21.11.2026  2:55:17,54 
+t6_aplikacja KOD=0 
+t6 KONIEC sob. 21.11.2026  2:55:24,24 

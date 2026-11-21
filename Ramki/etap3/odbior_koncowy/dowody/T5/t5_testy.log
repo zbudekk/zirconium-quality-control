@@ -1,0 +1,43 @@
+..POMIAR K5: 100 powtorzen, zdarzen odebranych 500 z 500 (0 powtorek, 0 luk), nieudanych zadan laptopa 225, odpowiedzi zgubionych przez posrednik 225
+.POMIAR K6: 3 restarty ramki, plan ponownie po 0.03, 0.03, 0.52 s od startu ramki, 0.22, 0.23, 0.74 s od zabicia poprzedniego procesu ramki
+.POMIAR K7: 10 Spacji, stan ramki W po: mediana 7 ms, maks 9 ms
+.POMIAR K8: 3178 zapisow ruchu (1894820 znakow), trafien nazw 0, kluczy poza naglowkiem 0 (klucz w naglowku surowych zadan: 9 razy)
+........POMIAR K4 seria 1: ok; 40 przelaczen (czujniki -> klatka na matrycy), sciennie: mediana 38 ms, ponizej 100 ms 40 z 40, maks 48 ms; bez przestoju procesu: mediana 38 ms, ponizej 100 ms 40 z 40, maks 48 ms; z budzeniem watku testu: mediana 38 ms, maks 48 ms; wzorzec 492 tykniec (mediana okresu 2.5 ms); przestoje procesu 0 (razem 0 ms, najdluzszy 0 ms); przerwy wzorca przy pracy procesu 0 (najdluzsza 0 ms); GC 0 pauz (najdluzsza 0.0 ms); priorytet ABOVE_NORMAL: tak
+.POMIAR K5: 100 powtorzen, potwierdzen odebranych 500 z 500, zdarzen 602, nieudanych odpytan (awaria / zgubiona odpowiedz) 222
+.POMIAR K6: plan ponownie w ramce po 0.06 s od zatrzymania programu ramki
+.POMIAR K7: 10 zmian stanu, mediana 4 ms, maks 4 ms
+...POMIAR K8: zapis ruchu 1507 komunikatow, 690365 znakow; trafienia nazw: 0 wymagane
+.
+=================================== PASSES ====================================
+__________ test_k6_restart_ramki_laptop_wysyla_plan_ponownie_do_5_s ___________
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.indicate:indicate.py:768 ramka P wystartowala ponownie (start 74646434)
+WARNING  stanowisko.indicate:indicate.py:768 ramka P wystartowala ponownie (start 29cdc3e7)
+WARNING  stanowisko.indicate:indicate.py:768 ramka P wystartowala ponownie (start aacda8bc)
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_k1_plan_porannej_23_gniazda_matryca_piksel_po_pikselu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_k2_margines_numer_kuwety_i_liczba_prac
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_k5_utrata_sieci_5_potwierdzen_100_powtorzen
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_k6_restart_ramki_laptop_wysyla_plan_ponownie_do_5_s
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_k7_spacja_zmienia_stan_ramki_w_ponizej_1_s_dwa_procesy
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow_i_nazwisk
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k1_plan_porannej_24_gniazda_piksel_po_pikselu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k1_plan_wieczorny_wszystkie_bloki_reszta_ciemna
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k1_przez_siec_i_atrape
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k2_margines_numer_kuwety_i_liczba_prac
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k2_wpisywane_cyfry_i_nieznana_kuweta
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k2_czcionka_cyfry_rozne_i_rozmiar
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k2_brak_kuwet_na_plytce_pokazuje_ok_albo_braki
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k4_zmiana_plytki_4_0_5_ponizej_100_ms_i_zdarzenia
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k5_utrata_sieci_5_potwierdzen_100_powtorzen
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k6_restart_ramki_laptop_wysyla_plan_ponownie_do_5_s
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k7_spacja_zmienia_stan_ramki_w_ponizej_1_s_dwa_procesy
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k4_zmiana_plytki_czas_sztuczny_ponizej_100_ms_bez_starego_planu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k4_czas_sztuczny_nierowne_obiegi_petli_zdarzenia_i_ponizej_100_ms
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow
+20 passed, 99 deselected in 46.11s
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 20 modulow, z repo poza testami 0 modulow, modulow testow z repo 4; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

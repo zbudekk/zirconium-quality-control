@@ -1,0 +1,16 @@
+T12 - lista wersji (<K>\Wersje.cmd /bez-pauzy) przed i po
+
+== przed aktualizacja (krok 1):
+0.3.1            zainstalowano 2026-11-21 02:49:56 commit 571e186cb817 schemat bazy 1  BIEZACA
+
+== po aktualizacji do 0.3.2 (krok 3):
+0.3.1            zainstalowano 2026-11-21 02:49:56 commit 571e186cb817 schemat bazy 1  poprzednia
+0.3.2            zainstalowano 2026-11-21 02:52:16 commit 571e186cb817 schemat bazy 1  BIEZACA
+
+== po powrocie do 0.3.1 (krok 5):
+0.3.1            zainstalowano 2026-11-21 02:49:56 commit 571e186cb817 schemat bazy 1  BIEZACA
+0.3.2            zainstalowano 2026-11-21 02:52:16 commit 571e186cb817 schemat bazy 1  poprzednia
+
+== stan koncowy po dodatkowym cyklu /tak (wiersze z t12_A6_stan_koncowy.txt):
+0.3.1            zainstalowano 2026-11-21 02:49:56 commit 571e186cb817 schemat bazy 1  BIEZACA
+0.3.2            zainstalowano 2026-11-21 02:52:16 commit 571e186cb817 schemat bazy 1  poprzednia

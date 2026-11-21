@@ -1,0 +1,17 @@
+T13 - kontrola niezalezna wyniku skryptu (wlasne liczenie wykonawcy, PowerShell, pliki z katalogu roboczego <REPO> = 571e186)
+lista: git -C <REPO> diff --name-status --no-renames 2537f6f 571e186: 662 wierszy (A 584, M 62, D 16)
+grupa E3 (6 przedrostkow z t13_dozwolone.txt): 269 plikow, w tym nowych 245, zmienionych 24, usunietych 0
+nowe pliki E3 z bajtem nie-ASCII: 7
+  Ramki/stanowisko/stanowisko/dzien_skanera.py
+  Ramki/stanowisko/stanowisko/dzien_skanera_kroki.toml
+  Ramki/stanowisko/stanowisko/dzien_skanera_rdzen.py
+  Ramki/stanowisko/stanowisko/statusy.py
+  Ramki/stanowisko/stanowisko/ui/napisy.py
+  Ramki/stanowisko/stanowisko/ui/napisy_rano.py
+  Ramki/stanowisko/testy/test_dzien_skanera.py
+nowe pliki E3 tekstowe (poza .cmd/.bat/.ps1) ze znakiem CR: 0
+nowe pliki E3 .cmd/.bat/.ps1 z koncami innymi niz CRLF: 0
+nowe pliki E3 z rozszerzeniem danych (lista DANE skryptu, bez .stl): 0
+nowe pliki E3 .stl poza modele_plytek: 0
+nowe pliki E3 wieksze niz 1024 KB: 0
+nowe pliki E3 binarne znane / z bajtem 0 (pominiete w kontroli tekstu): 4

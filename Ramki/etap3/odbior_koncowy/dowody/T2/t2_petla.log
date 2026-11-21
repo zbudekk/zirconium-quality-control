@@ -1,0 +1,20 @@
+
+[kryterium f] proba 1: ok; 10 plytek w 3.1 s, najdluzsza przerwa petli Qt 49 ms sciennie (przestoj procesu 0 ms, przestoj dysku w przerwie 0 ms, CPU watku petli 15 ms), prog 200 ms; tykniec zegara 303, sygnalow stanu 32, postepu 42; wzorzec 1351 tykniec (mediana okresu 2.5 ms); przestoje procesu 0 (razem 0 ms, najdluzszy 0 ms); przerwy wzorca przy pracy procesu 0 (najdluzsza 0 ms); GC 27 pauz (najdluzsza 0.6 ms); priorytet ABOVE_NORMAL: tak; wzorzec dysku 89 zapisow (mediana 4.8 ms, najdluzszy 9 ms), przestoje dysku 0 (razem 0 ms)
+.
+[skany odniesienia przez aplikacje] okragla_wieczorna nr 8: do_powtorzenia, prac 8, kolory {'czerwony': 3, 'zolty': 5}, analiza 36.6 s, w stanie po 39.2 s; wieczorna nr None: do_powtorzenia, prac 8, kolory {'czerwony': 2, 'zolty': 6}, analiza 25.8 s, w stanie po 65.1 s; okragla_poranna nr 9: plytka_nie_z_trybu, prac 12, kolory {}, analiza 37.4 s, w stanie po 102.6 s; pula 17 STL; najdluzsza przerwa petli Qt 17 ms (prog 200 ms), tykniec 10261; pytania: ['brak_numeru_plytki', 'plytka_nie_z_trybu']; komunikaty: ['konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'skan_do_powtorzenia', 'skan_do_powtorzenia']; najdluzsze kroki w watku okna [ms]: przetworz 17 (x3283), przyjecie wyniku 9 (x3), stan z bazy 2 (x12), stan_wieczoru 2 (x12), wpis podgladu 0 (x3)
+.
+2 passed, 27 deselected in 107.17s (0:01:47)
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 43 modulow, z repo poza testami 0 modulow, modulow testow z repo 4; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA
+
+[kryterium 6] proba 1: ok; 10 plytek x 19 prac w 8.4 s; najdluzsza przerwa petli okna 49 ms sciennie (przestoj procesu 0 ms, przestoj dysku w przerwie 0 ms, CPU watku petli 15 ms) (prog 200 ms); odswiezen ekranu 32, najdluzsze 8 ms sciennie (przestoj procesu 0 ms, przestoj dysku w przerwie 0 ms, CPU watku petli 0 ms) (prog 100 ms, ocena ok); najdluzszy krok technika (klik gniazda + Ukruszona + Esc) 34 ms; tykniec 805; wzorzec 3610 tykniec (mediana okresu 2.5 ms); przestoje procesu 0 (razem 0 ms, najdluzszy 0 ms); przerwy wzorca przy pracy procesu 0 (najdluzsza 0 ms); GC 46 pauz (najdluzsza 0.5 ms); priorytet ABOVE_NORMAL: tak; wzorzec dysku 238 zapisow (mediana 4.8 ms, najdluzszy 18 ms), przestoje dysku 0 (razem 0 ms)
+.
+1 passed, 88 deselected in 9.94s
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 54 modulow, z repo poza testami 0 modulow, modulow testow z repo 4; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

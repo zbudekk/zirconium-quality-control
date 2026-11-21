@@ -1,0 +1,10 @@
+T1 --collect-only na commicie wydania 571e186 (21.11.2026 02:52), <REPO> = <PC-katalog>\t0\repo
+
+interpreter srodowiska wersji: <K>\Polecenie.cmd -m pytest <ST>\testy -q --collect-only -p no:cacheprovider --rootdir <ST>
+  kod 0; identyfikatorow testow: 2222; ostatni wiersz: 2222 tests collected in 5.87s
+
+interpreter bazowy: cd /d <ST> && <PC-katalog>\koordynator\narz\py.cmd -m pytest -q --collect-only -p no:cacheprovider
+  kod 0; identyfikatorow testow: 2222; ostatni wiersz: 2222 tests collected in 6.46s
+
+roznic miedzy listami identyfikatorow obu interpreterow (po sprowadzeniu sciezek do testy/...): 0
+liczba oczekiwana w planie: ok. 2222

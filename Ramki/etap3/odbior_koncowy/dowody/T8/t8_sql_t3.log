@@ -1,0 +1,257 @@
+### [t3] SELECT status, tryb, count(*) FROM skany GROUP BY status, tryb
+status	tryb	count(*)
+przyjety	rano	5
+przyjety	wieczor	3
+zastapiony	rano	1
+-- wierszy: 3
+-- kod: 0
+
+### [t3] SELECT id, sha16, czas_pliku, czas_analizy, czas_s, tryb, uklad, numer_plytki, numer_zrodlo, sesja_pieca_id, status, zastepuje_id FROM skany ORDER BY id
+id	sha16	czas_pliku	czas_analizy	czas_s	tryb	uklad	numer_plytki	numer_zrodlo	sesja_pieca_id	status	zastepuje_id
+1	28b8a8fd5083c2ab	2026-11-17T19:00:00	2026-11-17T19:00:00	31.5	wieczor	wieczorna	1	dolki		przyjety	
+2	c371f36257315ee7	2026-11-17T19:20:00	2026-11-17T19:20:00	31.5	wieczor	wieczorna	2	dolki		przyjety	
+3	dcccaea9b3c56a60	2026-11-18T07:00:00	2026-11-18T07:00:00	31.5	rano	poranna	4	dolki	1	przyjety	
+4	c7d26e7f5e082815	2026-11-18T07:05:00	2026-11-18T07:05:00	31.5	rano	poranna	5	dolki	1	zastapiony	
+5	bb2a697fb0a5ee86	2026-11-18T07:12:00	2026-11-18T07:12:00	31.5	rano	poranna	5	dolki	1	przyjety	4
+6	7cb0124a872b734d	2026-11-18T09:30:00	2026-11-18T09:30:00	31.5	rano	poranna	4	dolki	2	przyjety	
+7	1c537f2135a58bb7	2026-11-18T09:35:00	2026-11-18T09:35:00	31.5	rano	poranna	6	dolki	2	przyjety	
+8	bad2a2d21dcff974	2026-11-18T20:00:00	2026-11-18T20:00:00	31.5	wieczor	wieczorna	2	dolki		przyjety	
+9	9a96d0e2c6488b57	2026-11-19T07:00:00	2026-11-19T07:00:00	31.5	rano	poranna	4	dolki	3	przyjety	
+-- wierszy: 9
+-- kod: 0
+
+### [t3] SELECT id, data, nr_w_dniu, otwarto, zamknieto FROM sesje_pieca ORDER BY id
+id	data	nr_w_dniu	otwarto	zamknieto
+1	2026-11-18	1	2026-11-18T07:00:00	2026-11-18T07:30:01
+2	2026-11-18	2	2026-11-18T09:30:00	2026-11-18T09:45:01
+3	2026-11-19	1	2026-11-19T07:00:00	2026-11-19T07:20:02
+-- wierszy: 3
+-- kod: 0
+
+### [t3] SELECT p.id, p.skan_id, p.gniazdo, p.nr_fragmentu, p.status_fragmentu, p.status_match, p.status_inspekcji, p.status_gniazda, p.kandydat1_sha16, p.kandydat1_pokrycie, p.kandydat2_sha16, p.kandydat2_pokrycie, p.pewnosc, p.ubytki, p.projekt_id FROM prace p ORDER BY p.id
+id	skan_id	gniazdo	nr_fragmentu	status_fragmentu	status_match	status_inspekcji	status_gniazda	kandydat1_sha16	kandydat1_pokrycie	kandydat2_sha16	kandydat2_pokrycie	pewnosc	ubytki	projekt_id
+1	1	2	1	praca	zielony	ok	zielony	65568a5bb6295048	0.93			0.93	0	1
+2	1	3	1	praca	zielony	ok	zielony	89c5e4c6d71f904a	0.92			0.92	0	2
+3	1	4	1	praca	zielony	ubytek	czerwony	b006bc2d2a90f740	0.91			0.91	1	3
+4	1	5	1	praca	zielony	ok	zielony	dd8b303887cdc38d	0.94			0.94	0	4
+5	1	6	1	praca	zielony	ok	zielony	6357e9f581aa407e	0.93			0.93	0	5
+6	2	2	1	praca	zielony	ok	zielony	f2ccd059e0c1af4a	0.95			0.95	0	6
+7	2	3	1	praca	zielony	ok	zielony	54f08790f2911adc	0.94			0.94	0	7
+8	3	2	1	praca	zielony	ok	zielony	65568a5bb6295048	0.95	89c5e4c6d71f904a	0.4	0.55	0	1
+9	3	3	1	praca	zielony	ok	zielony	89c5e4c6d71f904a	0.94			0.94	0	2
+10	3	4	1	praca	zielony	ok	zielony	dd8b303887cdc38d	0.96			0.96	0	4
+11	4	2	1	praca	szary		szary	6357e9f581aa407e	0.8	4fe427a241e6a252	0.76	0.04		5
+12	4	3	1	praca	szary		szary					0.0		6
+13	5	2	1	praca	zielony	ok	zielony	6357e9f581aa407e	0.9	4fe427a241e6a252	0.7	0.2	0	5
+14	5	3	1	praca	szary		szary	f2ccd059e0c1af4a	0.45			0.45		6
+15	6	5	1	praca	zielony	ok	zielony	54f08790f2911adc	0.93			0.93	0	7
+16	7	3	1	praca	zielony	ok	zielony	54f08790f2911adc	0.91	89c5e4c6d71f904a	0.5	0.41	0	
+17	8	2	1	praca	zielony	ok	zielony	b006bc2d2a90f740	0.94			0.94	0	3
+18	9	2	1	praca	zielony	ok	zielony	b006bc2d2a90f740	0.95			0.95	0	3
+19	9	3	1	praca	zielony	ok	zielony	dd8b303887cdc38d	0.94			0.94	0	4
+-- wierszy: 19
+-- kod: 0
+
+### [t3] SELECT id, praca_id, skan_id, rodzaj, wartosc, czas FROM decyzje ORDER BY id
+id	praca_id	skan_id	rodzaj	wartosc	czas
+1	3		ukruszona		2026-11-17T19:30:02
+2	11	4	wybor_kandydata	6357e9f581aa407e	2026-11-18T07:08:03
+3	12	4	przypisanie_reczne	6	2026-11-18T07:08:07
+4		5	powtorz_skan	4	2026-11-18T07:14:01
+5	14	5	przypisanie_reczne	6	2026-11-18T07:14:05
+6	16	7	przypisanie_reczne		2026-11-18T09:40:02
+-- wierszy: 6
+-- kod: 0
+
+### [t3] SELECT id, czas, zrodlo, typ, skan_id FROM zdarzenia ORDER BY id
+id	czas	zrodlo	typ	skan_id
+1	2026-11-17T18:00:00	system	program_start	
+2	2026-11-17T19:00:00	silnik	skan_przyjety	1
+3	2026-11-17T19:20:00	silnik	skan_przyjety	2
+4	2026-11-18T06:59:01	ui	tryb_zmieniony	
+5	2026-11-18T07:00:00	system	piec_otwarty	
+6	2026-11-18T07:00:00	silnik	skan_przyjety	3
+7	2026-11-18T07:05:00	silnik	skan_przyjety	4
+8	2026-11-18T07:12:00	silnik	skan_przyjety	5
+9	2026-11-18T07:30:01	ui	piec_zamkniety	
+10	2026-11-18T07:30:01	system	program_stop	
+11	2026-11-18T07:30:01	system	program_start	
+12	2026-11-18T09:30:00	system	piec_otwarty	
+13	2026-11-18T09:30:00	silnik	skan_przyjety	6
+14	2026-11-18T09:35:00	silnik	skan_przyjety	7
+15	2026-11-18T09:45:01	ui	piec_zamkniety	
+16	2026-11-18T19:59:01	ui	tryb_zmieniony	
+17	2026-11-18T20:00:00	silnik	skan_przyjety	8
+18	2026-11-19T06:59:01	ui	tryb_zmieniony	
+19	2026-11-19T07:00:00	system	piec_otwarty	
+20	2026-11-19T07:00:00	silnik	skan_przyjety	9
+21	2026-11-19T07:00:00	system	program_stop	
+22	2026-11-19T07:00:00	system	program_start	
+23	2026-11-19T07:20:02	system	poprawka_rano	9
+24	2026-11-19T07:20:02	ui	piec_zamkniety	
+25	2026-11-19T07:20:02	system	program_stop	
+26	2026-11-19T07:20:02	system	program_start	
+27	2026-11-19T07:20:03	system	program_stop	
+-- wierszy: 27
+-- kod: 0
+
+### [t3] SELECT count(*) FROM projekty
+count(*)
+9
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(*) FROM zlecenia
+count(*)
+5
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(*) FROM projekty WHERE usuniety<>0
+count(*)
+0
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT sha16) FROM projekty
+count(DISTINCT sha16)
+9
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT kuweta) FROM zlecenia
+count(DISTINCT kuweta)
+5
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty k ON k.sha16=p.kandydat1_sha16 WHERE p.skan_id IN (3,5,6,7,9)
+count(DISTINCT p.id)
+9
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty k ON k.sha16=p.kandydat1_sha16 WHERE p.skan_id IN (3,5,6,7,9) AND p.kandydat1_pokrycie>=0.6
+count(DISTINCT p.id)
+8
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty k ON k.sha16=p.kandydat1_sha16 WHERE p.skan_id IN (1,2,8) AND p.kandydat1_pokrycie>=0.6
+count(DISTINCT p.id)
+8
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty pr ON pr.id=p.projekt_id WHERE p.skan_id IN (3,5,6,7,9) AND p.kandydat1_pokrycie>=0.6
+count(DISTINCT p.id)
+7
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty pr ON pr.id=p.projekt_id WHERE p.skan_id IN (3,5,6,7,9) AND p.kandydat1_pokrycie>=0.6 AND pr.sha16=p.kandydat1_sha16
+count(DISTINCT p.id)
+7
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty pr ON pr.id=p.projekt_id WHERE p.skan_id IN (3,5,6,7,9) AND p.kandydat1_pokrycie>=0.6 AND pr.sha16 IN (p.kandydat1_sha16, p.kandydat2_sha16)
+count(DISTINCT p.id)
+7
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty pr ON pr.id=p.projekt_id JOIN zlecenia z ON z.id=pr.zlecenie_id JOIN projekty k ON k.sha16 IN (p.kandydat1_sha16, p.kandydat2_sha16) JOIN zlecenia zk ON zk.id=k.zlecenie_id WHERE p.skan_id IN (3,5,6,7,9) AND p.kandydat1_pokrycie>=0.6 AND zk.kuweta=z.kuweta
+count(DISTINCT p.id)
+7
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty pr ON pr.id=p.projekt_id WHERE p.skan_id IN (3,5,6,7,9) AND (p.kandydat1_pokrycie<0.6 OR p.kandydat1_sha16 IS NULL OR p.kandydat1_sha16='')
+count(DISTINCT p.id)
+1
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT count(DISTINCT p.id) FROM prace p JOIN projekty pr ON pr.id=p.projekt_id WHERE p.id=14 AND pr.sha16=p.kandydat1_sha16
+count(DISTINCT p.id)
+1
+-- wierszy: 1
+-- kod: 0
+
+### [t3] SELECT p.id, p.skan_id, p.status_gniazda, p.kandydat1_pokrycie, (p.projekt_id IS NOT NULL) AS ma_projekt, (SELECT group_concat(d.rodzaj || ':' || coalesce(d.wartosc,'(pusta)'), ' | ') FROM decyzje d WHERE d.praca_id=p.id) AS decyzje FROM prace p WHERE p.skan_id IN (3,5,6,7,9) ORDER BY p.id
+id	skan_id	status_gniazda	kandydat1_pokrycie	ma_projekt	decyzje
+8	3	zielony	0.95	1	
+9	3	zielony	0.94	1	
+10	3	zielony	0.96	1	
+13	5	zielony	0.9	1	
+14	5	szary	0.45	1	przypisanie_reczne:6
+15	6	zielony	0.93	1	
+16	7	zielony	0.91	0	przypisanie_reczne:
+18	9	zielony	0.95	1	
+19	9	zielony	0.94	1	
+-- wierszy: 9
+-- kod: 0
+
+### [t3] SELECT id, typ, skan_id, length(dane) AS dl, (dane LIKE '%.stl%') AS ma_stl FROM zdarzenia WHERE typ IN ('poprawka_rano','tryb_zmieniony','piec_otwarty','piec_zamkniety')
+id	typ	skan_id	dl	ma_stl
+4	tryb_zmieniony		32	0
+5	piec_otwarty		59	0
+9	piec_zamkniety		1673	0
+12	piec_otwarty		59	0
+15	piec_zamkniety		712	0
+16	tryb_zmieniony		32	0
+18	tryb_zmieniony		32	0
+19	piec_otwarty		59	0
+23	poprawka_rano	9	208	0
+24	piec_zamkniety		1013	0
+-- wierszy: 10
+-- kod: 0
+
+### [t3] SELECT strftime('%Y-%m-%d', czas, '-6 hours') AS doba, count(*) AS wpisow FROM zdarzenia GROUP BY 1
+doba	wpisow
+2026-11-17	3
+2026-11-18	14
+2026-11-19	10
+-- wierszy: 3
+-- kod: 0
+
+### [t3] SELECT id, round((julianday(zamknieto)-julianday(otwarto))*86400) AS sekund, round((julianday(zamknieto)-julianday(otwarto))*1440, 4) AS minut FROM sesje_pieca ORDER BY 2
+id	sekund	minut
+2	901.0	15.0167
+3	1202.0	20.0333
+1	1801.0	30.0167
+-- wierszy: 3
+-- kod: 0
+
+### [t3] WITH ch(t) AS (SELECT czas_analizy FROM skany WHERE tryb='rano' UNION ALL SELECT d.czas FROM decyzje d LEFT JOIN prace p ON p.id=d.praca_id JOIN skany s ON s.id=coalesce(d.skan_id,p.skan_id) WHERE s.tryb='rano' UNION ALL SELECT czas FROM zdarzenia WHERE zrodlo='ui' AND id IN (4,9,15,18,24) UNION ALL SELECT otwarto FROM sesje_pieca UNION ALL SELECT zamknieto FROM sesje_pieca), u AS (SELECT DISTINCT t FROM ch), v AS (SELECT t, lag(t) OVER (ORDER BY t) AS p FROM u) SELECT t, round((julianday(t)-julianday(p))*86400) AS przerwa_s, CASE WHEN p IS NULL OR (julianday(t)-julianday(p))*86400 > 600.5 THEN 'NOWE POSIEDZENIE' ELSE '' END AS znak FROM v ORDER BY t
+t	przerwa_s	znak
+2026-11-18T06:59:01		NOWE POSIEDZENIE
+2026-11-18T07:00:00	59.0	
+2026-11-18T07:05:00	300.0	
+2026-11-18T07:08:03	183.0	
+2026-11-18T07:08:07	4.0	
+2026-11-18T07:12:00	233.0	
+2026-11-18T07:14:01	121.0	
+2026-11-18T07:14:05	4.0	
+2026-11-18T07:30:01	956.0	NOWE POSIEDZENIE
+2026-11-18T09:30:00	7199.0	NOWE POSIEDZENIE
+2026-11-18T09:35:00	300.0	
+2026-11-18T09:40:02	302.0	
+2026-11-18T09:45:01	299.0	
+2026-11-19T06:59:01	76440.0	NOWE POSIEDZENIE
+2026-11-19T07:00:00	59.0	
+2026-11-19T07:20:02	1202.0	NOWE POSIEDZENIE
+-- wierszy: 16
+-- kod: 0
+
+### [t3] WITH ch(t) AS (SELECT czas_analizy FROM skany WHERE tryb='wieczor' UNION ALL SELECT d.czas FROM decyzje d LEFT JOIN prace p ON p.id=d.praca_id JOIN skany s ON s.id=coalesce(d.skan_id,p.skan_id) WHERE s.tryb='wieczor' UNION ALL SELECT czas FROM zdarzenia WHERE zrodlo='ui' AND id IN (16)), u AS (SELECT DISTINCT t FROM ch), v AS (SELECT t, lag(t) OVER (ORDER BY t) AS p FROM u) SELECT t, round((julianday(t)-julianday(p))*86400) AS przerwa_s, CASE WHEN p IS NULL OR (julianday(t)-julianday(p))*86400 > 600.5 THEN 'NOWE POSIEDZENIE' ELSE '' END AS znak FROM v ORDER BY t
+t	przerwa_s	znak
+2026-11-17T19:00:00		NOWE POSIEDZENIE
+2026-11-17T19:20:00	1200.0	NOWE POSIEDZENIE
+2026-11-17T19:30:02	602.0	NOWE POSIEDZENIE
+2026-11-18T19:59:01	88139.0	NOWE POSIEDZENIE
+2026-11-18T20:00:00	59.0	
+-- wierszy: 5
+-- kod: 0
+

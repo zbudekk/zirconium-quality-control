@@ -1,0 +1,307 @@
+### [t2] SELECT type, name, sql FROM sqlite_master WHERE type IN ('table','index','view') AND name NOT IN ('zlecenia','projekty','frezowania','excel_zapisy') AND tbl_name NOT IN ('zlecenia','projekty','frezowania','excel_zapisy')
+BLAD: tabele z nazwami zlecen (zlecenia, projekty, frezowania, excel_zapisy) - dozwolone tylko jedno SELECT count(...) bez GROUP BY, bez UNION / INTERSECT / EXCEPT i bez podzapytan
+-- kod: 2
+
+### [t2] SELECT type, name, tbl_name FROM sqlite_master ORDER BY 1,2
+type	name	tbl_name
+index	projekty_sha16	projekty
+index	sqlite_autoindex_cechy_stl_1	cechy_stl
+index	sqlite_autoindex_frezowania_1	frezowania
+index	sqlite_autoindex_prace_1	prace
+index	sqlite_autoindex_projekty_1	projekty
+index	sqlite_autoindex_zlecenia_1	zlecenia
+index	zlecenia_kuweta	zlecenia
+table	cechy_stl	cechy_stl
+table	decyzje	decyzje
+table	excel_zapisy	excel_zapisy
+table	frezowania	frezowania
+table	prace	prace
+table	projekty	projekty
+table	sesje_pieca	sesje_pieca
+table	skany	skany
+table	stan_punktow	stan_punktow
+table	zdarzenia	zdarzenia
+table	zlecenia	zlecenia
+trigger	decyzje_bez_usuwania	decyzje
+trigger	decyzje_bez_zmiany	decyzje
+trigger	zdarzenia_bez_usuwania	zdarzenia
+trigger	zdarzenia_bez_zmiany	zdarzenia
+-- wierszy: 22
+-- kod: 0
+
+### [t2] SELECT name, sql FROM sqlite_master WHERE name IN ('skany','prace','decyzje','sesje_pieca','zdarzenia','meta','kandydaci')
+name	sql
+sesje_pieca	CREATE TABLE sesje_pieca (
+        id INTEGER PRIMARY KEY,
+        data TEXT,
+        nr_w_dniu INTEGER,
+        otwarto TEXT,
+        zamknieto TEXT,
+        zamknal TEXT)
+skany	CREATE TABLE skany (
+        id INTEGER PRIMARY KEY,
+        plik TEXT,                         -- plik skanu ze skanera (nie plik zlecenia)
+        sha16 TEXT,
+        rozmiar INTEGER,
+        czas_pliku TEXT,
+        czas_analizy TEXT,                 -- chwila przyjecia wyniku przez program: z niej wynika wieczor (doba robocza)
+        czas_s REAL,
+        tryb TEXT,                         -- wieczor / rano
+        uklad TEXT,
+        uklad_zrodlo TEXT,                 -- auto / reczny
+        uklad_zgodny INTEGER,
+        numer_plytki INTEGER,
+        numer_zrodlo TEXT,                 -- dolki / podany / ramka / nieznany
+        sesja_pieca_id INTEGER REFERENCES sesje_pieca (id),
+        status TEXT NOT NULL,              -- przyjety / do_powtorzenia / zastapiony / niezgodny_uklad / blad / import
+        zastepuje_id INTEGER REFERENCES skany (id),
+        wynik_json TEXT,                   -- sciezka pliku wyniku
+        wersja_programu TEXT,
+        skrot_ustawien TEXT)
+prace	CREATE TABLE prace (
+        id INTEGER PRIMARY KEY,
+        skan_id INTEGER NOT NULL REFERENCES skany (id),
+        gniazdo INTEGER,                   -- NULL: praca poza gniazdem
+        nr_fragmentu INTEGER NOT NULL,
+        status_fragmentu TEXT,
+        status_match TEXT,
+        status_inspekcji TEXT,
+        status_gniazda TEXT,
+        kandydat1_sha16 TEXT,
+        kandydat1_pokrycie REAL,
+        kandydat2_sha16 TEXT,
+        kandydat2_pokrycie REAL,
+        pewnosc REAL,
+        frezowanie_id INTEGER REFERENCES frezowania (id),
+        wspolczynnik REAL,
+        korekta_skali REAL,
+        ubytki INTEGER,                    -- liczba; szczegoly w pliku wyniku JSON
+        ubytek_max_mm REAL,
+        projekt_id INTEGER REFERENCES projekty (id),   -- przypisanie obowiazujace
+        UNIQUE (skan_id, gniazdo, nr_fragmentu))
+decyzje	CREATE TABLE decyzje (
+        id INTEGER PRIMARY KEY,
+        praca_id INTEGER REFERENCES prace (id),
+        skan_id INTEGER REFERENCES skany (id),
+        rodzaj TEXT NOT NULL,
+        wartosc TEXT,
+        operator TEXT,
+        czas TEXT NOT NULL)
+zdarzenia	CREATE TABLE zdarzenia (
+        id INTEGER PRIMARY KEY,
+        czas TEXT NOT NULL,
+        zrodlo TEXT NOT NULL,              -- scanner / silnik / ui / ramka_w / ramka_p / excel / pula / system
+        typ TEXT NOT NULL,
+        skan_id INTEGER,
+        dane TEXT)
+-- wierszy: 5
+-- kod: 0
+
+### [t2] SELECT status, tryb, count(*) FROM skany GROUP BY status, tryb
+status	tryb	count(*)
+do_powtorzenia	wieczor	1
+niezgodny_uklad	wieczor	1
+plytka_nie_z_trybu	wieczor	1
+przyjety	wieczor	6
+-- wierszy: 4
+-- kod: 0
+
+### [t2] SELECT id, sha16, czas_pliku, czas_analizy, czas_s, tryb, uklad, uklad_zrodlo, uklad_zgodny, numer_plytki, numer_zrodlo, sesja_pieca_id, status, zastepuje_id FROM skany ORDER BY id
+id	sha16	czas_pliku	czas_analizy	czas_s	tryb	uklad	uklad_zrodlo	uklad_zgodny	numer_plytki	numer_zrodlo	sesja_pieca_id	status	zastepuje_id
+1	df2e6a790700131d	2026-11-21T04:17:59	2026-11-21T04:18:39	38.96	wieczor	wieczorna	auto	1	1	podany		przyjety	
+2	75db8c4f9ead0dab	2026-11-21T04:18:59	2026-11-21T04:19:18	18.58	wieczor	okragla_wieczorna	auto	1	8	dolki		przyjety	
+3	9cc2bd761deb672b	2026-11-21T04:20:00	2026-11-21T04:20:15	14.52	wieczor	wieczorna_r54	auto	1	3	podany		przyjety	
+4	9d5eeb980330c768	2026-11-21T04:21:00	2026-11-21T04:21:22	21.52	wieczor	okragla_wieczorna_r54	auto	1	8	dolki		przyjety	
+5	769e0fd025693694	2026-11-21T04:22:59	2026-11-21T04:23:10	11.02	wieczor	wieczorna	auto	1	2	podany		do_powtorzenia	
+6	857369c6c1d3aef3	2026-11-21T04:24:01	2026-11-21T04:24:03	2.37	wieczor	auto	auto	0		nieznany		niezgodny_uklad	
+7	247ee785f428396f	2026-11-21T04:25:00	2026-11-21T04:25:15	14.53	wieczor	wieczorna	auto	1	2	podany		przyjety	
+8	c21b3b21066fab83	2026-11-21T04:26:00	2026-11-21T04:26:24	23.85	wieczor	poranna	auto	1		nieznany		plytka_nie_z_trybu	
+9	8358e17160a25742	2026-11-21T04:27:00	2026-11-21T04:27:15	13.96	wieczor	okragla_wieczorna_r54	auto	1	8	dolki		przyjety	
+-- wierszy: 9
+-- kod: 0
+
+### [t2] SELECT s.id AS skan, s.status, count(p.id) AS prac, sum(p.status_gniazda='czerwony') AS czerw, sum(p.status_gniazda='zolty') AS zolte, sum(p.status_gniazda='zielony') AS ziel, sum(p.status_gniazda NOT IN ('czerwony','zolty','zielony') OR p.status_gniazda IS NULL) AS inne, sum(p.kandydat1_sha16 IS NULL OR p.kandydat1_sha16='') AS bez_k1, sum(p.kandydat1_pokrycie < 0.6) AS k1_pon_progu, sum(p.projekt_id IS NOT NULL) AS z_projektem, sum(p.gniazdo IS NULL) AS poza_gniazdem FROM skany s LEFT JOIN prace p ON p.skan_id = s.id GROUP BY s.id ORDER BY s.id
+skan	status	prac	czerw	zolte	ziel	inne	bez_k1	k1_pon_progu	z_projektem	poza_gniazdem
+1	przyjety	9	2	4	3	0	0	0	0	0
+2	przyjety	9	1	2	6	0	0	0	0	0
+3	przyjety	9	2	1	6	0	0	0	0	0
+4	przyjety	11	1	3	7	0	0	0	0	0
+5	do_powtorzenia	8	1	4	3	0	0	0	0	0
+6	niezgodny_uklad	0				1	1		0	1
+7	przyjety	9	1	2	6	0	0	0	0	0
+8	plytka_nie_z_trybu	10	4	2	4	0	0	0	0	0
+9	przyjety	10	3	3	4	0	0	0	0	0
+-- wierszy: 9
+-- kod: 0
+
+### [t2] SELECT rodzaj, wartosc, (praca_id IS NOT NULL) AS z_praca, (skan_id IS NOT NULL) AS ze_skanem, count(*), min(czas), max(czas) FROM decyzje GROUP BY 1,2,3,4
+rodzaj	wartosc	z_praca	ze_skanem	count(*)	min(czas)	max(czas)
+numer_plytki	1	0	1	1	2026-11-21T04:18:39	2026-11-21T04:18:39
+numer_plytki	2	0	1	2	2026-11-21T04:23:11	2026-11-21T04:25:15
+numer_plytki	3	0	1	1	2026-11-21T04:20:16	2026-11-21T04:20:16
+ukruszona		1	0	10	2026-11-21T04:18:39	2026-11-21T04:27:17
+ukruszona_niewykryta		1	0	15	2026-11-21T04:18:39	2026-11-21T04:27:16
+-- wierszy: 5
+-- kod: 0
+
+### [t2] SELECT zrodlo, typ, count(*), min(czas), max(czas) FROM zdarzenia GROUP BY 1,2 ORDER BY 1,2
+zrodlo	typ	count(*)	min(czas)	max(czas)
+scanner	nowy_skan	9	2026-11-21T04:17:59	2026-11-21T04:27:01
+scanner	plik_odrzucony	1	2026-11-21T04:22:05	2026-11-21T04:22:05
+silnik	skan_przyjety	9	2026-11-21T04:18:39	2026-11-21T04:27:15
+system	konflikt_projektu	5	2026-11-21T04:19:18	2026-11-21T04:27:15
+system	podglad	8	2026-11-21T04:18:39	2026-11-21T04:27:15
+system	program_start	1	2026-11-21T04:17:54	2026-11-21T04:17:54
+system	program_stop	1	2026-11-21T04:27:21	2026-11-21T04:27:21
+ui	ponowny_skan_odrzucony	2	2026-11-21T04:25:15	2026-11-21T04:27:15
+-- wierszy: 8
+-- kod: 0
+
+### [t2] SELECT count(*) FROM projekty
+count(*)
+0
+-- wierszy: 1
+-- kod: 0
+
+### [t2] SELECT count(*) FROM zlecenia
+count(*)
+0
+-- wierszy: 1
+-- kod: 0
+
+### [t2] SELECT count(*) FROM sesje_pieca
+count(*)
+0
+-- wierszy: 1
+-- kod: 0
+
+### [t2] SELECT count(*) AS prac, sum(p.kandydat1_sha16 IS NULL OR p.kandydat1_sha16='') AS k1_pusty, sum(p.kandydat1_pokrycie IS NULL) AS k1_pokr_null, min(p.kandydat1_pokrycie) AS k1_min, sum(p.kandydat2_sha16 IS NULL OR p.kandydat2_sha16='') AS k2_pusty, min(p.kandydat2_pokrycie) AS k2_min, sum(p.status_gniazda='szary') AS szare, sum(p.projekt_id IS NOT NULL) AS z_projektem FROM prace p JOIN skany s ON s.id=p.skan_id WHERE s.tryb='wieczor' AND s.status='przyjety'
+prac	k1_pusty	k1_pokr_null	k1_min	k2_pusty	k2_min	szare	z_projektem
+57	0	0	0.8867	0	0.0	0	0
+-- wierszy: 1
+-- kod: 0
+
+### [t2] SELECT p.status_gniazda, coalesce((SELECT d.rodzaj FROM decyzje d WHERE d.praca_id=p.id ORDER BY d.id DESC LIMIT 1),'(brak decyzji)') AS ostatnia_decyzja, (SELECT count(*) FROM decyzje d WHERE d.praca_id=p.id) AS ile_decyzji, count(*) AS prac FROM prace p JOIN skany s ON s.id=p.skan_id WHERE s.tryb='wieczor' AND s.status='przyjety' GROUP BY 1,2,3 ORDER BY 1,2
+status_gniazda	ostatnia_decyzja	ile_decyzji	prac
+czerwony	ukruszona	1	10
+zielony	(brak decyzji)	0	32
+zolty	ukruszona_niewykryta	1	15
+-- wierszy: 3
+-- kod: 0
+
+### [t2] SELECT p.id, p.skan_id, p.gniazdo, p.nr_fragmentu, p.status_gniazda, p.status_inspekcji, p.status_match, p.ubytki, (SELECT count(*) FROM decyzje d WHERE d.praca_id=p.id) AS ile_decyzji FROM prace p WHERE p.skan_id=7 ORDER BY p.gniazdo
+id	skan_id	gniazdo	nr_fragmentu	status_gniazda	status_inspekcji	status_match	ubytki	ile_decyzji
+47	7	1	1	zolty	sprawdz	zielony	2	1
+48	7	2	1	zielony	ok	zielony	0	0
+49	7	3	1	zielony	ok	zielony	0	0
+50	7	4	1	zielony	ok	zielony	0	0
+51	7	5	1	zielony	ok	zielony	0	0
+52	7	6	1	czerwony	ubytek	zielony	1	1
+53	7	8	1	zielony	ok	zielony	0	0
+54	7	9	1	zolty	sprawdz	zielony	2	1
+55	7	10	1	zielony	ok	zielony	0	0
+-- wierszy: 9
+-- kod: 0
+
+### [t2] SELECT DISTINCT d.rodzaj FROM decyzje d
+rodzaj
+numer_plytki
+ukruszona_niewykryta
+ukruszona
+-- wierszy: 3
+-- kod: 0
+
+### [t2] SELECT s.status, d.rodzaj, count(*) FROM decyzje d LEFT JOIN prace p ON p.id=d.praca_id JOIN skany s ON s.id=coalesce(d.skan_id,p.skan_id) GROUP BY 1,2
+status	rodzaj	count(*)
+do_powtorzenia	numer_plytki	1
+przyjety	numer_plytki	3
+przyjety	ukruszona	10
+przyjety	ukruszona_niewykryta	15
+-- wierszy: 4
+-- kod: 0
+
+### [t2] SELECT id, czas, zrodlo, typ, skan_id, dane FROM zdarzenia WHERE zrodlo IN ('ui','system') AND typ NOT IN ('podglad','konflikt_projektu') ORDER BY id
+id	czas	zrodlo	typ	skan_id	dane
+1	2026-11-21T04:17:54	system	program_start		{"wersja": "etap3-A3a", "wznowione": 0, "znane_pliki": 0}
+27	2026-11-21T04:25:15	ui	ponowny_skan_odrzucony	7	{"operator": "Technik A", "poprzedni_id": 5}
+35	2026-11-21T04:27:15	ui	ponowny_skan_odrzucony	9	{"operator": "Technik A", "poprzedni_id": 4}
+36	2026-11-21T04:27:21	system	program_stop		{"niezakonczone": 0}
+-- wierszy: 4
+-- kod: 0
+
+### [t2] SELECT id, czas, zrodlo, typ, skan_id, (dane LIKE '%zastany%') AS wzmianka_zastany, (dane LIKE '%zastany%true%' OR dane LIKE '%zastany": 1%') AS zastany_tak FROM zdarzenia WHERE zrodlo='scanner' ORDER BY id
+id	czas	zrodlo	typ	skan_id	wzmianka_zastany	zastany_tak
+2	2026-11-21T04:17:59	scanner	nowy_skan		1	0
+5	2026-11-21T04:19:00	scanner	nowy_skan		1	0
+9	2026-11-21T04:20:01	scanner	nowy_skan		1	0
+13	2026-11-21T04:21:00	scanner	nowy_skan		1	0
+17	2026-11-21T04:22:05	scanner	plik_odrzucony		0	0
+18	2026-11-21T04:22:59	scanner	nowy_skan		1	0
+22	2026-11-21T04:24:01	scanner	nowy_skan		1	0
+24	2026-11-21T04:25:00	scanner	nowy_skan		1	0
+28	2026-11-21T04:26:01	scanner	nowy_skan		1	0
+31	2026-11-21T04:27:01	scanner	nowy_skan		1	0
+-- wierszy: 10
+-- kod: 0
+
+### [t2] SELECT id, praca_id, skan_id, rodzaj, czas FROM decyzje ORDER BY id
+id	praca_id	skan_id	rodzaj	czas
+1		1	numer_plytki	2026-11-21T04:18:39
+2	1		ukruszona_niewykryta	2026-11-21T04:18:39
+3	2		ukruszona_niewykryta	2026-11-21T04:18:39
+4	3		ukruszona_niewykryta	2026-11-21T04:18:39
+5	4		ukruszona_niewykryta	2026-11-21T04:18:39
+6	6		ukruszona	2026-11-21T04:18:39
+7	7		ukruszona	2026-11-21T04:18:39
+8	10		ukruszona_niewykryta	2026-11-21T04:19:19
+9	11		ukruszona	2026-11-21T04:19:19
+10	13		ukruszona_niewykryta	2026-11-21T04:19:20
+11		3	numer_plytki	2026-11-21T04:20:16
+12	20		ukruszona_niewykryta	2026-11-21T04:20:17
+13	24		ukruszona	2026-11-21T04:20:17
+14	27		ukruszona	2026-11-21T04:20:17
+15	28		ukruszona_niewykryta	2026-11-21T04:21:23
+16	35		ukruszona_niewykryta	2026-11-21T04:21:23
+17	37		ukruszona_niewykryta	2026-11-21T04:21:23
+18	38		ukruszona	2026-11-21T04:21:24
+19		5	numer_plytki	2026-11-21T04:23:11
+20		7	numer_plytki	2026-11-21T04:25:15
+21	47		ukruszona_niewykryta	2026-11-21T04:25:16
+22	52		ukruszona	2026-11-21T04:25:16
+23	54		ukruszona_niewykryta	2026-11-21T04:25:16
+24	66		ukruszona_niewykryta	2026-11-21T04:27:16
+25	68		ukruszona_niewykryta	2026-11-21T04:27:16
+26	70		ukruszona_niewykryta	2026-11-21T04:27:16
+27	71		ukruszona	2026-11-21T04:27:16
+28	73		ukruszona	2026-11-21T04:27:16
+29	75		ukruszona	2026-11-21T04:27:17
+-- wierszy: 29
+-- kod: 0
+
+### [t2] SELECT sum(dane LIKE '%"zastany": false%') AS zastany_false, sum(dane LIKE '%"zastany": true%') AS zastany_true, count(*) AS wszystkich FROM zdarzenia WHERE zrodlo='scanner' AND typ='nowy_skan'
+zastany_false	zastany_true	wszystkich
+9	0	9
+-- wierszy: 1
+-- kod: 0
+
+### [t2] SELECT 'analiza' AS co, min(czas_analizy) AS pierwsza, max(czas_analizy) AS ostatnia, count(*) AS ile FROM skany WHERE tryb='wieczor' UNION ALL SELECT 'decyzja', min(czas), max(czas), count(*) FROM decyzje UNION ALL SELECT 'ui', min(czas), max(czas), count(*) FROM zdarzenia WHERE zrodlo='ui' UNION ALL SELECT 'nowy_skan', min(czas), max(czas), count(*) FROM zdarzenia WHERE zrodlo='scanner' AND typ='nowy_skan'
+co	pierwsza	ostatnia	ile
+analiza	2026-11-21T04:18:39	2026-11-21T04:27:15	9
+decyzja	2026-11-21T04:18:39	2026-11-21T04:27:17	29
+ui	2026-11-21T04:25:15	2026-11-21T04:27:15	2
+nowy_skan	2026-11-21T04:17:59	2026-11-21T04:27:01	9
+-- wierszy: 4
+-- kod: 0
+
+### [t2] WITH ch(t) AS (SELECT czas_analizy FROM skany WHERE tryb='wieczor' UNION ALL SELECT czas FROM decyzje UNION ALL SELECT czas FROM zdarzenia WHERE zrodlo='ui' UNION ALL SELECT czas FROM zdarzenia WHERE zrodlo='scanner' AND typ='nowy_skan'), u AS (SELECT t, lag(t) OVER (ORDER BY t) AS p FROM ch) SELECT count(*) AS chwil, min(t) AS poczatek, max(t) AS koniec, round((julianday(max(t))-julianday(min(t)))*86400) AS sekund, round(max((julianday(t)-julianday(p))*86400)) AS najdluzsza_przerwa_s FROM u
+chwil	poczatek	koniec	sekund	najdluzsza_przerwa_s
+49	2026-11-21T04:17:59	2026-11-21T04:27:17	558.0	95.0
+-- wierszy: 1
+-- kod: 0
+
+### [t2] SELECT strftime('%Y-%m-%d', czas, '-6 hours') AS doba, count(*) AS wpisow FROM zdarzenia GROUP BY 1
+doba	wpisow
+2026-11-20	36
+-- wierszy: 1
+-- kod: 0
+

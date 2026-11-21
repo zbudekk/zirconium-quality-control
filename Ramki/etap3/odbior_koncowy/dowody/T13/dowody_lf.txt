@@ -1,0 +1,14 @@
+dowody_lf.py: plikow 12, naruszen 0 (po naprawie)
+NAPRAWIONY czasy.txt: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY kody.txt: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_T13.cmd
+OK        t13_diff_stat.txt
+OK        t13_kontrola_niezalezna.txt
+OK        t13_kontrola_reczna.txt
+OK        t13_poczatek_etapu.txt
+OK        t13_repo_stan.txt
+OK        t13_wynik.json
+NAPRAWIONY t13_wynik.txt: CR 25 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t13_wynik_stderr.txt
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

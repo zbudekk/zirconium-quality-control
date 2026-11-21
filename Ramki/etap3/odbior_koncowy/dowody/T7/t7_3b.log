@@ -1,0 +1,13 @@
+.                                                                        [100%]
+=================================== PASSES ====================================
+__________________ test_r3_d8_nieudane_odswiezenie_ponawiane __________________
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.aplikacja:aplikacja.py:826 stanowisko: katalogu zlecen nie da sie odswiezyc (OSError) - pula wpisow bez zmian; kolejna proba za 0 s
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_pula_aplikacja_r3.py::test_r3_d8_nieudane_odswiezenie_ponawiane
+1 passed, 3 deselected in 4.68s
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 22 modulow, z repo poza testami 0 modulow, modulow testow z repo 5; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

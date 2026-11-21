@@ -1,0 +1,24 @@
+ODCZYT 1 - PRZED startem okna 1 (03:08:17): procesy python ze sciezka <PC-katalog>\t0\odbior_t12\Stanowisko\wersje\* : 0 wierszy (oczekiwane 0)
+  (0 wierszy)
+ODCZYT 2 - PO starcie okna 1, PRZED startem okna 2 (03:08:30): 1 wierszy (oczekiwane 1)
+  Id=29100 StartTime=03:08:17.717 Rodzic=8268 Path=<PC-katalog>\t0\odbior_t12\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+ODCZYT 3 - regula proby 3 (03:08:31): procesy Pythona bazowego ze StartTime w [03:08:17.717; +5 s]: 2 wierszy (oczekiwane 2: interpreter programu i, mlodszy, silnik)
+  Id=32888 StartTime=03:08:17.750 Rodzic=29100 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=18536 StartTime=03:08:18.863 Rodzic=32888 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+ODCZYT 3a - lancuch rodzic-potomek (kontrola): potomkowie python posrednika 29100: 1; ich potomkowie python: 1
+ODCZYT 3b - wszystkie procesy python na PC w tej chwili: 6
+  Id=12012 StartTime=01:37:05.511 Rodzic= Path=
+  Id=18516 StartTime=02:53:21.115 Rodzic=15744 Path=<PC-katalog>\t0\odbior\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+  Id=18764 StartTime=02:53:21.151 Rodzic=18516 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=29100 StartTime=03:08:17.717 Rodzic=8268 Path=<PC-katalog>\t0\odbior_t12\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+  Id=32888 StartTime=03:08:17.750 Rodzic=29100 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=18536 StartTime=03:08:18.863 Rodzic=32888 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+ODCZYT 4 - tuz przed Stop-Process (03:09:39): posrednik 29100 + potomkowie:
+  Id=29100 StartTime=03:08:17.717 Rodzic=8268 Path=<PC-katalog>\t0\odbior_t12\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+  Id=32888 StartTime=03:08:17.750 Rodzic=29100 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=18536 StartTime=03:08:18.863 Rodzic=32888 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+ODCZYT 5 - PO ponownym starcie okna 1 (03:09:56): 2 wierszy (program + ewentualnie symulator z okna 2)
+  Id=3996 StartTime=03:08:32.448 Rodzic=36120 Path=<PC-katalog>\t0\odbior_t12\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+  Id=36796 StartTime=03:09:44.203 Rodzic=15572 Path=<PC-katalog>\t0\odbior_t12\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+ODCZYT KONCOWY (03:20:02): procesy python ze sciezka <PC-katalog>\t0\odbior_t12\Stanowisko\wersje\* : 0 wierszy (oczekiwane 0)
+  (0 wierszy)

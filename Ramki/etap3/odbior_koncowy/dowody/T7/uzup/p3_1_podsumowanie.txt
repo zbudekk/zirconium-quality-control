@@ -1,0 +1,93 @@
+PRZEBIEG p3_1
+{"przebieg": "p3_1", "przypadek": 3, "wariant": "", "powt": 1, "start": "04:53:36", "ramki": "jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765)", "folder_cyrkon_przed_startem": "brak (zmieniona nazwa)", "baza_po": {"skany": {"przyjety": 2}, "zdarzenia": {"konflikt_projektu": 1, "nowy_skan": 2, "podglad": 2, "program_start": 1, "program_stop": 1, "skan_czeka_na_pule": 1, "skan_przyjety": 2}}, "zadania_niezakonczone_json_po": false, "procesy_python_nowe_po_przebiegu": [], "koniec": "04:55:11", "zrzuty": ["p3_1_e1_01_panel_osoba.png", "p3_1_e1_02_komunikat_ramka_wieczorna_niedostepna.png", "p3_1_e1_03_start_bez_folderu_bez_skanu.png", "p3_1_e1_04_komunikat_pula_brak_folderu.png", "p3_1_e1_05_3b_po_zniknieciu_bez_skanu.png", "p3_1_e1_06_3b_po_skanie.png", "p3_1_e1_07_komunikat_konflikt_projektu.png", "p3_1_e1_08_panel_nowy_wynik.png"]}
+
+== odczyty_1.jsonl
+  [    0.00 s 04:53:38.009] ZDARZENIE: start procesu programu {"platforma_qt": "offscreen", "python": "3.12.10", "katalog_programu": "0.3.1", "przypadek": 3, "wariant": "", "powt": 1, "etap": 1}
+  [    0.88 s 04:53:38.892] ZDARZENIE: okno programu znalezione {"widoczne": true, "rozmiar": [1600, 900]}
+  [    0.89 s 04:53:38.894] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula liczenie, kolejka [0, 0, 0, 0, False], analiza False, tryb wieczor
+  [    0.93 s 04:53:38.935] ZDARZENIE: zrzut {"plik": "p3_1_e1_01_panel_osoba.png", "zapisany": true}
+  [    0.93 s 04:53:38.935] ZDARZENIE: spelnione: okno programu widoczne {"po_s": 0.0}
+  [    0.94 s 04:53:38.944] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula brak_folderu, kolejka [0, 0, 0, 0, False], analiza False, tryb wieczor
+  [    1.88 s 04:53:39.887] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula brak_folderu, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    2.02 s 04:53:40.032] ZDARZENIE: klik {"obiekt": "osoba_0", "panel": null, "napis": "Technik A"}
+  [    2.02 s 04:53:40.032] ZDARZENIE: spelnione: klikniecie osoba_0 {"po_s": 0.0}
+  [    2.02 s 04:53:40.032] ZDARZENIE: spelnione: osoba wybrana {"po_s": 0.0}
+  [    2.02 s 04:53:40.032] ZDARZENIE: 3a: program wystartowal BEZ folderu projektow {"folder_istnieje": false}
+  [    2.18 s 04:53:40.189] ekran: paneli 0 (); kafelki []; stan: komunikaty [], pytania [], plytki [], pula brak_folderu, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    3.13 s 04:53:41.138] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula brak_folderu, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    3.16 s 04:53:41.165] ZDARZENIE: zrzut {"plik": "p3_1_e1_02_komunikat_ramka_wieczorna_niedostepna.png", "zapisany": true}
+  [   10.21 s 04:53:48.217] ZDARZENIE: zrzut {"plik": "p3_1_e1_03_start_bez_folderu_bez_skanu.png", "zapisany": true}
+  [   10.22 s 04:53:48.229] ZDARZENIE: start symulatora skanera {"nr": 1, "zrodlo": "a", "pid": 9548}
+  [   13.00 s 04:53:51.009] ekran: paneli 2 (komunikat_pula_brak_folderu, komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna', 'pula_brak_folderu'], pytania [], plytki [], pula brak_folderu, kolejka [1, 0, 0, 1, True], analiza False, tryb wieczor
+  [   13.03 s 04:53:51.042] ZDARZENIE: zrzut {"plik": "p3_1_e1_04_komunikat_pula_brak_folderu.png", "zapisany": true}
+  [   13.03 s 04:53:51.042] ZDARZENIE: spelnione: komunikat pula_brak_folderu na ekranie (3a) {"po_s": 2.81}
+  [   17.05 s 04:53:55.060] ZDARZENIE: folder projektow przywrocony 
+  [   18.16 s 04:53:56.164] ZDARZENIE: klik {"obiekt": "komunikat_odswiez_pule", "panel": "komunikat_pula_brak_folderu", "napis": "Odswiez pule"}
+  [   18.16 s 04:53:56.166] ZDARZENIE: spelnione: klik 'Odswiez pule' w komunikacie {"po_s": 0.0}
+  [   18.30 s 04:53:56.313] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [   39.29 s 04:54:17.301] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   39.29 s 04:54:17.301] ZDARZENIE: spelnione: DALSZA PRACA: skan 1 ma plytke po przywroceniu folderu {"po_s": 21.14}
+  [   43.39 s 04:54:21.402] ZDARZENIE: AWARIA 3b: folder projektow znika w trakcie pracy 
+  [   53.45 s 04:54:31.458] ZDARZENIE: zrzut {"plik": "p3_1_e1_05_3b_po_zniknieciu_bez_skanu.png", "zapisany": true}
+  [   53.47 s 04:54:31.474] ZDARZENIE: start symulatora skanera {"nr": 2, "zrodlo": "b", "pid": 32992}
+  [   57.16 s 04:54:35.170] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula brak_folderu, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [   62.01 s 04:54:40.015] ekran: paneli 2 (komunikat_pula_brak_folderu, komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna', 'pula_brak_folderu'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula brak_folderu, kolejka [1, 0, 0, 1, True], analiza False, tryb wieczor
+  [   62.01 s 04:54:40.015] ZDARZENIE: spelnione: 3b: komunikat pula_brak_folderu ALBO skan 2 ma plytke {"po_s": 8.54}
+  [   68.14 s 04:54:46.151] ZDARZENIE: zrzut {"plik": "p3_1_e1_06_3b_po_skanie.png", "zapisany": true}
+  [   68.14 s 04:54:46.153] ZDARZENIE: folder projektow przywrocony (3b) 
+  [   68.14 s 04:54:46.153] ZDARZENIE: klik {"obiekt": "komunikat_odswiez_pule", "panel": "komunikat_pula_brak_folderu", "napis": "Odswiez pule"}
+  [   68.15 s 04:54:46.157] ZDARZENIE: spelnione: klik 'Odswiez pule' w komunikacie (3b) {"po_s": 0.0}
+  [   68.26 s 04:54:46.268] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [   86.08 s 04:55:04.090] ekran: paneli 3 (komunikat_konflikt_projektu, komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'ramka_wieczorna_niedostepna'], pytania ['brak_numeru_plytki'], plytki [[1, 'przyjety', '75db8c4f9ead0dab'], [2, 'przyjety', 'df2e6a790700131d']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   86.11 s 04:55:04.124] ZDARZENIE: zrzut {"plik": "p3_1_e1_07_komunikat_konflikt_projektu.png", "zapisany": true}
+  [   86.11 s 04:55:04.124] ZDARZENIE: spelnione: DALSZA PRACA 3b: skan 2 ma plytke {"po_s": 17.97}
+  [   86.23 s 04:55:04.241] ekran: paneli 3 (komunikat_konflikt_projektu, komunikat_ramka_wieczorna_niedostepna, panel_nowy_wynik); kafelki ['plytka_1', 'plytka_2']; stan: komunikaty ['konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'ramka_wieczorna_niedostepna'], pytania ['brak_numeru_plytki'], plytki [[1, 'przyjety', '75db8c4f9ead0dab'], [2, 'przyjety', 'df2e6a790700131d']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   86.26 s 04:55:04.273] ZDARZENIE: zrzut {"plik": "p3_1_e1_08_panel_nowy_wynik.png", "zapisany": true}
+  [   90.17 s 04:55:08.177] ekran: paneli 3 (komunikat_konflikt_projektu, komunikat_ramka_wieczorna_niedostepna, panel_nowy_wynik); kafelki ['plytka_1', 'plytka_2']; stan: komunikaty ['konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'ramka_wieczorna_niedostepna'], pytania ['brak_numeru_plytki'], plytki [[1, 'przyjety', '75db8c4f9ead0dab'], [2, 'przyjety', 'df2e6a790700131d']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   90.17 s 04:55:08.177] ZDARZENIE: koniec scenariusza 
+  [   91.47 s 04:55:09.481] ZDARZENIE: program zakonczony {"kod": 0}
+  [   91.47 s 04:55:09.481] ZDARZENIE: procesy potomne po sprzataniu {"zywe": []}
+  odczytow ze zmiana ekranu: 14; okno programu znalezione w t = 0.883
+  OKNA najwyzszego poziomu widziane: ('OknoWieczor', 'okno_wieczor', 'Stanowisko - kontrola prac przed piecem', '')
+  PANELE widziane (obszar / panel / pierwszy odczyt / ostatni / mial widoczne piksele):
+   - uwagi / panel_osoba: pierwszy 0.89 s (04:53:38.894), ostatni 1.88 s, isVisible True, piksele True
+        tekst: Kto teraz pracuje?
+        tekst: Nie wybrano osoby, ktora pracuje - wybierz ja z listy. Bez tego nie mozna zapisywac decyzji.
+        przyciski: (osoba)
+   - uwagi / komunikat_ramka_wieczorna_niedostepna: pierwszy 3.13 s (04:53:41.138), ostatni 90.17 s, isVisible True, piksele True
+        tekst: Ramka wieczorna nie odpowiada
+        tekst: Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama.
+        przyciski: Zamknij
+   - pasek_bledow / komunikat_pula_brak_folderu: pierwszy 13.00 s (04:53:51.009), ostatni 62.01 s, isVisible True, piksele True
+        tekst: Brak folderu projektow
+        tekst: Program nie widzi folderu projektow - skany czekaja (1). Sprawdz, czy dysk z folderem projektow jest podlaczony, i kliknij "Odswiez pule". Jesli folder jest inny - zglos to.
+        przyciski: Odswiez pule | Zamknij
+   - pasek_bledow / komunikat_konflikt_projektu: pierwszy 86.08 s (04:55:04.090), ostatni 90.17 s, isVisible True, piksele True
+        tekst: Ten sam projekt w dwoch gniazdach  (7 razy)
+        tekst: Ten sam projekt pasuje do 2 prac - sprawdz, ktora praca jest ktora.
+        tekst: Gniazda: Plytka 8 (04:54), gniazdo 8 i Plytka bez numeru (04:55), gniazdo 9; Plytka 8 (04:54), gniazdo 7 i Plytka bez numeru (04:55), gniazdo 2; ....
+        przyciski: Zamknij
+   - lista_plytek / panel_nowy_wynik: pierwszy 86.08 s (04:55:04.090), ostatni 90.17 s, isVisible False, piksele True
+        tekst: Nowy wynik czeka: Plytka bez numeru
+        tekst: Plytka bez numeru (skan z 04:55): pytanie "Podaj numer plytki".
+        tekst: Ekran zostal na ogladanej plytce. Dokoncz ja albo kliknij "Pokaz nowy wynik".
+  PASEK STANU (zmiany):
+   [    0.89 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "licze pliki projektow...", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    0.94 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "brak folderu projektow", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    2.18 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "brak folderu projektow", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [   13.00 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_kolejka": "czekaja na projekty: 1", "napis_osoba": "Technik A", "napis_pula": "brak folderu projektow", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [   18.30 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [   57.16 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "brak folderu projektow", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [   62.01 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_kolejka": "czekaja na projekty: 1", "napis_osoba": "Technik A", "napis_pula": "brak folderu projektow", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [   68.26 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+
+symulator symulator_1: koniec zapisu epoka 1795233230.537 (04:53:50), sha16 75db8c4f9ead0dab, rozmiar 44124484
+symulator symulator_2: koniec zapisu epoka 1795233274.640 (04:54:34), sha16 df2e6a790700131d, rozmiar 54501084

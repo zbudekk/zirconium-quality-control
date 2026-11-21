@@ -1,0 +1,147 @@
+== T10 dzisiaj | pas uzyty 1.5 | czas 861.4 s
+   wyrownanie 40 z 40 (max 0.0143, rekordow 40) [narz. [40, 40]] | top-1 dobrze 276 z 276 [narz. prac 276 bledne 0] | top1 razem [388, 397]
+   cale: czerwone wpisy 0 z 127 (prace 0 z 126) [narz. [0, 127]] | szerszy 0 z 150 | alarm (czerw.+zolte sprawdz) 0 [narz. 0] | nie sprawdzono 9 [narz. 9]
+   falszywe miejsca 7 / czerwone 2 | statusy gniazd {'zielony': 116, 'czerwony': 66, 'zolty': 201, 'szary': 26, 'pomaranczowy': 4} | drgniecie {'prac': 39, 'wykryte': 36, 'falszywe': 2} | poprawki {'prac': 14, 'wykryte': 5, 'falszywe': 0}
+   z ubytkiem: {'dobrze': {'czerwony': 64, 'zolty': 99, 'pomaranczowy': 0, 'szary': 0, 'zielony': 2, 'brak': 0}, 'wszystkie': {'czerwony': 66, 'zolty': 172, 'pomaranczowy': 1, 'szary': 6, 'zielony': 2, 'brak': 0}, 'dobrze_wykrywalne': {'czerwony': 64, 'zolty': 94, 'pomaranczowy': 0, 'szary': 0, 'zielony': 2, 'brak': 0}, 'wszystkie_wykrywalne': {'czerwony': 64, 'zolty': 117, 'pomaranczowy': 1, 'szary': 0, 'zielony': 2, 'brak': 0}}
+   ubytki wykrywalne wykryte: razem 226 z 249 [narz. 226 z 249], dobrze 223 z 245; czerwone razem 83, dobrze 83; metody narz. {'A': 189, 'B': 110, 'A+B': 72, 'czerwony': 83, 'dowolny': 226}; niewykrywalne trafione [26, 88]
+   niewykryte w dobrze [klasa, odl. od linii, srednica, glebokosc, status]: [['krawedz', 0.0037, 0.372, 0.13, 'ok'], ['krawedz', 0.0047, 0.941, 0.33, 'sprawdz'], ['krawedz', 0.006, 0.289, 0.101, 'ubytek'], ['krawedz', 0.0131, 0.241, 0.084, 'ok'], ['krawedz', 0.0201, 0.909, 0.318, 'sprawdz'], ['krawedz', 0.0202, 0.372, 0.13, 'sprawdz'], ['krawedz', 0.0357, 0.924, 0.324, 'sprawdz'], ['krawedz', 0.0958, 0.498, 0.174, 'sprawdz'], ['krawedz', 0.1636, 0.956, 0.335, 'sprawdz'], ['krawedz', 0.267, 0.737, 0.258, 'popraw_ulozenie'], ['krawedz', 0.3721, 0.923, 0.323, 'popraw_ulozenie'], ['sciana', 0.4871, 0.499, 0.175, 'sprawdz'], ['sciana', 0.6092, 1.008, 0.353, 'sprawdz_ulozenie'], ['sciana', 0.7181, 0.966, 0.338, 'sprawdz'], ['krawedz', 0.7649, 0.575, 0.201, 'sprawdz'], ['sciana', 0.841, 0.801, 0.28, 'sprawdz'], ['sciana', 1.493, 0.557, 0.195, 'sprawdz'], ['sciana', 1.5049, 0.8, 0.28, 'sprawdz'], ['sciana', 1.5049, 0.926, 0.324, 'ok'], ['sciana', 1.64, 0.504, 0.177, 'sprawdz'], ['sciana', 1.7107, 0.475, 0.166, 'sprawdz_ulozenie'], ['sciana', 1.8516, 0.572, 0.2, 'sprawdz']]
+   przeoczone (2):
+      P2 / poranna nr 5 seed 205 / gniazdo 18 / skan 841d3af39701d069 / projekt a4d10c94db53a1a1 / dobrze / ubytki prawdy [[0.372, 0.13]] wykrywalnych 1
+      P2 / wieczorna nr 2 seed 102 / gniazdo 4 / skan 247ee785f428396f / projekt 2e15189ef6d12701 / dobrze / ubytki prawdy [[0.926, 0.324], [0.241, 0.084]] wykrywalnych 2
+   praca 247ee785f428396f g4: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'sciana', 'srednica': 0.926, 'glebokosc': 0.324, 'odl_linii': 1.5049, 'wykrywalny': True, 'trafiony': False}, {'klasa': 'krawedz', 'srednica': 0.241, 'glebokosc': 0.084, 'odl_linii': 0.0131, 'wykrywalny': True, 'trafiony': False}]
+   praca 841d3af39701d069 g18: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'krawedz', 'srednica': 0.372, 'glebokosc': 0.13, 'odl_linii': 0.0037, 'wykrywalny': True, 'trafiony': False}]
+== 1,5 | pas uzyty 1.5 | czas 827.9 s
+   wyrownanie 40 z 40 (max 0.0143, rekordow 40) [narz. [40, 40]] | top-1 dobrze 276 z 276 [narz. prac 276 bledne 0] | top1 razem [388, 397]
+   cale: czerwone wpisy 0 z 127 (prace 0 z 126) [narz. [0, 127]] | szerszy 0 z 150 | alarm (czerw.+zolte sprawdz) 0 [narz. 0] | nie sprawdzono 9 [narz. 9]
+   falszywe miejsca 7 / czerwone 2 | statusy gniazd {'zielony': 116, 'czerwony': 66, 'zolty': 201, 'szary': 26, 'pomaranczowy': 4} | drgniecie {'prac': 39, 'wykryte': 36, 'falszywe': 2} | poprawki {'prac': 14, 'wykryte': 5, 'falszywe': 0}
+   z ubytkiem: {'dobrze': {'czerwony': 64, 'zolty': 99, 'pomaranczowy': 0, 'szary': 0, 'zielony': 2, 'brak': 0}, 'wszystkie': {'czerwony': 66, 'zolty': 172, 'pomaranczowy': 1, 'szary': 6, 'zielony': 2, 'brak': 0}, 'dobrze_wykrywalne': {'czerwony': 64, 'zolty': 94, 'pomaranczowy': 0, 'szary': 0, 'zielony': 2, 'brak': 0}, 'wszystkie_wykrywalne': {'czerwony': 64, 'zolty': 117, 'pomaranczowy': 1, 'szary': 0, 'zielony': 2, 'brak': 0}}
+   ubytki wykrywalne wykryte: razem 226 z 249 [narz. 226 z 249], dobrze 223 z 245; czerwone razem 83, dobrze 83; metody narz. {'A': 189, 'B': 110, 'A+B': 72, 'czerwony': 83, 'dowolny': 226}; niewykrywalne trafione [26, 88]
+   niewykryte w dobrze [klasa, odl. od linii, srednica, glebokosc, status]: [['krawedz', 0.0037, 0.372, 0.13, 'ok'], ['krawedz', 0.0047, 0.941, 0.33, 'sprawdz'], ['krawedz', 0.006, 0.289, 0.101, 'ubytek'], ['krawedz', 0.0131, 0.241, 0.084, 'ok'], ['krawedz', 0.0201, 0.909, 0.318, 'sprawdz'], ['krawedz', 0.0202, 0.372, 0.13, 'sprawdz'], ['krawedz', 0.0357, 0.924, 0.324, 'sprawdz'], ['krawedz', 0.0958, 0.498, 0.174, 'sprawdz'], ['krawedz', 0.1636, 0.956, 0.335, 'sprawdz'], ['krawedz', 0.267, 0.737, 0.258, 'popraw_ulozenie'], ['krawedz', 0.3721, 0.923, 0.323, 'popraw_ulozenie'], ['sciana', 0.4871, 0.499, 0.175, 'sprawdz'], ['sciana', 0.6092, 1.008, 0.353, 'sprawdz_ulozenie'], ['sciana', 0.7181, 0.966, 0.338, 'sprawdz'], ['krawedz', 0.7649, 0.575, 0.201, 'sprawdz'], ['sciana', 0.841, 0.801, 0.28, 'sprawdz'], ['sciana', 1.493, 0.557, 0.195, 'sprawdz'], ['sciana', 1.5049, 0.8, 0.28, 'sprawdz'], ['sciana', 1.5049, 0.926, 0.324, 'ok'], ['sciana', 1.64, 0.504, 0.177, 'sprawdz'], ['sciana', 1.7107, 0.475, 0.166, 'sprawdz_ulozenie'], ['sciana', 1.8516, 0.572, 0.2, 'sprawdz']]
+   przeoczone (2):
+      P2 / poranna nr 5 seed 205 / gniazdo 18 / skan 841d3af39701d069 / projekt a4d10c94db53a1a1 / dobrze / ubytki prawdy [[0.372, 0.13]] wykrywalnych 1
+      P2 / wieczorna nr 2 seed 102 / gniazdo 4 / skan 247ee785f428396f / projekt 2e15189ef6d12701 / dobrze / ubytki prawdy [[0.926, 0.324], [0.241, 0.084]] wykrywalnych 2
+   praca 247ee785f428396f g4: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'sciana', 'srednica': 0.926, 'glebokosc': 0.324, 'odl_linii': 1.5049, 'wykrywalny': True, 'trafiony': False}, {'klasa': 'krawedz', 'srednica': 0.241, 'glebokosc': 0.084, 'odl_linii': 0.0131, 'wykrywalny': True, 'trafiony': False}]
+   praca 841d3af39701d069 g18: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'krawedz', 'srednica': 0.372, 'glebokosc': 0.13, 'odl_linii': 0.0037, 'wykrywalny': True, 'trafiony': False}]
+   zmiany_wobec_T10: gniazd 0 z 397; statusow inspekcji innych 0; {}
+== 1,6 | pas uzyty 1.6 | czas 824.6 s
+   wyrownanie 40 z 40 (max 0.0143, rekordow 40) [narz. [40, 40]] | top-1 dobrze 276 z 276 [narz. prac 276 bledne 0] | top1 razem [388, 397]
+   cale: czerwone wpisy 0 z 127 (prace 0 z 126) [narz. [0, 127]] | szerszy 0 z 150 | alarm (czerw.+zolte sprawdz) 0 [narz. 0] | nie sprawdzono 9 [narz. 9]
+   falszywe miejsca 2 / czerwone 0 | statusy gniazd {'zielony': 116, 'czerwony': 68, 'zolty': 199, 'szary': 26, 'pomaranczowy': 4} | drgniecie {'prac': 39, 'wykryte': 36, 'falszywe': 2} | poprawki {'prac': 14, 'wykryte': 5, 'falszywe': 0}
+   z ubytkiem: {'dobrze': {'czerwony': 67, 'zolty': 97, 'pomaranczowy': 0, 'szary': 0, 'zielony': 1, 'brak': 0}, 'wszystkie': {'czerwony': 68, 'zolty': 170, 'pomaranczowy': 1, 'szary': 6, 'zielony': 2, 'brak': 0}, 'dobrze_wykrywalne': {'czerwony': 67, 'zolty': 92, 'pomaranczowy': 0, 'szary': 0, 'zielony': 1, 'brak': 0}, 'wszystkie_wykrywalne': {'czerwony': 67, 'zolty': 115, 'pomaranczowy': 1, 'szary': 0, 'zielony': 1, 'brak': 0}}
+   ubytki wykrywalne wykryte: razem 230 z 249 [narz. 230 z 249], dobrze 227 z 245; czerwone razem 87, dobrze 87; metody narz. {'A': 197, 'B': 113, 'A+B': 79, 'czerwony': 87, 'dowolny': 230}; niewykrywalne trafione [25, 88]
+   niewykryte w dobrze [klasa, odl. od linii, srednica, glebokosc, status]: [['krawedz', 0.0037, 0.372, 0.13, 'ok'], ['krawedz', 0.0047, 0.941, 0.33, 'sprawdz'], ['krawedz', 0.006, 0.289, 0.101, 'ubytek'], ['krawedz', 0.0131, 0.241, 0.084, 'sprawdz'], ['krawedz', 0.0201, 0.909, 0.318, 'sprawdz'], ['krawedz', 0.0202, 0.372, 0.13, 'sprawdz'], ['krawedz', 0.0357, 0.924, 0.324, 'sprawdz'], ['krawedz', 0.0958, 0.498, 0.174, 'sprawdz'], ['krawedz', 0.1636, 0.956, 0.335, 'sprawdz'], ['krawedz', 0.267, 0.737, 0.258, 'popraw_ulozenie'], ['krawedz', 0.3721, 0.923, 0.323, 'popraw_ulozenie'], ['sciana', 0.4871, 0.499, 0.175, 'sprawdz'], ['sciana', 0.6092, 1.008, 0.353, 'sprawdz_ulozenie'], ['sciana', 0.7181, 0.966, 0.338, 'sprawdz'], ['krawedz', 0.7649, 0.575, 0.201, 'sprawdz'], ['sciana', 0.841, 0.801, 0.28, 'sprawdz'], ['sciana', 1.5049, 0.8, 0.28, 'sprawdz'], ['sciana', 1.7107, 0.475, 0.166, 'sprawdz_ulozenie']]
+   przeoczone (2):
+      P2 / poranna nr 5 seed 205 / gniazdo 18 / skan 841d3af39701d069 / projekt a4d10c94db53a1a1 / dobrze / ubytki prawdy [[0.372, 0.13]] wykrywalnych 1
+      P3a / wieczorna nr 2 seed 321 / gniazdo 2 / skan ddef50e37281d5ab / projekt 6570c1796f152c01 / czesciowo / ubytki prawdy [[0.216, 0.075]] wykrywalnych 0
+   praca 247ee785f428396f g4: ['zolty'] ['sprawdz'] silnik [[{'srednica_mm': 0.836, 'glebokosc_mm': 0.3924, 'metoda': 'A', 'kolor': 'zolty', 'odleglosc_od_brzegu_mm': 1.563, 'wciecie_mm': 0.0, 'na_krawedzi': False}]] prawda [{'klasa': 'sciana', 'srednica': 0.926, 'glebokosc': 0.324, 'odl_linii': 1.5049, 'wykrywalny': True, 'trafiony': True}, {'klasa': 'krawedz', 'srednica': 0.241, 'glebokosc': 0.084, 'odl_linii': 0.0131, 'wykrywalny': True, 'trafiony': False}]
+   praca 841d3af39701d069 g18: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'krawedz', 'srednica': 0.372, 'glebokosc': 0.13, 'odl_linii': 0.0037, 'wykrywalny': True, 'trafiony': False}]
+   zmiany_wobec_T10: gniazd 10 z 397; statusow inspekcji innych 10; {'zolty -> czerwony (z_ubytkiem)': 5, 'zielony -> zolty (z_ubytkiem)': 1, 'czerwony -> zolty (z_ubytkiem)': 3, 'zolty -> zielony (z_ubytkiem)': 1}
+      P2 / skan 741b7369571ec547 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 8ac8f8db2e40015f / g2 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 247ee785f428396f / g4 / z_ubytkiem / dobrze: ['zielony'] -> ['zolty'] (inspekcja ['ok'] -> ['sprawdz'])
+      P2 / skan 247ee785f428396f / g6 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 769e0fd025693694 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan 622440faedbec2fc / g9 / z_ubytkiem / bokiem: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan fd3002a103297824 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ce12847c3942931b / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ea6dd7dd058a2512 / g10 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan ddef50e37281d5ab / g2 / z_ubytkiem / czesciowo: ['zolty'] -> ['zielony'] (inspekcja ['sprawdz'] -> ['ok'])
+   zmiany_wobec_1p5: gniazd 10 z 397; statusow inspekcji innych 10; {'zolty -> czerwony (z_ubytkiem)': 5, 'zielony -> zolty (z_ubytkiem)': 1, 'czerwony -> zolty (z_ubytkiem)': 3, 'zolty -> zielony (z_ubytkiem)': 1}
+      P2 / skan 741b7369571ec547 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 8ac8f8db2e40015f / g2 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 247ee785f428396f / g4 / z_ubytkiem / dobrze: ['zielony'] -> ['zolty'] (inspekcja ['ok'] -> ['sprawdz'])
+      P2 / skan 247ee785f428396f / g6 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 769e0fd025693694 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan 622440faedbec2fc / g9 / z_ubytkiem / bokiem: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan fd3002a103297824 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ce12847c3942931b / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ea6dd7dd058a2512 / g10 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan ddef50e37281d5ab / g2 / z_ubytkiem / czesciowo: ['zolty'] -> ['zielony'] (inspekcja ['sprawdz'] -> ['ok'])
+   plamy (zrzut, skanow 40, pas 1.6): rodzaje {'sprawdz_ulozenie': 30, 'ubytek': 217, 'poza_pasem': 6, 'lagodna': 6, 'poprawka': 5}
+   plamy poza_pasem przy 1,5 wg odleglosci: {'z_ubytkiem/obok': {'>2': 3}, 'z_ubytkiem/przy_ubytku_prawdy': {'1.5-1.6': 7, '1.75-2': 1, '>2': 2}} | min odl {'z_ubytkiem/obok': 3.061, 'z_ubytkiem/przy_ubytku_prawdy': 1.501}
+== 1,75 | pas uzyty 1.75 | czas 790.0 s
+   wyrownanie 40 z 40 (max 0.0143, rekordow 40) [narz. [40, 40]] | top-1 dobrze 276 z 276 [narz. prac 276 bledne 0] | top1 razem [388, 397]
+   cale: czerwone wpisy 0 z 127 (prace 0 z 126) [narz. [0, 127]] | szerszy 0 z 150 | alarm (czerw.+zolte sprawdz) 0 [narz. 0] | nie sprawdzono 9 [narz. 9]
+   falszywe miejsca 3 / czerwone 0 | statusy gniazd {'zielony': 116, 'czerwony': 67, 'zolty': 200, 'szary': 26, 'pomaranczowy': 4} | drgniecie {'prac': 39, 'wykryte': 36, 'falszywe': 1} | poprawki {'prac': 14, 'wykryte': 5, 'falszywe': 0}
+   z ubytkiem: {'dobrze': {'czerwony': 66, 'zolty': 98, 'pomaranczowy': 0, 'szary': 0, 'zielony': 1, 'brak': 0}, 'wszystkie': {'czerwony': 67, 'zolty': 171, 'pomaranczowy': 1, 'szary': 6, 'zielony': 2, 'brak': 0}, 'dobrze_wykrywalne': {'czerwony': 66, 'zolty': 93, 'pomaranczowy': 0, 'szary': 0, 'zielony': 1, 'brak': 0}, 'wszystkie_wykrywalne': {'czerwony': 66, 'zolty': 116, 'pomaranczowy': 1, 'szary': 0, 'zielony': 1, 'brak': 0}}
+   ubytki wykrywalne wykryte: razem 232 z 249 [narz. 232 z 249], dobrze 229 z 245; czerwone razem 87, dobrze 87; metody narz. {'A': 197, 'B': 115, 'A+B': 79, 'czerwony': 87, 'dowolny': 232}; niewykrywalne trafione [26, 88]
+   niewykryte w dobrze [klasa, odl. od linii, srednica, glebokosc, status]: [['krawedz', 0.0037, 0.372, 0.13, 'ok'], ['krawedz', 0.0047, 0.941, 0.33, 'sprawdz'], ['krawedz', 0.006, 0.289, 0.101, 'ubytek'], ['krawedz', 0.0131, 0.241, 0.084, 'sprawdz'], ['krawedz', 0.0201, 0.909, 0.318, 'sprawdz'], ['krawedz', 0.0202, 0.372, 0.13, 'sprawdz'], ['krawedz', 0.0357, 0.924, 0.324, 'sprawdz'], ['krawedz', 0.0958, 0.498, 0.174, 'sprawdz'], ['krawedz', 0.267, 0.737, 0.258, 'popraw_ulozenie'], ['krawedz', 0.3721, 0.923, 0.323, 'popraw_ulozenie'], ['sciana', 0.4871, 0.499, 0.175, 'sprawdz'], ['sciana', 0.7181, 0.966, 0.338, 'sprawdz'], ['krawedz', 0.7649, 0.575, 0.201, 'sprawdz'], ['sciana', 0.841, 0.801, 0.28, 'sprawdz'], ['sciana', 1.5049, 0.8, 0.28, 'sprawdz'], ['sciana', 1.7107, 0.475, 0.166, 'sprawdz']]
+   przeoczone (2):
+      P2 / poranna nr 5 seed 205 / gniazdo 18 / skan 841d3af39701d069 / projekt a4d10c94db53a1a1 / dobrze / ubytki prawdy [[0.372, 0.13]] wykrywalnych 1
+      P3a / wieczorna nr 2 seed 321 / gniazdo 2 / skan ddef50e37281d5ab / projekt 6570c1796f152c01 / czesciowo / ubytki prawdy [[0.216, 0.075]] wykrywalnych 0
+   praca 247ee785f428396f g4: ['zolty'] ['sprawdz'] silnik [[{'srednica_mm': 0.836, 'glebokosc_mm': 0.3924, 'metoda': 'A', 'kolor': 'zolty', 'odleglosc_od_brzegu_mm': 1.563, 'wciecie_mm': 0.0, 'na_krawedzi': False}]] prawda [{'klasa': 'sciana', 'srednica': 0.926, 'glebokosc': 0.324, 'odl_linii': 1.5049, 'wykrywalny': True, 'trafiony': True}, {'klasa': 'krawedz', 'srednica': 0.241, 'glebokosc': 0.084, 'odl_linii': 0.0131, 'wykrywalny': True, 'trafiony': False}]
+   praca 841d3af39701d069 g18: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'krawedz', 'srednica': 0.372, 'glebokosc': 0.13, 'odl_linii': 0.0037, 'wykrywalny': True, 'trafiony': False}]
+   zmiany_wobec_T10: gniazd 7 z 397; statusow inspekcji innych 9; {'zolty -> czerwony (z_ubytkiem)': 3, 'czerwony -> zolty (z_ubytkiem)': 2, 'zielony -> zolty (z_ubytkiem)': 1, 'zolty -> zielony (z_ubytkiem)': 1}
+      P2 / skan 741b7369571ec547 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 12b4b2e728e400d5 / g1 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 247ee785f428396f / g4 / z_ubytkiem / dobrze: ['zielony'] -> ['zolty'] (inspekcja ['ok'] -> ['sprawdz'])
+      P3a / skan 622440faedbec2fc / g9 / z_ubytkiem / bokiem: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan fd3002a103297824 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ce12847c3942931b / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ddef50e37281d5ab / g2 / z_ubytkiem / czesciowo: ['zolty'] -> ['zielony'] (inspekcja ['sprawdz'] -> ['ok'])
+   zmiany_wobec_1p5: gniazd 7 z 397; statusow inspekcji innych 9; {'zolty -> czerwony (z_ubytkiem)': 3, 'czerwony -> zolty (z_ubytkiem)': 2, 'zielony -> zolty (z_ubytkiem)': 1, 'zolty -> zielony (z_ubytkiem)': 1}
+      P2 / skan 741b7369571ec547 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 12b4b2e728e400d5 / g1 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 247ee785f428396f / g4 / z_ubytkiem / dobrze: ['zielony'] -> ['zolty'] (inspekcja ['ok'] -> ['sprawdz'])
+      P3a / skan 622440faedbec2fc / g9 / z_ubytkiem / bokiem: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan fd3002a103297824 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ce12847c3942931b / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ddef50e37281d5ab / g2 / z_ubytkiem / czesciowo: ['zolty'] -> ['zielony'] (inspekcja ['sprawdz'] -> ['ok'])
+   plamy (zrzut, skanow 40, pas 1.75): rodzaje {'sprawdz_ulozenie': 30, 'ubytek': 219, 'poza_pasem': 6, 'lagodna': 6, 'poprawka': 5}
+   plamy poza_pasem przy 1,5 wg odleglosci: {'z_ubytkiem/obok': {'>2': 3}, 'z_ubytkiem/przy_ubytku_prawdy': {'1.5-1.6': 7, '1.75-2': 1, '>2': 2}} | min odl {'z_ubytkiem/obok': 3.061, 'z_ubytkiem/przy_ubytku_prawdy': 1.501}
+== 2,0 | pas uzyty 2.0 | czas 808.6 s
+   wyrownanie 40 z 40 (max 0.0143, rekordow 40) [narz. [40, 40]] | top-1 dobrze 276 z 276 [narz. prac 276 bledne 0] | top1 razem [388, 397]
+   cale: czerwone wpisy 0 z 127 (prace 0 z 126) [narz. [0, 127]] | szerszy 0 z 150 | alarm (czerw.+zolte sprawdz) 0 [narz. 0] | nie sprawdzono 9 [narz. 9]
+   falszywe miejsca 3 / czerwone 0 | statusy gniazd {'zielony': 116, 'czerwony': 64, 'zolty': 203, 'szary': 26, 'pomaranczowy': 4} | drgniecie {'prac': 39, 'wykryte': 36, 'falszywe': 1} | poprawki {'prac': 14, 'wykryte': 5, 'falszywe': 0}
+   z ubytkiem: {'dobrze': {'czerwony': 63, 'zolty': 101, 'pomaranczowy': 0, 'szary': 0, 'zielony': 1, 'brak': 0}, 'wszystkie': {'czerwony': 64, 'zolty': 174, 'pomaranczowy': 1, 'szary': 6, 'zielony': 2, 'brak': 0}, 'dobrze_wykrywalne': {'czerwony': 63, 'zolty': 96, 'pomaranczowy': 0, 'szary': 0, 'zielony': 1, 'brak': 0}, 'wszystkie_wykrywalne': {'czerwony': 63, 'zolty': 119, 'pomaranczowy': 1, 'szary': 0, 'zielony': 1, 'brak': 0}}
+   ubytki wykrywalne wykryte: razem 229 z 249 [narz. 229 z 249], dobrze 226 z 245; czerwone razem 83, dobrze 83; metody narz. {'A': 197, 'B': 110, 'A+B': 77, 'czerwony': 83, 'dowolny': 229}; niewykrywalne trafione [26, 88]
+   niewykryte w dobrze [klasa, odl. od linii, srednica, glebokosc, status]: [['krawedz', 0.0037, 0.372, 0.13, 'ok'], ['krawedz', 0.0047, 0.941, 0.33, 'sprawdz'], ['krawedz', 0.006, 0.289, 0.101, 'ubytek'], ['krawedz', 0.0131, 0.241, 0.084, 'sprawdz'], ['krawedz', 0.0201, 0.909, 0.318, 'sprawdz'], ['krawedz', 0.0202, 0.372, 0.13, 'sprawdz'], ['krawedz', 0.0357, 0.924, 0.324, 'sprawdz'], ['krawedz', 0.0957, 1.488, 0.521, 'sprawdz'], ['krawedz', 0.0958, 0.498, 0.174, 'sprawdz'], ['krawedz', 0.1636, 0.956, 0.335, 'sprawdz'], ['krawedz', 0.267, 0.737, 0.258, 'popraw_ulozenie'], ['krawedz', 0.3721, 0.923, 0.323, 'popraw_ulozenie'], ['sciana', 0.4871, 0.499, 0.175, 'sprawdz'], ['sciana', 0.6092, 1.008, 0.353, 'sprawdz_ulozenie'], ['sciana', 0.7181, 0.966, 0.338, 'sprawdz'], ['krawedz', 0.7649, 0.575, 0.201, 'sprawdz'], ['sciana', 0.841, 0.801, 0.28, 'sprawdz'], ['sciana', 1.5049, 0.8, 0.28, 'sprawdz'], ['sciana', 1.7107, 0.475, 0.166, 'sprawdz_ulozenie']]
+   przeoczone (2):
+      P2 / poranna nr 5 seed 205 / gniazdo 18 / skan 841d3af39701d069 / projekt a4d10c94db53a1a1 / dobrze / ubytki prawdy [[0.372, 0.13]] wykrywalnych 1
+      P3a / wieczorna nr 2 seed 321 / gniazdo 2 / skan ddef50e37281d5ab / projekt 6570c1796f152c01 / czesciowo / ubytki prawdy [[0.216, 0.075]] wykrywalnych 0
+   praca 247ee785f428396f g4: ['zolty'] ['sprawdz'] silnik [[{'srednica_mm': 0.836, 'glebokosc_mm': 0.3924, 'metoda': 'A', 'kolor': 'zolty', 'odleglosc_od_brzegu_mm': 1.563, 'wciecie_mm': 0.0, 'na_krawedzi': False}]] prawda [{'klasa': 'sciana', 'srednica': 0.926, 'glebokosc': 0.324, 'odl_linii': 1.5049, 'wykrywalny': True, 'trafiony': True}, {'klasa': 'krawedz', 'srednica': 0.241, 'glebokosc': 0.084, 'odl_linii': 0.0131, 'wykrywalny': True, 'trafiony': False}]
+   praca 841d3af39701d069 g18: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'krawedz', 'srednica': 0.372, 'glebokosc': 0.13, 'odl_linii': 0.0037, 'wykrywalny': True, 'trafiony': False}]
+   zmiany_wobec_T10: gniazd 12 z 397; statusow inspekcji innych 13; {'czerwony -> zolty (z_ubytkiem)': 6, 'zolty -> czerwony (z_ubytkiem)': 4, 'zielony -> zolty (z_ubytkiem)': 1, 'zolty -> zielony (z_ubytkiem)': 1}
+      P2 / skan 96e1a3749165c44e / g2 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 741b7369571ec547 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 8ac8f8db2e40015f / g2 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 8ac8f8db2e40015f / g9 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 12b4b2e728e400d5 / g1 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 247ee785f428396f / g4 / z_ubytkiem / dobrze: ['zielony'] -> ['zolty'] (inspekcja ['ok'] -> ['sprawdz'])
+      P3a / skan 622440faedbec2fc / g9 / z_ubytkiem / bokiem: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan b1985d589d93830d / g4 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan fd3002a103297824 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ce12847c3942931b / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ea6dd7dd058a2512 / g10 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan ddef50e37281d5ab / g2 / z_ubytkiem / czesciowo: ['zolty'] -> ['zielony'] (inspekcja ['sprawdz'] -> ['ok'])
+   zmiany_wobec_1p5: gniazd 12 z 397; statusow inspekcji innych 13; {'czerwony -> zolty (z_ubytkiem)': 6, 'zolty -> czerwony (z_ubytkiem)': 4, 'zielony -> zolty (z_ubytkiem)': 1, 'zolty -> zielony (z_ubytkiem)': 1}
+      P2 / skan 96e1a3749165c44e / g2 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 741b7369571ec547 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 8ac8f8db2e40015f / g2 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P2 / skan 8ac8f8db2e40015f / g9 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 12b4b2e728e400d5 / g1 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P2 / skan 247ee785f428396f / g4 / z_ubytkiem / dobrze: ['zielony'] -> ['zolty'] (inspekcja ['ok'] -> ['sprawdz'])
+      P3a / skan 622440faedbec2fc / g9 / z_ubytkiem / bokiem: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan b1985d589d93830d / g4 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan fd3002a103297824 / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ce12847c3942931b / g5 / z_ubytkiem / dobrze: ['zolty'] -> ['czerwony'] (inspekcja ['sprawdz'] -> ['ubytek'])
+      P3a / skan ea6dd7dd058a2512 / g10 / z_ubytkiem / dobrze: ['czerwony'] -> ['zolty'] (inspekcja ['ubytek'] -> ['sprawdz'])
+      P3a / skan ddef50e37281d5ab / g2 / z_ubytkiem / czesciowo: ['zolty'] -> ['zielony'] (inspekcja ['sprawdz'] -> ['ok'])
+   plamy (zrzut, skanow 40, pas 2.0): rodzaje {'sprawdz_ulozenie': 30, 'ubytek': 220, 'poza_pasem': 5, 'lagodna': 6, 'poprawka': 5}
+   plamy poza_pasem przy 1,5 wg odleglosci: {'z_ubytkiem/obok': {'>2': 3}, 'z_ubytkiem/przy_ubytku_prawdy': {'1.5-1.6': 7, '1.75-2': 1, '>2': 2}} | min odl {'z_ubytkiem/obok': 3.061, 'z_ubytkiem/przy_ubytku_prawdy': 1.501}
+== 1,5 powt. | pas uzyty 1.5 | czas 784.0 s
+   wyrownanie 40 z 40 (max 0.0143, rekordow 40) [narz. [40, 40]] | top-1 dobrze 276 z 276 [narz. prac 276 bledne 0] | top1 razem [388, 397]
+   cale: czerwone wpisy 0 z 127 (prace 0 z 126) [narz. [0, 127]] | szerszy 0 z 150 | alarm (czerw.+zolte sprawdz) 0 [narz. 0] | nie sprawdzono 9 [narz. 9]
+   falszywe miejsca 7 / czerwone 2 | statusy gniazd {'zielony': 116, 'czerwony': 66, 'zolty': 201, 'szary': 26, 'pomaranczowy': 4} | drgniecie {'prac': 39, 'wykryte': 36, 'falszywe': 1} | poprawki {'prac': 14, 'wykryte': 5, 'falszywe': 0}
+   z ubytkiem: {'dobrze': {'czerwony': 64, 'zolty': 99, 'pomaranczowy': 0, 'szary': 0, 'zielony': 2, 'brak': 0}, 'wszystkie': {'czerwony': 66, 'zolty': 172, 'pomaranczowy': 1, 'szary': 6, 'zielony': 2, 'brak': 0}, 'dobrze_wykrywalne': {'czerwony': 64, 'zolty': 94, 'pomaranczowy': 0, 'szary': 0, 'zielony': 2, 'brak': 0}, 'wszystkie_wykrywalne': {'czerwony': 64, 'zolty': 117, 'pomaranczowy': 1, 'szary': 0, 'zielony': 2, 'brak': 0}}
+   ubytki wykrywalne wykryte: razem 226 z 249 [narz. 226 z 249], dobrze 223 z 245; czerwone razem 83, dobrze 83; metody narz. {'A': 189, 'B': 110, 'A+B': 72, 'czerwony': 83, 'dowolny': 226}; niewykrywalne trafione [27, 88]
+   niewykryte w dobrze [klasa, odl. od linii, srednica, glebokosc, status]: [['krawedz', 0.0037, 0.372, 0.13, 'ok'], ['krawedz', 0.0047, 0.941, 0.33, 'sprawdz'], ['krawedz', 0.006, 0.289, 0.101, 'ubytek'], ['krawedz', 0.0131, 0.241, 0.084, 'ok'], ['krawedz', 0.0201, 0.909, 0.318, 'sprawdz'], ['krawedz', 0.0202, 0.372, 0.13, 'sprawdz'], ['krawedz', 0.0357, 0.924, 0.324, 'sprawdz'], ['krawedz', 0.0958, 0.498, 0.174, 'sprawdz'], ['krawedz', 0.1636, 0.956, 0.335, 'sprawdz'], ['krawedz', 0.267, 0.737, 0.258, 'popraw_ulozenie'], ['krawedz', 0.3721, 0.923, 0.323, 'popraw_ulozenie'], ['sciana', 0.4871, 0.499, 0.175, 'sprawdz'], ['sciana', 0.6092, 1.008, 0.353, 'sprawdz_ulozenie'], ['sciana', 0.7181, 0.966, 0.338, 'sprawdz'], ['krawedz', 0.7649, 0.575, 0.201, 'sprawdz'], ['sciana', 0.841, 0.801, 0.28, 'sprawdz'], ['sciana', 1.493, 0.557, 0.195, 'sprawdz'], ['sciana', 1.5049, 0.8, 0.28, 'sprawdz'], ['sciana', 1.5049, 0.926, 0.324, 'ok'], ['sciana', 1.64, 0.504, 0.177, 'sprawdz'], ['sciana', 1.7107, 0.475, 0.166, 'sprawdz_ulozenie'], ['sciana', 1.8516, 0.572, 0.2, 'sprawdz']]
+   przeoczone (2):
+      P2 / poranna nr 5 seed 205 / gniazdo 18 / skan 841d3af39701d069 / projekt a4d10c94db53a1a1 / dobrze / ubytki prawdy [[0.372, 0.13]] wykrywalnych 1
+      P2 / wieczorna nr 2 seed 102 / gniazdo 4 / skan 247ee785f428396f / projekt 2e15189ef6d12701 / dobrze / ubytki prawdy [[0.926, 0.324], [0.241, 0.084]] wykrywalnych 2
+   praca 247ee785f428396f g4: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'sciana', 'srednica': 0.926, 'glebokosc': 0.324, 'odl_linii': 1.5049, 'wykrywalny': True, 'trafiony': False}, {'klasa': 'krawedz', 'srednica': 0.241, 'glebokosc': 0.084, 'odl_linii': 0.0131, 'wykrywalny': True, 'trafiony': False}]
+   praca 841d3af39701d069 g18: ['zielony'] ['ok'] silnik [[]] prawda [{'klasa': 'krawedz', 'srednica': 0.372, 'glebokosc': 0.13, 'odl_linii': 0.0037, 'wykrywalny': True, 'trafiony': False}]
+   zmiany_wobec_T10: gniazd 0 z 397; statusow inspekcji innych 1; {}
+   zmiany_wobec_1p5: gniazd 0 z 397; statusow inspekcji innych 1; {}
+   plamy (zrzut, skanow 40, pas 1.5): rodzaje {'sprawdz_ulozenie': 30, 'ubytek': 212, 'poza_pasem': 13, 'lagodna': 6, 'poprawka': 5}
+   plamy poza_pasem przy 1,5 wg odleglosci: {'z_ubytkiem/obok': {'>2': 3}, 'z_ubytkiem/przy_ubytku_prawdy': {'1.5-1.6': 7, '1.75-2': 1, '>2': 2}} | min odl {'z_ubytkiem/obok': 3.061, 'z_ubytkiem/przy_ubytku_prawdy': 1.501}

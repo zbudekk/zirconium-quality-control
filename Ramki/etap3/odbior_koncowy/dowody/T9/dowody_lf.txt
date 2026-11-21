@@ -1,0 +1,44 @@
+dowody_lf.py: plikow 42, naruszen 0 (po naprawie)
+NAPRAWIONY kody.txt: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_t9.ps1
+OK        krok_t9_4_test.cmd
+OK        krok_t9_4_test_proba3.cmd
+OK        POMINIETE.txt
+OK        t9_cele_dane.txt
+OK        t9_cele_wyniki.txt
+OK        t9_czlony_binarne.txt
+OK        t9_dane.txt
+OK        t9_dowody.txt
+OK        t9_dowody_2.txt
+OK        t9_dowody_wlasne.txt
+OK        t9_instalacje.txt
+OK        t9_logi.txt
+OK        t9_logi_bez_SE10.txt
+OK        t9_logi_proba1.txt
+OK        t9_N.txt
+OK        t9_N_bez_SE10.txt
+OK        t9_nieprzeszukane_typy.txt
+OK        t9_npz_dodatkowo.txt
+OK        t9_polecenia.txt
+OK        t9_repo.json
+OK        t9_repo.txt
+OK        t9_repo_bez_SE10.json
+OK        t9_repo_bez_SE10.txt
+OK        t9_repo_odbior.txt
+OK        t9_repo_odbior_2.txt
+OK        t9_repo_odbior_bez_SE10.txt
+OK        t9_repo_odbior_bez_SE10_2.txt
+OK        t9_ruch.txt
+OK        t9_sql_liczby.txt
+NAPRAWIONY t9_test_zz_k8_proba1.log: CR 45 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t9_test_zz_k8_proba1_czas.txt: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t9_test_zz_k8_proba2.log: CR 45 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t9_test_zz_k8_proba2_czas.txt: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t9_test_zz_k8_proba3.log: CR 21 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t9_test_zz_k8_proba3_czas.txt: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t9_wynik.md
+OK        t9_wyniki.txt
+OK        t9_zrodla_repo.txt
+OK        t9_zrodla_wszystkie.txt
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

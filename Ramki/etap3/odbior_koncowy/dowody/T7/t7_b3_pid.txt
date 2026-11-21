@@ -1,0 +1,25 @@
+ODCZYT 1 - PRZED startem okna 1 (03:20:04): procesy python ze sciezka <PC-katalog>\t0\odbior_t12\Stanowisko\wersje\* : 0 wierszy (oczekiwane 0)
+  (0 wierszy)
+ODCZYT 2 - PO starcie okna 1, PRZED startem okna 2 (03:20:17): 1 wierszy (oczekiwane 1)
+  Id=35620 StartTime=03:20:05.050 Rodzic=13280 Path=<PC-katalog>\t0\odbior_t12\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+ODCZYT 3 - regula proby 3 (03:20:18): procesy Pythona bazowego ze StartTime w [03:20:05.050; +5 s]: 2 wierszy (oczekiwane 2: interpreter programu i, mlodszy, silnik)
+  Id=35156 StartTime=03:20:05.104 Rodzic=35620 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=33092 StartTime=03:20:06.380 Rodzic=35156 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+ODCZYT 3a - lancuch rodzic-potomek (kontrola): potomkowie python posrednika 35620: 1; ich potomkowie python: 1
+  Id=35156 StartTime=03:20:05.104 Rodzic=35620 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=33092 StartTime=03:20:06.380 Rodzic=35156 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+ODCZYT 3b - wszystkie procesy python na PC w tej chwili: 6
+  Id=12012 StartTime=01:37:05.511 Rodzic= Path=
+  Id=18516 StartTime=02:53:21.115 Rodzic=15744 Path=<PC-katalog>\t0\odbior\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+  Id=18764 StartTime=02:53:21.151 Rodzic=18516 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=35620 StartTime=03:20:05.050 Rodzic=13280 Path=<PC-katalog>\t0\odbior_t12\Stanowisko\wersje\0.3.1\venv\Scripts\python.exe
+  Id=35156 StartTime=03:20:05.104 Rodzic=35620 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=33092 StartTime=03:20:06.380 Rodzic=35156 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+ODCZYT 4 - tuz przed zakonczeniem silnika (03:21:29): regula planu (Python bazowy, StartTime w 5 s po posredniku): 2 wierszy
+  Id=35156 StartTime=03:20:05.104 Rodzic=35620 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=33092 StartTime=03:20:06.380 Rodzic=35156 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+ODCZYT 4a - lancuch: potomkowie posrednika 35620: 1; ich potomkowie: 1
+  Id=35156 StartTime=03:20:05.104 Rodzic=35620 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+  Id=33092 StartTime=03:20:06.380 Rodzic=35156 Path=<PC>\AppData\Local\Programs\Python\Python312\python.exe
+ODCZYT KONCOWY (03:30:25): procesy python ze sciezka <PC-katalog>\t0\odbior_t12\Stanowisko\wersje\* : 0 wierszy (oczekiwane 0)
+  (0 wierszy)

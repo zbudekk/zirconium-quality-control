@@ -1,0 +1,103 @@
+PRZEBIEG p2c_1
+{"przebieg": "p2c_1", "przypadek": 2, "wariant": "c", "powt": 1, "start": "05:04:52", "ramki": "jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765)", "baza_miedzy_etapami": {"skany": {"przyjety": 1}, "zdarzenia": {"nowy_skan": 2, "podglad": 1, "program_start": 1, "program_stop": 1, "skan_przyjety": 1}}, "zadania_niezakonczone_json_miedzy_etapami": true, "baza_po": {"skany": {"przyjety": 2}, "zdarzenia": {"konflikt_projektu": 1, "nowy_skan": 2, "podglad": 2, "program_start": 2, "program_stop": 2, "skan_przyjety": 2}}, "zadania_niezakonczone_json_po": false, "procesy_python_nowe_po_przebiegu": [], "koniec": "05:06:14", "zrzuty": ["p2c_1_e2_01_komunikat_wznowiono.png", "p2c_1_e2_02_komunikat_konflikt_projektu.png", "p2c_1_e2_03_panel_nowy_wynik.png"]}
+
+== odczyty_1.jsonl
+  [    0.00 s 05:04:54.445] ZDARZENIE: start procesu programu {"platforma_qt": "offscreen", "python": "3.12.10", "katalog_programu": "0.3.1", "przypadek": 2, "wariant": "c", "powt": 1, "etap": 1}
+  [    0.85 s 05:04:55.297] ZDARZENIE: okno programu znalezione {"widoczne": true, "rozmiar": [1600, 900]}
+  [    0.86 s 05:04:55.299] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula liczenie, kolejka [0, 0, 0, 0, False], analiza False, tryb wieczor
+  [    0.86 s 05:04:55.299] ZDARZENIE: spelnione: okno programu widoczne {"po_s": 0.0}
+  [    0.95 s 05:04:55.388] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, False], analiza False, tryb wieczor
+  [    1.89 s 05:04:56.336] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    1.89 s 05:04:56.336] ZDARZENIE: klik {"obiekt": "osoba_0", "panel": null, "napis": "Technik A"}
+  [    1.89 s 05:04:56.336] ZDARZENIE: spelnione: klikniecie osoba_0 {"po_s": 0.0}
+  [    1.89 s 05:04:56.336] ZDARZENIE: spelnione: osoba wybrana {"po_s": 0.0}
+  [    1.89 s 05:04:56.336] ZDARZENIE: spelnione: pula gotowa i silnik gotowy {"po_s": 0.0}
+  [    2.04 s 05:04:56.481] ekran: paneli 0 (); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    2.99 s 05:04:57.429] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    5.01 s 05:04:59.450] ZDARZENIE: start symulatora skanera {"nr": 1, "zrodlo": "a", "pid": 27568}
+  [    7.85 s 05:05:02.289] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [   30.03 s 05:05:24.476] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   30.03 s 05:05:24.476] ZDARZENIE: spelnione: skan 1 ma plytke {"po_s": 25.03}
+  [   34.11 s 05:05:28.556] ZDARZENIE: start symulatora skanera {"nr": 2, "zrodlo": "b", "pid": 4156}
+  [   37.70 s 05:05:32.140] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [   37.70 s 05:05:32.140] ZDARZENIE: spelnione: analiza skanu 2 trwa {"po_s": 3.58}
+  [   41.76 s 05:05:36.199] ZDARZENIE: AWARIA: zamkniecie okna programu (close) w trakcie analizy skanu 2 {"program": 29664, "posrednik": 11256, "silnik": [13296]}
+  [   42.85 s 05:05:37.294] ZDARZENIE: program zakonczony {"kod": 0}
+  [   42.85 s 05:05:37.294] ZDARZENIE: procesy potomne po sprzataniu {"zywe": []}
+  odczytow ze zmiana ekranu: 8; okno programu znalezione w t = 0.855
+  OKNA najwyzszego poziomu widziane: ('OknoWieczor', 'okno_wieczor', 'Stanowisko - kontrola prac przed piecem', '')
+  PANELE widziane (obszar / panel / pierwszy odczyt / ostatni / mial widoczne piksele):
+   - uwagi / panel_osoba: pierwszy 0.86 s (05:04:55.299), ostatni 1.89 s, isVisible True, piksele True
+        tekst: Kto teraz pracuje?
+        tekst: Nie wybrano osoby, ktora pracuje - wybierz ja z listy. Bez tego nie mozna zapisywac decyzji.
+        przyciski: (osoba)
+   - uwagi / komunikat_ramka_wieczorna_niedostepna: pierwszy 2.99 s (05:04:57.429), ostatni 37.70 s, isVisible True, piksele True
+        tekst: Ramka wieczorna nie odpowiada
+        tekst: Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama.
+        przyciski: Zamknij
+  PASEK STANU (zmiany):
+   [    0.86 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "licze pliki projektow...", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    0.95 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    2.04 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+
+== odczyty_2.jsonl
+  [    0.00 s 05:05:39.852] ZDARZENIE: start procesu programu {"platforma_qt": "offscreen", "python": "3.12.10", "katalog_programu": "0.3.1", "przypadek": 2, "wariant": "c", "powt": 1, "etap": 2}
+  [    0.86 s 05:05:40.714] ZDARZENIE: okno programu znalezione {"widoczne": true, "rozmiar": [1600, 900]}
+  [    0.86 s 05:05:40.716] ekran: paneli 2 (panel_osoba, komunikat_wznowiono); kafelki ['plytka_1']; stan: komunikaty ['wznowiono'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula liczenie, kolejka [1, 0, 0, 1, False], analiza False, tryb wieczor
+  [    0.91 s 05:05:40.766] ZDARZENIE: zrzut {"plik": "p2c_1_e2_01_komunikat_wznowiono.png", "zapisany": true}
+  [    0.91 s 05:05:40.766] ZDARZENIE: spelnione: okno programu widoczne (po ponownym starcie) {"po_s": 0.0}
+  [    0.91 s 05:05:40.766] ZDARZENIE: PO RESTARCIE: stan przy pierwszym odczycie {"plytek": 1, "kafelki": 1}
+  [    0.94 s 05:05:40.792] ekran: paneli 2 (panel_osoba, komunikat_wznowiono); kafelki ['plytka_1']; stan: komunikaty ['wznowiono'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [1, 0, 1, 0, False], analiza False, tryb wieczor
+  [    1.87 s 05:05:41.726] ekran: paneli 2 (panel_osoba, komunikat_wznowiono); kafelki ['plytka_1']; stan: komunikaty ['wznowiono'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [    2.04 s 05:05:41.890] ZDARZENIE: klik {"obiekt": "osoba_0", "panel": null, "napis": "Technik A"}
+  [    2.05 s 05:05:41.898] ZDARZENIE: spelnione: klikniecie osoba_0 {"po_s": 0.01}
+  [    2.19 s 05:05:42.041] ekran: paneli 1 (komunikat_wznowiono); kafelki ['plytka_1']; stan: komunikaty ['wznowiono'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [    2.19 s 05:05:42.041] ZDARZENIE: spelnione: komunikat wznowiono na ekranie {"po_s": 0.14}
+  [    2.98 s 05:05:42.832] ekran: paneli 2 (komunikat_ramka_wieczorna_niedostepna, komunikat_wznowiono); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna', 'wznowiono'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [   25.94 s 05:06:05.796] ekran: paneli 4 (komunikat_konflikt_projektu, komunikat_ramka_wieczorna_niedostepna, komunikat_wznowiono, panel_nowy_wynik); kafelki ['plytka_1', 'plytka_2']; stan: komunikaty ['konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'ramka_wieczorna_niedostepna', 'wznowiono'], pytania ['brak_numeru_plytki'], plytki [[1, 'przyjety', '75db8c4f9ead0dab'], [2, 'przyjety', 'df2e6a790700131d']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   25.98 s 05:06:05.832] ZDARZENIE: zrzut {"plik": "p2c_1_e2_02_komunikat_konflikt_projektu.png", "zapisany": true}
+  [   26.01 s 05:06:05.860] ZDARZENIE: zrzut {"plik": "p2c_1_e2_03_panel_nowy_wynik.png", "zapisany": true}
+  [   26.01 s 05:06:05.860] ZDARZENIE: spelnione: DALSZA PRACA: skan 2 ma plytke po restarcie (2 plytki) {"po_s": 23.82}
+  [   31.12 s 05:06:10.972] ekran: paneli 4 (komunikat_konflikt_projektu, komunikat_ramka_wieczorna_niedostepna, komunikat_wznowiono, panel_nowy_wynik); kafelki ['plytka_1', 'plytka_2']; stan: komunikaty ['konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'konflikt_projektu', 'ramka_wieczorna_niedostepna', 'wznowiono'], pytania ['brak_numeru_plytki'], plytki [[1, 'przyjety', '75db8c4f9ead0dab'], [2, 'przyjety', 'df2e6a790700131d']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   31.12 s 05:06:10.972] ZDARZENIE: koniec scenariusza 
+  [   32.36 s 05:06:12.208] ZDARZENIE: program zakonczony {"kod": 0}
+  [   32.36 s 05:06:12.208] ZDARZENIE: procesy potomne po sprzataniu {"zywe": []}
+  odczytow ze zmiana ekranu: 7; okno programu znalezione w t = 0.862
+  OKNA najwyzszego poziomu widziane: ('OknoWieczor', 'okno_wieczor', 'Stanowisko - kontrola prac przed piecem', '')
+  PANELE widziane (obszar / panel / pierwszy odczyt / ostatni / mial widoczne piksele):
+   - uwagi / panel_osoba: pierwszy 0.86 s (05:05:40.716), ostatni 1.87 s, isVisible True, piksele True
+        tekst: Kto teraz pracuje?
+        tekst: Nie wybrano osoby, ktora pracuje - wybierz ja z listy. Bez tego nie mozna zapisywac decyzji.
+        przyciski: (osoba)
+   - uwagi / komunikat_wznowiono: pierwszy 0.86 s (05:05:40.716), ostatni 31.12 s, isVisible True, piksele True
+        tekst: Program wznowil prace
+        tekst: Po ponownym uruchomieniu program dokancza zalegle skany: 1.
+        przyciski: Zamknij
+   - uwagi / komunikat_ramka_wieczorna_niedostepna: pierwszy 2.98 s (05:05:42.832), ostatni 31.12 s, isVisible True, piksele True
+        tekst: Ramka wieczorna nie odpowiada
+        tekst: Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama.
+        przyciski: Zamknij
+   - pasek_bledow / komunikat_konflikt_projektu: pierwszy 25.94 s (05:06:05.796), ostatni 31.12 s, isVisible True, piksele True
+        tekst: Ten sam projekt w dwoch gniazdach  (7 razy)
+        tekst: Ten sam projekt pasuje do 2 prac - sprawdz, ktora praca jest ktora.
+        tekst: Gniazda: Plytka 8 (05:05), gniazdo 8 i Plytka bez numeru (05:06), gniazdo 9; Plytka 8 (05:05), gniazdo 7 i Plytka bez numeru (05:06), gniazdo 2; ....
+        przyciski: Zamknij
+   - lista_plytek / panel_nowy_wynik: pierwszy 25.94 s (05:06:05.796), ostatni 31.12 s, isVisible True, piksele True
+        tekst: Nowy wynik czeka: Plytka bez numeru
+        tekst: Plytka bez numeru (skan z 05:06): pytanie "Podaj numer plytki".
+        tekst: Ekran zostal na ogladanej plytce. Dokoncz ja albo kliknij "Pokaz nowy wynik".
+  PASEK STANU (zmiany):
+   [    0.86 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_kolejka": "czekaja na projekty: 1", "napis_osoba": "nie wybrano", "napis_pula": "licze pliki projektow...", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    0.94 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_kolejka": "skany w kolejce: 1", "napis_osoba": "nie wybrano", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    1.87 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    2.19 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+
+symulator symulator_1: koniec zapisu epoka 1795233901.781 (05:05:01), sha16 75db8c4f9ead0dab, rozmiar 44124484
+symulator symulator_2: koniec zapisu epoka 1795233931.693 (05:05:31), sha16 df2e6a790700131d, rozmiar 54501084

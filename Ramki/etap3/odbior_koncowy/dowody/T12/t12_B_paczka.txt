@@ -1,0 +1,9 @@
+commit zrodlowy: 571e186cb8178209da670dde244dfc56bba5e300 (data 2026-11-21T01:43:43 UTC); plikow w drzewo_M: 261
+schemat bazy w kopii: 1 -> 2 (MIGRACJE[2] = CREATE TABLE proba_migracji_odbior (id INTEGER PRIMARY KEY, opis TEXT))
+budowa: <PC>\AppData\Local\Programs\Python\Python312\python.exe -I <PC-katalog>\koordynator\robocze\odbior\T12\robocze\drzewo_M\narzedzia\zbuduj_wydanie.py --zrodlo <PC-katalog>\koordynator\robocze\odbior\T12\robocze\drzewo_M --data 2026-11-21T01:43:43 --wersja 0.3.9-migracja --commit 571e186cb817+MIGRACJE --wyjscie <PC-katalog>\koordynator\robocze\odbior\T12\robocze\paczki --kola <PC-katalog>\wydania\kola
+<PC-katalog>\koordynator\robocze\odbior\T12\robocze\paczki\Stanowisko_0.3.9-migracja.zip: wersja 0.3.9-migracja, commit 571e186cb817, 210 plikow + SHA256SUMS (program 131, kola 73, kola testowe 3), 444935282 bajtow (424.3 MB), kontrola wlasna sum: zgodne
+SHA-256 ed97a4b0a5c5c4f1bf3555821c4272ee1f79096d6d56e4dc39f136145340ccea
+repo zrodlowe bez zmian (git status --short: 0 wierszy przed i po)
+paczka probna: <PC-katalog>\koordynator\robocze\odbior\T12\robocze\paczki\Stanowisko_0.3.9-migracja.zip (444935282 B)
+SHA-256: ed97a4b0a5c5c4f1bf3555821c4272ee1f79096d6d56e4dc39f136145340ccea
+UWAGA: paczki probnej NIE publikowac i nie dopisywac do listy wydan (zawiera probna migracje bazy).

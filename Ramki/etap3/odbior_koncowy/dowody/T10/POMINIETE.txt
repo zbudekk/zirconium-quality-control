@@ -1,0 +1,8 @@
+Pliki i katalogi testu T10, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T10/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 22 pliki, 1877296 B | katalog roboczy - wyjscie ciezki.ps1, postep, proba skryptu, porownanie z R59, kopie do kontroli
+katalog | t10\ | 1 plik, 1623926 B | katalog roboczy - surowy wynik narzedzia t10_surowe_metryki.json (> 1024 KB)
+plik | t10_metryki.json | 1623926 B (1586 KB) | plik > 1024 KB (1586 KB) - decyzja koordynatora: nie idzie do repo; w repo zostaja t10_wynik.md i t10_licz.json
+plik | t10_surowe.log | 59667 B (59 KB) | plik surowy (zostaje w ROB wg planu T10; w repo jest kopia t10.log)

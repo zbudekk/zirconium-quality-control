@@ -1,0 +1,9 @@
+t3_sterownik START sob. 21.11.2026  2:52:10,91 
+t3_sterownik KOD=0 
+t3_sterownik KONIEC sob. 21.11.2026  2:52:21,25 
+t3_se10 START sob. 21.11.2026  2:52:24,84 
+t3_se10 KOD=0 
+t3_se10 KONIEC sob. 21.11.2026  2:52:26,86 
+t3_ekran START sob. 21.11.2026  2:52:30,08 
+t3_ekran KOD=0 
+t3_ekran KONIEC sob. 21.11.2026  2:53:35,97 

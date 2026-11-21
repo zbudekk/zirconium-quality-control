@@ -1,0 +1,837 @@
+{
+ "od": "2537f6f",
+ "do": "571e186",
+ "zmienionych": 662,
+ "nowych": 584,
+ "liczniki": {
+  "E3": {
+   "A": 245,
+   "M": 24,
+   "D": 0,
+   "inne": 0
+  },
+  "R59": {
+   "A": 97,
+   "M": 34,
+   "D": 16,
+   "inne": 0
+  },
+  "R58": {
+   "A": 242,
+   "M": 4,
+   "D": 0,
+   "inne": 0
+  }
+ },
+ "naruszenia": [],
+ "odstepstwo_o11_napisy_ekranu": [
+  {
+   "sciezka": "Ramki/stanowisko/stanowisko/dzien_skanera.py",
+   "status": "A",
+   "powod": "nie ASCII (859 bajtow)",
+   "grupa": "E3",
+   "wierszy_nie_ascii": 109
+  },
+  {
+   "sciezka": "Ramki/stanowisko/stanowisko/dzien_skanera_kroki.toml",
+   "status": "A",
+   "powod": "nie ASCII (1783 bajtow)",
+   "grupa": "E3",
+   "wierszy_nie_ascii": 134
+  },
+  {
+   "sciezka": "Ramki/stanowisko/stanowisko/dzien_skanera_rdzen.py",
+   "status": "A",
+   "powod": "nie ASCII (946 bajtow)",
+   "grupa": "E3",
+   "wierszy_nie_ascii": 102
+  },
+  {
+   "sciezka": "Ramki/stanowisko/stanowisko/statusy.py",
+   "status": "A",
+   "powod": "nie ASCII (1665 bajtow)",
+   "grupa": "E3",
+   "wierszy_nie_ascii": 240
+  },
+  {
+   "sciezka": "Ramki/stanowisko/stanowisko/ui/napisy.py",
+   "status": "A",
+   "powod": "nie ASCII (318 bajtow)",
+   "grupa": "E3",
+   "wierszy_nie_ascii": 66
+  },
+  {
+   "sciezka": "Ramki/stanowisko/stanowisko/ui/napisy_rano.py",
+   "status": "A",
+   "powod": "nie ASCII (710 bajtow)",
+   "grupa": "E3",
+   "wierszy_nie_ascii": 111
+  },
+  {
+   "sciezka": "Ramki/stanowisko/testy/test_dzien_skanera.py",
+   "status": "A",
+   "powod": "nie ASCII (171 bajtow)",
+   "grupa": "E3",
+   "wierszy_nie_ascii": 45
+  }
+ ],
+ "wyjatki_bez_trafienia": [],
+ "uwagi_poza_etapem": [
+  {
+   "sciezka": "Ramki/R58_arkusz_zamowienia.csv",
+   "status": "A",
+   "powod": "plik danych (.csv)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/01_Dokumenty/01_Plan_wdrozenia_v2_2026-11-16_R59.md",
+   "status": "A",
+   "powod": "nie ASCII (10145 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/01_Dokumenty/01_Plan_wdrozenia_v2_2026-11-16_R59.md",
+   "status": "A",
+   "powod": "konce linii: 724 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/01_Dokumenty/02_Zakupy_i_druk_2026-11-16_R59.md",
+   "status": "A",
+   "powod": "nie ASCII (3946 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/01_Dokumenty/03_Budowa_ramki_decyzje_i_zamienniki_2026-11-16_R59.md",
+   "status": "A",
+   "powod": "nie ASCII (6022 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/01_Dokumenty/03_Budowa_ramki_decyzje_i_zamienniki_2026-11-16_R59.md",
+   "status": "A",
+   "powod": "konce linii: 352 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/01_Dokumenty/04_Plan_budowy_ramek_v2_2026-11-16_R59.md",
+   "status": "A",
+   "powod": "nie ASCII (18820 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/04_Model_i_animacje/animacja_ramki_R59.html",
+   "status": "A",
+   "powod": "nie ASCII (521 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/04_Model_i_animacje/ramka_3d_v3_R59.html",
+   "status": "A",
+   "powod": "duzy plik (6372 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/04_Model_i_animacje/ramka_3d_v3_R59.html",
+   "status": "A",
+   "powod": "nie ASCII (3728 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/05_Zrodla/ramka_plytka_poranna_v2.stl",
+   "status": "A",
+   "powod": "STL poza modele_plytek",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/05_Zrodla/ramka_plytka_poranna_v2.stl",
+   "status": "A",
+   "powod": "duzy plik (1074 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/05_Zrodla/ramka_plytka_wieczorna_v2.stl",
+   "status": "A",
+   "powod": "STL poza modele_plytek",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/05_Zrodla/raport_wykonawcy_R59_iter2.md",
+   "status": "A",
+   "powod": "nie ASCII (11794 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/05_Zrodla/raport_wykonawcy_R59_iter2.md",
+   "status": "A",
+   "powod": "konce linii: 2718 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/05_Zrodla/stanowisko_README.md",
+   "status": "A",
+   "powod": "nie ASCII (1656 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/Ramki_pakiet/05_Zrodla/stanowisko_README.md",
+   "status": "A",
+   "powod": "konce linii: 137 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/01_Plan_wdrozenia_v2_2026-11-02_R57.md",
+   "status": "A",
+   "powod": "nie ASCII (8988 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/01_Plan_wdrozenia_v2_2026-11-02_R57.md",
+   "status": "A",
+   "powod": "konce linii: 680 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/02_Zakupy_i_druk_2026-11-02_R57.md",
+   "status": "A",
+   "powod": "nie ASCII (3389 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/03_Budowa_ramki_decyzje_i_zamienniki_2026-11-02_R57.md",
+   "status": "A",
+   "powod": "nie ASCII (5182 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/03_Budowa_ramki_decyzje_i_zamienniki_2026-11-02_R57.md",
+   "status": "A",
+   "powod": "konce linii: 331 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/04_Plan_budowy_ramek_v2_2026-11-02_R57.md",
+   "status": "A",
+   "powod": "nie ASCII (17691 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/05_R53_projekt_poprawek_pasowan_2026-10-31.md",
+   "status": "A",
+   "powod": "nie ASCII (1350 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/06_R53_weryfikacja_2026-10-31.md",
+   "status": "A",
+   "powod": "nie ASCII (2099 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/07_R54_gniazda_w_kole_pola_skanowania_2026-11-01.md",
+   "status": "A",
+   "powod": "nie ASCII (1093 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/01_Dokumenty/08_R54_recenzja_plytek_2026-11-01.md",
+   "status": "A",
+   "powod": "nie ASCII (2165 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/02_Druk_drukarnia_PA12/arkusz_zamowienia.csv",
+   "status": "A",
+   "powod": "plik danych (.csv)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/02_Druk_drukarnia_PA12/arkusz_zamowienia.md",
+   "status": "A",
+   "powod": "nie ASCII (607 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/04_Model_i_animacje/animacja_ramki_R53.html",
+   "status": "A",
+   "powod": "nie ASCII (378 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/04_Model_i_animacje/ramka_3d_v3_R54.html",
+   "status": "A",
+   "powod": "duzy plik (6439 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/04_Model_i_animacje/ramka_3d_v3_R54.html",
+   "status": "A",
+   "powod": "nie ASCII (2978 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/04_Model_i_animacje/rendery/render_plytki.png",
+   "status": "A",
+   "powod": "duzy plik (1864 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/04_Model_i_animacje/rendery/render_rozstrzelony.png",
+   "status": "A",
+   "powod": "duzy plik (1705 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/04_Model_i_animacje/rendery/render_zlozony.png",
+   "status": "A",
+   "powod": "duzy plik (1718 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/R57_wdrozenie_zmiany.md",
+   "status": "A",
+   "powod": "nie ASCII (1237 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/README_wyniki_v2.md",
+   "status": "A",
+   "powod": "nie ASCII (963 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/README_wyniki_v2.md",
+   "status": "A",
+   "powod": "konce linii: 85 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/arkusz_wymiarow.md",
+   "status": "A",
+   "powod": "nie ASCII (2745 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/arkusz_wymiarow.md",
+   "status": "A",
+   "powod": "konce linii: 603 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/arkusz_zamowienia_R57.py",
+   "status": "A",
+   "powod": "nie ASCII (225 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/buduj_plan_wdrozenia.py",
+   "status": "A",
+   "powod": "nie ASCII (1111 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/buduj_plan_wdrozenia.py",
+   "status": "A",
+   "powod": "konce linii: 856 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/dostawcy_druk_i_pleksi.md",
+   "status": "A",
+   "powod": "nie ASCII (169 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/kody_plytek.md",
+   "status": "A",
+   "powod": "nie ASCII (168 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/kody_plytek.md",
+   "status": "A",
+   "powod": "konce linii: 21 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/parametry.json",
+   "status": "A",
+   "powod": "nie ASCII (1240 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/protokol_weryfikacji_v2.md",
+   "status": "A",
+   "powod": "nie ASCII (5112 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/ramka_generator.py",
+   "status": "A",
+   "powod": "nie ASCII (4628 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/ramka_v2.blend",
+   "status": "A",
+   "powod": "plik danych (.blend)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/ramka_v2.blend",
+   "status": "A",
+   "powod": "duzy plik (14586 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/raport_recenzenta_R57_iter1.md",
+   "status": "A",
+   "powod": "nie ASCII (2861 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/raport_recenzenta_R57_iter1.md",
+   "status": "A",
+   "powod": "konce linii: 93 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/raport_wykonawcy_R54_iter1.md",
+   "status": "A",
+   "powod": "nie ASCII (9694 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/raport_wykonawcy_R55_iter1.md",
+   "status": "A",
+   "powod": "nie ASCII (9089 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/raport_wykonawcy_R57_iter2.md",
+   "status": "A",
+   "powod": "nie ASCII (13330 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/raport_wykonawcy_R57_iter2.md",
+   "status": "A",
+   "powod": "konce linii: 3117 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_gniazd_okragla_poranna.json",
+   "status": "A",
+   "powod": "nie ASCII (38 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_gniazd_okragla_poranna.json",
+   "status": "A",
+   "powod": "konce linii: 420 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_gniazd_okragla_wieczorna.json",
+   "status": "A",
+   "powod": "nie ASCII (38 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_gniazd_okragla_wieczorna.json",
+   "status": "A",
+   "powod": "konce linii: 290 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_gniazd_poranna.json",
+   "status": "A",
+   "powod": "nie ASCII (12 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_gniazd_poranna.json",
+   "status": "A",
+   "powod": "konce linii: 441 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_gniazd_wieczorna.json",
+   "status": "A",
+   "powod": "nie ASCII (12 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_gniazd_wieczorna.json",
+   "status": "A",
+   "powod": "konce linii: 311 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/uklad_kolo_R54.js",
+   "status": "A",
+   "powod": "nie ASCII (89 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/05_Zrodla/weryfikuj_uklad_R54.js",
+   "status": "A",
+   "powod": "nie ASCII (118 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/Ramki_pakiet_przed_R59_2026-11-16/README.txt",
+   "status": "A",
+   "powod": "nie ASCII (45 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/buduj_plan_wdrozenia_przed_R59_PDF_2026-11-15.py",
+   "status": "A",
+   "powod": "nie ASCII (1124 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/archiwum/buduj_plan_wdrozenia_przed_R59_PDF_2026-11-15.py",
+   "status": "A",
+   "powod": "konce linii: 869 x CRLF (ma byc LF)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/json/uklad_gniazd_okragla_ramkowa_poranna.json",
+   "status": "A",
+   "powod": "nie ASCII (71 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/json/uklad_gniazd_okragla_ramkowa_poranna.json",
+   "status": "A",
+   "powod": "konce linii: 365 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/json/uklad_gniazd_okragla_ramkowa_wieczorna.json",
+   "status": "A",
+   "powod": "nie ASCII (71 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/json/uklad_gniazd_okragla_ramkowa_wieczorna.json",
+   "status": "A",
+   "powod": "konce linii: 315 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_A_kopiaP3_iter1.md",
+   "status": "A",
+   "powod": "nie ASCII (9470 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_A_kopiaP3_iter1.md",
+   "status": "A",
+   "powod": "konce linii: 2275 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter1.md",
+   "status": "A",
+   "powod": "nie ASCII (10332 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter1.md",
+   "status": "A",
+   "powod": "konce linii: 1849 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter2.md",
+   "status": "A",
+   "powod": "nie ASCII (10385 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter2.md",
+   "status": "A",
+   "powod": "konce linii: 1850 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter3.md",
+   "status": "A",
+   "powod": "nie ASCII (10385 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter3.md",
+   "status": "A",
+   "powod": "konce linii: 1850 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter4.md",
+   "status": "A",
+   "powod": "nie ASCII (11205 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter4.md",
+   "status": "A",
+   "powod": "konce linii: 1909 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter5.md",
+   "status": "A",
+   "powod": "nie ASCII (11784 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_SPRAWDZ_iter5.md",
+   "status": "A",
+   "powod": "konce linii: 1969 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter1.md",
+   "status": "A",
+   "powod": "nie ASCII (10332 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter1.md",
+   "status": "A",
+   "powod": "konce linii: 1854 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter2.md",
+   "status": "A",
+   "powod": "nie ASCII (10328 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter2.md",
+   "status": "A",
+   "powod": "konce linii: 1854 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter3.md",
+   "status": "A",
+   "powod": "nie ASCII (10328 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter3.md",
+   "status": "A",
+   "powod": "konce linii: 1854 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter4.md",
+   "status": "A",
+   "powod": "nie ASCII (10381 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter4.md",
+   "status": "A",
+   "powod": "konce linii: 1855 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter5.md",
+   "status": "A",
+   "powod": "nie ASCII (11132 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter5.md",
+   "status": "A",
+   "powod": "konce linii: 1906 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter6.md",
+   "status": "A",
+   "powod": "nie ASCII (11201 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter6.md",
+   "status": "A",
+   "powod": "konce linii: 1914 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter7.md",
+   "status": "A",
+   "powod": "nie ASCII (11201 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter7.md",
+   "status": "A",
+   "powod": "konce linii: 1914 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter8.md",
+   "status": "A",
+   "powod": "nie ASCII (11780 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58_iter8.md",
+   "status": "A",
+   "powod": "konce linii: 1974 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58powt_iter1.md",
+   "status": "A",
+   "powod": "nie ASCII (10381 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58powt_iter1.md",
+   "status": "A",
+   "powod": "konce linii: 1855 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58powt_iter2.md",
+   "status": "A",
+   "powod": "nie ASCII (11136 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_R58powt_iter2.md",
+   "status": "A",
+   "powod": "konce linii: 1914 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter13.md",
+   "status": "A",
+   "powod": "nie ASCII (11728 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter13.md",
+   "status": "A",
+   "powod": "konce linii: 2666 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter14.md",
+   "status": "A",
+   "powod": "nie ASCII (11728 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter14.md",
+   "status": "A",
+   "powod": "konce linii: 2666 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter15.md",
+   "status": "A",
+   "powod": "nie ASCII (11728 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter15.md",
+   "status": "A",
+   "powod": "konce linii: 2666 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter16.md",
+   "status": "A",
+   "powod": "nie ASCII (11728 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter16.md",
+   "status": "A",
+   "powod": "konce linii: 2666 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter17.md",
+   "status": "A",
+   "powod": "nie ASCII (11728 bajtow)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter17.md",
+   "status": "A",
+   "powod": "konce linii: 2666 x CRLF (ma byc LF)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/DO_WGRANIA_NA_DRIVE_2026-11-16_R59.md",
+   "status": "A",
+   "powod": "nie ASCII (82 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/INSTRUKCJA_PAKIET_2026-11-16_R59.md",
+   "status": "A",
+   "powod": "nie ASCII (416 bajtow)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/Ramki_pakiet_2026-11-16_R59_cz1_dokumenty_druk.zip",
+   "status": "A",
+   "powod": "plik danych (.zip)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/Ramki_pakiet_2026-11-16_R59_cz1_dokumenty_druk.zip",
+   "status": "A",
+   "powod": "duzy plik (4491 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/Ramki_pakiet_2026-11-16_R59_cz2_model.zip",
+   "status": "A",
+   "powod": "plik danych (.zip)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/Ramki_pakiet_2026-11-16_R59_cz2_model.zip",
+   "status": "A",
+   "powod": "duzy plik (8163 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/Ramki_pakiet_2026-11-16_R59_cz3_zrodla.zip",
+   "status": "A",
+   "powod": "plik danych (.zip)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/Ramki_pakiet_2026-11-16_R59_cz3_zrodla.zip",
+   "status": "A",
+   "powod": "duzy plik (6729 KB > 1024 KB)",
+   "grupa": "R59"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/Zamowienie_komplet_okragly_R58_2026-11-19.zip",
+   "status": "A",
+   "powod": "plik danych (.zip)",
+   "grupa": "R58"
+  },
+  {
+   "sciezka": "Ramki_do_wgrania/Zamowienie_komplet_okragly_R58_2026-11-19.zip",
+   "status": "A",
+   "powod": "duzy plik (2977 KB > 1024 KB)",
+   "grupa": "R58"
+  }
+ ]
+}

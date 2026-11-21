@@ -1,0 +1,5 @@
+Pliki i katalogi testu T12, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T12/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | rozmiaru nie liczono (zakaz obciazenia PC w czasie T4 / T2); wg WYNIK.md ok. 6,2 GB | katalog roboczy - instalacje probne czesci B (K_B, K_B2), paczka probna ZIP, drzewo_M, paczka_M, foldery wejsciowe

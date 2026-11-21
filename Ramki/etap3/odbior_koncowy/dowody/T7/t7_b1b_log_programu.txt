@@ -1,0 +1,14 @@
+2026-11-21 03:30:27,911 INFO __main__: stanowisko: diagnostyka DLL - uchwyty katalogu obiektow Known DLLs procesu okna przy starcie: 0x58
+2026-11-21 03:30:27,939 INFO __main__: stanowisko: start, zadan wznowionych 0, plikow znanych 0
+2026-11-21 03:30:27,951 WARNING __main__: stanowisko: ramki - Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+2026-11-21 03:30:40,807 INFO stanowisko.scanner: nowy skan nr 1: c85504f17628ac3f sha16=c85504f17628ac3f rozmiar=58251084 trojkatow=1165020
+2026-11-21 03:31:59,061 WARNING stanowisko.kontroler_api: kontroler: zgaszenie ramki W przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+2026-11-21 03:31:59,061 WARNING stanowisko.kontroler_api: kontroler: zgaszenie ramki P przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+2026-11-21 03:31:59,244 INFO __main__: stanowisko: zamkniete, zadan niezakonczonych 1
+2026-11-21 03:32:00,726 INFO __main__: stanowisko: diagnostyka DLL - uchwyty katalogu obiektow Known DLLs procesu okna przy starcie: 0x58
+2026-11-21 03:32:00,758 INFO __main__: stanowisko: start, zadan wznowionych 1, plikow znanych 1
+2026-11-21 03:32:00,758 WARNING __main__: stanowisko: ramki - Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+2026-11-21 03:32:58,373 INFO __main__: stanowisko: skan c85504f17628ac3f przyjety jako 1 (56.3 s)
+2026-11-21 03:34:31,872 WARNING stanowisko.kontroler_api: kontroler: zgaszenie ramki W przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+2026-11-21 03:34:31,872 WARNING stanowisko.kontroler_api: kontroler: zgaszenie ramki P przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+2026-11-21 03:34:32,140 INFO __main__: stanowisko: zamkniete, zadan niezakonczonych 0

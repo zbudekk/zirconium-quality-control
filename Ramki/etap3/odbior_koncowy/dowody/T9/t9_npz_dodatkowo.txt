@@ -1,0 +1,4 @@
+Samotest: nazw 449, czlonow 61; postaci sprawdzonych 3578, nieznalezionych 0; postac UTF-32 LE po usunieciu zer: nieznalezionych 3 z 449
+Plikow .npz 586 (bledow otwarcia 0); elementow rozpakowanych 9063; bajtow po rozpakowaniu 2507512811
+TRAFIENIA calych nazw we wnetrzu .npz: 0 w 0 plikach; sha16: {}
+Czlony nazw (bez calej nazwy) we wnetrzu .npz: 995; sha16: {'0dcfafab5f8035e7': 2, '195d0f538f63d8bd': 2, '3dea4293d4bdc355': 8, '45f91df25dac1d48': 2, '5054e1b14a2e813f': 792, '702370082a6ab1a0': 30, '7da6cb013511d41b': 22, '813684c987347d60': 4, '923818e5629f40f9': 15, 'd3fc3547346f0ef9': 54, 'd980ff4703675303': 52, 'ec16cd73f88aeaa6': 12}

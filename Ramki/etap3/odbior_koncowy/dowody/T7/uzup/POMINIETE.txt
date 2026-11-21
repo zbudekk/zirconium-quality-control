@@ -1,0 +1,18 @@
+Pliki i katalogi testu T7 - uzupelnienie (tresc komunikatow na ekranie), ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T7/uzup/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 404 pliki, 1130532434 B | katalog roboczy - 16 katalogow przebiegow ze skanami i bazami, kopie puli, czcionki, 53 zrzuty
+katalog | zrzuty_dowody\ | 12 plikow PNG, 1677393 B | zrzuty ekranu PNG - decyzja koordynatora: nie ida do repo (PNG jest na liscie zakazanych dowody_lf.py); kazdy zrzut opisany jednym zdaniem w WYNIK.md, sumy w zrzuty_i_kontrole.txt
+plik | zrzuty_dowody/zrzut_p1_1_e1_01_komunikat_blad_analizy.png | 105610 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p1_1_e1_02_pytanie_brak_numeru_plytki.png | 151954 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p2_1_e2_01_komunikat_wznowiono.png | 169362 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p2c_1_e2_01_komunikat_wznowiono.png | 177761 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p3_1_e1_03_start_bez_folderu_bez_skanu.png | 91378 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p3_1_e1_04_komunikat_pula_brak_folderu.png | 109868 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p3_1_e1_05_3b_po_zniknieciu_bez_skanu.png | 181427 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p3_1_e1_06_3b_po_skanie.png | 187014 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p4a_2_e1_02_komunikat_ramka_wieczorna_niedostepna.png | 89686 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p4b_1_e1_03_komunikat_ramka_niedostepna.png | 104605 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p5d_1_e1_02_ramki_gotowe.png | 77359 B | zrzut PNG - jw.
+plik | zrzuty_dowody/zrzut_p6_1_e1_01_komunikat_decyzja_niezapisana.png | 231369 B | zrzut PNG - jw.

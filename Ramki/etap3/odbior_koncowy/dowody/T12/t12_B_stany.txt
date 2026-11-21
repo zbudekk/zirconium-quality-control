@@ -1,0 +1,150 @@
+== czesc B: stany bazy K_B 
+ustawienia K_B: zmienionych wierszy 5 (oczekiwane 5)
+ 
+===== STAN po kroku 3 (PRZED aktualizacja probna) sob. 21.11.2026  2:58:05,56 
+wersja_biezaca: 
+0.3.1
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+fbe081c339b69a9c388c4e84f1ecf5e41acab57abd42ddd7f2341875b31ceded
+86016 4c38ce10e2db2472b1ac4d2b0d15f10939c2ebe558a61c352d0fd7e709595748
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+ 
+===== STAN po kroku 5 (c2: po pierwszym starcie wersji probnej) sob. 21.11.2026  2:59:32,72 
+wersja_biezaca: 
+0.3.9-migracja
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+56970a119b530eeaec730ac96942fb28f8398ad58cd63c726898310b290a5ecf
+90112 fda9bd55040391207019b6f5468841a4813bf594de2de5f3af8dc6102482678a
+user_version
+2
+-- wierszy: 1
+count(*)
+7
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite rozmiar 86016 
+ef6a2bc757aee2fd7ea75daf763a39062be4566e86e2335ac9fb7c0eeddf15e3
+86016 4c38ce10e2db2472b1ac4d2b0d15f10939c2ebe558a61c352d0fd7e709595748
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+ 
+===== STAN po kroku 6 (powrot bez zgody - oczekiwany kod 8) sob. 21.11.2026  2:59:34,01 
+wersja_biezaca: 
+0.3.9-migracja
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+56970a119b530eeaec730ac96942fb28f8398ad58cd63c726898310b290a5ecf
+90112 fda9bd55040391207019b6f5468841a4813bf594de2de5f3af8dc6102482678a
+user_version
+2
+-- wierszy: 1
+count(*)
+7
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite rozmiar 86016 
+ef6a2bc757aee2fd7ea75daf763a39062be4566e86e2335ac9fb7c0eeddf15e3
+86016 4c38ce10e2db2472b1ac4d2b0d15f10939c2ebe558a61c352d0fd7e709595748
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+ 
+===== STAN po kroku 7 (e: po powrocie z przywroceniem kopii) sob. 21.11.2026  2:59:37,96 
+wersja_biezaca: 
+0.3.1
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+ef6a2bc757aee2fd7ea75daf763a39062be4566e86e2335ac9fb7c0eeddf15e3
+86016 4c38ce10e2db2472b1ac4d2b0d15f10939c2ebe558a61c352d0fd7e709595748
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_odlozona_v2_20261121_025935.sqlite
+stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite
+-- kopia stanowisko_odlozona_v2_20261121_025935.sqlite rozmiar 90112 
+69773e9c385649fb27b072a38d7fbff04d0ce8623d4fe5eda8738e0368e8f900
+90112 fda9bd55040391207019b6f5468841a4813bf594de2de5f3af8dc6102482678a
+user_version
+2
+-- wierszy: 1
+count(*)
+7
+-- wierszy: 1
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite rozmiar 86016 
+ef6a2bc757aee2fd7ea75daf763a39062be4566e86e2335ac9fb7c0eeddf15e3
+86016 4c38ce10e2db2472b1ac4d2b0d15f10939c2ebe558a61c352d0fd7e709595748
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+ 
+===== STAN po kroku 8 (start wersji N na przywroconej bazie) sob. 21.11.2026  2:59:46,60 
+wersja_biezaca: 
+0.3.1
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+6a7f83175857dc2a84e52089a095e010948af9cb53e96ad8ecc5dfcf2b25304c
+86016 55ba05338466e82d9cedfac069a08e32bd2884677dfc19540b538b57ed1f5314
+user_version
+1
+-- wierszy: 1
+count(*)
+6
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_odlozona_v2_20261121_025935.sqlite
+stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite
+-- kopia stanowisko_odlozona_v2_20261121_025935.sqlite rozmiar 90112 
+69773e9c385649fb27b072a38d7fbff04d0ce8623d4fe5eda8738e0368e8f900
+90112 fda9bd55040391207019b6f5468841a4813bf594de2de5f3af8dc6102482678a
+user_version
+2
+-- wierszy: 1
+count(*)
+7
+-- wierszy: 1
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite rozmiar 86016 
+ef6a2bc757aee2fd7ea75daf763a39062be4566e86e2335ac9fb7c0eeddf15e3
+86016 4c38ce10e2db2472b1ac4d2b0d15f10939c2ebe558a61c352d0fd7e709595748
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+0.3.1            zainstalowano 2026-11-21 02:56:23 commit 571e186cb817 schemat bazy 1  BIEZACA
+0.3.9-migracja   zainstalowano 2026-11-21 02:58:07 commit 571e186cb817 schemat bazy 2  poprzednia

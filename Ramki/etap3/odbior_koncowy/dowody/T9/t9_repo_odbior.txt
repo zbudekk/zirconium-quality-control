@@ -1,0 +1,61 @@
+Samotest: nazw 449, czlonow 61, tekstow maski 524, wzorzec kontrolny 1; postaci sprawdzonych 8229, nieznalezionych 0; nazw bez postaci ASCII (transliteracja niemozliwa, postac niesprawdzana): 7
+T9 dane osobowe: szukanych nazw 449 (pominietych krotszych niz 4 znaki: 0), czlonow 61; przeszukanych plikow 2267, nieprzeszukanych (spakowane / za duze) 798, wykluczonych (--wyklucz) 0
+Historia git: commitow 606 (opis, autor, tresc zmian); zmian plikow binarnych z nieprzeszukana trescia: 136
+TRAFIENIA calych nazw poza miejscami dozwolonymi: 96 w 13 plikach
+  repo:Ramki/stanowisko/testy/dane_sesji/indeks.json: 0f8596ebf01c483d x5, 11e5c63623f18a36 x5, 4a1fcff8a9175252 x2, 5460764f2024f994 x4
+  repo:Ramki/stanowisko/testy/dane_sesji/rano/se10.json: 0f8596ebf01c483d x1, 11e5c63623f18a36 x1, 156f94c998e4ec4a x1, 163621ccfc2307d7 x1, 257450e61626b322 x1, 2781186f72bbf8c3 x1, 45fe9d7ade50a3e7 x1, 4a1fcff8a9175252 x1, 5460764f2024f994 x1, 5d3353654665665a x1, 880996ebc570e572 x1, 88b9733d89b16459 x1, 8ee4563695e9f8f5 x1, de5c28d2f9a1802b x1
+  repo:Ramki/stanowisko/testy/test_baza.py: 4a1fcff8a9175252 x4, 5460764f2024f994 x6
+  repo:Ramki/stanowisko/testy/test_excel.py: 45fe9d7ade50a3e7 x2
+  repo:Ramki/stanowisko/testy/test_nazwy.py: 5460764f2024f994 x1
+  repo:Ramki/stanowisko/testy/test_session_rano.py: 45fe9d7ade50a3e7 x2, 5460764f2024f994 x2, 880996ebc570e572 x1
+  repo:<historia 2537f6f..HEAD: commit 783d4969a84e>: 45fe9d7ade50a3e7 x2
+  repo:<historia 2537f6f..HEAD: commit b3e16ebcb134>: 45fe9d7ade50a3e7 x1
+  repo:<historia 2537f6f..HEAD: commit 0c29a7d3a79e>: 45fe9d7ade50a3e7 x1, 5460764f2024f994 x1, 880996ebc570e572 x1
+  repo:<historia 2537f6f..HEAD: commit 1adc2e84e1b0>: 0f8596ebf01c483d x1, 11e5c63623f18a36 x1, 156f94c998e4ec4a x1, 163621ccfc2307d7 x1, 257450e61626b322 x1, 2781186f72bbf8c3 x1, 45fe9d7ade50a3e7 x1, 4a1fcff8a9175252 x1, 5460764f2024f994 x2, 5d3353654665665a x1, 880996ebc570e572 x1, 88b9733d89b16459 x1, 8ee4563695e9f8f5 x1, de5c28d2f9a1802b x1
+  repo:<historia 2537f6f..HEAD: commit d84b8422c878>: 5460764f2024f994 x1
+  repo:<historia 2537f6f..HEAD: commit da49f0af4bfe>: 4a1fcff8a9175252 x1, 5460764f2024f994 x2
+  repo:<historia 2537f6f..HEAD: commit 9ee7801391c4>: 0f8596ebf01c483d x5, 11e5c63623f18a36 x5, 4a1fcff8a9175252 x5, 5460764f2024f994 x8
+Trafienia w miejscach dozwolonych: 0 w 0 plikach
+Czlony nazw do wyjasnienia (bez calej nazwy): 9653 w 978 plikach
+  repo:Ramki/00_NADZOR_STAN.md: 17f29b073143d8cd x1, 414777f6c840fa40 x1, 5054e1b14a2e813f x25, 6d223affc23ef544 x3, 7da6cb013511d41b x2, b78cb9ce56d5b7e2 x5
+  repo:Ramki/00_PRZEPLYW_I_BRAMKI.md: 5054e1b14a2e813f x2, 6d223affc23ef544 x2
+  repo:Ramki/Budowa ramki \u2014 decyzje i zamienniki.md: 5054e1b14a2e813f x8, 6d223affc23ef544 x3, 9722d4a4b59ce537 x1
+  repo:Ramki/R50_wdrozenie_zmiany.md: 5054e1b14a2e813f x2
+  repo:Ramki/R54_wdrozenie_zmiany.md: 5054e1b14a2e813f x3
+  repo:Ramki/R57_wdrozenie_zmiany.md: 5054e1b14a2e813f x3
+  repo:Ramki/R58_arkusz_zamowienia.md: 5054e1b14a2e813f x1
+  repo:Ramki/R58_wdrozenie_zmiany.md: 5054e1b14a2e813f x18, b78cb9ce56d5b7e2 x4
+  repo:Ramki/R59_arkusz_zamowienia.md: 5054e1b14a2e813f x2
+  repo:Ramki/R59_odbior/baseline.md: 6d223affc23ef544 x1
+  repo:Ramki/R59_odbior/kontrola_tresci_zip.py: 0dcfafab5f8035e7 x1, 17f29b073143d8cd x1, b78cb9ce56d5b7e2 x1
+  repo:Ramki/R59_odbior/logi/R59K_poprawka_D1_D2.txt: 6d223affc23ef544 x1
+  repo:Ramki/R59_odbior/logi/T1_weryfikator.log: b78cb9ce56d5b7e2 x2
+  repo:Ramki/R59_odbior/logi/T1_weryfikator_po_poprawce.log: b78cb9ce56d5b7e2 x2
+  repo:Ramki/R59_odbior/logi/T6_T10_program.log: 414777f6c840fa40 x2
+  repo:Ramki/R59_odbior/logi/T6_T10_program_po_poprawkach.log: 414777f6c840fa40 x2
+  repo:Ramki/R59_odbior/t11_t13_t14.py: 0dcfafab5f8035e7 x1, 17f29b073143d8cd x1, 5054e1b14a2e813f x1, b78cb9ce56d5b7e2 x1
+  repo:Ramki/R59_odbior/t6_t10_program.py: 414777f6c840fa40 x2
+  repo:Ramki/R59_propozycja_ukladu.md: 5054e1b14a2e813f x13, b78cb9ce56d5b7e2 x2
+  repo:Ramki/R59_raport_koncowy.md: 5054e1b14a2e813f x3, 6d223affc23ef544 x1, b78cb9ce56d5b7e2 x1
+  repo:Ramki/R59_szkice/<sha16:de7678006a4d7e74>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:432110c777a59539>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:046a3d20080969f9>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:8ff03e53362058db>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:d328265a78cbd4bc>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:d5921698ef275e86>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:3afd52bf48115343>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:a040be2c072a60b9>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:4fc5c1628a41f894>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:0ba45e5b477a565b>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:36d0c449adc0eee4>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:70c4bff616b84760>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:1c725f606774b704>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:fe2f01f1de41ac75>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:e7257788937d15cb>: 5054e1b14a2e813f x5
+  repo:Ramki/R59_szkice/<sha16:0cf47ba20b2e5294>: 5054e1b14a2e813f x4
+  repo:Ramki/R59_szkice/rysuj_szkice_R59.js: 5054e1b14a2e813f x33
+  repo:Ramki/R59_szkice/szkic_P-a.svg: 5054e1b14a2e813f x2
+  repo:Ramki/R59_szkice/szkic_P-b-D3b.svg: 5054e1b14a2e813f x2
+  repo:Ramki/R59_szkice/szkic_P-b.svg: 5054e1b14a2e813f x2
+  ... i jeszcze 938 plikow (pelna lista: --json)
+WYNIK T9 (cale nazwy): FAIL

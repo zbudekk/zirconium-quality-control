@@ -1,0 +1,10 @@
+count(*)
+2
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+typ	count(*)
+program_start	2
+program_stop	2
+-- wierszy: 2

@@ -1,0 +1,17 @@
+03:30:26.595 === proba 1b: brak folderu Cyrkon przy czekajacym skanie
+03:30:26.618 folder Cyrkon -> Cyrkon_x (istnieje Cyrkon: False)
+03:30:26.674 program uruchomiony (--zamknij-po 90), cmd PID 19296
+03:30:40.483 symulator --ile 1 zakonczony, kod 0
+03:31:05.652 25 s po zapisie skanu, folder nadal nieobecny: skany: status	count(*) | -- wierszy: 0 ; zdarzenia: typ	count(*) | nowy_skan	1 | program_start	1 | -- wierszy: 2 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:31:59.504 program zakonczony (1. przebieg). skany: status	count(*) | -- wierszy: 0 ; zdarzenia: typ	count(*) | nowy_skan	1 | program_start	1 | program_stop	1 | -- wierszy: 3 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: True
+03:31:59.517 folder Cyrkon_x -> Cyrkon (istnieje Cyrkon: True)
+03:31:59.533 program uruchomiony ponownie (--zamknij-po 150), cmd PID 17356
+03:32:19.687 skany: status	count(*) | -- wierszy: 0 ; zdarzenia: typ	count(*) | nowy_skan	1 | program_start	2 | program_stop	1 | -- wierszy: 3 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:32:39.855 skany: status	count(*) | -- wierszy: 0 ; zdarzenia: typ	count(*) | nowy_skan	1 | program_start	2 | program_stop	1 | -- wierszy: 3 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:33:00.032 skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; zdarzenia: typ	count(*) | nowy_skan	1 | podglad	1 | program_start	2 | program_stop	1 | skan_przyjety	1 | -- wierszy: 5 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:33:20.182 skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; zdarzenia: typ	count(*) | nowy_skan	1 | podglad	1 | program_start	2 | program_stop	1 | skan_przyjety	1 | -- wierszy: 5 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:33:40.337 skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; zdarzenia: typ	count(*) | nowy_skan	1 | podglad	1 | program_start	2 | program_stop	1 | skan_przyjety	1 | -- wierszy: 5 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:34:00.495 skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; zdarzenia: typ	count(*) | nowy_skan	1 | podglad	1 | program_start	2 | program_stop	1 | skan_przyjety	1 | -- wierszy: 5 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:34:20.672 skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; zdarzenia: typ	count(*) | nowy_skan	1 | podglad	1 | program_start	2 | program_stop	1 | skan_przyjety	1 | -- wierszy: 5 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:34:40.829 skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; zdarzenia: typ	count(*) | nowy_skan	1 | podglad	1 | program_start	2 | program_stop	2 | skan_przyjety	1 | -- wierszy: 5 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False
+03:34:40.981 KONIEC proby 1b. skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; zdarzenia: typ	count(*) | nowy_skan	1 | podglad	1 | program_start	2 | program_stop	2 | skan_przyjety	1 | -- wierszy: 5 ; plikow STL w eksporcie: 1 ; zadania_niezakonczone.json: False

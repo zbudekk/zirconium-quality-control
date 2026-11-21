@@ -1,0 +1,4 @@
+stanowisko.log: 2026-11-21 04:17:54,412 WARNING stanowisko.aplikacja: stanowisko: ramki - Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+stanowisko.log: 2026-11-21 04:24:03,863 WARNING stanowisko.kontroler_api: kontroler: ukladu auto nie da sie wczytac (FileNotFoundError) - mapa bez pustych gniazd
+stanowisko.log: 2026-11-21 04:27:21,100 WARNING stanowisko.kontroler_api: kontroler: zgaszenie ramki W przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+stanowisko.log: 2026-11-21 04:27:21,100 WARNING stanowisko.kontroler_api: kontroler: zgaszenie ramki P przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu

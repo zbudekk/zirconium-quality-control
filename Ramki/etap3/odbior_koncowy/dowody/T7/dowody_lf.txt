@@ -1,0 +1,80 @@
+dowody_lf.py: plikow 78, naruszen 0 (po naprawie)
+NAPRAWIONY czasy.txt: CR 30 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY kody.txt: CR 34 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_A.cmd
+OK        krok_B1.cmd
+OK        krok_B1b.cmd
+OK        krok_B2.cmd
+OK        krok_B3.cmd
+OK        POMINIETE.txt
+NAPRAWIONY t7_1a.log: CR 20 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_1a_zrodlo_kodu.txt
+NAPRAWIONY t7_1b.log: CR 16 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_1b_zrodlo_kodu.txt
+NAPRAWIONY t7_2a.log: CR 12 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_2a_zrodlo_kodu.txt
+NAPRAWIONY t7_2b.log: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_2b_zrodlo_kodu.txt
+NAPRAWIONY t7_3a.log: CR 11 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_3a_zrodlo_kodu.txt
+NAPRAWIONY t7_3b.log: CR 13 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_3b_zrodlo_kodu.txt
+NAPRAWIONY t7_45_samokontrola_z_proba_polaczenia.log: CR 22 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_4a.log: CR 13 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_4a_zrodlo_kodu.txt
+NAPRAWIONY t7_4b.log: CR 14 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_4b_zrodlo_kodu.txt
+NAPRAWIONY t7_4c.log: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_4c_zrodlo_kodu.txt
+NAPRAWIONY t7_5a.log: CR 16 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_5a_zrodlo_kodu.txt
+NAPRAWIONY t7_5b.log: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_5b_zrodlo_kodu.txt
+NAPRAWIONY t7_6a.log: CR 18 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_6a_zrodlo_kodu.txt
+NAPRAWIONY t7_6b.log: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_6b_zrodlo_kodu.txt
+NAPRAWIONY t7_6c.log: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_6c_zrodlo_kodu.txt
+NAPRAWIONY t7_6d.log: CR 184 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_6d_zrodlo_kodu.txt
+NAPRAWIONY t7_b1_0_samokontrola_z_folderem.log: CR 22 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_b1_1_program_bez_folderu.log
+NAPRAWIONY t7_b1_2_samokontrola_bez_folderu.log: CR 22 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b1_3_samokontrola_po_przywroceniu.log: CR 22 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_b1_4_program_po_przywroceniu.log
+NAPRAWIONY t7_b1_baza.txt: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b1_czasy.txt: CR 5 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_b1_log_programu.txt
+OK        t7_b1b_baza.txt
+OK        t7_b1b_log_programu.txt
+OK        t7_b1b_program_1.log
+OK        t7_b1b_program_2.log
+NAPRAWIONY t7_b1b_przebieg.txt: CR 17 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b1b_symulator.json: CR 14 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b1b_symulator.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_b2_baza.txt
+OK        t7_b2_log_programu.txt
+OK        t7_b2_okno1_1.log
+OK        t7_b2_okno1_2.log
+NAPRAWIONY t7_b2_okno2.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b2_pid.txt: CR 15 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b2_przebieg.txt: CR 43 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b2_symulator.json: CR 47 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_b3_baza.txt
+OK        t7_b3_log_programu.txt
+OK        t7_b3_okno1_1.log
+OK        t7_b3_okno1_restart.log
+NAPRAWIONY t7_b3_okno2.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b3_pid.txt: CR 16 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b3_przebieg.txt: CR 40 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t7_b3_symulator.json: CR 36 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t7_komunikaty.md
+OK        t7_proby_reczne.md
+OK        t7_wynik.md
+NAPRAWIONY ustawienia_b1.toml: CR 120 -> 0, bajtow spoza ASCII 659 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 8)
+NAPRAWIONY ustawienia_b1b.toml: CR 120 -> 0, bajtow spoza ASCII 659 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 8)
+NAPRAWIONY ustawienia_b2.toml: CR 120 -> 0, bajtow spoza ASCII 659 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 8)
+NAPRAWIONY ustawienia_b3.toml: CR 120 -> 0, bajtow spoza ASCII 659 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 8)
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

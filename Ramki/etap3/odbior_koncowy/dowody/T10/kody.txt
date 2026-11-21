@@ -1,0 +1,3 @@
+t10_metryki START sob. 21.11.2026  2:52:26,32 
+t10_metryki KOD=0 
+t10_metryki KONIEC sob. 21.11.2026  3:06:49,34 

@@ -1,0 +1,5 @@
+=== findstr /c:"Ignoring indexes" /c:"Looking in links" <PC-katalog>\t0\odbior\Stanowisko\wersje\0.3.1\pip.log 
+2026-11-21T02:48:51,741 Ignoring indexes: https://pypi.org/simple
+2026-11-21T02:48:51,757 Looking in links: <PC-katalog>\t0\odbior\paczka_0.3.1\kola
+=== findstr /c:"bez sieci" <PC-katalog>\t0\odbior\Stanowisko\dziennik_instalacji.txt 
+2026-11-21 02:48:50 | zainstaluj 0.3.1 |       instalacja 73 pakietow z kol paczki (bez sieci) - to trwa kilka minut...

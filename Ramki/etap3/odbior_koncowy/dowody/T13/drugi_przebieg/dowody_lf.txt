@@ -1,0 +1,12 @@
+dowody_lf.py: plikow 10, naruszen 0 (po naprawie)
+NAPRAWIONY dowody_lf_caly_katalog.txt: CR 390 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        proba_1_807aa83/dowody_lf.txt
+OK        proba_1_807aa83/t13_wynik.json
+OK        proba_1_807aa83/t13_wynik.txt
+OK        proba_1_807aa83/t13_wynik_stderr.txt
+OK        t13_diff_stat.txt
+OK        t13_wynik.json
+NAPRAWIONY t13_wynik.txt: CR 25 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t13_wynik_stderr.txt
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

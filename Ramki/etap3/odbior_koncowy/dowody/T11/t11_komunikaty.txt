@@ -1,0 +1,19 @@
+zrodlo modulu statusy: <PC-katalog>\t0\odbior\Stanowisko\wersje\0.3.1\program\stanowisko\statusy.py
+KOMUNIKAT niezgodny_uklad | poziom=blad | tytul=Plytka nie pasuje do ukladu | tekst=Program nie rozpoznal ukladu plytki na tym skanie - nic nie zostalo sprawdzone. Sprawdz, czy plytka lezy w skanerze prosto i w calosci, i zeskanuj ja ponownie.
+PYTANIE plytka_nie_z_trybu (typ plytki=poranna, tryb=wieczor) | poziom=blad | tytul=Plytka nie z tego trybu | tekst=To plytka poranna, a program pracuje w trybie "Wieczor". Skan jest zablokowany: nic nie jest zielone i nie mozna zapisywac decyzji.
+PYTANIE plytka_nie_z_trybu (typ plytki=poranna, tryb=rano) | poziom=blad | tytul=Plytka nie z tego trybu | tekst=To plytka poranna, a program pracuje w trybie "Poranek". Skan jest zablokowany: nic nie jest zielone i nie mozna zapisywac decyzji.
+PYTANIE plytka_nie_z_trybu (typ plytki=wieczorna, tryb=wieczor) | poziom=blad | tytul=Plytka nie z tego trybu | tekst=To plytka wieczorna, a program pracuje w trybie "Wieczor". Skan jest zablokowany: nic nie jest zielone i nie mozna zapisywac decyzji.
+PYTANIE plytka_nie_z_trybu (typ plytki=wieczorna, tryb=rano) | poziom=blad | tytul=Plytka nie z tego trybu | tekst=To plytka wieczorna, a program pracuje w trybie "Poranek". Skan jest zablokowany: nic nie jest zielone i nie mozna zapisywac decyzji.
+PYTANIE plytka_nie_z_trybu (typ plytki=None, tryb=wieczor) | poziom=blad | tytul=Plytka nie z tego trybu | tekst=To plytka o nieznanym ukladzie, a program pracuje w trybie "Wieczor". Skan jest zablokowany: nic nie jest zielone i nie mozna zapisywac decyzji.
+PYTANIE plytka_nie_z_trybu (typ plytki=None, tryb=rano) | poziom=blad | tytul=Plytka nie z tego trybu | tekst=To plytka o nieznanym ukladzie, a program pracuje w trybie "Poranek". Skan jest zablokowany: nic nie jest zielone i nie mozna zapisywac decyzji.
+NAPIS STATUSY_PLYTKI[niezgodny_uklad] = nie pasuje do zadnego ukladu plytek
+NAPIS STATUSY_PLYTKI[plytka_nie_z_trybu] = zablokowana (plytka nie z tego trybu)
+  zawiera nazwe ukladu *_r54: NIE <- KOMUNIKAT niezgodny_uklad
+  zawiera nazwe ukladu *_r54: NIE <- PYTANIE plytka_nie_z_trybu (typ plytki=poranna, tryb=wieczor)
+  zawiera nazwe ukladu *_r54: NIE <- PYTANIE plytka_nie_z_trybu (typ plytki=poranna, tryb=rano)
+  zawiera nazwe ukladu *_r54: NIE <- PYTANIE plytka_nie_z_trybu (typ plytki=wieczorna, tryb=wieczor)
+  zawiera nazwe ukladu *_r54: NIE <- PYTANIE plytka_nie_z_trybu (typ plytki=wieczorna, tryb=rano)
+  zawiera nazwe ukladu *_r54: NIE <- PYTANIE plytka_nie_z_trybu (typ plytki=None, tryb=wieczor)
+  zawiera nazwe ukladu *_r54: NIE <- PYTANIE plytka_nie_z_trybu (typ plytki=None, tryb=rano)
+  zawiera nazwe ukladu *_r54: NIE <- NAPIS STATUSY_PLYTKI[niezgodny_uklad] = nie pasuje do zadnego ukladu plytek
+  zawiera nazwe ukladu *_r54: NIE <- NAPIS STATUSY_PLYTKI[plytka_nie_z_trybu] = zablokowana (plytka nie z tego trybu)

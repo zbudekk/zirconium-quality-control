@@ -1,0 +1,6 @@
+wieczor START  4:41:42,72 
+t8_wieczor KOD=3 KONIEC  4:41:42,91 
+rano START  4:41:42,91 
+t8_rano KOD=3 KONIEC  4:41:43,12 
+test_metryki START  4:45:29,19 
+t8_test_metryki KOD=0 KONIEC  4:45:32,57 

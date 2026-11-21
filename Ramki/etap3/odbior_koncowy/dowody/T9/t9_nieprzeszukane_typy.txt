@@ -1,0 +1,8 @@
+krok 1 repo <REPO>: plikow 2063; wykluczonych 0; przeszukiwanych 1265 (330638200 bajtow); nieprzeszukanych 798: typy {'.jpg': 39, '.pdf': 41, '.png': 708, '.zip': 10}; powody {'spakowane': 798}
+krok 1c worktree e3/odbior: plikow 2459; wykluczonych 0; przeszukiwanych 1661 (332900461 bajtow); nieprzeszukanych 798: typy {'.jpg': 39, '.pdf': 41, '.png': 708, '.zip': 10}; powody {'spakowane': 798}
+krok 1b dowody: plikow 394; wykluczonych 0; przeszukiwanych 394 (2181860 bajtow); nieprzeszukanych 0: typy {}; powody {}
+krok 3 wyniki: plikow 281; wykluczonych 0; przeszukiwanych 120 (5648543 bajtow); nieprzeszukanych 161: typy {'.npz': 161}; powody {'spakowane': 161}
+krok 5 dane: plikow 413; wykluczonych 0; przeszukiwanych 263 (8860953 bajtow); nieprzeszukanych 150: typy {'.npz': 150}; powody {'spakowane': 150}
+krok 4 ruch: plikow 2; wykluczonych 0; przeszukiwanych 2 (47835 bajtow); nieprzeszukanych 0: typy {}; powody {}
+krok 2 logi (stan z chwili liczenia): plikow 103469; wykluczonych 101649; przeszukiwanych 1168 (4375857905 bajtow); nieprzeszukanych 652: typy {'.npz': 586, '.png': 65, '.zip': 1}; powody {'spakowane': 652}
+krok 6 instalacje: plikow 76595; wykluczonych 75704; przeszukiwanych 739 (215082822 bajtow); nieprzeszukanych 152: typy {'.whl': 152}; powody {'spakowane': 152}

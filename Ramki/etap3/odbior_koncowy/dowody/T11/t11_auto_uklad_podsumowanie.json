@@ -1,0 +1,95 @@
+{
+ "skanow": 40,
+ "czas_calosci_s": 177.9,
+ "podsumowanie": {
+  "bez_numeru": {
+   "skanow": 40,
+   "ok": 40,
+   "ok_i_pewny": 40,
+   "zle_ale_pewny": 0,
+   "numer_ok": 24,
+   "powody": {
+    "numer_z_dolkow": 24,
+    "ksztalt": 15,
+    "dolki_wykluczaja": 1
+   },
+   "per_plytka": {
+    "okragla_poranna_r54": {
+     "skanow": 12,
+     "ok": 12,
+     "ok_i_pewny": 12,
+     "zle_ale_pewny": 0,
+     "powody": {
+      "numer_z_dolkow": 12
+     }
+    },
+    "okragla_wieczorna_r54": {
+     "skanow": 12,
+     "ok": 12,
+     "ok_i_pewny": 12,
+     "zle_ale_pewny": 0,
+     "powody": {
+      "numer_z_dolkow": 12
+     }
+    },
+    "poranna_r54": {
+     "skanow": 8,
+     "ok": 8,
+     "ok_i_pewny": 8,
+     "zle_ale_pewny": 0,
+     "powody": {
+      "ksztalt": 8
+     }
+    },
+    "wieczorna_r54": {
+     "skanow": 8,
+     "ok": 8,
+     "ok_i_pewny": 8,
+     "zle_ale_pewny": 0,
+     "powody": {
+      "ksztalt": 7,
+      "dolki_wykluczaja": 1
+     }
+    }
+   },
+   "ksztalt_wlasciwy_max_mm2": 0.0,
+   "ksztalt_inny_min_mm2": 21.2,
+   "czas_rozpoznania_mediana_s": 2.45,
+   "czas_rozpoznania_max_s": 2.86
+  },
+  "z_numerem": {
+   "skanow": 16,
+   "ok": 16,
+   "ok_i_pewny": 16,
+   "zle_ale_pewny": 0,
+   "numer_ok": 16,
+   "powody": {
+    "numer_podany": 16
+   },
+   "per_plytka": {
+    "poranna_r54": {
+     "skanow": 8,
+     "ok": 8,
+     "ok_i_pewny": 8,
+     "zle_ale_pewny": 0,
+     "powody": {
+      "numer_podany": 8
+     }
+    },
+    "wieczorna_r54": {
+     "skanow": 8,
+     "ok": 8,
+     "ok_i_pewny": 8,
+     "zle_ale_pewny": 0,
+     "powody": {
+      "numer_podany": 8
+     }
+    }
+   },
+   "ksztalt_wlasciwy_max_mm2": 0.0,
+   "ksztalt_inny_min_mm2": 21.2,
+   "czas_rozpoznania_mediana_s": 2.28,
+   "czas_rozpoznania_max_s": 2.55
+  }
+ }
+}

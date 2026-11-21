@@ -1,0 +1,10 @@
+GOTOWE 2026-11-21 02:51:47 - instalacja wspolna gotowa do uzytku (T0 zielone + krok /testy)
+wersja: 0.3.1 (commit 571e186cb817), paczka Stanowisko_0.3.1.zip SHA-256 f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8
+<K>: <PC-katalog>\t0\odbior\Stanowisko   <P1>: <PC-katalog>\t0\odbior\paczka_0.3.1
+kody instalacji: pierwsza 10 (WSTRZYMANA, 65,5 s), po uzupelnieniu ustawien 0 (GOTOWA, 3,3 s), z /testy 0 (6,2 s; pakiety 76 z 76)
+samokontrola (Samokontrola.cmd --bez-sieci, kod 0): SAMOKONTROLA: ZIELONA (ok 17, ostrzezenia 4)
+samokontrola po /testy (w instalatorze): SAMOKONTROLA: ZIELONA (ok 18, ostrzezenia 3)
+starty programu: --atrapa --zamknij-po 5 kod 0; --zamknij-po 20 kod 0; Traceback w logu: 0
+_wmi: None (po T0 i po /testy)
+foldery wejsciowe instalacji: <PC-katalog>\t0\odbior\dane\{eksport,Cyrkon,Prywatne,millbox}; operatorzy = ["Technik A"]
+UWAGA: po tym pliku w <K> nic nie zmieniac (zasady 1-5 "Ustalen koordynatora").
