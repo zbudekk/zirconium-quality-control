@@ -302,34 +302,45 @@ commit co paczka). Zrodlo polecenia: raport `E3-A11w_2026-11-20.md`, p. 7.
 **Kroki:**
 
 1. `<P1>\zainstaluj.cmd /katalog <K> /python %PY% /bez-sieci /bez-pauzy /testy` (kod 0).
-2. `copy <ST>\ustawienia.przyklad.toml <ST>\ustawienia.toml` (plik ignorowany przez git).
+2. Kontrola koncow linii `<REPO>` (potkniecie B2 proby generalnej): `git -C <REPO> config --get core.autocrlf` ma
+   wypisac `false`, a `git -C <REPO> status --short` ma byc puste - inaczej T1 nie startuje (zaloz `<REPO>` od nowa,
+   patrz "Oznaczenia"). Potem `copy <ST>\ustawienia.przyklad.toml <ST>\ustawienia.toml` (plik ignorowany przez git).
 3. `<K>\Polecenie.cmd -c "import stanowisko, sys; print(sys.modules.get('_wmi', 'brak'))"` -> `None`.
 4. Przez `ciezki.ps1` (tor 1), jedna linia:
    `<K>\Polecenie.cmd -X faulthandler -m pytest <ST>\testy -q -rs -p no:cacheprovider --rootdir <ST> -o faulthandler_timeout=900 < NUL > <ROB>\t1_pytest.log 2>&1`
 5. Drugi przebieg interpreterem bazowym (porownanie z punktem odniesienia, ta sama blokada):
    `cmd /c "cd /d <ST> && <PC-katalog>\koordynator\narz\py.cmd -m pytest -q -p no:cacheprovider -rs > <ROB>\t1_pytest_bazowy.log 2>&1"`
 
-**Liczby kryterium:** ostatni wiersz logu `N passed, S skipped` - `failed` i `error` maja nie wystapic. Pominiete: lista
+**Liczby kryterium:** wiersz podsumowania pytest w logu (`... N passed, S skipped ... in ...s`; `failed` i `error` maja
+nie wystapic) ORAZ osobno kod wyjscia procesu - oba do `t1_wynik.md`. Brak wiersza podsumowania = NIE ZMIERZONO
+(powtorz przebieg). Kod 1 i `failed` w podsumowaniu = FAIL. Kod 0xC0000409 (-1073740791) PO wierszu podsumowania bez
+`failed` / `error` = znane zjawisko zamykania interpretera z Qt (raport E3-A11w): wynik liczy sie z wiersza
+podsumowania, kod wpisz jako uwage. Suma passed + skipped + failed = liczba z `--collect-only`. Pominiete: lista
 z `-rs` (jest w obu poleceniach) porownana z punktem odniesienia: `main` bf00921 = 1829 / 9 / 0
-(`<PC-katalog>\koordynator\log\pytest_bazowy_bf00921.log`), `main` 9ba9e91 = 1831 / 9 / 0. Oczekiwana liczba testow po
-scaleniu paczek: 1831 + testy A11s, A11i (91), A11w, A11d, P14 - dokladna liczba = suma z raportow paczek po ostatniej
-rundzie; kazdy pominiety test spoza listy 9 znanych = FAIL kryterium.
+(`<PC-katalog>\koordynator\log\pytest_bazowy_bf00921.log`), `main` 9ba9e91 = 1831 / 9 / 0. Oczekiwana liczba testow =
+wynik `--collect-only` na commicie wydania (oczekiwana ok. 2222, w tym 9 pominietych: pelny pytest interpreterem
+bazowym na galezi `e3/p15` po rundzie 2 = 2213 passed / 9 skipped; na f5c3e01 bylo 2212, w tym 9 pominietych). Liczba
+testow NIE jest kryterium - kryterium to 0 failed, 0 errors i pominiete tylko znane z punktu odniesienia;
+kazdy pominiety test spoza listy 9 znanych = FAIL kryterium.
 
-**Stwierdzone w probie generalnej 21.11 na instalacji z paczki (f5c3e01):** (a) `--collect-only` daje 2212 testow -
+**Stwierdzone w probie generalnej 21.11 na instalacji z paczki (f5c3e01):** (a) `--collect-only` dawal 2212 testow -
 liczbe oczekiwana ustal przed odbiorem poleceniem
 `<K>\Polecenie.cmd -m pytest <ST>\testy -q --collect-only -p no:cacheprovider --rootdir <ST>` na commicie wydania
-(interpreter bazowy i wersji maja dac te sama); (b) `test_aplikacja.py::test_b1_blokada_znika_razem_z_procesem` PADA w
+(interpreter bazowy i wersji maja dac te sama); (b) `test_aplikacja.py::test_b1_blokada_znika_razem_z_procesem` PADAL w
 srodowisku wersji zawsze (6 z 6 uruchomien osobnych; interpreterem bazowym 2 z 2 passed) - wlasnosc testu w `venv`
-(`sys.executable` to posrednik; blokada bazy zwalnia sie kilka ms po `wait()`), nie blad programu. Dopoki test nie
-zostanie poprawiony przez paczke programu, kryterium "0 failed" interpreterem wersji NIE bedzie spelnione: wynik T1 =
-FAIL z ta liczba (bez oslabiania), a decyzja o poprawce testu albo odstepstwie nalezy do koordynatora / wlasciciela.
+(`sys.executable` to posrednik; blokada bazy zwalnia sie kilka ms po `wait()`), nie blad programu. Paczka E3-P15
+(runda 2) dopasowala ten test do srodowiska wersji - po scaleniu P15 oczekiwane w T1 jest 0 failed takze interpreterem
+wersji. Gdyby test (albo inny) nadal padal na commicie wydania: wynik T1 = FAIL z ta liczba (bez oslabiania), a decyzja
+o poprawce testu albo odstepstwie nalezy do koordynatora / wlasciciela.
 Polecenie odtworzenia (2,5 s):
 `<K>\Polecenie.cmd -m pytest <ST>\testy\test_aplikacja.py -q -p no:cacheprovider --rootdir <ST> -k test_b1_blokada_znika_razem_z_procesem`.
 (c) Wiersze `PASSED` / `FAILED` z `-rA` maja sciezki wzgledem katalogu programu wersji (`..\..\..\..\repo\Ramki\...`) -
 licz przez `findstr /b PASSED`, nie przez szukanie `testy\test_` na poczatku wiersza.
 
-**Dowody w `T1/`:** `t1_pytest.log`, `t1_pytest_bazowy.log`, `t1_pominiete.txt` (9 pozycji z powodem),
-`t1_wynik.md` (passed / skipped / failed, czas, commit, wolny RAM przed startem).
+**Dowody w `T1/`:** `t1_pytest.log`, `t1_pytest_bazowy.log`, `t1_collect.txt` (ostatni wiersz `--collect-only`),
+`t1_pominiete.txt` (9 pozycji z powodem), `t1_wynik.md` (wiersz podsumowania i OSOBNO kod wyjscia kazdego przebiegu,
+passed / skipped / failed, liczba z `--collect-only`, czas, commit, wynik kontroli `core.autocrlf`, wolny RAM przed
+startem).
 
 **Czas:** 30-45 min na przebieg (interpreter bazowy ok. 20-29 min). **Ciezar:** ciezki (tor 1). **Rownolegle:** nie.
 
@@ -337,8 +348,9 @@ licz przez `findstr /b PASSED`, nie przez szukanie `testy\test_` na poczatku wie
 katalogow); testy importuja pakiet `stanowisko` z `<REPO>`, nie z `<K>` - dlatego ten sam commit; zawieszenie oceniac po
 stanie procesu, nie po zegarze (pod obciazeniem `test_silnik.py` trwa ponad 8 min); zjawisko PC `0xC0000142` /
 `0xc000070a` = opisac i powtorzyc przebieg (oba logi zostaja); testy czasowe wrazliwe na obciazenie: `test_ramka::test_k4`,
-`test_ui_wieczor::test_6`, `test_aplikacja::test_f` (raport E3-T0p). Calego pytest w srodowisku wersji nikt jeszcze nie
-uruchomil (A11w: "nie zmierzono").
+`test_ui_wieczor::test_6`, `test_aplikacja::test_f` (raport E3-T0p). Caly pytest w srodowisku wersji: proba generalna
+21.11 - 2202 passed / 9 skipped / 1 failed, 27 min 20 s, kod 1. `<REPO>` z koncami CRLF (klon bez
+`-c core.autocrlf=false`) daje falszywe `failed` w testach czytajacych bajty plikow - kontrola w kroku 2.
 
 ## T2 - Wieczor od poczatku do konca
 
