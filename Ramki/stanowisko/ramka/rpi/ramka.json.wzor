@@ -1,0 +1,14 @@
+{
+  "rola": "P",
+  "sprzet": "rpi",
+  "host": "0.0.0.0",
+  "port": 8765,
+  "klucz": "ZMIEN-TEN-KLUCZ-skrypt-instalacji-wstawia-losowy",
+  "piny_halla": [19, 25, 8],
+  "jasnosc": 60,
+  "obrot": 0,
+  "lustro": false,
+  "mapowanie": "adafruit-hat-pwm",
+  "spowolnienie_gpio": 4,
+  "klawisz_zamknij_piec": "KEY_KPASTERISK"
+}
