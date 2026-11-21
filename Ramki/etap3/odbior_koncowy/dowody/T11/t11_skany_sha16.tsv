@@ -1,0 +1,42 @@
+id	sha16	status	tryb	uklad	uklad_zrodlo	uklad_zgodny	numer_plytki	czas_analizy	czas_s
+1	a33966994b515b9e	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T04:50:40	43.56
+2	af212769571c0d65	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T04:51:01	19.55
+3	a5c5683e20431cf3	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T04:51:45	16.2
+4	5e03ed10436c2b30	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T04:52:34	20.8
+5	40f034fd7d24fbcb	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T04:53:19	23.14
+6	6e60a2f8be92efe5	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T04:53:59	15.04
+7	ec033c0713e90c42	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T04:54:54	26.32
+8	65df2f5ed75a75c9	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T04:55:25	12.06
+9	8358e17160a25742	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T04:56:15	17.02
+10	b0aabeec69834bca	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T04:57:02	18.73
+11	842d039b1fc1020c	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T04:57:50	21.21
+12	9d5eeb980330c768	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T04:58:30	19.65
+13	75fa520430894f99	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		2026-11-21T04:59:15	15.97
+14	b03385ae8316e226	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		2026-11-21T04:59:54	11.04
+15	823181c04ea8f815	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		2026-11-21T05:00:43	14.61
+16	b75451bfe836239b	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		2026-11-21T05:01:29	15.78
+17	007e56008bd77efb	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		2026-11-21T05:02:23	24.87
+18	b7dfa66ec8a53eb3	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		2026-11-21T05:03:00	18.74
+19	37b6d5f5a6f45340	do_powtorzenia	wieczor	wieczorna_r54	auto	1		2026-11-21T05:03:45	16.84
+20	f20136b8b0af6e00	do_powtorzenia	wieczor	wieczorna_r54	auto	1		2026-11-21T05:04:31	16.68
+21	7e2cb93bbeaf4701	do_powtorzenia	wieczor	wieczorna_r54	auto	1		2026-11-21T05:05:14	14.78
+22	9a1cc0ad42a1b9b0	do_powtorzenia	wieczor	wieczorna_r54	auto	1		2026-11-21T05:06:07	25.99
+23	9cc2bd761deb672b	przyjety	wieczor	wieczorna_r54	auto	1		2026-11-21T05:06:38	12.33
+24	1745b6260092155c	do_powtorzenia	wieczor	wieczorna_r54	auto	1		2026-11-21T05:07:34	19.71
+25	5283ca8eabec7b56	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T05:08:21	23.43
+26	c34cb8aea9d7521d	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T05:09:12	30.32
+27	2b3f8513e75dbc18	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T05:09:59	29.79
+28	5acb59ca6e629bdd	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T05:10:44	30.87
+29	71df6882795263d3	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T05:11:13	15.52
+30	27f3b336d128b75e	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	2026-11-21T05:12:10	27.89
+31	15765b8dc8c550ff	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T05:13:08	40.81
+32	3af0bf2e971a0fb3	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T05:13:31	19.89
+33	e6681afc6aff4161	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T05:14:30	31.16
+34	0d01a86e2bcffb6f	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T05:14:54	12.36
+35	f8bf9a17bacae2a9	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T05:15:41	13.98
+36	efc49cb95972ce92	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	2026-11-21T05:17:03	49.57
+37	7d134f6dfa68ea80	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		2026-11-21T05:17:31	28.39
+38	cad653fc6eda187d	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		2026-11-21T05:18:07	24.59
+39	5b09c9516ebe0634	do_powtorzenia	wieczor	wieczorna_r54	auto	1		2026-11-21T05:18:54	25.06
+40	c5d76faa2066aa63	do_powtorzenia	wieczor	wieczorna_r54	auto	1		2026-11-21T05:19:39	26.77
+-- wierszy: 40

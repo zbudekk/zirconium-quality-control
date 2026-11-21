@@ -1,0 +1,6 @@
+Pliki i katalogi testu T4, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T4/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 441 plikow, 2232118828 B | katalog roboczy - pamiec puli (400 plikow), linie brzegu, probnik, kopie do kontroli dowodow
+katalog | t4\ | 3 pliki, 25567 B | pliki surowe narzedzia (t4_surowe_*.json.json); w repo sa ich kopie po kontroli T9: t4_czas_zimna.json, t4_czas_ciepla.json, t4_jakosc.json

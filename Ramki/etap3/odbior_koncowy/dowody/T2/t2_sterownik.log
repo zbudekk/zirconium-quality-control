@@ -1,0 +1,45 @@
+T2 wieczor - wynik sterownika (2026-11-21 04:27:21); platforma Qt: offscreen; plikow: 10; odstep 60.0 s
+przerwano: nie; blad sterownika: brak; kod programu: 0
+
+ nr kol sha16            oczekiwany          faktyczny           uklad                  num      prac  start[s]  mapa[s] zgodne
+  1   1 df2e6a790700131d przyjety            przyjety            wieczorna                1       9/9     0.428    39.54 TAK
+  2   2 75db8c4f9ead0dab przyjety            przyjety            okragla_wieczorna        8       9/9     0.413     19.1 TAK
+  3   3 9cc2bd761deb672b przyjety            przyjety            wieczorna_r54            3       9/9     0.422    15.04 TAK
+  4   4 9d5eeb980330c768 przyjety            przyjety            okragla_wieczorna_r54    8     11/11     0.414    22.05 TAK
+  5   5 6b0e98d5073f7c98 plik_odrzucony      plik_odrzucony      -                        -       -/-         -        - TAK
+  6   6 769e0fd025693694 do_powtorzenia      do_powtorzenia      wieczorna                2       8/8     0.423    11.57 TAK
+  7   7 857369c6c1d3aef3 niezgodny_uklad     niezgodny_uklad     auto                     -      0/10     0.368     2.85 TAK
+  8   8 247ee785f428396f przyjety            przyjety            wieczorna                2       9/9     0.372    15.04 TAK
+  9   9 c21b3b21066fab83 plytka_nie_z_trybu  plytka_nie_z_trybu  poranna                  -     10/10     0.417    24.39 TAK
+ 10  10 8358e17160a25742 przyjety            przyjety            okragla_wieczorna_r54    8     10/10     0.380    14.45 TAK
+
+kolory prac odczytane z ekranu PRZED kliknieciami (piksel mapy -> klasa koloru); U = praca z ubytkiem wg prawdy, C = cala wg prawdy
+ nr sha16            prac U czerw U zolte U ziel U inne C czerw C zolte C ziel C inne
+  1 df2e6a790700131d    9       2       4      0      0       0       0      3      0
+  2 75db8c4f9ead0dab    9       1       2      0      0       0       0      6      0
+  3 9cc2bd761deb672b    9       2       1      0      0       0       0      6      0
+  4 9d5eeb980330c768   11       1       3      0      0       0       0      7      0
+  8 247ee785f428396f    9       1       2      1      0       0       0      5      0
+ 10 8358e17160a25742   10       3       3      0      0       0       0      4      0
+ubytki wg prawdy (26): czerwonych 10, zoltych 15, zielonych (przeoczonych) 1, innych 0, bez pracy w programie 0, na plytce nieobejrzanej 0
+prace cale wg prawdy (31): czerwonych (falszywe alarmy) 0, zoltych 0, zielonych 31, innych 0; kolor z ekranu inny niz klasa w stanie programu: 0 z 57 prac
+
+obsluzone zgodnie z prawda: 10 z 10
+start analizy od zapisu (pomiar doslowny): ponizej 1 s 9 z 9 plikow dobrych (zmierzono 9), max 0.428 s, wartosci [0.428, 0.413, 0.422, 0.414, 0.423, 0.368, 0.372, 0.417, 0.38]; w tym pliki zapisane, gdy program liczyl poprzednia plytke: []
+mapa od zapisu (plytka w stanie programu, gorne ograniczenie): mediana 15.04 s, max 39.54 s, pierwsza plytka (pula zimna) 39.54 s, kolejne [19.1, 15.04, 22.05, 11.57, 2.85, 15.04, 24.39, 14.45]; do 40 s: pierwsza 1 z 1, kolejne 8 z 8
+mapa w oknie od zapisu (okno samo pokazalo plytke, gorne ograniczenie): zmierzono 3 z 9, mediana 15.04 s, max 39.54 s
+petla okna: najdluzsza przerwa 34.7 ms, przekroczen progu 200 ms: 0 (tykniec 28281, w tym 0 w srodku klikniecia; najdluzsze tykniecie sterownika w trakcie pomiaru 27.5 ms: klik przycisk_ukruszona; tykniecie zamykajace program, poza pomiarem: 1331.6 ms)
+lista do dofrezowania: ROZNA (oczekiwanych 26, w programie 25, brakuje 1, nadmiarowych 0)
+decyzje technika (klikniecia tylko na pracach pokazanych na czerwono / zolto): 'Ukruszona' wykonanych 25 z 26 zaplanowanych, 'OK' na falszywym alarmie 0 z 0, prace z ubytkiem NIEKLIKNIETE (program pokazal je inaczej niz czerwono / zolto) 1; ponowien klikniec 0, czekan na zdjecie ochrony mapy 5; odpowiedzi na pytania: 6; pytania programu: ['brak_numeru_plytki', 'brak_numeru_plytki', 'brak_numeru_plytki', 'brak_numeru_plytki', 'ponowny_skan', 'plytka_nie_z_trybu', 'ponowny_skan']
+numery plytek: odczytane przez program 3, podane przez technika na pytanie programu 4, brak 2 (z 9 plikow dobrych)
+zdarzenia srodowiska: log WARNING 4, ERROR 0, slowa {}; plytki ze statusem blad: 0; komunikaty bledow: {}
+procesy potomne po sprzataniu: []
+
+werdykty:
+  10 z 10 zgodnie z prawda: ZAL (10 z 10)
+  start analizy < 1 s: ZAL
+  mapa do 40 s (mediana): ZAL
+  okno bez przerw > 200 ms: ZAL
+  lista do dofrezowania = prawda: FAIL (lista = prawda: NIE; ubytki wg prawdy 26: program pokazal czerwone 10, zolte 15, zielone (przeoczone) 1, inne / brak pracy / nieobejrzane 0; nieklikniete przez technika 1 z 26; falszywe alarmy - cale wg prawdy na czerwono: 0 z 31)
+  T2 LACZNIE: FAIL (4 z 5 kryteriow ZAL, 1 FAIL, 0 NIE ZMIERZONO)
+

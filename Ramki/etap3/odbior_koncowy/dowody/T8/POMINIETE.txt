@@ -1,0 +1,5 @@
+Pliki i katalogi testu T8, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T8/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 17 plikow, 261367 B | katalog roboczy - kopie baz T2 i T3 (baza_t2.sqlite, baza_t3.sqlite), kopie do kontroli dowodow

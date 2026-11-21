@@ -1,0 +1,155 @@
+{
+ "wersja": "etap3-A10r4",
+ "wygenerowano": "2026-11-21T04:41:42",
+ "schemat_bazy": 1,
+ "okres": {
+  "od": "2026-11-20",
+  "do": "2026-11-21",
+  "tryb": "wieczor",
+  "doby": 2
+ },
+ "parametry": {
+  "granica_doby_godz": 6,
+  "zmiany_start_godz": [
+   6,
+   14,
+   22
+  ],
+  "prog_kandydata": 0.6,
+  "przerwa_min": 10
+ },
+ "wieczor": {
+  "skany": 9,
+  "skany_aktywne": 7,
+  "skany_mianownik": 6,
+  "skany_do_powtorzenia": 1,
+  "skany_do_potwierdzenia": 0,
+  "ponowny_skan_odrzucony": 2,
+  "prace": 57,
+  "czerwone": 10,
+  "falszywe_alarmy": 0,
+  "udzial_falszywych": 0.0,
+  "czerwone_ukruszone": 10,
+  "czerwone_bez_decyzji": 0,
+  "niewykryte_cien": 15,
+  "wykrywalnosc_cien": 0.4,
+  "nieznane": 57,
+  "udzial_nieznanych": 1.0,
+  "dwuznaczne": 0,
+  "powtorzone": {
+   "skany": 9,
+   "powtorzone": 3,
+   "udzial": 0.3333333333333333,
+   "statusy": {
+    "do_powtorzenia": 1,
+    "niezgodny_uklad": 1,
+    "plytka_nie_z_trybu": 1
+   }
+  },
+  "czas": {
+   "posiedzen": 1,
+   "posiedzen_bez_startu": 1,
+   "zmian": 1,
+   "zmian_bez_danych": 0,
+   "suma_min": 9.3,
+   "srednio_min": 9.3,
+   "max_min": 9.3,
+   "zmian_ponad_prog": 0
+  }
+ },
+ "rano": null,
+ "stabilnosc": {
+  "dni_pracy": 1,
+  "dni_z_awaria": 0,
+  "awarie": 0,
+  "restart_bez_zamkniecia": 0,
+  "silnik_nie_startuje": 0,
+  "silnik_wrocil_sam": 0,
+  "dni_historii": 1,
+  "awarie_w_historii": 0,
+  "najdluzsza_seria": 1,
+  "obecna_seria": 1,
+  "doby_z_awaria": [],
+  "uruchomiony_na_koniec": false
+ },
+ "m2": {
+  "dostepne": false,
+  "powod": "wymaga zmiany schematu: tabela testow wykrywalnosci (testy_wykrywalnosci, migracja bazy do wersji 2 - decyzja wlasciciela); baza nie zapisuje, ktora praca jest testowa ani jaki ma znany ubytek"
+ },
+ "metryki": [
+  {
+   "klucz": "falszywe_alarmy",
+   "nazwa": "falszywe alarmy (czerwone uznane za OK)",
+   "wartosc": 0.0,
+   "licznik": 0,
+   "mianownik": 57,
+   "prog": 0.15,
+   "kierunek": "max",
+   "jednostka": "%",
+   "ocena": "OK"
+  },
+  {
+   "klucz": "nieznane_wieczor",
+   "nazwa": "prace nieznane (bez kandydata) - wieczor",
+   "wartosc": 1.0,
+   "licznik": 57,
+   "mianownik": 57,
+   "prog": 0.1,
+   "kierunek": "max",
+   "jednostka": "%",
+   "ocena": "PONIZEJ"
+  },
+  {
+   "klucz": "czas_wieczor",
+   "nazwa": "czas przy stanowisku wieczorem (na zmiane)",
+   "wartosc": 9.3,
+   "licznik": null,
+   "mianownik": null,
+   "prog": 20.0,
+   "kierunek": "max",
+   "jednostka": "min",
+   "ocena": "OK"
+  },
+  {
+   "klucz": "powtorzone_wieczor",
+   "nazwa": "skany powtorzone - wieczor",
+   "wartosc": 0.3333333333333333,
+   "licznik": 3,
+   "mianownik": 9,
+   "prog": 0.05,
+   "kierunek": "max",
+   "jednostka": "%",
+   "ocena": "PONIZEJ"
+  },
+  {
+   "klucz": "dni_bez_awarii",
+   "nazwa": "dni bez awarii (seria do konca okresu)",
+   "wartosc": 1,
+   "licznik": null,
+   "mianownik": null,
+   "prog": 5,
+   "kierunek": "min",
+   "jednostka": "dni",
+   "ocena": "za krotki okres"
+  },
+  {
+   "klucz": "m2",
+   "nazwa": "M2 tabela testow wykrywalnosci",
+   "wartosc": null,
+   "licznik": null,
+   "mianownik": null,
+   "prog": 0.8,
+   "kierunek": "min",
+   "jednostka": "%",
+   "ocena": "wymaga zmiany schematu"
+  }
+ ],
+ "ponizej_progu": [
+  "nieznane_wieczor",
+  "powtorzone_wieczor"
+ ],
+ "bez_danych": [
+  "dni_bez_awarii"
+ ],
+ "kod": 3
+}

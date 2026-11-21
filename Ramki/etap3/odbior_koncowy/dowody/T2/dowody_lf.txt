@@ -1,0 +1,20 @@
+dowody_lf.py: plikow 18, naruszen 0 (po naprawie)
+NAPRAWIONY kody.txt: CR 11 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_t2.cmd
+OK        krok_t2_powt.cmd
+OK        krok_t2_uzup.cmd
+OK        POMINIETE.txt
+NAPRAWIONY t2_log_ostrzezenia.txt: CR 4 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t2_petla.log: CR 20 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t2_petla_plan.log: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t2_procesy.csv: CR 502 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t2_sterownik.log: CR 45 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t2_symulator.json: CR 113 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t2_t9.txt
+NAPRAWIONY t2_wynik.json: CR 1623 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t2_wynik.md
+NAPRAWIONY t2_wynik.txt: CR 44 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t2_zrodlo_kodu_1.txt
+OK        t2_zrodlo_kodu_2.txt
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

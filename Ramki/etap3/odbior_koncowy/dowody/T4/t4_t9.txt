@@ -1,0 +1,7 @@
+Samotest: nazw 435, czlonow 48, tekstow maski 491, wzorzec kontrolny 1; postaci sprawdzonych 7749, nieznalezionych 0; nazw bez postaci ASCII (transliteracja niemozliwa, postac niesprawdzana): 7
+T9 dane osobowe: szukanych nazw 435 (pominietych krotszych niz 4 znaki: 0), czlonow 48; przeszukanych plikow 11, nieprzeszukanych (spakowane / za duze) 0, wykluczonych (--wyklucz) 0
+TRAFIENIA calych nazw poza miejscami dozwolonymi: 0 w 0 plikach
+Trafienia w miejscach dozwolonych: 0 w 0 plikach
+Czlony nazw do wyjasnienia (bez calej nazwy): 1 w 1 plikach
+  <PC-katalog>\koordynator\robocze\odbior\T4\WYNIK.md: 5054e1b14a2e813f x1
+WYNIK T9 (cale nazwy): ZAL - czlony do wyjasnienia: 1

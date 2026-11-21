@@ -1,0 +1,19 @@
+skanow w dzienniku symulatora (rodzaj dobry): 40
+wierszy w tabeli skany: 40 (spoza dziennika symulatora: 0; sha16 z wiecej niz 1 wierszem: 0)
+skany z dziennika z wierszem w skany: 40 z 40 (bez wiersza = NIE ZMIERZONO: 0)
+(a) uklad rozpoznany (skany.uklad = plytka z prawdy, status inny niz niezgodny_uklad, uklad_zgodny inny niz 0): 40 z 40
+    uklad_zrodlo = auto: 40 z 40
+    uklad zapisany, ale inny niz w prawdzie: 0
+    ostrzezenie o ukladzie Z nazwa wlasciwego ukladu: 0
+    ostrzezenie o ukladzie BEZ nazwy wlasciwego ukladu (FAIL skanu): 0
+(b) skany ze zlym ukladem (niezgodny_uklad / uklad_zgodny = 0 / uklad inny niz prawda): 0; zielonych na nich: 0 (skanow z zielonymi: 0)
+(c) skany.uklad niepusty: 40 z 40
+informacyjnie: status plytka_nie_z_trybu: 20 skanow, zielonych na nich: 55; zielonych razem na wszystkich skanach: 113; numer plytki = prawda: 24 z 40
+    P2 okragla_poranna_r54: rozpoznane 6 z 6
+    P2 okragla_wieczorna_r54: rozpoznane 6 z 6
+    P2 poranna_r54: rozpoznane 6 z 6
+    P2 wieczorna_r54: rozpoznane 6 z 6
+    P3a okragla_poranna_r54: rozpoznane 6 z 6
+    P3a okragla_wieczorna_r54: rozpoznane 6 z 6
+    P3a poranna_r54: rozpoznane 2 z 2
+    P3a wieczorna_r54: rozpoznane 2 z 2

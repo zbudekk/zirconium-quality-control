@@ -1,0 +1,53 @@
+zrzuty_dowody/zrzut_p1_1_e1_01_komunikat_blad_analizy.png: 105610 B
+zrzuty_dowody/zrzut_p1_1_e1_02_pytanie_brak_numeru_plytki.png: 151954 B
+zrzuty_dowody/zrzut_p2_1_e2_01_komunikat_wznowiono.png: 169362 B
+zrzuty_dowody/zrzut_p2c_1_e2_01_komunikat_wznowiono.png: 177761 B
+zrzuty_dowody/zrzut_p3_1_e1_03_start_bez_folderu_bez_skanu.png: 91378 B
+zrzuty_dowody/zrzut_p3_1_e1_04_komunikat_pula_brak_folderu.png: 109868 B
+zrzuty_dowody/zrzut_p3_1_e1_05_3b_po_zniknieciu_bez_skanu.png: 181427 B
+zrzuty_dowody/zrzut_p3_1_e1_06_3b_po_skanie.png: 187014 B
+zrzuty_dowody/zrzut_p4a_2_e1_02_komunikat_ramka_wieczorna_niedostepna.png: 89686 B
+zrzuty_dowody/zrzut_p4b_1_e1_03_komunikat_ramka_niedostepna.png: 104605 B
+zrzuty_dowody/zrzut_p5d_1_e1_02_ramki_gotowe.png: 77359 B
+zrzuty_dowody/zrzut_p6_1_e1_01_komunikat_decyzja_niezapisana.png: 231369 B
+zrzutow w robocze/zrzuty: 53; roznych obrazow (sha16): 38
+  241dff5f29a5727f: p1_1_e1_01_komunikat_blad_analizy.png
+  57c0ee14118ace4e: p1_1_e1_02_pytanie_brak_numeru_plytki.png
+  7969aae79318a4b2: p1_2_e1_01_komunikat_blad_analizy.png
+  df8415d0fe25fb3c: p1_2_e1_02_pytanie_brak_numeru_plytki.png
+  ce926a5562700717: p2_1_e2_01_komunikat_wznowiono.png
+  8517563cadce392f: p2_1_e2_02_komunikat_konflikt_projektu.png, p2_1_e2_03_panel_nowy_wynik.png
+  118bae00c6c92c39: p2_2_e2_01_komunikat_wznowiono.png
+  cc39eb85b2594676: p2_2_e2_02_komunikat_konflikt_projektu.png, p2_2_e2_03_panel_nowy_wynik.png
+  4c9f8ef62af9900f: p2c_1_e2_01_komunikat_wznowiono.png
+  87f8f430309a6ef1: p2c_1_e2_02_komunikat_konflikt_projektu.png, p2c_1_e2_03_panel_nowy_wynik.png
+  ff25a516b773120d: p3_1_e1_01_panel_osoba.png
+  9cb92ce126b915b0: p3_1_e1_02_komunikat_ramka_wieczorna_niedostepna.png, p3_1_e1_03_start_bez_folderu_bez_skanu.png
+  47544e04e8de4f78: p3_1_e1_04_komunikat_pula_brak_folderu.png
+  67384c0bf04f1709: p3_1_e1_05_3b_po_zniknieciu_bez_skanu.png
+  615da1b8ce38a952: p3_1_e1_06_3b_po_skanie.png
+  c61e7ea1db3083dd: p3_1_e1_07_komunikat_konflikt_projektu.png
+  fb5afc44a671ab05: p3_1_e1_08_panel_nowy_wynik.png
+  b5fb31069e9db6c9: p3_2_e1_01_panel_osoba.png
+  8544c6150763f26c: p3_2_e1_02_komunikat_ramka_wieczorna_niedostepna.png, p3_2_e1_03_start_bez_folderu_bez_skanu.png
+  24c3b3c92a76ac6f: p3_2_e1_04_komunikat_pula_brak_folderu.png
+  dd30887cb190747e: p3_2_e1_05_3b_po_zniknieciu_bez_skanu.png
+  7ff9d2a4eff9d5ad: p3_2_e1_06_3b_po_skanie.png
+  8793ab44240aed27: p3_2_e1_07_komunikat_konflikt_projektu.png, p3_2_e1_08_panel_nowy_wynik.png
+  cac75e19b192483d: p4a_1_e1_01_panel_osoba.png
+  2f905451883e6863: p4a_1_e1_02_komunikat_ramka_wieczorna_niedostepna.png
+  b82c4ccddd887e90: p4a_1_e1_03_komunikat_ramka_niedostepna.png
+  b55cd36f64239112: p4a_2_e1_01_panel_osoba.png, p4b_1_e1_01_panel_osoba.png
+  e45b37eeb779a178: p4a_2_e1_02_komunikat_ramka_wieczorna_niedostepna.png, p4b_1_e1_02_komunikat_ramka_wieczorna_niedostepna.png
+  1feba8450c617afe: p4a_2_e1_03_komunikat_ramka_niedostepna.png, p4b_1_e1_03_komunikat_ramka_niedostepna.png, p4b_2_e1_03_komunikat_ramka_niedostepna.png, p5a_1_e1_03_komunikat_ramka_niedostepna.png, p5a_2_e1_03_komunikat_ramka_niedostepna.png, p5d_1_e1_04_komunikat_ramka_niedostepna.png
+  d03eda2c28123d57: p4b_2_e1_01_panel_osoba.png
+  7bf0b052c72fb1a0: p4b_2_e1_02_komunikat_ramka_wieczorna_niedostepna.png
+  da4b19456eb460d4: p5a_1_e1_01_panel_osoba.png, p5a_2_e1_01_panel_osoba.png
+  5b514d8991c37a48: p5a_1_e1_02_komunikat_ramka_wieczorna_niedostepna.png, p5a_2_e1_02_komunikat_ramka_wieczorna_niedostepna.png
+  ba73167719077376: p5d_1_e1_01_panel_osoba.png
+  2cafbd59187277f1: p5d_1_e1_02_ramki_gotowe.png
+  02025f6b26b68fc0: p5d_1_e1_03_komunikat_ramka_wieczorna_niedostepna.png
+  14d3b9d0c5826101: p6_1_e1_01_komunikat_decyzja_niezapisana.png
+  d218991b590bcad5: p6_2_e1_01_komunikat_decyzja_niezapisana.png
+kontrola nazw puli testowej: 50 nazw (pliki, foldery, rdzenie nazw), 41 plikow tekstowych dowodow, trafien: 0
+pliki dowodow ze znakami spoza ASCII: []; z CRLF (poza .cmd): ['p1_1_odczyty_1.jsonl', 'p1_2_odczyty_1.jsonl', 'p2c_1_odczyty_1.jsonl', 'p2c_1_odczyty_2.jsonl', 'p2_1_odczyty_1.jsonl', 'p2_1_odczyty_2.jsonl', 'p2_2_odczyty_1.jsonl', 'p2_2_odczyty_2.jsonl', 'p3_1_odczyty_1.jsonl', 'p3_2_odczyty_1.jsonl', 'p4a_1_odczyty_1.jsonl', 'p4a_2_odczyty_1.jsonl', 'p4b_1_odczyty_1.jsonl', 'p4b_2_odczyty_1.jsonl', 'p5a_1_odczyty_1.jsonl', 'p5a_2_odczyty_1.jsonl', 'p5d_1_odczyty_1.jsonl', 'p6_1_odczyty_1.jsonl', 'p6_2_odczyty_1.jsonl']

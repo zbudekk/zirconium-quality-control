@@ -1,0 +1,37 @@
+RAPORT METRYK STANOWISKA - okres 2026-11-17 .. 2026-11-19 (dob: 3), tryb: oba
+wygenerowano 2026-11-21T04:41:43; baza programu (schemat 1, tylko odczyt); progi odbioru: plan wdrozenia, "Testy odbiorcze i kryteria"
+
+METRYKA                                        WARTOSC  LICZNIK   PROG       OCENA
+----------------------------------------------------------------------------------
+falszywe alarmy (czerwone uznane za OK)           0.0%      0/8   <= 15%     OK
+top-1 wzgledem decyzji technika (rano)           87.5%      7/8   >= 85%     OK
+top-2: kuweta wsrod 2 kandydatow (rano)          87.5%      7/8   >= 95%     PONIZEJ
+prace nieznane (bez kandydata) - wieczor          0.0%      0/8   <= 10%     OK
+prace nieznane (bez kandydata) - rano            11.1%      1/9   <= 10%     PONIZEJ
+czas przy stanowisku wieczorem (na zmiane)     1.0 min        -   <= 20 min  OK
+skany powtorzone - wieczor                        0.0%      0/3   <= 5%      OK
+skany powtorzone - rano                          16.7%      1/6   <= 5%      PONIZEJ
+dni bez awarii (seria do konca okresu)           3 dni        -   >= 5 dni   za krotki okres
+M2 tabela testow wykrywalnosci                       -        -   >= 80%     wymaga zmiany schematu
+
+WIECZOR: skany 3 (aktywne 3), prace 8 w skanach przyjetych (3); poza: do powtorzenia 0, ponowny skan bez odpowiedzi 0 (odrzucone 0)
+  czerwone 1: OK (falszywy alarm) 0, Ukruszona 1, bez decyzji 0
+  tryb cienia: ukruszone, ktorych program nie wskazal 0; wykrywalnosc wzgledem technika 100.0% (1/1) - nie zastepuje M2
+  nieznane (bez kandydata) 0; szare z kandydatem (dwuznaczne) 0
+  skany powtorzone 0 z 3: zastapione 0, do powtorzenia 0, niezgodny uklad 0, plytka nie z trybu 0, blad 0
+  czas: zmian 2 (bez danych 1), posiedzen 4 (bez start_skanu 4), razem 1.0 min, srednio 1.0, max 1.0, zmian > 20 min: 0
+RANO: piece zamkniete 3 (niezamkniete 0 - poza metrykami), prace 9
+  klasy: pewna 6, przypisana 1, poprawka 1, nieznana 1
+  top-1 7 z 8, top-2 7 z 8 (po projekcie 7; tylko prace z propozycja programu); odrzucone ('bez projektu', chybione) 1; dwuznaczne 0
+  skany powtorzone 1 z 6: zastapione 1, do powtorzenia 0, niezgodny uklad 0, plytka nie z trybu 0, blad 0
+  czas (informacyjnie): zmian 2 (bez danych 0), posiedzen 5 (bez start_skanu 5), razem 31.1 min, srednio 15.5, max 30.1
+  piec od otwarcia do zamkniecia (nie stoper z PW): mediana 20.0 min, najwiecej 30.0 min
+STABILNOSC: dni pracy 3 (w historii 3), z awaria 0, awarii 0 (restart bez program_stop 0, silnik nie startuje 0); silnik wrocil sam 0
+  seria bez awarii do konca okresu 3 dni, najdluzsza 3; doby z awaria: -
+  program uruchomiony bez program_stop na koniec okresu: nie
+M2: tabela testow wykrywalnosci (5 prac tygodniowo ze znanymi ubytkami) - wymaga zmiany schematu:
+  tabela testy_wykrywalnosci (migracja bazy do wersji 2, decyzja wlasciciela); do tego czasu brak danych
+UWAGI: posiedzenie = start skanu, wykrycie pliku, klikniecie, przyjecie skanu, decyzja; przerwa > 10 min = koniec;
+  blizniacze prace implantologiczne (PW: poza trafnoscia) nie sa wykluczone - baza ich nie rozroznia
+WYNIK: PONIZEJ PROGU (kod 3; metryk bez danych 1 z 9):
+  top2, nieznane_rano, powtorzone_rano
