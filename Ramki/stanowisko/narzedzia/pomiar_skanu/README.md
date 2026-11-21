@@ -29,6 +29,8 @@ x wspolczynnik, braki danych i zaokraglenie na krawedzi brzegu, a z dwoch skanow
 - Wiersz polecen, w katalogu instalacji (np. `C:\Stanowisko`):
   `Polecenie.cmd narzedzia\pomiar_skanu\pomiar_skanu.py SKAN.stl [--projekty FOLDER] [--wspolczynnik 1.22] [--wyj KATALOG]`
   - bez `--ustawienia` narzedzie bierze `<instalacja>\ustawienia.toml` (pierwszy wiersz na ekranie: `ustawienia: <plik>`).
+    Gdy tego pliku nie ma: `blad: ustawienia: brak pliku ustawien instalacji ... - uruchom zainstaluj.cmd ...`, kod 2
+    (pliku `ustawienia.toml` w katalogu wersji narzedzie w instalacji nie czyta i nie radzi go zakladac).
 - `pomiar_skanu.cmd` (przeciagniecie pliku) lezy w `<instalacja>\wersje\<wersja>\program\narzedzia\pomiar_skanu\` i bierze
   Pythona srodowiska tej wersji. Sprawdzone tylko po tresci pliku (skrypt pyta, czeka na klawisz i otwiera Notatnik -
   w sesji bez ekranu nie byl uruchomiony); droga pewna to dwie powyzsze.

@@ -1,6 +1,8 @@
 @echo off
-rem Okno "Dzien skanera - krok po kroku" wersji biezacej: ustawienia z ustawienia.toml tego katalogu, sesje w dane\dzien_skanera.
-rem Opcje okna przechodza dalej, np. --nowa, --sprawdz <folder sesji albo plik zip>, --zamknij-po 5.
+rem Okno "Dzien skanera - krok po kroku" wersji biezacej: ustawienia z ustawienia.toml tego katalogu, sesje w dane\dzien_skanera
+rem tego katalogu (katalog sesji podany wprost opcja --dane: takze wersja 0.3.1, po powrocie do niej, zapisuje sesje tutaj,
+rem a nie w katalogu wersji; wlasne --dane podane przy uruchomieniu ma pierwszenstwo).
+rem Opcje okna przechodza dalej, np. --nowa, --sprawdz <folder sesji albo plik zip>, --zamknij-po 5 (nie w wersji 0.3.1).
 rem Plik zapisany przez instalator (wzor: program\instalacja\wzory) - nie zmieniaj; ustawienia sa w ustawienia.toml.
 setlocal
 set "KAT=%~dp0"
@@ -16,7 +18,7 @@ set "PYTHONNOUSERSITE=1"
 set "PYTHONPATH="
 set "PYTHONHOME="
 cd /d "%W%\program"
-"%W%\venv\Scripts\python.exe" -m stanowisko.dzien_skanera --ustawienia "%KAT%ustawienia.toml" %*
+"%W%\venv\Scripts\python.exe" -m stanowisko.dzien_skanera --ustawienia "%KAT%ustawienia.toml" --dane "%KAT%dane\dzien_skanera" %*
 set "KOD=%errorlevel%"
 if not "%KOD%"=="0" if "%~1"=="" pause
 exit /b %KOD%

@@ -2671,20 +2671,49 @@ def _sprawdz(sciezka: Path, zrodla: list) -> tuple[int, list[str]]:
 # ----------------------------------------------------------------------------
 # ustawienia odporne na brak pliku
 # ----------------------------------------------------------------------------
+class BladKataloguSesji(RuntimeError):
+    """Katalog sesji lezy w katalogu wersji programu (instalacja z paczki) - sesji tam zakladac nie wolno (E3-O4, runda 2)."""
+
+
 def katalog_instalacji(korzen: Path | None = None) -> Path | None:
-    """Katalog instalacji, gdy program lezy w ukladzie instalatora: ``<instalacja>/wersje/<wersja>/program`` i w ``<instalacja>``
-    jest ``ustawienia.toml`` (zaklada go ``instalacja/instalator.py``); inaczej (kopia repo) None. E3-O4."""
+    """Katalog instalacji, gdy program lezy w ukladzie instalatora ``<instalacja>/wersje/<wersja>/program``; inaczej (kopia
+    repo) None. Instalacje poznaje sie po plikach, ktore zaklada ``instalacja/instalator.py`` - wystarczy jeden z trzech:
+    ``wersje/<wersja>/instalacja.json``, ``<instalacja>/wersja_biezaca.txt``, ``<instalacja>/ustawienia.toml``. Brak samego
+    ``ustawienia.toml`` (skasowany, przeniesiony) NIE robi z instalacji kopii repo (E3-O4, runda 2, uwaga P1)."""
     korzen = Path(korzen) if korzen is not None else UST.KORZEN
     if korzen.name.lower() != "program" or korzen.parent.parent.name.lower() != "wersje":
         return None
     katalog = korzen.parent.parent.parent
-    return katalog if (katalog / UST.PLIK_USTAWIEN.name).is_file() else None
+    znaczniki = (korzen.parent / "instalacja.json", katalog / "wersja_biezaca.txt", katalog / UST.PLIK_USTAWIEN.name)
+    return katalog if any(z.is_file() for z in znaczniki) else None
 
 
 def plik_ustawien_instalacji() -> Path | None:
-    """``<instalacja>/ustawienia.toml``, gdy program lezy w katalogu wersji instalacji; z repo None (E3-O4)."""
+    """``<instalacja>/ustawienia.toml``, gdy program lezy w katalogu wersji instalacji (takze gdy tego pliku akurat nie ma -
+    wolajacy sprawdza); z repo None (E3-O4)."""
     katalog = katalog_instalacji()
     return katalog / UST.PLIK_USTAWIEN.name if katalog is not None else None
+
+
+def sprawdz_katalog_sesji(katalog: Path) -> Path:
+    """Zwraca ``katalog``; w instalacji z paczki odrzuca (``BladKataloguSesji``, komunikat po polsku) katalog sesji lezacy
+    wewnatrz ``<instalacja>/wersje`` - np. gdy ``[sciezki] baza`` w ``ustawienia.toml`` jest sciezka wzgledna (liczona od
+    katalogu programu, czyli od katalogu wersji). Sesja w katalogu wersji ginie przy sprzataniu wersji (E3-O4, runda 2, P1)."""
+    instalacja = katalog_instalacji()
+    if instalacja is None:
+        return katalog
+    wersje = (instalacja / "wersje").resolve()
+    try:
+        pelny = Path(katalog).resolve()
+    except OSError:
+        pelny = Path(katalog).absolute()
+    if pelny == wersje or wersje in pelny.parents:
+        raise BladKataloguSesji(
+            f"katalog sesji {pelny} lezy w katalogu wersji programu ({wersje}) - sesja zginelaby przy sprzataniu wersji. "
+            f"CO ZROBIC: uruchom {instalacja / 'Dzien_skanera.cmd'} (sesje w {instalacja / 'dane' / KATALOG_SESJI.name}) albo popraw "
+            f"w pliku {instalacja / UST.PLIK_USTAWIEN.name} wiersz [sciezki] baza - ma byc pelna sciezka, np. "
+            f"{(instalacja / 'dane' / 'stanowisko.sqlite').as_posix()}")
+    return katalog
 
 
 def _ten_sam_plik(a: Path, b: Path) -> bool:
@@ -2701,10 +2730,13 @@ def katalog_sesji(ust: dict | None = None, plik_ustawien: Path | None = None) ->
        <instalacja>/ustawienia.toml`` - tak samo jak ``Stanowisko.cmd``) albo z pliku instalacji znalezionego po ukladzie
        katalogow: ``dzien_skanera`` w katalogu bazy z ``[sciezki] baza`` - tak program "Stanowisko" wyznacza swoj katalog
        danych (``aplikacja``: katalog pliku bazy); w instalacji to ``<instalacja>/dane/dzien_skanera``.
-    2. Program w katalogu wersji instalacji, ale bez uzytecznych ustawien instalacji: ``<instalacja>/dane/dzien_skanera`` -
-       sesja nigdy nie trafia do katalogu wersji (ginie przy sprzataniu wersji).
+    2. Program w katalogu wersji instalacji, ale bez uzytecznych ustawien instalacji (pliku nie ma, ma blad, nie ma w nim
+       sciezki bazy): ``<instalacja>/dane/dzien_skanera``.
     3. Kopia repo na wlasnym ``ustawienia.toml`` / wzorze albo bez ustawien: ``KATALOG_SESJI`` (``dane/dzien_skanera`` w
-       katalogu programu) - jak przed E3-O4."""
+       katalogu programu) - jak przed E3-O4.
+
+    Wyniku NIE sprawdza: gdy ``[sciezki] baza`` instalacji jest sciezka wzgledna, regula 1 daje katalog w katalogu wersji -
+    wolajacy (``dzien_skanera.wybierz_sesje``) odrzuca go przez ``sprawdz_katalog_sesji`` (runda 2, uwaga P1)."""
     wlasne = (UST.PLIK_USTAWIEN, UST.PLIK_PRZYKLADU)
     if ust is not None and plik_ustawien is not None and not any(_ten_sam_plik(plik_ustawien, w) for w in wlasne):
         try:
@@ -2723,13 +2755,23 @@ def wczytaj_ustawienia_bezpiecznie(plik: Path | None = None) -> tuple[dict | Non
     """(ustawienia, plik, komunikat). Gdy ``ustawienia.toml`` nie ma albo jest zly - probuje wzoru; gdy i to zawiedzie - (None, None, powod).
     Okno dnia skanera ma dzialac takze bez poprawnych ustawien (zbieranie plikow nie zalezy od nich).
     Kolejnosc: plik wskazany, w instalacji ``<instalacja>/ustawienia.toml`` (E3-O4: w katalogu wersji nie ma ``ustawienia.toml``,
-    wiec bez tego okno czytalo wzor), ``ustawienia.toml`` programu, wzor."""
+    wiec bez tego okno czytalo wzor), ``ustawienia.toml`` programu, wzor.
+    W instalacji (E3-O4, runda 2, P1): ``ustawienia.toml`` z katalogu wersji nie jest czytany nigdy, a gdy pliku ustawien
+    instalacji NIE MA, nie jest czytany takze wzor z katalogu wersji - wynik (None, None, powod), okno dziala bez ustawien
+    i mowi, czego brakuje (wzor obserwowalby folder ze wzoru, nie folder tej instalacji)."""
     bledy = []
     kandydaci = [Path(plik)] if plik is not None else []
     z_instalacji = plik_ustawien_instalacji()
     if z_instalacji is not None and not any(_ten_sam_plik(z_instalacji, k) for k in kandydaci):
         kandydaci.append(z_instalacji)
-    for kandydat in kandydaci + [UST.PLIK_USTAWIEN, UST.PLIK_PRZYKLADU]:
+    zapasowe = [UST.PLIK_USTAWIEN, UST.PLIK_PRZYKLADU]
+    if z_instalacji is not None:
+        zapasowe = [UST.PLIK_PRZYKLADU] if z_instalacji.is_file() else []
+    for kandydat in kandydaci + zapasowe:
+        if z_instalacji is not None and not kandydat.is_file():
+            bledy.append(f"{kandydat.name}: brak pliku {kandydat}" + (" - uruchom zainstaluj.cmd z paczki wydania (zalozy plik ustawien ze wzoru)"
+                                                                      if _ten_sam_plik(kandydat, z_instalacji) else ""))
+            continue
         try:
             return UST.wczytaj_ustawienia(kandydat), kandydat, "; ".join(bledy)
         except Exception as e:  # noqa: BLE001

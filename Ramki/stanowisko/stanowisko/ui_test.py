@@ -42,6 +42,15 @@ from . import uklad as U
 from . import ustawienia as UST
 
 PLIK_DECYZJI = UST.KORZEN / "dane" / "decyzje.csv"
+
+
+def plik_decyzji_domyslny() -> Path:
+    """E3-O4: w instalacji z paczki ``<instalacja>/dane/decyzje.csv`` (katalog wersji ginie przy sprzataniu wersji) - to samo
+    rozpoznanie instalacji co okno "Dzien skanera"; z kopii repo ``dane/decyzje.csv`` w katalogu programu, jak dotad."""
+    from . import dzien_skanera_rdzen as R
+
+    instalacja = R.katalog_instalacji()
+    return instalacja / "dane" / PLIK_DECYZJI.name if instalacja is not None else PLIK_DECYZJI
 KOLUMNY_DECYZJI = ("czas", "skan", "gniazdo", "projekt", "zeby", "decyzja", "status_programu", "ubytkow")
 
 
@@ -230,10 +239,10 @@ def pil_na_pixmap(im: Image.Image) -> QPixmap:
 # okno
 # ----------------------------------------------------------------------------
 class Okno(QMainWindow):
-    def __init__(self, ust: dict | None = None, plik_decyzji: Path = PLIK_DECYZJI):
+    def __init__(self, ust: dict | None = None, plik_decyzji: Path | None = None):
         super().__init__()
         self.ust = ust if ust is not None else UST.wczytaj_ustawienia()
-        self.plik_decyzji = plik_decyzji
+        self.plik_decyzji = plik_decyzji if plik_decyzji is not None else plik_decyzji_domyslny()
         self.wynik: dict | None = None
         self.podglad: dict = {}
         self.uk: U.UkladPlytki | None = None
