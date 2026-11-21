@@ -217,12 +217,12 @@ def test_stary_plik_ustawien_dostaje_uklady_wbudowane(tmp_path):
     p = tmp_path / "ustawienia.toml"
     p.write_text(stary, encoding="utf-8")
     ust = UST.wczytaj_ustawienia(p)
-    assert set(ust["plytki"]) == set(WSZYSTKIE)
+    assert set(ust["plytki"]) == set(WSZYSTKIE) | {"okragla_ramkowa_wieczorna", "okragla_ramkowa_poranna"}  # E3-O1: 2 uklady okragle ramkowe (R58)
     assert list(ust["plytki"])[:2] == ["wieczorna", "poranna"]  # kolejnosc z pliku, dopisane na koncu
     for n in WSZYSTKIE:
         assert (UST.katalog_plytki(ust, n) / "uklad.json").exists()
     assert not PO.brak_ukladow_poprzednich(ust)
-    assert set(PO.uklady_z_ustawien(ust)) == set(WSZYSTKIE)
+    assert set(PO.uklady_z_ustawien(ust)) == set(WSZYSTKIE) | {"okragla_ramkowa_wieczorna", "okragla_ramkowa_poranna"}
     # wpis z pliku ma pierwszenstwo przed wbudowanym
     d = {"plytki": {"wieczorna_r54": "inny/katalog"}}
     assert "wieczorna_r54" not in UST.uzupelnij_uklady_wbudowane(d) and d["plytki"]["wieczorna_r54"] == "inny/katalog"
