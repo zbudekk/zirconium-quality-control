@@ -332,16 +332,14 @@ class OknoWieczor(QWidget):
         przed = self._miejsce_mapy() if klikalna else None
         self._odswiez()
         if klikalna:
+            self._calosc.activate()  # uklad policzony od razu (bez czekania na obieg petli okna): miejsce mapy po wymianie paneli
             po = self._miejsce_mapy()
             if po[1] > przed[1] if self._w_poleceniu else po[0] != przed[0]:
                 self._ochrona.start()
                 self.mapa.przygas(True)
 
     def _miejsce_mapy(self) -> tuple:
-        """(prostokat mapy w oknie, gorna krawedz kolumny mapy) - uklad policzony od razu, bez czekania na obieg petli okna:
-        to, co technik ma pod kursorem po wymianie paneli."""
-        self._calosc.activate()
-        self._kolumna_uklad.activate()
+        """(prostokat mapy w oknie, gorna krawedz kolumny mapy) - to, co technik ma pod kursorem."""
         return QRect(self.mapa.mapTo(self, QPoint(0, 0)), self.mapa.size()), self.kolumna.y()
 
     def pokazana_plytka(self) -> int | None:
