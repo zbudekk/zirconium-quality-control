@@ -129,11 +129,13 @@ def test_gniazda_po_kolei_jedno_naraz_z_przesunieciem(ramka, tmp_path):
         inne = [bb for gg, bb in bloki if gg != g]
         stan["inne_ciemne"] += all(atrapa.klatka.piksel(bb[0], bb[1]) == (0, 0, 0) for bb in inne)
         stan["i"] += 1
+        if stan["i"] == 4:  # zapis wiersz po wierszu: 3 obserwacje sa juz w pliku, zanim narzedzie skonczy
+            stan["w_trakcie"] = len(plik.read_text(encoding="ascii").splitlines()) - 1
         return "k" if stan["i"] == 5 else ("" if stan["i"] != 2 else "za bardzo w lewo")
 
     plik = tmp_path / "g.csv"
     assert RP.polecenie_gniazda(r, uklad, None, MODELE, False, (1, -1), plik, lambda *_: None, pytaj) == 0
-    assert stan["dobre"] == 5 and stan["inne_ciemne"] == 5
+    assert stan["dobre"] == 5 and stan["inne_ciemne"] == 5 and stan["w_trakcie"] == 3
     wiersze = [w.split(";") for w in plik.read_text(encoding="ascii").splitlines()][1:]
     assert len(wiersze) == 4 and [w[8] for w in wiersze] == ["ok", "za bardzo w lewo", "ok", "ok"]
     assert all(w[6] == "1" and w[7] == "-1" for w in wiersze)

@@ -264,8 +264,10 @@ Gdy sie nie uda: skopiuj plik skanu na pendrive - policzymy go na PC.
 Arkusz: 2.4.
 Stan: narzedzie sprawdzone 21.11 na 22 skanach sztucznych: gdy pole bylo mniejsze niz plytka
 (70-120 mm, 14 skanow), podana srednica byla o 0,2-0,6 mm wieksza od prawdziwej. Na prawdziwym skanie:
-[NIE SPRAWDZONE BEZ SPRZETU] - zwlaszcza scianka boczna i rowek (skaner patrzy z gory; skany sztuczne
-nie maja rowka) oraz proba z kartonem (sprawdzona tylko na plaskiej siatce sztucznej).
+[NIE SPRAWDZONE BEZ SPRZETU] - zwlaszcza scianka boczna i rowek (skaner patrzy z gory; na skanach
+sztucznych licznik "punktow w miejscu rowka" dal 13,9-19,8 tys. dla 3 plytek okraglych ramkowych i 0 dla
+6 skanow plytek okraglych testowych, ktore rowka nie maja) oraz proba z kartonem (sprawdzona tylko na
+plaskiej siatce sztucznej).
 
 ### Krok 2.5 - kolejne skany wg okna (ok. 1 godziny)
 
@@ -281,9 +283,14 @@ Udalo sie, gdy: kazdy skan ma w oknie ocene, a w arkuszu wiersz w tabeli 2.5.
 Gdy ocena jest zolta "inna plytka niz w skanie ..." albo czerwona "TEN SAM plik" - przeczytaj tekst po
 "ZROB TAK"; plik i tak jest zachowany.
 Arkusz: 2.5.
-Stan: program 0.3.1 zna 8 ukladow (kwadratowe 1-6, okragle testowe 8 i 9, stare R54). Plytke okragla
-ramkowa 1-6 moze nazwac inaczej (pomiar z planu 21.11: "okragla_wieczorna" zamiast ramkowej) - gniazda sa
-te same, wiec skan jest przydatny. [ETAP 2: nazwy ukladow okraglych]
+Stan: program 0.3.1 zna 8 ukladow (kwadratowe 1-6, okragle testowe 8 i 9, stare R54). Plytki okraglej
+ramkowej 1-6 jeszcze nie zna. Sprawdzone 21.11 na 3 skanach sztucznych takich plytek (nr 1, 3 i 4): okno
+nazywa je "okragla_wieczorna" / "okragla_poranna" i pisze "dolki kodu odczytane jako 1 - to nie jest numer
+plytki tego ukladu (wpisz numer plytki w polu kroku)". To jest dzis NORMALNE - wpisz numer i idz dalej;
+gniazda sa te same, wiec skan jest przydatny. `pole_skanu.cmd` podaje dla nich numer z dolkow poprawnie.
+Program "Stanowisko" 0.3.1 (krok 2.7) przyjmuje taki skan jako "okragla_wieczorna" z numerem z dolkow
+(sprawdzone na 2 skanach sztucznych: nr 1 i nr 3), ale ramka zostaje dla niego ciemna (krok 3.8).
+[ETAP 2: nazwy ukladow okraglych]
 
 ### Krok 2.6 - kopia folderu i "Zakoncz i spakuj" (10 minut)
 
@@ -303,6 +310,10 @@ Co zrobic:
 
 1. Zamknij okno "Dzien skanera". Otworz w Notatniku `C:\Stanowisko\ustawienia.toml` i w wierszu
    `folder_eksportu_skanera` wpisz folder programu skanera (z ukosnikami `/`). Zapisz.
+   UWAGA: po starcie program bierze do analizy WSZYSTKIE pliki `.stl`, ktore juz leza w tym folderze
+   i w jego podfolderach (sprawdzone 21.11: 3 pliki zastane - 3 wziete do analizy). Jesli w folderze
+   skanera sa stare zlecenia, wskaz tylko folder NOWEGO zlecenia testowego (np. podfolder TEST5 zalozony
+   przed chwila) albo pusty folder, do ktorego zapiszesz skan recznie ("Export" w programie skanera).
 2. `C:\Stanowisko\Samokontrola.cmd` - wiersz `OK folder_skanera`.
 3. `C:\Stanowisko\Stanowisko.cmd`, kliknij "Tester".
 4. Zeskanuj plytke z pracami i zapisz skan w programie skanera. Wlacz stoper w chwili zapisu.

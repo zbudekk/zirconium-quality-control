@@ -109,21 +109,30 @@ def _godzina() -> str:
     return time.strftime("%H:%M:%S", time.localtime(t)) + f".{int(t * 1000) % 1000:03d}"
 
 
-def _zapisz_csv(plik: Path | None, naglowek: list, wiersze: list, przedrostek: str = "ramka") -> Path | None:
-    """Zapis obserwacji; gdy `plik` jest katalogiem - nowy plik <przedrostek>_<data>_<godzina>.csv w tym katalogu."""
-    if plik is None:
-        return None
-    if plik.is_dir():
-        podstawa, nr = f"{przedrostek}_{time.strftime('%Y%m%d_%H%M%S')}", 1
-        while (plik / (podstawa + ("" if nr == 1 else f"_{nr}") + ".csv")).exists():  # dwa zapisy w tej samej sekundzie
-            nr += 1
-        plik = plik / (podstawa + ("" if nr == 1 else f"_{nr}") + ".csv")
-    plik.parent.mkdir(parents=True, exist_ok=True)
-    with open(plik, "w", encoding="ascii", errors="replace", newline="") as f:
-        w = csv.writer(f, delimiter=";", lineterminator="\n")
-        w.writerow(naglowek)
-        w.writerows(wiersze)
-    return plik
+class Zapis:
+    """Plik CSV z obserwacjami, dopisywany WIERSZ PO WIERSZU (zamkniecie okna w polowie nie gubi tego, co juz zapisano).
+    `plik` None = bez zapisu; istniejacy katalog = nowy plik <przedrostek>_<data>_<godzina>[_n].csv w tym katalogu."""
+
+    def __init__(self, plik: Path | None, naglowek: list, przedrostek: str = "ramka"):
+        self.plik = None
+        if plik is None:
+            return
+        if plik.is_dir():
+            podstawa, nr = f"{przedrostek}_{time.strftime('%Y%m%d_%H%M%S')}", 1
+            while (plik / (podstawa + ("" if nr == 1 else f"_{nr}") + ".csv")).exists():  # dwa zapisy w tej samej sekundzie
+                nr += 1
+            plik = plik / (podstawa + ("" if nr == 1 else f"_{nr}") + ".csv")
+        plik.parent.mkdir(parents=True, exist_ok=True)
+        self.plik = plik
+        self._pisz(naglowek, "w")
+
+    def _pisz(self, wiersz: list, tryb: str = "a") -> None:
+        with open(self.plik, tryb, encoding="ascii", errors="replace", newline="") as f:
+            csv.writer(f, delimiter=";", lineterminator="\n").writerow(wiersz)
+
+    def dopisz(self, wiersz: list) -> None:
+        if self.plik is not None:
+            self._pisz(wiersz)
 
 
 # ----------------------------------------------------------------------------- polecenia
@@ -146,13 +155,19 @@ def polecenie_plytki(r: Ramka, czas_s: float, zapis: Path | None, pisz=print, st
     rodzina = RODZINY.get(s.get("rola"), ())
     pisz(f"Ramka {s.get('rola')}: teraz plytka {s.get('plytka')}. Kladz i zdejmuj plytki; kazda zmiana pojawi sie ponizej. Koniec po {czas_s:.0f} s albo Ctrl+C.")
     wiersze, t_koniec = [], time.time() + czas_s
+    zap = Zapis(zapis, ["godzina_komputera", "czas_ramki_s", "zdarzenie", "poprzednia", "plytka", "uwaga"], "plytki")
+
+    def dodaj(w):
+        wiersze.append(w)
+        zap.dopisz(w)
+
     try:
         while time.time() < t_koniec and not (stop is not None and stop.is_set()):
             o = r.zdarzenia(start_id, od, czekaj=min(2.0, max(0.0, t_koniec - time.time())))
             if o.get("restart"):
                 start_id, od = o["start_id"], 0
                 pisz(f"{_godzina()}  RAMKA URUCHOMILA SIE PONOWNIE (restart programu ramki)")
-                wiersze.append([_godzina(), "", "restart", "", "", ""])
+                dodaj([_godzina(), "", "restart", "", "", ""])
                 continue
             for z in o.get("zdarzenia", []):
                 od = max(od, z["nr"])
@@ -160,17 +175,15 @@ def polecenie_plytki(r: Ramka, czas_s: float, zapis: Path | None, pisz=print, st
                     n, pop = z.get("plytka"), z.get("poprzednia")
                     uwaga = "" if n == 0 or n in rodzina else "NUMER SPOZA TEJ RAMKI"
                     pisz(f"{_godzina()}  plytka {pop} -> {n}   (czas ramki {z.get('czas_s', 0):.3f} s) {uwaga}")
-                    wiersze.append([_godzina(), f"{z.get('czas_s', 0):.3f}", "plytka", pop, n, uwaga])
+                    dodaj([_godzina(), f"{z.get('czas_s', 0):.3f}", "plytka", pop, n, uwaga])
                 elif z.get("typ") in ("blad_sprzetu", "sprzet_dziala", "start"):
                     pisz(f"{_godzina()}  zdarzenie ramki: {z.get('typ')}")
-                    wiersze.append([_godzina(), f"{z.get('czas_s', 0):.3f}", z.get("typ"), "", "", ""])
+                    dodaj([_godzina(), f"{z.get('czas_s', 0):.3f}", z.get("typ"), "", "", ""])
             od = max(od, 0)
     except KeyboardInterrupt:
         pass
-    finally:
-        zapis = _zapisz_csv(zapis, ["godzina_komputera", "czas_ramki_s", "zdarzenie", "poprzednia", "plytka", "uwaga"], wiersze, "plytki")
     zmian = sum(w[2] == "plytka" for w in wiersze)
-    pisz(f"Zmian odczytu plytki: {zmian}" + (f"; zapisano {zapis}" if zapis else ""))
+    pisz(f"Zmian odczytu plytki: {zmian}" + (f"; zapisano {zap.plik}" if zap.plik else ""))
     return 0
 
 
@@ -215,6 +228,12 @@ def polecenie_gniazda(r: Ramka, uklad: str, kalibracja: Path | None, modele: Pat
     zrodlo = kal["ramki"][rola][uklad].get("zrodlo", "geometria")
     pisz(f"Ramka {rola}, plytka {nr}, uklad {uklad} ({len(bloki)} gniazd), polozenia diod: {zrodlo}, przesuniecie {przesun[0]} w prawo, {przesun[1]} w dol.")
     wiersze, kod_wyjscia = [], 0
+    zap = Zapis(zapis, ["godzina", "ramka", "plytka", "uklad", "gniazdo", "diody_x_y_szer_wys", "przesun_x", "przesun_y", "obserwacja"], "gniazda")
+
+    def dodaj(w):
+        wiersze.append(w)
+        zap.dopisz(w)
+
     zyje = threading.Event()
 
     def podtrzymuj():  # ramka gasi plan, gdy komputer milczy (wieczorna po 30 s) - odzywamy sie co 5 s
@@ -235,7 +254,7 @@ def polecenie_gniazda(r: Ramka, uklad: str, kalibracja: Path | None, modele: Pat
                 return 1
             pisz("SWIECA WSZYSTKIE GNIAZDA (sasiednie w roznych kolorach). Popatrz z gory: kazdy otwor w dnie gniazda ma swiecic, miedzy gniazdami ciemno.")
             odp = pytaj("Wpisz uwage (np. 'gniazda 3 i 7 ciemne') i Enter: ")
-            wiersze.append([_godzina(), rola, nr, uklad, "wszystkie", "", przesun[0], przesun[1], odp.strip()])
+            dodaj([_godzina(), rola, nr, uklad, "wszystkie", "", przesun[0], przesun[1], odp.strip()])
         else:
             pisz("Po kolei: swieci JEDNO gniazdo na bialo. Enter = dobrze; albo wpisz, co widzisz (np. 'za bardzo w lewo', 'ciemno'); k = koniec.")
             for g, b in bloki:
@@ -243,23 +262,21 @@ def polecenie_gniazda(r: Ramka, uklad: str, kalibracja: Path | None, modele: Pat
                 wersja += 1
                 if kod != 200:
                     pisz(f"gniazdo {g}: RAMKA ODMOWILA (kod {kod} {(o.get('blad') or {}).get('kod', '')}) - sprawdz, czy plytka {nr} lezy na ramce i czy program Stanowisko jest zamkniety")
-                    wiersze.append([_godzina(), rola, nr, uklad, g, " ".join(map(str, b)), przesun[0], przesun[1], f"ODMOWA {kod}"])
+                    dodaj([_godzina(), rola, nr, uklad, g, " ".join(map(str, b)), przesun[0], przesun[1], f"ODMOWA {kod}"])
                     kod_wyjscia = 1
                     continue
                 odp = pytaj(f"gniazdo {g:2d} (diody x={b[0]} y={b[1]} {b[2]}x{b[3]}): ").strip()
                 if odp.lower() == "k":
                     break
-                wiersze.append([_godzina(), rola, nr, uklad, g, " ".join(map(str, b)), przesun[0], przesun[1], odp or "ok"])
+                dodaj([_godzina(), rola, nr, uklad, g, " ".join(map(str, b)), przesun[0], przesun[1], odp or "ok"])
     finally:
         zyje.set()
         try:
             r.zadanie("DELETE", "/plan")
         except BrakPolaczenia:
             pass
-        zapis = _zapisz_csv(zapis, ["godzina", "ramka", "plytka", "uklad", "gniazdo", "diody_x_y_szer_wys", "przesun_x", "przesun_y", "obserwacja"],
-                            wiersze, "gniazda")
     dobre = sum(w[8] == "ok" for w in wiersze)
-    pisz(f"Zapisanych obserwacji: {len(wiersze)}, w tym 'ok': {dobre}" + (f"; plik: {zapis}" if zapis else "") + ". Ramka zgaszona.")
+    pisz(f"Zapisanych obserwacji: {len(wiersze)}, w tym 'ok': {dobre}" + (f"; plik: {zap.plik}" if zap.plik else "") + ". Ramka zgaszona.")
     return kod_wyjscia
 
 
@@ -301,6 +318,7 @@ def polecenie_klawiatura(r: Ramka, uklad: str, kalibracja: Path | None, modele: 
     pisz("Ramka ma plan probny: kuwety 1111 i 2222 (napis z przodu ramki: numer kuwety i liczba prac).")
     pisz("Naciskaj na klawiaturze ramki, po kolei:  Enter | Backspace | 2 2 2 2 Enter | 9 Enter | * potem Enter.")
     wiersze, t_koniec = [], time.time() + czas_s
+    zap = Zapis(zapis, ["godzina", "zdarzenie", "kuweta_albo_wpisano"], "klawiatura")
     try:
         while time.time() < t_koniec and not (stop is not None and stop.is_set()):
             o = r.zdarzenia(start_id, od, czekaj=min(2.0, max(0.0, t_koniec - time.time())))
@@ -310,6 +328,7 @@ def polecenie_klawiatura(r: Ramka, uklad: str, kalibracja: Path | None, modele: 
                     co = z.get("kuweta") or z.get("wpisano") or ""
                     pisz(f"{_godzina()}  {ZDARZENIA_KLAWIATURY[z['typ']]} {co}")
                     wiersze.append([_godzina(), z["typ"], co])
+                    zap.dopisz(wiersze[-1])
             if any(w[1] == "zamknij_piec" for w in wiersze):
                 break
     except KeyboardInterrupt:
@@ -319,10 +338,9 @@ def polecenie_klawiatura(r: Ramka, uklad: str, kalibracja: Path | None, modele: 
             r.zadanie("DELETE", "/plan")
         except BrakPolaczenia:
             pass
-        zapis = _zapisz_csv(zapis, ["godzina", "zdarzenie", "kuweta_albo_wpisano"], wiersze, "klawiatura")
     rodzaje = sorted({w[1] for w in wiersze})
     pisz(f"Zdarzen klawiatury: {len(wiersze)}; rodzaje: {len(rodzaje)} z {len(ZDARZENIA_KLAWIATURY)} ({', '.join(rodzaje) or 'zadne'})"
-         + (f"; plik: {zapis}" if zapis else "") + ". Ramka zgaszona.")
+         + (f"; plik: {zap.plik}" if zap.plik else "") + ". Ramka zgaszona.")
     return 0
 
 
