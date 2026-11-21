@@ -43,6 +43,7 @@ Tych rzeczy instrukcja nie zgaduje. Sprawdz i zapisz:
 | Nazwa uzytkownika i haslo ustawione w Raspberry Pi Imager (haslo zapisz w bezpiecznym miejscu, nie tutaj) | | |
 | Nazwa sieci Wi-Fi | | |
 | Adres IP ramki (z kroku 2) | | |
+| Katalog plikow startowych: `/boot/firmware` czy `/boot` (krok 3) | | |
 | Wersja Pythona (z kroku 2) | | |
 | Jak zainstalowano biblioteke matrycy (krok 5: wariant, data, wersja) | | |
 | `obrot` i `lustro` po kroku 10 | | |
@@ -102,8 +103,10 @@ Biblioteka matrycy wymaga wylaczonego dzwieku, a jeden z czujnikow plytek uzywa 
 ls /boot/firmware/config.txt /boot/config.txt
 ```
 
-   Ten plik, ktory polecenie wypisze bez bledu, to twoj `config.txt` (w nowszych systemach `/boot/firmware/config.txt`).
-   Plik `cmdline.txt` jest w tym samym katalogu. Ponizej uzyto `/boot/firmware` - jesli u ciebie jest `/boot`, zmien.
+   Gdy polecenie wypisze `/boot/firmware/config.txt` bez bledu - to jest wlasciwy plik (takze wtedy, gdy wypisze
+   oba: w nowszych systemach w `/boot/config.txt` jest tylko informacja, ze plik przeniesiono). Tylko gdy
+   `/boot/firmware/config.txt` nie istnieje, wlasciwy jest `/boot/config.txt` - wtedy w poleceniach ponizej wpisuj
+   `/boot` zamiast `/boot/firmware`. Plik `cmdline.txt` jest w tym samym katalogu. Zapisz w arkuszu, ktory katalog.
 2. Otworz `config.txt` w edytorze:
 
 ```
@@ -256,7 +259,8 @@ sudo python3 -m ramka --sprzet rpi --konfiguracja /etc/ramka/ramka.json
 ```
 
 Dobrze: pojawia sie wiersz z tekstem `slucha na 0.0.0.0:8765` i polecenie "wisi" (program dziala). Na matrycy ma byc
-widoczna cienka niebieska ramka dookola (stan "gotowa"). Poloz plytke - z przodu ma sie pokazac jej numer i napis
+widoczna cienka niebieska ramka dookola (stan "gotowa"), a z przodu po lewej maly kwadrat lacznosci z laptopem
+(zielony albo czerwony). Poloz plytke - z przodu ma sie pokazac jej numer i napis
 "BRAK" (brak planu od laptopa - to normalne). Zostaw program wlaczony na czas kroku 9. Koniec: Ctrl+C.
 
 Zle:
@@ -402,6 +406,7 @@ nie w sieci dla gosci.
 | `[ramka] BLAD: potrzebne uprawnienia administratora` | skrypt uruchomiony bez `sudo` | wpisz polecenie od `sudo bash ...` |
 | `[ramka] BLAD: nie wiem, ktora to ramka` | nazwa komputera nie jest `ramka-w` ani `ramka-p` | dodaj `--rola W` albo `--rola P` |
 | wiersz `BRAK rgbmatrix` | nie ma biblioteki matrycy w Pythonie systemu | krok 5; kontrola: `sudo python3 -c "import rgbmatrix; print('OK')"` |
+| blad przy `make build-python` albo `sudo make install-python` (np. `externally-managed-environment`, brak pliku, brak polecenia) | pobrana wersja biblioteki matrycy instaluje sie inaczej niz w kroku 5 | zrob to, co mowi plik `bindings/python/README.md` w katalogu `~/rpi-rgb-led-matrix`; biblioteka ma trafic do Pythona systemu; zapisz w arkuszu, co zadzialalo |
 | KONIEC z "kod 3" po `zainstaluj_ramke.sh` | program skopiowany, ale brakuje biblioteki; autostart NIE zostal wlaczony | zrob to, co stoi przy wierszach BRAK, i uruchom skrypt jeszcze raz |
 | program startuje, w dzienniku `ramka slucha tylko na 127.0.0.1` | w pliku konfiguracji nie ma pola `host` | wpisz `"host": "0.0.0.0"` ("Zmiana pliku konfiguracji") |
 | `curl.exe` z laptopa: brak odpowiedzi, a `sprawdz_ramke.sh` na ramce pokazuje `OK port` | laptop i ramka w roznych sieciach albo siec blokuje ruch miedzy urzadzeniami (siec dla gosci) | podlacz oba do tej samej, zwyklej sieci stanowiska; sprobuj adresu IP zamiast nazwy `.local` |
