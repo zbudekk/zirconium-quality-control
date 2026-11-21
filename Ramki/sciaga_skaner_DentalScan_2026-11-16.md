@@ -164,7 +164,7 @@ jak caly model. Zrodlo: neworder. [DO SPRAWDZENIA NA EGZEMPLARZU] czy taki skan 
    bez zadnej obrobki. (Nagrac telefonem albo robic zrzuty.)
 2. W ktorym folderze leza pliki zlecen i skanow ("Order Save Path")? Jaka jest struktura folderu zlecenia i formaty plikow?
 3. Czy program przy budowie albo zapisie siatki wygladza, wypelnia otwory lub upraszcza? Jak to wylaczyc?
-4. Czy plaszczyzne ciecia po skanie mozna pominac albo ustawic ponizej plytki? Czy da sie to zapamietac w zleceniu?
+4. Czy plaszczyzne ciecia po skanie da sie ustawic miedzy stolikiem a wierzchem plytki (co najmniej 3 mm ponizej wierzchu)? Czy da sie to zapamietac w zleceniu?
 5. Jaka jest najwyzsza jakosc skanu ("Add details" / "High Quality") i jak ja wlaczyc dla calej plytki? Jaki jest wtedy
    odstep punktow w pliku STL?
 6. Licencja: czy jest klucz USB (dongle), ile zostalo "Authorization Remaining Days", czy program dziala bez internetu,
