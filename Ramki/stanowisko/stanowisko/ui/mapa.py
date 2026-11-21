@@ -4,7 +4,12 @@
 ``Gniazdo.podpis`` policzyl kontroler ze ``statusy``), ``geometria`` - ``uklad.UkladPlytki`` (ksztalt plytki i gniazd)
 albo None (wtedy gniazda sa rysowane jako kratka). Widzet niczego nie liczy i nie zna statusow; klikniecie gniazda =
 sygnal ``klik(nr)``. Do testow i kontroli: ``kolory()``, ``podpisy()``, ``numery()``, ``srodek_gniazda(nr)``,
-``punkt_probny(nr)``, ``teksty_rysowane()``.
+``punkt_probny(nr)``, ``teksty_rysowane()``, ``obrys_plytki()``, ``sciecie()``.
+
+Orientacja plytki na mapie: przod plytki jest na dole ekranu (napis "PRZOD PLYTKI"); kwadrat ma wyciety naroznik (pole
+``notch`` ukladu), kolo - sciecie orientacyjne po stronie przod-prawo (E3-O3, decyzja 9 planu plytek okraglych): cieciwa
+liczona z pola ``flat`` ukladu (``sciecie_mm``: ``angle_deg`` i ``dist``), rysowana pogrubiona kreska, bo prawdziwe sciecie
+ma ok. 0,6 mm glebokosci i w skali mapy byloby ledwie widoczne. Gniazda i trafianie klikniec nie zaleza od obrysu.
 
 Ochrona przed kliknieciem w poprzedni obraz (A-P2): ``przygas(True)`` przygasza mape i do ``przygas(False)`` mapa nie
 przyjmuje klikniec. Klawiatura (A-D): ``ustaw_kursor(nr)`` rysuje kursor gniazda (przerywany obrys), ``sasiad(nr, dx, dy)``
@@ -28,6 +33,8 @@ LOG = logging.getLogger(__name__)
 MARGINES_PX = 14
 MIEJSCE_NA_PODPIS_PX = 26  # pas pod plytka na napis "przod plytki"
 KOLUMN_KRATKI = 5
+ODCINKOW_LUKU = 360  # obrys plytki okraglej ze scieciem: luk jako lamana (odchylka od okregu ponizej 0,05 piksela)
+GRUBOSC_SCIECIA_PX = 5  # kreska na cieciwie sciecia orientacyjnego (obrys plytki ma 2)
 PONOW_UKLAD_S = 60.0  # A-D2: nieudane wczytanie ukladu jest ponawiane po tylu sekundach (chwilowy blad dysku nie zostaje do restartu)
 _GEOMETRIE: dict = {}
 _BLEDY_UKLADU: dict = {}
@@ -63,6 +70,25 @@ def geometria_ukladu(kontroler, nazwa: str | None):
     return _GEOMETRIE[klucz]
 
 
+def sciecie_mm(uk) -> tuple | None:
+    """Konce cieciwy sciecia orientacyjnego plytki okraglej w milimetrach ukladu plytki: ``((x1, y1), (x2, y2))`` albo None
+    (kwadrat, uklad bez pola ``flat`` albo z polem, z ktorego nie da sie policzyc cieciwy). Geometria WYLACZNIE z ukladu
+    (``uklad.json``): cieciwa jest prostopadla do kierunku ``flat.angle_deg`` (stopnie od +X, y do tylu) i lezy w odleglosci
+    ``flat.dist`` od srodka plytki o srednicy ``d``; szerokosc cieciwy wynika z tych liczb (``flat.chord_w`` jej nie zmienia)."""
+    if uk is None or getattr(uk, "shape", None) != "round" or not getattr(uk, "d", None):
+        return None
+    flat = getattr(uk, "flat", None) or {}
+    kat, odl = flat.get("angle_deg"), flat.get("dist")
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in (kat, odl)):
+        return None
+    pol = uk.d / 2
+    if not 0 < odl < pol:
+        return None
+    nx, ny = math.cos(math.radians(kat)), math.sin(math.radians(kat))
+    h = math.sqrt(pol * pol - odl * odl)  # polowa cieciwy
+    return (odl * nx - h * ny, odl * ny + h * nx), (odl * nx + h * ny, odl * ny - h * nx)
+
+
 class MapaPlytki(QWidget):
     klik = Signal(int)  # numer kliknietego gniazda
 
@@ -81,6 +107,8 @@ class MapaPlytki(QWidget):
         self._ksztalty: dict = {}  # nr -> (QPainterPath, QPointF srodek, promien px, szerokosc px)
         self._rozmiar_ksztaltow = None
         self._obrys = None  # (ksztalt, prostokat plytki, skala px na mm, funkcja mm -> px, uklad)
+        self._sciezka_plytki: QPainterPath | None = None  # obrys plytki na ekranie (kwadrat z wycieciem, kolo ze scieciem)
+        self._sciecie: tuple | None = None  # konce cieciwy sciecia plytki okraglej na ekranie (QPointF, QPointF)
         self._napis: str = N.MAPA_BRAK_PLYTKI
 
     # --- dane ------------------------------------------------------------------------------------
@@ -166,6 +194,18 @@ class MapaPlytki(QWidget):
         _, srodek, promien, _ = self._ksztalt(nr)
         return QPointF(srodek.x(), srodek.y() + 0.78 * promien)
 
+    def obrys_plytki(self) -> QPainterPath | None:
+        """Obrys plytki na ekranie (kwadrat z wycietym naroznikiem albo kolo ze scieciem orientacyjnym); None, gdy mapa nie
+        zna ukladu (gniazda w kratke) albo nie pokazuje gniazd."""
+        self._przelicz()
+        return QPainterPath(self._sciezka_plytki) if self._sciezka_plytki is not None else None
+
+    def sciecie(self) -> tuple | None:
+        """Konce cieciwy sciecia orientacyjnego plytki okraglej na ekranie (``QPointF``, ``QPointF``); None dla kwadratu, ukladu
+        bez pola ``flat`` i mapy bez ukladu."""
+        self._przelicz()
+        return (QPointF(self._sciecie[0]), QPointF(self._sciecie[1])) if self._sciecie is not None else None
+
     # --- geometria -------------------------------------------------------------------------------
     def _ksztalt(self, nr: int):
         self._przelicz()
@@ -178,6 +218,8 @@ class MapaPlytki(QWidget):
         self._rozmiar_ksztaltow = rozmiar
         self._ksztalty = {}
         self._obrys = None
+        self._sciezka_plytki = None
+        self._sciecie = None
         if not self._gniazda:
             return
         numery = [g.nr for g in self._gniazda]
@@ -195,6 +237,7 @@ class MapaPlytki(QWidget):
             return QPointF(cx + x * s, cy - y * s)  # y plytki "do tylu" = w gore ekranu; przod plytki na dole
 
         self._obrys = (uk.shape, QRectF(px(-pol, pol), px(pol, -pol)), s, px, uk)
+        self._sciezka_plytki, self._sciecie = self._obrys_ukladu(uk, self._obrys[1], px)
         for g in uk.sockets:
             if g.id not in numery:
                 continue
@@ -203,6 +246,35 @@ class MapaPlytki(QWidget):
             sciezka.closeSubpath()
             szer = (g.d_top if g.okragle else g.l) * s
             self._ksztalty[g.id] = (sciezka, px(g.x, g.y), g.promien_gorny * s, szer)
+
+    @staticmethod
+    def _obrys_ukladu(uk, prostokat: QRectF, px) -> tuple:
+        """(obrys plytki na ekranie, konce cieciwy sciecia albo None). Kwadrat: zaokraglony prostokat bez naroznika ``notch``;
+        kolo ze scieciem (``sciecie_mm``): luk od konca do konca cieciwy zamkniety cieciwa; kolo bez sciecia: elipsa."""
+        obrys = QPainterPath()
+        if uk.shape != "round":
+            obrys.addRoundedRect(prostokat, 6, 6)
+            wyciecie = uk.notch or {}
+            if {"x_min", "x_max", "y_min", "y_max"} <= set(wyciecie):  # wyciecie orientacyjne: narozniki plytki i ekranu sie zgadzaja
+                naroznik = QPainterPath()
+                naroznik.addRect(QRectF(px(wyciecie["x_min"], wyciecie["y_max"]), px(wyciecie["x_max"] + 2, wyciecie["y_min"] - 2)))
+                obrys = obrys.subtracted(naroznik)
+            return obrys, None
+        konce = sciecie_mm(uk)
+        if konce is None:
+            obrys.addEllipse(prostokat)
+            return obrys, None
+        pol = uk.d / 2
+        (x1, y1), (x2, y2) = konce
+        k1, k2 = math.atan2(y1, x1), math.atan2(y2, x2)  # luk plytki: od k1 rosnaco do k2, cieciwa go zamyka
+        while k2 <= k1:
+            k2 += 2 * math.pi
+        if k2 - k1 < math.pi:  # zostaje dluzszy z dwoch lukow (sciecie odcina krotszy): idz w druga strone
+            k1, k2 = k2, k1 + 2 * math.pi
+        katy = [k1 + (k2 - k1) * i / ODCINKOW_LUKU for i in range(ODCINKOW_LUKU + 1)]
+        obrys.addPolygon(QPolygonF([px(pol * math.cos(k), pol * math.sin(k)) for k in katy]))
+        obrys.closeSubpath()
+        return obrys, (px(x1, y1), px(x2, y2))
 
     def _kratka(self, numery: list) -> None:
         """Uklad nieznany: gniazda jako kola w kratce (kolejnosc numerow), zeby kolory i podpisy byly widoczne."""
@@ -270,17 +342,15 @@ class MapaPlytki(QWidget):
         ksztalt, prostokat, s, px, uk = self._obrys
         p.setPen(QPen(QColor("#5b6470"), 2))
         p.setBrush(QBrush(QColor("#f6f7f9")))
-        if ksztalt == "round":
+        if ksztalt == "round" and self._sciecie is None:  # kolo bez pola flat w ukladzie: jak przed E3-O3
             p.drawEllipse(prostokat)
         else:
-            obrys = QPainterPath()
-            obrys.addRoundedRect(prostokat, 6, 6)
-            wyciecie = uk.notch or {}
-            if {"x_min", "x_max", "y_min", "y_max"} <= set(wyciecie):  # wyciecie orientacyjne: narozniki plytki i ekranu sie zgadzaja
-                naroznik = QPainterPath()
-                naroznik.addRect(QRectF(px(wyciecie["x_min"], wyciecie["y_max"]), px(wyciecie["x_max"] + 2, wyciecie["y_min"] - 2)))
-                obrys = obrys.subtracted(naroznik)
-            p.drawPath(obrys)
+            p.drawPath(self._sciezka_plytki)
+        if self._sciecie is not None:  # sciecie orientacyjne plytki okraglej: pogrubiona kreska na cieciwie (przod-prawo)
+            kreska = QPen(QColor("#5b6470"), GRUBOSC_SCIECIA_PX)
+            kreska.setCapStyle(Qt.PenCapStyle.RoundCap)
+            p.setPen(kreska)
+            p.drawLine(self._sciecie[0], self._sciecie[1])
         f = QFont(styl.CZCIONKA)
         f.setPixelSize(14)
         f.setBold(True)

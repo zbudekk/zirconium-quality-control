@@ -14,6 +14,10 @@ Uruchomienie (z KATALOGU PROGRAMU, interpreterem programu):
             --projekty <folder_cyrkon>                                   (10 plikow co 60 s, ok. 11-13 min, limit 30 min)
     proba z kopii repo (PC): cd /d <REPO>\\Ramki\\stanowisko && <PC-katalog>\\koordynator\\narz\\py.cmd <ODB>\\narzedzia\\t2_wieczor.py ...
     proba skrocona:       ... --odstep 5 --wybierz 2,4,5,7     (albo --plytki 3 = trzy pierwsze pozycje scenariusza)
+    scenariusz z plytkami okraglymi ramkowymi (E3-O3): ... --scenariusz <ODB>\\narzedzia\\t2_scenariusz_okragle.json
+        --dane-generowane <KATALOG>     (pozycje scenariusza z polem "zrodlo": "generowane" - skan i plik prawdy z <KATALOG>,
+        wygenerowane wczesniej: narzedzia\\symulator_skanera.py --tylko-generuj --scenariusz <ten sam plik>
+        --katalog-generowanych <KATALOG> --projekty <ten sam folder co --projekty>; bez opcji zachowanie jak dotad)
     Katalog ``--roboczy`` musi byc nowy albo pusty. W srodowisku programu nie ma ``psutil`` - procesy potomne sterownik sledzi
     wtedy przez ``multiprocessing.active_children()`` (proces roboczy silnika) i uchwyt symulatora.
 
@@ -186,8 +190,13 @@ def przeskaluj_stl(zrodlo: Path, cel: Path, skala_xy: float) -> None:
     cel.write_bytes(dane[:84] + t.tobytes())
 
 
-def przygotuj_zestaw(scen: dict, wybrane: list, dane_ref: Path, roboczy: Path, skrot16) -> tuple:
-    """Zwraca (pozycje tabeli prawdy, lista plikow zrodlowych dobrych w kolejnosci, czy jest plik uciety)."""
+def przygotuj_zestaw(scen: dict, wybrane: list, dane_ref: Path, roboczy: Path, skrot16, dane_generowane: Path | None = None) -> tuple:
+    """Zwraca (pozycje tabeli prawdy, lista plikow zrodlowych dobrych w kolejnosci, czy jest plik uciety).
+
+    E3-O3: pozycja z polem ``"zrodlo": "generowane"`` (skan plytki okraglej ramkowej - nie ma go w danych odniesienia) jest brana
+    z katalogu ``dane_generowane`` (opcja ``--dane-generowane``; skan i plik prawdy wygenerowane symulatorem programu), a jej
+    pole ``prawda`` (tabela prawdy scenariusza: uklad, numer, liczba prac, gniazda z ubytkiem) musi byc rowne prawdzie z pliku.
+    Pozycje bez pola ``zrodlo`` - jak dotad, z ``dane_ref / katalog``."""
     pozycje, zrodla, uciety = [], [], False
     for p in scen["plytki"]:
         if p["nr"] not in wybrane:
@@ -198,10 +207,17 @@ def przygotuj_zestaw(scen: dict, wybrane: list, dane_ref: Path, roboczy: Path, s
             uciety = True
             pozycje.append(w)
             continue
-        skan = dane_ref / p["katalog"] / (p["skan"] + ".stl")
-        prawda_plik = dane_ref / p["katalog"] / (p["skan"] + ".json")
+        if p.get("zrodlo") == "generowane":
+            if dane_generowane is None:
+                raise SystemExit(f"scenariusz nr {p['nr']}: skan generowany - podaj --dane-generowane <katalog> (skany tworzy "
+                                 "narzedzia\\symulator_skanera.py --tylko-generuj --scenariusz <plik> --katalog-generowanych <katalog> --projekty <pula>)")
+            katalog, gdzie = Path(dane_generowane), "katalogu --dane-generowane"
+        else:
+            katalog, gdzie = dane_ref / p["katalog"], p["katalog"]
+        skan = katalog / (p["skan"] + ".stl")
+        prawda_plik = katalog / (p["skan"] + ".json")
         if not skan.is_file() or not prawda_plik.is_file():
-            raise SystemExit(f"scenariusz nr {p['nr']}: brak skanu albo pliku prawdy w {p['katalog']}")
+            raise SystemExit(f"scenariusz nr {p['nr']}: brak skanu albo pliku prawdy w {gdzie}")
         prawda = json.loads(prawda_plik.read_text(encoding="utf-8"))
         sha_zrodla = skrot16(skan.read_bytes())
         if p.get("sha16") and p["sha16"] != sha_zrodla:
@@ -220,6 +236,12 @@ def przygotuj_zestaw(scen: dict, wybrane: list, dane_ref: Path, roboczy: Path, s
                  rozmiar_mb=round(plik.stat().st_size / 1e6, 1))
         if w["oczekiwany_status"] == "przyjety" and w["drgniec"]:
             raise SystemExit(f"scenariusz nr {p['nr']}: oczekiwany 'przyjety', a prawda ma prace z drgnieciem")
+        if p.get("prawda") is not None:  # tabela prawdy w scenariuszu (skany generowane): plik prawdy musi mowic to samo
+            z_pliku = {"uklad": w["uklad"], "numer": w["numer"], "prac": w["prac"], "gniazda_prac": w["gniazda_prac"],
+                       "gniazda_ubytki": w["gniazda_ubytki"], "drgniec": w["drgniec"]}
+            rozne = sorted(k for k in z_pliku if k in p["prawda"] and p["prawda"][k] != z_pliku[k])
+            if rozne:
+                raise SystemExit(f"scenariusz nr {p['nr']}: tabela prawdy scenariusza inna niz plik prawdy skanu (pola: {', '.join(rozne)})")
         w["do_dofrezowania"] = w["gniazda_ubytki"] if w["decyzje"] == "ukruszona_wg_prawdy" else []
         pozycje.append(w)
         zrodla.append(plik)
@@ -967,6 +989,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--projekty", type=Path, required=True, help="folder puli projektow STL (jako [sciezki] folder_cyrkon; tylko odczyt)")
     ap.add_argument("--dane-ref", type=Path, default=Path("<PC-katalog>/app/dane_ref"), help="katalog danych odniesienia (podkatalogi ze scenariusza)")
     ap.add_argument("--scenariusz", type=Path, default=TU / "t2_scenariusz.json", help="tabela prawdy (domyslnie t2_scenariusz.json obok sterownika)")
+    ap.add_argument("--dane-generowane", type=Path, default=None, help="katalog skanow generowanych symulatorem (pozycje scenariusza z polem "
+                    "'zrodlo': 'generowane', np. plytki okragle ramkowe z t2_scenariusz_okragle.json); domyslnie brak")
     ap.add_argument("--ustawienia-wzor", type=Path, default=None, help="plik ustawien do skopiowania (domyslnie ustawienia.toml w katalogu programu, "
                     "a gdy go nie ma - ustawienia.przyklad.toml)")
     ap.add_argument("--program", type=Path, default=Path.cwd(), help="katalog programu (z pakietem stanowisko i narzedzia/); domyslnie katalog biezacy")
@@ -1010,7 +1034,7 @@ def main(argv: list[str] | None = None) -> int:
         import symulator_skanera as SY  # narzedzie programu: tylko skrot16 (ten sam skrot, ktorym program oznacza skan)
 
         ustawienia = zloz_ustawienia(wzor, roboczy, a.projekty.resolve(), a.pula_cache)
-        pozycje, zrodla, uciety = przygotuj_zestaw(scen, wybrane, a.dane_ref, roboczy, SY.skrot16)
+        pozycje, zrodla, uciety = przygotuj_zestaw(scen, wybrane, a.dane_ref, roboczy, SY.skrot16, a.dane_generowane)
     except SystemExit as e:
         print(f"BLAD przygotowania: {e}", file=sys.stderr)
         return 2
