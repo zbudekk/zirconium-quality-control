@@ -1,0 +1,12 @@
+Samotest: nazw 449, czlonow 61, tekstow maski 524, wzorzec kontrolny 1; postaci sprawdzonych 8229, nieznalezionych 0; nazw bez postaci ASCII (transliteracja niemozliwa, postac niesprawdzana): 7
+T9 dane osobowe: szukanych nazw 449 (pominietych krotszych niz 4 znaki: 0), czlonow 61; przeszukanych plikow 40, nieprzeszukanych (spakowane / za duze) 0, wykluczonych (--wyklucz) 18
+TRAFIENIA calych nazw poza miejscami dozwolonymi: 0 w 0 plikach
+Trafienia w miejscach dozwolonych: 0 w 0 plikach
+Czlony nazw do wyjasnienia (bez calej nazwy): 31 w 6 plikach
+  <PC-katalog>\koordynator\robocze\odbior\T9\t9_test_zz_k8_proba1.log: 414777f6c840fa40 x3
+  <PC-katalog>\koordynator\robocze\odbior\T9\t9_test_zz_k8_proba2.log: 414777f6c840fa40 x3
+  <PC-katalog>\koordynator\robocze\odbior\T9\t9_wynik.md: 5054e1b14a2e813f x1, 6d223affc23ef544 x10, b78cb9ce56d5b7e2 x1
+  <PC-katalog>\koordynator\robocze\odbior\T9\t9_zrodla_repo.txt: 6d223affc23ef544 x1
+  <PC-katalog>\koordynator\robocze\odbior\T9\t9_zrodla_wszystkie.txt: 6d223affc23ef544 x1
+  <PC-katalog>\koordynator\robocze\odbior\T9\WYNIK.md: 5054e1b14a2e813f x1, 6d223affc23ef544 x9, b78cb9ce56d5b7e2 x1
+WYNIK T9 (cale nazwy): ZAL - czlony do wyjasnienia: 31

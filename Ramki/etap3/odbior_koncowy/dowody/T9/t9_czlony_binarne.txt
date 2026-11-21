@@ -1,0 +1,10 @@
+Plikow binarnych (.stl, .ttf) z czlonami: 72; bajtow 3394807408
+sha16 czlonu | plikow | trafien narzedzia | w tym napis z liter ASCII | w tym w naglowku STL (80 bajtow) | postaci nie-ASCII niesprawdzonych
+  0dcfafab5f8035e7 | 2 | 12 | 0 | 0 | 0
+  1216b2a88975f9d3 | 5 | 36 | 6 | 0 | 0
+  3dea4293d4bdc355 | 6 | 12 | 9 | 0 | 0
+  702370082a6ab1a0 | 27 | 173 | 0 | 0 | 0
+  d3fc3547346f0ef9 | 44 | 246 | 0 | 0 | 0
+  d980ff4703675303 | 22 | 30 | 0 | 0 | 0
+  ec16cd73f88aeaa6 | 14 | 82 | 0 | 0 | 0
+Plikow nie-binarnych z czlonami (tekst - opisane osobno): 220

@@ -1,0 +1,243 @@
+Zrodel 45; nazw lacznie (rozne) 449; pula testowa 32; drzewo sztuczne A5i 420; wspolnych pula/A5i 17
+Zrodlo | nazw | w tym z puli testowej | w tym z drzewa A5i | pozostale (ani pula, ani A5i)
+  katalog:app\Prace_test | 32 | 32 | 17 | 0
+  katalog:e3\a5i\t4\drzewo\Cyrkon | 420 | 17 | 420 | 0
+  katalog:t0\odbior\dane\Cyrkon | 32 | 32 | 17 | 0
+  katalog:t0\odbior_t12\dane\Cyrkon | 32 | 32 | 17 | 0
+  katalog:ROB\T11\robocze\Cyrkon | 32 | 32 | 17 | 0
+  katalog:ROB\T2\robocze\Cyrkon | 32 | 32 | 17 | 0
+  katalog:ROB\T5\robocze\Cyrkon | 32 | 32 | 17 | 0
+  katalog:ROB\T7\robocze\Cyrkon | 32 | 32 | 17 | 0
+  katalog:ROB\T7\uzup\robocze\Cyrkon | 32 | 32 | 17 | 0
+  baza:t0\odbior\Stanowisko\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:t0\odbior_t12\Stanowisko\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:t0\odbior_t12\Stanowisko\dane\kopie\stanowisko_przed_0.3.2_20261121_025311_v1.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T11\robocze\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T12\robocze\K_B\dane\kopie\stanowisko_odlozona_v2_20261121_025935.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T12\robocze\K_B\dane\kopie\stanowisko_przed_0.3.9-migracja_20261121_025918_v1.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T12\robocze\K_B\dane\stanowisko.kopia_v1_20261121_025926.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T12\robocze\K_B\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T12\robocze\K_B2\dane\kopie\stanowisko_przed_0.3.9-migracja_20261121_030348_v1.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T12\robocze\K_B2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T2\t2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite | 14 | 0 | 0 | 14
+  baza:ROB\T3\t3\baza\stanowisko.sqlite | 14 | 0 | 0 | 14
+  baza:ROB\T5\t5_wieczor\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\robocze\b1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\robocze\b1b\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\robocze\b2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\robocze\b3\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p1_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p1_2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p2_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p2_2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p2c_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p3_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p3_2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p4a_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p4a_2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p4b_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p4b_2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p5a_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p5a_2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p5d_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p6_1\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T7\uzup\robocze\p6_2\dane\stanowisko.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T8\robocze\baza_t2.sqlite | 0 | 0 | 0 | 0
+  baza:ROB\T8\robocze\baza_t3.sqlite | 14 | 0 | 0 | 14
+Nazwy spoza puli i A5i (tylko z baz): 14
+== t9_logi.json: werdykt narzedzia 'FAIL'; plikow 1172; nieprzeszukanych 652; wykluczonych 101649
+-- trafienia: roznych sha16 1, trafien 2, plikow 2
+   5460764f2024f994: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   podsumowanie klas zrodel (liczba roznych sha16): {'BAZY': 1}
+-- trafienia_dozwolone: roznych sha16 46, trafien 303, plikow 105
+   podsumowanie klas zrodel (liczba roznych sha16): {'PULA': 15, 'A5I + PULA': 17, 'BAZY': 14}
+-- czlony_do_wyjasnienia: roznych sha16 13, trafien 3050, plikow 292
+   7da6cb013511d41b: trafien 1665 w 73 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0
+   414777f6c840fa40: trafien 586 w 40 plikach; dlugosc czlonu 6; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   d3fc3547346f0ef9: trafien 246 w 44 plikach; dlugosc czlonu 5; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   702370082a6ab1a0: trafien 173 w 27 plikach; dlugosc czlonu 5; czlon w nazwach: pula 1, A5I 0, tylko bazy 0
+   5054e1b14a2e813f: trafien 140 w 86 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 34, tylko bazy 0
+   ec16cd73f88aeaa6: trafien 82 w 14 plikach; dlugosc czlonu 5; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   b78cb9ce56d5b7e2: trafien 40 w 19 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+   1216b2a88975f9d3: trafien 36 w 5 plikach; dlugosc czlonu 7; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   d980ff4703675303: trafien 30 w 22 plikach; dlugosc czlonu 5; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   923818e5629f40f9: trafien 15 w 3 plikach; dlugosc czlonu 5; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   6d223affc23ef544: trafien 13 w 10 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   0dcfafab5f8035e7: trafien 12 w 2 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 9
+   3dea4293d4bdc355: trafien 12 w 6 plikach; dlugosc czlonu 5; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+== t9_logi_bez_SE10.json: werdykt narzedzia 'ZAL - czlony do wyjasnienia: 3150'; plikow 1172; nieprzeszukanych 652; wykluczonych 101649
+-- trafienia: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- trafienia_dozwolone: roznych sha16 32, trafien 204, plikow 102
+   podsumowanie klas zrodel (liczba roznych sha16): {'PULA': 15, 'A5I + PULA': 17}
+-- czlony_do_wyjasnienia: roznych sha16 14, trafien 3150, plikow 281
+   7da6cb013511d41b: trafien 1677 w 75 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0
+   180af17142fb4a0a: trafien 690 w 42 plikach; dlugosc czlonu 6; czlon w nazwach: pula 0, A5I 322, tylko bazy 2
+   d3fc3547346f0ef9: trafien 246 w 44 plikach; dlugosc czlonu 5; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   702370082a6ab1a0: trafien 173 w 27 plikach; dlugosc czlonu 5; czlon w nazwach: pula 1, A5I 0, tylko bazy 0
+   5054e1b14a2e813f: trafien 148 w 88 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 34, tylko bazy 0
+   ec16cd73f88aeaa6: trafien 82 w 14 plikach; dlugosc czlonu 5; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   b78cb9ce56d5b7e2: trafien 50 w 21 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+   1216b2a88975f9d3: trafien 40 w 7 plikach; dlugosc czlonu 7; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   0dcfafab5f8035e7: trafien 18 w 4 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 9
+   3dea4293d4bdc355: trafien 12 w 6 plikach; dlugosc czlonu 5; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   17f29b073143d8cd: trafien 4 w 2 plikach; dlugosc czlonu 6; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   9722d4a4b59ce537: trafien 4 w 2 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   f253e9a27ab18977: trafien 4 w 2 plikach; dlugosc czlonu 8; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   f563e2c6c0dcbf98: trafien 2 w 2 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 81, tylko bazy 0
+== t9_instalacje.json: werdykt narzedzia 'ZAL - czlony do wyjasnienia: 3213'; plikow 739; nieprzeszukanych 152; wykluczonych 75704
+-- trafienia: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- trafienia_dozwolone: roznych sha16 32, trafien 68, plikow 34
+   podsumowanie klas zrodel (liczba roznych sha16): {'PULA': 15, 'A5I + PULA': 17}
+-- czlony_do_wyjasnienia: roznych sha16 16, trafien 3213, plikow 276
+   b78cb9ce56d5b7e2: trafien 1375 w 120 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+   414777f6c840fa40: trafien 876 w 144 plikach; dlugosc czlonu 6; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   5054e1b14a2e813f: trafien 632 w 57 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 34, tylko bazy 0
+   7da6cb013511d41b: trafien 55 w 25 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0
+   f563e2c6c0dcbf98: trafien 50 w 10 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 81, tylko bazy 0
+   0dcfafab5f8035e7: trafien 45 w 15 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 9
+   17f29b073143d8cd: trafien 30 w 15 plikach; dlugosc czlonu 6; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   1216b2a88975f9d3: trafien 25 w 10 plikach; dlugosc czlonu 7; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   c9647b1cbff0d9de: trafien 25 w 10 plikach; dlugosc czlonu 13; czlon w nazwach: pula 0, A5I 74, tylko bazy 0
+   bb5fe2500e4c0440: trafien 20 w 15 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   6d223affc23ef544: trafien 20 w 15 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   bef9ad6bbec0ddef: trafien 15 w 10 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 80, tylko bazy 0
+   9722d4a4b59ce537: trafien 15 w 5 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   f253e9a27ab18977: trafien 15 w 5 plikach; dlugosc czlonu 8; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   923818e5629f40f9: trafien 10 w 10 plikach; dlugosc czlonu 5; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   fffd71d486fd229a: trafien 5 w 5 plikach; dlugosc czlonu 11; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+== t9_repo_odbior.json: werdykt narzedzia 'FAIL'; plikow 2267; nieprzeszukanych 798; wykluczonych 0
+-- trafienia: roznych sha16 14, trafien 96, plikow 13
+   0f8596ebf01c483d: trafien 12 w 4 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   11e5c63623f18a36: trafien 12 w 4 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   156f94c998e4ec4a: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   163621ccfc2307d7: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   257450e61626b322: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   2781186f72bbf8c3: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   45fe9d7ade50a3e7: trafien 10 w 7 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   4a1fcff8a9175252: trafien 14 w 6 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   5460764f2024f994: trafien 28 w 10 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   5d3353654665665a: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   880996ebc570e572: trafien 4 w 4 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   88b9733d89b16459: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   8ee4563695e9f8f5: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   de5c28d2f9a1802b: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   podsumowanie klas zrodel (liczba roznych sha16): {'BAZY': 14}
+-- trafienia_dozwolone: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- czlony_do_wyjasnienia: roznych sha16 16, trafien 9653, plikow 978
+   414777f6c840fa40: trafien 3606 w 334 plikach; dlugosc czlonu 6; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   5054e1b14a2e813f: trafien 3231 w 620 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 34, tylko bazy 0
+   b78cb9ce56d5b7e2: trafien 1526 w 310 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+   6d223affc23ef544: trafien 438 w 135 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   0dcfafab5f8035e7: trafien 202 w 54 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 9
+   7da6cb013511d41b: trafien 128 w 45 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0
+   bef9ad6bbec0ddef: trafien 116 w 42 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 80, tylko bazy 0
+   bb5fe2500e4c0440: trafien 108 w 50 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   f563e2c6c0dcbf98: trafien 102 w 30 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 81, tylko bazy 0
+   9722d4a4b59ce537: trafien 63 w 50 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   c9647b1cbff0d9de: trafien 48 w 23 plikach; dlugosc czlonu 13; czlon w nazwach: pula 0, A5I 74, tylko bazy 0
+   1216b2a88975f9d3: trafien 48 w 17 plikach; dlugosc czlonu 7; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   17f29b073143d8cd: trafien 18 w 13 plikach; dlugosc czlonu 6; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   fffd71d486fd229a: trafien 8 w 8 plikach; dlugosc czlonu 11; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   f253e9a27ab18977: trafien 6 w 3 plikach; dlugosc czlonu 8; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   923818e5629f40f9: trafien 5 w 5 plikach; dlugosc czlonu 5; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+== t9_repo_odbior_bez_SE10.json: werdykt narzedzia 'ZAL - czlony do wyjasnienia: 9499'; plikow 2267; nieprzeszukanych 798; wykluczonych 0
+-- trafienia: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- trafienia_dozwolone: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- czlony_do_wyjasnienia: roznych sha16 12, trafien 9499, plikow 967
+   180af17142fb4a0a: trafien 3662 w 342 plikach; dlugosc czlonu 6; czlon w nazwach: pula 0, A5I 322, tylko bazy 2
+   5054e1b14a2e813f: trafien 3229 w 620 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 34, tylko bazy 0
+   b78cb9ce56d5b7e2: trafien 1733 w 322 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+   0dcfafab5f8035e7: trafien 321 w 64 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 9
+   7da6cb013511d41b: trafien 137 w 48 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0
+   bef9ad6bbec0ddef: trafien 117 w 43 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 80, tylko bazy 0
+   f563e2c6c0dcbf98: trafien 104 w 31 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 81, tylko bazy 0
+   9722d4a4b59ce537: trafien 65 w 52 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   1216b2a88975f9d3: trafien 50 w 19 plikach; dlugosc czlonu 7; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   c9647b1cbff0d9de: trafien 49 w 24 plikach; dlugosc czlonu 13; czlon w nazwach: pula 0, A5I 74, tylko bazy 0
+   17f29b073143d8cd: trafien 24 w 17 plikach; dlugosc czlonu 6; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   f253e9a27ab18977: trafien 8 w 5 plikach; dlugosc czlonu 8; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+== t9_dowody.json: werdykt narzedzia 'ZAL - czlony do wyjasnienia: 232'; plikow 394; nieprzeszukanych 0; wykluczonych 0
+-- trafienia: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- trafienia_dozwolone: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- czlony_do_wyjasnienia: roznych sha16 4, trafien 232, plikow 88
+   414777f6c840fa40: trafien 99 w 31 plikach; dlugosc czlonu 6; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   5054e1b14a2e813f: trafien 99 w 47 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 34, tylko bazy 0
+   b78cb9ce56d5b7e2: trafien 29 w 14 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+   6d223affc23ef544: trafien 5 w 4 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+== t9_repo.json: werdykt narzedzia 'FAIL'; plikow 1862; nieprzeszukanych 798; wykluczonych 0
+-- trafienia: roznych sha16 14, trafien 96, plikow 13
+   0f8596ebf01c483d: trafien 12 w 4 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   11e5c63623f18a36: trafien 12 w 4 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   156f94c998e4ec4a: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   163621ccfc2307d7: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   257450e61626b322: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   2781186f72bbf8c3: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   45fe9d7ade50a3e7: trafien 10 w 7 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   4a1fcff8a9175252: trafien 14 w 6 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   5460764f2024f994: trafien 28 w 10 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   5d3353654665665a: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   880996ebc570e572: trafien 4 w 4 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   88b9733d89b16459: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   8ee4563695e9f8f5: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   de5c28d2f9a1802b: trafien 2 w 2 plikach; zrodla: bazy[3]: ROB\T3\t3\baza\stanowisko.sqlite; ROB\T3\t3_tmp\se100\dane\stanowisko.sqlite; ROB\T8\robocze\baza_t3.sqlite
+   podsumowanie klas zrodel (liczba roznych sha16): {'BAZY': 14}
+-- trafienia_dozwolone: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- czlony_do_wyjasnienia: roznych sha16 16, trafien 9158, plikow 883
+   414777f6c840fa40: trafien 3392 w 297 plikach; dlugosc czlonu 6; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   5054e1b14a2e813f: trafien 3025 w 567 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 34, tylko bazy 0
+   b78cb9ce56d5b7e2: trafien 1463 w 291 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+   6d223affc23ef544: trafien 426 w 127 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   0dcfafab5f8035e7: trafien 202 w 54 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 9
+   7da6cb013511d41b: trafien 128 w 45 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0
+   bef9ad6bbec0ddef: trafien 116 w 42 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 80, tylko bazy 0
+   bb5fe2500e4c0440: trafien 108 w 50 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   f563e2c6c0dcbf98: trafien 102 w 30 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 81, tylko bazy 0
+   9722d4a4b59ce537: trafien 63 w 50 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   c9647b1cbff0d9de: trafien 48 w 23 plikach; dlugosc czlonu 13; czlon w nazwach: pula 0, A5I 74, tylko bazy 0
+   1216b2a88975f9d3: trafien 48 w 17 plikach; dlugosc czlonu 7; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   17f29b073143d8cd: trafien 18 w 13 plikach; dlugosc czlonu 6; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   fffd71d486fd229a: trafien 8 w 8 plikach; dlugosc czlonu 11; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+   f253e9a27ab18977: trafien 6 w 3 plikach; dlugosc czlonu 8; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   923818e5629f40f9: trafien 5 w 5 plikach; dlugosc czlonu 5; czlon w nazwach: pula 0, A5I 0, tylko bazy 1
+== t9_repo_bez_SE10.json: werdykt narzedzia 'ZAL - czlony do wyjasnienia: 9020'; plikow 1862; nieprzeszukanych 798; wykluczonych 0
+-- trafienia: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- trafienia_dozwolone: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- czlony_do_wyjasnienia: roznych sha16 12, trafien 9020, plikow 876
+   180af17142fb4a0a: trafien 3449 w 305 plikach; dlugosc czlonu 6; czlon w nazwach: pula 0, A5I 322, tylko bazy 2
+   5054e1b14a2e813f: trafien 3025 w 567 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 34, tylko bazy 0
+   b78cb9ce56d5b7e2: trafien 1671 w 303 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+   0dcfafab5f8035e7: trafien 321 w 64 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 9
+   7da6cb013511d41b: trafien 137 w 48 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0
+   bef9ad6bbec0ddef: trafien 117 w 43 plikach; dlugosc czlonu 7; czlon w nazwach: pula 0, A5I 80, tylko bazy 0
+   f563e2c6c0dcbf98: trafien 104 w 31 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 81, tylko bazy 0
+   9722d4a4b59ce537: trafien 65 w 52 plikach; dlugosc czlonu 5; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   1216b2a88975f9d3: trafien 50 w 19 plikach; dlugosc czlonu 7; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+   c9647b1cbff0d9de: trafien 49 w 24 plikach; dlugosc czlonu 13; czlon w nazwach: pula 0, A5I 74, tylko bazy 0
+   17f29b073143d8cd: trafien 24 w 17 plikach; dlugosc czlonu 6; czlon w nazwach: pula 1, A5I 1, tylko bazy 0
+   f253e9a27ab18977: trafien 8 w 5 plikach; dlugosc czlonu 8; czlon w nazwach: pula 5, A5I 5, tylko bazy 0
+== t9_dane.json: werdykt narzedzia 'ZAL - czlony do wyjasnienia: 1670'; plikow 263; nieprzeszukanych 150; wykluczonych 0
+-- trafienia: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- trafienia_dozwolone: roznych sha16 14, trafien 66, plikow 2
+   podsumowanie klas zrodel (liczba roznych sha16): {'BAZY': 14}
+-- czlony_do_wyjasnienia: roznych sha16 2, trafien 1670, plikow 74
+   7da6cb013511d41b: trafien 1665 w 73 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0
+   b78cb9ce56d5b7e2: trafien 5 w 1 plikach; dlugosc czlonu 8; czlon w nazwach: pula 0, A5I 47, tylko bazy 0
+== t9_wyniki.json: werdykt narzedzia 'ZAL - czlony do wyjasnienia: 1665'; plikow 120; nieprzeszukanych 161; wykluczonych 0
+-- trafienia: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- trafienia_dozwolone: roznych sha16 0, trafien 0, plikow 0
+   podsumowanie klas zrodel (liczba roznych sha16): {}
+-- czlony_do_wyjasnienia: roznych sha16 1, trafien 1665, plikow 73
+   7da6cb013511d41b: trafien 1665 w 73 plikach; dlugosc czlonu 5; czlon w nazwach: pula 6, A5I 6, tylko bazy 0

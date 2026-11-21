@@ -1,0 +1,45 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+___________ test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow ____________
+
+kal = {'wersja': 1, 'matryca': {'szerokosc': 64, 'wysokosc': 64, 'raster_mm': 2.5}, 'ramki': {'W': {'wieczorna': {'zrodlo': ... 'geometria', 'gniazda': {'1': [35, 47, 3, 3], '2': [31, 47, 3, 3], '3': [26, 47, 3, 3], '4': [25, 42, 14, 3], ...}}}}}
+
+    def test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow(kal):
+        """Ostatni test pliku: zapis ruchu WSZYSTKICH klientow testowych tego przebiegu (RUCH).
+        Uruchomiony osobno sam wytwarza ruch scenariusza porannego."""
+        if len(RUCH) < 100:
+            prog, atrapa, port = uruchom("P")
+            try:
+                lap = Laptop(port)
+                lap.stan()
+                lap.dobierz()
+                lap.wyslij_plan(plan_rano(kal))
+                atrapa.poloz_plytke(4)
+                assert czekaj_na(lambda: prog.logika.plytka == 4)  # klawisze bez ustalonej plytki nic nie robia
+                for k in ["enter", "1", "2", "3", "4", "enter", "zamknij_piec", "enter"]:
+                    atrapa.nacisnij(k)
+                assert czekaj_na(lambda: prog.logika.nr >= 5)
+                lap.dobierz()
+                lap.zadanie("DELETE", "/plan")
+            finally:
+                prog.zatrzymaj()
+        with _RUCH_BLOK:
+            ruch = b"\n".join(RUCH).decode("utf-8", "replace").lower()
+            n = len(RUCH)
+        print(f"POMIAR K8: zapis ruchu {n} komunikatow, {len(ruch)} znakow; trafienia nazw: 0 wymagane")
+        trafienia = [nazwa for nazwa in list(FOLDERY.values()) + list(NAZWISKA) if nazwa.lower() in ruch]
+        assert trafienia == []
+>       assert n >= 20
+E       assert 16 >= 20
+
+..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py:2900: AssertionError
+---------------------------- Captured stdout call -----------------------------
+POMIAR K8: zapis ruchu 16 komunikatow, 5532 znakow; trafienia nazw: 0 wymagane
+=================================== PASSES ====================================
+______ test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow_i_nazwisk _______
+---------------------------- Captured stdout call -----------------------------
+POMIAR K8: 43 zapisow ruchu (18893 znakow), trafien nazw 0, kluczy poza naglowkiem 0 (klucz w naglowku surowych zadan: 9 razy)
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow_i_nazwisk
+FAILED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow
+1 failed, 1 passed, 117 deselected in 1.39s

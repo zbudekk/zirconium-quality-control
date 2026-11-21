@@ -1,0 +1,5 @@
+Pliki i katalogi testu T9, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T9/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 18 plikow, 65469729 B | katalog roboczy - pliki .json przebiegow (do 17 MB, listy plikow wykluczonych) i pomocniki wykonawcy (t9_analiza.py, t9_typy.py, t9_npz.py, t9_binarne.py)

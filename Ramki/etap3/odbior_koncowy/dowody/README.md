@@ -4,8 +4,8 @@ Paczka E3-ODBIOR, 21.11.2026, galaz `e3/odbior`. Katalog zawiera KOPIE plikow, k
 na PC w `<PC-katalog>\koordynator\robocze\odbior\T<nr>\` (poza repo). Pliki zrodlowe na PC zostaly nietkniete - wszystkie
 naprawy (konce linii, ASCII) robiono tylko na kopiach w tym katalogu. Wyniki testow: `../RAPORT.md`; przepis: `../PLAN_TESTOW.md`.
 
-Stan: komplet testow T0-T13 poza T9 (etap 1: T0, T1, T3, T5, T6, T7, T10, T12, T13 pierwszy przebieg, kontrola zestawu T14;
-etap 2: T2, T4, T8, T11, uzupelnienie T7 w `T7/uzup/`, drugi przebieg T13 w `T13/drugi_przebieg/`). T9: `[W TOKU: T9]`.
+Stan: komplet testow T0-T13 (etap 1: T0, T1, T3, T5, T6, T7, T10, T12, T13 pierwszy przebieg, kontrola zestawu T14;
+etap 2: T2, T4, T8, T11, uzupelnienie T7 w `T7/uzup/`, drugi przebieg T13 w `T13/drugi_przebieg/`, T9 w `T9/`).
 
 ## Zawartosc
 
@@ -25,13 +25,14 @@ ASCII + LF - powstal tutaj) oraz `POMINIETE.txt` (gdy cos pominieto - powstal tu
 | T7 (bez `uzup/`) | 79 | 208 KB | 77 | 0; 38; 1248; 2636; 32 |
 | T7/uzup | 44 | 734 KB | 42 | 0; 0; 0; 0; 0 |
 | T8 | 16 | 70 KB | 14 | 0; 8; 514; 0; 0 |
+| T9 | 43 | 682 KB | 41 | 0; 7; 120; 0; 0 |
 | T10 | 12 | 105 KB | 10 | 0; 0; 0; 0; 0 |
 | T11 | 27 | 107 KB | 25 | 0; 7; 630; 14; 0 |
 | T12 | 57 | 133 KB | 55 | 0; 33; 1010; 0; 0 |
 | T13 (bez `drugi_przebieg/`) | 13 | 78 KB | 12 | 0; 3; 30; 0; 0 |
 | T13/drugi_przebieg | 11 | 131 KB | 0 (powstal tutaj) | 0; 3; 442; 0; 0 |
 | T14 | 5 | 5 KB | 4 | 0; 3; 53; 0; 0 |
-| razem (bez T9) | 392 | 2,1 MB | 354 | 16 katalogow z 16 z kodem 0; 154; 10063; 2702; 34 |
+| razem | 435 | 2,7 MB | 395 | 17 katalogow z 17 z kodem 0; 161; 10183; 2702; 34 |
 
 Poza katalogami testow: ten plik i `t9_dowody_zbior.txt` (skan danych osobowych calego katalogu - nizej).
 
@@ -48,14 +49,14 @@ Poza katalogami testow: ten plik i `t9_dowody_zbior.txt` (skan danych osobowych 
 | T6 | `WERDYKT T6: ZAL` | ZAL (O9 - informacja) | TAK |
 | T7 | `WERDYKT T7: ZAL z odstepstwem O12`; `T7/uzup/WYNIK.md`: `WERDYKT T7 UZUPELNIENIE: ZAL z odstepstwem O12` | ZAL z odstepstwem O12 | TAK |
 | T8 | `WERDYKT T8: ZAL` | ZAL | TAK |
-| T9 | `[W TOKU: T9]` | `[W TOKU: T9]` | - |
+| T9 | `WERDYKT T9: ZAL z odstepstwem NOWE` | ZAL z odstepstwem O16 i O17 (wariant doslowny planu: FAIL - do decyzji) | TAK; O16 i O17 = numery nadane przy zestawianiu raportu dwom odstepstwom "NOWE" (T9-a, T9-b) z tego `WYNIK.md` - do potwierdzenia przez koordynatora |
 | T10 | `WERDYKT T10: ZAL (bez odstepstwa)` | ZAL | TAK |
 | T11 | `WERDYKT T11: ZAL` | ZAL (O6 - informacja) | TAK |
 | T12 | `WERDYKT T12: ZAL z odstepstwem O2` | ZAL z odstepstwem O2 | TAK |
 | T13 | `WERDYKT T13 (pierwszy przebieg, commit paczki 571e186): ZAL z odstepstwem O11 i O10`; `T13/drugi_przebieg/WYNIK.md`: `WERDYKT T13 (drugi przebieg ...): ZAL z odstepstwem O11 i O10` | ZAL z odstepstwem O11 i O10 | TAK |
 | T14 | `KONTROLA ZESTAWU T14 NA INSTALACJI: zgodne 22 z 22 krokow, kod 0 (to NIE jest test T14 ...)` | ZADANIE WLASCICIELA (test niewykonany) | TAK |
 
-Zgodne 14 z 14 porownanych (T0-T8, T10-T13 i kontrola T14); T15-T17 nie maja `WYNIK.md` (ODLOZONE - `../ODLOZONE.md`).
+Zgodne 15 z 15 porownanych (T0-T13 i kontrola T14); T15-T17 nie maja `WYNIK.md` (ODLOZONE - `../ODLOZONE.md`).
 
 ## Jak sprawdzone
 
@@ -101,12 +102,19 @@ Etap 2 (T2, T4, T8, T11, `T7/uzup/`, `T13/drugi_przebieg/`) - te same kroki, lic
    i `dowody_lf.txt` obu katalogow podaja stara nazwe). Proba 2 (16f209d): 0 naruszen. Opis: `T13/drugi_przebieg/WYNIK.md`.
 8. **Kontrola koncowa etapu 2:** `dowody_lf.py --katalog dowody` BEZ `--napraw` na calym katalogu - kod 0; liczba plikow i
    godzina: ostatni akapit tego pliku.
+9. **Dowody T9 (dodane na koncu, po werdykcie T9 o 06:25):** 41 plikow skopiowanych z PC; `krok_t9.ps1` mial konce LF -
+   w kopii doprowadzony recznie do CRLF (dopisano 31 znakow CR, tresc wierszy bez zmian; na PC nadal LF); `dowody_lf.py
+   --napraw` na `T9/`: kod 0, naprawionych 7 plikow, CR usunietych 120, bajtow spoza ASCII 0. Skan danych osobowych calego
+   `dowody/` BEZ `--dozwolone` powtorzony po dodaniu `T9/` (to samo polecenie co w krokach 3 i 6): przeszukanych plikow 437,
+   nieprzeszukanych 0; **trafien calych nazw: 0 w 0 plikach, kod 0**; czlony "do wyjasnienia" 265 w 95 plikach - te same 4
+   czlony co wyzej (nowego czlonu nie ma); wynik w `t9_dowody_zbior.txt`. Wykonawca T9 skanowal ten katalog osobno, z
+   szersza lista zrodel nazw (`T9/t9_dowody.txt`, `T9/t9_dowody_2.txt`: 394 pliki, 0 trafien, kod 0).
 
 ## Pominiete (zostaja na PC, poza repo)
 
 Regula: do repo nie ida bazy, STL, ZIP, zapisy ruchu `*.bin`, katalogi robocze (`robocze\`, `t3\`, `t3_tmp\`, `t5_wieczor\`,
 `t10\`, `t2\`, `t4\`, `t11_auto\`) ani pliki wieksze niz 1024 KB; od etapu 2 takze zrzuty PNG. Lista z rozmiarami i powodem:
-`T<nr>/POMINIETE.txt` (T1, T2, T3, T4, T5, T6, T7, T7/uzup, T8, T10, T11, T12; w T0, T13, T14 niczego nie pominieto).
+`T<nr>/POMINIETE.txt` (T1, T2, T3, T4, T5, T6, T7, T7/uzup, T8, T9, T10, T11, T12; w T0, T13, T14 niczego nie pominieto).
 
 | Test | Pominiete pliki | Pominiete katalogi |
 |---|---|---|
@@ -121,6 +129,7 @@ Regula: do repo nie ida bazy, STL, ZIP, zapisy ruchu `*.bin`, katalogi robocze (
 | T4 | - | `robocze\` (441 plikow, 2,1 GB - pamiec puli, linie brzegu), `t4\` (3 pliki surowe, 25 KB - w repo sa ich kopie `t4_czas_zimna.json`, `t4_czas_ciepla.json`, `t4_jakosc.json`) |
 | T7/uzup | - | `robocze\` (404 pliki, 1,1 GB - przebiegi ze skanami i bazami, 53 zrzuty), `zrzuty_dowody\` (12 zrzutow PNG, 1638 KB - decyzja koordynatora: nie ida do repo; kazdy opisany jednym zdaniem w `T7/uzup/WYNIK.md`) |
 | T8 | - | `robocze\` (17 plikow, 255 KB - kopie baz T2 i T3) |
+| T9 | - | `robocze\` (18 plikow, 62 MB - pliki `.json` przebiegow z listami plikow wykluczonych, pomocniki wykonawcy) |
 | T11 | `ustawienia.toml` (13 KB - kopia pliku ustawien instalacji ze znakami spoza ASCII; wykonawca: nie do repo) | `robocze\` (170 plikow, 2,0 GB - eksport 40 skanow STL, kopia folderu projektow, baza, wyniki, logi), `t11_auto\` (1 plik, 36 KB - pelny `auto_uklad.json`; w repo wyciag `t11_auto_uklad_podsumowanie.json`) |
 
 ## Uwagi dla czytajacego dowody
@@ -136,9 +145,12 @@ Regula: do repo nie ida bazy, STL, ZIP, zapisy ruchu `*.bin`, katalogi robocze (
   T7; wynik T7 w `RAPORT.md` opiera sie na obu. Pliki `p<nr>_<k>_odczyty_<etap>.txt` to zapisy sondy (wiersze JSON).
 - `T13/drugi_przebieg/proba_1_807aa83/` to wynik NIEUDANEJ pierwszej proby drugiego przebiegu (2 naruszenia) - zostaje jako dowod.
 
-## Kontrola koncowa etapu 2 (21.11.2026)
 
-- `[W TOKU: T9]` - dowody testu T9 nie sa jeszcze dodane (test w toku w chwili zapisu tego akapitu).
-- `PY -I ..\narzedzia\dowody_lf.py --katalog dowody` BEZ `--napraw` na calym katalogu (05:59): kod 0, "plikow 394, naruszen 0".
-- `grep "W TOKU" ../RAPORT.md`: tylko znaczniki `[W TOKU: T9]` i `[W TOKU: liczniki]`.
-- Werdykty tabeli `RAPORT.md` = pierwsze wiersze `WYNIK.md`: 14 z 14 porownanych (tabela wyzej).
+## Kontrola koncowa etapu 2 (21.11.2026, po dodaniu dowodow T9)
+
+- `PY -I ..\narzedzia\dowody_lf.py --katalog dowody` BEZ `--napraw` na calym katalogu: kod 0, "plikow 437, naruszen 0".
+- Skan danych osobowych calego katalogu (krok 9): 437 plikow, 0 trafien calych nazw, kod 0.
+- `grep "W TOKU" ../RAPORT.md`: 0 wierszy (wszystkie znaczniki usuniete; T9 i liczniki koncowe wpisane).
+- Werdykty tabeli `RAPORT.md` = pierwsze wiersze `WYNIK.md`: 15 z 15 porownanych (tabela wyzej).
+- Kontrola dodatkowa (poza planem): `t13_higiena.py` na stanie galezi z dowodami T9 - wynik w ostatniej wiadomosci wykonawcy
+  do koordynatora (tego pliku nie da sie sprawdzic commitem, ktory go zawiera).

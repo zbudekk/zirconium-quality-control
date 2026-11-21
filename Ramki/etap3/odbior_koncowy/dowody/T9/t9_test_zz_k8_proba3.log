@@ -1,0 +1,21 @@
+...........                                                              [100%]
+=================================== PASSES ====================================
+______ test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow_i_nazwisk _______
+---------------------------- Captured stdout call -----------------------------
+POMIAR K8: 177 zapisow ruchu (466893 znakow), trafien nazw 0, kluczy poza naglowkiem 0 (klucz w naglowku surowych zadan: 9 razy)
+___________ test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow ____________
+---------------------------- Captured stdout call -----------------------------
+POMIAR K8: zapis ruchu 26 komunikatow, 9406 znakow; trafienia nazw: 0 wymagane
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_k1_plan_porannej_23_gniazda_matryca_piksel_po_pikselu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_k2_margines_numer_kuwety_i_liczba_prac
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_indicate.py::test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow_i_nazwisk
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k1_plan_porannej_24_gniazda_piksel_po_pikselu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k1_plan_wieczorny_wszystkie_bloki_reszta_ciemna
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k1_przez_siec_i_atrape
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k2_margines_numer_kuwety_i_liczba_prac
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k2_wpisywane_cyfry_i_nieznana_kuweta
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k2_czcionka_cyfry_rozne_i_rozmiar
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_k2_brak_kuwet_na_plytce_pokazuje_ok_albo_braki
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ramka.py::test_zz_k8_caly_ruch_sieciowy_testow_bez_nazw_folderow
+11 passed, 108 deselected in 1.91s
