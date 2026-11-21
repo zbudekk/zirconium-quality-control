@@ -1,0 +1,33 @@
+# Lista przedrostkow sciezek do T13 (t13_higiena.py). Wiersz: GRUPA <spacja> przedrostek sciezki.
+# E3 = pliki z list paczek etapu 3 (plan sekcja 4 i zlecenia koordynatora); najdluzszy pasujacy przedrostek wygrywa.
+# Inne grupy = prace wlasciciela spoza etapu 3 scalone do main w tym samym czasie (liczone osobno, nie sa wynikiem T13).
+# Przyblizenie: lista jest na poziomie katalogow paczek, nie pojedynczych plikow - patrz PLAN_TESTOW.md, T13, odstepstwo.
+E3 Ramki/stanowisko/
+E3 Ramki/etap3/
+E3 Ramki/plan_etap3_pelna_aplikacja_2026-11-16.md
+E3 Ramki/00_NADZOR_STAN.md
+E3 Ramki/recenzja/raport_recenzenta_PR
+E3 CLAUDE.md
+# R59 (uklad gniazd, pakiet 16.11) - poza etapem 3
+R59 Ramki/R59_odbior/
+R59 Ramki/R59_raport_koncowy.md
+R59 Ramki/Ramki_pakiet/
+R59 Ramki/archiwum/
+R59 Ramki_do_wgrania/
+R59 Ramki/sciaga_skaner_DentalScan_2026-11-16.md
+R59 Ramki/dzien_skanera_karta_2026-11-16.md
+R59 Ramki/Stanowisko kontroli cyrkonii
+R59 Ramki/Zakupy i druk
+R59 Ramki/Budowa ramki
+R59 Ramki/protokol_weryfikacji_v2.md
+R59 Ramki/plan_ramki_v2.md
+# R58 (komplet okragly do ramki, 19.11) - poza etapem 3
+R58 Ramki/R58_
+R58 Ramki/recenzja/r58_
+R58 Ramki/recenzja/raport_recenzenta_R58
+R58 Ramki/wyniki_v2/
+R58 Ramki/narzedzia/
+R58 Ramki/ramka_generator.py
+R58 Ramki/parametry.json
+R58 Ramki_do_wgrania/Zamowienie_komplet_okragly_R58
+R58 Ramki_do_wgrania/SHA256SUMS_2026-11-19_R58.txt

@@ -1,0 +1,11 @@
+# T13, odstepstwo O11 (decyzja koordynatora 20.11 nr 5): nowe pliki etapu 3 z napisami ekranu po polsku ze znakami
+# diakrytycznymi (to, co widzi technik - styl programu przyjety przez wlasciciela w paczkach A3 / A6). Skrypt t13_higiena.py
+# wypisuje je osobno z liczba wierszy nie-ASCII; KAZDY inny nowy plik ze znakiem spoza ASCII jest nadal naruszeniem.
+# Wiersz = sciezka pliku wzgledem katalogu repozytorium. Zmiana listy = decyzja koordynatora zapisana w RAPORT.md.
+Ramki/stanowisko/stanowisko/dzien_skanera.py
+Ramki/stanowisko/stanowisko/dzien_skanera_kroki.toml
+Ramki/stanowisko/stanowisko/dzien_skanera_rdzen.py
+Ramki/stanowisko/stanowisko/statusy.py
+Ramki/stanowisko/stanowisko/ui/napisy.py
+Ramki/stanowisko/stanowisko/ui/napisy_rano.py
+Ramki/stanowisko/testy/test_dzien_skanera.py
