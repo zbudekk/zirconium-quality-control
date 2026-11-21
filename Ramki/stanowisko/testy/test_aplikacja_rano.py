@@ -864,7 +864,9 @@ def test_k4_spacja_ramka_w_ponizej_1s_kolory_rowne_mapie_i_petla_okna(tmp_path, 
             czasy.append(time.perf_counter() - t0)
             with petla.pauza():
                 skan = k.symuluj_skan("zwykla" if i % 2 == 0 else "czysta", numer=1 + i % 3)
-                if k.stan().plytka(skan).moze_zastapic is not None:  # 2. skan plytki o tym numerze: ramka W czeka na odpowiedz (E3-O2 r2, B1)
+                pyta = k.stan().plytka(skan).moze_zastapic is not None
+                assert pyta == (i >= 3)  # 2. skan plytki o tym numerze (i = 3, 4): pytanie o ponowny skan (E3-O2 r3, D8)
+                if pyta:  # ramka W czeka na odpowiedz (E3-O2 r2, B1)
                     assert k.odrzuc_ponowny_skan(skan)
             e.czekaj(lambda: rw.stan()["tryb"] == "wynik" and plan_na_ramce(ruch, rw) is not None, 5.0, "wynik na atrapie W")
             plytka = k.stan().plytka(skan)
@@ -878,8 +880,8 @@ def test_k4_spacja_ramka_w_ponizej_1s_kolory_rowne_mapie_i_petla_okna(tmp_path, 
         # decyzja zmienia kolor gniazda na ekranie -> ramka dostaje nowy kolor (ten sam skan)
         with petla.pauza():
             skan = k.symuluj_skan("zwykla", numer=2)
-            if k.stan().plytka(skan).moze_zastapic is not None:  # jak wyzej: odpowiedz "Nie, to nowy wsad" - wynik idzie do ramki
-                assert k.odrzuc_ponowny_skan(skan)
+            assert k.stan().plytka(skan).moze_zastapic is not None  # 3. skan plytki nr 2: pytanie jest (E3-O2 r3, D8)
+            assert k.odrzuc_ponowny_skan(skan)  # jak wyzej: odpowiedz "Nie, to nowy wsad" - wynik idzie do ramki
         e.czekaj(lambda: (p := plan_na_ramce(ruch, rw)) is not None and "2" in p["plytki"], 5.0, "wynik plytki 2")
         with petla.pauza():
             if e.okno.pokazana_plytka() != skan:

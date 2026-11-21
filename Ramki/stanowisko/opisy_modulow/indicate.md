@@ -212,15 +212,35 @@ bez zmian zachowania:
   (`pominiete.bez_numeru` planu niepuste - zwykla droga kwadratow, numer wpisywany recznie). Plytka najpewniej byla
   skanowana, wiec zamiast rady "zeskanuj / Zmien numer" komunikat mowi: podaj numer w pytaniu "Podaj numer plytki".
   Po podaniu numeru znika sam (plan dostaje plytke) albo zamienia sie w `plytka_bez_skanu` (to byla inna plytka).
+  Runda 3 (D7): licza sie tylko skany bez numeru, ktore MOGA dostac numer plytki lezacej na ramce (numer nalezy do
+  numerow ukladu skanu; skan okraglej testowej n9 sie nie liczy - zostaje `plytka_bez_skanu`); tekst ma drugie zdanie
+  "Jesli tej plytki jeszcze nie skanowano - zeskanuj ja" i liczbe mnoga przy kilku skanach bez numeru (pole `jest_skan`).
 - `dwa_skany_numeru` (ramka W; runda 2, B1): skan ma OTWARTE pytanie `ponowny_skan` wobec innego aktywnego skanu o tym
-  samym numerze plytki - program nie wie, czy to ta sama plytka. Do odpowiedzi kontroler wola `wynik(None, ...)` (ramka
+  samym numerze plytki - program nie wie, czy to ta sama plytka. KIEDY pytanie powstaje (`session._podstawa_ponownego`,
+  `session.py:957-970`): ten sam plik skanu; albo w ktoryms z dwoch skanow rozpoznano mniej niz 3 projekty
+  (`PONOWNY_SKAN_MIN_ROZPOZNANYCH`); albo oba skany maja TE SAME PRACE (udzial wspolnych projektow >= prog
+  `ponowny_skan_min_wspolnych`, domyslnie polowa). Do odpowiedzi kontroler wola `wynik(None, ...)` (ramka
   ciemna - inaczej plytka z poprzedniego skanu lezaca na ramce dostalaby wynik NOWEGO skanu), a gdy na ramce lezy plytka
   o tym numerze, pokazuje komunikat (inna plytka na ramce = `plytka_inna_niz_skan` jak dotad). Po "Tak, to ponowny skan"
   wynik idzie do ramki z numerem. Po "Nie, to nowy wsad" oba skany sa aktywne z jednym numerem i dziala mechanizm sprzed
   paczki (NIE zmieniany): ramka dostaje wynik OSTATNIEGO skanu dla tego numeru - jesli plytka z poprzedniego skanu nadal
   lezy na ramce, zaswieci pod nia; jesli zostala zdjeta po starcie skanu, ramka uniewaznia wynik dla tego numeru
-  (`KlientRamki._wynik_wazny`) i zostaje ciemna. Dlatego komunikat kaze najpierw zdjac plytke z ramki. Dwa skany z jednym
-  numerem BEZ pytania (kwadrat R59 + R54, numer wpisany recznie z bledem) - bez zmian, sprawa na liscie decyzji wlasciciela.
+  (`KlientRamki._wynik_wazny`) i zostaje ciemna. Dlatego komunikat kaze najpierw zdjac plytke z ramki. Tekst (runda 3,
+  P3) ma 3 rady wg kryterium pytania: te same prace zeskanowane drugi raz - "Tak, to ponowny skan"; nowe prace na tej
+  samej plytce - "Nie, to nowy wsad"; na ramce lezy inna plytka niz ta z ostatniego skanu - najpierw ja zdejmij, potem
+  "Nie, to nowy wsad". Numer wstrzymany (`_w_wynik[3]`) jest aktualizowany takze wtedy, gdy obraz dla ramki sie nie
+  zmienil (runda 3, P4: "Zmien numer" przy otwartym pytaniu - komunikat znika razem z pytaniem).
+  **OGRANICZENIE ZNANE (mechanizm zastany, do decyzji wlasciciela): dwie ROZNE plytki o tym samym numerze z ROZNYMI
+  pracami NIE sa wstrzymywane.** Gdy oba skany maja co najmniej 3 rozpoznane projekty i mniej niz polowe wspolnych,
+  program nie pyta (dla niego to nowy wsad), wiec ramka W - ktora rozpoznaje plytke tylko po numerze - od razu dostaje
+  wynik nowego skanu: plytka z poprzedniego skanu lezaca na ramce swieci wynik NOWEGO skanu, bez pytania i bez komunikatu
+  (test `test_r3_p2_inna_plytka_nr_2_z_innymi_pracami_...`: 9 gniazd, 120 pikseli, 0 pytan, 0 komunikatow). Warianty bez
+  pytania: (1) kwadrat R59 + kwadrat R54 o tym samym numerze; (2) kwadrat + okragla o tym samym numerze; (3) okragla
+  z dolkiem odczytanym jako inny wazny numer (numer plytki lezacej na ramce); (4) numer wpisany recznie z bledem. Ta sama
+  wada po odpowiedzi "Nie, to nowy wsad" bez zdjecia plytki z ramki. Wstrzymanie z rundy 2 chroni tylko: ponowny skan
+  tych samych prac, skany z mniej niz 3 rozpoznanymi projektami i ten sam plik. Zasada pracy do decyzji wlasciciela:
+  przed skanem nastepnej plytki zdejmij poprzednia z ramki wieczornej; w jednej zmianie nie uzywaj dwoch plytek z tym
+  samym numerem.
 - `numer_niezgodny` (id `numer_niezgodny:<skan>`, przy plytce): numer podany recznie (`numer_zrodlo` = `podany`) inny niz
   WAZNY numer odczytany z dolkow kodu (`numer_z_dolkow` z pliku wyniku skanu, nalezacy do numerow ukladu). Wieczorem
   kontroler wola `wynik(None, ...)` (ramka ciemna jak dla skanu bez numeru), rano plytka nie idzie do planu

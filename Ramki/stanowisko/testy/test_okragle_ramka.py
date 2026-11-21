@@ -647,7 +647,8 @@ def test_s1_blad_analizy_podaje_przyczyne_ile_znacznikow_widac(tmp_path):
                 plate.przypisz_znaczniki([{"x": 10.0 * i, "y": 0.0} for i in range(n)], U.wczytaj("wieczorna"))
             skan = _blad_analizy(k, f"BladWyrownania: {blad.value}")
             kom = next(x for x in k.stan().komunikaty if x.id == f"blad_analizy:{skan}")
-            assert kom.tekst == tekst("blad_analizy", powod=ST.PRZYCZYNY_BLEDU_ANALIZY["znaczniki"].format(n=n))
+            # runda 3: 0 z 3 znacznikow ma osobny tekst (druga przyczyna: stolik / podloze w skanie)
+            assert kom.tekst == tekst("blad_analizy", powod=ST.PRZYCZYNY_BLEDU_ANALIZY["znaczniki" if n else "znaczniki_0"].format(n=n))
             assert f"{n} z 3" in kom.tekst and kom.tekst != tekst("blad_analizy", powod=ST.POWODY_BLEDU_ANALIZY["analiza"])
             teksty[n] = kom.tekst
         assert len(set(teksty.values())) == 3
@@ -877,9 +878,12 @@ def _pytania_ponowny(s, skan_id: int) -> list:
 
 
 def test_r2_b1_okragla_n2_swieci_skan_kwadratu_n2_ramka_ciemna_do_odpowiedzi_potem_to_ponowny_skan(kal, tmp_path, sprzataj):
-    """Recenzja PR #55, B1 (proba G1): okragla n2 lezy na ramce W i swieci swoj wynik; w skanerze kwadrat n2 z innymi pracami.
-    Dotad pod plytka LEZACA zapalal sie wynik nowego skanu (9 gniazd), 0 komunikatow, a pytanie "Ponowny skan tej samej plytki?"
-    nie wstrzymywalo ramki. Teraz: do odpowiedzi ramka ciemna + komunikat; po "Tak, to ponowny skan" swieci wynik nowego skanu."""
+    """Recenzja PR #55, B1 (proba G1): okragla n2 lezy na ramce W i swieci swoj wynik; w skanerze kwadrat n2.
+    WARIANT Z PYTANIEM (runda 3, P2): skan sztuczny bierze projekt = numer gniazda, wiec oba skany maja TE SAME projekty i
+    program pyta "Ponowny skan tej samej plytki?" (``session._podstawa_ponownego``). Dotad pod plytka LEZACA zapalal sie wynik
+    nowego skanu (9 gniazd), 0 komunikatow, a pytanie nie wstrzymywalo ramki. Teraz: do odpowiedzi ramka ciemna + komunikat;
+    po "Tak, to ponowny skan" swieci wynik nowego skanu. Wariant BEZ pytania (inna plytka z INNYMI pracami - ramka NIE jest
+    wstrzymywana): ``test_r3_p2_inna_plytka_nr_2_z_innymi_pracami_...``."""
     s = StanowiskoZRamkami(tmp_path / "k", kal, sprzataj)
     a = s.k.symuluj_skan("czysta", numer=2, uklad=RAMKOWA_W, numer_z_dolkow=2)
     s.poloz("W", 2)
@@ -913,6 +917,9 @@ def test_r2_b1_okragla_n2_swieci_skan_kwadratu_n2_ramka_ciemna_do_odpowiedzi_pot
 
 def test_r2_b1_okragla_n3_odczytana_jako_2_ramka_ciemna_do_odpowiedzi_potem_to_inna_plytka(kal, tmp_path, sprzataj):
     """Recenzja PR #55, B1 (proba H1): okragla n2 lezy i swieci; w skanerze okragla n3 z zaslonietym dolkiem, odczytana jako 2.
+    WARIANT Z PYTANIEM (runda 3, P2): skan sztuczny ma TE SAME projekty co skan plytki nr 2 (projekt = numer gniazda), wiec
+    program pyta; prawdziwa plytka n3 z INNYMI pracami (co najmniej 3 rozpoznane projekty, mniej niz polowa wspolnych) pytania
+    NIE dostaje i ramka nie jest wstrzymywana - ``test_r3_p2_inna_plytka_nr_2_z_innymi_pracami_...``.
     Do odpowiedzi ramka ciemna + komunikat (znika po zdjeciu plytki z ramki, wraca po polozeniu). Technik robi to, co kaze
     komunikat dla dwoch roznych plytek: NAJPIERW zdejmuje plytke lezaca, potem "Nie, to nowy wsad". Wtedy ramka zostaje ciemna
     takze dla plytki nr 2 polozonej pozniej (zasada ramki sprzed paczki: zdjecie plytki o numerze N po starcie skanu uniewaznia
@@ -946,7 +953,7 @@ def test_r2_b1_okragla_n3_odczytana_jako_2_ramka_ciemna_do_odpowiedzi_potem_to_i
 
 def test_r2_b1_odpowiedz_to_inna_plytka_gdy_plytka_nadal_lezy_swieci_wynik_ostatniego_skanu_mechanizm_zastany(kal, tmp_path, sprzataj):
     """Utrwalenie stanu faktycznego (NIE zmieniane w rundzie 2 - lista decyzji wlasciciela): technik odpowiada "Nie, to nowy
-    wsad", NIE zdejmujac plytki lezacej na ramce. Po odpowiedzi oba skany sa aktywne z numerem 2 i ramka - jak przed runda 2
+    wsad", NIE zdejmujac plytki lezacej na ramce (wariant Z PYTANIEM: te same projekty skanu sztucznego). Po odpowiedzi oba skany sa aktywne z numerem 2 i ramka - jak przed runda 2
     dla dwoch skanow bez pytania (proby H2 / H3 recenzenta) - swieci wynik OSTATNIEGO skanu pod plytka o numerze 2, czyli
     pod plytka z POPRZEDNIEGO skanu. Dlatego komunikat kaze najpierw zdjac plytke z ramki."""
     s = StanowiskoZRamkami(tmp_path / "k", kal, sprzataj)
@@ -1059,10 +1066,11 @@ def test_r2_p1_rano_skan_bez_numeru_i_plytka_na_ramce_bez_rady_zeskanuj(kal, tmp
     s.poloz("P", 4)
     kom = s.komunikat("plytka_czeka_na_numer")
     assert kom.id == "plytka_czeka_na_numer:P" and kom.poziom == "ostrzezenie"
-    assert kom.tekst == tekst("plytka_czeka_na_numer", na_ramce=4, w_planie=ST.W_PLANIE_BRAK)
+    assert kom.tekst == tekst("plytka_czeka_na_numer", na_ramce=4, w_planie=ST.W_PLANIE_BRAK, jest_skan=ST.JEST_SKAN_BEZ_NUMERU[False])
     assert "nr 4" in kom.tekst and "{" not in kom.tekst and "?" not in kom.tekst
     wszystkie = " ".join(x.tekst for x in s.k.stan().komunikaty)
-    assert "Zeskanuj" not in wszystkie and "Zmie" not in wszystkie, wszystkie  # ani "Zeskanuj plytke nr 4", ani "Zmien numer"
+    # ani bezwarunkowe "Zeskanuj plytke nr 4", ani "Zmien numer" (runda 3, D7: rada warunkowa "jesli ... nie skanowano - zeskanuj ja" jest)
+    assert "Zeskanuj" not in wszystkie and "Zmie" not in wszystkie, wszystkie
     assert s.komunikaty("plytka_bez_skanu") == [] and s.ciemna("P")
     # numer podany w pytaniu: komunikat znika, plan dostaje plytke, ramka swieci
     assert s.k.podaj_numer_plytki(skan, 4)
@@ -1178,3 +1186,224 @@ def test_r2_d3_podmiana_pliku_kalibracji_nieudana_bez_kopii_obok(tmp_path, monke
         kalibracja.uzupelnij_plik(plik, MODELE)
     assert kopia.read_bytes() == b"kopia sprzed wczesniejszego uzupelnienia" and plik.read_bytes() == bajty
     assert sorted(p.name for p in tmp_path.iterdir()) == sorted([plik.name, kopia.name])
+
+
+# =============================================================================================================================
+# runda 3 (recenzja PR #55 runda 2): P2 - stan faktyczny wariantu BEZ pytania; P3 - tekst ``dwa_skany_numeru``; P4 - komunikat
+# po "Zmien numer"; D6 - dwie galezie ``_czeka_na_ponowny_skan``; D7 - tekst ``plytka_czeka_na_numer``; blad analizy 0 z 3
+# =============================================================================================================================
+INNE_PRACE = {i: 100 + i for i in range(1, 10)}  # projekty inne niz domyslne skanu sztucznego (projekt = numer gniazda): INNY wsad
+
+
+@pytest.mark.parametrize("uklad_b, dolki_b", [(RAMKOWA_W, 2), ("wieczorna", None)], ids=["okragla_z_dolkiem_odczytanym_jako_2", "kwadrat_nr_2"])
+def test_r3_p2_inna_plytka_nr_2_z_innymi_pracami_bez_pytania_wynik_nowego_skanu_pod_plytka_lezaca_mechanizm_zastany(
+        kal, tmp_path, sprzataj, uklad_b, dolki_b):
+    """Utrwalenie stanu faktycznego - OGRANICZENIE ZNANE, mechanizm zastany (na ``main`` sprzed paczki to samo dla par kwadrat
+    R59 + R54 i dla numeru wpisanego z bledem); DO DECYZJI WLASCICIELA (pozycja nr 1 listy) - po wprowadzeniu twardszej reguly
+    ramki ten test ma zostac ODWROCONY (ramka ciemna + komunikat).
+    Okragla nr 2 lezy na ramce W i swieci. Technik skanuje INNA plytke, ktorej skan dostaje numer 2 (okragla z dolkiem
+    odczytanym jako 2 albo kwadrat nr 2), z INNYMI pracami: co najmniej 3 rozpoznane projekty w kazdym skanie, mniej niz polowa
+    wspolnych. Program NIE pyta o ponowny skan (``session._podstawa_ponownego``: to dla niego nowy wsad), wiec wstrzymanie
+    z rundy 2 (B1) nie dziala: 0 pytan, 0 komunikatow, a pod plytka LEZACA (z 1. skanu) swieci wynik NOWEGO skanu
+    (proby X1, X1b recenzenta). Zasada pracy do decyzji: przed skanem nastepnej plytki zdejmij poprzednia z ramki wieczornej;
+    w jednej zmianie nie uzywaj dwoch plytek z tym samym numerem."""
+    from stanowisko import session as SE
+
+    s = StanowiskoZRamkami(tmp_path / "k", kal, sprzataj)
+    a = s.k.symuluj_skan("czysta", numer=2, uklad=RAMKOWA_W, numer_z_dolkow=2)
+    s.poloz("W", 2)
+    assert s.swieci_wynik(a) == 4 and s.nowe() == []
+    b = s.k.symuluj_skan("zwykla", numer=2, uklad=uklad_b, projekty=INNE_PRACE, numer_z_dolkow=dolki_b)
+    z = s.k.sesja.zgodnosc_prac(b, a)
+    assert min(z["projekty"], z["projekty_poprzedniego"]) >= SE.PONOWNY_SKAN_MIN_ROZPOZNANYCH and z["wspolne"] == 0
+    assert 0 < s.k.sesja.ponowny_skan_min_wspolnych and z["udzial"] < s.k.sesja.ponowny_skan_min_wspolnych
+    swieci = s.swieci_wynik(b)  # obraz ramki piksel po pikselu = wynik NOWEGO skanu, a na ramce lezy plytka z 1. skanu
+    pikseli = len(TI.roznice_plytki(s.atrapy["W"].klatka, {}))
+    assert swieci >= 5 and pikseli > 0 and s.k._w_wynik == (b, 2, "wyslany", None)
+    koniec = time.monotonic() + 0.8
+    while time.monotonic() < koniec:  # 0 pytan o ponowny skan i 0 komunikatow - takze po chwili
+        s.k.przetworz()
+        assert [q for q in s.k.stan().pytania if q.rodzaj == "ponowny_skan"] == [] and s.nowe() == []
+        time.sleep(0.02)
+    stan = s.k.stan()
+    assert stan.plytka(b).moze_zastapic is None and stan.plytka(a).aktywna and stan.plytka(b).aktywna
+    assert (stan.plytka(a).numer, stan.plytka(b).numer) == (2, 2) and s.ramka("W").plytka == 2
+    assert len(TI.roznice_plytki(s.atrapy["W"].klatka, {})) == pikseli
+    print(f"\n[E3-O2 runda 3, P2 - mechanizm zastany, do decyzji wlasciciela] okragla n2 lezy na ramce W, skan {uklad_b} z numerem 2 "
+          f"i innymi pracami (rozpoznane projekty {z['projekty']} i {z['projekty_poprzedniego']}, wspolne {z['wspolne']}): pytan 0, "
+          f"komunikatow 0, pod plytka lezaca swieci wynik nowego skanu: {swieci} gniazd, {pikseli} pikseli")
+
+
+def test_r3_p3_tekst_dwa_skany_numeru_trzy_rady_wg_kryterium_pytania_te_same_prace():
+    """Recenzja rundy 2, P3: pytanie mowi o "tych samych pracach", a komunikat pod nim przestawial kryterium na "te sama
+    plytke" - nowy wsad na TEJ SAMEJ plytce (maly, ponizej 3 rozpoznanych projektow = pytanie) prowadzil do "Tak, to ponowny
+    skan", czyli do zastapienia skanu poprzedniego wsadu. Tekst ma 3 rady wg kryterium pytania."""
+    from stanowisko import statusy as ST
+
+    t = tekst("dwa_skany_numeru", numer=2)
+    tak, nie = ST.PRZYCISKI["potwierdz_ponowny_skan"], ST.PRZYCISKI["odrzuc_ponowny_skan"]
+    zdania = t.split(". ")
+
+    def zdanie(fragment: str) -> str:
+        z = [x for x in zdania if fragment in x]
+        assert len(z) == 1, (fragment, t)
+        return z[0]
+
+    te_same = zdanie("Te same prace zeskanowane drugi raz")
+    nowe = zdanie("Nowe prace na tej samej")
+    inna = zdanie("najpierw zdejmij z ramki")
+    assert zdania.index(te_same) < zdania.index(nowe) < zdania.index(inna)
+    assert tak in te_same and nie not in te_same and "ramka za" in te_same  # te same prace drugi raz: "Tak", ramka zaswieci
+    assert nie in nowe and tak not in nowe and "zdejmij" not in nowe and "ramka za" in nowe  # nowy wsad, ta sama plytka: "Nie"
+    # na ramce lezy INNA plytka niz ta z ostatniego skanu: najpierw zdejmij, potem "Nie"
+    assert "inna p" in inna and nie in inna and tak not in inna and inna.index("najpierw zdejmij z ramki") < inna.index(nie)
+    assert "ta sama p" not in t  # kryterium "ta sama plytka zeskanowana drugi raz" (runda 2) - usuniete
+    assert (t.count(tak), t.count(nie)) == (1, 2) and "nr 2" in t and "{" not in t and "?" not in t
+
+
+def _pytanie_otwarte_plytka_2_lezy(s) -> tuple:
+    """Okragla nr 2 lezy na ramce W i swieci; drugi skan z numerem 2 i tymi samymi projektami: pytanie otwarte, ramka ciemna,
+    komunikat ``dwa_skany_numeru`` (stan wyjsciowy prob X2, X5, X5b recenzenta)."""
+    a = s.k.symuluj_skan("czysta", numer=2, uklad=RAMKOWA_W, numer_z_dolkow=2)
+    s.poloz("W", 2)
+    assert s.swieci_wynik(a) == 4
+    b = s.k.symuluj_skan("zwykla", numer=2, uklad=RAMKOWA_W, numer_z_dolkow=2)
+    assert len(_pytania_ponowny(s, b)) == 1 and s.ciemna("W", 0.6)
+    assert s.komunikat("dwa_skany_numeru").tekst == tekst("dwa_skany_numeru", numer=2)
+    assert s.k._w_wynik == (b, None, "bez_numeru", 2)
+    return a, b
+
+
+def test_r3_p4_zmien_numer_przy_otwartym_pytaniu_komunikat_o_dwoch_skanach_znika(kal, tmp_path, sprzataj):
+    """Recenzja rundy 2, P4 (proba X5): pytanie otwarte, plytka nr 2 na ramce, komunikat ``dwa_skany_numeru``. Technik poprawia
+    numer nowego skanu na 3 ("Zmien numer") - pytanie znika, zostaje komunikat (c) ``numer_niezgodny`` i ciemna ramka. Obraz
+    dla ramki sie nie zmienil (numer None przed i po), wiec dotad numer wstrzymany zostawal w ``_w_wynik`` i komunikat "ramka
+    czeka na odpowiedz" wisial bez pytania."""
+    s = StanowiskoZRamkami(tmp_path / "k", kal, sprzataj)
+    a, b = _pytanie_otwarte_plytka_2_lezy(s)
+    assert s.k.podaj_numer_plytki(b, 3)
+    assert _pytania_ponowny(s, b) == [] and s.k.stan().plytka(b).numer == 3 and s.k.stan().plytka(b).numer_niezgodny
+    s.bez_komunikatu("dwa_skany_numeru")
+    assert s.k._w_wynik == (b, None, "bez_numeru", None)
+    assert s.ciemna("W", 0.8) and s.nowe() == ["numer_niezgodny"]  # jeden komunikat (c); ramka ciemna jak dotad
+    assert s.komunikaty("dwa_skany_numeru") == [] and s.k.stan().plytka(a).aktywna
+
+
+def test_r3_p4_po_zmianie_numeru_plytka_o_nowym_numerze_na_ramce_bez_rady_poloz_plytke_o_starym_numerze(kal, tmp_path, sprzataj):
+    """Recenzja rundy 2, P4 (proba X5b): po "Zmien numer" na 3 technik kladzie na ramce plytke nr 3 (te ze skanu). Dotad:
+    komunikat (b) "Na ramce lezy plytka nr 3, a ostatni skan to plytka nr 2 ... Poloz na ramce plytke nr 2" (rada falszywa),
+    a po ponownym polozeniu plytki nr 2 wracal komunikat o dwoch skanach. Teraz: tylko komunikat (c), ramka ciemna."""
+    s = StanowiskoZRamkami(tmp_path / "k", kal, sprzataj)
+    a, b = _pytanie_otwarte_plytka_2_lezy(s)
+    assert s.k.podaj_numer_plytki(b, 3)
+    for numer in (0, 3, 0, 2):
+        s.poloz("W", numer)
+        koniec = time.monotonic() + 0.8
+        while time.monotonic() < koniec:
+            s.k.przetworz()
+            assert s.komunikaty("plytka_inna_niz_skan") == [] and s.komunikaty("dwa_skany_numeru") == [], (numer, s.nowe())
+            time.sleep(0.02)
+        assert s.nowe() == ["numer_niezgodny"] and s.ciemna("W", 0.3), numer
+    assert _pytania_ponowny(s, b) == [] and s.k._w_wynik[3] is None
+
+
+def test_r3_d6_poprzedni_skan_spoza_stanu_doby_tez_wstrzymuje_ramke():
+    """Recenzja rundy 2, D6 (wstrzykniecie J2 nie bylo wykrywane): pytanie o ponowny skan wskazuje poprzedni skan, ktorego nie
+    ma w stanie doby (ponowny skan przez granice 6:00) - ramka czeka na odpowiedz tak samo (wariant bezpieczniejszy)."""
+    from types import SimpleNamespace as N
+
+    from stanowisko import kontroler_api as K
+
+    czeka = K.AtrapaKontrolera._czeka_na_ponowny_skan
+
+    def plytka(*pytania, numer=2):
+        return N(skan_id=8, numer=numer, pytania=tuple(pytania))
+
+    pytanie = N(rodzaj="ponowny_skan", poprzedni_id=7, ukryte=False)
+    spoza_doby = N(plytka=lambda skan_id: None)
+    assert czeka(spoza_doby, plytka(pytanie)) is True
+    w_stanie = {7: N(skan_id=7, numer=2, aktywna=True)}
+    assert czeka(N(plytka=w_stanie.get), plytka(pytanie)) is True
+    # bez wstrzymania: poprzedni skan nieaktywny albo z innym numerem, pytanie innego rodzaju, skan bez numeru, brak pytan
+    for poprzednia in (N(skan_id=7, numer=2, aktywna=False), N(skan_id=7, numer=3, aktywna=True)):
+        assert czeka(N(plytka={7: poprzednia}.get), plytka(pytanie)) is False
+    assert czeka(spoza_doby, plytka(N(rodzaj="brak_numeru_plytki", poprzedni_id=7, ukryte=False))) is False
+    assert czeka(spoza_doby, plytka(pytanie, numer=None)) is False and czeka(spoza_doby, plytka()) is False
+
+
+def test_r3_d6_pytanie_o_ponowny_skan_ukryte_ramka_nadal_ciemna_komunikat_zostaje(kal, tmp_path, sprzataj):
+    """Recenzja rundy 2, D6 (wstrzykniecie J9 nie bylo wykrywane; proba X2): pytanie ukryte ("Pozniej" przez API - okno nie ma
+    takiego przycisku dla tego pytania) nadal wstrzymuje ramke: 0 swiecacych pikseli, komunikat zostaje."""
+    s = StanowiskoZRamkami(tmp_path / "k", kal, sprzataj)
+    a, b = _pytanie_otwarte_plytka_2_lezy(s)
+    assert s.k.zamknij_pytanie(_pytania_ponowny(s, b)[0].id)
+    assert _pytania_ponowny(s, b) == []  # pytanie nie jest juz na liscie okienek ...
+    assert [q.ukryte for q in s.k.stan().plytka(b).pytania if q.rodzaj == "ponowny_skan"] == [True]  # ... zostaje przy plytce
+    assert s.ciemna("W", 1.0) and s.nowe() == ["dwa_skany_numeru"]
+    assert s.k._w_wynik == (b, None, "bez_numeru", 2) and s.k.stan().plytka(a).aktywna and s.k.stan().plytka(b).aktywna
+
+
+def test_r3_d7_rano_dwa_skany_bez_numeru_liczba_mnoga_i_rada_zeskanuj_gdy_plytki_nie_skanowano(kal, tmp_path, sprzataj):
+    """Recenzja rundy 2, D7: komunikat ``plytka_czeka_na_numer`` ma drugie zdanie (plytka na ramce moze byc INNA niz ta ze skanu
+    bez numeru - wtedy trzeba ja zeskanowac) i liczbe mnoga przy dwoch skanach bez numeru."""
+    from stanowisko import statusy as ST
+
+    s = StanowiskoZRamkami(tmp_path / "k", kal, sprzataj, tryb="rano")
+    a = s.k.symuluj_skan_rano(None, {1: "pewna", 2: "pewna"}, projekty={1: 301, 2: 302}, uklad="poranna")
+    s.czekaj(lambda: s.k._plan_p_dane is not None and s.k._plan_p_dane["pominiete"]["bez_numeru"] == [a], "plan z 1 plytka bez numeru")
+    s.poloz("P", 5)
+    jeden = s.komunikat("plytka_czeka_na_numer").tekst
+    assert jeden == tekst("plytka_czeka_na_numer", na_ramce=5, w_planie=ST.W_PLANIE_BRAK, jest_skan=ST.JEST_SKAN_BEZ_NUMERU[False])
+    assert "jest skan bez numeru" in jeden and "wybierz numer 5" in jeden and "{" not in jeden and "?" not in jeden
+    assert "jeszcze nie skanowano" in jeden and "zeskanuj j" in jeden and jeden.index("wybierz numer 5") < jeden.index("jeszcze nie skanowano")
+    b = s.k.symuluj_skan_rano(None, {3: "pewna"}, projekty={3: 303}, uklad="poranna")
+    mnoga = tekst("plytka_czeka_na_numer", na_ramce=5, w_planie=ST.W_PLANIE_BRAK, jest_skan=ST.JEST_SKAN_BEZ_NUMERU[True])
+    s.czekaj(lambda: [x.tekst for x in s.komunikaty("plytka_czeka_na_numer")] == [mnoga], "komunikat z liczba mnoga")
+    assert s.k._plan_p_dane["pominiete"]["bez_numeru"] == [a, b]
+    assert "skany bez numeru" in mnoga and "jest skan bez numeru" not in mnoga and mnoga != jeden and "zeskanuj j" in mnoga
+    assert s.komunikaty("plytka_bez_skanu") == [] and s.ciemna("P")
+
+
+def test_r3_d7_rano_skan_bez_numeru_plytki_spoza_ramki_zostaje_rada_zeskanuj(kal, tmp_path, sprzataj):
+    """Recenzja rundy 2, D7 (proba P1f): jedyny skan bez numeru to okragla TESTOWA (jej pytanie o numer ma tylko "9") - plytka
+    nr 6 na ramce P nie moze byc plytka z tego skanu, wiec zostaje rada "Zeskanuj plytke nr 6" (``plytka_bez_skanu``), a nie
+    "wybierz numer 6 w pytaniu"."""
+    from stanowisko import statusy as ST
+
+    s = StanowiskoZRamkami(tmp_path / "k", kal, sprzataj, tryb="rano")
+    t = s.k.symuluj_skan_rano(None, {1: "pewna"}, projekty={1: 308}, uklad="okragla_poranna")
+    pytania = [q for q in s.k.stan().pytania if q.skan_id == t]
+    assert [q.rodzaj for q in pytania] == ["brak_numeru_plytki"] and 6 not in pytania[0].numery
+    s.czekaj(lambda: s.k._plan_p_dane is not None and s.k._plan_p_dane["pominiete"]["bez_numeru"] == [t], "plan z plytka testowa bez numeru")
+    s.poloz("P", 6)
+    assert s.komunikat("plytka_bez_skanu").tekst == tekst("plytka_bez_skanu", na_ramce=6, w_planie=ST.W_PLANIE_BRAK)
+    koniec = time.monotonic() + 0.6
+    while time.monotonic() < koniec:
+        s.k.przetworz()
+        assert s.komunikaty("plytka_czeka_na_numer") == []
+        time.sleep(0.02)
+    assert s.ciemna("P")
+
+
+def test_r3_blad_analizy_0_z_3_znacznikow_druga_przyczyna_stolik_w_skanie(tmp_path):
+    """Dodatek koordynatora (pomiar recenzenta materialow dnia sprzetu: skan z plaskim podlozem >= 150 mm = 11 z 11
+    nierozpoznanych, 0 z 3 znacznikow): przy 0 z 3 komunikat podaje druga mozliwa przyczyne (stolik / podloze wokol plytki
+    w skanie) i rade "ustaw ciecie skanu powyzej stolika"; przy 1 i 2 z 3 tekst jak dotad."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=Zegar(dt.datetime(2026, 11, 17, 19, 0, 0)))
+    try:
+        teksty = {}
+        for n in (0, 1, 2):
+            skan = _blad_analizy(k, f"BladWyrownania: znaleziono {n} stozki znacznikow, potrzeba 3")
+            teksty[n] = next(x for x in k.stan().komunikaty if x.id == f"blad_analizy:{skan}").tekst
+            assert f"{n} z 3" in teksty[n] and "{" not in teksty[n] and "?" not in teksty[n]
+        assert teksty[0] == tekst("blad_analizy", powod=ST.PRZYCZYNY_BLEDU_ANALIZY["znaczniki_0"])
+        assert "stolik" in teksty[0] and "pod\u0142o\u017ce" in teksty[0] and "powy\u017cej stolika" in teksty[0]
+        assert "nie mie\u015bci si\u0119 w polu skanera" in teksty[0]  # pierwsza przyczyna zostaje
+        for n in (1, 2):
+            assert teksty[n] == tekst("blad_analizy", powod=ST.PRZYCZYNY_BLEDU_ANALIZY["znaczniki"].format(n=n))
+            assert "stolik" not in teksty[n] and "pod\u0142o\u017c" not in teksty[n]
+    finally:
+        k.zamknij()

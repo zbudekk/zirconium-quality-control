@@ -461,17 +461,20 @@ KOMUNIKATY: dict[str, Wzor] = {
                              "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. Zeskanuj płytkę "
                              "nr {na_ramce}. Jeśli była już skanowana, to numer jej skanu jest zły — popraw go przyciskiem "
                              "„Zmień numer” przy tej płytce na ekranie."),
-    # runda 2 (recenzja PR #55, P1): piec ma skan bez numeru plytki - plytka na ramce najpewniej BYLA skanowana i czeka na numer
+    # runda 2 (recenzja PR #55, P1): piec ma skan bez numeru plytki - plytka na ramce najpewniej BYLA skanowana i czeka na numer;
+    # runda 3 (D7): ``jest_skan`` = ``JEST_SKAN_BEZ_NUMERU`` (jeden skan / kilka), drugie zdanie - plytka mogla nie byc skanowana
     "plytka_czeka_na_numer": Wzor(POZIOM_OSTRZEZENIE, "Płytka na ramce czeka na numer skanu",
-                                  "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. W tym piecu jest "
-                                  "skan bez numeru płytki: jeśli to skan tej płytki, wybierz numer {na_ramce} w pytaniu „Podaj numer "
-                                  "płytki” — ramka zaświeci sama."),
+                                  "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. W tym piecu "
+                                  "{jest_skan}, wybierz numer {na_ramce} w pytaniu „Podaj numer płytki” — ramka zaświeci sama. "
+                                  "Jeśli tej płytki jeszcze nie skanowano — zeskanuj ją."),
     # runda 2 (recenzja PR #55, B1): wynik skanu wstrzymany na ramce wieczornej do odpowiedzi na pytanie o ponowny skan (napisy
-    # przyciskow = ``PRZYCISKI["potwierdz_ponowny_skan"]`` / ``["odrzuc_ponowny_skan"]`` - test paczki pilnuje zgodnosci)
+    # przyciskow = ``PRZYCISKI["potwierdz_ponowny_skan"]`` / ``["odrzuc_ponowny_skan"]`` - test paczki pilnuje zgodnosci);
+    # runda 3 (P3): rady wg kryterium PYTANIA ("te same prace"), nie "ta sama plytka" - nowy wsad na tej samej plytce to "Nie"
     "dwa_skany_numeru": Wzor(POZIOM_OSTRZEZENIE, "Dwa skany z numerem płytki {numer} — ramka czeka na odpowiedź",
                              "Są dwa skany płytki nr {numer} i płytka nr {numer} leży na ramce wieczornej — ramka nie świeci, dopóki "
-                             "nie odpowiesz na pytanie o ponowny skan. Jeśli to ta sama płytka zeskanowana drugi raz — kliknij „Tak, "
-                             "to ponowny skan”, ramka zaświeci. Jeśli to dwie różne płytki — najpierw zdejmij z ramki tę, która "
+                             "nie odpowiesz na pytanie o ponowny skan. Te same prace zeskanowane drugi raz — kliknij „Tak, to "
+                             "ponowny skan”, ramka zaświeci. Nowe prace na tej samej płytce — kliknij „Nie, to nowy wsad”, ramka "
+                             "zaświeci. Na ramce leży inna płytka niż ta z ostatniego skanu — najpierw zdejmij z ramki tę, która "
                              "leży, potem kliknij „Nie, to nowy wsad”; wynik ostatniego skanu pokaże wtedy ekran."),
     # przycisk przy plytce z numerem ma na ekranie napis "Zmień numer" (``ui.napisy.ZMIEN_NUMER`` - test paczki pilnuje zgodnosci)
     "numer_niezgodny": Wzor(POZIOM_OSTRZEZENIE, "Numer płytki nie zgadza się ze skanem",
@@ -512,6 +515,9 @@ RADY_PLYTKA_NIE_Z_RAMKI = {
 }
 W_PLANIE_PLYTKI = "ramka ma dla tego pieca tylko płytki: {plytki}"
 W_PLANIE_BRAK = "ramka nie ma dla tego pieca żadnej płytki"
+# runda 3 (D7): pole ``jest_skan`` komunikatu ``plytka_czeka_na_numer`` - klucz: czy skanow bez numeru jest wiecej niz jeden
+JEST_SKAN_BEZ_NUMERU = {False: "jest skan bez numeru płytki: jeśli to skan tej płytki",
+                        True: "są skany bez numeru płytki: jeśli jeden z nich to skan tej płytki"}
 # E3-A12: napisy odmow polecen ramek i Excela (``Odpowiedz.tekst``)
 NAPIS_RAMKI_NIEPODLACZONE = "Ramki nie są podłączone — program pracuje bez ramek (sekcja [ramki] w ustawieniach)."
 NAPIS_EXCEL_NIEPODLACZONY = "Excel nie jest podłączony — odhacz zlecenia kompletne ręcznie."
@@ -567,6 +573,10 @@ POWODY_BLEDU_ANALIZY = {
 PRZYCZYNY_BLEDU_ANALIZY = {
     "znaczniki": "w skanie widać {n} z 3 znaczników płytki — płytka nie mieści się w polu skanera albo leży poza środkiem; "
                  "ustaw płytkę na środku i sprawdź, czy pole skanowania obejmuje całą płytkę",
+    # runda 3: 0 z 3 - druga mozliwa przyczyna (skan z plaskim podlozem wokol plytki: 0 z 3 znacznikow) i rada o cieciu skanu
+    "znaczniki_0": "w skanie widać 0 z 3 znaczników płytki — płytka nie mieści się w polu skanera albo leży poza środkiem, albo "
+                   "w skanie jest stolik (podłoże) wokół płytki; ustaw płytkę na środku, sprawdź, czy pole skanowania obejmuje "
+                   "całą płytkę, i ustaw cięcie skanu powyżej stolika",
     "wierzch": "w skanie nie widać płaskiego wierzchu płytki — to nie jest skan całej płytki; połóż płytkę płasko na środku skanera",
     "pusty": "skan jest prawie pusty — sprawdź, czy płytka leży w skanerze",
 }

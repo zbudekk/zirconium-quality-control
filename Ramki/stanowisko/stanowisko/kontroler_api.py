@@ -2215,8 +2215,11 @@ class KontrolerSesji(Kontroler):
                 klucz = (wlasna, plan.get("plan_id"), tuple(w_planie)) if brak else None
                 # runda 2 (P1): piec ma skan BEZ numeru plytki - plytka na ramce to najpewniej plytka z tego skanu; rada "zeskanuj"
                 # albo "Zmien numer" bylaby falszywa (ponowny skan = zdublowany skan), wiec osobny komunikat: podaj numer w pytaniu
-                bez_numeru = brak and bool((plan.get("pominiete") or {}).get("bez_numeru"))
-                pola = {"na_ramce": wlasna,
+                # runda 3 (D7): licza sie tylko skany bez numeru, ktore MOGA dostac numer tej plytki (nie np. okragla testowa n9)
+                bez = set((plan.get("pominiete") or {}).get("bez_numeru") or ()) if brak else set()
+                ile_bez = sum(1 for p in (rano.plytki if rano is not None else ()) if p.skan_id in bez and wlasna in self._uklad(p.uklad)[1])
+                bez_numeru = ile_bez > 0
+                pola = {"na_ramce": wlasna, "jest_skan": ST.JEST_SKAN_BEZ_NUMERU[ile_bez > 1],
                         "w_planie": ST.W_PLANIE_PLYTKI.format(plytki=", ".join(map(str, w_planie))) if w_planie else ST.W_PLANIE_BRAK}
                 zmiana |= self._komunikat_plytki_na_ramce("plytka_bez_skanu", r.rola, None if bez_numeru else klucz, **pola)
                 zmiana |= self._komunikat_plytki_na_ramce("plytka_czeka_na_numer", r.rola, klucz if bez_numeru else None, **pola)
@@ -2705,6 +2708,10 @@ class KontrolerSesji(Kontroler):
             numer = None
         obraz = (numer, plytka.uklad, tuple(sorted(kolory.items())))
         if obraz == wyslane:
+            # runda 3 (recenzja rundy 2, P4): obraz dla ramki bez zmian (numer None przed i po), a numer wstrzymany juz inny - np.
+            # "Zmien numer" przy otwartym pytaniu; bez tego komunikat ``dwa_skany_numeru`` zostawal na ekranie bez pytania
+            if self._w_wynik is not None and self._w_wynik[0] == skan_id and self._w_wynik[3] != wstrzymany:
+                self._w_wynik = self._w_wynik[:3] + (wstrzymany,)
             return
         wynik = k.wynik(numer, plytka.uklad, kolory, znacznik)
         self._w_aktywny = None if wynik == "niewazny" else (znacznik, skan_id, obraz)
@@ -3311,6 +3318,8 @@ class KontrolerSesji(Kontroler):
                 for klucz, wzor in WZORY_PRZYCZYN_BLEDU:
                     m = wzor.search(opis)
                     if m:
+                        if klucz == "znaczniki" and m.group("n") == "0":  # runda 3: 0 z 3 - takze stolik / podloze w skanie
+                            klucz = "znaczniki_0"
                         przyczyna = ST.PRZYCZYNY_BLEDU_ANALIZY[klucz].format(**m.groupdict())
                         break
             if len(self._przyczyny_bledu) > 500:  # opis bledu skanu sie nie zmienia; pamiec nie rosnie bez konca
