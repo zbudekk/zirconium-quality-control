@@ -1,0 +1,91 @@
+{
+  "bez_numeru": {
+    "czas_rozpoznania_max_s": 5.07,
+    "czas_rozpoznania_mediana_s": 3.72,
+    "ksztalt_inny_min_mm2": 21.2,
+    "ksztalt_wlasciwy_max_mm2": 0.0,
+    "numer_ok": 24,
+    "ok": 40,
+    "ok_i_pewny": 40,
+    "per_plytka": {
+      "okragla_poranna_r54": {
+        "ok": 12,
+        "ok_i_pewny": 12,
+        "powody": {
+          "numer_z_dolkow": 12
+        },
+        "skanow": 12,
+        "zle_ale_pewny": 0
+      },
+      "okragla_wieczorna_r54": {
+        "ok": 12,
+        "ok_i_pewny": 12,
+        "powody": {
+          "numer_z_dolkow": 12
+        },
+        "skanow": 12,
+        "zle_ale_pewny": 0
+      },
+      "poranna_r54": {
+        "ok": 8,
+        "ok_i_pewny": 8,
+        "powody": {
+          "ksztalt": 8
+        },
+        "skanow": 8,
+        "zle_ale_pewny": 0
+      },
+      "wieczorna_r54": {
+        "ok": 8,
+        "ok_i_pewny": 8,
+        "powody": {
+          "dolki_wykluczaja": 1,
+          "ksztalt": 7
+        },
+        "skanow": 8,
+        "zle_ale_pewny": 0
+      }
+    },
+    "powody": {
+      "dolki_wykluczaja": 1,
+      "ksztalt": 15,
+      "numer_z_dolkow": 24
+    },
+    "skanow": 40,
+    "zle_ale_pewny": 0
+  },
+  "z_numerem": {
+    "czas_rozpoznania_max_s": 3.74,
+    "czas_rozpoznania_mediana_s": 3.33,
+    "ksztalt_inny_min_mm2": 21.2,
+    "ksztalt_wlasciwy_max_mm2": 0.0,
+    "numer_ok": 16,
+    "ok": 16,
+    "ok_i_pewny": 16,
+    "per_plytka": {
+      "poranna_r54": {
+        "ok": 8,
+        "ok_i_pewny": 8,
+        "powody": {
+          "numer_podany": 8
+        },
+        "skanow": 8,
+        "zle_ale_pewny": 0
+      },
+      "wieczorna_r54": {
+        "ok": 8,
+        "ok_i_pewny": 8,
+        "powody": {
+          "numer_podany": 8
+        },
+        "skanow": 8,
+        "zle_ale_pewny": 0
+      }
+    },
+    "powody": {
+      "numer_podany": 16
+    },
+    "skanow": 16,
+    "zle_ale_pewny": 0
+  }
+}

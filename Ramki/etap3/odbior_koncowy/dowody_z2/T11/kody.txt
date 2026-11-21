@@ -1,0 +1,15 @@
+t11 A START sob. 21.11.2026 17:48:30,59 
+t11 A auto_uklad KOD=0 
+t11 B START sob. 21.11.2026 17:53:06,46 
+t11 B program START sob. 21.11.2026 17:53:06,53 
+t11 B symulator KOD=0 
+--- powtorka 21.11 20:14:16 ---
+t11 B START sob. 21.11.2026 20:14:21,60 
+t11 B program START sob. 21.11.2026 20:14:21,65 
+t11 B symulator KOD=0 
+t11 B program KOD=0 
+t11 B program KONIEC sob. 21.11.2026 21:04:24,44 
+t11 B KONIEC sob. 21.11.2026 21:04:27,86 
+t11 testy START sob. 21.11.2026 21:04:27,86 
+t11 testy KOD=0 
+t11 testy KONIEC sob. 21.11.2026 21:06:17,67 

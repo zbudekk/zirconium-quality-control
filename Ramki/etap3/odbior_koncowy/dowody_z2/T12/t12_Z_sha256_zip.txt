@@ -1,0 +1,5 @@
+=== certutil -hashfile <PC-katalog>\wydania\Stanowisko_0.3.1.zip SHA256 
+SHA256 hash of <PC-katalog>\wydania\Stanowisko_0.3.1.zip:
+f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8
+CertUtil: -hashfile command completed successfully.
+f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8  Stanowisko_0.3.1.zip

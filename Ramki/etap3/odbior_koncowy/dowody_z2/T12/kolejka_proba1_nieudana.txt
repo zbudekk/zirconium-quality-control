@@ -1,0 +1,7 @@
+2026-11-21 17:42:21 przed krokiem A wolne na C: 0 GB
+2026-11-21 17:42:21 krok A NIE WYSTARTOWAL - ponizej 8 GB
+2026-11-21 17:42:26 przed krokiem Z wolne na C: 0 GB
+2026-11-21 17:42:26 krok Z NIE WYSTARTOWAL - ponizej 8 GB
+2026-11-21 17:42:31 przed krokiem B wolne na C: 0 GB
+2026-11-21 17:42:31 krok B NIE WYSTARTOWAL - ponizej 8 GB
+KOLEJKA KONIEC

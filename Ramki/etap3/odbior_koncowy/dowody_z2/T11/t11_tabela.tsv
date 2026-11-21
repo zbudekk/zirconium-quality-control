@@ -1,0 +1,41 @@
+nr	sha16	zestaw	skan	uklad_prawda	uklad_baza	rozpoznany	status	uklad_zrodlo	uklad_zgodny	zielonych	numer_plytki	czas_s
+1	a33966994b515b9e	P2	skan_okragla_poranna_r54_n9_s0200.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	3	9	50.6
+2	af212769571c0d65	P2	skan_okragla_poranna_r54_n9_s0201.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	4	9	24.03
+3	a5c5683e20431cf3	P2	skan_okragla_poranna_r54_n9_s0202.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	4	9	20.79
+4	5e03ed10436c2b30	P2	skan_okragla_poranna_r54_n9_s0203.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	5	9	25.14
+5	40f034fd7d24fbcb	P2	skan_okragla_poranna_r54_n9_s0204.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	3	9	28.76
+6	6e60a2f8be92efe5	P2	skan_okragla_poranna_r54_n9_s0205.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	3	9	19.2
+7	ec033c0713e90c42	P2	skan_okragla_wieczorna_r54_n8_s0100.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	do_powtorzenia	auto	1	5	8	44.1
+8	65df2f5ed75a75c9	P2	skan_okragla_wieczorna_r54_n8_s0101.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	do_powtorzenia	auto	1	3	8	21.1
+9	8358e17160a25742	P2	skan_okragla_wieczorna_r54_n8_s0102.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	przyjety	auto	1	4	8	25.98
+10	b0aabeec69834bca	P2	skan_okragla_wieczorna_r54_n8_s0103.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	do_powtorzenia	auto	1	3	8	34.96
+11	842d039b1fc1020c	P2	skan_okragla_wieczorna_r54_n8_s0104.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	przyjety	auto	1	3	8	30.95
+12	9d5eeb980330c768	P2	skan_okragla_wieczorna_r54_n8_s0105.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	przyjety	auto	1	7	8	27.22
+13	75fa520430894f99	P2	skan_poranna_r54_n4_s0200.stl	poranna_r54	poranna_r54	TAK	plytka_nie_z_trybu	auto	1	1		19.48
+14	b03385ae8316e226	P2	skan_poranna_r54_n4_s0201.stl	poranna_r54	poranna_r54	TAK	plytka_nie_z_trybu	auto	1	3		15.59
+15	823181c04ea8f815	P2	skan_poranna_r54_n4_s0202.stl	poranna_r54	poranna_r54	TAK	plytka_nie_z_trybu	auto	1	3		21.05
+16	b75451bfe836239b	P2	skan_poranna_r54_n4_s0203.stl	poranna_r54	poranna_r54	TAK	plytka_nie_z_trybu	auto	1	5		19.14
+17	007e56008bd77efb	P2	skan_poranna_r54_n5_s0205.stl	poranna_r54	poranna_r54	TAK	plytka_nie_z_trybu	auto	1	3		28.7
+18	b7dfa66ec8a53eb3	P2	skan_poranna_r54_n6_s0204.stl	poranna_r54	poranna_r54	TAK	plytka_nie_z_trybu	auto	1	4		25.28
+19	37b6d5f5a6f45340	P2	skan_wieczorna_r54_n1_s0101.stl	wieczorna_r54	wieczorna_r54	TAK	do_powtorzenia	auto	1	4		19.12
+20	f20136b8b0af6e00	P2	skan_wieczorna_r54_n1_s0105.stl	wieczorna_r54	wieczorna_r54	TAK	do_powtorzenia	auto	1	0		19.25
+21	7e2cb93bbeaf4701	P2	skan_wieczorna_r54_n2_s0102.stl	wieczorna_r54	wieczorna_r54	TAK	do_powtorzenia	auto	1	4		17.86
+22	9a1cc0ad42a1b9b0	P2	skan_wieczorna_r54_n2_s0103.stl	wieczorna_r54	wieczorna_r54	TAK	do_powtorzenia	auto	1	2		29.75
+23	9cc2bd761deb672b	P2	skan_wieczorna_r54_n3_s0100.stl	wieczorna_r54	wieczorna_r54	TAK	przyjety	auto	1	6		12.51
+24	1745b6260092155c	P2	skan_wieczorna_r54_n3_s0104.stl	wieczorna_r54	wieczorna_r54	TAK	do_powtorzenia	auto	1	7		19.68
+25	5283ca8eabec7b56	P3a	skan_okragla_poranna_r54_n9_s0310.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	5	9	23.5
+26	c34cb8aea9d7521d	P3a	skan_okragla_poranna_r54_n9_s0311.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	4	9	30.51
+27	2b3f8513e75dbc18	P3a	skan_okragla_poranna_r54_n9_s0312.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	3	9	30.19
+28	5acb59ca6e629bdd	P3a	skan_okragla_poranna_r54_n9_s0313.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	0	9	30.91
+29	71df6882795263d3	P3a	skan_okragla_poranna_r54_n9_s0350.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	0	9	15.7
+30	27f3b336d128b75e	P3a	skan_okragla_poranna_r54_n9_s0351.stl	okragla_poranna_r54	okragla_poranna_r54	TAK	plytka_nie_z_trybu	auto	1	0	9	27.97
+31	15765b8dc8c550ff	P3a	skan_okragla_wieczorna_r54_n8_s0300.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	do_powtorzenia	auto	1	2	8	40.87
+32	3af0bf2e971a0fb3	P3a	skan_okragla_wieczorna_r54_n8_s0301.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	do_powtorzenia	auto	1	0	8	19.99
+33	e6681afc6aff4161	P3a	skan_okragla_wieczorna_r54_n8_s0302.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	do_powtorzenia	auto	1	1	8	31.54
+34	0d01a86e2bcffb6f	P3a	skan_okragla_wieczorna_r54_n8_s0303.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	przyjety	auto	1	3	8	12.42
+35	f8bf9a17bacae2a9	P3a	skan_okragla_wieczorna_r54_n8_s0340.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	do_powtorzenia	auto	1	1	8	14.1
+36	efc49cb95972ce92	P3a	skan_okragla_wieczorna_r54_n8_s0341.stl	okragla_wieczorna_r54	okragla_wieczorna_r54	TAK	do_powtorzenia	auto	1	0	8	49.71
+37	7d134f6dfa68ea80	P3a	skan_poranna_r54_n4_s0331.stl	poranna_r54	poranna_r54	TAK	plytka_nie_z_trybu	auto	1	1		28.43
+38	cad653fc6eda187d	P3a	skan_poranna_r54_n5_s0330.stl	poranna_r54	poranna_r54	TAK	plytka_nie_z_trybu	auto	1	2		24.68
+39	5b09c9516ebe0634	P3a	skan_wieczorna_r54_n1_s0320.stl	wieczorna_r54	wieczorna_r54	TAK	do_powtorzenia	auto	1	2		25.17
+40	c5d76faa2066aa63	P3a	skan_wieczorna_r54_n2_s0321.stl	wieczorna_r54	wieczorna_r54	TAK	do_powtorzenia	auto	1	1		27.07

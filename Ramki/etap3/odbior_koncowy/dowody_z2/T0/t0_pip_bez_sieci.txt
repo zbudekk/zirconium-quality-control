@@ -1,0 +1,11 @@
+=== findstr /c:"Ignoring indexes" /c:"Looking in links" <PC-katalog>\t0\odbior2\Stanowisko\wersje\0.3.3\pip.log 
+2026-11-21T17:38:51,404 Ignoring indexes: https://pypi.org/simple
+2026-11-21T17:38:51,423 Looking in links: <PC-katalog>\t0\odbior2\paczka_0.3.3\kola
+=== findstr /c:"bez sieci" <PC-katalog>\t0\odbior2\Stanowisko\dziennik_instalacji.txt 
+2026-11-21 17:38:50 | zainstaluj 0.3.3 |       instalacja 73 pakietow z kol paczki (bez sieci) - to trwa kilka minut...
+=== C:\Windows\System32\find.exe /c "Downloading" <PC-katalog>\t0\odbior2\Stanowisko\wersje\0.3.3\pip.log 
+
+---------- <PC-katalog>\T0\ODBIOR2\STANOWISKO\WERSJE\0.3.3\PIP.LOG: 0
+=== C:\Windows\System32\find.exe /c "http" <PC-katalog>\t0\odbior2\Stanowisko\wersje\0.3.3\pip.log 
+
+---------- <PC-katalog>\T0\ODBIOR2\STANOWISKO\WERSJE\0.3.3\PIP.LOG: 1

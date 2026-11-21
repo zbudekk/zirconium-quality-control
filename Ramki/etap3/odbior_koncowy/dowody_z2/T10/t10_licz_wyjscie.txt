@@ -1,0 +1,2 @@
+{"werdykty": {"wyrownanie": true, "top1_dobrze": true, "falszywe_czerwone": true, "moje_liczby_zgodne_z_narzedziem_i_logiem": true}, "czasy": {"n": 40, "min": 12.51, "mediana": 23.16, "max": 51.32, "suma": 983.9, "mediana_etapow": {"plate": 2.83, "match": 19.11, "inspect": 1.67}, "czas_calosci_s": 996.2}}
+wyrownanie 40 z 40 | top-1 dobrze 276 z 276 | czerwone na calych 0 z 126 (wpisy 0 z 127 ) | szerszy 0 z 150 | gniazd wielokrotnych 14

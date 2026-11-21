@@ -1,0 +1,42 @@
+id	sha16	status	tryb	uklad	uklad_zrodlo	uklad_zgodny	numer_plytki	numer_zrodlo	czas_analizy	czas_s
+1	a33966994b515b9e	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:15:34	50.6
+2	af212769571c0d65	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:15:58	24.03
+3	a5c5683e20431cf3	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:16:37	20.79
+4	5e03ed10436c2b30	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:17:26	25.14
+5	40f034fd7d24fbcb	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:18:12	28.76
+6	6e60a2f8be92efe5	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:18:51	19.2
+7	ec033c0713e90c42	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:19:59	44.1
+8	65df2f5ed75a75c9	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:20:22	21.1
+9	8358e17160a25742	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:21:12	25.98
+10	b0aabeec69834bca	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:22:05	34.96
+11	842d039b1fc1020c	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:22:48	30.95
+12	9d5eeb980330c768	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:23:25	27.22
+13	75fa520430894f99	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		nieznany	2026-11-21T20:24:06	19.48
+14	b03385ae8316e226	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		nieznany	2026-11-21T20:24:46	15.59
+15	823181c04ea8f815	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		nieznany	2026-11-21T20:25:37	21.05
+16	b75451bfe836239b	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		nieznany	2026-11-21T20:26:20	19.14
+17	007e56008bd77efb	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		nieznany	2026-11-21T20:27:14	28.7
+18	b7dfa66ec8a53eb3	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		nieznany	2026-11-21T20:27:54	25.28
+19	37b6d5f5a6f45340	do_powtorzenia	wieczor	wieczorna_r54	auto	1		nieznany	2026-11-21T20:28:35	19.12
+20	f20136b8b0af6e00	do_powtorzenia	wieczor	wieczorna_r54	auto	1		nieznany	2026-11-21T20:29:21	19.25
+21	7e2cb93bbeaf4701	do_powtorzenia	wieczor	wieczorna_r54	auto	1		nieznany	2026-11-21T20:30:04	17.86
+22	9a1cc0ad42a1b9b0	do_powtorzenia	wieczor	wieczorna_r54	auto	1		nieznany	2026-11-21T20:30:59	29.75
+23	9cc2bd761deb672b	przyjety	wieczor	wieczorna_r54	auto	1		nieznany	2026-11-21T20:31:26	12.51
+24	1745b6260092155c	do_powtorzenia	wieczor	wieczorna_r54	auto	1		nieznany	2026-11-21T20:32:21	19.68
+25	5283ca8eabec7b56	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:33:09	23.5
+26	c34cb8aea9d7521d	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:34:00	30.51
+27	2b3f8513e75dbc18	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:34:47	30.19
+28	5acb59ca6e629bdd	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:35:31	30.91
+29	71df6882795263d3	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:36:01	15.7
+30	27f3b336d128b75e	plytka_nie_z_trybu	wieczor	okragla_poranna_r54	auto	1	9	dolki	2026-11-21T20:36:58	27.97
+31	15765b8dc8c550ff	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:37:55	40.87
+32	3af0bf2e971a0fb3	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:38:18	19.99
+33	e6681afc6aff4161	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:39:18	31.54
+34	0d01a86e2bcffb6f	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:39:42	12.42
+35	f8bf9a17bacae2a9	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:40:29	14.1
+36	efc49cb95972ce92	do_powtorzenia	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	2026-11-21T20:41:51	49.71
+37	7d134f6dfa68ea80	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		nieznany	2026-11-21T20:42:19	28.43
+38	cad653fc6eda187d	plytka_nie_z_trybu	wieczor	poranna_r54	auto	1		nieznany	2026-11-21T20:42:55	24.68
+39	5b09c9516ebe0634	do_powtorzenia	wieczor	wieczorna_r54	auto	1		nieznany	2026-11-21T20:43:41	25.17
+40	c5d76faa2066aa63	do_powtorzenia	wieczor	wieczorna_r54	auto	1		nieznany	2026-11-21T20:44:27	27.07
+-- wierszy: 40

@@ -1,0 +1,75 @@
+dowody_lf.py: plikow 73, naruszen 0 (po naprawie)
+NAPRAWIONY czasy.txt: CR 57 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        edytuj.ps1
+NAPRAWIONY kody.txt: CR 58 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        kolejka.ps1
+NAPRAWIONY kolejka.txt: CR 8 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        kolejka_B2.ps1
+NAPRAWIONY kolejka_proba1_nieudana.txt: CR 7 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_A.cmd
+OK        krok_B.cmd
+OK        krok_B2.cmd
+OK        krok_Z.cmd
+OK        POMINIETE.txt
+OK        stan.cmd
+NAPRAWIONY t12_A1_wersje_przed.log: CR 1 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_A3_samokontrola_N1.log: CR 22 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_A3_start_N1.log
+NAPRAWIONY t12_A3_wersje_po_N1.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_A5_samokontrola_N.log: CR 22 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_A5_start_N.log
+NAPRAWIONY t12_A5_wersje_po_powrocie.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_A_stany.txt: CR 265 -> 0, bajtow spoza ASCII 4 -> 0 (kodowanie cp1250 (plik nie jest UTF-8); znakow zamienionych na '?': 3)
+NAPRAWIONY t12_B2_2_edycja.log: CR 1 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_B2_2a.log: CR 46 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_B2_2b.log: CR 41 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_B2_3a.log
+OK        t12_B2_3b.log
+NAPRAWIONY t12_B2_4.log: CR 45 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_B2_5.log
+NAPRAWIONY t12_B2_6.log: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_B2_7.log: CR 33 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_B2_8.log
+NAPRAWIONY t12_B2_stany.txt: CR 349 -> 0, bajtow spoza ASCII 4 -> 0 (kodowanie cp1250 (plik nie jest UTF-8); znakow zamienionych na '?': 3)
+NAPRAWIONY t12_B_2_edycja.log: CR 1 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_B_2a.log: CR 46 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_B_2b.log: CR 41 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_B_3a.log
+OK        t12_B_3b.log
+NAPRAWIONY t12_B_4.log: CR 8 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_B_5.log
+NAPRAWIONY t12_B_6.log: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_B_7.log: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_B_8.log
+NAPRAWIONY t12_B_paczka.txt: CR 9 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_B_stany.txt: CR 248 -> 0, bajtow spoza ASCII 24 -> 0 (kodowanie cp1250 (plik nie jest UTF-8); znakow zamienionych na '?': 18)
+NAPRAWIONY t12_P2_tar.log: CR 15 -> 0, bajtow spoza ASCII 2 -> 0 (kodowanie cp1250 (plik nie jest UTF-8); znakow zamienionych na '?': 0)
+NAPRAWIONY t12_P3_zainstaluj_N_1.log: CR 46 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_P4_edycja.log: CR 1 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_P5_zainstaluj_N_2.log: CR 41 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_P7a_start_atrapa.log
+OK        t12_P7b_start.log
+NAPRAWIONY t12_sha256_zip.txt: CR 8 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_ustawienia_po_N1.txt: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_ustawienia_po_powrocie.txt: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_ustawienia_przed.txt: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_wroc.log: CR 29 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z0_tar.log: CR 15 -> 0, bajtow spoza ASCII 2 -> 0 (kodowanie cp1250 (plik nie jest UTF-8); znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z1_edycja.log: CR 1 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z1_zainstaluj_031_1.log: CR 46 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_Z2_start_031.log
+NAPRAWIONY t12_Z2_wersje_przed.log: CR 1 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z2_zainstaluj_031_2.log: CR 41 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z3_zainstaluj_033.log: CR 45 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z4_samokontrola_033.log: CR 22 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_Z5_start_033.log
+NAPRAWIONY t12_Z5_wersje_po_033.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z6_wroc.log: CR 29 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z7_samokontrola_031.log: CR 22 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t12_Z7_start_031.log
+NAPRAWIONY t12_Z7_wersje_po_powrocie.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z_sha256_zip.txt: CR 4 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t12_Z_stany.txt: CR 264 -> 0, bajtow spoza ASCII 4 -> 0 (kodowanie cp1250 (plik nie jest UTF-8); znakow zamienionych na '?': 3)
+NAPRAWIONY t12_zainstaluj_N1.log: CR 45 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

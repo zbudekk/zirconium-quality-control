@@ -1,0 +1,12 @@
+GOTOWE 2026-11-21 17:44:53 - instalacja wspolna 0.3.3 gotowa do uzytku (T0 zielone + krok /testy + kontrola zestawu T14)
+wersja: 0.3.3 (commit 0fedbf6e4f97), paczka Stanowisko_0.3.3.zip SHA-256 b6049229848afb124771944a3a3037664a0ec68aaeaa18a09da76f05103b1377
+<K>: <PC-katalog>\t0\odbior2\Stanowisko   <P1>: <PC-katalog>\t0\odbior2\paczka_0.3.3
+kody instalacji: pierwsza 10 (WSTRZYMANA, 60,5 s), po uzupelnieniu ustawien 0 (GOTOWA, 3,2 s), z /testy 0 (5,9 s; pakiety 76 z 76)
+sumy paczki wg instalatora: zgodne 227 z 227; program: skopiowano 148 plikow; pakiety 73 z 73; sumy programu wg samokontroli 147 z 147
+samokontrola (Samokontrola.cmd --bez-sieci, kod 0): SAMOKONTROLA: ZIELONA (ok 17, ostrzezenia 4); uklady plytek: poprawne 10 z 10
+samokontrola po /testy (w instalatorze): SAMOKONTROLA: ZIELONA (ok 18, ostrzezenia 3)
+starty programu: --atrapa --zamknij-po 5 kod 0; --zamknij-po 20 kod 0; Traceback w logu: 0
+_wmi: None (po T0 i po /testy); skroty w <K>: 6 (Dzien_skanera, Polecenie, Samokontrola, Stanowisko, Wersje, Wroc_do_poprzedniej); modele_plytek 38 plikow; ramka\rpi 4 pliki
+kontrola zestawu T14 (--sprawdz --program .): zgodne 22 z 22 krokow, kod 0
+foldery wejsciowe instalacji: <PC-katalog>\t0\odbior2\dane\{eksport,Cyrkon,Prywatne,millbox}; operatorzy = ["Technik A"]
+UWAGA: po tym pliku w <K> nic nie zmieniac (zasady 1-5 "Ustalen koordynatora").

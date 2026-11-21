@@ -1,0 +1,16 @@
+dowody_lf.py: plikow 14, naruszen 0 (po naprawie)
+NAPRAWIONY kody.txt: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_t10.cmd
+OK        POMINIETE.txt
+OK        sprawdz_t10.py
+NAPRAWIONY sprawdz_t10.txt: CR 10 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY sprawdz_t10_7ebb5cd.txt: CR 9 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t10.log
+OK        t10_licz.json
+NAPRAWIONY t10_licz_wyjscie.txt: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t10_t9.txt
+OK        t10_wynik.md
+NAPRAWIONY t10_zestaw.txt: CR 12 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        WYNIK.md
+OK        zestaw_t10.py
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

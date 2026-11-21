@@ -1,0 +1,2 @@
+=== git -C <PC-katalog>\t0\repo2 status --short (po T13) 
+0fedbf6e4f97dc68b2f4679061a960ac81edbdbd
