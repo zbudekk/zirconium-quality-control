@@ -14,19 +14,27 @@ Uzycie - z instalacji programu (kazde polecenie w jednej linii; ADRES = nazwa al
     C:\\Stanowisko\\Polecenie.cmd C:\\sciezka\\ramka_proba.py test-led --adres ADRES
     C:\\Stanowisko\\Polecenie.cmd C:\\sciezka\\ramka_proba.py gniazda  --adres ADRES --uklad wieczorna --zapis C:\\sciezka\\gniazda.csv
     C:\\Stanowisko\\Polecenie.cmd C:\\sciezka\\ramka_proba.py klawiatura --adres ADRES --uklad poranna --czas 120 --zapis C:\\sciezka
-Opcje wspolne: --port 8765, --klucz KLUCZ (gdy ramka ma klucz w konfiguracji).
+    C:\\Stanowisko\\Polecenie.cmd C:\\sciezka\\ramka_proba.py klucz    --adres ADRES      (pyta o klucz RAZ i zapamietuje go)
+    C:\\Stanowisko\\Polecenie.cmd C:\\sciezka\\ramka_proba.py uklady   --adres ADRES      (rodzaje plytek znane tej ramce)
+Opcje wspolne: --port 8765, --klucz KLUCZ, --ustawienia PLIK (plik ustawien programu "Stanowisko").
+KLUCZ RAMKI (E3-S2a): ramka zainstalowana skryptem `ramka/rpi/zainstaluj_ramke.sh` ma losowy klucz w pliku
+`/etc/ramka/ramka.json` na Raspberry Pi (odczyt na ramce: `sudo grep klucz /etc/ramka/ramka.json`). Narzedzie bierze klucz
+po kolei z: opcji --klucz, zmiennej srodowiska RAMKA_KLUCZ, pliku `klucz_ramki.txt` obok tego pliku (wiersze `ADRES KLUCZ`
+albo sam `KLUCZ` = dla kazdej ramki; zapisuje go polecenie `klucz`), wiersza `klucz` w sekcji `[ramki]` pliku --ustawienia.
 `gniazda`: --wszystkie (wszystkie gniazda naraz, 4 kolory na zmiane) albo domyslnie po kolei (Enter = nastepne, mozna
 wpisac uwage, k = koniec); --przesun DX DY przesuwa wszystkie bloki o tyle diod (w prawo, w dol) - do proby poprawki;
 --kalibracja PLIK (domyslnie polozenia startowe z geometrii plytek); --modele KATALOG (domyslnie modele_plytek programu).
 `klawiatura` (tylko ramka poranna, plytka 4-6 lezy na ramce): wysyla plan z dwiema kuwetami probnymi 1111 i 2222
 i wypisuje kazde zdarzenie klawiatury ramki (Enter, Backspace, cyfry + Enter, * + Enter).
-Kody wyjscia: 0 = wykonano, 1 = ramka odmowila albo czegos brakuje, 2 = brak polaczenia z ramka.
+Kody wyjscia: 0 = wykonano, 1 = ramka odmowila albo czegos brakuje, 2 = brak polaczenia z ramka,
+5 = ramka odpowiada, ale wymaga klucza (brak klucza albo zly klucz).
 """
 from __future__ import annotations
 
 import argparse
 import csv
 import json
+import os
 import secrets
 import sys
 import threading
@@ -39,11 +47,68 @@ sys.path.insert(0, str(Path.cwd()))  # katalog programu (instalacja: Polecenie.c
 
 LAPTOP_ID = "proba-sprzetu-s1"
 KOLORY_NA_ZMIANE = ("zielony", "czerwony", "niebieski", "zolty")
+RADA_INNY_KOMPUTER = " - ramke obsluguje teraz inny komputer: zamknij program Stanowisko (na kazdym komputerze) i uruchom probe ponownie"
 RODZINY = {"W": (1, 2, 3), "P": (4, 5, 6)}
+
+
+PLIK_KLUCZA = Path(__file__).resolve().parent / "klucz_ramki.txt"
+PLIK_KONFIGURACJI_RAMKI = "/etc/ramka/ramka.json"
+KOD_WYMAGA_KLUCZA = 5
 
 
 class BrakPolaczenia(Exception):
     pass
+
+
+class WymagaKlucza(Exception):
+    """Ramka odpowiedziala 401: nie dostala klucza albo dostala zly."""
+
+
+def klucz_z_pliku(plik: Path, adres: str) -> str:
+    """Plik `klucz_ramki.txt`: wiersz `ADRES KLUCZ` (dla tej ramki) ma pierwszenstwo przed wierszem z samym `KLUCZ`."""
+    try:
+        wiersze = [w.split() for w in plik.read_text(encoding="ascii", errors="replace").splitlines() if w.strip() and not w.lstrip().startswith("#")]
+    except OSError:
+        return ""
+    dla_adresu = [w[1] for w in wiersze if len(w) == 2 and w[0].lower() == adres.lower()]
+    wspolny = [w[0] for w in wiersze if len(w) == 1]
+    return (dla_adresu or wspolny or [""])[-1]
+
+
+def klucz_z_ustawien(plik: Path | None) -> str:
+    """Wiersz `klucz` z sekcji `[ramki]` pliku ustawien programu "Stanowisko" (ten sam, ktorego uzywa program)."""
+    if plik is None:
+        return ""
+    try:
+        import tomllib
+
+        return str((tomllib.loads(plik.read_text(encoding="utf-8-sig")).get("ramki") or {}).get("klucz") or "")
+    except (OSError, ValueError):
+        return ""
+
+
+def znajdz_klucz(adres: str, opcja: str | None, plik_klucza: Path | None, ustawienia: Path | None, srodowisko=None) -> tuple[str, str]:
+    """(klucz, skad): opcja --klucz > zmienna RAMKA_KLUCZ > plik klucz_ramki.txt obok narzedzi > [ramki] klucz w ustawieniach."""
+    srodowisko = os.environ if srodowisko is None else srodowisko
+    for klucz, skad in ((opcja or "", "opcja --klucz"), (srodowisko.get("RAMKA_KLUCZ", ""), "zmienna RAMKA_KLUCZ"),
+                        (klucz_z_pliku(plik_klucza, adres) if plik_klucza else "", f"plik {plik_klucza.name if plik_klucza else ''}"),
+                        (klucz_z_ustawien(ustawienia), f"plik ustawien {ustawienia.name if ustawienia else ''}")):
+        if klucz.strip():
+            return klucz.strip(), skad
+    return "", "brak"
+
+
+def zapisz_klucz(plik: Path, adres: str, klucz: str) -> None:
+    """Dopisuje / podmienia wiersz `ADRES KLUCZ`; pozostale wiersze pliku zostaja."""
+    try:
+        stare = [w for w in plik.read_text(encoding="ascii", errors="replace").splitlines() if w.strip() and w.split()[0].lower() != adres.lower()]
+    except OSError:
+        stare = ["# klucze ramek dla narzedzia ramka_proba.py (E3-S2a): ADRES KLUCZ. Tego pliku nie kopiuj do wynikow."]
+    plik.write_text("\n".join(stare + [f"{adres} {klucz}"]) + "\n", encoding="ascii", newline="\n")
+
+
+def skrot_klucza(klucz: str) -> str:
+    return (klucz[:4] + "...") if klucz else "(pusty)"
 
 
 class Ramka:
@@ -52,11 +117,14 @@ class Ramka:
     def __init__(self, adres: str, port: int = 8765, klucz: str = "", limit_s: float = 5.0):
         self.baza = f"http://{adres}:{port}"
         self.klucz, self.limit_s = klucz, limit_s
+        self.laptop_id = LAPTOP_ID
+        self.wazny_s = {"W": 30, "P": 600}   # waznosc planu wg roli ramki [s]
+        self.podtrzymanie_s = 5.0            # co ile sekund `gniazda` odzywa sie do ramki, zeby plan nie wygasl
 
     def zadanie(self, metoda: str, trasa: str, dane=None, limit_s: float | None = None) -> tuple[int, dict]:
         tresc = None if dane is None else json.dumps(dane).encode("utf-8")
         z = urllib.request.Request(self.baza + trasa, data=tresc, method=metoda)
-        z.add_header("X-Laptop-Id", LAPTOP_ID)
+        z.add_header("X-Laptop-Id", self.laptop_id)
         if self.klucz:
             z.add_header("X-Ramka-Klucz", self.klucz)
         if tresc is not None:
@@ -65,6 +133,8 @@ class Ramka:
             with urllib.request.urlopen(z, timeout=limit_s or self.limit_s) as o:
                 return o.status, json.loads(o.read().decode("utf-8") or "{}")
         except urllib.error.HTTPError as e:
+            if e.code == 401:
+                raise WymagaKlucza("podany klucz NIE pasuje do ramki" if self.klucz else "nie podano klucza") from None
             try:
                 return e.code, json.loads(e.read().decode("utf-8") or "{}")
             except ValueError:
@@ -74,8 +144,6 @@ class Ramka:
 
     def stan(self) -> dict:
         kod, s = self.zadanie("GET", "/stan")
-        if kod == 401:
-            raise BrakPolaczenia("ramka wymaga klucza (odpowiedz 401) - podaj --klucz taki jak w pliku konfiguracji ramki")
         if kod != 200:
             raise BrakPolaczenia(f"ramka odpowiedziala kodem {kod}")
         return s
@@ -92,7 +160,7 @@ class Ramka:
         for _ in range(4):
             s = self.stan()
             plan = {"protokol": 1, "plan_id": plan_id, "wersja": wersja, "start_id": s["start_id"], "zdarzenia_do": s["nr_zdarzenia"],
-                    "wazny_s": 600 if rola == "P" else 30, "tryb": "rano" if rola == "P" else "wieczor",
+                    "wazny_s": self.wazny_s[rola], "tryb": "rano" if rola == "P" else "wieczor",
                     "plytki": {str(nr_plytki): {"gniazda": gniazda}}}
             kod, o = self.zadanie("PUT", "/plan", plan)
             if kod == 200:
@@ -191,7 +259,7 @@ def polecenie_test_led(r: Ramka, pisz=print) -> int:
     kod, o = r.zadanie("PUT", "/tryb", {"protokol": 1, "stan": "test_led"})
     if kod != 200:
         pisz(f"RAMKA ODMOWILA testu diod: kod {kod} {(o.get('blad') or {}).get('kod', '')}"
-             + (" - ramke obsluguje teraz inny komputer (zamknij program Stanowisko)" if (o.get("blad") or {}).get("kod") == "inny_laptop" else ""))
+             + (RADA_INNY_KOMPUTER if (o.get("blad") or {}).get("kod") == "inny_laptop" else ""))
         return 1
     pisz("TEST DIOD WYSLANY: cala matryca ma swiecic kolejno na czerwono, zielono, niebiesko i bialo (po ok. 1 s), razem 8 s.")
     return 0
@@ -237,10 +305,10 @@ def polecenie_gniazda(r: Ramka, uklad: str, kalibracja: Path | None, modele: Pat
     zyje = threading.Event()
 
     def podtrzymuj():  # ramka gasi plan, gdy komputer milczy (wieczorna po 30 s) - odzywamy sie co 5 s
-        while not zyje.wait(5.0):
+        while not zyje.wait(r.podtrzymanie_s):
             try:
                 r.zadanie("GET", "/stan")
-            except BrakPolaczenia:
+            except (BrakPolaczenia, WymagaKlucza):
                 pass
 
     watek = threading.Thread(target=podtrzymuj, daemon=True)
@@ -250,7 +318,7 @@ def polecenie_gniazda(r: Ramka, uklad: str, kalibracja: Path | None, modele: Pat
             gniazda = [{"id": g, "px": b, "kolor": KOLORY_NA_ZMIANE[i % 4]} for i, (g, b) in enumerate(bloki)]
             kod, o, wersja = r.wyslij_plan(plan_id, wersja, rola, nr, gniazda)
             if kod != 200:
-                pisz(f"RAMKA ODMOWILA: kod {kod} {(o.get('blad') or {}).get('kod', '')}")
+                pisz(f"RAMKA ODMOWILA: kod {kod} {(o.get('blad') or {}).get('kod', '')}" + (RADA_INNY_KOMPUTER if (o.get("blad") or {}).get("kod") == "inny_laptop" else ""))
                 return 1
             pisz("SWIECA WSZYSTKIE GNIAZDA (sasiednie w roznych kolorach). Popatrz z gory: kazdy otwor w dnie gniazda ma swiecic, miedzy gniazdami ciemno.")
             odp = pytaj("Wpisz uwage (np. 'gniazda 3 i 7 ciemne') i Enter: ")
@@ -261,23 +329,74 @@ def polecenie_gniazda(r: Ramka, uklad: str, kalibracja: Path | None, modele: Pat
                 kod, o, wersja = r.wyslij_plan(plan_id, wersja, rola, nr, [{"id": g, "px": b, "kolor": "bialy"}])
                 wersja += 1
                 if kod != 200:
-                    pisz(f"gniazdo {g}: RAMKA ODMOWILA (kod {kod} {(o.get('blad') or {}).get('kod', '')}) - sprawdz, czy plytka {nr} lezy na ramce i czy program Stanowisko jest zamkniety")
-                    dodaj([_godzina(), rola, nr, uklad, g, " ".join(map(str, b)), przesun[0], przesun[1], f"ODMOWA {kod}"])
+                    inny = (o.get("blad") or {}).get("kod") == "inny_laptop"
+                    pisz(f"gniazdo {g}: RAMKA ODMOWILA (kod {kod} {(o.get('blad') or {}).get('kod', '')})"
+                         + (RADA_INNY_KOMPUTER if inny else f" - sprawdz, czy plytka {nr} lezy na ramce i czy program Stanowisko jest zamkniety"))
+                    dodaj([_godzina(), rola, nr, uklad, g, " ".join(map(str, b)), przesun[0], przesun[1], f"ODMOWA {kod}" + (" inny komputer" if inny else "")])
                     kod_wyjscia = 1
+                    if inny:  # U14: kolejne gniazda dostalyby te sama odmowe
+                        break
                     continue
+                teraz = r.stan().get("plytka")
+                if plytka is None and teraz != nr:  # U15: plytka zdjeta albo ramka zgubila odczyt w trakcie proby
+                    pisz(f"RAMKA NIE CZYTA JUZ PLYTKI nr {nr} (odczyt teraz: {teraz}) - gniazda nie swieca. Poloz plytke i uruchom probe ponownie.")
+                    dodaj([_godzina(), rola, nr, uklad, g, " ".join(map(str, b)), przesun[0], przesun[1], f"BRAK PLYTKI (odczyt {teraz})"])
+                    kod_wyjscia = 1
+                    break
                 odp = pytaj(f"gniazdo {g:2d} (diody x={b[0]} y={b[1]} {b[2]}x{b[3]}): ").strip()
                 if odp.lower() == "k":
                     break
                 dodaj([_godzina(), rola, nr, uklad, g, " ".join(map(str, b)), przesun[0], przesun[1], odp or "ok"])
     finally:
         zyje.set()
+        zgaszona = False
         try:
-            r.zadanie("DELETE", "/plan")
-        except BrakPolaczenia:
+            zgaszona = r.zadanie("DELETE", "/plan")[0] == 200
+        except (BrakPolaczenia, WymagaKlucza):
             pass
-    dobre = sum(w[8] == "ok" for w in wiersze)
-    pisz(f"Zapisanych obserwacji: {len(wiersze)}, w tym 'ok': {dobre}" + (f"; plik: {zap.plik}" if zap.plik else "") + ". Ramka zgaszona.")
+        dobre = sum(w[8] == "ok" for w in wiersze)
+        pisz(f"Zapisanych obserwacji: {len(wiersze)}, w tym 'ok': {dobre}" + (f"; plik: {zap.plik}" if zap.plik else "")
+             + (". Ramka zgaszona." if zgaszona else ". Ramki NIE zgaszono tym narzedziem (odmowila albo brak polaczenia)."))
     return kod_wyjscia
+
+
+def uklad_domyslny(rola: str) -> str:
+    return "poranna" if rola == "P" else "wieczorna"
+
+
+def polecenie_uklady(r: Ramka, kalibracja: Path | None, modele: Path, pisz=print) -> int:
+    """Rodzaje plytek (uklady z kalibracji) dla roli TEJ ramki - do pytania w menu ramka.cmd (U16)."""
+    from ramka import kalibracja as K
+
+    rola = r.stan()["rola"]
+    kal = K.wczytaj(kalibracja) if kalibracja else K.domyslna(modele)
+    nazwy = sorted(kal["ramki"].get(rola, {}))
+    pisz(f"Ramka {rola} zna {len(nazwy)} rodzajow plytek: {', '.join(nazwy) or 'zadnego'}")
+    pisz(f"DOMYSLNY: {uklad_domyslny(rola)}")
+    return 0
+
+
+def polecenie_klucz(adres: str, port: int, plik: Path, pisz=print, pytaj=input) -> int:
+    """Pyta o klucz RAZ, sprawdza go na ramce (GET /stan) i dopiero dobry zapisuje w pliku obok narzedzi."""
+    try:
+        Ramka(adres, port, "").stan()
+        pisz("Ta ramka NIE wymaga klucza - nic nie trzeba wpisywac.")
+        return 0
+    except WymagaKlucza:
+        pass
+    pisz(f"Klucz jest w pliku {PLIK_KONFIGURACJI_RAMKI} na Raspberry Pi ramki, w wierszu 'klucz' (instrukcja ramka_raspberry_pi.md).")
+    klucz = pytaj("Wpisz albo wklej klucz ramki (bez cudzyslowow) i Enter: ").strip().strip('"')
+    if not klucz:
+        pisz("Nie podano klucza - nic nie zapisano.")
+        return KOD_WYMAGA_KLUCZA
+    try:
+        Ramka(adres, port, klucz).stan()
+    except WymagaKlucza:
+        pisz(f"ZLY KLUCZ ({skrot_klucza(klucz)}): ramka go nie przyjela - nic nie zapisano. Sprawdz wielkosc liter i czy nie ma odstepu.")
+        return KOD_WYMAGA_KLUCZA
+    zapisz_klucz(plik, adres, klucz)
+    pisz(f"KLUCZ DOBRY ({skrot_klucza(klucz)}) - zapamietany w pliku {plik.name} obok narzedzi. Wiecej o niego nie zapytam.")
+    return 0
 
 
 ZDARZENIA_KLAWIATURY = {"potwierdzenie": "Enter: kuweta potwierdzona", "cofniecie": "Backspace: potwierdzenie cofniete",
@@ -336,7 +455,7 @@ def polecenie_klawiatura(r: Ramka, uklad: str, kalibracja: Path | None, modele: 
     finally:
         try:
             r.zadanie("DELETE", "/plan")
-        except BrakPolaczenia:
+        except (BrakPolaczenia, WymagaKlucza):
             pass
     rodzaje = sorted({w[1] for w in wiersze})
     pisz(f"Zdarzen klawiatury: {len(wiersze)}; rodzaje: {len(rodzaje)} z {len(ZDARZENIA_KLAWIATURY)} ({', '.join(rodzaje) or 'zadne'})"
@@ -346,21 +465,34 @@ def polecenie_klawiatura(r: Ramka, uklad: str, kalibracja: Path | None, modele: 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Proba ramki swietlnej z komputera (bez programu Stanowisko).")
-    ap.add_argument("polecenie", choices=("stan", "plytki", "test-led", "gniazda", "klawiatura"))
+    ap.add_argument("polecenie", choices=("stan", "plytki", "test-led", "gniazda", "klawiatura", "klucz", "uklady"))
     ap.add_argument("--adres", required=True, help="nazwa albo adres IP ramki, np. ramka-w.local albo <adres-IP>")
     ap.add_argument("--port", type=int, default=8765)
-    ap.add_argument("--klucz", default="", help="klucz ramki, gdy jest w jej pliku konfiguracji")
+    ap.add_argument("--klucz", default=None, help="klucz ramki (inaczej: zmienna RAMKA_KLUCZ, plik klucz_ramki.txt obok narzedzi, [ramki] klucz w --ustawienia)")
+    ap.add_argument("--plik-klucza", type=Path, default=PLIK_KLUCZA, help="plik z zapamietanym kluczem (domyslnie klucz_ramki.txt obok narzedzi)")
+    ap.add_argument("--ustawienia", type=Path, default=None, help="plik ustawien programu Stanowisko - z niego klucz ramek, gdy nie podano inaczej")
     ap.add_argument("--czas", type=float, default=300.0, help="plytki: ile sekund obserwowac")
     ap.add_argument("--zapis", type=Path, default=None, help="plytki / gniazda: plik CSV na obserwacje albo istniejacy katalog (pelna sciezka)")
-    ap.add_argument("--uklad", default=None, help="gniazda: nazwa ukladu z kalibracji, np. wieczorna, poranna, wieczorna_r54")
+    ap.add_argument("--uklad", default=None, help="gniazda: nazwa ukladu z kalibracji (lista: polecenie uklady); auto = domyslny dla roli ramki")
     ap.add_argument("--kalibracja", type=Path, default=None, help="gniazda: plik kalibracji (domyslnie polozenia startowe)")
     ap.add_argument("--modele", type=Path, default=Path("modele_plytek"), help="gniazda: katalog modeli plytek programu")
     ap.add_argument("--wszystkie", action="store_true", help="gniazda: wszystkie naraz zamiast po kolei")
     ap.add_argument("--przesun", type=int, nargs=2, default=(0, 0), metavar=("DX", "DY"), help="gniazda: przesun bloki o tyle diod w prawo i w dol")
     ap.add_argument("--plytka", type=int, default=None, help="gniazda: numer plytki (domyslnie ten, ktory czyta ramka)")
     a = ap.parse_args(argv)
-    r = Ramka(a.adres, a.port, a.klucz)
+    a.adres = a.adres.strip()
+    if not a.adres or any(z.isspace() for z in a.adres):
+        print(f"ZLY ADRES RAMKI '{a.adres}': adres to jedna nazwa bez odstepow, np. ramka-w.local albo <adres-IP>")
+        return 1
+    klucz, skad = znajdz_klucz(a.adres, a.klucz, a.plik_klucza, a.ustawienia)
+    r = Ramka(a.adres, a.port, klucz)
     try:
+        if a.polecenie == "klucz":
+            return polecenie_klucz(a.adres, a.port, a.plik_klucza)
+        if a.polecenie == "uklady":
+            return polecenie_uklady(r, a.kalibracja, a.modele)
+        if a.uklad == "auto":
+            a.uklad = uklad_domyslny(r.stan()["rola"])
         if a.polecenie == "stan":
             return polecenie_stan(r)
         if a.polecenie == "plytki":
@@ -377,6 +509,12 @@ def main(argv=None) -> int:
         print(f"BRAK POLACZENIA Z RAMKA {a.adres}:{a.port} - {e}")
         print("Sprawdz: ramka ma prad, komputer i ramka sa w tej samej sieci, adres jest dobry, program Stanowisko jest zamkniety.")
         return 2
+    except WymagaKlucza as e:
+        print(f"RAMKA ODPOWIADA, ale wymaga klucza (odpowiedz 401): {e}" + (f" (klucz {skrot_klucza(klucz)}, zrodlo: {skad})." if klucz else "."))
+        print(f"Klucz jest w pliku {PLIK_KONFIGURACJI_RAMKI} na Raspberry Pi ramki, w wierszu 'klucz'")
+        print("(instrukcja ramka_raspberry_pi.md; ten sam klucz wpisuje sie w ustawienia.toml programu, sekcja [ramki]).")
+        print("Wpisz go raz: w menu ramka.cmd pozycja 7 (albo polecenie: ramka_proba.py klucz --adres ADRES).")
+        return KOD_WYMAGA_KLUCZA
 
 
 if __name__ == "__main__":

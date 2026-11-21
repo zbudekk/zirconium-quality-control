@@ -1,4 +1,4 @@
-"""Testy narzedzia ramka_proba.py (E3-S1) na atrapie ramki programu (127.0.0.1, port losowy). Pisza tylko do tmp_path.
+"""Testy narzedzia ramka_proba.py (E3-S1 / E3-S2a) na atrapie ramki programu (127.0.0.1, port losowy). Pisza tylko do tmp_path.
 
 Uruchomienie (katalog Ramki/stanowisko):
     python -m pytest ../etap3/testy_sprzet_2026-11-28/narzedzia -q -p no:cacheprovider
@@ -146,7 +146,7 @@ def test_gniazda_bez_plytki_i_zly_uklad(ramka):
     linie = []
     assert RP.polecenie_gniazda(r, "wieczorna" if rola == "W" else "poranna", None, MODELE, True, (0, 0), None, linie.append, lambda _t: "") == 1
     assert "NIE LEZY PLYTKA" in linie[-1]
-    assert RP.polecenie_gniazda(r, "okragla_wieczorna", None, MODELE, True, (0, 0), None, linie.append, lambda _t: "") == 1
+    assert RP.polecenie_gniazda(r, "nie_ma_takiego_rodzaju", None, MODELE, True, (0, 0), None, linie.append, lambda _t: "") == 1  # E3-S2a: bez zalozenia, ze kalibracja nie zna plytek okraglych (po paczce O2 zna)
     assert "BRAK ukladu" in linie[-1]
     atrapa.poloz_plytke(RP.RODZINY[rola][0])
     assert _czekaj(lambda: r.stan()["plytka"] == RP.RODZINY[rola][0] and r.stan()["plytka_pewna"])
@@ -191,3 +191,188 @@ def test_klawiatura_ramki_porannej_piec_rodzajow_zdarzen(ramka, tmp_path):
     assert [w[1] for w in wiersze] == ["potwierdzenie", "cofniecie", "kuweta_wybrana", "kuweta_nieznana", "zamknij_piec"]
     assert wiersze[2][2] == "2222" and wiersze[3][2] == "9"
     assert "rodzaje: 5 z 5" in linie[-1] and r.stan()["plan_id"] is None
+
+
+# ----------------------------------------------------------------------------- E3-S2a: klucz ramki, U9 (b, c), U13-U16
+KLUCZ = "klucz-probny-0123456789"
+ZLY = "zly-klucz-000000000000"
+
+
+@pytest.fixture
+def z_kluczem(monkeypatch):
+    """Atrapa ramki wieczornej Z KLUCZEM (jak po instalacji skryptem ramka/rpi/zainstaluj_ramke.sh)."""
+    monkeypatch.delenv("RAMKA_KLUCZ", raising=False)
+    program, atrapa = uruchom_atrape("W", port=0, klucz=KLUCZ)
+    yield program.serwer.server_address[1], program, atrapa
+    program.zatrzymaj()
+
+
+def test_klucz_brak_i_zly_daja_kod_5_dobry_dziala(z_kluczem, tmp_path, capsys):
+    """Recenzja PR #54 proba 13 (U13): bylo 'BRAK POLACZENIA ... podaj --klucz' + rada 'sprawdz, czy ramka ma prad'."""
+    port = z_kluczem[0]
+    wspolne = ["--adres", "127.0.0.1", "--port", str(port), "--plik-klucza", str(tmp_path / "klucz_ramki.txt")]
+    assert RP.main(["stan", *wspolne]) == 5
+    tekst = capsys.readouterr().out
+    assert "RAMKA ODPOWIADA, ale wymaga klucza (odpowiedz 401): nie podano klucza" in tekst
+    assert "/etc/ramka/ramka.json" in tekst and "pozycja 7" in tekst
+    assert "BRAK POLACZENIA" not in tekst and "ramka ma prad" not in tekst
+    assert RP.main(["stan", *wspolne, "--klucz", ZLY]) == 5
+    tekst = capsys.readouterr().out
+    assert "podany klucz NIE pasuje" in tekst and "zly-..." in tekst and "opcja --klucz" in tekst and ZLY not in tekst
+    assert RP.main(["test-led", *wspolne]) == 5 and "wymaga klucza" in capsys.readouterr().out
+    assert RP.main(["plytki", *wspolne, "--czas", "0.2"]) == 5 and RP.main(["uklady", *wspolne]) == 5
+    capsys.readouterr()
+    assert RP.main(["stan", *wspolne, "--klucz", KLUCZ]) == 0
+    tekst = capsys.readouterr().out
+    assert "RAMKA ODPOWIADA (" in tekst and "wymaga klucza" not in tekst and KLUCZ not in tekst
+    assert RP.main(["test-led", *wspolne, "--klucz", KLUCZ]) == 0 and "TEST DIOD WYSLANY" in capsys.readouterr().out
+
+
+def test_klucz_ze_zmiennej_z_pliku_obok_narzedzi_i_z_ustawien(z_kluczem, tmp_path, monkeypatch, capsys):
+    port = z_kluczem[0]
+    plik, ust = tmp_path / "klucz_ramki.txt", tmp_path / "ustawienia.toml"
+    wspolne = ["stan", "--adres", "127.0.0.1", "--port", str(port), "--plik-klucza", str(plik)]
+    monkeypatch.setenv("RAMKA_KLUCZ", KLUCZ)
+    assert RP.main(wspolne) == 0                                      # zmienna srodowiska
+    monkeypatch.delenv("RAMKA_KLUCZ")
+    assert RP.main(wspolne) == 5
+    plik.write_text(f"# klucze\nramka-p.local {ZLY}\n127.0.0.1 {KLUCZ}\n", encoding="ascii")
+    assert RP.main(wspolne) == 0                                      # plik: wiersz ADRES KLUCZ tej ramki
+    plik.write_text(f"ramka-p.local {ZLY}\n", encoding="ascii")
+    assert RP.main(wspolne) == 5                                      # klucz innej ramki nie jest brany
+    plik.write_text(f"{KLUCZ}\n", encoding="ascii")
+    assert RP.main(wspolne) == 0                                      # plik: sam KLUCZ = dla kazdej ramki
+    plik.unlink()
+    ust.write_text(f'[ramki]\nport = 8765\nklucz = "{KLUCZ}"\n', encoding="utf-8")
+    assert RP.main([*wspolne, "--ustawienia", str(ust)]) == 0         # [ramki] klucz z ustawien programu
+    assert RP.main([*wspolne, "--ustawienia", str(ust), "--klucz", ZLY]) == 5   # opcja ma pierwszenstwo
+    assert RP.main([*wspolne, "--ustawienia", str(tmp_path / "nie_ma.toml")]) == 5
+    capsys.readouterr()
+    srod = {"RAMKA_KLUCZ": "ze-zmiennej"}
+    plik.write_text("z-pliku\n", encoding="ascii")
+    assert RP.znajdz_klucz("a", "z-opcji", plik, ust, srod) == ("z-opcji", "opcja --klucz")
+    assert RP.znajdz_klucz("a", None, plik, ust, srod) == ("ze-zmiennej", "zmienna RAMKA_KLUCZ")
+    assert RP.znajdz_klucz("a", None, plik, ust, {}) == ("z-pliku", "plik klucz_ramki.txt")
+    assert RP.znajdz_klucz("a", None, tmp_path / "brak.txt", ust, {}) == (KLUCZ, "plik ustawien ustawienia.toml")
+    assert RP.znajdz_klucz("a", None, None, None, {}) == ("", "brak")
+
+
+def test_polecenie_klucz_pyta_raz_i_zapisuje_tylko_dobry(z_kluczem, tmp_path, capsys):
+    port = z_kluczem[0]
+    plik = tmp_path / "klucz_ramki.txt"
+    linie = []
+    assert RP.polecenie_klucz("127.0.0.1", port, plik, linie.append, lambda _t: ZLY) == 5
+    assert not plik.exists() and "ZLY KLUCZ (zly-...)" in linie[-1] and "nic nie zapisano" in linie[-1]
+    assert RP.polecenie_klucz("127.0.0.1", port, plik, linie.append, lambda _t: "") == 5 and not plik.exists()
+    pytania = []
+    assert RP.polecenie_klucz("127.0.0.1", port, plik, linie.append, lambda t: pytania.append(t) or f'  "{KLUCZ}" ') == 0
+    assert len(pytania) == 1 and f"127.0.0.1 {KLUCZ}" in plik.read_text(encoding="ascii").splitlines()
+    assert "KLUCZ DOBRY (kluc...)" in linie[-1] and KLUCZ not in "\n".join(linie)   # klucza nie wypisujemy w calosci
+    assert "/etc/ramka/ramka.json" in "\n".join(linie)
+    assert RP.main(["stan", "--adres", "127.0.0.1", "--port", str(port), "--plik-klucza", str(plik)]) == 0   # potem juz bez pytania
+    assert "RAMKA ODPOWIADA (" in capsys.readouterr().out
+    RP.zapisz_klucz(plik, "ramka-p.local", "inny-klucz-1111111111")
+    RP.zapisz_klucz(plik, "127.0.0.1", KLUCZ + "x")
+    wiersze = [w for w in plik.read_text(encoding="ascii").splitlines() if not w.startswith("#")]
+    assert wiersze == ["ramka-p.local inny-klucz-1111111111", f"127.0.0.1 {KLUCZ}x"]
+
+
+def test_polecenie_klucz_na_ramce_bez_klucza_o_nic_nie_pyta(ramka, tmp_path):
+    rola, program, atrapa, r = ramka
+    linie = []
+    port = int(r.baza.rsplit(":", 1)[1])
+    assert RP.polecenie_klucz("127.0.0.1", port, tmp_path / "k.txt", linie.append, lambda _t: pytest.fail("pytanie o klucz")) == 0
+    assert "NIE wymaga klucza" in linie[-1] and not (tmp_path / "k.txt").exists()
+
+
+def test_adres_ze_spacja_daje_zdanie_po_polsku(capsys):
+    assert RP.main(["stan", "--adres", "ramka w"]) == 1
+    assert "ZLY ADRES RAMKI" in capsys.readouterr().out
+
+
+def test_u9_plan_jest_podtrzymywany_dluzej_niz_jego_waznosc(ramka, tmp_path):
+    """Recenzja PR #54 (U9 b, wstrzykniecie M4): usuniecie watku podtrzymania nie bylo lapane. Waznosc planu skrocona do 2 s,
+    czlowiek 'mysli' 5 s - gniazda maja dalej swiecic."""
+    rola, program, atrapa, r = ramka
+    uklad, nr = ("wieczorna", 2) if rola == "W" else ("poranna", 5)
+    atrapa.poloz_plytke(nr)
+    assert _czekaj(lambda: r.stan()["plytka"] == nr and r.stan()["plytka_pewna"])
+    r.wazny_s = {"W": 2, "P": 2}
+    r.podtrzymanie_s = 0.4
+    bloki = RP.bloki_ukladu(K.domyslna(MODELE), rola, uklad)
+    widziane = {}
+
+    def pytaj(_tekst):
+        assert _czekaj(lambda: r.stan()["tryb"] == "wynik")
+        widziane["na_poczatku"] = sum(_swieci(atrapa, b, RP.KOLORY_NA_ZMIANE[i % 4]) for i, (_, b) in enumerate(bloki))
+        t0 = time.time()
+        while time.time() - t0 < 5.0:   # bez wlasnych zapytan do ramki: podtrzymuje tylko watek narzedzia
+            time.sleep(0.1)
+        widziane["po_5_s"] = sum(_swieci(atrapa, b, RP.KOLORY_NA_ZMIANE[i % 4]) for i, (_, b) in enumerate(bloki))
+        return "swieci"
+
+    linie = []
+    assert RP.polecenie_gniazda(r, uklad, None, MODELE, True, (0, 0), tmp_path / "g.csv", linie.append, pytaj) == 0
+    assert widziane["na_poczatku"] == len(bloki) and widziane["po_5_s"] == len(bloki)
+    assert "Ramka zgaszona." in linie[-1] and r.stan()["plan_id"] is None
+
+
+def test_u9_u14_ramka_zajeta_przez_inny_komputer(ramka, tmp_path):
+    """Recenzja PR #54 proba 15 (U9 c, U14): 19 odmow pod rzad i 'Ramka zgaszona'. Teraz: jedna odmowa, rada, plan obcego nietkniety."""
+    rola, program, atrapa, r = ramka
+    uklad, nr = ("wieczorna", 1) if rola == "W" else ("poranna", 4)
+    atrapa.poloz_plytke(nr)
+    assert _czekaj(lambda: r.stan()["plytka"] == nr and r.stan()["plytka_pewna"])
+    bloki = RP.bloki_ukladu(K.domyslna(MODELE), rola, uklad)
+    obcy = RP.Ramka("127.0.0.1", int(r.baza.rsplit(":", 1)[1]))
+    obcy.laptop_id = "inny-komputer-1"
+    kod, _, _ = obcy.wyslij_plan("plan-obcy-1", 1, rola, nr, [{"id": bloki[0][0], "px": bloki[0][1], "kolor": "zielony"}])
+    assert kod == 200 and r.stan()["plan_id"] == "plan-obcy-1"
+    linie, pytania, plik = [], [], tmp_path / "g.csv"
+    assert RP.polecenie_gniazda(r, uklad, None, MODELE, False, (0, 0), plik, linie.append, lambda t: pytania.append(t) or "") == 1
+    tekst = "\n".join(linie)
+    assert tekst.count("RAMKA ODMOWILA") == 1 and "zamknij program Stanowisko" in tekst and not pytania
+    assert "Ramka zgaszona" not in tekst and "Ramki NIE zgaszono" in tekst
+    wiersze = plik.read_text(encoding="ascii").splitlines()[1:]
+    assert len(wiersze) == 1 and "ODMOWA 409 inny komputer" in wiersze[0]
+    linie.clear()
+    assert RP.polecenie_gniazda(r, uklad, None, MODELE, True, (0, 0), None, linie.append, lambda t: pytania.append(t) or "") == 1
+    assert "inny_laptop" in linie[-2] and "zamknij program Stanowisko" in linie[-2] and "Ramka zgaszona" not in linie[-1] and not pytania
+    linie.clear()
+    assert RP.polecenie_test_led(r, linie.append) == 1 and "zamknij program Stanowisko" in linie[-1]
+    assert r.stan()["plan_id"] == "plan-obcy-1"   # plan drugiego komputera zostal
+
+
+def test_u15_plytka_zdjeta_w_trakcie_przerywa_probe(ramka, tmp_path):
+    """Recenzja PR #54 proba 17 (U15): po zdjeciu plytki narzedzie pytalo dalej i zapisywalo 'ok'."""
+    rola, program, atrapa, r = ramka
+    uklad, nr = ("wieczorna", 3) if rola == "W" else ("poranna", 6)
+    atrapa.poloz_plytke(nr)
+    assert _czekaj(lambda: r.stan()["plytka"] == nr and r.stan()["plytka_pewna"])
+    licznik = {"n": 0}
+
+    def pytaj(_tekst):
+        licznik["n"] += 1
+        if licznik["n"] == 2:
+            atrapa.poloz_plytke(0)
+            assert _czekaj(lambda: r.stan()["plytka"] == 0)
+        return ""
+
+    linie, plik = [], tmp_path / "g.csv"
+    assert RP.polecenie_gniazda(r, uklad, None, MODELE, False, (0, 0), plik, linie.append, pytaj) == 1
+    obserwacje = [w.split(";")[8] for w in plik.read_text(encoding="ascii").splitlines()[1:]]
+    assert licznik["n"] == 2 and obserwacje[:2] == ["ok", "ok"] and obserwacje[2].startswith("BRAK PLYTKI") and len(obserwacje) == 3
+    assert any(f"RAMKA NIE CZYTA JUZ PLYTKI nr {nr}" in x for x in linie)
+
+
+def test_u16_uklady_ramki_z_kalibracji_i_uklad_domyslny(ramka, capsys):
+    rola, program, atrapa, r = ramka
+    linie = []
+    assert RP.polecenie_uklady(r, None, MODELE, linie.append) == 0
+    znane = sorted(K.domyslna(MODELE)["ramki"][rola])
+    domyslny = "wieczorna" if rola == "W" else "poranna"
+    assert linie[0] == f"Ramka {rola} zna {len(znane)} rodzajow plytek: {', '.join(znane)}" and linie[1] == f"DOMYSLNY: {domyslny}"
+    assert domyslny in znane and RP.uklad_domyslny(rola) == domyslny
+    port = r.baza.rsplit(":", 1)[1]   # `--uklad auto` (sam Enter w menu) = uklad domyslny dla roli tej ramki
+    assert RP.main(["gniazda", "--adres", "127.0.0.1", "--port", port, "--uklad", "auto", "--wszystkie", "--modele", str(MODELE)]) == 1
+    assert "NA RAMCE NIE LEZY PLYTKA TEJ RAMKI" in capsys.readouterr().out
