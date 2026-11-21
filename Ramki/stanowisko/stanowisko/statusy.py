@@ -448,6 +448,23 @@ KOMUNIKATY: dict[str, Wzor] = {
                                       "przyciskiem na ekranie."),
     "ramki_test_led": Wzor(POZIOM_INFO, "Test diod ramek",
                            "Ramki przez kilka sekund pokazują kolejne kolory na wszystkich diodach; potem wraca plan pieca."),
+    # E3-O2 (plytki okragle ramkowe n1-n6; decyzja 5: komunikat + ramka ciemna, skan PRZYJETY, bez twardej blokady):
+    # numer plytki lezacej na ramce a rola ramki, numer z ramki a numer plytki ze skanu, numer podany a numer z dolkow kodu
+    "plytka_nie_z_ramki": Wzor(POZIOM_OSTRZEZENIE, "Płytka leży na złej ramce",
+                               "Na ramce {ramka} leży płytka nr {numer}, a ta ramka podświetla tylko płytki {numery} — ramka nie "
+                               "świeci. {rada}"),
+    "plytka_inna_niz_skan": Wzor(POZIOM_OSTRZEZENIE, "Na ramce leży inna płytka niż zeskanowana",
+                                 "Na ramce wieczornej leży płytka nr {na_ramce}, a ostatni skan to płytka nr {ze_skanu} — ramka nie "
+                                 "świeci. Połóż na ramce płytkę nr {ze_skanu}. Jeśli na ramce leży właściwa płytka, to numer skanu "
+                                 "jest zły — popraw go przyciskiem „Podaj numer płytki”."),
+    "plytka_bez_skanu": Wzor(POZIOM_OSTRZEZENIE, "Na ramce leży płytka, której nie ma w planie pieca",
+                             "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. Zeskanuj płytkę "
+                             "nr {na_ramce}. Jeśli była już skanowana, to numer jej skanu jest zły — popraw go przyciskiem "
+                             "„Podaj numer płytki”."),
+    "numer_niezgodny": Wzor(POZIOM_OSTRZEZENIE, "Numer płytki nie zgadza się ze skanem",
+                            "Podany numer płytki to {podany}, a program odczytał ze skanu numer {dolki}. Ramka nie podświetla tej "
+                            "płytki; skan i wynik zostają. Sprawdź numer wybity na płytce: jeśli podany numer jest zły — popraw go "
+                            "przyciskiem „Podaj numer płytki”; jeśli jest dobry — pracuj według ekranu."),
     "excel_blad": Wzor(POZIOM_OSTRZEZENIE, "Excel nie odpowiada",
                        "{powod} — program działa dalej. Otwórz plik zleceń w Excelu i kliknij „Excel: wskaż wiersz” albo odhacz "
                        "ręcznie zlecenia kompletne pieca nr {nr} z {doba} ({ile}): {kuwety}."),
@@ -470,6 +487,18 @@ BLEDY_RAMEK = {
     "polecenie_odrzucone": "Ramka odrzuca polecenie — program ponawia.",
     "brak_kalibracji": "Brak poprawnej kalibracji diod ramki — gniazda nie będą wskazywane.",
 }
+# E3-O2: pola komunikatow ``plytka_nie_z_ramki`` / ``plytka_bez_skanu`` (rola ramki: "W" wieczorna, "P" poranna)
+RAMKA_KTOREJ = {"W": "wieczornej", "P": "porannej"}
+# rada wg roli ramki, gdy numer nalezy do DRUGIEJ ramki; None - numer spoza obu ramek (np. 7)
+RADY_PLYTKA_NIE_Z_RAMKI = {
+    "W": "To numer płytki porannej — połóż ją na ramce porannej. Jeśli to jednak płytka wieczorna, sprawdź, czy leży równo "
+         "w ramce, i połóż ją jeszcze raz.",
+    "P": "To numer płytki wieczornej — połóż ją na ramce wieczornej. Jeśli to jednak płytka poranna, sprawdź, czy leży równo "
+         "w ramce, i połóż ją jeszcze raz.",
+    None: "Sprawdź, czy płytka leży równo w ramce, i połóż ją jeszcze raz.",
+}
+W_PLANIE_PLYTKI = "ramka ma dla tego pieca tylko płytki: {plytki}"
+W_PLANIE_BRAK = "ramka nie ma dla tego pieca żadnej płytki"
 # E3-A12: napisy odmow polecen ramek i Excela (``Odpowiedz.tekst``)
 NAPIS_RAMKI_NIEPODLACZONE = "Ramki nie są podłączone — program pracuje bez ramek (sekcja [ramki] w ustawieniach)."
 NAPIS_EXCEL_NIEPODLACZONY = "Excel nie jest podłączony — odhacz zlecenia kompletne ręcznie."
@@ -519,6 +548,14 @@ POWODY_BLEDU_ANALIZY = {
     "start": "analiza nie wystartowała",
     "plik_niedostepny": "pliku nie dało się odczytać",
     "plik_zmieniony": "plik zmienił się przed analizą",
+}
+# E3-O2 (przeglad narzedzi E3-S1, poz. 3): przyczyna bledu analizy rozpoznana z opisu bledu w dzienniku (``blad_analizy``) -
+# zamiast samego "błąd analizy"; technik wie, CO poprawic przed ponownym skanem (wchodzi w pole ``powod`` komunikatu)
+PRZYCZYNY_BLEDU_ANALIZY = {
+    "znaczniki": "w skanie widać {n} z 3 znaczników płytki — płytka nie mieści się w polu skanera albo leży poza środkiem; "
+                 "ustaw płytkę na środku i sprawdź, czy pole skanowania obejmuje całą płytkę",
+    "wierzch": "w skanie nie widać płaskiego wierzchu płytki — to nie jest skan całej płytki; połóż płytkę płasko na środku skanera",
+    "pusty": "skan jest prawie pusty — sprawdź, czy płytka leży w skanerze",
 }
 POWODY_ODRZUCENIA = {
     "pusty": "plik pusty",
