@@ -1,14 +1,14 @@
 # Arkusz obserwacji - pierwsze testy na sprzecie 28-29.11.2026
 
 Wydrukuj. Wypelniaj dlugopisem w trakcie testow. Numery jak numery krokow w dokumencie
-`PIERWSZE_TESTY_NA_SPRZECIE.md`. Bez nazwisk pacjentow i nazw zlecen. Puste pole = "nie robilem".
+"Pierwsze testy na prawdziwym sprzecie". Bez nazwisk pacjentow i nazw zlecen. Puste pole = "nie robilem".
 Gdy cos poszlo inaczej, niz pisze dokument - zapisz JAK. To najcenniejsza informacja z calego dnia.
 
 Data: ...........  Godzina startu: ........  Kto: ......................  Komputer: ................
 
 ## Odpowiedzi na pytania P1-P9
 
-Termin: sroda 25.11.2026 (plik `PYTANIA_DO_WLASCICIELA.md`); tu wpisz to samo.
+Termin: sroda 25.11.2026 (sekcja 0 dokumentu); tu wpisz to samo.
 
 - P1. Ramka: [ ] wieczorna  [ ] poranna  [ ] obie.   Wkladka: [ ] kwadratowa  [ ] okragla
 - P2. Plytki na miejscu (zakresl numery):  kwadratowe: 1 2 3 4 5 6    okragle ramkowe: 1 2 3 4 5 6
@@ -68,7 +68,8 @@ Termin: sroda 25.11.2026 (plik `PYTANIA_DO_WLASCICIELA.md`); tu wpisz to samo.
   [ ] "wielkosci pola z tego skanu nie da sie podac"
 - 2.5 Tabela skanow. Kazdy plik przeciagnij na `pole_skanu.cmd`; na pytanie "Co lezy na stoliku?" wpisz
   to samo, co w kolumnach "plytka naprawde" i "co na niej". Reszte przepisz z bloku "DO ARKUSZA".
-  "Godz." = godzina z wiersza "Zapisano: ..." (po niej znajdziemy plik wyniku).
+  "Godz." = godzina z wiersza "Zapisano: ..." (po niej znajdziemy plik wyniku): 6 cyfr przed "_pole"
+  w nazwie pliku, np. `..._20261128_101502_pole.txt` = 10:15:02; wpisz 101502.
   Plytka naprawde: kw / okr-ramk / okr-test / stara + nr.
 
      nr | godz.  | plytka naprawde | co na niej   | program mowi     | nr z   | dolki | scianka | brzeg
@@ -84,7 +85,7 @@ Termin: sroda 25.11.2026 (plik `PYTANIA_DO_WLASCICIELA.md`); tu wpisz to samo.
       7 |        |                 |              |                  |        |       |         |
       8 |        |                 |              |                  |        |       |         |
 
-  Wiersz `podloze w skanie:` inny niz "nie" - w ktorych skanach: ..................................
+  Wiersz `podloze w skanie: PRAWDOPODOBNIE TAK` - w ktorych skanach: ..............................
   Rowek pokrywki (plytka okragla ramkowa; wiersz `rowek pokrywki:`):
   skan nr ....: scianka cofa sie o ........ mm w ...... z 72 kierunkow
   skan nr ....: scianka cofa sie o ........ mm w ...... z 72 kierunkow

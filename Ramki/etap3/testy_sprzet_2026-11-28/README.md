@@ -14,7 +14,11 @@
 - Testy narzedzi, z katalogu `Ramki\stanowisko`:
   `python -m pytest ..\etap3\testy_sprzet_2026-11-28\narzedzia -q -p no:cacheprovider`
 - Narzedzia korzystaja z programu tylko przez import; programu nie zmieniaja.
-- Stan: dokument przeszedl krok po kroku na instalacji z paczki probnej (kod paczki 0.3.3 przed ostatnia
-  runda recenzji; etap S2b-2). Zostaja 3 miejsca `[DO POTWIERDZENIA NA 0.3.3]` w dokumencie i 2 w zalacznikach
-  (nazwa paczki, 2 teksty komunikatow) - lista z poleceniami: raport
-  `Ramki/stanowisko/raporty/E3-S2_2026-11-21.md`, sekcja "S2b-3".
+- Stan (21.11.2026, etap S2b-3): dokument przeszedl krok po kroku na instalacji z paczki probnej (kod
+  wersji 0.3.3 przed ostatnia runda recenzji; etap S2b-2); nazwa i rozmiar paczki, liczby instalatora
+  i teksty komunikatow potwierdzone na wydaniu 0.3.3 (`Stanowisko_0.3.3.zip`, 447 318 667 bajtow; teksty
+  odczytane z programu zainstalowanego). Znacznikow "do potwierdzenia na 0.3.3" nie ma (0); zostaja
+  znaczniki `[NIE SPRAWDZONE BEZ SPRZETU]`. Dowody: raport `Ramki/stanowisko/raporty/E3-S2_2026-11-21.md`,
+  sekcja "S2b-3".
+- Strony do druku (PDF / HTML) powstaja poza repo skryptem `koordynator\robocze\s2\b3\druk.py`; do gita
+  nie ida.

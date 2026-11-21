@@ -1,7 +1,7 @@
 # Pytania do wlasciciela przed testami na sprzecie 28-29.11.2026
 
 Odpowiedz najpozniej do srody 25.11.2026: dopisz odpowiedzi tutaj i przekaz sesji prowadzacej projekt.
-Najpilniejsze: P3, P1, P6, P8 - od nich zalezy, co przygotowac PRZED weekendem. "Nie wiem" to tez odpowiedz.
+Najpilniejsze: P3, P1, P6, P8, P9 - od nich zalezy, co przygotowac PRZED weekendem. "Nie wiem" to tez odpowiedz.
 
 **P1. Ktora ramka przyszla: wieczorna, poranna czy obie? Wkladka kwadratowa czy okragla?**
 Od tego zalezy: wieczorna = plytki 1-3; poranna = plytki 4-6 i dodatkowa proba klawiatury (krok 3.9);
