@@ -745,6 +745,8 @@ class Okno(QMainWindow):
         polecenie = [sys.executable, str(NARZEDZIE_POMIARU), str(skan), "--wspolczynnik", f"{wspolczynnik:.4f}"]
         if projekty:
             polecenie += ["--projekty", projekty]
+        if self.zbieracz.plik_ustawien is not None:  # E3-O4: pomiar na tym samym pliku ustawien co okno (w instalacji - plik instalacji)
+            polecenie += ["--ustawienia", str(self.zbieracz.plik_ustawien)]
         krok = self.sesja.krok(wpis["krok"])
         if krok.kontrola == "powtorka" and krok.porownaj_z:
             odn = [w for w in self.sesja.pliki_kroku(krok.porownaj_z) if Path(w["cel"]).suffix.lower() in R.ROZSZERZENIA_SIATEK]
@@ -820,12 +822,16 @@ class Okno(QMainWindow):
 # ----------------------------------------------------------------------------
 # start
 # ----------------------------------------------------------------------------
-def wybierz_sesje(a, ust: dict | None, pytaj=None) -> R.Sesja:
+def wybierz_sesje(a, ust: dict | None, pytaj=None, plik_ustawien: Path | None = None) -> R.Sesja:
     """Sesja do pracy: wskazana (--sesja), nowa (--nowa) albo - domyslnie - wznowienie ostatniej niedokonczonej.
-    ``pytaj(tytul, tekst) -> bool`` pyta czlowieka (okno dialogowe); None = bez pytan (wznawia niedokonczona, inaczej nowa)."""
-    katalog = a.dane if a.dane is not None else R.KATALOG_SESJI
+    ``pytaj(tytul, tekst) -> bool`` pyta czlowieka (okno dialogowe); None = bez pytan (wznawia niedokonczona, inaczej nowa).
+    ``plik_ustawien`` = plik, z ktorego wczytano ``ust``; bez ``--dane`` katalog sesji wyznacza ``R.katalog_sesji`` (E3-O4:
+    w instalacji ``<instalacja>/dane/dzien_skanera``, z repo ``dane/dzien_skanera`` w katalogu programu). W instalacji katalog
+    sesji (takze z ``--dane``) wewnatrz ``<instalacja>/wersje`` jest odrzucany: ``R.BladKataloguSesji`` (runda 2, uwaga P1)."""
+    katalog = a.dane if a.dane is not None else R.katalog_sesji(ust, plik_ustawien)
     if a.sesja is not None:
         return R.Sesja.wznow(a.sesja)
+    R.sprawdz_katalog_sesji(katalog)
     foldery = list(a.folder or [])
     if not foldery and ust is not None and ust["sciezki"].get("folder_eksportu_skanera"):
         foldery = [ust["sciezki"]["folder_eksportu_skanera"]]
@@ -860,10 +866,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--sprawdz", type=Path, default=None, help="bez okna: sprawdz folder sesji albo archiwum ZIP (sumy, kompletnosc)")
     ap.add_argument("--sesja", type=Path, default=None, help="folder sesji do wznowienia")
     ap.add_argument("--nowa", action="store_true", help="zawsze nowa sesja")
-    ap.add_argument("--dane", type=Path, default=None, help="katalog sesji (domyslnie dane/dzien_skanera)")
+    ap.add_argument("--dane", type=Path, default=None, help="katalog sesji (domyslnie dane/dzien_skanera; w instalacji: w katalogu danych instalacji - podaje go skrot)")
     ap.add_argument("--folder", action="append", default=None, help="folder eksportu skanera (mozna podac kilka razy; domyslnie z ustawien)")
-    ap.add_argument("--ustawienia", type=Path, default=None)
+    ap.add_argument("--ustawienia", type=Path, default=None, help="plik ustawien (skrot instalacji podaje plik instalacji)")
     ap.add_argument("--bez-kontroli", action="store_true", help="tylko zbieranie plikow, bez szybkiej kontroli skanow")
+    ap.add_argument("--zamknij-po", type=float, default=None, metavar="S", help="zamknij okno po S sekundach, bez pytan (proba uruchomienia)")
     a = ap.parse_args(argv)
     if a.sprawdz is not None:
         kod, linie = R.sprawdz(a.sprawdz)
@@ -874,6 +881,7 @@ def main(argv: list[str] | None = None) -> int:
     if tlumacz.load("qtbase_pl", QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)):
         app.installTranslator(tlumacz)
     ust, plik_ust, uwaga = R.wczytaj_ustawienia_bezpiecznie(a.ustawienia)
+    uwaga_proby = uwaga  # sam powod, do wiersza UWAGA proby (--zamknij-po)
     if ust is None:
         uwaga = f"Nie wczytano ustawień ({uwaga}) — zbieranie plików działa, ale skany nie będą sprawdzane. Wskaż folder skanera przyciskiem „Dodaj folder…”."
     elif uwaga:
@@ -882,9 +890,18 @@ def main(argv: list[str] | None = None) -> int:
     def pytaj(tytul: str, tekst: str) -> bool:
         return QMessageBox.question(None, tytul, tekst, QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes) == QMessageBox.Yes
 
+    proba = a.zamknij_po is not None  # E3-O4: proba uruchomienia (jak "Stanowisko --zamknij-po") - bez okien z pytaniami
     try:
-        sesja = wybierz_sesje(a, ust, pytaj)
+        sesja = wybierz_sesje(a, ust, None if proba else pytaj, plik_ustawien=plik_ust)
+    except R.BladKataloguSesji as e:  # runda 2 (P1): w instalacji sesja nie moze powstac w katalogu wersji - komunikat, kod 1
+        print(f"BLAD: {e}", file=sys.stderr)
+        if not proba:
+            QMessageBox.critical(None, "Dzień skanera — zły katalog sesji", str(e))
+        return 1
     except Exception as e:  # noqa: BLE001 - np. zly plik krokow, brak praw zapisu w katalogu sesji
+        if proba:
+            print(f"BLAD: {type(e).__name__}: {e}", file=sys.stderr)
+            return 1
         QMessageBox.critical(None, "Dzień skanera — nie da się uruchomić", f"{type(e).__name__}: {e}\n\nZrób zdjęcie tego okna i wyślij koordynatorowi. "
                              "Pliki ze skanera możesz na razie kopiować ręcznie do osobnego folderu — niczego nie kasuj w programie skanera.")
         return 1
@@ -896,6 +913,12 @@ def main(argv: list[str] | None = None) -> int:
     sys.excepthook = hak
     threading.excepthook = lambda args: okno.sesja.log_wyjatku(f"watek {args.thread.name if args.thread else '?'}", args.exc_value)
     okno.show()
+    if proba:
+        print(f"DZIEN SKANERA: sesja {sesja.folder}; ustawienia {plik_ust if plik_ust is not None else 'BRAK'}; foldery obserwowane: "
+              + ("; ".join(str(f) for _, f in sesja.foldery()) or "brak"), flush=True)
+        if uwaga_proby:  # runda 2 (P1, D8): proba ma pokazac, ze okno NIE pracuje na pliku ustawien, ktory mu wskazano
+            R.wypisz([f"UWAGA: ustawienia: {uwaga_proby}"])  # tresc bledu moze miec znaki spoza strony kodowej konsoli
+        QTimer.singleShot(int(max(0.0, a.zamknij_po) * 1000), okno.close)
     return app.exec()
 
 

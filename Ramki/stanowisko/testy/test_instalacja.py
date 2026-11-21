@@ -1460,14 +1460,14 @@ def test_zainstaluj_cmd_prawdziwe_srodowisko_i_skrypty(st, tmp_path):
 
 
 def test_p6_kazdy_skrypt_cmd_czysci_zmienne_pythona_a_instalator_startuje_z_opcja_izolacji():
-    """Dwie warstwy ochrony przed zmiennymi innego programu (D1, P6) w kazdym z 6 skryptow: (1) ``set "PYTHONHOME="``
+    """Dwie warstwy ochrony przed zmiennymi innego programu (D1, P6) w kazdym z 7 skryptow: (1) ``set "PYTHONHOME="``
     i ``set "PYTHONPATH="`` przed pierwszym uruchomieniem Pythona, (2) instalator i proby interpretera uruchamiane z ``-I``.
 
     Test z prawdziwym srodowiskiem (wyzej) wykrywa brak OBU warstw naraz. Brak jednej nie zmienia zachowania, dopoki dziala
     druga (``-I`` kaze Pythonowi pominac wszystkie zmienne ``PYTHON*``), wiec kazdej z osobna pilnuje ten test - po tresci."""
     skrypty = [STANOWISKO / "instalacja" / "zainstaluj.cmd"] + sorted((STANOWISKO / "instalacja" / "wzory").glob("*.cmd"))
-    assert [s.name for s in skrypty] == ["zainstaluj.cmd", "Polecenie.cmd", "Samokontrola.cmd", "Stanowisko.cmd", "Wersje.cmd",
-                                         "Wroc_do_poprzedniej.cmd"]
+    assert [s.name for s in skrypty] == ["zainstaluj.cmd", "Dzien_skanera.cmd", "Polecenie.cmd", "Samokontrola.cmd", "Stanowisko.cmd",
+                                         "Wersje.cmd", "Wroc_do_poprzedniej.cmd"]
     for skrypt in skrypty:
         polecenia = [w.strip() for w in skrypt.read_text(encoding="ascii").splitlines()]
         polecenia = [w for w in polecenia if w and not w.lower().startswith(("rem ", "echo "))]
