@@ -422,22 +422,24 @@ Co zrobic:
 5. Zeskanuj plytke z pracami (jak w 2.7) i poloz TE plytke na ramce: swieca gniazda z pracami. Zdejmij
    ja: gasna. Poloz jeszcze raz: wieczorem zostaje ciemno, bez komunikatu (wynik wraca dopiero po nowym
    skanie) - to normalne.
-6. Powtorz punkt 5 z plytka okragla ramkowa o INNYM numerze.
-7. Ten sam numer drugi raz: plytke okragla z punktu 6 zeskanuj ponownie (w ciagu godziny). Program pyta
-   "Ponowny skan tej samej plytki?". Zanim odpowiesz, poloz plytke na ramce: ramka jest ciemna, nad mapa
-   zolty panel "Dwa skany z numerem plytki N - ramka czeka na odpowiedz". Kliknij "Tak, to ponowny skan":
-   panel znika, ramka swieci nowy wynik. Plytke zostaw na ramce.
-8. Proby celowe - ramka ma NIE swiecic, a nad mapa ma byc zolty panel [DO POTWIERDZENIA NA 0.3.3: tytuly
-   paneli z punktow 7 i 8 i z akapitu o ramce porannej]. Najpierw (c), bo plytka musi lezec i swiecic:
-   (c) tylko plytka OKRAGLA, ktorej numer program odczytal sam: kliknij przy niej "Zmien numer" i podaj
-   inny: "Numer plytki nie zgadza sie ze skanem" ("Podany numer plytki to X, a program odczytal ze skanu
-   numer Y"). Plytki NIE zdejmuj. "Zmien numer" z powrotem na wlasciwy: panel znika, ramka swieci.
-   Na plytce kwadratowej tej proby nie rob - wyjdzie komunikat (b);
-   (a) poloz plytke drugiej ramki (np. nr 4 na wieczornej): "Plytka lezy na zlej ramce";
-   (b) poloz inna plytke niz ostatnio zeskanowana: "Na ramce lezy inna plytka niz zeskanowana".
+6. Zeskanuj plytke okragla ramkowa o INNYM numerze i poloz ja na ramce: swieci. Zostaw ja.
+7. Proba celowa (c) - tylko plytka OKRAGLA, ktorej numer program odczytal sam, gdy lezy i swieci: kliknij
+   przy niej "Zmien numer" i podaj inny. Ramka gasnie, nad mapa zolty panel [DO POTWIERDZENIA NA 0.3.3:
+   tytuly paneli z punktow 7-9 i z akapitu o ramce porannej] "Numer plytki nie zgadza sie ze skanem"
+   ("Podany numer plytki to X, a program odczytal ze skanu numer Y"). Plytki NIE zdejmuj. "Zmien numer"
+   z powrotem na wlasciwy: panel znika, ramka swieci. Na plytce kwadratowej tej proby nie rob - wyjdzie
+   komunikat (b).
+8. Ten sam numer drugi raz: zdejmij te plytke i zeskanuj ja ponownie (w ciagu godziny). Program pyta
+   "Ponowny skan tej samej plytki?". Zanim odpowiesz, poloz plytke na ramce: ramka jest ciemna, zolty
+   panel "Dwa skany z numerem plytki N - ramka czeka na odpowiedz". Kliknij "Tak, to ponowny skan": panel
+   znika, ramka swieci nowy wynik. Po "Tak" numeru tej plytki nie da sie juz zmienic ("Nie mozna tego
+   zrobic") - dlatego proba (c) jest wczesniej.
+9. Proby celowe (a) i (b) - ramka ma NIE swiecic: (a) poloz plytke drugiej ramki (np. nr 4 na
+   wieczornej): zolty panel "Plytka lezy na zlej ramce"; (b) poloz inna plytke niz ostatnio zeskanowana:
+   "Na ramce lezy inna plytka niz zeskanowana".
 
 Udalo sie, gdy: pod plytka swieca gniazda z pracami w kolorach jak na mapie - takze pod plytka okragla
-ramkowa [DO POTWIERDZENIA NA 0.3.3] - a proby 7 i 8 daja opisane panele i ciemna ramke.
+ramkowa [DO POTWIERDZENIA NA 0.3.3] - a punkty 7-9 daja opisane panele i ciemna ramke.
 Zanotuj: arkusz 3.8; kazdy komunikat, ktory pojawil sie BEZ proby celowej, przepisz.
 Gdy sie nie uda:
 
