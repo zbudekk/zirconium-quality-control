@@ -83,3 +83,10 @@ def test_p15_kandydaci_py_same_bajty_ascii():
     dane = (STANOWISKO / "stanowisko" / "ui" / "kandydaci.py").read_bytes()
     obce = [(nr, wiersz[:60]) for nr, wiersz in enumerate(dane.split(b"\n"), 1) if any(b > 127 for b in wiersz)]
     assert not obce, f"wiersze ze znakiem spoza ASCII: {obce}"
+
+
+def test_p15_r2_raport_e3_a6_bez_samotnego_znaku_cr():
+    """Runda 2 p. 4: raport E3-A6 ma konce linii LF - bez samotnego znaku CR w srodku wiersza (kontrola higieny T13)."""
+    dane = (STANOWISKO / "raporty" / "E3-A6_2026-11-18.md").read_bytes()
+    samotne = [nr for nr, wiersz in enumerate(dane.split(b"\n"), 1) if b"\r" in wiersz[:-1]]
+    assert not samotne, f"wiersze z samotnym znakiem CR: {samotne}"
