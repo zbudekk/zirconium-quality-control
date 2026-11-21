@@ -118,6 +118,102 @@ def test_skrypty_pomoc_zla_opcja_i_odmowa_bez_administratora():
         assert r.returncode == 1 and f"po {opcja} podaj" in r.stderr, opcja
 
 
+ATRAPY_POLECEN = {  # polecenia systemu Raspberry Pi, ktorych na komputerze z testami nie ma albo nie wolno ruszac
+    "id": 'echo 0\n',
+    "chown": 'exit 0\n',
+    "sleep": 'exit 0\n',
+    "stat": 'echo "600 root"\n',
+    "install": 'cp "${@: -2:1}" "${@: -1}"\n',
+    "hostname": 'if [ "${1:-}" = "-I" ]; then echo "192.0.2.10 "; else echo "ramka-w"; fi\n',
+    "systemctl": 'echo "$*" >> "$(dirname "$0")/systemctl.log"\ncase "$1" in\n    is-enabled) echo enabled ;;\n    is-active) echo active ;;\nesac\nexit 0\n',
+}
+
+
+def test_skrypty_w_piaskownicy_kopia_konfiguracja_usluga_i_ponowne_uruchomienie(tmp_path):
+    """Proba calego przebiegu obu skryptow poza Raspberry Pi (NIE zastepuje proby na sprzecie): kopie skryptow ze
+    sciezkami /opt, /etc i /usr/bin/python3 przepisanymi do `tmp_path`, polecenia systemu (id, systemctl, chown,
+    install, hostname, stat, sleep) zastapione atrapami, biblioteki sprzetu - pustymi modulami. Sprawdza logike:
+    brak bibliotek = kod 3 i usluga nie wlaczona; kopia programu; plik konfiguracji z wzoru; drugi przebieg nie
+    zmienia pliku konfiguracji i wlacza usluge; klucz nie trafia na ekran."""
+    bash = str(GIT_BASH) if GIT_BASH.is_file() else (None if os.name == "nt" else shutil.which("bash"))
+    if bash is None:
+        pytest.skip("nie sprawdzono - brak bash (Git Bash) na tym komputerze")
+
+    def w_bashu(polecenie, argument) -> str:
+        r = subprocess.run([bash, "-c", polecenie, "_", str(argument)], capture_output=True, text=True, timeout=60)
+        assert r.returncode == 0, r.stderr
+        return r.stdout.strip()
+
+    korzen, atrapy, biblioteki, zrodlo = tmp_path / "korzen", tmp_path / "atrapy", tmp_path / "biblioteki", tmp_path / "zrodlo" / "ramka"
+    for katalog in (korzen / "etc" / "systemd" / "system", atrapy, biblioteki):
+        katalog.mkdir(parents=True)
+    for nazwa, tresc in ATRAPY_POLECEN.items():
+        (atrapy / nazwa).write_bytes(("#!/bin/bash\n" + tresc).encode("ascii"))
+    shutil.copytree(STANOWISKO / "ramka", zrodlo, ignore=shutil.ignore_patterns("__pycache__"))
+    korzen_b, atrapy_b = w_bashu('cd "$1" && pwd', korzen), w_bashu('cd "$1" && pwd', atrapy)
+    python_b = w_bashu('cygpath -u "$1"', sys.executable) if os.name == "nt" else sys.executable
+    for nazwa in SKRYPTY:
+        tekst = _tekst(nazwa)
+        for stare, nowe in (('KATALOG_PROGRAMU="/opt/ramka"', f'KATALOG_PROGRAMU="{korzen_b}/opt/ramka"'),
+                            ('PLIK_KONFIGURACJI="/etc/ramka/ramka.json"', f'PLIK_KONFIGURACJI="{korzen_b}/etc/ramka/ramka.json"'),
+                            ('PLIK_USLUGI="/etc/systemd/system/ramka.service"', f'PLIK_USLUGI="{korzen_b}/etc/systemd/system/ramka.service"'),
+                            ('PYTHON="/usr/bin/python3"', f'PYTHON="{python_b}"'),
+                            ("\nset -u\n", f'\nset -u\nPATH="{atrapy_b}:$PATH"\n')):
+            assert tekst.count(stare) == 1, (nazwa, stare)
+            tekst = tekst.replace(stare, nowe)
+        (zrodlo / "rpi" / nazwa).write_bytes(tekst.encode("ascii"))
+    program, konfiguracja = korzen / "opt" / "ramka" / "ramka", korzen / "etc" / "ramka" / "ramka.json"
+    usluga, dziennik = korzen / "etc" / "systemd" / "system" / "ramka.service", atrapy / "systemctl.log"
+
+    def uruchom(nazwa, *opcje, z_bibliotekami):
+        srodowisko = {k: v for k, v in os.environ.items() if k.upper() != "PYTHONPATH"}
+        srodowisko["PYTHONDONTWRITEBYTECODE"] = "1"
+        if z_bibliotekami:
+            srodowisko["PYTHONPATH"] = str(biblioteki)
+        return subprocess.run([bash, str(zrodlo / "rpi" / nazwa), *opcje], capture_output=True, text=True, timeout=300, env=srodowisko)
+
+    # 1. bez bibliotek sprzetu, bez uslugi: program i konfiguracja sa, kod 3, systemd nietkniety
+    r = uruchom("zainstaluj_ramke.sh", "--rola", "P", "--bez-uslugi", z_bibliotekami=False)
+    assert r.returncode == 3, (r.stdout, r.stderr)
+    assert "BRAK: rgbmatrix" in r.stdout and "kod 3" in r.stdout and "POMIN usluga" in r.stdout
+    assert (program / "__main__.py").is_file() and sorted(p.name for p in (program / "rpi").iterdir()) == sorted(PLIKI)
+    assert not list(program.rglob("__pycache__")) and not usluga.exists() and not dziennik.exists()
+    dane = json.loads(konfiguracja.read_text(encoding="ascii"))
+    assert dane["rola"] == "P" and len(dane["klucz"]) == 48 and dane["klucz"] != _klucz_wzoru()
+    assert program_ramki.wczytaj_konfiguracje(konfiguracja).sprzet == "rpi"
+    assert "rola P, sprzet rpi, adres nasluchu 0.0.0.0, port 8765, klucz jest (48 znakow)" in r.stdout
+    assert dane["klucz"] not in r.stdout + r.stderr
+    # 2. z bibliotekami, pelna instalacja (rola z nazwy komputera): plik konfiguracji BEZ ZMIAN, usluga zapisana i wlaczona
+    for modul in ("rgbmatrix", "gpiozero", "evdev"):
+        (biblioteki / f"{modul}.py").write_bytes(b"")
+    (program / "stary_plik.py").write_bytes(b"# zostal po poprzedniej wersji\n")
+    przed = konfiguracja.read_bytes()
+    r = uruchom("zainstaluj_ramke.sh", z_bibliotekami=True)
+    assert r.returncode == 0, (r.stdout, r.stderr)
+    assert konfiguracja.read_bytes() == przed and "zostaje BEZ ZMIAN" in r.stdout
+    assert not (program / "stary_plik.py").exists()  # kopia programu jest zastepowana, nie nakladana
+    assert not (program.parent / "ramka.nowy").exists() and not (program.parent / "ramka.stary").exists()
+    assert usluga.read_bytes() == (RPI / "ramka.service").read_bytes()
+    assert dziennik.read_text(encoding="ascii").splitlines()[:3] == ["daemon-reload", "enable ramka.service", "restart ramka.service"]
+    for wiersz in ("OK    gpiozero", "OK    evdev", "OK    rgbmatrix", "OK    program", "OK    konfiguracja", "OK    autostart", "OK    usluga",
+                   "OK    adres IP"):
+        assert wiersz in r.stdout, (wiersz, r.stdout)
+    assert f"program ramki {WERSJA} w " in r.stdout and dane["klucz"] not in r.stdout + r.stderr
+    # 3. sama kontrola: sa wiersze BRAK (na tym komputerze nie ma config.txt Raspberry Pi) = kod 1 i rada po strzalce
+    r = uruchom("sprawdz_ramke.sh", z_bibliotekami=True)
+    assert r.returncode == 1, (r.stdout, r.stderr)
+    assert "BRAK  config.txt" in r.stdout and "-> " in r.stdout and "WYNIK: wierszy BRAK:" in r.stdout
+    # 4. bez pliku konfiguracji i bez roli (nazwa komputera inna niz ramka-w / ramka-p): blad, pliku nie ma
+    konfiguracja.unlink()
+    (atrapy / "hostname").write_bytes(b"#!/bin/bash\necho raspberrypi\n")
+    r = uruchom("zainstaluj_ramke.sh", "--bez-uslugi", z_bibliotekami=True)
+    assert r.returncode == 1 and "nie wiem, ktora to ramka" in r.stderr and not konfiguracja.exists()
+    r = uruchom("zainstaluj_ramke.sh", "--bez-uslugi", "--rola", "w", "--klucz", dane["klucz"], z_bibliotekami=True)
+    assert r.returncode == 0, (r.stdout, r.stderr)
+    nowe = json.loads(konfiguracja.read_text(encoding="ascii"))
+    assert nowe["rola"] == "W" and nowe["klucz"] == dane["klucz"] and dane["klucz"] not in r.stdout + r.stderr
+
+
 def test_te_same_sciezki_i_klucz_zastepczy_we_wszystkich_plikach():
     klucz = _klucz_wzoru()
     assert _wzor()["klucz"] == klucz
