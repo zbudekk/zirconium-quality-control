@@ -382,17 +382,52 @@ sprzed ostatniej zmiany najwczesniej po tym czasie - drgania czujnikow) i `powro
 ## Kalibracja diod i "test LED"
 
 Plik lokalny `dane/kalibracja_ramek.json` na laptopie (format w `kalibracja.py`): dla ramki W / P
-i ukladu (np. `poranna`, `poranna_r54`) blok [x, y, w, h] pod kazdym gniazdem. Wartosci startowe
-z geometrii `uklad.json` (blok 3 x 3 pod gniazdem okraglym, pas pod otworami rynienki; plytki
-okragle pomijane - nie pasuja do wkladki):
+i ukladu (np. `poranna`, `poranna_r54`, `okragla_ramkowa_poranna`) blok [x, y, w, h] pod kazdym
+gniazdem. Wartosci startowe z geometrii `uklad.json` (blok 3 x 3 pod gniazdem okraglym, pas pod
+otworami rynienki) dla ukladow plytek, ktore leza na ramkach - kwadratowych (R59 i R54) i okraglych
+ramkowych n1-n6 (nizej); plytki okragle testowe n8 / n9 (`okragla_wieczorna`, `okragla_poranna`:
+bez magnesow i rowka klucza, tylko do skanera) sa pomijane:
 ```
 python -m ramka.kalibracja --domyslna --modele modele_plytek --wyjscie dane/kalibracja_ramek.json
 python -m ramka.kalibracja --sprawdz dane/kalibracja_ramek.json
+python -m ramka.kalibracja --uzupelnij dane/kalibracja_ramek.json --modele modele_plytek
 python -m ramka.test_led --kalibracja dane/kalibracja_ramek.json --rola P --uklad poranna --sprzet rpi
 ```
 Kalibracja na zlozonej ramce (przesuniecia blokow, `"zrodlo": "kalibracja"`) - paczka C2.
 
+### Plytki okragle ramkowe n1-n6 (E3-O2)
+
+Plytki okragle do ramek (R58): uklady `okragla_ramkowa_wieczorna` (plytki n1-n3, ramka W)
+i `okragla_ramkowa_poranna` (n4-n6, ramka P). Maja te same gniazda, stozki znacznikow i srodek co
+plytka kwadratowa R59 tego samego typu oraz te same numery (magnesy = ten sam kod), wiec:
+- ramka nie odroznia plytki okraglej ramkowej od kwadratowej o tym samym numerze - uklad zna tylko
+  laptop (ze skanu) i to on wysyla bloki pikseli wlasciwego ukladu;
+- kalibracja startowa ukladu okraglego ramkowego = geometria jego `uklad.json`, `"zrodlo":
+  "geometria"`; bloki sa ROWNE blokom kwadratu (19 z 19 i 24 z 24 gniazd - test
+  `testy/test_okragle_ramka.py`). Polozenia diod pod wkladka okragla na zlozonej ramce nie mierzono:
+  przed praca z plytkami okraglymi kalibracja na ramce jest obowiazkowa, tak samo jak dla kwadratow;
+- uklady sa osobnymi wpisami pliku kalibracji (`ramki.W.okragla_ramkowa_wieczorna`,
+  `ramki.P.okragla_ramkowa_poranna`) - kalibruje sie je osobno od kwadratow;
+- plik kalibracji sprzed E3-O2 (same kwadraty) program stanowiska uzupelnia sam przy starcie
+  (`indicate.wczytaj_kalibracje`): dopisuje TYLKO brakujace uklady z geometrii, wpisow istniejacych
+  (takze `"zrodlo": "kalibracja"`) nie zmienia, kopie starego pliku zostawia obok
+  (`kalibracja_ramek.json.przed_uzupelnieniem`) i pokazuje ostrzezenie w podpowiedzi paska ramek.
+  To samo bez programu stanowiska (np. plik trzymany na Raspberry Pi dla `test_led`): polecenie
+  `--uzupelnij` wyzej;
+- test diod: `python -m ramka.test_led --kalibracja <plik> --rola W --uklad okragla_ramkowa_wieczorna`
+  (19 gniazd), `--rola P --uklad okragla_ramkowa_poranna` (24 gniazda); uklad spoza pliku
+  kalibracji tej ramki = "brak ukladu w kalibracji tej ramki", kod 1.
+
+Numer plytki a ramka (program stanowiska, decyzja z 21.11.2026 - komunikat na ekranie, ramka ciemna,
+skan przyjety, bez blokady): plytka o numerze spoza roli ramki (n4-n6 na W, n1-n3 na P), plytka inna
+niz ta, ktorej wynik ma swiecic, oraz numer podany recznie inny niz odczytany z dolkow kodu -
+opis w `opisy_modulow/indicate.md` ("Plytki okragle ramkowe").
+
 ## Instalacja na Raspberry Pi (opis - w E3-A8 nic nie wykonano)
+
+Instrukcja krok po kroku dla czlowieka: `instrukcje/ramka_raspberry_pi.md`; gotowe pliki instalacji
+(skrypt instalacji i kontroli, plik uslugi, wzor konfiguracji): katalog `ramka/rpi/` (oba z paczki
+E3-O4). Ponizej skrot; przy roznicy obowiazuje instrukcja i pliki z `ramka/rpi/`.
 
 1. Raspberry Pi Imager: Raspberry Pi OS Lite 64-bit (Bookworm, Python 3.11), SSH, Wi-Fi firmowe,
    nazwa hosta `ramka-w` albo `ramka-p` (dla `.local`).
@@ -404,13 +439,17 @@ Kalibracja na zlozonej ramce (przesuniecia blokow, `"zrodlo": "kalibracja"`) - p
    np. `{"rola": "P", "sprzet": "rpi", "host": "<adres ramki w sieci stanowiska>", "klucz": "<losowy>"}`),
    prawa `chmod 600` (klucz). Bez `host` ramka slucha tylko na 127.0.0.1; bez `klucz` - patrz
    "Siec i klucz" (tylko siec z samym laptopem i ramkami).
-5. Usluga systemd `/etc/systemd/system/ramka.service`: `ExecStart=/usr/bin/python3 -m ramka
-   --konfiguracja /etc/ramka/ramka.json`, `WorkingDirectory=/opt/ramka`, `User=root` (rgbmatrix),
+5. Usluga systemd `/etc/systemd/system/ramka.service` (plik: `ramka/rpi/ramka.service`):
+   `ExecStart=/usr/bin/python3 -m ramka --sprzet rpi --konfiguracja /etc/ramka/ramka.json`
+   (`--sprzet rpi` jawnie: bez niego i bez pola `sprzet` w pliku ramka startuje z atrapa sprzetu),
+   `WorkingDirectory=/opt/ramka`, `User=root` (rgbmatrix),
    `Restart=always`, `RestartSec=2`; `systemctl enable ramka`. Logi: journald (w RAM).
 6. Karta tylko do odczytu (I13): `raspi-config` -> Performance -> Overlay File System; zmiana
    programu = wylaczenie nakladki, kopia plikow, wlaczenie. Plan i zdarzenia sa tylko w RAM.
 7. Kontrola: `curl -H "X-Ramka-Klucz: <klucz>" http://ramka-p.local:8765/stan`; test LED: zatrzymac
-   usluge, `python3 -m ramka.test_led ... --sprzet rpi`, uruchomic usluge.
+   usluge, `python3 -m ramka.test_led ... --sprzet rpi`, uruchomic usluge. Od paczki E3-O4 `test_led`
+   ma opcje `--konfiguracja <plik>` (ten sam plik co usluga: rola, obrot, lustro, jasnosc, piny) -
+   opis w `instrukcje/ramka_raspberry_pi.md`.
 
 Znane, do paczki sprzetowej C1 (recenzja rundy 2, D-N10 / D8): `host` = konkretny adres IP przy DHCP
 albo przy starcie przed Wi-Fi konczy sie bledem `bind` i petla restartow, a domyslny limit startow

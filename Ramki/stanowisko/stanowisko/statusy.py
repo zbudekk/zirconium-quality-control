@@ -456,15 +456,16 @@ KOMUNIKATY: dict[str, Wzor] = {
     "plytka_inna_niz_skan": Wzor(POZIOM_OSTRZEZENIE, "Na ramce leży inna płytka niż zeskanowana",
                                  "Na ramce wieczornej leży płytka nr {na_ramce}, a ostatni skan to płytka nr {ze_skanu} — ramka nie "
                                  "świeci. Połóż na ramce płytkę nr {ze_skanu}. Jeśli na ramce leży właściwa płytka, to numer skanu "
-                                 "jest zły — popraw go przyciskiem „Podaj numer płytki”."),
+                                 "jest zły — popraw go przyciskiem „Zmień numer” przy tej płytce na ekranie."),
     "plytka_bez_skanu": Wzor(POZIOM_OSTRZEZENIE, "Na ramce leży płytka, której nie ma w planie pieca",
                              "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. Zeskanuj płytkę "
                              "nr {na_ramce}. Jeśli była już skanowana, to numer jej skanu jest zły — popraw go przyciskiem "
-                             "„Podaj numer płytki”."),
+                             "„Zmień numer” przy tej płytce na ekranie."),
+    # przycisk przy plytce z numerem ma na ekranie napis "Zmień numer" (``ui.napisy.ZMIEN_NUMER`` - test paczki pilnuje zgodnosci)
     "numer_niezgodny": Wzor(POZIOM_OSTRZEZENIE, "Numer płytki nie zgadza się ze skanem",
                             "Podany numer płytki to {podany}, a program odczytał ze skanu numer {dolki}. Ramka nie podświetla tej "
                             "płytki; skan i wynik zostają. Sprawdź numer wybity na płytce: jeśli podany numer jest zły — popraw go "
-                            "przyciskiem „Podaj numer płytki”; jeśli jest dobry — pracuj według ekranu."),
+                            "przyciskiem „Zmień numer”; jeśli jest dobry — pracuj według ekranu."),
     "excel_blad": Wzor(POZIOM_OSTRZEZENIE, "Excel nie odpowiada",
                        "{powod} — program działa dalej. Otwórz plik zleceń w Excelu i kliknij „Excel: wskaż wiersz” albo odhacz "
                        "ręcznie zlecenia kompletne pieca nr {nr} z {doba} ({ile}): {kuwety}."),
@@ -618,9 +619,10 @@ PLYTKA_BEZ_NUMERU_W_BLOKADZIE = "płytka bez numeru"
 
 
 def tekst_komunikatu(rodzaj: str, **pola) -> tuple[str, str, str]:
-    """(poziom, tytul, tekst) komunikatu ``rodzaj`` z wypelnionymi polami; nieznany rodzaj = komunikat ogolny (bez wyjatku)."""
+    """(poziom, tytul, tekst) komunikatu ``rodzaj`` z wypelnionymi polami; nieznany rodzaj = komunikat ogolny (bez wyjatku).
+    E3-O2: pola sa wypelniane takze w tytule (``ramka_blad``: "Ramka {ramka}: problem" szlo na ekran z doslownym "{ramka}")."""
     w = KOMUNIKATY.get(rodzaj) or Wzor(POZIOM_OSTRZEZENIE, "Uwaga", "{powod}")
-    return w.poziom, w.tytul, _wypelnij(w.tekst, pola)
+    return w.poziom, (_wypelnij(w.tytul, pola) if "{" in w.tytul else w.tytul), _wypelnij(w.tekst, pola)
 
 
 def tekst_pytania(rodzaj: str, **pola) -> tuple[str, str, str]:

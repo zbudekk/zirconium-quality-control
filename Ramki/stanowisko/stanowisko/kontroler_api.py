@@ -2111,8 +2111,11 @@ class KontrolerSesji(Kontroler):
                 LOG.exception("kontroler: stanu ramki nie da sie odczytac")
                 return StanRamki(rola=getattr(k, "rola", "?"))
             plytka = s.get("plytka")
+            tryb_ramki = s.get("tryb_ramki")
+            if tryb_ramki == "test_led" and time.monotonic() >= self._test_led_do:
+                tryb_ramki = "gotowa"  # ramka konczy test diod sama (po 8 s), bez zdarzenia dla laptopa (przeglad E3-S1, poz. 8)
             return StanRamki(rola=s.get("rola") or getattr(k, "rola", "?"), polaczona=bool(s.get("polaczona")), blad=s.get("blad"),
-                             komunikat=s.get("komunikat"), plytka=plytka if _jest_liczba(plytka) else None, tryb_ramki=s.get("tryb_ramki"),
+                             komunikat=s.get("komunikat"), plytka=plytka if _jest_liczba(plytka) else None, tryb_ramki=tryb_ramki,
                              plan_przyjety=bool(s.get("plan_przyjety")), wstrzymane=bool(s.get("wstrzymane")),
                              potwierdzone=len(s.get("potwierdzone") or ()), ostrzezenia=tuple(s.get("ostrzezenia") or ()),
                              utracone=int(s.get("utracone") or 0), przepelnienie=int(s.get("przepelnienie") or 0))

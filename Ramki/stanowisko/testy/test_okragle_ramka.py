@@ -676,3 +676,192 @@ def test_s1_blad_analizy_brak_wierzchu_i_pusty_skan(tmp_path):
             assert kom.tekst == tekst("blad_analizy", powod=ST.PRZYCZYNY_BLEDU_ANALIZY[klucz])
     finally:
         k.zamknij()
+
+
+# =============================================================================================================================
+# komunikat NA EKRANIE (istniejaca droga: stan kontrolera -> okno; bez zmian w ui/**) i drobne poprawki z przegladu E3-S1
+# =============================================================================================================================
+class KlientProbny:
+    """Klient ramki bez sieci (jak ``test_aplikacja_rano.KlientAtrapa``), z numerem plytki lezacej na ramce i odpowiedzia
+    ``wynik`` jak w ``indicate.KlientRamki._sprawdz_wynik`` (bez kalibracji: numer spoza 1-3 = "zla_plytka")."""
+
+    def __init__(self, rola: str):
+        self.rola, self.plytka, self.tryb_ramki = rola, None, "gotowa"
+        self.polecenia: list = []
+        self.wyniki: list = []
+
+    def uruchom(self) -> None:
+        pass
+
+    def zatrzymaj(self, timeout: float = 1.0) -> bool:
+        return True
+
+    def wznow(self) -> None:
+        pass
+
+    def odbierz_zdarzenia(self) -> list:
+        return []
+
+    def stan(self) -> dict:
+        return {"rola": self.rola, "polaczona": True, "blad": None, "komunikat": None, "plytka": self.plytka, "tryb_ramki": self.tryb_ramki,
+                "plan_przyjety": False, "wstrzymane": False, "potwierdzone": [], "ostrzezenia": []}
+
+    def potwierdzone(self) -> list:
+        return []
+
+    def ustaw_plan_rano(self, plan_plytek, *, potwierdzone=None, wybrane=None) -> dict:
+        self.polecenia.append(("plan", sorted(plan_plytek["plytki"])))
+        return {}
+
+    def zgas(self) -> None:
+        self.polecenia.append(("zgas",))
+
+    def tryb(self, stan: str):
+        self.polecenia.append(("tryb", stan))
+        if stan == "test_led":
+            self.tryb_ramki = "test_led"  # ramka konczy test sama, bez zdarzenia - klient dalej podaje "test_led"
+        return ("znacznik", len(self.polecenia))
+
+    def skanowanie(self):
+        return self.tryb("skanowanie")
+
+    def znacznik(self):
+        return self.tryb("skanowanie")
+
+    def analiza(self):
+        return self.tryb("analiza")
+
+    def blad(self):
+        return self.tryb("blad")
+
+    def wynik(self, numer, uklad, kolory, znacznik) -> str:
+        self.wyniki.append((numer, uklad))
+        return "bez_numeru" if numer is None else ("wyslany" if numer in (1, 2, 3) else "zla_plytka")
+
+
+class RamkiProbne:
+    def __init__(self):
+        self.wieczorna, self.poranna = KlientProbny("W"), KlientProbny("P")
+
+    def klienci(self) -> list:
+        return [self.wieczorna, self.poranna]
+
+    def uruchom(self) -> None:
+        pass
+
+    def zatrzymaj(self, timeout: float = 1.0) -> dict:
+        return {"W": True, "P": True}
+
+    def stan(self) -> dict:
+        return {k.rola: k.stan() for k in self.klienci()}
+
+
+@pytest.fixture
+def ekrany():
+    """Okno programu w trybie offscreen (pomocnicy ``test_aplikacja_rano`` / ``test_ui_wieczor``), 1920 x 1001."""
+    import gc
+    import os
+
+    import test_aplikacja_rano as TAR
+    import test_ui_wieczor as UW
+
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    if UW.FONTY_WINDOWS.is_dir():
+        os.environ.setdefault("QT_QPA_FONTDIR", str(UW.FONTY_WINDOWS))
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication([])
+    assert app.platformName() == "offscreen"
+    UW.czcionka_ekranu()
+    otwarte = []
+
+    def nowy(kontroler):
+        e = TAR.Ekran(kontroler, TAR.PELNY_EKRAN)
+        otwarte.append(e)
+        return e
+
+    yield nowy
+    for e in otwarte:
+        e.zamknij()
+    otwarte.clear()
+    gc.collect()
+
+
+def test_k4_komunikaty_sa_na_ekranie_okna_programu(tmp_path, ekrany):
+    """Kryterium 4: "komunikat na ekranie" - trzy rodzaje komunikatow w oknie programu (widzet ``komunikat_<rodzaj>``, tytul
+    i pelny tekst), istniejaca droga komunikatow kontrolera; zrzuty okna w ``tmp_path`` (do obejrzenia przez czlowieka)."""
+    from stanowisko import kontroler_api as K
+    from stanowisko import statusy as ST
+
+    ramki = RamkiProbne()
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=Zegar(dt.datetime(2026, 11, 17, 19, 0, 0)))
+    try:
+        assert k.wybierz_operatora("Technik A")
+        k.podlacz_ramki(ramki)
+        skan = k.symuluj_skan("czysta", numer=1, uklad=RAMKOWA_W, numer_z_dolkow=1)
+        assert ramki.wieczorna.wyniki == [(1, RAMKOWA_W)]
+        e = ekrany(k)
+
+        def na_ekranie(rodzaj: str, tresc: str, zrzut: str) -> None:
+            e.czekaj(lambda: e.jest(f"komunikat_{rodzaj}"), 5.0, f"komunikat {rodzaj} na ekranie")
+            widac = e.tekst_elementu(f"komunikat_{rodzaj}")
+            assert ST.KOMUNIKATY[rodzaj].tytul in widac and tresc in widac, widac
+            assert e.okno.grab().save(str(tmp_path / zrzut))
+
+        # komunikaty odsylaja do przycisku przy plytce - jego napis na ekranie (wieczor i rano) musi byc w tekscie komunikatu
+        from stanowisko.ui import napisy as N
+        from stanowisko.ui import napisy_rano as NR
+
+        assert N.ZMIEN_NUMER == NR.ZMIEN_NUMER and e.jest("plytka_podaj_numer_plytki") and N.ZMIEN_NUMER in e.tekst()
+        for rodzaj in ("plytka_inna_niz_skan", "plytka_bez_skanu", "numer_niezgodny"):
+            assert N.ZMIEN_NUMER in ST.KOMUNIKATY[rodzaj].tekst, rodzaj
+        ramki.wieczorna.plytka = 5  # (a) plytka poranna na ramce wieczornej
+        na_ekranie("plytka_nie_z_ramki", tekst("plytka_nie_z_ramki", ramka=ST.RAMKA_KTOREJ["W"], numer=5, numery="1, 2, 3",
+                                                 rada=ST.RADY_PLYTKA_NIE_Z_RAMKI["W"]), "a_plytka_nie_z_ramki.png")
+        ramki.wieczorna.plytka = 2  # (b) na ramce plytka 2, wynik dotyczy plytki 1
+        na_ekranie("plytka_inna_niz_skan", tekst("plytka_inna_niz_skan", na_ramce=2, ze_skanu=1), "b_plytka_inna_niz_skan.png")
+        e.czekaj(lambda: not e.jest("komunikat_plytka_nie_z_ramki"), 5.0, "komunikat (a) znika, gdy plytki 5 nie ma juz na ramce")
+        ramki.wieczorna.plytka = 0
+        e.czekaj(lambda: not e.jest("komunikat_plytka_inna_niz_skan"), 5.0, "komunikat (b) znika po zdjeciu plytki")
+        assert k.podaj_numer_plytki(skan, 2)  # (c) numer podany inny niz odczytany z dolkow
+        na_ekranie("numer_niezgodny", tekst("numer_niezgodny", podany=2, dolki=1), "c_numer_niezgodny.png")
+        assert ramki.wieczorna.wyniki[-1] == (None, RAMKOWA_W)  # ramka dostaje "bez numeru" = ciemna
+        assert k.stan().plytka(skan).status == "przyjety"
+    finally:
+        k.zamknij()
+
+
+def test_s1_tryb_ramki_po_tescie_diod_wraca_do_gotowa(tmp_path, monkeypatch):
+    """Przeglad E3-S1 (POTRZEBUJE 8): ramka konczy test diod sama (po 8 s, bez zdarzenia), a ``StanRamki.tryb_ramki`` zostawalo
+    ``test_led`` do nastepnego zdarzenia ramki. Kontroler zna koniec wlasnego testu - po nim podaje ``gotowa``."""
+    from stanowisko import kontroler_api as K
+
+    monkeypatch.setattr(K, "CZAS_TEST_LED_S", 0.3)
+    ramki = RamkiProbne()
+    k = K.AtrapaKontrolera(tmp_path / "k", zegar=Zegar(dt.datetime(2026, 11, 17, 19, 0, 0)))
+    try:
+        k.podlacz_ramki(ramki)
+        assert k.test_led()
+        k.przetworz()
+        assert k.stan().ramki.test_led and k.stan().ramki.wieczorna.tryb_ramki == "test_led"
+        koniec = time.monotonic() + 5.0
+        while k.stan().ramki.test_led and time.monotonic() < koniec:
+            k.przetworz()
+            time.sleep(0.02)
+        k.przetworz()
+        assert not k.stan().ramki.test_led
+        assert ramki.wieczorna.stan()["tryb_ramki"] == "test_led"  # klient nadal podaje stary tryb (ramka nie wyslala zdarzenia)
+        assert (k.stan().ramki.wieczorna.tryb_ramki, k.stan().ramki.poranna.tryb_ramki) == ("gotowa", "gotowa")
+    finally:
+        k.zamknij()
+
+
+def test_tytul_komunikatu_ma_wypelnione_pola():
+    """``statusy.tekst_komunikatu`` wypelnia pola takze w TYTULE (komunikat ``ramka_blad``: tytul "Ramka {ramka}: problem" szedl
+    na ekran z doslownym "{ramka}")."""
+    from stanowisko import statusy as ST
+
+    poziom, tytul, tresc = ST.tekst_komunikatu("ramka_blad", ramka="poranna", powod="x")
+    assert "{" not in tytul and "poranna" in tytul and tresc == "x"
+    assert ST.tekst_komunikatu("blad_analizy", powod="p")[1] == ST.KOMUNIKATY["blad_analizy"].tytul  # tytul bez pol - bez zmian
+    assert "{" not in ST.tekst_komunikatu("ramka_blad", powod="x")[1]  # brak pola = znak zapytania, nie wyjatek
