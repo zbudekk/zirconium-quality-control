@@ -655,10 +655,10 @@ prawdy) i `syntetyczne_R59_P3a` (16 + 16) = 40 skanow (kopia tych samych zestawo
 **Kroki (tor 2, jedna linia):**
 
 ```
-call <K>\Polecenie.cmd narzedzia\metryki_P3a.py --skany <PC-katalog>\app\dane_ref\syntetyczne_R59_P2 <PC-katalog>\app\dane_ref\syntetyczne_R59_P3a --projekty <PC-katalog>\app\Prace_test --wyjscie <ROB>\t10 --nazwa t10_metryki.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t10.log 2>&1
+call <K>\Polecenie.cmd narzedzia\metryki_P3a.py --skany <PC-katalog>\app\dane_ref\syntetyczne_R59_P2 <PC-katalog>\app\dane_ref\syntetyczne_R59_P3a --projekty <PC-katalog>\app\Prace_test --wyjscie <ROB>\t10 --nazwa t10_surowe_metryki.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t10_surowe.log 2>&1
 ```
 
-**Liczby kryterium (plik `<ROB>\t10\t10_metryki.json` i `t10.log`):**
+**Liczby kryterium (surowe wyjscie: plik `<ROB>\t10\t10_surowe_metryki.json` i log `<ROB>\t10_surowe.log`):**
 
 | Liczba | Pole |
 |---|---|
@@ -670,10 +670,14 @@ Punkt odniesienia: R59 pkt 6.2 (`raporty/R59_2026-11-14.md`): 40 / 40, 276 / 276
 276 / 276, 0 / 132. Nazwy pol sprawdzone w kodzie `metryki_P3a.py` (wiersze 188-233) i w wyniku proby z `--limit 2` na
 instalacji probnej 21.11 (2 skany, 68 s, kod 0): sekcja zbiorcza nazywa sie `zbiorczo` (`zbiorczo.plate_match.skanow`,
 `zbiorczo.plate_match.wyrownanie_ok`, `zbiorczo.top1_per_scenariusz.dobrze.prac` / `.top1_bledny`); wiersz logu
-"PRACE CA..." ma litere spoza ASCII - `t10.log` przed dodaniem do dowodow przechodzi przez `dowody_lf.py --napraw`.
+"PRACE CA..." ma litere spoza ASCII - kopia logu (`t10.log`) przed dodaniem do dowodow przechodzi przez
+`dowody_lf.py --napraw`.
 
-**Dowody w `T10/`:** `t10_metryki.json` (bez sciezek do zlecen - sprawdz `t9_dane_osobowe.py` przed dodaniem; w razie
-trafien dodaj tylko `t10_wynik.md`), `t10.log` (ta sama kontrola), `t10_wynik.md`.
+**Dowody w `T10/`:** `t10_metryki.json` = KOPIA surowego `t10\t10_surowe_metryki.json`, zrobiona dopiero po kontroli
+`PY -I <ODB>\narzedzia\t9_dane_osobowe.py N --cel <ROB>\t10\t10_surowe_metryki.json --cel <ROB>\t10_surowe.log --wynik <ROB>\t10_t9.txt`
+BEZ `--dozwolone` (kod 0; przy trafieniach do dowodow idzie tylko `t10_wynik.md`), `t10.log` = kopia
+`t10_surowe.log` (ta sama kontrola), `t10_t9.txt`, `t10_wynik.md`. Nazwy plikow surowych maja czlon `surowe` po to,
+zeby wzor `--dozwolone t10_surowe` w T9 NIE obejmowal zadnego pliku z listy dowodow (uwaga 33 recenzji rundy 2).
 
 **Czas:** 40-60 min (40 skanow x 25-70 s w 1 procesie). **Ciezar:** ciezki, seria pomiarowa (tor 2). **Rownolegle:** nie
 z T2, T4, T11.
@@ -748,9 +752,9 @@ wspolczynniku 1,20 i 1,25 na jednej plytce). Zestaw do przebiegu przez program: 
 **Kroki (tor 2; pamiec podreczna puli w nowym, pustym katalogu `<ROB>\pamiec`):**
 
 ```
-call <K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_czas_zimna.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_zimna.log 2>&1
-call <K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_czas_ciepla.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_ciepla.log 2>&1
-call <K>\Polecenie.cmd narzedzia\metryki_pula.py jakosc --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_jakosc.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_jakosc.log 2>&1
+call <K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_surowe_czas_zimna.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_zimna.log 2>&1
+call <K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_surowe_czas_ciepla.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_ciepla.log 2>&1
+call <K>\Polecenie.cmd narzedzia\metryki_pula.py jakosc --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_surowe_jakosc.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_jakosc.log 2>&1
 ```
 
 Trzy polecenia w jednym pliku `.cmd` wymagaja `call` (bez niego nie bedzie przebiegu cieplego ani `jakosc`).
@@ -782,7 +786,9 @@ raportu E3-A5 (ok. 1,0 GB; razem 3,95 GB + 1,0 GB) i zapisuje wprost "okno: wg r
 Zmierzone dotad: top-1 187 / 187, plytki 2-10 maks. 34,2 s, ciepla maks. 28,8 s, szczyt 3,82-3,95 GB.
 
 **Dowody w `T4/`:** `t4_wynik.md` (tabela liczb, pula ciepla i zimna osobno), `t4_czas_ciepla.json`, `t4_czas_zimna.json`,
-`t4_jakosc.json` - pliki JSON tylko po kontroli `t9_dane_osobowe.py` (pliki puli zawieraja sciezki z nazwami zlecen;
+`t4_jakosc.json` = KOPIE plikow surowych `t4\t4_surowe_*.json` (czlon `surowe` w nazwie: wzor `--dozwolone t4_surowe`
+w T9 nie obejmuje wtedy zadnego pliku z listy dowodow) - kopie tylko po kontroli `t9_dane_osobowe.py` BEZ
+`--dozwolone` na plikach surowych (pliki puli zawieraja sciezki z nazwami zlecen;
 przy trafieniach do repo idzie sam `t4_wynik.md`).
 
 **Czas:** 45 min (budowa puli zimnej ok. 285 s, 10 plytek x ok. 25 s, 3 przebiegi). **Ciezar:** ciezki, seria pomiarowa
@@ -979,10 +985,14 @@ kazdej instalacji (tabele `zlecenia.folder`, `projekty.plik`), `--baza <baza SE1
 
 1. Repo: `PY -I <ODB>\narzedzia\t9_dane_osobowe.py N --repo <REPO> --json <DOW>\t9_repo.json --wynik <DOW>\t9_repo.txt`
    (tresc i sciezki plikow sledzonych + historia od `2537f6f` do `HEAD`: opis, autor i tresc zmian kazdego commita,
-   `--od` domyslnie `2537f6f`). Powtorz dla worktree z dowodami wszystkich wykonawcow po scaleniu ich galezi.
-2. Logi: `T9 N --cel <DANE>\logi --cel <PC-katalog>\koordynator\robocze\odbior D --dozwolone t4_*.json --dozwolone t10_ --dozwolone t10.log --wyklucz \zrodla\ --wynik <DOW>\t9_logi.txt`
+   `--od` domyslnie `2537f6f`). PRZED `git add` dowodow:
+   `T9 N --cel <worktree>\Ramki\etap3\odbior_koncowy\dowody --wynik <ROB>\t9_dowody.txt` BEZ `--dozwolone` - wymagany
+   kod 0; po scaleniu galezi dowodow powtorz krok 1.
+2. Logi: `T9 N --cel <DANE>\logi --cel <PC-katalog>\koordynator\robocze\odbior D --dozwolone t4_surowe --dozwolone t10_surowe --wyklucz \zrodla\ --wynik <DOW>\t9_logi.txt`
    (dla kazdej instalacji roboczej). Dozwolone (przeszukiwane, liczone osobno): bazy T2 / T3 i ich kopie, log Excela,
-   surowe wyniki T4 / T10 (`t4_*.json`, `t10_*`, `t10.log` - zawieraja sciezki zlecen i zostaja w `<ROB>`; do `<DOW>`
+   surowe wyniki T4 / T10 (`t4\t4_surowe_*.json`, `t10\t10_surowe_metryki.json`, `t10_surowe.log` - zawieraja sciezki
+   zlecen i zostaja w `<ROB>`; wzor `--dozwolone` NIE moze pasowac do zadnego pliku z listy dowodow - dlatego `t10_surowe`,
+   nie `t10_`: nazwa wstrzyknieta do `T10\t10_wynik.txt` dawala przy wzorze `t10_` kod 0; do `<DOW>`
    ida tylko po kontroli opisanej w T4 i T10). Wykluczone (nieczytane, liczba w pierwszym wierszu): kopie zrodel
    `\zrodla\`. Kazde inne trafienie w `robocze\odbior` = FAIL, dopoki nie wskazesz, ze plik jest dana wejsciowa
    (wtedy dopisz `--dozwolone`, powtorz i opisz w `t9_wynik.md`); log programu i dowody nigdy nie sa dozwolone.
@@ -1012,8 +1022,8 @@ przy N > 0 test nie jest zamkniety, dopoki wykonawca nie opisze w `t9_wynik.md` 
 "Nieprzeszukane" (zip, pdf, png, xlsx, pliki > 300 MB; sama sciezka jest sprawdzana) i "zmian plikow binarnych z
 nieprzeszukana trescia" w historii: podaj liczby; ZIP wydania nie zawiera danych (sprawdza T13 i lista plikow paczki).
 
-**Dowody w `T9/`:** `t9_repo.txt`, `t9_repo.json`, `t9_logi.txt`, `t9_wyniki.txt`, `t9_ruch.txt`, `t9_dane.txt`,
-`t9_wynik.md`.
+**Dowody w `T9/`:** `t9_repo.txt`, `t9_repo.json`, `t9_dowody.txt` (katalog `dowody\` przed `git add`, bez
+`--dozwolone`), `t9_logi.txt`, `t9_wyniki.txt`, `t9_ruch.txt`, `t9_dane.txt`, `t9_wynik.md`.
 
 **Czas:** 30 min. **Ciezar:** lekki (czyta pliki; baza i logi male). **Rownolegle:** tak; po pozostalych testach.
 
