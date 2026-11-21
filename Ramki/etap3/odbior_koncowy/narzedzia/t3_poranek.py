@@ -593,6 +593,18 @@ def braki_oczekiwane(braki: list) -> list:
     return [(kuweta, ", ".join(zab for zab, _ in zeby)) for kuweta, zeby in braki]
 
 
+def poprawki_na_ekranie(napis, poprawki: list) -> bool:
+    """Czy napis poprawek z ekranu zawiera KAZDA oczekiwana poprawke: numer kuwety i kazdy zab jako cale liczby (nie podciagi)."""
+    if napis is None or not poprawki:
+        return False
+    liczby = set(re.findall(r"[0-9]+", str(napis)))
+    for poprawka in poprawki:
+        wymagane = set(re.findall(r"[0-9]+", str(poprawka[0]))) | set(re.findall(r"[0-9]+", str(poprawka[1])))
+        if not wymagane or not wymagane <= liczby:
+            return False
+    return True
+
+
 def ocen(odczyty: list, zgodne: bool, opis: str) -> dict:
     """Wpis kolumny "ekran": ``odczyty`` - wartosci odczytane z okna (None = nie odczytano)."""
     if any(o is None for o in odczyty):
@@ -739,10 +751,14 @@ def scenariusz(p: Przebieg, w: dict, ek: dict, zrodla: dict) -> None:
     w["R30"] = (T.braki_skrot(r.braki()), T.lista_dofrez(p.sesja), p.stan_punktu("X13"))
     kk, bz, pop = kuwety_ekranu(o["tabela_kompletne"]), braki_ekranu(o["tabela_braki_biezace"]), o["rano_poprawki"]
     ek["R28"] = ocen([kk], kk == ocz["R28"], "po 'Zamknij piec' 3: tabela_kompletne (kuwety)")
-    ek["R29"] = ocen([kk, pop], pop is not None and "3301" in pop and "21" in pop and kk is not None and "3301" not in kk,
-                     "po 'Zamknij piec' 3: napis rano_poprawki zawiera kuwete 3301 i zab 21; 3301 nie ma w tabela_kompletne")
-    ek["R30"] = ocen([bz], bz == [], "po 'Zamknij piec' 3: tabela_braki_biezace pusta (listy 'do dofrezowania' ekran poranny "
-                                     "nie pokazuje - ta czesc wiersza tylko z API)")
+    # uwaga 19 recenzji: porownanie z wartosciami tabeli oczekiwan (cale liczby, nie podciagi napisu; braki z tabeli)
+    ek["R29"] = ocen([kk, pop], poprawki_na_ekranie(pop, ocz["R29"][0]) and kk is not None
+                     and all(str(q[0]) not in kk for q in ocz["R29"][0]),
+                     "po 'Zamknij piec' 3: napis rano_poprawki zawiera kuwete i zeby KAZDEJ oczekiwanej poprawki (cale liczby); "
+                     "kuwety poprawki nie ma w tabela_kompletne")
+    ek["R30"] = ocen([bz], bz == braki_oczekiwane(ocz["R30"][0]),
+                     "po 'Zamknij piec' 3: tabela_braki_biezace = oczekiwane braki (puste; listy 'do dofrezowania' ekran poranny "
+                     "nie pokazuje - ta czesc wiersza tylko z API)")
     p.restart()
     r = p.rano
     w["R31"] = [T.skrot_wyniku(r.wynik_pieca(i)) for i in (1, 2, 3)]
@@ -755,7 +771,7 @@ def scenariusz(p: Przebieg, w: dict, ek: dict, zrodla: dict) -> None:
              "rano_poprawki": p.e.tekst("ostatni_rano_poprawki"), "rano_wynik_tytul": p.e.tekst("ostatni_rano_wynik_tytul")}
     kk, bb, pop = kuwety_ekranu(o["tabela_kompletne"]), braki_ekranu(o["tabela_braki"]), o["rano_poprawki"]
     piec3 = ocz["R31"][2]
-    zgodny3 = kk == piec3[1] and bb == braki_oczekiwane(piec3[2]) and pop is not None and "3301" in pop and "21" in pop
+    zgodny3 = kk == piec3[1] and bb == braki_oczekiwane(piec3[2]) and poprawki_na_ekranie(pop, ocz["R29"][0])
     ek["R31"] = ocen([kk, bb, pop], zgodny3, "po restarcie ekran pokazuje tylko ostatni zamkniety piec (3): tabela_kompletne, "
                                              "tabela_braki, rano_poprawki; piecow 1 i 2 (poprzednia doba) ekran nie pokazuje")
     if ek["R31"]["ekran"] == "tak":

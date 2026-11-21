@@ -17,6 +17,11 @@ Kody wyjscia: kod pytest (0 = testy przeszly), gdy caly kod programu pochodzil z
 najmniej 1 modul programu zostal zaladowany z repo (wynik testow nie dotyczy wtedy w calosci programu z paczki); 2 = blad
 uzycia (katalog biezacy nie jest katalogiem programu, brak pytest).
 
+Plik ustawien domyslnych: testy, ktore wolaja ``wczytaj_ustawienia()`` bez sciezki, w repo czytaja ``<ST>\\ustawienia.toml``
+(kopia pliku przykladowego). W instalacji takiego pliku w katalogu programu nie ma - skrypt ustawia w procesie testow stala
+``stanowisko.ustawienia.PLIK_USTAWIEN`` na plik z ``<ST>`` (gdy istnieje) i wypisuje to w wyniku; plikow instalacji nie
+zmienia. Bez tego takie testy koncza sie bledem "brak pliku ustawien" (stwierdzone 21.11 na ``test_silnik.py``).
+
 Ograniczenie (zapisane w wyniku): procesy potomne zakladane przez testy (ramka w osobnym procesie, proces roboczy silnika
 zakladany przez ``multiprocessing``) importuja kod sami - gdy test podaje im katalog ``<ST>``, biora kod z repo. Skrypt tego
 nie widzi; dla takich testow zgodnosc kodu potwierdza tylko wiersz "pliki instalacji = repo".
@@ -79,6 +84,18 @@ def main(argv: list[str] | None = None) -> int:
     for nazwa in PAKIETY:  # zaladowane przed pytest: conftest testow nie podmieni ich juz na kod z repo
         if (program / nazwa / "__init__.py").is_file():
             importlib.import_module(nazwa)
+    # Testy, ktore czytaja ustawienia domyslne, w repo dostaja plik <ST>\ustawienia.toml (kopia pliku przykladowego - T1
+    # krok 2); w instalacji takiego pliku w katalogu programu nie ma (ustawienia leza w <K>). Stala ze sciezka pliku
+    # domyslnego jest ustawiana TYLKO w tym procesie testow na plik z <ST>; instalacja zostaje bez zmian.
+    ustawienia_testow = "bez zmian (brak <ST>\\ustawienia.toml albo stalej PLIK_USTAWIEN)"
+    try:
+        from stanowisko import ustawienia as modul_ustawien
+
+        if (st / "ustawienia.toml").is_file() and hasattr(modul_ustawien, "PLIK_USTAWIEN"):
+            modul_ustawien.PLIK_USTAWIEN = st / "ustawienia.toml"
+            ustawienia_testow = "<ST>\\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)"
+    except ImportError:
+        pass
     kod = int(pytest.main(reszta))
 
     z_instalacji, z_repo, testy = [], [], 0
@@ -116,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
              + (f" ({', '.join(z_repo[:20])})" if z_repo else "") + f", modulow testow z repo {testy}; "
              f"pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: {rowne} z {rowne + rozne + brak}"
              + (f"; ROZNE {rozne}: {', '.join(rozne_lista[:10])}" if rozne else "") + (f"; bez odpowiednika w repo {brak}" if brak else ""),
+             f"plik ustawien domyslnych w testach: {ustawienia_testow}",
              "ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow",
              f"WERDYKT ZRODLA KODU: {werdykt}"]
     tekst = "\n".join(linie) + "\n"
