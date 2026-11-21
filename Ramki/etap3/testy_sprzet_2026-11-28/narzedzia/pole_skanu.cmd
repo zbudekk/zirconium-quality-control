@@ -22,8 +22,14 @@ set /p NR=Numer wybity na plytce, cyfra 1-9 (sam Enter = nie wiem):
 set "OPCJA="
 for %%D in (1 2 3 4 5 6 7 8 9) do if "%NR%"=="%%D" set "OPCJA=--numer %%D"
 if not "%NR%"=="" if "%OPCJA%"=="" echo To nie jest cyfra 1-9 - licze bez numeru plytki.
+rem N7 (E3-S2b-1): co NAPRAWDE lezalo na stoliku - trafia do pliku wyniku (pole opis_czlowieka); cudzyslowy sa usuwane.
+set "OPIS="
+set /p OPIS=Co lezy na stoliku? Np. okr-ramk 2, dolki zaklejone / karton. Bez nazwisk (sam Enter = pomin):
+if defined OPIS set "OPIS=%OPIS:"=%"
+set "OPCJA2="
+if defined OPIS set OPCJA2=--opis "%OPIS%"
 echo Licze... (kilkanascie sekund)
-call "%ST%\Polecenie.cmd" "%TU%pole_skanu.py" "%~f1" %OPCJA% --ustawienia "%ST%\ustawienia.toml" --wynik "%WYN%"
+call "%ST%\Polecenie.cmd" "%TU%pole_skanu.py" "%~f1" %OPCJA% %OPCJA2% --ustawienia "%ST%\ustawienia.toml" --wynik "%WYN%"
 set "KOD=%errorlevel%"
 echo.
 echo Kod: %KOD% (0 = plytka rozpoznana, 3 = plytki nie rozpoznano - liczby zgrubne, 2 = blad pliku)
