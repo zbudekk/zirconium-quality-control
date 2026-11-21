@@ -20,11 +20,14 @@ Uzycie (zawsze z KATALOGU PROGRAMU - tego, w ktorym lezy pakiet ``stanowisko`` -
 
 Wynik: ``<wyjscie>/t3_wynik.json`` (wiersze: nr, opis, oczekiwane, faktyczne, zgodny, ekran; liczniki; czas; wersja programu;
 interpreter; platforma Qt; lista czynnosci) i ``<wyjscie>/t3_wynik.txt`` (tabela 32 wierszy PASS / FAIL + podsumowanie).
-Ostatni wiersz stdout: "SE10 przez ekran: n z 32 wierszy zgodnych; listy kompletnych i brakow z ekranu: m z k".
+Liczba "n z 32" jest liczona z tego, co POKAZUJE ekran: wiersz, ktorego wartosc z API sesji jest zgodna, ale odczyt ekranu to
+"nie" albo "nie odczytano", ma wynik "FAIL (ekran)" i NIE liczy sie do n (liczba wg samego API jest podana obok).
+Dwa ostatnie wiersze stdout: "SE10 przez ekran: n z 32 wierszy zgodnych ...; listy kompletnych i brakow z ekranu: m z k" oraz
+"WERDYKT T3: ZAL / ZAL z odstepstwem O5 / FAIL (n z 32; ekran: tak a, czesciowo b, nie dotyczy c, nie d, nie odczytano e)".
 W wyniku i na stdout sa tylko numery kuwet, zeby i skroty sha16 - zadnych nazw folderow ani plikow zlecen.
 
 Kody wyjscia: 0 = scenariusz doszedl do konca i plik wyniku zapisany (takze gdy n < 32 - liczba jest w pliku i w ostatnim
-wierszu stdout); 1 = tylko z ``--wymagaj-100``: scenariusz doszedl do konca, ale n < 32; 2 = blad sterownika, scenariusz
+wierszu stdout); 1 = tylko z ``--wymagaj-100``: scenariusz doszedl do konca, ale n < 32 (takze przez "FAIL (ekran)"); 2 = blad sterownika, scenariusz
 przerwany (wiersze niepoliczone = "nie policzono" z powodem) albo limit czasu (wynik czesciowy zapisuje watek-straznik).
 
 Co jest PRAWDZIWE:
@@ -590,6 +593,18 @@ def braki_oczekiwane(braki: list) -> list:
     return [(kuweta, ", ".join(zab for zab, _ in zeby)) for kuweta, zeby in braki]
 
 
+def poprawki_na_ekranie(napis, poprawki: list) -> bool:
+    """Czy napis poprawek z ekranu zawiera KAZDA oczekiwana poprawke: numer kuwety i kazdy zab jako cale liczby (nie podciagi)."""
+    if napis is None or not poprawki:
+        return False
+    liczby = set(re.findall(r"[0-9]+", str(napis)))
+    for poprawka in poprawki:
+        wymagane = set(re.findall(r"[0-9]+", str(poprawka[0]))) | set(re.findall(r"[0-9]+", str(poprawka[1])))
+        if not wymagane or not wymagane <= liczby:
+            return False
+    return True
+
+
 def ocen(odczyty: list, zgodne: bool, opis: str) -> dict:
     """Wpis kolumny "ekran": ``odczyty`` - wartosci odczytane z okna (None = nie odczytano)."""
     if any(o is None for o in odczyty):
@@ -736,10 +751,14 @@ def scenariusz(p: Przebieg, w: dict, ek: dict, zrodla: dict) -> None:
     w["R30"] = (T.braki_skrot(r.braki()), T.lista_dofrez(p.sesja), p.stan_punktu("X13"))
     kk, bz, pop = kuwety_ekranu(o["tabela_kompletne"]), braki_ekranu(o["tabela_braki_biezace"]), o["rano_poprawki"]
     ek["R28"] = ocen([kk], kk == ocz["R28"], "po 'Zamknij piec' 3: tabela_kompletne (kuwety)")
-    ek["R29"] = ocen([kk, pop], pop is not None and "3301" in pop and "21" in pop and kk is not None and "3301" not in kk,
-                     "po 'Zamknij piec' 3: napis rano_poprawki zawiera kuwete 3301 i zab 21; 3301 nie ma w tabela_kompletne")
-    ek["R30"] = ocen([bz], bz == [], "po 'Zamknij piec' 3: tabela_braki_biezace pusta (listy 'do dofrezowania' ekran poranny "
-                                     "nie pokazuje - ta czesc wiersza tylko z API)")
+    # uwaga 19 recenzji: porownanie z wartosciami tabeli oczekiwan (cale liczby, nie podciagi napisu; braki z tabeli)
+    ek["R29"] = ocen([kk, pop], poprawki_na_ekranie(pop, ocz["R29"][0]) and kk is not None
+                     and all(str(q[0]) not in kk for q in ocz["R29"][0]),
+                     "po 'Zamknij piec' 3: napis rano_poprawki zawiera kuwete i zeby KAZDEJ oczekiwanej poprawki (cale liczby); "
+                     "kuwety poprawki nie ma w tabela_kompletne")
+    ek["R30"] = ocen([bz], bz == braki_oczekiwane(ocz["R30"][0]),
+                     "po 'Zamknij piec' 3: tabela_braki_biezace = oczekiwane braki (puste; listy 'do dofrezowania' ekran poranny "
+                     "nie pokazuje - ta czesc wiersza tylko z API)")
     p.restart()
     r = p.rano
     w["R31"] = [T.skrot_wyniku(r.wynik_pieca(i)) for i in (1, 2, 3)]
@@ -752,7 +771,7 @@ def scenariusz(p: Przebieg, w: dict, ek: dict, zrodla: dict) -> None:
              "rano_poprawki": p.e.tekst("ostatni_rano_poprawki"), "rano_wynik_tytul": p.e.tekst("ostatni_rano_wynik_tytul")}
     kk, bb, pop = kuwety_ekranu(o["tabela_kompletne"]), braki_ekranu(o["tabela_braki"]), o["rano_poprawki"]
     piec3 = ocz["R31"][2]
-    zgodny3 = kk == piec3[1] and bb == braki_oczekiwane(piec3[2]) and pop is not None and "3301" in pop and "21" in pop
+    zgodny3 = kk == piec3[1] and bb == braki_oczekiwane(piec3[2]) and poprawki_na_ekranie(pop, ocz["R29"][0])
     ek["R31"] = ocen([kk, bb, pop], zgodny3, "po restarcie ekran pokazuje tylko ostatni zamkniety piec (3): tabela_kompletne, "
                                              "tabela_braki, rano_poprawki; piecow 1 i 2 (poprzednia doba) ekran nie pokazuje")
     if ek["R31"]["ekran"] == "tak":
@@ -790,21 +809,33 @@ def zbuduj_wynik(T, w: dict, ek: dict, zrodla: dict, raport: dict) -> dict:
         e = ek.get(nr) if nr in WIERSZE_LIST else None
         if nr in WIERSZE_LIST and e is None:
             e = {"ekran": "nie odczytano", "opis": "scenariusz przerwany przed odczytem", "odczyt": None}
+        # P3 recenzji: wiersz liczy sie jako zgodny tylko wtedy, gdy zgadza sie takze to, co POKAZUJE ekran - odczyt ekranu
+        # "nie" albo "nie odczytano" daje wynik "FAIL (ekran)", choc wartosc z API sesji jest zgodna
+        ekran_zly = bool(e) and e["ekran"] in ("nie", "nie odczytano")
         wiersze.append({"nr": nr, "opis": opis, "oczekiwane": oczekiwane, "faktyczne": w.get(nr) if policzony else None,
-                        "zgodny": zgodny, "wynik": "PASS" if zgodny else "FAIL" if policzony else "nie policzono",
+                        "zgodny": zgodny, "zgodny_wg_api": zgodny,
+                        "wynik": "nie policzono" if not policzony else "FAIL" if not zgodny else "FAIL (ekran)" if ekran_zly else "PASS",
                         "powod": None if policzony else f"scenariusz przerwany: {blad}",
                         "ekran": e["ekran"] if e else "-", "ekran_opis": e["opis"] if e else None,
                         "ekran_odczyt": e["odczyt"] if e else None, "zrodlo": zrodla.get(nr)})
-    n = sum(1 for x in wiersze if x["zgodny"])
+    n = sum(1 for x in wiersze if x["wynik"] == "PASS")
     stany = [x["ekran"] for x in wiersze if x["nr"] in WIERSZE_LIST]
     m, k = stany.count("tak"), len(stany) - stany.count("nie dotyczy")
     raport = dict(raport)
-    raport["liczniki"] = {"wierszy": len(wiersze), "zgodnych": n, "niezgodnych": sum(1 for x in wiersze if x["zgodny"] is False),
+    raport["liczniki"] = {"wierszy": len(wiersze), "zgodnych": n, "niezgodnych": sum(1 for x in wiersze if x["wynik"].startswith("FAIL")),
+                          "zgodnych_wg_api": sum(1 for x in wiersze if x["zgodny"]),
+                          "niezgodnych_tylko_ekran": sum(1 for x in wiersze if x["wynik"] == "FAIL (ekran)"),
                           "nie_policzono": sum(1 for x in wiersze if x["zgodny"] is None),
                           "listy_z_ekranu": {s: stany.count(s) for s in ("tak", "nie", "nie odczytano", "czesciowo", "nie dotyczy")},
                           "listy_z_ekranu_tak": m, "listy_z_ekranu_z": k}
-    raport["podsumowanie"] = (f"SE10 przez ekran: {n} z {len(wiersze)} wierszy zgodnych; "
-                              f"listy kompletnych i brakow z ekranu: {m} z {k}")
+    ls = raport["liczniki"]["listy_z_ekranu"]
+    werdykt = "FAIL" if n < len(wiersze) or blad else "ZAL z odstepstwem O5" if ls["czesciowo"] or ls["nie dotyczy"] else "ZAL"
+    raport["werdykt"] = werdykt
+    raport["podsumowanie"] = (f"SE10 przez ekran: {n} z {len(wiersze)} wierszy zgodnych (wiersz z odczytem ekranu 'nie' / 'nie odczytano' "
+                              f"= niezgodny); wg samego API sesji {raport['liczniki']['zgodnych_wg_api']} z {len(wiersze)}; "
+                              f"listy kompletnych i brakow z ekranu: {m} z {k}" + chr(10) +
+                              f"WERDYKT T3: {werdykt} ({n} z {len(wiersze)}; ekran: tak {ls['tak']}, czesciowo {ls['czesciowo']}, "
+                              f"nie dotyczy {ls['nie dotyczy']}, nie {ls['nie']}, nie odczytano {ls['nie odczytano']})")
     raport["wiersze"] = wiersze
     return raport
 
@@ -817,7 +848,10 @@ def zapisz_wynik(T, wyjscie: Path, w: dict, ek: dict, zrodla: dict, raport: dict
     for x in wynik["wiersze"]:
         linie.append(f"{x['nr']:<4} {x['wynik']:<13} {x['ekran']:<14} {x['opis']}")
     for x in wynik["wiersze"]:
-        if x["wynik"] == "FAIL":
+        if x["wynik"] == "FAIL (ekran)":
+            linie.append(f"  {x['nr']} FAIL (ekran): wartosc z API zgodna, ekran pokazuje co innego - {x['ekran_opis']}; odczyt: "
+                         f"{json.dumps(x['ekran_odczyt'], default=str)}")
+        elif x["wynik"] == "FAIL":
             linie += [f"  {x['nr']} oczekiwane: {json.dumps(x['oczekiwane'], default=str)}",
                       f"  {x['nr']} faktyczne:  {json.dumps(x['faktyczne'], default=str)}"]
         elif x["wynik"] == "nie policzono":

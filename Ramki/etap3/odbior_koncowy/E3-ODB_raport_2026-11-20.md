@@ -318,3 +318,114 @@ Zmian w plikach poza zakresem nie potrzebuje. Do decyzji / zrobienia przez koord
   zamkniecie czyste, 0 procesow potomnych do zabicia).
 - Sekcji 1-9 tego raportu (etap 1) nie przepisywalem: tam, gdzie mowia "brak B1 / B2", "POTRZEBUJE 1-7", "zostaly 3
   miejsca do potwierdzenia", obowiazuje stan z sekcji 10.
+
+## 11. Runda 1 recenzji PR #44 (21.11.2026, 00:41 - ok. 01:35): poprawki uwag 1-28
+
+Podstawa: raport recenzenta PR #44 runda 1 (B 2 / P 9 / D 17) i 8 decyzji koordynatora. Kod programu do prob: kopia
+repo `main` bcd0678 + P15 (commit f5c3e01, tylko odczyt) oraz instalacja probna z paczki zbudowanej z tego commita
+(`<PC-katalog>\t0\proba\Stanowisko`, wersja 0.3.1 - zalozona przez wykonawce "proba generalna", uzywana tylko do
+uruchamiania). Dane i wyniki prob: katalog roboczy paczki poza repo (`robocze\odb\`, pliki `r3_*`, `inst\`, `t9\`,
+`t12\`). Czesc T9 (uwagi 2, 7, 8, 24) i T12 czesc B (uwaga 11) wykonal jeden pomocnik; oba narzedzia uruchomilem sam
+przed commitem (T9: powtorka 12 wstrzykniec; T12: `--help` i odmowa kodem 2). Pelnego pytest nie uruchamialem (paczka
+nie zmienia programu ani testow programu).
+
+### 11.1 Tabela uwag
+
+| Nr | Waga | Co zrobiono | Dowod (proba z liczba) | Commit |
+|---|---|---|---|---|
+| 1 | B | `t2_wieczor.py`: po pojawieniu sie plytki przyjetej sterownik czyta kolor KAZDEJ pracy z obrazu mapy (piksel gniazda -> klasa wg tabeli statusow) przed kliknieciami; "Ukruszona" tylko na pracach z ubytkiem wg prawdy pokazanych na czerwono / zolto; zielona = przeoczona, nieklikana -> lista != prawda -> FAIL z licznikiem; cala na czerwono = falszywy alarm, klikniecie "OK". Ochrona klikniec mapy (A-P2, E3-P15): czekanie, kontrola `widok.praca_id` przed decyzja, ponowienia liczone. Odstepstwo O13, decyzja nr 18 w `RAPORT.md`; plan T2 przepisany | (a) kopia repo `main` + P15, 3 plytki co 5 s: 3 z 3; ubytki 12: czerwone 5, zolte 7, zielone 0; cale 15: czerwone 0; lista = prawda TAK; "Ukruszona" 12 z 12; ponowien 0, czekan na ochrone 2; kod 0. (b) to samo na instalacji probnej z paczki: te same liczby, kod 0. (c) wstrzykniecie w KOPII pliku prawdy plytki nr 1 (ubytek dopisany pracy w gniezdzie 5, ktora program pokazuje na zielono; ubytek zdjety z pracy czerwonej w gniezdzie 6): nowy sterownik - lista FAIL (oczekiwanych 6, w programie 5, przeoczona 1 z 6), "OK" 1 z 1, kod 1 z `--wymagaj-zal`; sterownik 6e2fb0b na tych samych danych - "lista: ZAL", kod 0 | c59d130 |
+| 2 | B | `t9_dane_osobowe.py`: szukanie bez wielkosci liter (takze spoza ASCII) i bez znakow diakrytycznych, w UTF-8, cp1250, UTF-16 LE, `\uXXXX` (cyfry male i wielkie); samotest na starcie (kod 2 = NIE ZMIERZONO); opis w planie poprawiony | 12 wstrzykniec na nazwach sztucznych, kazde osobnym przebiegiem: wersja 6e2fb0b wykrywa 3 z 12, nowa 12 z 12 (powtorzone przeze mnie: 12 z 12); 2 pliki kontrolne: kod 0; samotest: 241 postaci, 0 nieznalezionych; popsuty na 3 sposoby: kod 2 w 3 z 3 | 7f94c2d |
+| 3 | P | `t3_poranek.py`: wiersz z odczytem ekranu "nie" / "nie odczytano" = "FAIL (ekran)", nie liczy sie do n; `--wymagaj-100` zwraca 1 takze wtedy; ostatni wiersz "WERDYKT T3: ZAL / ZAL z odstepstwem O5 / FAIL (n z 32; ekran: ...)" | kopia repo: 32 z 32, kod 0, "ZAL z odstepstwem O5" (ekran: tak 8, czesciowo 1, nie dotyczy 1); instalacja probna: to samo, kod 0; wstrzykniecie recenzenta (znieksztalcony odczyt tabeli ekranu): 27 z 32, 5 x "FAIL (ekran)", kod 1 - przed poprawka 32 z 32, kod 0 | 799087f |
+| 4 | P | Plan: T8 - bazy `<ROB T2>\t2\dane\stanowisko.sqlite` i `<ROB T3>\t3\baza\stanowisko.sqlite`; T5 B4 - polecenie sterownika T2 z `--wybierz 1,3,8`; T7 B2 / B3 - polecenia `Stanowisko.cmd` + `symulator_skanera.py` + sposob ustalenia PID | T8: oba polecenia `raport_metryk.py` wykonane na instalacji probnej na bazach prob T2 i T3 (kod 3 i 3 = "ponizej progu", pliki JSON powstaly), `sql_odczyt.py` kod 0. **T5 B4, T7 B2 i B3: polecenia NIE byly wykonane** (opisane w planie jako niewykonane) | 8ad4d65 |
+| 5 | P | Nowe narzedzie `pytest_instalacja.py`: testy z repo na kodzie programu z instalacji (pakiety `stanowisko`, `ramka` i skrypty `narzedzia` ladowane z katalogu programu wersji; po testach licznik modulow z instalacji / z repo i porownanie plikow); T5 czesc A, T6, T7 czesc A przepisane na to narzedzie; O8 w pelnym brzmieniu, nowe O14 | instalacja probna: zwykly `Polecenie.cmd -m pytest` laduje `stanowisko` z REPO (wypisana sciezka modulu); przez narzedzie: T6 `test_excel.py` 129 x PASSED, kod 0, "INSTALACJA" (17 modulow, 0 z repo; pliki 79 z 79 rowne); T5 A polecenie 1: 20 x PASSED, kod 0, "INSTALACJA" (K5: 500 z 500, 0 powtorek); T7 przypadek 6 (`test_d1`): kod 0, "INSTALACJA". Pierwsza wersja narzedzia dala kod 3 ("REPO: 2 moduly" - skrypty `narzedzia`) - poprawione. `test_silnik.py` (T7 przypadek 1) na instalacji: 2 passed, 1 error "brak pliku ustawien" (katalog programu wersji nie ma `ustawienia.toml`) - narzedzie ustawia teraz w procesie testow plik ustawien domyslnych z `<ST>`; po poprawce narzedzia: kod 0; 3 passed, 66 deselected in 85.59s (0:01:25); WERDYKT ZRODLA KODU: INSTALACJA; `test_excel.py` powtorzony po tej zmianie: kod 0; 129 passed in 23.50s. **Nie zrobiono:** pomiaru 5 potwierdzen / restartu / Spacji na programie z paczki pod adresem karty PC (czesc B) - adres 127.0.0.1 jest wpisany w testach (9 / 17 / 6 miejsc w 3 plikach) | 8ad4d65 |
+| 6 | P | Plan T11: 40 skanow (`--zrodla P2 P3a --ile 40`, `--zamknij-po 2100`), regula "`uklad` z bazy = `plytka` z prawdy" (bez doklejania `_r54`), odsylacz do pozycji 7 scenariusza T2 przy pustym liczniku "zielone przy zlym"; druga galaz kryterium = pozycja do decyzji wlasciciela (O6); wynik najwyzej "ZAL z odstepstwem O6" | `symulator_skanera.py --help` na instalacji: `--zrodla [ZRODLA ...]` (wiele katalogow); czesc A z `--limit 2` na instalacji: kod 0; 2 zapytania `sql_odczyt.py`: kod 0. **Czesc B (40 skanow, ok. 35 min) NIE byla wykonana** | 8ad4d65 |
+| 7 | P | `t9_dane_osobowe.py`: czlon sciezki zawierajacy nazwe albo czlon nazwy wypisywany jako `<sha16:...>` | wstrzykniecia 09, 10, 12 (czlon w nazwie pliku / katalogu): wersja 6e2fb0b wypisuje czlon w 1 z 12 przebiegow, nowa w 0 z 12; kontrola dowodow tym samym zestawem wariantow: 0 z 11 czlonow | 7f94c2d |
+| 8 | P | Plan T9: krok 2 z `--dozwolone` (bazy, kopie, log Excela, surowe wyniki T4 / T10) i `--wyklucz \zrodla\`; krok 5 z `\kopie\`; wyniki przez `--wynik` (ASCII + LF). Odstepstwo od tekstu decyzji: zamiast `--dozwolone stanowisko.` sa `stanowisko.sqlite` + `stanowisko.kopia_` - wzor `stanowisko.` obejmowal `logi\stanowisko.log` i dawal falszywe ZAL (proba: kod 0 przy nazwie w logu) | kroki 1-5 wykonane (krok 1 na worktree paczki: kod 0, 14 s; kroki 2-5 na danych sztucznych: kod 0); proby ujemne z nazwa w logu: kod 1 w krokach 2 i 5 | 8ad4d65 |
+| 9 | P | Nowe narzedzie `dowody_lf.py` (CRLF -> LF, znaki spoza ASCII -> ASCII z licznikiem, pliki zakazane); regula w "Zasadach" planu i w T13 | 4 logi prob z przekierowania `cmd`: 3 z 4 z CR (189, 28, 5) - po `--napraw` 0; plik `.sqlite` w katalogu dowodow = "ZAKAZANY", kod 1; po usunieciu kod 0 | 8ad4d65 |
+| 10 | P | `T14/README.md`: "22 z 22", bez znacznikow "do potwierdzenia", polecenie w postaci `--sprawdz --program .` z `QT_QPA_PLATFORM`; w planie krok po T0 z dowodem `t14_sprawdz_paczka.txt` | 9 sciezek z tabeli README istnieje w `main` bcd0678 (listowanie); polecenie wykonane w probie generalnej na instalacji z paczki: "zgodne 22 z 22 krokow", kod 0, 8,3 s | 8ad4d65 |
+| 11 | P | Nowe narzedzie `t12_paczka_migracja.py` (paczka probna z `WERSJA_SCHEMATU` + 1 z kopii drzewa; repo bez zmian) i polecenia `cmd` czesci B w planie (8 krokow) z regula wyniku: "jedno polecenie" ocenia czesc A, powrot po migracji w 2 poleceniach = decyzja wlasciciela | scenariusz wykonany raz w osobnej instalacji (2 min 45 s): kody 11 z 11 zgodne (10, 0, 0, 0, 0, 0, 8, 0, 0 + 2 polecenia budowy); `user_version` 1 -> 2 -> 1; zdarzen 4 -> 7 -> 4. **Stwierdzone:** suma SHA-256 calego pliku kopii != suma pliku bazy sprzed aktualizacji (0 z 2 prob; roznica tylko w 100-bajtowym naglowku SQLite, tresc identyczna) - kryterium w planie zmienione na "rozmiar + skrot tresci bez naglowka" i dopisane do O2 | 8ad4d65 |
+| 12 | D | poprawione: liczba prac programu = liczba prac prawdy w "zgodnie z prawda" dla plytek przyjetych | proby T2: 9 / 9 x 3 | c59d130 |
+| 13 | D | poprawione: werdykty "mapa" i "okno" przy pomiarze przerwanym = "NIE ZMIERZONO (pomiar przerwany; czesciowo: ...)" | proba `--limit 25`: kod 3; okno "NIE ZMIERZONO (pomiar przerwany; czesciowo: przekroczen 0)"; procesow po sprzataniu 0 | c59d130 |
+| 14 | D | poprawione: wiersz "T2 LACZNIE" + opcja `--wymagaj-zal` (kod 1) | wstrzykniecie z uwagi 1: kod 1 | c59d130 |
+| 15 | D | poprawione: `RAPORT.md` sekcja 4a poz. 15 | przeglad | 8ad4d65 |
+| 16 | D | poprawione: `PY -I <ODB>\narzedzia\...` (4 miejsca) | `sql_odczyt.py` przez `PY -I`: kod 0 | 8ad4d65 |
+| 17 | D | poprawione: `-rs` w kroku 4 T1 | polecenie z `-rs` wykonane w probie generalnej | 8ad4d65 |
+| 18 | D | poprawione: T4 - szczyt okna "wg raportu E3-A5, nie mierzone w odbiorze" | przeglad | 8ad4d65 |
+| 19 | D | poprawione: R29 - kuweta i zeby KAZDEJ oczekiwanej poprawki z tabeli oczekiwan jako cale liczby w napisie ekranu (nie podciagi); R30 - braki z tabeli oczekiwan; R31 - ta sama regula poprawek dla pieca 3 (wynik R31 zostaje "czesciowo": ekran pokazuje tylko ostatni piec - O5) | kopia repo: 32 z 32, kod 0; wstrzykniecie (numer kuwety w napisie poprawek znieksztalcony tak, ze stary podciag nadal pasuje): wersja koncowa 31 z 32, R29 "FAIL (ekran)", kod 1; wersja sprzed poprawki 32 z 32, kod 0 | commit koncowy rundy |
+| 20 | D | poprawione: `RAPORT.md` sekcja 4a poz. 6 | proby T3: pytania nie bylo w 3 z 3 przebiegow | 8ad4d65 |
+| 21 | D | poprawione: `sql_odczyt.py` odrzuca UNION / INTERSECT / EXCEPT i drugi SELECT przy tabelach z nazwami; blad SQL -> "BLAD", kod 2 | 8 z 8 prob na sztucznej bazie (2 obejscia recenzenta: kod 2, 0 nazw w wyjsciu; blad SQL: kod 2 bez sladu bledu) | commit raportu rundy |
+| 22 | D | poprawione: `t13_higiena.py` zglasza bajty NUL w pliku spoza listy binarnych / danych i liczy samotne CR | 5 z 5 przypadkow; na kopii repo f5c3e01: 0 falszywych "NUL", **1 nowe naruszenie w programie** (patrz POTRZEBUJE 1) | commit raportu rundy |
+| 23 | D | czesciowo: O10 doprecyzowane w `RAPORT.md` (poziom katalogow, pliki nietykalne niewyroznione). **D odlozone**: osobna grupa `NIETYKALNE` w narzedziu - wymaga ustalenia z historii PR, ktore zmiany plikow nietykalnych byly w zakresie paczek (praca koordynatora) | przeglad | 8ad4d65 |
+| 24 | D | poprawione: `--repo` czyta tez historie `--od..HEAD` (`git log -p`); werdykt "ZAL - czlony do wyjasnienia: N" | worktree paczki: 560 commitow, kod 0, 14 s | 7f94c2d |
+| 25 | D | poprawione: `ODLOZONE.md` - "pomiar paczki A8 / A8i / A9; wynik testu koncowego w `RAPORT.md`" | przeglad | 8ad4d65 |
+| 26 | D | poprawione: regula "ZAL z odstepstwem" (osobna wartosc, osobny licznik, sekcja 4a) - decyzja koordynatora nr 7 | przeglad | 8ad4d65 |
+| 27 | D | poprawione: T8 - "brak danych" w raporcie = 0 z 0 recznie = zgodne | przeglad | 8ad4d65 |
+| 28 | D | bez zmian w paczce (plik poza zakresem): na f5c3e01 naruszenie `ui/kandydaci.py` juz nie wystepuje (proba generalna: 0 naruszen) | T13 na f5c3e01 | - |
+
+Razem: B 2 z 2 zamkniete; P 9: zamkniete 6 (3, 7, 8, 9, 10, 11), zamkniete w planie i narzedziu, ale z poleceniami
+niewykonanymi ani razu 3 (4: T5 B4, T7 B2 / B3; 5: T5 czesc B na programie z paczki; 6: T11 czesc B); D 17: poprawione
+15, czesciowo 1 (23 - czesc narzedziowa odlozona), bez zmian 1 (28).
+
+### 11.2 Proby po zmianach (liczby)
+
+| Proba | Gdzie | Wynik |
+|---|---|---|
+| T2 skrocona, 3 plytki co 5 s | kopia repo `main` + P15 | 3 z 3 zgodnie z prawda; kolory: ubytki 12 = czerwone 5 / zolte 7 / zielone 0; cale 15 = zielone 15; lista = prawda TAK; kod 0; start analizy 0,371 / 36,8 / 50,2 s i mapa mediana 56,2 s (FAIL obu - odstep 5 s, proba skrocona) |
+| T2 skrocona, 3 plytki co 5 s | instalacja probna z paczki | 3 z 3; czerwone 5 / zolte 7 / zielone 0; lista = prawda TAK; ponowien 0, czekan na ochrone mapy 2; kod 0 |
+| T2 wstrzykniecie w prawdzie (1 plytka) | kopia repo | nowy: lista FAIL (1 z 6 przeoczona), "OK" 1 z 1, kod 1; stary 6e2fb0b: lista ZAL, kod 0 |
+| T2 limit 25 s | kopia repo | kod 3; 4 x NIE ZMIERZONO; procesow po sprzataniu 0 |
+| T3 caly | kopia repo i instalacja probna | 32 z 32 (2 z 2 przebiegow), kod 0 |
+| T3 wstrzykniecie ekranu | kopia repo | 27 z 32, kod 1 (wykryte 1 z 1) |
+| T9 wstrzykniecia | dane sztuczne | 12 z 12 (stara wersja 3 z 12) |
+| `pytest_instalacja.py` | instalacja probna | 3 przebiegi: kod 0, "INSTALACJA" (po poprawce narzedzia) |
+| T12 czesc B | osobna instalacja | kody 11 z 11 zgodne |
+| T10 `--limit 2` | instalacja probna | kod 0, 68 s; sekcja `zbiorczo` potwierdzona; wyrownanie 2 z 2; top-1 "dobrze" 19 z 19; prace cale z czerwonym 0 z 5 |
+| T3 wstrzykniecie do uwagi 19 (numer kuwety w napisie poprawek znieksztalcony) | kopia repo | wersja koncowa: 31 z 32, R29 "FAIL (ekran)", kod 1; wersja sprzed poprawki uwagi 19: 32 z 32, kod 0 |
+| Testy planu przez `pytest_instalacja.py` (T5 A polecenie 2, T6 polecenie 3, T7 A przypadki 2-6) | instalacja probna | 7 przebiegow: kod 0 i "INSTALACJA" w 7 z 7 (4, 2, 3, 2, 3, 30, 4 passed) |
+| T8 `test_metryki.py`, T11 krok 4 | instalacja probna | kod 0: 106 passed; kod 0: 45 passed (121 s) |
+| T7 A przypadek 1, T2 testy uzupelniajace | instalacja probna | T7: kod 0; 2 passed, 27 deselected in 2.87s; zrodlo kodu: INSTALACJA / pierwszy przebieg kod 1 (2 passed, 1 error: brak pliku ustawien w katalogu programu wersji); po poprawce narzedzia kod 0; 3 passed, 66 deselected in 85.59s (0:01:25); zrodlo kodu: INSTALACJA; T2: kod 0; 2 passed, 27 deselected in 119.12s (0:01:59) / kod 0; 1 passed, 88 deselected in 10.01s |
+
+Wstrzykniecia recenzenta powtorzone: T3 ekran (tak), T9 nazwy (tak, rozszerzone do 12 postaci), T2 - zamiast 3
+wstrzykniec recenzenta do tabeli prawdy / petli (wykrywane juz przed poprawka) wykonano wstrzykniecie celujace w uwage 1
+(praca zielona z ubytkiem w prawdzie). Wstrzykniecia recenzenta nr 3 (T2: `sleep` w petli, zmiana oczekiwan) i nr 6-7
+(T3: zmiana oczekiwan, zmiana decyzji) NIE byly powtarzane na nowych wersjach.
+
+### 11.3 Odstepstwa do decyzji wlasciciela (pelna lista: `RAPORT.md` sekcja 4a, 15 pozycji)
+
+O1 (T0), O2 (T12, takze: kopia bazy rozni sie naglowkiem pliku; powrot po migracji w 2 poleceniach), O3 / O4 / O13 (T2),
+O5 (T3), O6 (T11), O7 (T4 / T2), O8 (T5), O9 (T6), O10 / O11 (T13), O12 (T7), O14 (T5-T7, T1). Nowe w tej rundzie: O13,
+O14; zmienione: O1, O2, O4, O6, O8, O10. Bez odstepstwa zostaja tylko T1, T8, T9, T10.
+
+### 11.4 POTRZEBUJE
+
+1. `Ramki/stanowisko/raporty/E3-A6_2026-11-18.md` (poza paczka): 1 samotny znak CR - po poprawce `t13_higiena.py`
+   (uwaga 22) T13 daje na f5c3e01 "FAIL (1 naruszen)". Potrzebna poprawka pliku albo decyzja koordynatora.
+2. `Ramki/stanowisko/testy/test_aplikacja.py::test_b1_blokada_znika_razem_z_procesem` (poza paczka; stwierdzone przez
+   probe generalna): pada zawsze interpreterem wersji (6 z 6) - T1 na instalacji z paczki nie da "0 failed".
+3. Decyzje wlasciciela do 15 pozycji sekcji 4a `RAPORT.md` (w tym: czy "ZAL z odstepstwem" zalicza koniec etapu).
+
+### 11.5 Przyjete domyslnie (runda 1)
+
+- Prac zoltych calych wg prawdy sterownik T2 nie klika (decyzja mowi o "OK" na czerwonych; lista od tego nie zalezy).
+- Praca z ubytkiem pokazana w kolorze innym niz czerwony / zolty / zielony (szary, pomaranczowy, nieodczytany piksel)
+  jest traktowana jak przeoczona (nieklikana) i liczona osobno jako "inne".
+- Kolor pracy = klasa koloru piksela z obrazu mapy (`mapa.grab()`), nie pole stanu; zgodnosc obu jest w wyniku (w
+  probach 0 roznic na 27 + 27 + 9 pracach).
+- `t13_higiena.py`: regula bajtow NUL nie obejmuje rozszerzen z listy plikow danych (STL, ZIP...) - te ocenia regula
+  danych; inaczej prace R58 / R59 dawaly 7 falszywych wierszy.
+
+### 11.6 Czego nie zrobiono (runda 1)
+
+- Polecen planu niewykonanych ani razu: lista pod tabela "Stan sprawdzenia polecen" w `PLAN_TESTOW.md` (T2 pelny (10 x 60 s); T4 pomiary; T5 czesc B; T7 czesc B (proby 1-3); T10 pelny; T11 czesc B (40 skanow przez aplikacje); T1 krok 5).
+- Narzedziowa czesc uwagi 23 (D) - odlozona, powod w tabeli.
+- Pomylka przy probie uwagi 19: jeden przebieg T3 zapisal wynik do katalogu obok katalogu roboczego paczki (blad cudzyslowu
+  w poleceniu powloki); katalog przenioslem do katalogu roboczego paczki (`r3_t3_p2`), nic innego nie zostalo zmienione.
+- Sterownik T2: pytania programu sa obslugiwane przed przegladem kazdej plytki, ale nie miedzy kolejnymi kliknieciami
+  decyzji tej samej plytki (kilka sekund) - nie zmienialem tego po probach.
+- Sekcje 1-10 tego raportu nie byly przepisywane: gdzie mowia "nie sprawdzone na instalacji z paczki", "18 z 18",
+  "do potwierdzenia po scaleniu", obowiazuje stan z sekcji 11.
+- Notatki proby generalnej przeczytane trzy razy (01:00, 01:16, 01:28 - stan koncowy proby); uwzglednione w planie: liczby T0 (210 z 210), dowod "bez internetu", `/python`, `<REPO>` z `core.autocrlf=false`, T1 (2212 testow; 1 test padajacy w
+  srodowisku wersji: `1 failed, 2202 passed, 9 skipped`), `psutil` w paczce, suma bazy po starcie programu, `count(*) FROM zdarzenia`,
+  `--atrapa` a kryterium startu, sciezki w wierszach `PASSED`. Nie przenioslem do planu uwag do instrukcji instalacji (poza zakresem paczki).
+- Instalacja probna: uzywana tylko do uruchamiania (wyniki w katalogu roboczym paczki); pliki `dane\` instalacji zmienione o 01:25 to
+  kontrola koncowa proby generalnej (`Stanowisko.cmd --zamknij-po 5` - jej notatki), nie przebiegi tej paczki.

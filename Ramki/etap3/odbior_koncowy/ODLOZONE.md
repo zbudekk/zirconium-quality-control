@@ -17,7 +17,7 @@ restartu; start ponizej 60 s.
 | Powod odlozenia | brak sprzetu: nie ma zlozonej ramki wieczornej ani porannej (Raspberry Pi, matryca diod, czujniki Halla, klawiatura, wkladka, plytki z magnesami). Czesci drukowane dopiero zamawiane (pakiety R59 i R58 z 19.11) |
 | Czego dokladnie brakuje | 2 zlozone ramki wg dokumentu "Budowa ramki - decyzje i zamienniki"; plytki z magnesami (kazdy uklad, ktory bedzie w uzyciu); siec lokalna albo hotspot, w ktorej laptop widzi obie ramki |
 | Warunek wznowienia | wlasciciel zglasza: "[cytat usuniety]" (wystarczy jedna ramka, zeby zaczac paczki C1 i C2) |
-| Co jest gotowe | program ramki (`Ramki/stanowisko/ramka/`, opis `ramka/README.md`) sprawdzony na atrapie sprzetu; strona laptopa (`indicate.py`); test T5 na atrapie (wynik w `RAPORT.md`): 5 z 5 potwierdzen, plan po restarcie, Spacja; raporty `E3-A8-ramka`, `E3-A8i`, `E3-A8p`, `E3-A12` |
+| Co jest gotowe | program ramki (`Ramki/stanowisko/ramka/`, opis `ramka/README.md`) sprawdzony na atrapie sprzetu; strona laptopa (`indicate.py`); test T5 na atrapie (pomiar paczek A8 / A8i: 5 z 5 potwierdzen, plan po restarcie, Spacja; wynik testu koncowego T5 - w `RAPORT.md`, gdy bedzie wykonany); raporty `E3-A8-ramka`, `E3-A8i`, `E3-A8p`, `E3-A12` |
 | Czego program jeszcze nie umie | kalibracja gniazdo -> diody na prawdziwej matrycy (paczka C2); program nie zna plytek okraglych ramkowych n1-n6 z R58 (otwarte po R58 nr 1) - osobna paczka programu przed T15, jesli ramki beda okragle |
 | Pierwszy krok po wznowieniu | paczka C1: uruchomic `python -m ramka --rola W --sprzet rpi` na Raspberry Pi i powtorzyc testy A8 na sprzecie (kazdy klawisz, odczyt plytki, start po wlaczeniu pradu); potem C2 (kalibracja), C3 = T15 |
 
@@ -43,7 +43,7 @@ trafnosc na 40 pracach co najmniej 85 %; z 10 znanych ubytkow co najmniej 8.
 | Powod odlozenia | brak danych: nie mamy 10 prawdziwych raportow MillBox ani kopii firmowego pliku Excela z historia kuwet; nie bylo proby na prawdziwym programie Excel (sterowanie przez COM wymaga zwyklej sesji przy ekranie) |
 | Czego dokladnie brakuje | (1) 10 raportow MillBox (HTML albo PDF) skopiowanych na PC poza repozytorium; (2) kopia pliku produkcyjnego Excela (nie oryginal) i lista 50 kuwet z historii z wlasciwymi wierszami; (3) komputer z Excelem i zalogowana osoba przy ekranie; (4) decyzja o kolorach pola B (otwarta u wlasciciela od 19.11) |
 | Warunek wznowienia | wlasciciel kopiuje raporty i kopie pliku do katalogu poza repo (np. `<PC-katalog>\d1`, `<PC-katalog>\d2`) i mowi, kto usiadzie przy Excelu na ok. 1 godzine |
-| Co jest gotowe | modul Excela w trybie "pytaj" i "cien" sprawdzony na sztucznym arkuszu 30 tys. wierszy (T6: 200 z 200, 0 zlych wierszy); wspolczynniki z pliku CSV i wpis reczny (paczka A4); log Excela wg reguly 6. Parser raportow MillBox (`millbox.py`) NIE istnieje - to paczka D1 |
+| Co jest gotowe | modul Excela w trybie "pytaj" i "cien" sprawdzony na sztucznym arkuszu 30 tys. wierszy (pomiar paczki A9: 200 z 200, 0 zlych wierszy; wynik testu koncowego T6 - w `RAPORT.md`, gdy bedzie wykonany); wspolczynniki z pliku CSV i wpis reczny (paczka A4); log Excela wg reguly 6. Parser raportow MillBox (`millbox.py`) NIE istnieje - to paczka D1 |
 | Pierwszy krok po wznowieniu | D2: uruchomic program w trybie "cien" na kopii pliku (nic nie zapisuje, tylko loguje, co by zrobil) i porownac 50 kuwet z lista; D1: napisac parser na 10 raportach, w testach tylko wersje zanonimizowane |
 
 ## Otwarte 4-6 z 19.11.2026 - laptop stanowiska (plan: paczka D4)

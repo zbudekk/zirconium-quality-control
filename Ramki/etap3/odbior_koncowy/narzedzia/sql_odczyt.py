@@ -5,7 +5,7 @@ Baza otwierana w trybie ``mode=ro``. Zapytania dotykajace tabel z nazwami folder
 nazwy nie moga trafic do logu ani do dowodow.
 
 Przyklad:
-  python sql_odczyt.py --baza <PC-katalog>\\t0\\k1\\dane\\stanowisko.sqlite "SELECT status, count(*) FROM skany GROUP BY status"
+  PY -I sql_odczyt.py --baza <PC-katalog>\\t0\\k1\\dane\\stanowisko.sqlite "SELECT status, count(*) FROM skany GROUP BY status"
 """
 from __future__ import annotations
 
@@ -29,8 +29,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     sama_liczba = re.match(r"(?is)^\s*select\s+count\s*\([^)]*\)\s+from\b", tekst) is not None and " group by " not in tekst.lower()
     dotkniete = [t for t in TABELE_Z_NAZWAMI if re.search(rf"(?i)\b{t}\b", tekst)]
-    if dotkniete and not sama_liczba:
-        print(f"BLAD: tabele z nazwami zlecen ({', '.join(dotkniete)}) - dozwolone tylko SELECT count(...) bez GROUP BY")
+    # uwaga 21 recenzji: "SELECT count(*) FROM zlecenia UNION SELECT folder FROM zlecenia" wypisywalo nazwy - przy tabelach z
+    # nazwami odrzucane jest kazde zlozenie zapytan i kazdy drugi SELECT (takze podzapytanie)
+    zlozone = re.search(r"(?i)\b(union|intersect|except)\b", tekst) is not None or len(re.findall(r"(?i)\bselect\b", tekst)) > 1
+    if dotkniete and (not sama_liczba or zlozone):
+        print(f"BLAD: tabele z nazwami zlecen ({', '.join(dotkniete)}) - dozwolone tylko jedno SELECT count(...) bez GROUP BY, "
+              "bez UNION / INTERSECT / EXCEPT i bez podzapytan")
         return 2
     if not args.baza.is_file():
         print("BLAD: nie ma pliku bazy")
@@ -44,6 +48,9 @@ def main(argv: list[str] | None = None) -> int:
             print("\t".join("" if pole is None else str(pole) for pole in wiersz))
             wierszy += 1
         print(f"-- wierszy: {wierszy}")
+    except sqlite3.Error as e:
+        print(f"BLAD: zapytanie odrzucone przez SQLite ({type(e).__name__}: {e})")
+        return 2
     finally:
         baza.close()
     return 0

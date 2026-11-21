@@ -38,14 +38,15 @@ ODSTEPSTWA od drogi ``Stanowisko.cmd`` (wszystkie):
 MIEJSCA, w ktorych sterownik zaglada do wnetrza programu (tylko odczyt, obiekty publiczne):
   a) okno: ``QApplication.topLevelWidgets()`` -> obiekt o nazwie ``okno_wieczor``; jego atrybut ``k`` (kontroler - ten sam
      obiekt, ktory ``main`` przekazal oknu), ``mapa.srodek_gniazda(nr)`` (punkt klikniecia gniazda), ``pokazana_plytka()``,
-     ``ochrona_aktywna()`` (mapa przygaszona po zmianie - klikniecia sa wtedy pomijane, technik tez czeka),
+     ``ochrona_aktywna()`` / ``mapa.przygaszona()`` (mapa przygaszona po zmianie - klikniecia sa wtedy pomijane, technik tez
+     czeka), ``mapa.grab()`` + ``mapa.punkt_probny(nr)`` (kolor gniazda z obrazu), ``widok.praca_id`` (ktora prace pokazuje widok),
   b) stan: ``kontroler.stan()`` (``StanAplikacji``: ``plytki``, ``analiza`` = ``Postep`` z polami ``sha16`` i ``od``,
      ``kolejka``, ``pula``, ``pytania``, ``komunikaty``, ``do_dofrezowania_biezaca``, ``wymaga_operatora``),
   c) po zamknieciu programu: baza SQLite otwarta tylko do odczytu (tabele ``skany`` i ``zdarzenia`` - bez tabel z nazwami)
      i log programu ``logi/stanowisko.log`` (wiersze WARNING / ERROR trafiaja do pliku w katalogu roboczym, do wyniku tylko
      liczniki wg slow kluczowych).
 Decyzje i odpowiedzi ida WYLACZNIE kliknieciami (``QTest.mouseClick``) w obiekty: ``osoba_0`` (wybor osoby), kafelek
-``plytka_<skan_id>`` (wybor plytki), mapa (gniazdo), ``przycisk_ukruszona``, ``odp_odrzuc_ponowny_skan`` /
+``plytka_<skan_id>`` (wybor plytki), mapa (gniazdo), ``przycisk_ukruszona``, ``przycisk_ok``, ``odp_odrzuc_ponowny_skan`` /
 ``odp_potwierdz_ponowny_skan``, ``odp_podaj_numer_plytki_<n>`` (odpowiedz na pytanie "Podaj numer plytki" - numer z prawdy; na
 plytkach kwadratowych program numeru nie odczytuje - raport R59: dolki poza polem skanu). Polecen kontrolera sterownik nie wola.
 
@@ -68,12 +69,26 @@ Co jest mierzone i jak:
   * przerwy petli okna: zegar Qt co 20 ms w watku okna; przerwa = odstep kolejnych tykniec; maksimum i liczba > 200 ms
     (od pierwszego tykniecia w ``app.exec()`` do tykniecia zamykajacego; start programu przed pokazaniem okna i samo
     zamykanie programu NIE sa mierzone - czas tykniecia zamykajacego jest podany osobno),
-  * lista "do dofrezowania": ``do_dofrezowania_biezaca`` wobec prac z ubytkiem w prawdzie plytek przyjetych (rowna / roznice).
+  * kolory prac: po pojawieniu sie plytki przyjetej sterownik wybiera jej kafelek i - gdy mapa nie jest chroniona - czyta
+    kolor KAZDEJ pracy Z OBRAZU mapy (``mapa.grab()``, piksel w ``mapa.punkt_probny(nr)``; klasa koloru wg tabeli
+    ``statusy.STATUSY``) - PRZED jakimkolwiek kliknieciem w te plytke; odczyt jest w wyniku dla kazdej pracy,
+  * decyzje technika (decyzja koordynatora nr 1 po recenzji): sterownik nasladuje technika, ktory oglada tylko to, co program
+    mu wskazal - "Ukruszona" klika WYLACZNIE na pracach z ubytkiem wg prawdy pokazanych na czerwono albo zolto; praca z
+    ubytkiem wg prawdy pokazana na zielono (albo inaczej) = PRZEOCZONA przez program: sterownik jej nie klika, pozycji nie
+    ma wtedy na liscie programu i werdykt "lista = prawda" to FAIL z licznikiem; praca cala wg prawdy pokazana na czerwono
+    = falszywy alarm: sterownik klika "OK" (licznik osobno, listy nie psuje); prac zoltych calych wg prawdy sterownik nie
+    klika (liczy je),
+  * ochrona klikniec mapy (A-P2 i E3-P15: mapa przygaszona ok. 800 ms po zmianie zawartosci albo komunikatow nad mapa):
+    sterownik czeka na jej zdjecie; przed kliknieciem decyzji sprawdza, ze widok pracy (``okno.widok.praca_id``) pokazuje
+    wlasnie te prace; klikniecie bez skutku ponawia od klikniecia gniazda (liczba ponowien i czekan w wyniku),
+  * lista "do dofrezowania": ``do_dofrezowania_biezaca`` wobec WSZYSTKICH prac z ubytkiem w prawdzie plytek przyjetych
+    (rowna / roznice) - prawda nie zalezy od tego, co sterownik kliknal.
 Zdarzenia srodowiska (proces silnika ginie, restart silnika, blad analizy, przekroczony limit) sa wynikiem: pola
 ``zdarzenia_srodowiska`` i ``przerwano``; sterownik ma limit czasu (``--limit``) i straznika w osobnym watku, ktory po
 ``limit + 120 s`` zapisuje wynik czesciowy, konczy procesy potomne i wychodzi kodem 3.
 
-Kody wyjscia: 0 = pomiar wykonany w calosci (werdykty kryterium sa w pliku wyniku), 2 = blad przygotowania / opcji,
+Kody wyjscia: 0 = pomiar wykonany w calosci (werdykty kryterium sa w pliku wyniku; wiersz laczny "T2 LACZNIE"), 1 = tylko z
+opcja ``--wymagaj-zal``: pomiar wykonany, ale "T2 LACZNIE" nie jest ZAL, 2 = blad przygotowania / opcji,
 3 = PRZERWANO: limit czasu, 4 = program zakonczyl sie bledem albo sterownik napotkal wyjatek.
 """
 from __future__ import annotations
@@ -200,6 +215,7 @@ def przygotuj_zestaw(scen: dict, wybrane: list, dane_ref: Path, roboczy: Path, s
         w.update(uklad=prawda.get("plytka"), numer=prawda.get("numer"), prac=len(prace),
                  drgniec=sum(1 for x in prace if x.get("drgniecie")),
                  gniazda_ubytki=sorted(int(x["gniazdo"]) for x in prace if x.get("ubytki") and x.get("gniazdo") is not None),
+                 gniazda_prac=sorted(int(x["gniazdo"]) for x in prace if x.get("gniazdo") is not None),
                  sha16=skrot16(plik.read_bytes()) if plik != skan else sha_zrodla, sha16_zrodla=sha_zrodla,
                  rozmiar_mb=round(plik.stat().st_size / 1e6, 1))
         if w["oczekiwany_status"] == "przyjety" and w["drgniec"]:
@@ -255,6 +271,9 @@ class Sterownik:
         self.tyk_max_co = ""
         self.tyk_koniec_ms: float | None = None
         self.t_pusta: float | None = None  # od kiedy kolejka jest nieprzerwanie pusta i nic nie jest liczone
+        self.kolory_ekranu: dict = {}  # sha16 -> {gniazdo: {piksel, klasa, status, klasa_stanu}} - odczyt z obrazu mapy PRZED kliknieciami
+        self.klasy_hex: dict | None = None  # kolor ekranu #rrggbb -> zbior klas koloru (tabela statusow programu)
+        self.przeglady: list = []  # plytki, ktorych mapy sterownik obejrzal (albo nie zdolal)
 
     # ---- pomocnicze: tylko nazwy obiektow okna
     def _w(self, nazwa: str):
@@ -373,9 +392,9 @@ class Sterownik:
                 self.skan_id[p.sha16] = p.skan_id
                 self.numery_programu[p.sha16] = p.numer  # numer w chwili pojawienia sie plytki = odczytany przez program (albo None)
                 poz = self.dobre.get(p.sha16)
-                if poz is not None and poz["do_dofrezowania"] and p.status == "przyjety":
-                    for g in poz["do_dofrezowania"]:
-                        self.zadania.append({"sha16": p.sha16, "skan_id": p.skan_id, "nr": poz["nr"], "gniazdo": g, "krok": "plytka", "od": czas})
+                if poz is not None and poz["decyzje"] == "ukruszona_wg_prawdy" and p.status == "przyjety":
+                    self.zadania.append({"sha16": p.sha16, "skan_id": p.skan_id, "nr": poz["nr"], "gniazdo": None, "rodzaj": "przeglad",
+                                         "krok": "plytka", "od": czas})
         if self.okno is not None and len(self.mapy_okno) < len(self.mapy):
             pokazana = self.okno.pokazana_plytka()
             for sha, sid in self.skan_id.items():
@@ -446,57 +465,139 @@ class Sterownik:
             return True
         return False
 
+    def _kolory_z_ekranu(self, p) -> dict:
+        """Kolor kazdego gniazda z praca odczytany Z OBRAZU mapy (piksel w ``mapa.punkt_probny``) i klasa koloru tego piksela wg
+        tabeli statusow programu (``statusy.STATUSY``: kolor ekranu -> klasa). Obok, tylko do porownania: status i klasa ze stanu."""
+        if self.klasy_hex is None:
+            from stanowisko import statusy as ST
+
+            self.klasy_hex = {}
+            for st in ST.STATUSY.values():
+                self.klasy_hex.setdefault(st.hex.lower(), set()).add(st.kolor)
+        mapa = self.okno.mapa
+        obraz = mapa.grab().toImage()
+        wynik = {}
+        for g in p.gniazda:
+            if g.praca is None:
+                continue
+            piksel = obraz.pixelColor(mapa.punkt_probny(g.nr).toPoint()).name().lower()
+            klasy = self.klasy_hex.get(piksel, set())
+            klasa = next(iter(klasy)) if len(klasy) == 1 else None
+            wynik[g.nr] = {"piksel": piksel, "klasa": klasa if klasa is not None else f"inny ({g.status})", "status": g.status,
+                           "klasa_stanu": g.kolor}
+        return wynik
+
+    def _przeglad(self, z: dict, p, czas: float) -> None:
+        """Technik oglada mape plytki: sterownik czyta kolory z ekranu i dopiero z nich uklada klikniecia. "Ukruszona" tylko na
+        pracach z ubytkiem wg prawdy pokazanych na CZERWONO albo ZOLTO; praca z ubytkiem pokazana inaczej (zielona) NIE jest
+        klikana (przeoczona przez program - zostaje jako brak na liscie); praca cala wg prawdy pokazana na czerwono = falszywy
+        alarm: klikniecie "OK"."""
+        z.setdefault("start", czas)
+        wpis = {"nr": z["nr"], "sha16": z["sha16"], "s_od_startu": round(czas - self.t0, 2)}
+        if p is None or czas - z["start"] > self.a.limit_decyzji:
+            self.przeglady.append({**wpis, "wynik": "NIEWYKONANY: plytki nie ma w stanie" if p is None else
+                                   f"NIEWYKONANY: limit {self.a.limit_decyzji:.0f} s (mapa niedostepna albo chroniona)"})
+            self.zadania.popleft()
+            return
+        if self.okno.pokazana_plytka() != z["skan_id"]:
+            self.kafelki_klikniete.add(z["skan_id"])
+            self._klik(f"plytka_{z['skan_id']}")
+            self.czekaj_do = czas + 0.1
+            return
+        if self.okno.ochrona_aktywna() or self.okno.mapa.przygaszona():
+            if not z.get("w_ochronie"):
+                z["w_ochronie"], z["czekan"] = True, z.get("czekan", 0) + 1
+            return
+        kolory = self._kolory_z_ekranu(p)
+        self.kolory_ekranu[z["sha16"]] = kolory
+        poz = self.dobre[z["sha16"]]
+        nowe = []
+        for g in sorted(set(kolory) | set(poz["gniazda_ubytki"])):
+            ubytek, k = g in poz["gniazda_ubytki"], kolory.get(g)
+            baza = {"sha16": z["sha16"], "skan_id": z["skan_id"], "nr": z["nr"], "gniazdo": g, "kolor": k["klasa"] if k else None}
+            if k is None:
+                self.decyzje.append({"nr": z["nr"], "sha16": z["sha16"], "gniazdo": g, "rodzaj": "ukruszona", "kolor_przed": None,
+                                     "wynik": "NIEWYKONANA: program nie ma pracy w tym gniezdzie", "decyzja": None, "ponowien": 0,
+                                     "czekan_na_ochrone": 0, "czas_s": 0.0})
+            elif ubytek and k["klasa"] in ("czerwony", "zolty"):
+                nowe.append({**baza, "rodzaj": "ukruszona", "krok": "gniazdo"})
+            elif ubytek:
+                self.decyzje.append({"nr": z["nr"], "sha16": z["sha16"], "gniazdo": g, "rodzaj": "ukruszona", "kolor_przed": k["klasa"],
+                                     "wynik": f"POMINIETA: praca z ubytkiem wg prawdy pokazana przez program jako {k['klasa']} - technik "
+                                              "jej nie oglada (przeoczona przez program)", "decyzja": None, "ponowien": 0,
+                                     "czekan_na_ochrone": 0, "czas_s": 0.0})
+            elif k["klasa"] == "czerwony":
+                nowe.append({**baza, "rodzaj": "ok", "krok": "gniazdo"})
+        self.przeglady.append({**wpis, "wynik": "obejrzana", "prac_na_mapie": len(kolory), "czekan_na_ochrone": z.get("czekan", 0),
+                               "klikniec_zaplanowanych": len(nowe)})
+        self.zadania.popleft()
+        self.zadania.extendleft(reversed(nowe))
+        self.ostatnia_czynnosc = "odczyt kolorow mapy"
+
     def _decyzje(self, s, czas: float) -> None:
-        """Jedno klikniecie na tykniecie: kafelek plytki -> gniazdo na mapie -> "Ukruszona" -> sprawdzenie w stanie."""
+        """Jedna czynnosc na tykniecie: kafelek plytki -> odczyt kolorow mapy (przeglad) -> gniazdo na mapie -> sprawdzenie, ze
+        widok pracy pokazuje te prace -> "Ukruszona" / "OK" -> sprawdzenie w stanie. Gdy mapa jest chroniona (przygaszona po
+        zmianie zawartosci albo po zmianie komunikatow nad mapa - E3-P15), sterownik czeka na zdjecie ochrony; klikniecie, ktore
+        nie dalo skutku (widok pokazuje inna prace / decyzja nie weszla), jest PONAWIANE od klikniecia gniazda - liczba ponowien
+        i czekan jest w wyniku przy kazdej decyzji."""
         from PySide6.QtCore import Qt
         from PySide6.QtTest import QTest
 
         if not self.zadania or czas < self.czekaj_do:
             return
         z = self.zadania[0]
+        p = s.plytka(z["skan_id"])
+        if z["rodzaj"] == "przeglad":
+            return self._przeglad(z, p, czas)
+        ukr = ("ukruszona", "ukruszona_niewykryta")
 
         def zamknij(wynik: str, decyzja: str | None = None) -> None:
-            self.decyzje.append({"nr": z["nr"], "sha16": z["sha16"], "gniazdo": z["gniazdo"], "wynik": wynik, "decyzja": decyzja,
-                                 "czas_s": round(czas - z.get("start", czas), 2)})
+            self.decyzje.append({"nr": z["nr"], "sha16": z["sha16"], "gniazdo": z["gniazdo"], "rodzaj": z["rodzaj"], "kolor_przed": z["kolor"],
+                                 "wynik": wynik, "decyzja": decyzja, "ponowien": z.get("ponowien", 0),
+                                 "czekan_na_ochrone": z.get("czekan", 0), "czas_s": round(czas - z.get("start", czas), 2)})
             self.zadania.popleft()
 
-        if "start" in z and czas - z["start"] > self.a.limit_decyzji and z["krok"] != "sprawdz":
-            return zamknij(f"NIEWYKONANA: limit {self.a.limit_decyzji:.0f} s w kroku {z['krok']}")
-        p = s.plytka(z["skan_id"])
+        z.setdefault("start", czas)
         g = p.gniazdo(z["gniazdo"]) if p is not None else None
         praca = g.praca if g is not None else None
         if p is None or praca is None:
             return zamknij("NIEWYKONANA: program nie ma pracy w tym gniezdzie")
-        if z["krok"] == "plytka":
-            z.setdefault("start", czas)
-            if self.okno.pokazana_plytka() != z["skan_id"]:
-                self.kafelki_klikniete.add(z["skan_id"])
-                self._klik(f"plytka_{z['skan_id']}")
-                self.czekaj_do = czas + 0.1
-                return
+        zrobione = praca.decyzja in ukr if z["rodzaj"] == "ukruszona" else bool(praca.decyzja) and praca.decyzja not in ukr
+        if zrobione:
+            return zamknij("wykonana" if "klik" in z else "juz oznaczona", praca.decyzja)
+        if czas - z["start"] > self.a.limit_decyzji:
+            return zamknij(f"NIEWYKONANA: limit {self.a.limit_decyzji:.0f} s w kroku {z['krok']}", praca.decyzja)
+        if self.okno.pokazana_plytka() != z["skan_id"]:
+            self.kafelki_klikniete.add(z["skan_id"])
+            self._klik(f"plytka_{z['skan_id']}")
             z["krok"] = "gniazdo"
+            self.czekaj_do = czas + 0.1
+            return
+        if self.okno.ochrona_aktywna() or self.okno.mapa.przygaszona():  # mapa chroniona: technik czeka, klikniecie byloby pominiete
+            if not z.get("w_ochronie"):
+                z["w_ochronie"], z["czekan"] = True, z.get("czekan", 0) + 1
+            return
+        z["w_ochronie"] = False
         if z["krok"] == "gniazdo":
-            if self.okno.ochrona_aktywna():
-                return
             mapa = self.okno.mapa
             QTest.mouseClick(mapa, Qt.MouseButton.LeftButton, pos=mapa.srodek_gniazda(z["gniazdo"]).toPoint())
             self.ostatnia_czynnosc = "klik gniazdo"
-            z["krok"] = "ukruszona"
+            z["krok"], z["klik_gniazda"] = "przycisk", czas
             self.czekaj_do = czas + 0.05
             return
-        if z["krok"] == "ukruszona":
-            if praca.decyzja in ("ukruszona", "ukruszona_niewykryta"):
-                return zamknij("juz oznaczona", praca.decyzja)
-            if self._klik("przycisk_ukruszona"):
-                z["krok"] = "sprawdz"
-                z["klik"] = czas
+        if z["krok"] == "przycisk":
+            if getattr(self.okno.widok, "praca_id", None) != praca.praca_id:  # klikniecie gniazda nie otworzylo tej pracy: ponow
+                if czas - z["klik_gniazda"] > 0.3:
+                    z["ponowien"], z["krok"] = z.get("ponowien", 0) + 1, "gniazdo"
+                return
+            if self._klik(f"przycisk_{z['rodzaj']}"):
+                z["krok"], z["klik"] = "sprawdz", czas
+            elif czas - z["klik_gniazda"] > 2.0:
+                z["ponowien"], z["krok"] = z.get("ponowien", 0) + 1, "gniazdo"
             self.czekaj_do = czas + 0.05
             return
-        if z["krok"] == "sprawdz":
-            if praca.decyzja in ("ukruszona", "ukruszona_niewykryta"):
-                return zamknij("wykonana", praca.decyzja)
-            if czas - z["klik"] > 5.0:
-                return zamknij("NIEWYKONANA: po kliknieciu 'Ukruszona' stan pracy bez decyzji")
+        if z["krok"] == "sprawdz" and czas - z["klik"] > 1.0:  # decyzja nie weszla w 1 s: ponow od klikniecia gniazda
+            z["ponowien"], z["krok"] = z.get("ponowien", 0) + 1, "gniazdo"
 
     def _koniec(self) -> None:
         from PySide6.QtWidgets import QApplication
@@ -602,6 +703,8 @@ def policz(a, pozycje: list, st: Sterownik | None, roboczy: Path, dodatki: dict)
                 pass  # plytka zablokowana: program nie pyta o numer, dopoki technik nie rozstrzygnie pytania o tryb
             else:
                 zgodne = zgodne and p["numer"] == poz["numer"]
+        if zgodne and poz["oczekiwany_status"] == "przyjety":
+            zgodne = p["prac"] == poz["prac"]  # uwaga 12 recenzji: liczba prac programu = liczba prac w prawdzie
         if zgodne and poz["oczekiwany_status"] != "przyjety":
             zgodne = p["zielonych"] == 0
         if zgodne and poz["oczekiwany_status"] == "plytka_nie_z_trybu":
@@ -626,7 +729,39 @@ def policz(a, pozycje: list, st: Sterownik | None, roboczy: Path, dodatki: dict)
                 czasy_okna.append(w["mapa_w_oknie_od_zapisu_s"])
             elif poz["sha16"] in st.mapy:
                 w["mapa_w_oknie_od_zapisu_s"] = "NIE ZMIERZONO: okno nie pokazalo tej plytki samo (pokazywalo inna) przed kliknieciem sterownika"
+        if st and poz["sha16"] in st.kolory_ekranu:
+            kol = st.kolory_ekranu[poz["sha16"]]
+            w["kolory_prac_z_ekranu"] = {str(g): {**k, "ubytek_wg_prawdy": g in poz["gniazda_ubytki"]} for g, k in sorted(kol.items())}
         wiersze.append(w)
+    kolory = {"ubytki_wg_prawdy": {"czerwony": 0, "zolty": 0, "zielony": 0, "inny": 0, "brak_pracy_w_programie": 0, "plytka_nieobejrzana": 0, "z": 0},
+              "cale_wg_prawdy": {"czerwony": 0, "zolty": 0, "zielony": 0, "inny": 0, "z": 0}, "ekran_inny_niz_stan": 0, "prac_odczytanych": 0}
+    for poz in pozycje:
+        if poz["rodzaj"] == "uciety" or poz["decyzje"] != "ukruszona_wg_prawdy":
+            continue
+        kol = st.kolory_ekranu.get(poz["sha16"]) if st else None
+        for g in poz["gniazda_ubytki"]:
+            kolory["ubytki_wg_prawdy"]["z"] += 1
+            if kol is None:
+                kolory["ubytki_wg_prawdy"]["plytka_nieobejrzana"] += 1
+            elif g not in kol:
+                kolory["ubytki_wg_prawdy"]["brak_pracy_w_programie"] += 1
+            else:
+                kolory["ubytki_wg_prawdy"][kol[g]["klasa"] if kol[g]["klasa"] in ("czerwony", "zolty", "zielony") else "inny"] += 1
+        for g, k in (kol or {}).items():
+            kolory["prac_odczytanych"] += 1
+            kolory["ekran_inny_niz_stan"] += 0 if k["klasa"] == k["klasa_stanu"] else 1
+            if g not in poz["gniazda_ubytki"]:
+                kolory["cale_wg_prawdy"]["z"] += 1
+                kolory["cale_wg_prawdy"][k["klasa"] if k["klasa"] in ("czerwony", "zolty", "zielony") else "inny"] += 1
+    decyzje = st.decyzje if st else []
+    zrobione = ("wykonana", "juz oznaczona")
+    klikniecia = {"ukruszona": [sum(1 for d in decyzje if d["rodzaj"] == "ukruszona" and d["wynik"] in zrobione),
+                                sum(1 for d in decyzje if d["rodzaj"] == "ukruszona")],
+                  "ok_falszywy_alarm": [sum(1 for d in decyzje if d["rodzaj"] == "ok" and d["wynik"] in zrobione),
+                                        sum(1 for d in decyzje if d["rodzaj"] == "ok")],
+                  "pominiete_przeoczone": sum(1 for d in decyzje if d["wynik"].startswith("POMINIETA")),
+                  "ponowien": sum(d.get("ponowien", 0) for d in decyzje),
+                  "czekan_na_ochrone_mapy": sum(d.get("czekan_na_ochrone", 0) for d in decyzje) + sum(x.get("czekan_na_ochrone", 0) for x in (st.przeglady if st else []))}
     oczekiwana = sorted((poz["sha16"], g) for poz in pozycje if poz["rodzaj"] != "uciety" for g in poz["do_dofrezowania"])
     faktyczna = sorted((skan_sha.get(x["skan_id"], f"skan_id {x['skan_id']}"), x["gniazdo"]) for x in koncowy.get("do_dofrezowania", []))
     przerwy = st.przerwy if st else []
@@ -666,6 +801,7 @@ def policz(a, pozycje: list, st: Sterownik | None, roboczy: Path, dodatki: dict)
         "lista_do_dofrezowania": {"rowna": lista_rowna, "oczekiwanych": len(oczekiwana), "w_programie": len(faktyczna),
                                   "brakuje_w_programie": [list(x) for x in oczekiwana if x not in faktyczna],
                                   "nadmiarowe_w_programie": [list(x) for x in faktyczna if x not in oczekiwana]},
+        "kolory_prac": kolory, "klikniecia": klikniecia, "przeglady_map": st.przeglady if st else [],
         "decyzje": st.decyzje if st else [], "odpowiedzi_na_pytania": st.odpowiedzi if st else [],
         "pytania_programu": sorted([list(v) for v in st.pytania.values()], key=lambda x: x[2]) if st else [],
         "komunikaty_programu": st.komunikaty if st else {}, "plytki": wiersze, "stan_koncowy": {k: v for k, v in koncowy.items() if k != "plytki"},
@@ -689,10 +825,23 @@ def policz(a, pozycje: list, st: Sterownik | None, roboczy: Path, dodatki: dict)
             f"w kolejce za poprzednia plytka czekalo {len(czasy_w_kolejce)})" if max(czasy_startu) >= 1.0
             else "ZAL" if len(czasy_startu) == wynik["start_analizy_od_zapisu_s"]["z"]
             else f"FAIL ({len(czasy_startu)} z {wynik['start_analizy_od_zapisu_s']['z']} ponizej 1 s; reszta {nz})"),
-        "mapa do 40 s (mediana)": nz if not same_mapy else ("ZAL" if statistics.median(same_mapy) <= 40.0 else "FAIL"),
-        "okno bez przerw > 200 ms": nz if not st or st.tykniec == 0 else ("ZAL" if not przerwy else "FAIL"),
-        "lista do dofrezowania = prawda": nz if not pomiar_caly else ("ZAL" if lista_rowna else "FAIL"),
+        "mapa do 40 s (mediana)": nz if not same_mapy else (
+            f"{nz} (pomiar przerwany; czesciowo: mediana {statistics.median(same_mapy):.2f} s z {len(same_mapy)} plytek)" if not pomiar_caly
+            else "ZAL" if statistics.median(same_mapy) <= 40.0 else "FAIL"),
+        "okno bez przerw > 200 ms": nz if not st or st.tykniec == 0 else (
+            f"{nz} (pomiar przerwany; czesciowo: przekroczen {len(przerwy)})" if not pomiar_caly else "ZAL" if not przerwy else "FAIL"),
     }
+    u = kolory["ubytki_wg_prawdy"]
+    przeoczone = u["z"] - u["czerwony"] - u["zolty"]
+    wynik["werdykty"]["lista do dofrezowania = prawda"] = nz if not pomiar_caly else (
+        f"{'ZAL' if lista_rowna else 'FAIL'} (lista = prawda: {'TAK' if lista_rowna else 'NIE'}; ubytki wg prawdy {u['z']}: program pokazal "
+        f"czerwone {u['czerwony']}, zolte {u['zolty']}, zielone (przeoczone) {u['zielony']}, inne / brak pracy / nieobejrzane "
+        f"{u['inny'] + u['brak_pracy_w_programie'] + u['plytka_nieobejrzana']}; nieklikniete przez technika {przeoczone} z {u['z']}; "
+        f"falszywe alarmy - cale wg prawdy na czerwono: {kolory['cale_wg_prawdy']['czerwony']} z {kolory['cale_wg_prawdy']['z']})")
+    czesci = list(wynik["werdykty"].values())
+    wynik["werdykty"]["T2 LACZNIE"] = ("ZAL" if all(c.startswith("ZAL") for c in czesci) else "FAIL" if any(c.startswith("FAIL") for c in czesci)
+                                       else nz) + f" ({sum(1 for c in czesci if c.startswith('ZAL'))} z {len(czesci)} kryteriow ZAL, " \
+        f"{sum(1 for c in czesci if c.startswith('FAIL'))} FAIL, {sum(1 for c in czesci if c.startswith(nz))} {nz})"
     return wynik
 
 
@@ -709,6 +858,23 @@ def tabela(w: dict) -> str:
                      f"{str(p.get('prac_program', '-')) + '/' + str(p.get('prac_prawda', '-')):>9} "
                      f"{(f'{start:.3f}' if isinstance(start, float) else '-' if start is None else 'NZ'):>9} {str(p.get('mapa_od_zapisu_s', '-')):>8} {'TAK' if p['zgodne'] else 'NIE'}")
     o, s, m, pe, li = (w["obsluzone_zgodnie_z_prawda"], w["start_analizy_od_zapisu_s"], w["mapa_od_zapisu_s"], w["petla_okna"], w["lista_do_dofrezowania"])
+    kl, ko = w["klikniecia"], w["kolory_prac"]
+    linie += ["", "kolory prac odczytane z ekranu PRZED kliknieciami (piksel mapy -> klasa koloru); U = praca z ubytkiem wg prawdy, C = cala wg prawdy",
+              f"{'nr':>3} {'sha16':16} {'prac':>4} {'U czerw':>7} {'U zolte':>7} {'U ziel':>6} {'U inne':>6} {'C czerw':>7} {'C zolte':>7} {'C ziel':>6} {'C inne':>6}"]
+    for p in w["plytki"]:
+        kp = p.get("kolory_prac_z_ekranu")
+        if kp is None:
+            continue
+        def ile(ubytek, klasa):
+            return sum(1 for k in kp.values() if k["ubytek_wg_prawdy"] == ubytek and (
+                k["klasa"] == klasa if klasa else k["klasa"] not in ("czerwony", "zolty", "zielony")))
+        linie.append(f"{p['nr']:>3} {str(p.get('sha16')):16} {len(kp):>4} {ile(True, 'czerwony'):>7} {ile(True, 'zolty'):>7} {ile(True, 'zielony'):>6} "
+                     f"{ile(True, None):>6} {ile(False, 'czerwony'):>7} {ile(False, 'zolty'):>7} {ile(False, 'zielony'):>6} {ile(False, None):>6}")
+    ku, kc = ko["ubytki_wg_prawdy"], ko["cale_wg_prawdy"]
+    linie += [f"ubytki wg prawdy ({ku['z']}): czerwonych {ku['czerwony']}, zoltych {ku['zolty']}, zielonych (przeoczonych) {ku['zielony']}, innych "
+              f"{ku['inny']}, bez pracy w programie {ku['brak_pracy_w_programie']}, na plytce nieobejrzanej {ku['plytka_nieobejrzana']}",
+              f"prace cale wg prawdy ({kc['z']}): czerwonych (falszywe alarmy) {kc['czerwony']}, zoltych {kc['zolty']}, zielonych {kc['zielony']}, "
+              f"innych {kc['inny']}; kolor z ekranu inny niz klasa w stanie programu: {ko['ekran_inny_niz_stan']} z {ko['prac_odczytanych']} prac"]
     linie += ["", f"obsluzone zgodnie z prawda: {o['zgodnych']} z {o['z']}",
               f"start analizy od zapisu (pomiar doslowny): ponizej 1 s {s['ponizej_1_s']} z {s['z']} plikow dobrych (zmierzono {s['zmierzonych']}), "
               f"max {s['max']} s, wartosci {s['wartosci']}; w tym pliki zapisane, gdy program liczyl poprzednia plytke: {s['czekaly_w_kolejce']}",
@@ -723,8 +889,10 @@ def tabela(w: dict) -> str:
               f"{pe['tykniecie_zamykajace_ms']} ms)",
               f"lista do dofrezowania: {'rowna prawdzie' if li['rowna'] else 'ROZNA'} (oczekiwanych {li['oczekiwanych']}, w programie {li['w_programie']}, "
               f"brakuje {len(li['brakuje_w_programie'])}, nadmiarowych {len(li['nadmiarowe_w_programie'])})",
-              f"decyzje 'Ukruszona' (klikniecia): wykonanych {sum(1 for d in w['decyzje'] if d['wynik'] in ('wykonana', 'juz oznaczona'))} z {len(w['decyzje'])}, "
-              f"w tym na pracach, ktorych program sam nie oznaczyl (ukruszona_niewykryta): {sum(1 for d in w['decyzje'] if d.get('decyzja') == 'ukruszona_niewykryta')}; "
+              f"decyzje technika (klikniecia tylko na pracach pokazanych na czerwono / zolto): 'Ukruszona' wykonanych {kl['ukruszona'][0]} z "
+              f"{kl['ukruszona'][1]} zaplanowanych, 'OK' na falszywym alarmie {kl['ok_falszywy_alarm'][0]} z {kl['ok_falszywy_alarm'][1]}, prace z ubytkiem "
+              f"NIEKLIKNIETE (program pokazal je inaczej niz czerwono / zolto) {kl['pominiete_przeoczone']}; ponowien klikniec {kl['ponowien']}, "
+              f"czekan na zdjecie ochrony mapy {kl['czekan_na_ochrone_mapy']}; "
               f"odpowiedzi na pytania: {len(w['odpowiedzi_na_pytania'])}; pytania programu: {[x[0] for x in w['pytania_programu']]}",
               f"numery plytek: odczytane przez program {w['numery_plytek']['odczytane_przez_program']}, podane przez technika na pytanie programu "
               f"{w['numery_plytek']['podane_przez_technika']}, brak {w['numery_plytek']['brak']} (z {w['numery_plytek']['z']} plikow dobrych)",
@@ -812,6 +980,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit-decyzji", type=float, default=60.0, help="limit czasu jednej decyzji 'Ukruszona' (od wybrania plytki), s")
     ap.add_argument("--pula-cache", type=Path, default=None, help="istniejaca pamiec linii brzegu (domyslnie pusta w katalogu roboczym = pula zimna)")
     ap.add_argument("--seed", type=int, default=1, help="ziarno symulatora (czasy zapisu)")
+    ap.add_argument("--wymagaj-zal", action="store_true", help="kod wyjscia 1, gdy pomiar wykonany, ale wiersz 'T2 LACZNIE' nie jest ZAL")
     a = ap.parse_args(argv)
 
     program = a.program.resolve()
@@ -915,6 +1084,8 @@ def main(argv: list[str] | None = None) -> int:
         return 3
     if st is None or st.blad or st.przerwano or kod_programu != 0:
         return 4
+    if a.wymagaj_zal and not wynik["werdykty"]["T2 LACZNIE"].startswith("ZAL"):
+        return 1
     return 0
 
 
