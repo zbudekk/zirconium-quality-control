@@ -136,7 +136,7 @@ Mozesz isc do czesci 2.
 Co zrobic: skopiuj z pendrive'a folder `testy_sprzet_2026-11-28` na dysk jako `C:\Sprzet_testy`.
 Udalo sie, gdy: jest folder `C:\Sprzet_testy\narzedzia` z plikami `pole_skanu.cmd` i `ramka.cmd`. Wyniki
 zapisuja sie same w `C:\Sprzet_testy\wyniki`, kazdy w osobnym pliku z data i godzina.
-Zanotuj: arkusz 1.4 (czy dwuklik i przeciaganie pliku dzialaja - okaze sie w krokach 2.4 i 3.3).
+Zanotuj: arkusz 1.4 (dwuklik i przeciaganie pliku: okaze sie w krokach 2.4 i 3.3).
 Gdy sie nie uda: kopiuj pliki skanow na pendrive - policzymy je na PC.
 [NIE SPRAWDZONE BEZ SPRZETU: dwuklik i przeciaganie na prawdziwym ekranie]
 [DO POTWIERDZENIA NA 0.3.3: narzedzia uruchomione z nowej instalacji]
@@ -513,15 +513,11 @@ nie wysylaj ich poczta.
 
 ## Zbiorcza lista: czego NIE sprawdzono bez sprzetu
 
-Skaner: plik skanu (format, nazwa, czas zapisu) - 2.2, 2.3, 2.7; wymiar i ksztalt pola - 2.4; stolik
-w skanie i linia ciecia - 2.3; dolki numeru, stozki, scianka boczna, rowek, prace prawdziwe i ukruszone
-- 2.5; plytka okragla brana za kwadratowa - 2.5a; okno obok programu skanera, folder testowy - 2.1, 2.6.
-
-Ramka: program ramki i start po wlaczeniu pradu - 3.2; matryca diod - 3.4; czujniki, magnesy, plytka
-krzywo - 3.5, 3.6; diody pod gniazdami - 3.7; siec, adres, klucz - 3.3; komunikaty w zwyklej pracy -
-3.8; klawiatura - 3.9; pasowanie plytek - 3.1.
-
-Komputer: instalacja na laptopie firmowym - 1.1, 1.2; dwuklik i przeciaganie pliku - 1.4; wyglad okien
-i czas analizy - 1.3, czesc 4.
+Znacznik [NIE SPRAWDZONE BEZ SPRZETU] ma kazdy krok czesci 1-4 (szczegoly przy kroku). Najwazniejsze
+niewiadome: stolik w skanie i linia ciecia - 2.3; wymiar i ksztalt pola skanera - 2.4; dolki numeru,
+scianka boczna, prace prawdziwe i ukruszone - 2.5; plytka okragla brana za kwadratowa - 2.5a; nazwa,
+format i czas zapisu pliku skanu - 2.2, 2.7; start ramki - 3.2; siec, adres, klucz - 3.3; czujniki
+i magnesy - 3.5, 3.6; diody pod gniazdami - 3.7; komunikaty w zwyklej pracy - 3.8; instalacja na laptopie
+firmowym - 1.2.
 
 Wiecej (program ramki na Raspberry Pi, nazwy w programie, pelne teksty komunikatow): `ZALACZNIKI.md`.

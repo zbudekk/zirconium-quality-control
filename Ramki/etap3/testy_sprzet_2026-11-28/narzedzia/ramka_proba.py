@@ -389,6 +389,9 @@ def polecenie_klucz(adres: str, port: int, plik: Path, pisz=print, pytaj=input) 
     if not klucz:
         pisz("Nie podano klucza - nic nie zapisano.")
         return KOD_WYMAGA_KLUCZA
+    if not klucz.isascii():   # N10: litera z ogonkiem (prawy Alt) konczyla sie wyjatkiem przy wysylaniu naglowka
+        pisz("ZLY KLUCZ: klucz ma tylko litery bez polskich znakow, cyfry i kreski - nic nie zapisano. Przepisz go jeszcze raz, znak po znaku.")
+        return KOD_WYMAGA_KLUCZA
     try:
         Ramka(adres, port, klucz).stan()
     except WymagaKlucza:
