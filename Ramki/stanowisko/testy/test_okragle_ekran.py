@@ -146,6 +146,16 @@ def kolo_na_ekranie(m) -> tuple:
     return r.center().x(), r.center().y(), r.width() / 2
 
 
+def punkt_gniazda(m, uk, nr: int):
+    """Srodek gniazda ``nr`` na ekranie policzony NIEZALEZNIE od mapy: wspolrzedne gniazda z ukladu (mm; x w prawo, y do tylu =
+    w gore ekranu) przeniesione na kolo plytki z obrysu mapy."""
+    from PySide6.QtCore import QPointF
+
+    cx, cy, r = kolo_na_ekranie(m)
+    g = uk.gniazdo(nr)
+    return QPointF(cx + g.x * 2 * r / uk.d, cy - g.y * 2 * r / uk.d)
+
+
 # ----------------------------------------------------------------------------
 # (1) sciecie orientacyjne: geometria z pola ``flat``
 # ----------------------------------------------------------------------------
@@ -246,9 +256,20 @@ def test_klik_w_kazde_gniazdo_trafia_w_dobre_gniazdo(mapy, rodzaj, nazwa, rozmia
     for g in uk.sockets:
         QTest.mouseClick(m, Qt.MouseButton.LeftButton, pos=m.srodek_gniazda(g.id).toPoint())
     assert trafione == [g.id for g in uk.sockets] and len(trafione) == GNIAZD[nazwa]
+    # polozenie gniazda liczone NIEZALEZNIE od mapy: ze wspolrzednych gniazda w ukladzie (mm) i z kola plytki na ekranie
+    # (x w prawo, y plytki do tylu = w gore ekranu) - klik w tak policzony punkt ma dac numer tego gniazda
+    cx, cy, r = kolo_na_ekranie(m)
+    skala = 2 * r / uk.d
+    del trafione[:]
+    for g in uk.sockets:
+        punkt = QPointF(cx + g.x * skala, cy - g.y * skala)
+        assert math.hypot(m.srodek_gniazda(g.id).x() - punkt.x(), m.srodek_gniazda(g.id).y() - punkt.y()) < 0.5
+        QTest.mouseClick(m, Qt.MouseButton.LeftButton, pos=punkt.toPoint())
+    assert trafione == [g.id for g in uk.sockets] and len(trafione) == GNIAZD[nazwa]
     obok = 0
-    for g in uk.sockets:  # takze klik poza srodkiem gniazda: 4 punkty w 60 % promienia i punkt probny
-        s, _, promien, _ = m._ksztalty[g.id][1], None, m._ksztalty[g.id][2], None
+    for g in uk.sockets:  # takze klik poza srodkiem gniazda: 4 punkty w 60 % promienia gniazda (z ukladu) i punkt probny
+        promien = (g.d_top / 2 if g.okragle else g.w / 2) * skala
+        s = QPointF(cx + g.x * skala, cy - g.y * skala)
         punkty = [QPointF(s.x() + dx * 0.6 * promien, s.y() + dy * 0.6 * promien) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
         for punkt in punkty + [m.punkt_probny(g.id)]:
             assert m.gniazdo_w_punkcie(punkt) == g.id
@@ -362,7 +383,7 @@ def test_okno_wieczorne_mapa_okragla_sciecie_i_klikniecia(atrapa, ekrany, nazwa,
     for nr in range(1, 20):
         e.zdarzenia()
         e.po_ochronie()
-        QTest.mouseClick(e.mapa, Qt.MouseButton.LeftButton, pos=e.mapa.srodek_gniazda(nr).toPoint())
+        QTest.mouseClick(e.mapa, Qt.MouseButton.LeftButton, pos=punkt_gniazda(e.mapa, uk, nr).toPoint())
     assert trafione == list(range(1, 20))
 
 
@@ -395,7 +416,7 @@ def test_okno_poranne_mapy_okragle_sciecie_i_klikniecia(tmp_path, ekrany, ekran,
                 e.zdarzenia()
                 e.po_ochronie_rano()
                 mapa = e.mapy()[skan_id]
-                QTest.mouseClick(mapa, Qt.MouseButton.LeftButton, pos=mapa.srodek_gniazda(nr).toPoint())
+                QTest.mouseClick(mapa, Qt.MouseButton.LeftButton, pos=punkt_gniazda(mapa, uklad(nazwa), nr).toPoint())
             assert trafione == list(range(1, 25)), nazwa
     finally:
         k.zamknij()
