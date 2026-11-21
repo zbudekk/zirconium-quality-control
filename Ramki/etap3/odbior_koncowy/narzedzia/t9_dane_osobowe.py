@@ -27,7 +27,8 @@ Jak szuka. Szukane sa: cala nazwa (kryterium T9) oraz czlony nazwy (slowa z lite
 trafienia czlonow sa liczone osobno "do wyjasnienia" (czlon moze byc zwyklym slowem) i tylko w plikach bez trafienia calej
 nazwy. Porownanie znak po znaku, bez rozrozniania wielkosci liter (takze liter spoza ASCII) i znakow diakrytycznych
 (rozklad NFKD + mapa reczna, np. l z kreska = l; litery z cp1250), w postaciach: UTF-8, cp1250, UTF-16 LE, ``\\uXXXX``
-(JSON ensure_ascii, cyfry szesnastkowe male i wielkie); spacja nazwy pasuje takze do ``_`` i ``%20``. Trafienia sa liczone
+(JSON ensure_ascii, cyfry szesnastkowe male i wielkie); spacja, ``_`` i ``-`` nazwy pasuja takze do siebie nawzajem
+oraz do ``+`` i ``%20`` (jeden separator za jeden - dwie spacje zamiast jednej nie pasuja). Trafienia sa liczone
 od kazdego miejsca poczatku (nazwa zawarta w innej nazwie liczy sie osobno). Nazwy o tej samej postaci po uproszczeniu
 maja wspolny ``sha16`` (pierwszej z nich w kolejnosci). UTF-16 BE i pliki spakowane (zip, npz, pdf, png...) nie sa
 przeszukiwane - spakowane liczone jako "nieprzeszukane" (sama sciezka jest sprawdzana); zmiany plikow binarnych w
@@ -147,8 +148,8 @@ def alternatywy(znak: str) -> frozenset[str]:
              transliteracja(znak.upper()), transliteracja(znak.lower())}
     if len(klucz) == 1:
         zbior |= KLASY.get(klucz, set())
-    if znak == " ":
-        zbior |= {"_", "%20"}
+    if znak in " _-":  # odstep nazwy zapisany innym separatorem (uwaga 45 recenzji rundy 2)
+        zbior |= {" ", "_", "-", "+", "%20"}
     return frozenset(z for z in zbior if z)
 
 

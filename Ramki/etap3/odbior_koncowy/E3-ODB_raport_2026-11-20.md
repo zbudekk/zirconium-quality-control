@@ -429,3 +429,94 @@ O14; zmienione: O1, O2, O4, O6, O8, O10. Bez odstepstwa zostaja tylko T1, T8, T9
   `--atrapa` a kryterium startu, sciezki w wierszach `PASSED`. Nie przenioslem do planu uwag do instrukcji instalacji (poza zakresem paczki).
 - Instalacja probna: uzywana tylko do uruchamiania (wyniki w katalogu roboczym paczki); pliki `dane\` instalacji zmienione o 01:25 to
   kontrola koncowa proby generalnej (`Stanowisko.cmd --zamknij-po 5` - jej notatki), nie przebiegi tej paczki.
+
+## 12. Runda 2 recenzji PR #44 (21.11.2026, rano): poprawki tekstu, uwagi 29-48
+
+Podstawa: raport recenzenta PR #44 runda 2 (B 0 / P 5 / D 15), zlecenie rundy koncowej i `odb-r3.md`. Galaz po
+`git merge origin/main` (62ef6f5, commit b514cc8). Zmiany: `PLAN_TESTOW.md`, `RAPORT.md`, ten raport i jedno narzedzie
+(`narzedzia/t9_dane_osobowe.py`, uwaga 45). Pelnego pytest nie uruchamialem (paczka nie zmienia programu ani jego testow).
+
+### 12.1 Tabela uwag
+
+| Nr | Waga | Co zrobiono | Dowod | Commit |
+|---|---|---|---|---|
+| 29 | P | T7 B2 / B3: 3 fragmenty "stare -> nowe" naniesione doslownie (PID = jedyny `python` ze sciezka `<K>\wersje\*`; dowod = wiersz `(plik zastany - nadrabianie)` i zdarzenie `nowy_skan` z `zastany: true`; silnik = 2 procesy Pythona bazowego w 5 s po posredniku). Dopisane: odczyt PID przed startem symulatora (tez proces z `<K>\wersje\*`), plik `t7_b2_pid.txt`, stan wykonania prob (B2 wykonal recenzent), odsylacz do zasady 5 instalacji wspolnej | przeglad tekstu; proby nie powtarzalem (wykonal ja recenzent, proba 8) | 9db31d3 |
+| 30 | P | Akapit o `call`, `echo <krok> KOD=%ERRORLEVEL%`, `set PY=...`, `set QT_QPA_PLATFORM=offscreen`, `< NUL` wstawiony doslownie w "Zasady wykonania". Dodatkowo: `call` wpisane w 19 wierszach blokow polecen (17 x `Polecenie.cmd`, 2 x `py.cmd`), 2 wiersze `echo KOD` w nowej postaci, dopiski przy T12 B, T2, T4 | `grep -c "^call " PLAN_TESTOW.md` = 19 | fa26c73 |
+| 31 | P | T1: regula "wiersz podsumowania + osobno kod wyjscia", brak podsumowania = NIE ZMIERZONO, 0xC0000409 po podsumowaniu = znane zjawisko - doslownie. ODCHYLENIE (polecenie koordynatora): liczba testow nie "2212", tylko "oczekiwana ok. 2222, w tym 9 pominietych" (stan `e3/p15` po rundzie 2: 2213 passed / 9 skipped) i zdanie, ze liczba NIE jest kryterium; `test_b1_blokada...`: po scaleniu P15 oczekiwane 0 failed, gdyby padal - FAIL bez oslabiania. Dopisane: krok kontroli `core.autocrlf`, dowod `t1_collect.txt` | przeglad tekstu; raport P15 (d3b3ea7): 2213 / 9 / 0, kod 0xC0000409 po podsumowaniu - zgodne z regula | 7468380 |
+| 32 | P | T9 krok 5: drugi cel `<ROB T3>\t3\baza`; regula NIE ZMIERZONO liczona na bazie SE10; 0 trafien w `<DANE>` poprawne przy `count(*) FROM zlecenia` = 0 - doslownie | przeglad tekstu (proba recenzenta: 33 trafienia dozwolone, kod 0) | 0336407 |
+| 33 | P | Skan `dowody\` bez `--dozwolone` przed `git add` - doslownie (+ dowod `t9_dowody.txt`). ODCHYLENIE od "`--dozwolone t10_surowe --dozwolone t10.log`": surowy log T10 nazywa sie teraz `t10_surowe.log`, wiec wzor `t10.log` jest zbedny i zostal usuniety (pasowalby do dowodu `T10/t10.log`); ta sama zasada dla T4: pliki surowe `t4_surowe_*.json`, wzor `t4_surowe` zamiast `t4_*.json` (stary wzor pasowal do dowodow `t4_*.json`). Dowody T10 / T4 = kopie plikow surowych po kontroli T9 bez `--dozwolone` | przeglad: `metryki_P3a.py` pisze tylko `<wyjscie>/<nazwa>`; nowych nazw NIE uruchamialem (pelny T10 / T4 nie byl wykonany ani razu) | 6d15a86 |
+| 34 | D | `RAPORT.md` O2: kopia bazy porownywana co do rozmiaru i SHA-256 bajtow od 100. (3 bajty naglowka SQLite - liczniki - inne), `user_version` i liczba zdarzen osobno; wiersz T12 tabeli 2 i poz. 11 sekcji 4a | przeglad | 186b7c2 |
+| 35 | D | `RAPORT.md` O7: pamiec = szczyt jednego procesu, okno wg raportu E3-A5 | przeglad | 186b7c2 |
+| 36 | D | Odstepstwo nie jest przypisane testom wykonalnym doslownie: T1, T8, T9, T10, T6, T11 moga dostac ZAL; T4 i T7 warunkowo; zawsze z odstepstwem 6 testow (T0, T2, T3, T5, T12, T13). `RAPORT.md`: podsumowanie pod tabela 2, O6 / O9 jako informacja, O12 / O14 warunkowe, 4a poz. 1, 3, 8-10, 14, decyzja 24; plan: wynik T6, T11, T7, "O7", "O12" | przeglad | e780923, 186b7c2 |
+| 37 | D | `RAPORT.md`: dowody wzgledem `.../odbior_koncowy/dowody/` | przeglad | 186b7c2 |
+| 38 | D | T7 A: osobny log i plik zrodla kodu na kazdy plik testow; `*_zrodlo_kodu.txt` na listach dowodow T5, T6, T7 | przeglad | e780923 |
+| 39 | D | T11 B: `--zamknij-po 3000`; skan bez wiersza w `skany` przy zamknieciu = NIE ZMIERZONO | przeglad | e780923 |
+| 40 | D | T5 B: obie role przez `atrapa_ramki.py ... --sterowanie`; `[ramki]` zmieniane w kopii ustawien podawanej jako `--ustawienia-wzor` (plik instalacji bez zmian) | przeglad; postaci z kopia NIE uruchamialem | e780923 |
+| 41 | D | T1 a seria pomiarowa: T1 nie w czasie T2, T4, T11 B; z T10 dopuszczone (fala T-A koordynatora; kryterium T10 nie zalezy od czasu) - odchylenie od tekstu recenzenta ("ani T10"); sciezka zegarowa 5-5,5 h | przeglad | e780923 |
+| 42 | D | T9: `--wyklucz \wersje\ --wyklucz \paczka_M\ --wyklucz \drzewo_M\`; `--dozwolone \kopie\stanowisko_` zamiast `stanowisko.kopia_` | przeglad | e780923 |
+| 43 | D | T0 krok 6: pelna samokontrola `--json` bez `--bez-sieci` | przeglad (proba generalna: kod 0) | e780923 |
+| 44 | D | Naglowek planu bez "do potwierdzenia" dla A11d; "17 przypadkow" -> "27 testow na f5c3e01" | `grep` | 2443136, e780923 |
+| 45 | D | NARZEDZIE `t9_dane_osobowe.py`: spacja, `_` i `-` nazwy pasuja do siebie nawzajem, do `+` i `%20` (1 wiersz kodu + opis); plan: lista postaci nieszukanych (cp852, iso-8859-2, NFD, `%XX`, `\xNN`, podwojne `\uXXXX`, dwie spacje) | proba `robocze\odb\r2\d45_proba.py` na nazwie sztucznej: cala nazwa znaleziona przed 2 z 8 wariantow, po 7 z 8 (nie: dwie spacje); plik kontrolny bez nazwy: kod 0; samotest na 435 nazwach z 2 katalogow: 7749 postaci, nieznalezionych 0; katalog paczki: 0 trafien calych nazw, kod 0 | a3952ea |
+| 46 | D | ODLOZONE: zmiany w `dowody_lf.py` / `t9_dane_osobowe.py` (obsluga `PermissionError`, `.csv`, liczba nazw z kazdego zrodla) - zlecenie rundy koncowej zabrania zmian narzedzi poza uwaga 45 | - | - |
+| 47 | D | ODLOZONE: `pytest_instalacja.py` (kod 3 przy plikach roznych od repo) i mianownik "Ukruszona" w `t2_wieczor.py` - jak wyzej; do czasu poprawki wykonawca T5 / T6 / T7 sam sprawdza wiersz "pliki *.py instalacji = repo: a z b" (a = b) | - | - |
+| 48 | D | bez zmian - do decyzji wlasciciela (O10: pliki nietykalne niewyroznione) | - | - |
+
+Zdanie do O13 z odpowiedzi recenzenta (sterownik zaklada, ze technik zauwazy ubytek w kazdej pracy zoltej): dopisane w
+planie (T2) i w `RAPORT.md` (e780923, 186b7c2).
+
+### 12.2 Potkniecia proby generalnej oznaczone "czesciowo" / "niepoprawione" (3 z 3 domkniete)
+
+| Potkniecie | Stan po rundzie 2 | Gdzie |
+|---|---|---|
+| P0 - liczba testow T1, regula oceny | domkniete uwaga 31 | T1 "Liczby kryterium" |
+| D12 - liczby testow w planie | domkniete: `test_p14_baza_zajeta.py` 27 testow; liczby "69 testow" (`test_instalacja.py`) w planie nie ma (`grep` 0 trafien) | T7 tabela, wiersz 6 |
+| D11 - pliki `.cmd` bez `call` | domkniete uwaga 30 | "Zasady wykonania" + bloki polecen |
+
+Sprawdzone krzyzowo z `WYNIK.md` proby i wzmocnione: `<REPO>` z LF - obok opisu w "Oznaczenia" jest teraz krok kontrolny
+w T1 (`git -C <REPO> config --get core.autocrlf` = `false` i pusty `git status`); `/python %PY%` - `set PY=...` w
+"Zasady wykonania" i w naglowku krokow T0; `/bez-sieci` nie znaczy "bez internetu" - 2 wiersze `pip.log` sa teraz
+liczba kryterium (d) T0 i dowodem `t0_pip_bez_sieci.txt`.
+
+### 12.3 Ustalenia koordynatora do wykonania odbioru (commit 2443136)
+
+Nowa sekcja planu: paczki 0.3.1 / 0.3.2, T0 w `<PC-katalog>\t0\odbior\` = instalacja wspolna T1-T11, T12 na wlasnej
+`<PC-katalog>\t0\odbior_t12\`, dowody z `WYNIK.md`, fale T-A / T-B / T-C. Z planu wynika 5 zasad instalacji wspolnej i
+ograniczenia rownoleglosci - wypisane w sekcji; najwazniejsze:
+
+- T7 czesc B (proby 2 i 3): regula PID z uwagi 29 ("0 wierszy przed startem, 1 po") jest na instalacji wspolnej
+  niespelnialna, gdy inny test uzywa `<K>\Polecenie.cmd` - zalecane uruchomienie z instalacji `odbior_t12` po T12 albo
+  okno ciszy; inaczej NIE ZMIERZONO.
+- T7 czesc B, T11 czesc B, T5 czesc B: program / sterownik z WLASNYM plikiem ustawien w `<ROB>`; `<K>\ustawienia.toml`
+  bez zmian.
+- krok `/testy` (T1 krok 1) zaraz po T0, zanim inne testy zaczna uzywac instalacji.
+- T-B: kroki T7 z silnikiem nie w czasie T4 i T2 (kryteria czasowe); T-C: T9 po T11 i T8, nie rownolegle.
+- T-A: T1 obok T10 dopuszczalne; testy czasowe T1 i T5 czesc A pod obciazeniem - regula powtorki opisana.
+
+### 12.4 Kontrola koncowa
+
+- ASCII + LF: 19 z 19 plikow paczki - 0 bajtow CR, 0 bajtow powyzej 127, 0 NUL (liczone z bajtow plikow).
+- `grep` po `PLAN_TESTOW.md`: 0 x "T2 czesc A"; odsylacze do sekcji w cudzyslowie ("Oznaczenia", "Zasady wykonania",
+  "Krok wspolny", "Ustalenia koordynatora do wykonania odbioru", "Stan sprawdzenia polecen") - wszystkie istnieja;
+  "Etap 2" i "Runda 1 recenzji" to sekcje tego raportu.
+- `t13_higiena.py --repo <worktree paczki> --od 2537f6f --do 186b7c2`: kod 1, **2 naruszenia**, oba poza paczka i oba
+  usuwane przez galaz `e3/p15` (sprawdzone na `origin/e3/p15` d3b3ea7: 0 i 0): `Ramki/stanowisko/raporty/E3-A6_2026-11-18.md`
+  (1 samotne CR - oczekiwane) oraz `Ramki/stanowisko/stanowisko/ui/kandydaci.py` (2 bajty nie-ASCII na `main` 62ef6f5).
+  O11: 7 plikow z 7; E3: 242 nowe / 24 zmienione.
+
+### 12.5 Przyjete domyslnie (runda 2)
+
+- Uklad katalogow instalacji odbioru jak w probie generalnej (`...\odbior\Stanowisko`, `...\odbior\paczka_0.3.1`,
+  `...\odbior\dane\...`) - koordynator podal tylko katalog nadrzedny.
+- T6 i T11 "bez odstepstwa" potraktowane jako ustalenie koordynatora ze zlecenia rundy (recenzent: "do potwierdzenia
+  przez koordynatora"); O6 i O9 zostaja w `RAPORT.md` jako informacja i pozycje do decyzji wlasciciela.
+- Zalecenie "T7 czesc B z instalacji `odbior_t12`" to propozycja wykonawcy - decyzja koordynatora w zleceniu T7.
+
+### 12.6 Czego nie zrobiono (runda 2)
+
+- Nie wykonalem zadnego polecenia planu w nowej postaci (pliki `.cmd` z `call`, program z wlasnym plikiem ustawien,
+  samokontrola przez `-m stanowisko.samokontrola`, nazwy `t10_surowe*` / `t4_surowe*`) - runda tekstowa; pierwsze
+  wykonanie w odbiorze zapisywac krok po kroku. Lista polecen niewykonanych ani razu (pod tabela "Stan sprawdzenia
+  polecen") zmienila sie o jedno: T7 B2 wykonal recenzent.
+- Naglowek `t9_dane_osobowe.py` nadal podaje przyklad wzoru `stanowisko.kopia_` (plan uzywa `\kopie\stanowisko_`) -
+  drobiazg zostawiony razem z uwaga 46.
+- Sekcje 1-11 tego raportu nie byly przepisywane - gdzie roznia sie od sekcji 12, obowiazuje sekcja 12.
