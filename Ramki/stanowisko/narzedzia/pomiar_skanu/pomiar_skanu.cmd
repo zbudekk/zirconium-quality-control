@@ -5,6 +5,8 @@ rem Projekty koron: folder "projekty" obok pliku skanu (pliki STL z exocad tych 
 rem Wymaga programu stanowiska (dwa katalogi wyzej) i plikow pomiar_skanu.py + c_wspolne.py obok tego pliku.
 rem Kopia z raporty\testy_krawedz\T10\skrypty (06.11.2026); zmienione tylko sciezki: program stanowiska jest
 rem szukany wzgledem tego pliku, Python przez "py -3.12" (albo .venv programu, jesli jest).
+rem E3-O4: w instalacji (katalog wersje\<wersja>\program) Python = srodowisko tej wersji (..\venv), nie "py" z PATH;
+rem plik ustawien instalacji pomiar_skanu.py znajduje sam.
 setlocal
 for %%I in ("%~dp0..\..") do set STANOWISKO=%%~fI
 set PYTHONUTF8=1
@@ -13,6 +15,7 @@ set PYTHONPATH=%STANOWISKO%
 if exist "%STANOWISKO%\.venv\Lib\site-packages\" set PYTHONPATH=%STANOWISKO%;%STANOWISKO%\.venv\Lib\site-packages
 set PY=py -3.12
 if exist "%STANOWISKO%\.venv\Scripts\python.exe" set PY="%STANOWISKO%\.venv\Scripts\python.exe"
+if exist "%STANOWISKO%\..\instalacja.json" if exist "%STANOWISKO%\..\venv\Scripts\python.exe" set PY="%STANOWISKO%\..\venv\Scripts\python.exe"
 if "%~1"=="" (
   echo Przeciagnij plik skanu STL na ten plik.
   pause

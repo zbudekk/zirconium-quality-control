@@ -7,7 +7,8 @@ skanera ani od pamieci czlowieka. Zasada nadrzedna: lepiej skopiowac za duzo niz
 Czesci:
 * kroki dnia z pliku danych ``dzien_skanera_kroki.toml`` (``wczytaj_kroki``),
 * ``Sesja`` - folder ``dane/dzien_skanera/<RRRR-MM-DD_GGMM>/`` z manifestem ``sesja.json`` zapisywanym atomowo
-  po kazdej akcji (wznowienie po awarii: ``Sesja.wznow``),
+  po kazdej akcji (wznowienie po awarii: ``Sesja.wznow``); w instalacji: ``<instalacja>/dane/dzien_skanera/``
+  (``katalog_sesji``, E3-O4),
 * ``Zbieracz`` - obserwacja folderow eksportu przez odpytywanie, kopiowanie strumieniowe z SHA-256, pliki dodane
   recznie, kolejka szybkiej kontroli skanow (osobny proces - Open3D w watku pod Qt zawisa, patrz raporty/P3a_postep.md),
 * szybka kontrola pliku skanu (``kontrola_pliku``; rozpoznanie ukladu plytki w JEDNEJ funkcji ``rozpoznaj_uklad``),
@@ -2670,11 +2671,65 @@ def _sprawdz(sciezka: Path, zrodla: list) -> tuple[int, list[str]]:
 # ----------------------------------------------------------------------------
 # ustawienia odporne na brak pliku
 # ----------------------------------------------------------------------------
+def katalog_instalacji(korzen: Path | None = None) -> Path | None:
+    """Katalog instalacji, gdy program lezy w ukladzie instalatora: ``<instalacja>/wersje/<wersja>/program`` i w ``<instalacja>``
+    jest ``ustawienia.toml`` (zaklada go ``instalacja/instalator.py``); inaczej (kopia repo) None. E3-O4."""
+    korzen = Path(korzen) if korzen is not None else UST.KORZEN
+    if korzen.name.lower() != "program" or korzen.parent.parent.name.lower() != "wersje":
+        return None
+    katalog = korzen.parent.parent.parent
+    return katalog if (katalog / UST.PLIK_USTAWIEN.name).is_file() else None
+
+
+def plik_ustawien_instalacji() -> Path | None:
+    """``<instalacja>/ustawienia.toml``, gdy program lezy w katalogu wersji instalacji; z repo None (E3-O4)."""
+    katalog = katalog_instalacji()
+    return katalog / UST.PLIK_USTAWIEN.name if katalog is not None else None
+
+
+def _ten_sam_plik(a: Path, b: Path) -> bool:
+    try:
+        return Path(a).resolve() == Path(b).resolve()
+    except OSError:
+        return str(a) == str(b)
+
+
+def katalog_sesji(ust: dict | None = None, plik_ustawien: Path | None = None) -> Path:
+    """Katalog sesji dnia skanera (E3-O4). ``plik_ustawien`` = plik, z ktorego NAPRAWDE wczytano ``ust``.
+
+    1. Ustawienia z pliku wskazanego programowi (skrot instalacji ``Dzien_skanera.cmd`` podaje ``--ustawienia
+       <instalacja>/ustawienia.toml`` - tak samo jak ``Stanowisko.cmd``) albo z pliku instalacji znalezionego po ukladzie
+       katalogow: ``dzien_skanera`` w katalogu bazy z ``[sciezki] baza`` - tak program "Stanowisko" wyznacza swoj katalog
+       danych (``aplikacja``: katalog pliku bazy); w instalacji to ``<instalacja>/dane/dzien_skanera``.
+    2. Program w katalogu wersji instalacji, ale bez uzytecznych ustawien instalacji: ``<instalacja>/dane/dzien_skanera`` -
+       sesja nigdy nie trafia do katalogu wersji (ginie przy sprzataniu wersji).
+    3. Kopia repo na wlasnym ``ustawienia.toml`` / wzorze albo bez ustawien: ``KATALOG_SESJI`` (``dane/dzien_skanera`` w
+       katalogu programu) - jak przed E3-O4."""
+    wlasne = (UST.PLIK_USTAWIEN, UST.PLIK_PRZYKLADU)
+    if ust is not None and plik_ustawien is not None and not any(_ten_sam_plik(plik_ustawien, w) for w in wlasne):
+        try:
+            from .baza import sciezka_bazy  # te sama funkcje wola program (aplikacja.main -> katalog danych)
+
+            return sciezka_bazy(ust).parent / KATALOG_SESJI.name
+        except Exception:  # noqa: BLE001 - ustawienia bez sciezki bazy: reguly 2 i 3
+            pass
+    instalacja = katalog_instalacji()
+    if instalacja is not None:
+        return instalacja / "dane" / KATALOG_SESJI.name
+    return KATALOG_SESJI
+
+
 def wczytaj_ustawienia_bezpiecznie(plik: Path | None = None) -> tuple[dict | None, Path | None, str]:
     """(ustawienia, plik, komunikat). Gdy ``ustawienia.toml`` nie ma albo jest zly - probuje wzoru; gdy i to zawiedzie - (None, None, powod).
-    Okno dnia skanera ma dzialac takze bez poprawnych ustawien (zbieranie plikow nie zalezy od nich)."""
+    Okno dnia skanera ma dzialac takze bez poprawnych ustawien (zbieranie plikow nie zalezy od nich).
+    Kolejnosc: plik wskazany, w instalacji ``<instalacja>/ustawienia.toml`` (E3-O4: w katalogu wersji nie ma ``ustawienia.toml``,
+    wiec bez tego okno czytalo wzor), ``ustawienia.toml`` programu, wzor."""
     bledy = []
-    for kandydat in ([Path(plik)] if plik is not None else []) + [UST.PLIK_USTAWIEN, UST.PLIK_PRZYKLADU]:
+    kandydaci = [Path(plik)] if plik is not None else []
+    z_instalacji = plik_ustawien_instalacji()
+    if z_instalacji is not None and not any(_ten_sam_plik(z_instalacji, k) for k in kandydaci):
+        kandydaci.append(z_instalacji)
+    for kandydat in kandydaci + [UST.PLIK_USTAWIEN, UST.PLIK_PRZYKLADU]:
         try:
             return UST.wczytaj_ustawienia(kandydat), kandydat, "; ".join(bledy)
         except Exception as e:  # noqa: BLE001
