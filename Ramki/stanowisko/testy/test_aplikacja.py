@@ -648,6 +648,9 @@ def test_b1_drugi_egzemplarz_odmawia_i_nie_dotyka_bazy(stanowiska, tmp_path):
     assert len(skany_w_bazie(st)) == 1 and len(st.stan().plytki) == 1 and _dziennik(st, "nowy_skan") == 1
 
 
+B1_LIMIT_ZWOLNIENIA_BLOKADY_S = 2.0  # tyle najdluzej po koncu zabitego procesu programu blokada bazy moze jeszcze byc zajeta
+
+
 def test_b1_blokada_znika_razem_z_procesem(tmp_path):
     """B1: blokada jest odporna na awarie - program zabity w trakcie pracy (bez zamkniecia) nie zostawia blokady; kolejny
     start dziala bez recznego sprzatania."""
@@ -680,7 +683,17 @@ def test_b1_blokada_znika_razem_z_procesem(tmp_path):
         if proces.poll() is None:
             proces.kill()
             proces.wait(60)
-    blokada = AP.BlokadaStanowiska(plik_bazy).zajmij()  # system zwolnil blokade razem z procesem
+    # system zwalnia blokade razem z procesem. W srodowisku wersji (venv) ``sys.executable`` to program posredniczacy:
+    # ``wait()`` wraca, gdy zginal posrednik, a wlasciwy interpreter (to on trzyma blokade) konczy sie chwile pozniej
+    # (pomiar E3-P15 runda 2: 0,8-1,5 ms po ``wait()``, 20 z 20) - stad czekanie z krotkim, nazwanym limitem
+    blokada = AP.BlokadaStanowiska(plik_bazy)
+    koniec = time.monotonic() + B1_LIMIT_ZWOLNIENIA_BLOKADY_S
+    while not blokada.zajeta:
+        try:
+            blokada.zajmij()
+        except AP.ProgramJuzDziala:
+            assert time.monotonic() < koniec, f"blokada nie zniknela w {B1_LIMIT_ZWOLNIENIA_BLOKADY_S} s po koncu procesu programu"
+            time.sleep(0.01)
     assert blokada.zajeta
     blokada.zwolnij()
     k = AP.Aplikacja(TK.ustawienia_probne(tmp_path), funkcja_analizy=TK.FUNKCJA_SZTUCZNA, parametry_scannera=TK.PARAMETRY_SCANNERA)

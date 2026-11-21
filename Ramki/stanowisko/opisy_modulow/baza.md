@@ -7,7 +7,7 @@
 **Wyjscie / API.**
 - `otworz(plik, tylko_odczyt=False, czekaj_ms=5000)` -> `Baza`. Nowy plik: zalozenie schematu. Plik starszy: kopia pliku, potem migracja. Plik nowszy niz program, plik niebedacy baza, nieudana migracja: `BladBazy` z komunikatem dla czlowieka, plik bez zmian. `tylko_odczyt=True`: nic nie zaklada i nie migruje.
 - `Baza`: `wstaw(tabela, **kolumny)` (nazwy sprawdzane ze schematem), `wiersze(sql, parametry)`, `wiersz(...)`, `wykonaj(...)`, `transakcja()` (calosc albo nic; zagniezdzona nalezy do zewnetrznej), `zdarzenie(zrodlo, typ, dane, skan_id)` (dziennik; wycina sciezki z tekstow), `zrzut(tabele=None, bez_nazw=False)` (tabela -> wiersze), `kopia(cel)` (spojna kopia przy otwartym polaczeniu), `wersja()`, `zamknij()`; pola `plik`, `kopia_przed_migracja`, `zmigrowano`.
-- Baza zajeta przez inny program (blokada dluzej niz `czekaj_ms`): `BladBazy` "baza jest zajeta przez inny program ... niczego nie zapisano" - nie surowy blad SQLite; po zwolnieniu blokady ta sama operacja przechodzi.
+- Baza zajeta przez inny program (blokada dluzej niz `czekaj_ms`): `BladBazy` "baza jest zajeta przez inny program ... niczego nie zapisano" - nie surowy blad SQLite; po zwolnieniu blokady ta sama operacja przechodzi. Dotyczy tez pierwszego odczytu kolumn tabeli (`Baza.kolumny`, wolany przez `wstaw`; E3-P15).
 - `bez_sciezek(tekst)`, `oczysc(dane)`: zastepuja sciezki znacznikiem `<sciezka>` (patrz "Dane osobowe").
 - Stale: `TABELE` (11 nazw), `KOLUMNY_Z_NAZWAMI` / `TABELE_Z_NAZWAMI`, `OGRANICZENIA_PONAD_3_4`, `MIGRACJE`, `WERSJA_SCHEMATU` (= 1).
 

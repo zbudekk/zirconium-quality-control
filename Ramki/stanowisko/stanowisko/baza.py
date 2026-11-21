@@ -531,8 +531,8 @@ class Baza:
     def kolumny(self, tabela: str) -> tuple[str, ...]:
         if tabela not in TABELE:
             raise BladBazy(f"nieznana tabela {tabela!r} (znane: {', '.join(TABELE)})")
-        if tabela not in self._kolumny:
-            self._kolumny[tabela] = tuple(w[1] for w in self.polaczenie.execute(f"PRAGMA table_info({tabela})"))
+        if tabela not in self._kolumny:  # E3-P15: przez ``_wykonaj`` - baza zajeta = ``BladBazy``, nie surowy blad SQLite
+            self._kolumny[tabela] = tuple(w[1] for w in self._wykonaj(f"PRAGMA table_info({tabela})"))
         return self._kolumny[tabela]
 
     def wstaw(self, tabela: str, **kolumny: Any) -> int:

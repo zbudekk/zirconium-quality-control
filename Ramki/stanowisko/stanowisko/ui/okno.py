@@ -31,7 +31,7 @@ numeru plytki albo zmiany osoby oraz tekst ostatniej odmowy / informacji ekranu,
 """
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QPoint, QRect, Qt, QTimer
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QPushButton, QStackedLayout, QVBoxLayout, QWidget
 
@@ -322,7 +322,25 @@ class OknoWieczor(QWidget):
             self._mapa_podpis = None
             if not self._w_poleceniu:
                 self.setFocus(Qt.FocusReason.OtherFocusReason)
+        # E3-P15: stan, po ktorym mapa zmienia miejsce pod kursorem (komunikat nad mapa doszedl, urosl albo zniknal) - ta sama
+        # ochrona klikniec co po zmianie zawartosci mapy (A-P2). Miara to RUCH mapy (runda 2, P1): jej prostokat w oknie
+        # przed i po ulozeniu ukladu, nie wysokosc paneli - komunikat, ktory mapy nie rusza (sama zmiana tekstu, np. "plik
+        # zajety od 13 s"; obszar paneli juz ograniczony i przewijany), mapy nie przygasza. Stan bedacy skutkiem polecenia
+        # technika (runda 2, P2): ochrona tylko, gdy kolumna mapy zjechala w dol - nad mapa doszlo cos, o co nie prosil (np.
+        # nieudany zapis listy po decyzji); komunikat zamkniety jego kliknieciem (mapa idzie w gore) zostaje bez przygaszenia
+        klikalna = self._mapa_podpis is not None and bool(self._mapa_podpis[1] or self._mapa_podpis[2])
+        przed = self._miejsce_mapy() if klikalna else None
         self._odswiez()
+        if klikalna:
+            self._calosc.activate()  # uklad policzony od razu (bez czekania na obieg petli okna): miejsce mapy po wymianie paneli
+            po = self._miejsce_mapy()
+            if po[1] > przed[1] if self._w_poleceniu else po[0] != przed[0]:
+                self._ochrona.start()
+                self.mapa.przygas(True)
+
+    def _miejsce_mapy(self) -> tuple:
+        """(prostokat mapy w oknie, gorna krawedz kolumny mapy) - to, co technik ma pod kursorem."""
+        return QRect(self.mapa.mapTo(self, QPoint(0, 0)), self.mapa.size()), self.kolumna.y()
 
     def pokazana_plytka(self) -> int | None:
         """``skan_id`` plytki, ktorej mapa jest na ekranie."""

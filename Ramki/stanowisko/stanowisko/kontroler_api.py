@@ -2989,6 +2989,7 @@ class KontrolerSesji(Kontroler):
             return
         self._lista_zapisana, self._lista_czas, self._lista_blad = pozycje, self._teraz(), False
         self._usun_komunikat("lista_nie_zapisana")
+        self._usun_komunikat("odmowa:lista_nie_zapisana")  # E3-P15: plik zapisany - odmowa recznego zapisu nie ma juz czego ponawiac
 
     @staticmethod
     def _pozycja(x: dict) -> PozycjaListy:
