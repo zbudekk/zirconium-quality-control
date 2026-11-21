@@ -277,6 +277,16 @@ def test_polecenie_klucz_pyta_raz_i_zapisuje_tylko_dobry(z_kluczem, tmp_path, ca
     assert wiersze == ["ramka-p.local inny-klucz-1111111111", f"127.0.0.1 {KLUCZ}x"]
 
 
+def test_n10_klucz_z_litera_spoza_ascii_to_zly_klucz_a_nie_wyjatek(z_kluczem, tmp_path):
+    """Recenzja runda 2, N10: klucz z polska litera (prawy Alt) konczyl sie wyjatkiem UnicodeEncodeError zamiast 'ZLY KLUCZ'."""
+    port = z_kluczem[0]
+    plik = tmp_path / "klucz_ramki.txt"
+    linie = []
+    assert RP.polecenie_klucz("127.0.0.1", port, plik, linie.append, lambda _t: KLUCZ[:-1] + chr(261)) == 5
+    assert not plik.exists() and "ZLY KLUCZ" in linie[-1] and "bez polskich znakow" in linie[-1] and "nic nie zapisano" in linie[-1]
+    assert "\n".join(linie).isascii()
+
+
 def test_polecenie_klucz_na_ramce_bez_klucza_o_nic_nie_pyta(ramka, tmp_path):
     rola, program, atrapa, r = ramka
     linie = []

@@ -91,11 +91,11 @@ Kroki wg strony dietray ("Die Scan"):
 | Nr | Co robi dokumentacja | Co robimy my |
 |---|---|---|
 | 1 | polozyc "height adaptor" i model wg wskazowek na ekranie | kladziemy nasza plytke. [DO SPRAWDZENIA NA EGZEMPLARZU] jak plytka stoi na stoliku i czy potrzebna jest podstawka |
-| 2 | ustawienia w oknie kamery ("Camera Window") | ikona jasnosci: suwak albo przycisk auto, "until several red spots appearing". Ikona wysokosci ciecia: niebieska linia na dole okna, "Only the range above the cutting line is to be scanned." -> linia ma byc PONIZEJ wierzchu plytki (najlepiej ponizej calej plytki) |
+| 2 | ustawienia w oknie kamery ("Camera Window") | ikona jasnosci: suwak albo przycisk auto, "until several red spots appearing". Ikona wysokosci ciecia: niebieska linia na dole okna, "Only the range above the cutting line is to be scanned." -> linia ma byc POWYZEJ stolika i co najmniej 3 mm PONIZEJ wierzchu plytki (stolik i podstawka nie moga trafic do skanu - program nie rozpozna wtedy plytki; scianka boczna plytki ma zostac w skanie, o ile sie da). [DO SPRAWDZENIA NA EGZEMPLARZU] czy linie da sie ustawic miedzy stolikiem a wierzchem plytki |
 | 3 | (opcjonalnie) funkcje dodatkowe | pierwszy skan BEZ dodatkow |
 | 4 | ikona "Add details": skan wysokiej jakosci | dopiero w kroku "zapisany inaczej" |
 | 5 | start: ikona startu albo **Spacja** | Spacja ("Space: Start scan or move forward."); Esc = "Quit scanning." |
-| 6 | po skanie: "move or rotate the cutting plane to cut the model"; czerwona czesc ("jig data") jest odcinana | plaszczyzna ciecia ma zostac PONIZEJ wierzchu plytki - caly wierzch ze stozkami zostaje. [DO SPRAWDZENIA NA EGZEMPLARZU] czy ciecie da sie pominac albo ustawic ponizej spodu plytki |
+| 6 | po skanie: "move or rotate the cutting plane to cut the model"; czerwona czesc ("jig data") jest odcinana | plaszczyzna ciecia ma zostac co najmniej 3 mm PONIZEJ wierzchu plytki i POWYZEJ stolika - caly wierzch ze stozkami zostaje, stolik jest odciety. [DO SPRAWDZENIA NA EGZEMPLARZU] czy da sie ja tak ustawic |
 | 7 | ikona edycji: edycja modelu | nie edytujemy (patrz "Czego nie klikac") |
 | 8 | ikona OK: zapis edycji i powrot | - |
 | 9 | ikona podgladu / ikona resetu = skan od nowa / ikona zakonczenia | podglad wolno; reset dopiero, gdy okno "Dzien skanera" ma juz kopie pliku; potem zakonczenie |

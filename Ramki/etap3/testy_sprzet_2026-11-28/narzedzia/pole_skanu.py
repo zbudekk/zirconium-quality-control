@@ -46,6 +46,8 @@ RESZTA_POLA_MM = 1.5         # U1: koniec danych "lezy na okregu pola", gdy jest
 UDZIAL_NA_OKREGU = 0.85      # U1: pole kolowe, gdy co najmniej taka czesc koncow danych lezy na dopasowanym okregu
 MIN_KIERUNKOW_SCIANKI = 6    # scianka boczna "widoczna", gdy sa jej dane w co najmniej tylu z 72 kierunkow (mniej = slady)
 PODLOZE_OD_MM = 140.0        # U5 (plytka nierozpoznana): dane wieksze niz jakakolwiek plytka (kwadrat 96 mm ma przekatna 135,8)
+PLASKIE_PAS_MM = 1.0         # N5 (plytka nierozpoznana): dane "plaskie" = prawie wszystkie punkty w pasie +/- tyle wokol jednej plaszczyzny
+PLASKIE_UDZIAL = 0.98        # N5: ... czyli co najmniej taki udzial punktow (plaski karton albo sam stolik, bez plytki)
 PODLOZE_ZAPAS_MM = 6.0       # U5 (plytka rozpoznana): dane siegaja poza kolo opisane plytki o wiecej niz tyle
 
 
@@ -263,11 +265,14 @@ def zmierz(sciezka: Path, ust: dict, numer: int | None = None, seed: int = 0) ->
         c = pts.mean(0)
         _, _, vt = np.linalg.svd((pts - c)[:: max(1, len(pts) // 50_000)], full_matrices=False)
         xy = (pts - c) @ vt[:2].T
+        wys = (pts - c) @ vt[2]
+        plaskie = bool((np.abs(wys - np.median(wys)) <= PLASKIE_PAS_MM).mean() >= PLASKIE_UDZIAL)  # N5: karton albo sam stolik
         _, rk = najmniejsze_kolo(xy)
         najw, wpoprz = prostokat_najwezszy(xy)
         w.update({"powod": r["powod"], "komunikat_programu": r["komunikat"], "stozki_znalezione": r["stozki"],
                   "srednica_danych_mm": round(2 * rk, 1), "dane_najwezej_mm": round(najw, 1), "dane_w_poprzek_mm": round(wpoprz, 1),
-                  "dane_sa_kolem": bool(2 * rk - najw < ROZNICA_KOLA_MM), "podloze_prawdopodobne": bool(2 * rk > PODLOZE_OD_MM),
+                  "dane_sa_kolem": bool(2 * rk - najw < ROZNICA_KOLA_MM), "podloze_prawdopodobne": bool(2 * rk > PODLOZE_OD_MM and not plaskie),
+                  "dane_plaskie": plaskie,
                   "uwaga": "plytki nie rozpoznano - wymiary liczone zgrubnie, bez ukladu plytki"})
         w["do_arkusza"] = do_arkusza(w)
         return w, None, None
@@ -386,7 +391,8 @@ def do_arkusza(w: dict) -> dict:
         return {"program mowi": f"PLYTKA NIE ROZPOZNANA (powod wg programu: {w['powod']})", "numer z dolkow": nie, "dolki numeru widac": nie,
                 "scianka boczna": nie, "rowek pokrywki": nie, "brzeg plytki": nie,
                 "pole": f"dane najwezej {_l(w['dane_najwezej_mm'])} mm, w poprzek {_l(w['dane_w_poprzek_mm'])} mm",
-                "podloze w skanie": "PRAWDOPODOBNIE TAK (dane wieksze niz plytka)" if w["podloze_prawdopodobne"] else "nie widac"}
+                "podloze w skanie": ("nie dotyczy (plaski arkusz albo sam stolik - wymiary to pole skanera)" if w.get("dane_plaskie")
+                                     else "PRAWDOPODOBNIE TAK (dane wieksze niz plytka)" if w["podloze_prawdopodobne"] else "nie widac")}
     b = w["scianka_boczna"]
     lista = w["dolki"][w["uklad"]]
     pole = f"okrag wpisany {_l(w['okrag_wpisany_wokol_srodka_plytki_mm'])} mm; dane najwezej {_l(w['dane_najwezej_mm'])} mm, w poprzek {_l(w['dane_w_poprzek_mm'])} mm"
@@ -429,7 +435,10 @@ def raport(w: dict) -> list[str]:
         else:
             t.append(f"   DANE NIE SA KOLEM: {_l(w['dane_najwezej_mm'])} x {_l(w['dane_w_poprzek_mm'])} mm. Do arkusza wpisz OBIE liczby; liczy sie mniejsza.")
         t.append(f"   Obrys pliku: {_l(o[0])} x {_l(o[1])} x {_l(o[2])} mm.")
-        if w["podloze_prawdopodobne"]:
+        if w.get("dane_plaskie"):
+            t += ["   Dane sa PLASKIE: to plaski arkusz (karton) albo sam stolik, bez plytki. Wymiary powyzej to POLE SKANERA",
+                  "   (jesli arkusz jest wiekszy niz pole). To jest glowny pomiar pola - przepisz go do arkusza."]
+        elif w["podloze_prawdopodobne"]:
             t += [f"   Dane sa wieksze niz jakakolwiek plytka (ponad {PODLOZE_OD_MM:.0f} mm).", *PODLOZE_TEKST]
         t += ["   Jesli najwezszy wymiar jest mniejszy niz ok. 94 mm, to pole skanera nie obejmuje trzech stozkow",
               "   znacznikow plytki - program nie rozpozna zadnej plytki. To wazna informacja: zapisz ja w arkuszu.",
@@ -462,7 +471,13 @@ def raport(w: dict) -> list[str]:
             t.append("   Skan konczy sie tuz przy brzegu plytki (albo brzeg jest zasloniety): wielkosci pola z tego skanu nie da sie podac.")
         else:
             t.append(f"   POLE NIE JEST KOLEM (albo plytka lezy z boku pola): dane najwezej {_l(w['dane_najwezej_mm'])} mm x {_l(w['dane_w_poprzek_mm'])} mm.")
+            d = w.get("pole_dopasowanie")
+            if d:
+                t.append(f"   Konce danych pasuja do okregu o srednicy ok. {_l(d['srednica_mm'])} mm w {d['na_okregu']} z {d['kierunkow']} kierunkow"
+                         " - za malo, zeby to uznac za pewne.")
             t.append("   Jednej 'srednicy pola' z tego skanu nie ma - wpisz obie liczby; przesun plytke na srodek pola i zeskanuj ponownie.")
+    if not w["cala_plytka_w_skanie"]:
+        t.append("   Wymiar pola liczony z plytki jest PRZYBLIZONY - pewny pomiar pola daje plaski karton wiekszy niz pole.")
     if w["podloze_prawdopodobne"]:
         t += [f"   Dane siegaja poza plytke (kolo opisane na danych {_l(w['srednica_danych_mm'])} mm, na plytce {_l(w['srednica_opisana_plytki_mm'])} mm).", *PODLOZE_TEKST]
     t.append(f"3. Brzeg plytki widac w {n_brzeg} kierunkow.")
@@ -531,12 +546,20 @@ def nazwa_wyniku(katalog: Path, rdzen: str, znacznik: str | None = None) -> str:
     return podstawa if nr == 1 else f"{podstawa}_{nr}"
 
 
+def opis_czlowieka(tekst: str) -> str:
+    """N7: opis wpisany przez czlowieka - jedna linia, tylko ASCII (polskie litery bez ogonkow), najwyzej 120 znakow."""
+    zamiana = dict(zip((261, 263, 281, 322, 324, 243, 347, 378, 380, 260, 262, 280, 321, 323, 211, 346, 377, 379), 'acelnoszzACELNOSZZ'))
+    czysty = " ".join(str(tekst or "").translate(zamiana).split())
+    return "".join(z if 32 <= ord(z) < 127 else "?" for z in czysty)[:120]
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Pole skanera z jednego pliku skanu plytki: wymiary danych, dolki numeru, brzeg, scianka boczna.")
     ap.add_argument("skan", type=Path, help="plik skanu plytki (STL / PLY / OBJ) - PELNA sciezka")
     ap.add_argument("--numer", type=int, default=None, help="numer wybity na plytce (pomaga rozpoznac kwadrat / kolo)")
     ap.add_argument("--ustawienia", type=Path, default=None, help="plik ustawien programu (domyslnie: ustawienia programu albo wzor)")
     ap.add_argument("--wynik", type=Path, default=None, help="katalog na pliki wyniku (domyslnie obok skanu)")
+    ap.add_argument("--opis", default="", help="co NAPRAWDE lezalo na stoliku (wpisuje czlowiek; trafia do pliku wyniku), np. 'okr-ramk 2, dolki zaklejone'")
     ap.add_argument("--bez-rysunku", action="store_true")
     a = ap.parse_args(argv)
     try:
@@ -565,7 +588,10 @@ def main(argv=None) -> int:
                                                          encoding="ascii", newline="\n")
         return 2
     w["plik_ustawien"] = plik_ust.name if plik_ust else None
+    w["opis_czlowieka"] = opis_czlowieka(a.opis)
     tekst = raport(w)
+    if w["opis_czlowieka"]:
+        tekst.insert(1, f"Co lezalo na stoliku (wpisal czlowiek): {w['opis_czlowieka']}")
     (katalog / f"{rdzen}_pole.txt").write_text("\n".join(tekst) + "\n", encoding="ascii", errors="replace", newline="\n")
     (katalog / f"{rdzen}_pole.json").write_text(json.dumps(w, indent=1, ensure_ascii=True) + "\n", encoding="ascii", newline="\n")
     if P is not None and not a.bez_rysunku:

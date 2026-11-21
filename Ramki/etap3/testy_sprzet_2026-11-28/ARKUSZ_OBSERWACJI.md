@@ -1,14 +1,14 @@
 # Arkusz obserwacji - pierwsze testy na sprzecie 28-29.11.2026
 
-Wydrukuj. Wypelniaj dlugopisem w trakcie testow. Numery sa takie same jak numery krokow w dokumencie
+Wydrukuj. Wypelniaj dlugopisem w trakcie testow. Numery jak numery krokow w dokumencie
 `PIERWSZE_TESTY_NA_SPRZECIE.md`. Bez nazwisk pacjentow i nazw zlecen. Puste pole = "nie robilem".
 Gdy cos poszlo inaczej, niz pisze dokument - zapisz JAK. To najcenniejsza informacja z calego dnia.
 
 Data: ...........  Godzina startu: ........  Kto: ......................  Komputer: ................
 
-## Odpowiedzi na pytania P1-P8
+## Odpowiedzi na pytania P1-P9
 
-Termin: sroda 25.11.2026 - przekaz sesji prowadzacej projekt; tu wpisz to samo.
+Termin: sroda 25.11.2026 (plik `PYTANIA_DO_WLASCICIELA.md`); tu wpisz to samo.
 
 - P1. Ramka: [ ] wieczorna  [ ] poranna  [ ] obie.   Wkladka: [ ] kwadratowa  [ ] okragla
 - P2. Plytki na miejscu (zakresl numery):  kwadratowe: 1 2 3 4 5 6    okragle ramkowe: 1 2 3 4 5 6
@@ -23,9 +23,10 @@ Termin: sroda 25.11.2026 - przekaz sesji prowadzacej projekt; tu wpisz to samo.
 - P6. Siec: [ ] router w pracowni  [ ] hotspot z laptopa  [ ] hotspot z telefonu  [ ] kabel
   Nazwa sieci wpisanej w ramce: ..............................
 - P7. Projekty STL prac probnych: [ ] mam, ile: ......  [ ] nie mam
-- P8. Klucz ramki (z pliku `/etc/ramka/ramka.json` na Raspberry Pi): [ ] znam  [ ] nie znam
-  [ ] ramka jest bez klucza.   Klucz przepisany do `klucz_ramki.txt`: [ ]
-  Samego klucza w arkuszu NIE zapisujemy.
+- P8. Klucz ramki: [ ] znam  [ ] nie znam  [ ] ramka jest bez klucza.
+  Klucz przepisany do `klucz_ramki.txt`: [ ]      Samego klucza w arkuszu NIE zapisujemy.
+- P9. W programie skanera sa zlecenia pacjentow: [ ] tak  [ ] nie  [ ] nie wiem
+  Folder na skany testowe z tego dnia: ..........................................................
 
 ## Czesc 1 - komputer i program
 
@@ -52,53 +53,63 @@ Termin: sroda 25.11.2026 - przekaz sesji prowadzacej projekt; tu wpisz to samo.
 - 2.3 Pierwszy skan - PUSTA plytka: ........................ numer wybity: .....
   Czas skanu: ...... min ...... s.    Plik pojawil sie w oknie po: ...... s   [ ] nie pojawil sie
   Ocena w oknie: [ ] zielona  [ ] czerwona.  Tekst: ................................................
-  ..............................................................................................
-  Obrys: ........ x ........ x ........ mm.     W skanie widac stolik / podloze: [ ] tak  [ ] nie
-- 2.4 Pole skanera (`pole_skanu.cmd`). Wynik z plytki (zaznacz jedno):
-  [ ] "POLE SKANERA MA OK. ........ mm"
-  [ ] "POLE NIE JEST KOLEM: ........ x ........ mm"
+  Obrys: ........ x ........ x ........ mm.     W podgladzie skanu widac stolik / podstawke: [ ] tak  [ ] nie
+  Linie ciecia da sie ustawic miedzy stolikiem a wierzchem plytki: [ ] tak  [ ] nie: ...............
+  Dwa skany tej samej plytki (gdy byl skan z podlozem albo czerwony):
+  (A) ciecie tuz nad stolikiem:  plik ..................  ocena: [ ] zielona [ ] czerwona  PODLOZE: [ ]
+  (B) ciecie 3 mm pod wierzchem: plik ..................  ocena: [ ] zielona [ ] czerwona  PODLOZE: [ ]
+- 2.4 Pole skanera (`pole_skanu.cmd`). NAJPIERW karton (glowny pomiar), godzina wyniku: ...........
+  [ ] "Dane mieszcza sie w kole o srednicy ok. ........ mm"
+  [ ] "DANE NIE SA KOLEM: ........ x ........ mm"          "Dane sa PLASKIE": [ ]
+  Potem skan plytki z kroku 2.3 (pomocniczo, przyblizone) - zaznacz jedno:
   [ ] cala plytka w skanie (pole jest co najmniej takie jak plytka)
-  Wynik z kartonu: najwezej ........ mm, w poprzek ........ mm, kolo ........ mm
-- 2.5 Tabela skanow. Po kazdym skanie przeciagnij plik na `pole_skanu.cmd` i przepisz z bloku
-  "DO ARKUSZA (przepisz):". Kolumna "program mowi" = `program mowi:`, "nr" = `numer z dolkow:`,
-  "dolki" = `dolki numeru widac:`, "scianka" = `scianka boczna:`, "brzeg" = `brzeg plytki:`.
-  Plytka naprawde: kw / okr-ramk / okr-test / stara + nr. Na niej: pusta / prace / dolki zaklejone.
+  [ ] "POLE SKANERA MA OK. ........ mm"
+  [ ] "POLE NIE JEST KOLEM: ........ x ........ mm";  "Konce danych pasuja do okregu ........ mm"
+  [ ] "wielkosci pola z tego skanu nie da sie podac"
+- 2.5 Tabela skanow. Kazdy plik przeciagnij na `pole_skanu.cmd`; na pytanie "Co lezy na stoliku?" wpisz
+  to samo, co w kolumnach "plytka naprawde" i "co na niej". Reszte przepisz z bloku "DO ARKUSZA".
+  "Godz." = godzina z wiersza "Zapisano: ..." (po niej znajdziemy plik wyniku).
+  Plytka naprawde: kw / okr-ramk / okr-test / stara + nr.
 
-     nr | plytka naprawde | co na niej     | program mowi       | nr z   | dolki | scianka   | brzeg
-        | (rodzaj + nr)   |                | (rodzaj; pewnie    | dolkow | z 4   | T/N,      | z 72
-        |                 |                |  T/N)              |        |       | do mm     |
-     ---|-----------------|----------------|--------------------|--------|-------|-----------|------
-      1 |                 |                |                    |        |       |           |
-      2 |                 |                |                    |        |       |           |
-      3 |                 |                |                    |        |       |           |
-      4 |                 |                |                    |        |       |           |
-      5 |                 |                |                    |        |       |           |
-      6 |                 |                |                    |        |       |           |
-      7 |                 |                |                    |        |       |           |
-      8 |                 |                |                    |        |       |           |
+     nr | godz.  | plytka naprawde | co na niej   | program mowi     | nr z   | dolki | scianka | brzeg
+        | wyniku | (rodzaj + nr)   | (pusta/prace)| (rodzaj; pewnie  | dolkow | z 4   | T/N,    | z 72
+        |        |                 |              |  T/N)            |        |       | do mm   |
+     ---|--------|-----------------|--------------|------------------|--------|-------|---------|------
+      1 |        |                 |              |                  |        |       |         |
+      2 |        |                 |              |                  |        |       |         |
+      3 |        |                 |              |                  |        |       |         |
+      4 |        |                 |              |                  |        |       |         |
+      5 |        |                 |              |                  |        |       |         |
+      6 |        |                 |              |                  |        |       |         |
+      7 |        |                 |              |                  |        |       |         |
+      8 |        |                 |              |                  |        |       |         |
 
   Wiersz `podloze w skanie:` inny niz "nie" - w ktorych skanach: ..................................
   Rowek pokrywki (plytka okragla ramkowa; wiersz `rowek pokrywki:`):
   skan nr ....: scianka cofa sie o ........ mm w ...... z 72 kierunkow
   skan nr ....: scianka cofa sie o ........ mm w ...... z 72 kierunkow
   skan nr ....: scianka cofa sie o ........ mm w ...... z 72 kierunkow
-- 2.5a Plytki okragle - czy program poznaje ksztalt. Kazda plytke okragla zeskanuj 3 razy:
-  (i) pusta, (ii) z praca w gniezdzie obok dolkow numeru, (iii) dolki numeru zaklejone tasma.
-  W kratce wpisz: kw albo okr (co mowi program); pewnie T/N; numer z dolkow; scianka boczna T/N.
+- 2.5a Plytki okragle - czy program poznaje ksztalt. Minimum: 1 okragla ramkowa, 1 okragla testowa,
+  1 kwadratowa pusta (tylko i). W kratce: godzina wyniku; kw albo okr (co mowi program); pewnie T/N;
+  numer z dolkow; scianka boczna T/N.
 
-      plytka okragla       | (i) pusta          | (ii) praca przy    | (iii) dolki
+      plytka naprawde      | (i) pusta          | (ii) praca przy    | (iii) dolki
       (rodzaj + numer)     |                    |      dolkach       |       zaklejone
       ---------------------|--------------------|--------------------|--------------------
                            |                    |                    |
                            |                    |                    |
                            |                    |                    |
                            |                    |                    |
+                           |                    |                    |
+                           |                    |                    |
 
-  Ile razy plytka OKRAGLA zostala nazwana KWADRATOWA: ...... z ...... skanow
-- 2.6 "Zakoncz i spakuj": [ ] zrobione.  Liczba plikow: ........  Nazwa pliku ZIP: .................
+  Ile razy plytka OKRAGLA zostala nazwana KWADRATOWA: (i) ...... (ii) ...... (iii) ...... z ...... skanow
+  Ile minut zajal jeden skan z zapisem i narzedziem: ......
+- 2.6 Kopia calego folderu zlecen: [ ] zrobiona (same zlecenia testowe)  [ ] pominieta: dane pacjentow
+  "Zakoncz i spakuj": [ ] zrobione.  Liczba plikow: ........  Nazwa pliku ZIP: .................
 - 2.7 Program "Stanowisko" sam zauwaza skan. Czas od zapisu do mapy: ...... s  (drugi: ...... s)
-  Plytka kwadratowa: zapytal o numer [ ]
-  Plytka okragla: numer odczytal sam [ ]  /  zapytal o numer [ ]
+  Plytka kwadratowa: numer odczytal sam [ ]  /  zapytal o numer [ ]
+  Plytka okragla:    numer odczytal sam [ ]  /  zapytal o numer [ ]
   Mapa okragla ze scieciem z przodu po prawej: [ ]
   Komunikat "Analiza skanu nie powiodla sie" - przepisz tekst w nawiasie
   (np. "w skanie widac .... z 3 znacznikow"): ....................................................
@@ -139,10 +150,17 @@ Termin: sroda 25.11.2026 - przekaz sesji prowadzacej projekt; tu wpisz to samo.
   Gniazda, ktore nie trafiaja (numery): ..........................................................
 - 3.8 Program "Stanowisko" z ramka. Klucz i adres wpisane w ustawienia: [ ]    `OK ramka_...`: [ ]
   Gniazda swieca w kolorach mapy: [ ]       Plytka okragla ramkowa swieci: [ ]
-  Komunikaty ramki widziane (kratka + ile razy):
-  [ ] "Plytka lezy na zlej ramce" ......   [ ] "Na ramce lezy inna plytka niz zeskanowana" ......
-  [ ] "Numer plytki nie zgadza sie ze skanem" ......
-  Inny (przepisz): ..............................................................................
+  Po zdjeciu i ponownym polozeniu plytki: [ ] ciemno  [ ] swieci znowu
+  Proby celowe (kratka = panel byl i ramka ciemna):
+  [ ] (a) "Plytka lezy na zlej ramce"     [ ] (b) "Na ramce lezy inna plytka niz zeskanowana"
+  [ ] (c) "Numer plytki nie zgadza sie ze skanem" (plytka okragla, "Zmien numer"); po powrocie do
+      wlasciwego numeru ramka swieci: [ ]
+  Pytanie "Ponowny skan tej samej plytki?": [ ] bylo, ile razy: ....  odpowiedz: ...................
+  [ ] "Dwa skany z numerem plytki ... - ramka czeka na odpowiedz"    po "Tak" ramka swieci: [ ]
+  Komunikaty BEZ proby celowej (ktory, ile razy, przy jakiej plytce): ............................
+  ..............................................................................................
+  Ramka poranna (tryb "Poranek"): gniazda swieca po skanie [ ]   wynik wraca po ponownym polozeniu [ ]
+  [ ] "Plytka na ramce czeka na numer skanu"   [ ] "Na ramce lezy plytka, ktorej nie ma w planie pieca"
   Skad skopiowano pliki skanow z tego kroku (folder): ............................................
 - 3.9 Klawiatura ramki porannej (pozycja 6): rodzaje ...... z 5.  Klawisze niedzialajace: ..........
 

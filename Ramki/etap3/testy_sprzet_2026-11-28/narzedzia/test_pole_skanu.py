@@ -362,3 +362,88 @@ def test_ograniczenie_o1_plytka_okragla_wzieta_za_kwadrat_dostaje_uwage(ust, tmp
     w, _, _ = PS.zmierz(_skan(ust, tmp_path, "wieczorna", 1, 95.0, 42), ust)   # prawdziwy kwadrat w polu 95 mm: bez uwagi
     assert w["uklad"] == "wieczorna" and w["moze_okragla_wzieta_za_kwadrat"] is False
     assert "UWAGA: program mowi" not in "\n".join(PS.raport(w))
+
+
+# ----------------------------------------------------------------------------- E3-S2b-1: poprawki po recenzji PR #54 runda 2 (N5, N7, N8, N17)
+def test_n5_karton_w_duzym_polu_to_pomiar_pola_a_nie_podloze(ust, tmp_path):
+    """Recenzja runda 2, proba 5: karton w polu kolowym 150 mm dostawal 'UWAGA: ... PODLOZE' - udany pomiar pola wygladal na porazke."""
+    v, f = _siatka_plaska(200.0)
+    srodki = v[f].mean(axis=1)
+    m = trimesh.Trimesh(v, f[np.hypot(srodki[:, 0], srodki[:, 1]) <= 75.0], process=False)
+    m.remove_unreferenced_vertices()
+    m.apply_transform(trimesh.transformations.rotation_matrix(0.4, [0.1, 0.2, 1], [5, 5, 5]))
+    plik = tmp_path / "karton150.stl"
+    m.export(plik)
+    w, _, _ = PS.zmierz(plik, ust)
+    tekst = "\n".join(PS.raport(w))
+    assert not w["rozpoznano"] and w["dane_plaskie"] is True and w["podloze_prawdopodobne"] is False
+    assert w["srednica_danych_mm"] == pytest.approx(150.0, abs=2.0)
+    assert "PODLOZE" not in tekst and "POLE SKANERA" in tekst and "plaski arkusz (karton) albo sam stolik" in tekst
+    assert "podloze w skanie: nie dotyczy (plaski arkusz" in tekst and tekst.isascii()
+
+
+def test_n5_plytka_ze_stolikiem_nierozpoznana_nie_jest_plaska(ust, tmp_path):
+    """Skan z podlozem (N1): plytka + stolik 180 x 180 mm - dane NIE sa plaskie, uwaga o podlozu zostaje (gdy program plytki nie rozpozna)."""
+    skan, uk, rng = _pelny(ust, "wieczorna", 1, 51)
+    v, f = _siatka_plaska(180.0, 2.0, 0.0)
+    srodki = v[f].mean(axis=1)
+    stolik = trimesh.Trimesh(v, f[PS.odleglosc_od_obrysu(uk, srodki[:, 0], srodki[:, 1]) < -0.5], process=False)
+    stolik.remove_unreferenced_vertices()
+    w, _, _ = PS.zmierz(_zapisz(trimesh.util.concatenate([skan, stolik]), rng, tmp_path / "kwadrat_ze_stolikiem.stl"), ust)
+    tekst = "\n".join(PS.raport(w))
+    assert w["podloze_prawdopodobne"] is True and "prawdopodobnie PODLOZE (stolik / uchwyt" in tekst
+    if not w["rozpoznano"]:   # dzisiejsze zachowanie programu (recenzja: 11 z 11 nierozpoznanych)
+        assert w["dane_plaskie"] is False and "plaski arkusz" not in tekst
+
+
+def test_n8_kwadrat_w_polu_kolowym_110_podaje_okrag_dopasowany(ust, tmp_path, monkeypatch):
+    """Recenzja runda 2, proba 12: kwadrat w polu kolowym 110 mm w srodku dawal samo 'POLE NIE JEST KOLEM: 94,6 x 95,4 mm'
+    (22 z 26 koncow na okregu, prog 85 %). Teraz obok jest srednica okregu dopasowanego i zdanie, ze wynik z plytki jest przyblizony."""
+    skan, uk, rng = _pelny(ust, "wieczorna", 1, 52)
+    skan = S.przytnij_do_kola(skan, np.array([0.0, 0.0]), 55.0)
+    plik = _zapisz(skan, rng, tmp_path / "kwadrat_pole110.stl")
+    monkeypatch.setattr(PS, "UDZIAL_NA_OKREGU", 1.01)   # wymuszona galaz "nie kolowe" - niezaleznie od tego, ile koncow trafia w okrag
+    w, _, _ = PS.zmierz(plik, ust)
+    tekst = "\n".join(PS.raport(w))
+    assert w["rozpoznano"] and w["cala_plytka_w_skanie"] is False and w["pole_kolowe_mm"] is None and w["pole_stan"] == "nie_kolowe"
+    d = w["pole_dopasowanie"]
+    assert d["srednica_mm"] == pytest.approx(110.0, abs=3.0)
+    assert "POLE NIE JEST KOLEM" in tekst
+    assert f"Konce danych pasuja do okregu o srednicy ok. {PS._l(d['srednica_mm'])} mm w {d['na_okregu']} z {d['kierunkow']} kierunkow" in tekst
+    assert "PRZYBLIZONY - pewny pomiar pola daje plaski karton" in tekst
+    monkeypatch.undo()
+    w2, _, _ = PS.zmierz(_skan(ust, tmp_path, "wieczorna", 1, None, 53), ust)   # cala plytka w skanie: bez zdania o przyblizeniu
+    assert w2["cala_plytka_w_skanie"] is True and "PRZYBLIZONY" not in "\n".join(PS.raport(w2))
+
+
+def test_n7_opis_czlowieka_trafia_do_pliku_wyniku(ust, tmp_path):
+    """Recenzja runda 2, N7: tego, jaka plytka NAPRAWDE lezala, nie bylo w zadnym pliku wyniku."""
+    import json as _json
+
+    plik = _skan(ust, tmp_path, "okragla_wieczorna", 8, 80.0, 54)
+    opcje = ["--ustawienia", str(STANOWISKO / "ustawienia.przyklad.toml"), "--wynik", str(tmp_path / "w"), "--bez-rysunku"]
+    opis = "  okr-test 8,  dolki zaklejone " + chr(261) + chr(281) + chr(322) + "\tX" + chr(8364)
+    assert PS.main([str(plik), *opcje, "--opis", opis]) == 3
+    (js,) = list((tmp_path / "w").glob("*_pole.json"))
+    (txt,) = list((tmp_path / "w").glob("*_pole.txt"))
+    assert _json.loads(js.read_text(encoding="ascii"))["opis_czlowieka"] == "okr-test 8, dolki zaklejone ael X?"
+    assert "Co lezalo na stoliku (wpisal czlowiek): okr-test 8, dolki zaklejone ael X?" in txt.read_text(encoding="ascii").splitlines()[1]
+    assert PS.main([str(plik), *opcje]) == 3   # bez opisu: pole puste, wiersza nie ma
+    nowe = [p for p in (tmp_path / "w").glob("*_pole.json") if p != js]
+    assert len(nowe) == 1 and _json.loads(nowe[0].read_text(encoding="ascii"))["opis_czlowieka"] == ""
+    assert all("Co lezalo" not in p.read_text(encoding="ascii") for p in (tmp_path / "w").glob("*_pole.txt") if p != txt)
+    assert PS.opis_czlowieka("x" * 300) == "x" * 120
+
+
+def test_n17_podloze_przy_plytce_rozpoznanej(ust, tmp_path):
+    """Recenzja runda 2, N17: galaz 'podloze przy plytce ROZPOZNANEJ' byla bez testu. Plytka okragla + podloze kolo 120 mm."""
+    skan, uk, rng = _pelny(ust, "okragla_wieczorna", 8, 55)
+    v, f = _siatka_plaska(130.0, 2.0, 0.0)
+    srodki = v[f].mean(axis=1)
+    wybor = (PS.odleglosc_od_obrysu(uk, srodki[:, 0], srodki[:, 1]) < -0.5) & (np.hypot(srodki[:, 0], srodki[:, 1]) <= 60.0)
+    stolik = trimesh.Trimesh(v, f[wybor], process=False)
+    stolik.remove_unreferenced_vertices()
+    w, _, _ = PS.zmierz(_zapisz(trimesh.util.concatenate([skan, stolik]), rng, tmp_path / "okragla_podloze120.stl"), ust)
+    tekst = "\n".join(PS.raport(w))
+    assert w["rozpoznano"] and w["podloze_prawdopodobne"] is True
+    assert "Dane siegaja poza plytke" in tekst and "prawdopodobnie PODLOZE" in tekst and "podloze w skanie: PRAWDOPODOBNIE TAK (dane siegaja poza plytke)" in tekst
