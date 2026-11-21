@@ -1,0 +1,9 @@
+bez_numeru: poprawnie 40/40, poprawnie i pewnie 40/40, zle ale pewnie 0/40, numer ok 24/40; podstawy: {'numer_z_dolkow': 24, 'ksztalt': 15, 'dolki_wykluczaja': 1}; ksztalt: wlasciwy max 0.0 mm2, inny min 21.2 mm2; czas rozpoznania mediana 3.72 s, max 5.07 s
+  okragla_poranna_r54      12/12 (pewnie 12) {'numer_z_dolkow': 12}
+  okragla_wieczorna_r54    12/12 (pewnie 12) {'numer_z_dolkow': 12}
+  poranna_r54              8/8 (pewnie 8) {'ksztalt': 8}
+  wieczorna_r54            8/8 (pewnie 8) {'ksztalt': 7, 'dolki_wykluczaja': 1}
+z_numerem: poprawnie 16/16, poprawnie i pewnie 16/16, zle ale pewnie 0/16, numer ok 16/16; podstawy: {'numer_podany': 16}; ksztalt: wlasciwy max 0.0 mm2, inny min 21.2 mm2; czas rozpoznania mediana 3.33 s, max 3.74 s
+  poranna_r54              8/8 (pewnie 8) {'numer_podany': 8}
+  wieczorna_r54            8/8 (pewnie 8) {'numer_podany': 8}
+<PC-katalog>\koordynator\robocze\odbior2\final\T11\t11_auto\auto_uklad.json

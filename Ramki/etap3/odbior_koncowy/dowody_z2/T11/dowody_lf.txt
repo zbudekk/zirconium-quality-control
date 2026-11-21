@@ -1,0 +1,31 @@
+dowody_lf.py: plikow 29, naruszen 0 (po naprawie)
+NAPRAWIONY kody.txt: CR 15 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_t11.cmd
+OK        krok_t11_B.cmd
+OK        krok_t11_program.cmd
+OK        odczyt_t11.cmd
+OK        POMINIETE.txt
+OK        sprawdz_t11.py
+NAPRAWIONY t11_auto_uklad.log: CR 9 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t11_auto_uklad_podsumowanie.json
+NAPRAWIONY t11_baza.txt: CR 96 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_liczniki.txt: CR 27 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t11_prawda.txt
+OK        t11_program_stdout.log
+NAPRAWIONY t11_skany.tsv: CR 42 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_skany_sha16.tsv: CR 42 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_statusy.tsv: CR 8 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_symulator.json: CR 443 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_symulator.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t11_t9.txt
+OK        t11_tabela.tsv
+NAPRAWIONY t11_testy.log: CR 81 -> 0, bajtow spoza ASCII 7 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t11_wynik.md
+NAPRAWIONY t11_zdarzenia.tsv: CR 8 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_zestaw.txt: CR 9 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_zielone.tsv: CR 42 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_zielone_prace.tsv: CR 42 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        ust_t11_sh.txt
+OK        WYNIK.md
+OK        zestaw_t11.py
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

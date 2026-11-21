@@ -1,0 +1,9 @@
+plikow prawdy (STL + json): 40
+dziennik symulatora: zapisow 40, dobrych 40, roznych sha16 40, sha16 spoza prawdy 0
+wierszy w skany: 40 (roznych sha16 40)
+(n) skany z dziennika z wierszem w skany: 40 z 40
+(a) UKLAD ROZPOZNANY (skany.uklad = plytka z prawdy): 40 z 40; uklad_zrodlo = auto: 40 z 40
+(b) ZIELONE PRZY ZLYM UKLADZIE: 0 (skanow niezgodny_uklad albo uklad_zgodny = 0: 0)
+(c) skany.uklad NIEPUSTY: 40 z 40
+statusy skanow: {"do_powtorzenia": 15, "plytka_nie_z_trybu": 20, "przyjety": 5}
+punkt odniesienia (noc): 40 z 40, auto 40 z 40, zielone 0 (0 skanow), niepusty 40 z 40
