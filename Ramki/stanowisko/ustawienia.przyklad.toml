@@ -29,6 +29,11 @@ wieczorna_r54 = "modele_plytek/wieczorna_r54"
 poranna_r54 = "modele_plytek/poranna_r54"
 okragla_wieczorna_r54 = "modele_plytek/okragla_wieczorna_r54"
 okragla_poranna_r54 = "modele_plytek/okragla_poranna_r54"
+# E3-O1 (21.11.2026): plytki okragle n1-n6 do ramek (R58) - gniazda, stozki i numery jak kwadrat R59 (n1-n3 wieczorna,
+# n4-n6 poranna), obrys i dolki kodu jak plytka okragla testowa. Wiersze opcjonalne (dopisywane jak okragla_* i *_r54);
+# maja zostac NA KONCU listy - kolejnosc [plytki] to kolejnosc kandydatow automatycznego rozpoznania ukladu.
+okragla_ramkowa_wieczorna = "modele_plytek/okragla_ramkowa_wieczorna"
+okragla_ramkowa_poranna = "modele_plytek/okragla_ramkowa_poranna"
 
 [match]
 prog_akceptacji_pokrycie = 0.85     # udział powierzchni skanu w odległości ≤ odleglosc_max od projektu
