@@ -71,8 +71,21 @@ def wczytaj_kalibracje(sciezka) -> dict:
 
 
 def kalibracja_domyslna(katalog_modeli) -> dict:
-    """Wartosci startowe z geometrii `modele_plytek/*/uklad.json` (pliki ukladow tylko czytane)."""
+    """Wartosci startowe z geometrii `modele_plytek/*/uklad.json` (pliki ukladow tylko czytane): uklady kwadratowe
+    i - E3-O2 - okragle ramkowe (`okragla_ramkowa_*`: te same gniazda i srodek co kwadrat, wiec te same bloki)."""
     return KAL.domyslna(katalog_modeli)
+
+
+def uzupelnij_kalibracje(sciezka, katalog_modeli) -> tuple:
+    """E3-O2: plik kalibracji uzupelniony o uklady, ktorych w nim nie ma (plik sprzed E3-O2 nie ma ukladow okraglych
+    ramkowych) - `ramka.kalibracja.uzupelnij_plik`: (dane, [(rola, uklad), ...]); wpisow istniejacych nie zmienia.
+    `OSError` = pliku nie da sie zapisac."""
+    return KAL.uzupelnij_plik(sciezka, katalog_modeli)
+
+
+def uzupelnij_kalibracje_w_pamieci(kal: dict, katalog_modeli) -> list:
+    """Jak `uzupelnij_kalibracje`, ale tylko w danych `kal` (plik tylko do odczytu); zwraca liste dopisanych."""
+    return KAL.uzupelnij(kal, katalog_modeli)
 
 
 def _blok(kal, rola: str, uklad, gid: int):
@@ -172,7 +185,7 @@ def plan_rano(plan_plytek: dict, kal, *, wersja: int, start_id: str, zdarzenia_d
     `potwierdzone` / `wybrane` ze stanu laptopa. Zwraca (plan, pominiete); plan przechodzi walidacje ramki "P".
 
     Pomijane (licznik / lista w `pominiete`): plytka spoza rodziny ramki P (`zla_plytka`), plytka bez kalibracji ukladu albo
-    gniazda - cala (`brak_kalibracji`; np. plytka okragla), kuweta niezgodna z protokolem albo spoza listy kuwet (gniazdo
+    gniazda - cala (`brak_kalibracji`; np. plytka okragla testowa n9), kuweta niezgodna z protokolem albo spoza listy kuwet (gniazdo
     zostaje jako "sprawdz", `kuweta_odrzucona`), kolor spoza protokolu ("sprawdz", `zly_kolor`), potwierdzenia i wybory
     plytek spoza planu albo kuwet spoza listy (ramka odrzucilaby caly plan)."""
     if not isinstance(plan_plytek, dict):
