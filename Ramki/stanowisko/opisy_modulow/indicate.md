@@ -187,7 +187,8 @@ ramka ciemna).
 poprawny, w ktorym brakuje ktoregos ukladu z kalibracji startowej, jest uzupelniany (`ramka_protokol.uzupelnij_kalibracje` ->
 `ramka.kalibracja.uzupelnij_plik`): dopisywane sa TYLKO brakujace uklady, wpisy istniejace (takze `zrodlo` = "kalibracja")
 zostaja bajtowo bez zmian, obok zostaje kopia starego pliku (`<nazwa>.przed_uzupelnieniem`, istniejacej kopii nie
-nadpisuje), zapis przez plik tymczasowy i podmiane. Klient dostaje ostrzezenie ("Do pliku kalibracji ramek dopisano
+nadpisuje), zapis przez plik tymczasowy i podmiane (zapis przerwany albo podmiana nieudana, np. plik tylko do odczytu: plik
+kalibracji bajtowo bez zmian, obok nie zostaje ani plik tymczasowy, ani kopia zrobiona w tej probie - runda 2, D1 / D3). Klient dostaje ostrzezenie ("Do pliku kalibracji ramek dopisano
 uklady ... - przed praca z tymi plytkami skalibruj diody na ramce") - widac je w podpowiedzi paska ramek. Pliku nie da sie
 zapisac = uklady dopisane tylko w pamieci programu + ostrzezenie ("plik kalibracji ramek nie zostal zapisany"). Brak
 pliku i zly plik - jak dotad. Kalibracja na zlozonej ramce jest obowiazkowa przed praca (decyzja domyslna 6 z 21.11.2026) -
@@ -207,6 +208,19 @@ bez zmian zachowania:
 - `plytka_bez_skanu` (ramka P): na ramce lezy plytka z 4-6, ktorej nie ma w planie pieca wyslanym do ramki (nie byla
   skanowana albo ma w programie inny numer). Nie w czasie analizy / skanowania i nie dla plytki, ktora czeka na
   potwierdzenie ponownego skanu albo ma komunikat `numer_niezgodny`.
+- `plytka_czeka_na_numer` (ramka P; runda 2, P1): to samo polozenie, ale piec ma skan BEZ numeru plytki
+  (`pominiete.bez_numeru` planu niepuste - zwykla droga kwadratow, numer wpisywany recznie). Plytka najpewniej byla
+  skanowana, wiec zamiast rady "zeskanuj / Zmien numer" komunikat mowi: podaj numer w pytaniu "Podaj numer plytki".
+  Po podaniu numeru znika sam (plan dostaje plytke) albo zamienia sie w `plytka_bez_skanu` (to byla inna plytka).
+- `dwa_skany_numeru` (ramka W; runda 2, B1): skan ma OTWARTE pytanie `ponowny_skan` wobec innego aktywnego skanu o tym
+  samym numerze plytki - program nie wie, czy to ta sama plytka. Do odpowiedzi kontroler wola `wynik(None, ...)` (ramka
+  ciemna - inaczej plytka z poprzedniego skanu lezaca na ramce dostalaby wynik NOWEGO skanu), a gdy na ramce lezy plytka
+  o tym numerze, pokazuje komunikat (inna plytka na ramce = `plytka_inna_niz_skan` jak dotad). Po "Tak, to ponowny skan"
+  wynik idzie do ramki z numerem. Po "Nie, to nowy wsad" oba skany sa aktywne z jednym numerem i dziala mechanizm sprzed
+  paczki (NIE zmieniany): ramka dostaje wynik OSTATNIEGO skanu dla tego numeru - jesli plytka z poprzedniego skanu nadal
+  lezy na ramce, zaswieci pod nia; jesli zostala zdjeta po starcie skanu, ramka uniewaznia wynik dla tego numeru
+  (`KlientRamki._wynik_wazny`) i zostaje ciemna. Dlatego komunikat kaze najpierw zdjac plytke z ramki. Dwa skany z jednym
+  numerem BEZ pytania (kwadrat R59 + R54, numer wpisany recznie z bledem) - bez zmian, sprawa na liscie decyzji wlasciciela.
 - `numer_niezgodny` (id `numer_niezgodny:<skan>`, przy plytce): numer podany recznie (`numer_zrodlo` = `podany`) inny niz
   WAZNY numer odczytany z dolkow kodu (`numer_z_dolkow` z pliku wyniku skanu, nalezacy do numerow ukladu). Wieczorem
   kontroler wola `wynik(None, ...)` (ramka ciemna jak dla skanu bez numeru), rano plytka nie idzie do planu
