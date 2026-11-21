@@ -461,6 +461,18 @@ KOMUNIKATY: dict[str, Wzor] = {
                              "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. Zeskanuj płytkę "
                              "nr {na_ramce}. Jeśli była już skanowana, to numer jej skanu jest zły — popraw go przyciskiem "
                              "„Zmień numer” przy tej płytce na ekranie."),
+    # runda 2 (recenzja PR #55, P1): piec ma skan bez numeru plytki - plytka na ramce najpewniej BYLA skanowana i czeka na numer
+    "plytka_czeka_na_numer": Wzor(POZIOM_OSTRZEZENIE, "Płytka na ramce czeka na numer skanu",
+                                  "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. W tym piecu jest "
+                                  "skan bez numeru płytki: jeśli to skan tej płytki, wybierz numer {na_ramce} w pytaniu „Podaj numer "
+                                  "płytki” — ramka zaświeci sama."),
+    # runda 2 (recenzja PR #55, B1): wynik skanu wstrzymany na ramce wieczornej do odpowiedzi na pytanie o ponowny skan (napisy
+    # przyciskow = ``PRZYCISKI["potwierdz_ponowny_skan"]`` / ``["odrzuc_ponowny_skan"]`` - test paczki pilnuje zgodnosci)
+    "dwa_skany_numeru": Wzor(POZIOM_OSTRZEZENIE, "Dwa skany z numerem płytki {numer} — ramka czeka na odpowiedź",
+                             "Są dwa skany płytki nr {numer} i płytka nr {numer} leży na ramce wieczornej — ramka nie świeci, dopóki "
+                             "nie odpowiesz na pytanie o ponowny skan. Jeśli to ta sama płytka zeskanowana drugi raz — kliknij „Tak, "
+                             "to ponowny skan”, ramka zaświeci. Jeśli to dwie różne płytki — najpierw zdejmij z ramki tę, która "
+                             "leży, potem kliknij „Nie, to nowy wsad”; wynik ostatniego skanu pokaże wtedy ekran."),
     # przycisk przy plytce z numerem ma na ekranie napis "Zmień numer" (``ui.napisy.ZMIEN_NUMER`` - test paczki pilnuje zgodnosci)
     "numer_niezgodny": Wzor(POZIOM_OSTRZEZENIE, "Numer płytki nie zgadza się ze skanem",
                             "Podany numer płytki to {podany}, a program odczytał ze skanu numer {dolki}. Ramka nie podświetla tej "

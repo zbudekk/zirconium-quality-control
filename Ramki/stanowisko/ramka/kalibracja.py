@@ -194,21 +194,32 @@ def uzupelnij(dane: dict, katalog_modeli) -> list:
 
 
 def uzupelnij_plik(sciezka, katalog_modeli) -> tuple:
-    """Plik kalibracji uzupelniony o brakujace uklady (`uzupelnij`): zwraca (dane, dopisane). Gdy cos dopisano: kopia
-    starego pliku obok (`<nazwa>.przed_uzupelnieniem`, istniejacej kopii nie nadpisuje), potem zapis przez plik tymczasowy
-    i podmiane (plik nigdy nie zostaje w polowie zapisany). Nic do dopisania = pliku nie rusza. Zly plik = BladKalibracji;
-    blad zapisu = OSError (wolajacy moze wtedy uzupelnic dane w pamieci przez `uzupelnij`)."""
+    """Plik kalibracji uzupelniony o brakujace uklady (`uzupelnij`): zwraca (dane, dopisane). Gdy cos dopisano: zapis do
+    pliku tymczasowego, kopia starego pliku obok (`<nazwa>.przed_uzupelnieniem`, istniejacej kopii nie nadpisuje) i podmiana
+    (plik nigdy nie zostaje w polowie zapisany). Nic do dopisania = pliku nie rusza. Zly plik = BladKalibracji;
+    blad zapisu = OSError (wolajacy moze wtedy uzupelnic dane w pamieci przez `uzupelnij`) - wtedy plik zostaje bez zmian,
+    a obok nie zostaje ani plik tymczasowy, ani kopia zrobiona w tej probie (plik tylko do odczytu: bez kopii przy kazdym
+    starcie programu)."""
     sciezka = Path(sciezka)
     dane = wczytaj(sciezka)
     dopisane = uzupelnij(dane, katalog_modeli)
     if dopisane:
         kopia = sciezka.with_name(sciezka.name + PRZYROSTEK_KOPII)
-        if not kopia.exists():
-            kopia.write_bytes(sciezka.read_bytes())
         tymczasowy = sciezka.with_name(sciezka.name + ".tmp")
+        nowa_kopia = False
         try:
             zapisz(dane, tymczasowy)
+            if not kopia.exists():
+                kopia.write_bytes(sciezka.read_bytes())
+                nowa_kopia = True
             os.replace(tymczasowy, sciezka)
+        except OSError:
+            if nowa_kopia:  # podmiana sie nie udala: kopia bylaby plikiem-smieciem rownym plikowi kalibracji
+                try:
+                    kopia.unlink()
+                except OSError:
+                    pass
+            raise
         finally:
             try:
                 tymczasowy.unlink()
