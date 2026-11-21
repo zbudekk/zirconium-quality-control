@@ -371,7 +371,10 @@ z generatora i `sha16` pliku - sterownik sprawdza `sha16` przed startem):**
 Prawda kazdej plytki = plik `.json` obok skanu (`plytka`, `numer`, `prace[].gniazdo`, `prace[].ubytki`,
 `prace[].drgniecie`). Skad prawda: plik zapisal generator skanow sztucznych w chwili tworzenia skanu (prace, gniazda i
 ubytki, ktore generator wycial w siatce; zestawy raportu R59, pliki z 14.11.2026) - przed uruchomieniem programu i
-niezaleznie od jego wyniku; sterownik niczego do prawdy nie dopisuje.
+niezaleznie od jego wyniku; sterownik niczego do prawdy nie dopisuje. W 6 plytkach przyjetych scenariusza prawda ma 26 prac
+z ubytkiem (6 + 3 + 3 + 4 + 4 + 6 na 57 prac); kazda z nich ma co najmniej jeden ubytek oznaczony w prawdzie jako
+wykrywalny i widoczny (sprawdzone 21.11: 0 z 26 bez takiego ubytku) - praca "przeoczona" nie bedzie wiec skutkiem
+ubytku, ktorego w skanie nie widac.
 
 **Decyzje technika i "lista = prawda" (decyzja koordynatora nr 1 po recenzji, uwaga 1):** sterownik nasladuje technika,
 ktory oglada tylko to, co program mu wskazal. Po pojawieniu sie plytki przyjetej wybiera jej kafelek i czyta kolor
@@ -542,7 +545,11 @@ reczne na programie z paczki (czesc B).
 modulow programu przyszlo z instalacji, a ile z repo; ostatni wiersz "WERDYKT ZRODLA KODU: INSTALACJA" jest warunkiem
 zaliczenia przypadku jako "na programie z paczki"; kod 3 albo werdykt "REPO" = przypadek liczony z odstepstwem O14).
 Procesy potomne testow (proces silnika, ramka) importuja kod sami - dla przypadku 1 (zabicie silnika) zgodnosc kodu
-potwierdza tylko wiersz "pliki *.py instalacji = repo: a z b" (O14).
+potwierdza tylko wiersz "pliki *.py instalacji = repo: a z b" (O14). Testy czytajace ustawienia domyslne dostaja plik
+`<ST>\ustawienia.toml` (T1 krok 2 - skrypt ustawia sciezke w procesie testow i wypisuje to w wierszu "plik ustawien
+domyslnych w testach"; w katalogu programu wersji takiego pliku nie ma - bez tego `test_silnik.py` konczyl sie bledem
+"brak pliku ustawien"). Test, ktory mimo to konczy sie bledem zwiazanym z ukladem katalogow instalacji (nie z programem),
+powtorz zwyklym `<K>\Polecenie.cmd -m pytest ...` i zapisz OBA wyniki - ten przypadek liczy sie wtedy z odstepstwem O14.
 
 | Nr | Przypadek | Testy (`<ST>\testy\...`) |
 |---|---|---|
@@ -1082,7 +1089,7 @@ gdy byl mierzony. "Seria pomiarowa" = test, ktorego liczby zaleza od obciazenia 
 | T0 | ciezki (instalacja) | 20 min (polecenia: 52,5 s + 5,8 s + starty ok. 1 min) | budowa paczek | lekkimi; nie z T1 / T12 na tej samej instalacji |
 | T14 kontrola zestawu | lekki | 1 min (8,3 s) | T0 | wszystkim |
 | T12 | ciezki | 30 min (A: 2 min 40 s; B: 2 min 45 s, osobna instalacja) | T0 | lekkimi; czesc B wszystkim poza seria pomiarowa |
-| T1 | ciezki | 30-45 min na przebieg, 2 przebiegi | T0 (instalacja z `/testy`) | nie z seria pomiarowa (testy czasowe) |
+| T1 | ciezki | 30-45 min na przebieg (zmierzone interpreterem wersji: 27 min 20 s), 2 przebiegi | T0 (instalacja z `/testy`) | nie z seria pomiarowa (testy czasowe) |
 | T10 | ciezki, seria pomiarowa | 40-60 min | instalacja robocza | nie z T2, T4, T11, T1 |
 | T4 | ciezki, seria pomiarowa | 45 min | instalacja robocza | nie z T2, T10, T11, T1 |
 | T2 | ciezki, seria pomiarowa | 30 min (sterownik 11-13 min; proba skrocona 89 s) | instalacja robocza | nie z T4, T10, T11, T1 |
@@ -1113,41 +1120,39 @@ paczki leza poza repo (katalog roboczy paczki). To NIE sa wyniki odbioru.
 | T0 | krok 9 w nowej postaci (`findstr` na `pip.log`) | tak (proba generalna podala te postac) | instalacja probna | 2 wiersze |
 | T12 | czesc A, kroki 1-5 | tak (proba generalna) | instalacja probna | kody 0 / 0; 6 z 6 sum ustawien rownych |
 | T12 | czesc B, kroki 1-8 | tak (ta paczka) | osobna instalacja w katalogu roboczym paczki | kody 11 z 11 zgodne; kopia = baza co do tresci, nie co do sumy calego pliku |
-| T1 | kroki 1-4 | tak (proba generalna) | instalacja probna | 1 test pada zawsze (`test_b1...`); wynik pelnego przebiegu - w notatkach proby generalnej |
+| T1 | kroki 1-4 | tak (proba generalna) | instalacja probna | `1 failed, 2202 passed, 9 skipped` w 27 min 20 s (2212 = `--collect-only`); nieudany: `test_b1_blokada_znika_razem_z_procesem` (pada w srodowisku wersji 6 z 6, interpreterem bazowym 2 z 2 passed); testy czasowe: 0 nieudanych |
 | T1 | krok 5 (interpreter bazowy) | NIE w tej rundzie | - | punkt odniesienia z 20.11 istnieje |
 | T2 | sterownik (proba skrocona `--plytki 3 --odstep 5`), wersja po poprawkach | tak (ta paczka) | instalacja probna i kopia repo `main` + P15 | 3 z 3; ubytki 12: czerwone 5, zolte 7, zielone 0; lista = prawda TAK; ponowien 0; kod 0 (oba przebiegi) |
 | T2 | sterownik, pelne 10 x 60 s | NIE | - | - |
-| T2 | testy uzupelniajace (2 polecenia) | tylko `--collect-only` (proba generalna) | instalacja probna | wybor `-k` trafia: 2 i 1 test |
-| T3 | sterownik z `--wymagaj-100`, wersja po poprawkach | tak (ta paczka) | instalacja probna | 32 z 32, "ZAL z odstepstwem O5", kod 0 |
+| T2 | testy uzupelniajace (2 polecenia) | tak (ta paczka) | instalacja probna | polecenie 1: kod 0; 2 passed, 27 deselected in 119.12s (0:01:59); polecenie 2: kod 0; 1 passed, 88 deselected in 10.01s; wczesniej `--collect-only` w probie generalnej: wybor `-k` trafia (2 i 1 test) |
+| T3 | sterownik z `--wymagaj-100`, wersja po poprawkach | tak (ta paczka) | instalacja probna (wersja po uwadze 3) i kopia repo (wersja koncowa, po uwadze 19) | 32 z 32, "ZAL z odstepstwem O5", kod 0 (3 z 3 przebiegow) |
 | T3 | 2 polecenia testow uzupelniajacych | tak (proba generalna) | instalacja probna | 33 passed; 60 passed |
-| T7 | czesc A, przypadek 6 (`test_baza.py -k test_d1...` przez `pytest_instalacja.py`) | tak (ta paczka) | instalacja probna | kod 0, zrodlo kodu: INSTALACJA |
-| T7 | czesc A, przypadki 1-5 i reszta 6 | NIE | - | nazwy testow sprawdzone w kodzie (etap 1) |
+| T7 | czesc A, przypadki 2-6 przez `pytest_instalacja.py` | tak (ta paczka) | instalacja probna | przypadek 2: 4 passed; 3: 3 passed; 4: 3 passed (+ `test_k5` z `test_indicate.py` w T5); 5: 2 passed; 6: 1 + 30 passed (w tym caly `test_p14_baza_zajeta.py`); wszystkie kod 0, zrodlo kodu: INSTALACJA |
+| T7 | czesc A, przypadek 1 (zabicie silnika; 2 polecenia) | tak (ta paczka) | instalacja probna | `test_aplikacja.py`: kod 0; 2 passed, 27 deselected in 2.87s; zrodlo kodu: INSTALACJA; `test_silnik.py`: pierwszy przebieg kod 1 (2 passed, 1 error: brak pliku ustawien w katalogu programu wersji); po poprawce narzedzia kod 0; 3 passed, 66 deselected in 85.59s (0:01:25); zrodlo kodu: INSTALACJA |
 | T7 | czesc B, proby 1-3 | NIE | - | - |
 | T10 | polecenie z `--limit 2` | tak (ta paczka) | instalacja probna | patrz raport paczki (sekcja "Runda 1 recenzji") |
 | T10 | pelne 40 skanow | NIE | - | - |
 | T11 | czesc A z `--limit 2` | tak (ta paczka) | instalacja probna | kod 0, `auto_uklad.json` powstal |
 | T11 | czesc B (40 skanow przez aplikacje) | NIE | - | `symulator_skanera.py --help` na instalacji: `--zrodla` przyjmuje wiele katalogow |
 | T11 | krok 3 (2 zapytania `sql_odczyt.py`) | tak (ta paczka) | baza proby T2 | kod 0 |
-| T11 | krok 4 (testy) | NIE | - | - |
+| T11 | krok 4 (testy) | tak (ta paczka) | instalacja probna | kod 0; 45 passed, 174 deselected, 121 s |
 | T4 | 3 polecenia `metryki_pula.py` | tylko `czas --help` (ta paczka) | instalacja probna | kod 0; pomiarow NIE wykonano |
 | T5 | czesc A, polecenie 1 przez `pytest_instalacja.py` | tak (ta paczka) | instalacja probna | kod 0, 20 x PASSED, zrodlo kodu: INSTALACJA; K5: 500 z 500, 0 powtorek |
-| T5 | czesc A, polecenie 2 | NIE | - | - |
+| T5 | czesc A, polecenie 2 przez `pytest_instalacja.py` | tak (ta paczka) | instalacja probna | kod 0; 4 passed; zrodlo kodu: INSTALACJA (60 modulow, 0 z repo) |
 | T5 | czesc B (atrapa na adresie karty, posrednik, 3 skany) | NIE | - | posrednik i narzedzie T9 sprawdzone osobno na danych sztucznych |
 | T6 | `arkusz_syntetyczny.py` | tak (ta paczka) | instalacja probna | kod 0; 30000 wierszy, 200 zapytan |
 | T6 | `test_excel.py` przez `pytest_instalacja.py` | tak (ta paczka) | instalacja probna | kod 0, 129 x PASSED, zrodlo kodu: INSTALACJA (17 modulow, 0 z repo) |
-| T6 | polecenie 3 (`test_aplikacja_rano.py -k ...`) | NIE | - | - |
+| T6 | polecenie 3 (`test_aplikacja_rano.py -k ...`) przez `pytest_instalacja.py` | tak (ta paczka) | instalacja probna | kod 0; 2 passed; zrodlo kodu: INSTALACJA |
 | T8 | `raport_metryk.py` x 2 | tak (ta paczka) | instalacja probna, bazy prob T2 i T3 tej paczki | kod 3 i 3 (ponizej progu - to nie FAIL T8) |
 | T8 | `sql_odczyt.py` | tak (ta paczka) | baza proby T2 | kod 0 |
-| T8 | `test_metryki.py` | NIE | - | - |
+| T8 | `test_metryki.py` | tak (ta paczka) | instalacja probna | kod 0; 106 passed |
 | T9 | kroki 1-5 | tak (ta paczka; krok 1 na worktree paczki, kroki 2-5 na danych sztucznych) | kopia repo / katalog roboczy | kody 0; proby ujemne kod 1 |
 | T9 | krok 4, test `test_zz_k8` | tak - w ramach T5 czesc A polecenie 1 | instalacja probna | PASSED |
 | T13 | `t13_higiena.py` | tak (proba generalna, wersja sprzed poprawki; ta paczka - wersja po poprawce) | kopia repo f5c3e01 | sprzed poprawki: 0 naruszen; po poprawce (liczenie samotnych CR): 1 naruszenie - `Ramki/stanowisko/raporty/E3-A6_2026-11-18.md`, 1 samotny CR |
 | T13 | `dowody_lf.py` | tak (ta paczka) | 4 logi prob | 3 z 4 z CRLF naprawione; plik `.sqlite` zgloszony jako zakazany |
 | T14 | kontrola zestawu `--sprawdz` | tak (proba generalna) | instalacja probna | zgodne 22 z 22 krokow, kod 0, 8,3 s |
 
-Niewykonane ani razu (pierwsze wykonanie bedzie w odbiorze - zapisywac krok po kroku): T2 pelny, T4 pomiary, T5 czesc A
-polecenie 2 i czesc B, T7 czesc A przypadki 1-5 i czesc B, T10 pelny, T11 czesc B i krok 4, T6 polecenie 3,
-`test_metryki.py` w T8, T1 krok 5.
+Niewykonane ani razu (pierwsze wykonanie bedzie w odbiorze - zapisywac krok po kroku): T2 pelny (10 x 60 s); T4 pomiary; T5 czesc B; T7 czesc B (proby 1-3); T10 pelny; T11 czesc B (40 skanow przez aplikacje); T1 krok 5.
 
 ## Lista "sprawdzone przez --help / w kodzie" (stan `main` 9ba9e91 i galezi z 20.11)
 

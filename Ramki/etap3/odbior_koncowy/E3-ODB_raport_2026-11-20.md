@@ -337,7 +337,7 @@ nie zmienia programu ani testow programu).
 | 2 | B | `t9_dane_osobowe.py`: szukanie bez wielkosci liter (takze spoza ASCII) i bez znakow diakrytycznych, w UTF-8, cp1250, UTF-16 LE, `\uXXXX` (cyfry male i wielkie); samotest na starcie (kod 2 = NIE ZMIERZONO); opis w planie poprawiony | 12 wstrzykniec na nazwach sztucznych, kazde osobnym przebiegiem: wersja 6e2fb0b wykrywa 3 z 12, nowa 12 z 12 (powtorzone przeze mnie: 12 z 12); 2 pliki kontrolne: kod 0; samotest: 241 postaci, 0 nieznalezionych; popsuty na 3 sposoby: kod 2 w 3 z 3 | 7f94c2d |
 | 3 | P | `t3_poranek.py`: wiersz z odczytem ekranu "nie" / "nie odczytano" = "FAIL (ekran)", nie liczy sie do n; `--wymagaj-100` zwraca 1 takze wtedy; ostatni wiersz "WERDYKT T3: ZAL / ZAL z odstepstwem O5 / FAIL (n z 32; ekran: ...)" | kopia repo: 32 z 32, kod 0, "ZAL z odstepstwem O5" (ekran: tak 8, czesciowo 1, nie dotyczy 1); instalacja probna: to samo, kod 0; wstrzykniecie recenzenta (znieksztalcony odczyt tabeli ekranu): 27 z 32, 5 x "FAIL (ekran)", kod 1 - przed poprawka 32 z 32, kod 0 | 799087f |
 | 4 | P | Plan: T8 - bazy `<ROB T2>\t2\dane\stanowisko.sqlite` i `<ROB T3>\t3\baza\stanowisko.sqlite`; T5 B4 - polecenie sterownika T2 z `--wybierz 1,3,8`; T7 B2 / B3 - polecenia `Stanowisko.cmd` + `symulator_skanera.py` + sposob ustalenia PID | T8: oba polecenia `raport_metryk.py` wykonane na instalacji probnej na bazach prob T2 i T3 (kod 3 i 3 = "ponizej progu", pliki JSON powstaly), `sql_odczyt.py` kod 0. **T5 B4, T7 B2 i B3: polecenia NIE byly wykonane** (opisane w planie jako niewykonane) | 8ad4d65 |
-| 5 | P | Nowe narzedzie `pytest_instalacja.py`: testy z repo na kodzie programu z instalacji (pakiety `stanowisko`, `ramka` i skrypty `narzedzia` ladowane z katalogu programu wersji; po testach licznik modulow z instalacji / z repo i porownanie plikow); T5 czesc A, T6, T7 czesc A przepisane na to narzedzie; O8 w pelnym brzmieniu, nowe O14 | instalacja probna: zwykly `Polecenie.cmd -m pytest` laduje `stanowisko` z REPO (wypisana sciezka modulu); przez narzedzie: T6 `test_excel.py` 129 x PASSED, kod 0, "INSTALACJA" (17 modulow, 0 z repo; pliki 79 z 79 rowne); T5 A polecenie 1: 20 x PASSED, kod 0, "INSTALACJA" (K5: 500 z 500, 0 powtorek); T7 przypadek 6 (`test_d1`): kod 0, "INSTALACJA". Pierwsza wersja narzedzia dala kod 3 ("REPO: 2 moduly" - skrypty `narzedzia`) - poprawione. **Nie zrobiono:** pomiaru 5 potwierdzen / restartu / Spacji na programie z paczki pod adresem karty PC (czesc B) - adres 127.0.0.1 jest wpisany w testach (9 / 17 / 6 miejsc w 3 plikach) | 8ad4d65 |
+| 5 | P | Nowe narzedzie `pytest_instalacja.py`: testy z repo na kodzie programu z instalacji (pakiety `stanowisko`, `ramka` i skrypty `narzedzia` ladowane z katalogu programu wersji; po testach licznik modulow z instalacji / z repo i porownanie plikow); T5 czesc A, T6, T7 czesc A przepisane na to narzedzie; O8 w pelnym brzmieniu, nowe O14 | instalacja probna: zwykly `Polecenie.cmd -m pytest` laduje `stanowisko` z REPO (wypisana sciezka modulu); przez narzedzie: T6 `test_excel.py` 129 x PASSED, kod 0, "INSTALACJA" (17 modulow, 0 z repo; pliki 79 z 79 rowne); T5 A polecenie 1: 20 x PASSED, kod 0, "INSTALACJA" (K5: 500 z 500, 0 powtorek); T7 przypadek 6 (`test_d1`): kod 0, "INSTALACJA". Pierwsza wersja narzedzia dala kod 3 ("REPO: 2 moduly" - skrypty `narzedzia`) - poprawione. `test_silnik.py` (T7 przypadek 1) na instalacji: 2 passed, 1 error "brak pliku ustawien" (katalog programu wersji nie ma `ustawienia.toml`) - narzedzie ustawia teraz w procesie testow plik ustawien domyslnych z `<ST>`; po poprawce narzedzia: kod 0; 3 passed, 66 deselected in 85.59s (0:01:25); WERDYKT ZRODLA KODU: INSTALACJA; `test_excel.py` powtorzony po tej zmianie: kod 0; 129 passed in 23.50s. **Nie zrobiono:** pomiaru 5 potwierdzen / restartu / Spacji na programie z paczki pod adresem karty PC (czesc B) - adres 127.0.0.1 jest wpisany w testach (9 / 17 / 6 miejsc w 3 plikach) | 8ad4d65 |
 | 6 | P | Plan T11: 40 skanow (`--zrodla P2 P3a --ile 40`, `--zamknij-po 2100`), regula "`uklad` z bazy = `plytka` z prawdy" (bez doklejania `_r54`), odsylacz do pozycji 7 scenariusza T2 przy pustym liczniku "zielone przy zlym"; druga galaz kryterium = pozycja do decyzji wlasciciela (O6); wynik najwyzej "ZAL z odstepstwem O6" | `symulator_skanera.py --help` na instalacji: `--zrodla [ZRODLA ...]` (wiele katalogow); czesc A z `--limit 2` na instalacji: kod 0; 2 zapytania `sql_odczyt.py`: kod 0. **Czesc B (40 skanow, ok. 35 min) NIE byla wykonana** | 8ad4d65 |
 | 7 | P | `t9_dane_osobowe.py`: czlon sciezki zawierajacy nazwe albo czlon nazwy wypisywany jako `<sha16:...>` | wstrzykniecia 09, 10, 12 (czlon w nazwie pliku / katalogu): wersja 6e2fb0b wypisuje czlon w 1 z 12 przebiegow, nowa w 0 z 12; kontrola dowodow tym samym zestawem wariantow: 0 z 11 czlonow | 7f94c2d |
 | 8 | P | Plan T9: krok 2 z `--dozwolone` (bazy, kopie, log Excela, surowe wyniki T4 / T10) i `--wyklucz \zrodla\`; krok 5 z `\kopie\`; wyniki przez `--wynik` (ASCII + LF). Odstepstwo od tekstu decyzji: zamiast `--dozwolone stanowisko.` sa `stanowisko.sqlite` + `stanowisko.kopia_` - wzor `stanowisko.` obejmowal `logi\stanowisko.log` i dawal falszywe ZAL (proba: kod 0 przy nazwie w logu) | kroki 1-5 wykonane (krok 1 na worktree paczki: kod 0, 14 s; kroki 2-5 na danych sztucznych: kod 0); proby ujemne z nazwa w logu: kod 1 w krokach 2 i 5 | 8ad4d65 |
@@ -351,7 +351,7 @@ nie zmienia programu ani testow programu).
 | 16 | D | poprawione: `PY -I <ODB>\narzedzia\...` (4 miejsca) | `sql_odczyt.py` przez `PY -I`: kod 0 | 8ad4d65 |
 | 17 | D | poprawione: `-rs` w kroku 4 T1 | polecenie z `-rs` wykonane w probie generalnej | 8ad4d65 |
 | 18 | D | poprawione: T4 - szczyt okna "wg raportu E3-A5, nie mierzone w odbiorze" | przeglad | 8ad4d65 |
-| 19 | D | **D odlozone**: zmiana porownan R29 / R30 / R31 w `t3_poranek.py` wymaga nowych prob calego SE10 z wstrzyknieciami w 3 wierszach - brak czasu w rundzie; skutek dzisiaj: R29 sprawdzany przez podciagi, R30 na sztywno, R31 zawsze "czesciowo" (opisane w O5) | - | - |
+| 19 | D | poprawione: R29 - kuweta i zeby KAZDEJ oczekiwanej poprawki z tabeli oczekiwan jako cale liczby w napisie ekranu (nie podciagi); R30 - braki z tabeli oczekiwan; R31 - ta sama regula poprawek dla pieca 3 (wynik R31 zostaje "czesciowo": ekran pokazuje tylko ostatni piec - O5) | kopia repo: 32 z 32, kod 0; wstrzykniecie (numer kuwety w napisie poprawek znieksztalcony tak, ze stary podciag nadal pasuje): wersja koncowa 31 z 32, R29 "FAIL (ekran)", kod 1; wersja sprzed poprawki 32 z 32, kod 0 | commit koncowy rundy |
 | 20 | D | poprawione: `RAPORT.md` sekcja 4a poz. 6 | proby T3: pytania nie bylo w 3 z 3 przebiegow | 8ad4d65 |
 | 21 | D | poprawione: `sql_odczyt.py` odrzuca UNION / INTERSECT / EXCEPT i drugi SELECT przy tabelach z nazwami; blad SQL -> "BLAD", kod 2 | 8 z 8 prob na sztucznej bazie (2 obejscia recenzenta: kod 2, 0 nazw w wyjsciu; blad SQL: kod 2 bez sladu bledu) | commit raportu rundy |
 | 22 | D | poprawione: `t13_higiena.py` zglasza bajty NUL w pliku spoza listy binarnych / danych i liczy samotne CR | 5 z 5 przypadkow; na kopii repo f5c3e01: 0 falszywych "NUL", **1 nowe naruszenie w programie** (patrz POTRZEBUJE 1) | commit raportu rundy |
@@ -364,7 +364,7 @@ nie zmienia programu ani testow programu).
 
 Razem: B 2 z 2 zamkniete; P 9: zamkniete 6 (3, 7, 8, 9, 10, 11), zamkniete w planie i narzedziu, ale z poleceniami
 niewykonanymi ani razu 3 (4: T5 B4, T7 B2 / B3; 5: T5 czesc B na programie z paczki; 6: T11 czesc B); D 17: poprawione
-14, czesciowo 1 (23), odlozone 1 (19), bez zmian 1 (28).
+15, czesciowo 1 (23 - czesc narzedziowa odlozona), bez zmian 1 (28).
 
 ### 11.2 Proby po zmianach (liczby)
 
@@ -380,6 +380,10 @@ niewykonanymi ani razu 3 (4: T5 B4, T7 B2 / B3; 5: T5 czesc B na programie z pac
 | `pytest_instalacja.py` | instalacja probna | 3 przebiegi: kod 0, "INSTALACJA" (po poprawce narzedzia) |
 | T12 czesc B | osobna instalacja | kody 11 z 11 zgodne |
 | T10 `--limit 2` | instalacja probna | kod 0, 68 s; sekcja `zbiorczo` potwierdzona; wyrownanie 2 z 2; top-1 "dobrze" 19 z 19; prace cale z czerwonym 0 z 5 |
+| T3 wstrzykniecie do uwagi 19 (numer kuwety w napisie poprawek znieksztalcony) | kopia repo | wersja koncowa: 31 z 32, R29 "FAIL (ekran)", kod 1; wersja sprzed poprawki uwagi 19: 32 z 32, kod 0 |
+| Testy planu przez `pytest_instalacja.py` (T5 A polecenie 2, T6 polecenie 3, T7 A przypadki 2-6) | instalacja probna | 7 przebiegow: kod 0 i "INSTALACJA" w 7 z 7 (4, 2, 3, 2, 3, 30, 4 passed) |
+| T8 `test_metryki.py`, T11 krok 4 | instalacja probna | kod 0: 106 passed; kod 0: 45 passed (121 s) |
+| T7 A przypadek 1, T2 testy uzupelniajace | instalacja probna | T7: kod 0; 2 passed, 27 deselected in 2.87s; zrodlo kodu: INSTALACJA / pierwszy przebieg kod 1 (2 passed, 1 error: brak pliku ustawien w katalogu programu wersji); po poprawce narzedzia kod 0; 3 passed, 66 deselected in 85.59s (0:01:25); zrodlo kodu: INSTALACJA; T2: kod 0; 2 passed, 27 deselected in 119.12s (0:01:59) / kod 0; 1 passed, 88 deselected in 10.01s |
 
 Wstrzykniecia recenzenta powtorzone: T3 ekran (tak), T9 nazwy (tak, rozszerzone do 12 postaci), T2 - zamiast 3
 wstrzykniec recenzenta do tabeli prawdy / petli (wykrywane juz przed poprawka) wykonano wstrzykniecie celujace w uwage 1
@@ -412,10 +416,16 @@ O14; zmienione: O1, O2, O4, O6, O8, O10. Bez odstepstwa zostaja tylko T1, T8, T9
 
 ### 11.6 Czego nie zrobiono (runda 1)
 
-- Polecen planu niewykonanych ani razu: lista pod tabela "Stan sprawdzenia polecen" w `PLAN_TESTOW.md` (T2 pelny, T4
-  pomiary, T5 A polecenie 2 i czesc B, T7 A przypadki 1-5 i czesc B, T10 pelny, T11 czesc B i krok 4, T6 polecenie 3,
-  `test_metryki.py`, T1 krok 5).
-- Uwaga 19 (D) i narzedziowa czesc uwagi 23 (D) - odlozone, powody w tabeli.
+- Polecen planu niewykonanych ani razu: lista pod tabela "Stan sprawdzenia polecen" w `PLAN_TESTOW.md` (T2 pelny (10 x 60 s); T4 pomiary; T5 czesc B; T7 czesc B (proby 1-3); T10 pelny; T11 czesc B (40 skanow przez aplikacje); T1 krok 5).
+- Narzedziowa czesc uwagi 23 (D) - odlozona, powod w tabeli.
+- Pomylka przy probie uwagi 19: jeden przebieg T3 zapisal wynik do katalogu obok katalogu roboczego paczki (blad cudzyslowu
+  w poleceniu powloki); katalog przenioslem do katalogu roboczego paczki (`r3_t3_p2`), nic innego nie zostalo zmienione.
+- Sterownik T2: pytania programu sa obslugiwane przed przegladem kazdej plytki, ale nie miedzy kolejnymi kliknieciami
+  decyzji tej samej plytki (kilka sekund) - nie zmienialem tego po probach.
 - Sekcje 1-10 tego raportu nie byly przepisywane: gdzie mowia "nie sprawdzone na instalacji z paczki", "18 z 18",
   "do potwierdzenia po scaleniu", obowiazuje stan z sekcji 11.
-- Notatki proby generalnej przeczytane dwa razy (01:00 i 01:16); wpisy dopisane pozniej nie sa uwzglednione.
+- Notatki proby generalnej przeczytane trzy razy (01:00, 01:16, 01:28 - stan koncowy proby); uwzglednione w planie: liczby T0 (210 z 210), dowod "bez internetu", `/python`, `<REPO>` z `core.autocrlf=false`, T1 (2212 testow; 1 test padajacy w
+  srodowisku wersji: `1 failed, 2202 passed, 9 skipped`), `psutil` w paczce, suma bazy po starcie programu, `count(*) FROM zdarzenia`,
+  `--atrapa` a kryterium startu, sciezki w wierszach `PASSED`. Nie przenioslem do planu uwag do instrukcji instalacji (poza zakresem paczki).
+- Instalacja probna: uzywana tylko do uruchamiania (wyniki w katalogu roboczym paczki); pliki `dane\` instalacji zmienione o 01:25 to
+  kontrola koncowa proby generalnej (`Stanowisko.cmd --zamknij-po 5` - jej notatki), nie przebiegi tej paczki.
