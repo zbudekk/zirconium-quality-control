@@ -1,19 +1,23 @@
 # Arkusz obserwacji - pierwsze testy na sprzecie 28-29.11.2026
 
 Wydrukuj. Wypelniaj dlugopisem w trakcie testow. Numery jak numery krokow w dokumencie
-`PIERWSZE_TESTY_NA_SPRZECIE.md`. Bez nazwisk pacjentow i nazw zlecen. Puste pole = "nie robilem".
+"Pierwsze testy na prawdziwym sprzecie". Bez nazwisk pacjentow i nazw zlecen. Puste pole = "nie robilem".
 Gdy cos poszlo inaczej, niz pisze dokument - zapisz JAK. To najcenniejsza informacja z calego dnia.
 
 Data: ...........  Godzina startu: ........  Kto: ......................  Komputer: ................
 
 ## Odpowiedzi na pytania P1-P9
 
-Termin: sroda 25.11.2026 (plik `PYTANIA_DO_WLASCICIELA.md`); tu wpisz to samo.
+Termin: sroda 25.11.2026 (sekcja 0 dokumentu); tu wpisz to samo.
 
-- P1. Ramka: [ ] wieczorna  [ ] poranna  [ ] obie.   Wkladka: [ ] kwadratowa  [ ] okragla
-- P2. Plytki na miejscu (zakresl numery):  kwadratowe: 1 2 3 4 5 6    okragle ramkowe: 1 2 3 4 5 6
-  okragle testowe: 8 9    stare R54: ....................
-  Magnesy wklejone: [ ] we wszystkich  [ ] w czesci: ....................  [ ] nie
+- P1. 21.11 odpowiedziales: "Obie kwadratowe oraz jedna okragla" - nie wiemy, czy to ramki, czy plytki.
+  Ramek przyszlo: [ ] jedna  [ ] dwie.   Jedna ramka: [ ] wieczorna  [ ] poranna
+  Otwor wkladki: [ ] kwadratowy  [ ] okragly   (dwie ramki: wieczorna ........, poranna ........)
+- P2. 21.11: zdjecie pliku `ramka_plytka_okragla_wieczorna_n8_v2.stl` = plytka okragla nr 8 starego
+  ukladu R54 (20 gniazd) - to plytka TESTOWA, nie do ramki. Na kazdej plytce dlugie rynienki
+  (1 = uklad R59, 2 = stary R54; kwadratowa wieczorna 19 albo 20 gniazd, poranna 24 albo 33) i numer wybity:
+  kwadratowa nr ....  rynienek ....   kwadratowa nr ....  rynienek ....   okragla nr ....  rynienek ....
+  Magnesy wklejone w kwadratowe: [ ] tak  [ ] w czesci: ....................  [ ] nie
 - P3. Raspberry Pi w ramce: [ ] zlozone z matryca diod i czujnikami   [ ] karta SD jest
   Program ramki wgrany na karte: [ ] tak  [ ] nie  [ ] nie wiem
   Kto wgrywa i kiedy: ..............................................................
@@ -68,7 +72,8 @@ Termin: sroda 25.11.2026 (plik `PYTANIA_DO_WLASCICIELA.md`); tu wpisz to samo.
   [ ] "wielkosci pola z tego skanu nie da sie podac"
 - 2.5 Tabela skanow. Kazdy plik przeciagnij na `pole_skanu.cmd`; na pytanie "Co lezy na stoliku?" wpisz
   to samo, co w kolumnach "plytka naprawde" i "co na niej". Reszte przepisz z bloku "DO ARKUSZA".
-  "Godz." = godzina z wiersza "Zapisano: ..." (po niej znajdziemy plik wyniku).
+  "Godz." = godzina z wiersza "Zapisano: ..." (po niej znajdziemy plik wyniku): 6 cyfr przed "_pole"
+  w nazwie pliku, np. `..._20261128_101502_pole.txt` = 10:15:02; wpisz 101502.
   Plytka naprawde: kw / okr-ramk / okr-test / stara + nr.
 
      nr | godz.  | plytka naprawde | co na niej   | program mowi     | nr z   | dolki | scianka | brzeg
@@ -84,13 +89,13 @@ Termin: sroda 25.11.2026 (plik `PYTANIA_DO_WLASCICIELA.md`); tu wpisz to samo.
       7 |        |                 |              |                  |        |       |         |
       8 |        |                 |              |                  |        |       |         |
 
-  Wiersz `podloze w skanie:` inny niz "nie" - w ktorych skanach: ..................................
+  Wiersz `podloze w skanie: PRAWDOPODOBNIE TAK` - w ktorych skanach: ..............................
   Rowek pokrywki (plytka okragla ramkowa; wiersz `rowek pokrywki:`):
   skan nr ....: scianka cofa sie o ........ mm w ...... z 72 kierunkow
   skan nr ....: scianka cofa sie o ........ mm w ...... z 72 kierunkow
   skan nr ....: scianka cofa sie o ........ mm w ...... z 72 kierunkow
-- 2.5a Plytki okragle - czy program poznaje ksztalt. Minimum: 1 okragla ramkowa, 1 okragla testowa,
-  1 kwadratowa pusta (tylko i). W kratce: godzina wyniku; kw albo okr (co mowi program); pewnie T/N;
+- 2.5a Plytki okragle - czy program poznaje ksztalt. Minimum: okragla nr 8 (i-iii), kwadratowa pusta
+  (tylko i); okragla ramkowa, gdy jest. W kratce: godzina wyniku; kw albo okr (co mowi program); pewnie T/N;
   numer z dolkow; scianka boczna T/N.
 
       plytka naprawde      | (i) pusta          | (ii) praca przy    | (iii) dolki
@@ -143,18 +148,18 @@ Termin: sroda 25.11.2026 (plik `PYTANIA_DO_WLASCICIELA.md`); tu wpisz to samo.
   Plytka drugiej ramki: dopisek "NUMER SPOZA TEJ RAMKI" [ ]
 - 3.7 Gniazda i diody (pozycje 4 i 5). Kierunki jak w narzedziu: w prawo / w lewo / w dol / w gore,
   patrzac z gory od przodu ramki. Przesuniecie w diodach.
-  Wkladka kwadratowa: rodzaj plytki wybrany w narzedziu: ....................
+  Wkladka kwadratowa: rodzaj plytki wybrany w narzedziu (2 rynienki: `..._r54`): ......................
   przesuniecie w prawo ...... w dol ......;  gniazd swieci dobrze: ...... z ......
   Wkladka okragla:    rodzaj plytki wybrany w narzedziu: ....................
   przesuniecie w prawo ...... w dol ......;  gniazd swieci dobrze: ...... z ......
   Gniazda, ktore nie trafiaja (numery): ..........................................................
 - 3.8 Program "Stanowisko" z ramka. Klucz i adres wpisane w ustawienia: [ ]    `OK ramka_...`: [ ]
-  Gniazda swieca w kolorach mapy: [ ]       Plytka okragla ramkowa swieci: [ ]
+  Gniazda swieca w kolorach mapy: [ ]   Okragla ramkowa swieci: [ ]  [ ] nie mam jej   Plytka nr 8: ciemno [ ]
   Po zdjeciu i ponownym polozeniu plytki: [ ] ciemno  [ ] swieci znowu
   Proby celowe (kratka = panel byl i ramka ciemna):
   [ ] (a) "Plytka lezy na zlej ramce"     [ ] (b) "Na ramce lezy inna plytka niz zeskanowana"
-  [ ] (c) "Numer plytki nie zgadza sie ze skanem" (plytka okragla, "Zmien numer"); po powrocie do
-      wlasciwego numeru ramka swieci: [ ]
+  [ ] (c) "Numer plytki nie zgadza sie ze skanem" (okragla ramkowa, "Zmien numer")  [ ] pominieta
+      po powrocie do wlasciwego numeru ramka swieci: [ ]
   Pytanie "Ponowny skan tej samej plytki?": [ ] bylo, ile razy: ....  odpowiedz: ...................
   [ ] "Dwa skany z numerem plytki ... - ramka czeka na odpowiedz"    po "Tak" ramka swieci: [ ]
   Komunikaty BEZ proby celowej (ktory, ile razy, przy jakiej plytce): ............................
