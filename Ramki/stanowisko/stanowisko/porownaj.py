@@ -155,10 +155,17 @@ def uklady_z_ustawien(ust: dict) -> dict[str, U.UkladPlytki]:
 
 
 def opis_ukladu(nazwa: str, uk: U.UkladPlytki | None = None) -> str:
-    """Opis układu dla człowieka: „[cytat usuniety]”."""
+    """Opis układu dla człowieka: „[cytat usuniety]”.
+
+    Płytki okrągłe są dwóch rodzajów o tej samej mapie gniazd (E3-O3): ramkowe n1–n6 (układy ``okragla_ramkowa_*``, R58 —
+    kładzione na ramce jak kwadratowe) → „okrągła ramkowa (do ramki)” i testowe n8 / n9 (``okragla_*``) → „okrągła testowa
+    (poza ramką)”. Rodzaj wynika z nazwy układu (klucz z ``[plytki]``), kształt — z układu, gdy jest podany.
+    """
     typ = U.typ_plytki(nazwa)
     wersja = nazwa[len(typ):].lstrip("_").upper()
     ksztalt = "okrągła" if (uk.shape == "round" if uk is not None else typ.startswith("okragla")) else "kwadratowa"
+    if ksztalt == "okrągła":
+        ksztalt += " ramkowa (do ramki)" if typ.startswith("okragla_ramkowa_") else " testowa (poza ramką)"
     return (f"płytka {'poranna' if typ.endswith('poranna') else 'wieczorna'}, {ksztalt}, "
             + (f"stary układ gniazd ({wersja})" if wersja else "nowy układ gniazd (R59)"))
 
