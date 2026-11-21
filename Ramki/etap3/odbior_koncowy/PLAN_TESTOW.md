@@ -991,14 +991,18 @@ kazdej instalacji (tabele `zlecenia.folder`, `projekty.plik`), `--baza <baza SE1
 4. Ruch do ramki: `T9 N --cel <ROB T5>\ruch_ramka_w.bin --cel <ROB T5>\ruch_ramka_p.bin --wynik <DOW>\t9_ruch.txt`
    + test `<K>\Polecenie.cmd -m pytest <ST>\testy\test_indicate.py <ST>\testy\test_ramka.py -q -rA -p no:cacheprovider --rootdir <ST> -k test_zz_k8`
    (caly ruch testow przez posrednik w pamieci; zmierzone w A8i: 0 trafien w ok. 3450 zapisach).
-5. Dowod "nazwy tylko w `dane/`": `T9 N --cel <DANE> D --dozwolone \kopie\ --wynik <DOW>\t9_dane.txt`
+5. Dowod "nazwy tylko w `dane/`": `T9 N --cel <DANE> --cel <ROB T3>\t3\baza D --dozwolone \kopie\ --wynik <DOW>\t9_dane.txt`
+   (drugi cel = baza SE10 ze sterownika T3: ma nazwy sztuczne, ktore sa w `N` przez `--baza <baza SE10>`; proba
+   recenzenta 21.11: 33 trafienia dozwolone, kod 0)
    - "Trafienia w miejscach dozwolonych" > 0 (baza zawiera nazwy - to dowod, ze skrypt umie je znalezc),
    "TRAFIENIA calych nazw poza miejscami dozwolonymi" = 0. NIE podawac `--dozwolone stanowisko.` - obejmuje takze
    `logi\stanowisko.log` (proba: nazwa w logu + taki wzor = kod 0, falszywe ZAL; z `D` kod 1).
 6. Proba dodatnia skryptu = samotest w kazdym przebiegu (kazda nazwa znaleziona we wlasnych bajtach UTF-8, cp1250,
    UTF-16 LE, `\uXXXX`, wielkimi i malymi literami, bez znakow diakrytycznych) ORAZ krok 5 (nazw nie wpisujemy recznie
-   do zadnego pliku). Gdy samotest poda "nieznalezionych" > 0 albo krok 5 da 0 trafien w miejscach dozwolonych: wynik
-   calego T9 = "NIE ZMIERZONO", szukaj przyczyny (kodowanie, pusta baza).
+   do zadnego pliku). Gdy samotest poda "nieznalezionych" > 0 albo krok 5 da 0 trafien dozwolonych w bazie SE10
+   (`<ROB T3>\t3\baza`): wynik calego T9 = "NIE ZMIERZONO"; 0 trafien dozwolonych w `<DANE>` jest poprawne, gdy
+   `sql_odczyt.py --baza <DANE>\stanowisko.sqlite "SELECT count(*) FROM zlecenia"` daje 0 (`pula_wpisow = false`) -
+   zapisz te liczbe. Przy "NIE ZMIERZONO" szukaj przyczyny (kodowanie, pusta baza SE10, zla sciezka `--baza`).
 
 **Liczby kryterium:** suma "TRAFIENIA calych nazw poza miejscami dozwolonymi" z krokow 1-5 = 0 (kod wyjscia 0 w kazdym;
 kod 2 = NIE ZMIERZONO). Werdykt skryptu: "ZAL (0 trafien)", "ZAL - czlony do wyjasnienia: N" albo "FAIL".
