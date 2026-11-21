@@ -57,7 +57,7 @@ Zasady wykonania (obowiazuja kazdego wykonawce):
 | `<P1>`, `<P2>` | rozpakowane paczki: `<PC-katalog>\t0\paczka_N`, `<PC-katalog>\t0\paczka_N1` |
 | `<K>` | katalog instalacji z paczki: `<PC-katalog>\t0\<nazwa>` (T0: `czysta`; kazdy wykonawca ma wlasny: `w1`, `w2`, `w3`) |
 | `<DANE>` | `<K>\dane` (baza `stanowisko.sqlite`, `logi\stanowisko.log`, `wyniki\`, `log_excel.csv`, kopie bazy `kopie\`) - sprawdzone w `instalator.py` galezi `e3/a11i` (dane poza katalogiem wersji; sciezki bezwzgledne w `<K>\ustawienia.toml`, sekcja `[sciezki]`) |
-| `<REPO>` | czysta kopia `main` z TEGO SAMEGO commita, z ktorego zbudowano `<ZIP_N>`: `<PC-katalog>\t0\repo` (zaklada koordynator: `git clone --no-checkout <PC-katalog>\qc <PC-katalog>\t0\repo` + `git -C <PC-katalog>\t0\repo checkout --detach <commit>` - wykonane w probie generalnej 21.11, 4,5 s, repo glowne bez zmian; `git worktree add` nie byl probowany) |
+| `<REPO>` | czysta kopia `main` z TEGO SAMEGO commita, z ktorego zbudowano `<ZIP_N>`: `<PC-katalog>\t0\repo` (zaklada koordynator: `git clone --no-checkout -c core.autocrlf=false <PC-katalog>\qc <PC-katalog>\t0\repo` + `git -C <PC-katalog>\t0\repo checkout --detach <commit>` - wykonane w probie generalnej 21.11, 4,5 s, repo glowne bez zmian. `<REPO>` MUSI miec konce linii LF: systemowy git na PC ma `core.autocrlf=true`, klon BEZ `-c core.autocrlf=false` dostaje CRLF i testy czytajace bajty plikow padaja - kontrola przed T1: `git -C <REPO> config --get core.autocrlf` ma wypisac `false`. `git worktree add` dziedziczy ustawienie repo, ale nie byl probowany) |
 | `<ST>` | `<REPO>\Ramki\stanowisko` |
 | `<ODB>` | `<REPO>\Ramki\etap3\odbior_koncowy` (skrypty: `<ODB>\narzedzia\`) |
 | `<DOW>` | katalog dowodow testu: w trakcie testow `<ROB>` (poza repo), po komplecie `Ramki\etap3\odbior_koncowy\dowody\T<nr>\` |
@@ -151,7 +151,8 @@ czystym komputerze = laptop stanowiska (`ODLOZONE.md`, D4).
    kroku - `findstr /i "pypi https://"` na logu ekranu - dawala 0 wierszy, ale ekran nie pokazuje adresow, wiec niczego
    nie dowodzila; na `pip.log` daje 1 wiersz, ktory nie jest naruszeniem.)
 
-**Liczby kryterium:** (a) program startuje = kody 0 w kroku 7 (2 z 2); (b) samokontrola = kod 0 i "bledy 0" w kroku 6;
+**Liczby kryterium:** (a) program startuje = kody 0 w kroku 7 (2 z 2; liczy sie przede wszystkim start BEZ `--atrapa` -
+`--atrapa` to pokaz okna na danych sztucznych, bez kontrolera, bazy, silnika i blokady); (b) samokontrola = kod 0 i "bledy 0" w kroku 6;
 (c) sumy = zgodnosc SHA-256 ZIP w kroku 2 (1 z 1) + licznik "sumy n z n" instalatora w kroku 3.
 
 **Dowody w `T0/`:** `t0_kroki.md` (tabela krok / polecenie / kod / czas / wynik), `t0_sha256.txt`, `t0_zainstaluj_1.log`,
@@ -177,7 +178,10 @@ programu). **Dane:** `<ZIP_N1>`; do czesci B paczka z probna migracja (nizej).
 1. Przed: `certutil -hashfile <K>\ustawienia.toml SHA256` -> `t12_ustawienia_przed.txt`; `<K>\Wersje.cmd /bez-pauzy` -> lista
    wersji; `PY -I <ODB>\narzedzia\sql_odczyt.py --baza <DANE>\stanowisko.sqlite "SELECT count(*) FROM skany"`.
    Uwaga: suma SHA-256 pliku bazy zmienia sie po KAZDYM starcie programu (zdarzenia startu) - "dane nietkniete" licz
-   zapytaniem `count(*)`, a sume bazy porownuj tylko miedzy "przed aktualizacja" a kopia obok bazy.
+   zapytaniami `count(*)` (na instalacji swiezej po T0 liczba skanow = 0, dlatego licz takze
+   `"SELECT count(*) FROM zdarzenia"`), a sume bazy porownuj tylko miedzy "przed aktualizacja" a kopia obok bazy.
+   Wersja doinstalowana aktualizacja (N+1) nie ma pytest, dopoki jej `zainstaluj.cmd` nie dostal `/testy` - T12 rob na
+   instalacji, na ktorej nie biegna juz testy wymagajace pytest, albo dodaj `/testy` w kroku 2.
 2. Rozpakuj `<ZIP_N1>` do `<P2>`. Aktualizacja jednym poleceniem (tor 1):
    `<P2>\zainstaluj.cmd /katalog <K> /python %PY% /bez-sieci /bez-pauzy` - oczekiwane kod 0, `wersja_biezaca.txt` = N+1.
 3. `<K>\Samokontrola.cmd --bez-sieci` (kod 0); `<K>\Stanowisko.cmd --zamknij-po 20` (kod 0); suma `ustawienia.toml` =
@@ -299,6 +303,19 @@ z `-rs` (jest w obu poleceniach) porownana z punktem odniesienia: `main` bf00921
 (`<PC-katalog>\koordynator\log\pytest_bazowy_bf00921.log`), `main` 9ba9e91 = 1831 / 9 / 0. Oczekiwana liczba testow po
 scaleniu paczek: 1831 + testy A11s, A11i (91), A11w, A11d, P14 - dokladna liczba = suma z raportow paczek po ostatniej
 rundzie; kazdy pominiety test spoza listy 9 znanych = FAIL kryterium.
+
+**Stwierdzone w probie generalnej 21.11 na instalacji z paczki (f5c3e01):** (a) `--collect-only` daje 2212 testow -
+liczbe oczekiwana ustal przed odbiorem poleceniem
+`<K>\Polecenie.cmd -m pytest <ST>\testy -q --collect-only -p no:cacheprovider --rootdir <ST>` na commicie wydania
+(interpreter bazowy i wersji maja dac te sama); (b) `test_aplikacja.py::test_b1_blokada_znika_razem_z_procesem` PADA w
+srodowisku wersji zawsze (6 z 6 uruchomien osobnych; interpreterem bazowym 2 z 2 passed) - wlasnosc testu w `venv`
+(`sys.executable` to posrednik; blokada bazy zwalnia sie kilka ms po `wait()`), nie blad programu. Dopoki test nie
+zostanie poprawiony przez paczke programu, kryterium "0 failed" interpreterem wersji NIE bedzie spelnione: wynik T1 =
+FAIL z ta liczba (bez oslabiania), a decyzja o poprawce testu albo odstepstwie nalezy do koordynatora / wlasciciela.
+Polecenie odtworzenia (2,5 s):
+`<K>\Polecenie.cmd -m pytest <ST>\testy\test_aplikacja.py -q -p no:cacheprovider --rootdir <ST> -k test_b1_blokada_znika_razem_z_procesem`.
+(c) Wiersze `PASSED` / `FAILED` z `-rA` maja sciezki wzgledem katalogu programu wersji (`..\..\..\..\repo\Ramki\...`) -
+licz przez `findstr /b PASSED`, nie przez szukanie `testy\test_` na poczatku wiersza.
 
 **Dowody w `T1/`:** `t1_pytest.log`, `t1_pytest_bazowy.log`, `t1_pominiete.txt` (9 pozycji z powodem),
 `t1_wynik.md` (passed / skipped / failed, czas, commit, wolny RAM przed startem).
@@ -606,8 +623,10 @@ prawdy) i `syntetyczne_R59_P3a` (16 + 16) = 40 skanow (kopia tych samych zestawo
 | falszywe czerwone na pracach calych | wiersz logu zaczynajacy sie od `PRACE CA` (w logu z polska litera): `..., z czerwonym N` (N = 0; liczby `prac_calych`, `prace_cale_z_czerwonym`) |
 
 Punkt odniesienia: R59 pkt 6.2 (`raporty/R59_2026-11-14.md`): 40 / 40, 276 / 276, 0 / 127; E3-A5 runda 4 (pula): 40 / 40,
-276 / 276, 0 / 132. Nazwy pol sprawdzone w kodzie `metryki_P3a.py` (wiersze 188-233); nazwe sekcji zbiorczej w pliku
-JSON potwierdz podgladem wyniku proby z `--limit 2` (2 skany, ok. 2 min, lekki krok).
+276 / 276, 0 / 132. Nazwy pol sprawdzone w kodzie `metryki_P3a.py` (wiersze 188-233) i w wyniku proby z `--limit 2` na
+instalacji probnej 21.11 (2 skany, 68 s, kod 0): sekcja zbiorcza nazywa sie `zbiorczo` (`zbiorczo.plate_match.skanow`,
+`zbiorczo.plate_match.wyrownanie_ok`, `zbiorczo.top1_per_scenariusz.dobrze.prac` / `.top1_bledny`); wiersz logu
+"PRACE CA..." ma litere spoza ASCII - `t10.log` przed dodaniem do dowodow przechodzi przez `dowody_lf.py --napraw`.
 
 **Dowody w `T10/`:** `t10_metryki.json` (bez sciezek do zlecen - sprawdz `t9_dane_osobowe.py` przed dodaniem; w razie
 trafien dodaj tylko `t10_wynik.md`), `t10.log` (ta sama kontrola), `t10_wynik.md`.
@@ -1052,6 +1071,83 @@ Kolejnosc i zaleznosci:
    po serii, z zapisem obu wynikow).
 5. W4: T13 kiedykolwiek; T8 po T2 i T3; T9 na samym koncu, po zebraniu dowodow wszystkich wykonawcow.
 6. Koordynator: `RAPORT.md`, FAIL -> paczki poprawek -> powtorka testu (stary dowod zostaje z dopiskiem `_proba1`).
+
+## Kolejnosc i czasy T0-T13 - skrot dla koordynatora (stan 21.11)
+
+Czasy = czas wykonawcy z zapisem dowodow; w nawiasie czas samych polecen zmierzony w probach 21.11 (PC malo obciazony),
+gdy byl mierzony. "Seria pomiarowa" = test, ktorego liczby zaleza od obciazenia PC (jedna naraz na calym PC).
+
+| Test | Ciezar | Czas | Po czym | Rownolegle z |
+|---|---|---|---|---|
+| T0 | ciezki (instalacja) | 20 min (polecenia: 52,5 s + 5,8 s + starty ok. 1 min) | budowa paczek | lekkimi; nie z T1 / T12 na tej samej instalacji |
+| T14 kontrola zestawu | lekki | 1 min (8,3 s) | T0 | wszystkim |
+| T12 | ciezki | 30 min (A: 2 min 40 s; B: 2 min 45 s, osobna instalacja) | T0 | lekkimi; czesc B wszystkim poza seria pomiarowa |
+| T1 | ciezki | 30-45 min na przebieg, 2 przebiegi | T0 (instalacja z `/testy`) | nie z seria pomiarowa (testy czasowe) |
+| T10 | ciezki, seria pomiarowa | 40-60 min | instalacja robocza | nie z T2, T4, T11, T1 |
+| T4 | ciezki, seria pomiarowa | 45 min | instalacja robocza | nie z T2, T10, T11, T1 |
+| T2 | ciezki, seria pomiarowa | 30 min (sterownik 11-13 min; proba skrocona 89 s) | instalacja robocza | nie z T4, T10, T11, T1 |
+| T11 | czesc B ciezka, seria pomiarowa | 60 min (B: ok. 35 min) | instalacja robocza | B nie z T2, T4, T10 |
+| T3 | lekki | 15 min (sterownik 11 s; testy uzupelniajace 2 s + 73 s) | instalacja z `/testy` | wszystkim poza seria pomiarowa |
+| T6 | lekki | 15 min (`test_excel.py` przez `pytest_instalacja.py`: ok. 20 s) | instalacja z `/testy` | wszystkim |
+| T5 | lekki; czuly na obciazenie | 40 min (A: ok. 1 min; B: 30 min, 3 okna) | instalacja z `/testy` | nie w czasie serii pomiarowej; porty 8765-8768 jeden wykonawca |
+| T7 | sredni (`test_silnik` pojedynczo) | 45 min | instalacja z `/testy` | poza seria pomiarowa; proby B na wlasnej instalacji |
+| T13 | lekki | 10 min (1,3 s) | commit wydania; drugi raz po dodaniu dowodow | wszystkim |
+| T8 | lekki | 45 min (reczne liczenie; raporty ok. 2 s) | T2 i T3 | wszystkim |
+| T9 | lekki | 30 min (repo: 14 s) | wszystkie pozostale | wszystkim; na samym koncu |
+
+Rownolegle mozna puscic najwyzej: 1 serie pomiarowa (T10 -> T4 -> T2 -> T11, razem ok. 3-3,5 h) + 1 ciezki krok
+instalacyjny / pytest (T0 -> T12 -> T1, ok. 2 h; T1 NIE w czasie T2 / T4 - czeka albo idzie przed nimi) + testy lekkie
+(T3, T6, T13, T8, T9 w dowolnej chwili; T5 czesc A i testy czasowe T7 w oknach miedzy seriami pomiarowymi). Najkrotsza
+sciezka zegarowa: ok. 4 h przy 3 wykonawcach (seria pomiarowa wyznacza czas); wszystko po kolei: ok. 9 h.
+
+## Stan sprawdzenia polecen (21.11, runda 1 recenzji)
+
+"Instalacja probna" = `<PC-katalog>\t0\proba\Stanowisko`, wersja 0.3.1 zainstalowana z paczki zbudowanej z f5c3e01
+(`main` bcd0678 + P15), `<REPO>` = klon tego commita; "proba generalna" = osobny wykonawca, ktory przeszedl T0, T1, T12,
+T13 i sterowniki na tej instalacji 21.11; "ta paczka" = wykonawca i pomocnik E3-ODB w rundzie poprawek. Wyniki prob tej
+paczki leza poza repo (katalog roboczy paczki). To NIE sa wyniki odbioru.
+
+| Test | Polecenie planu | Wykonane | Gdzie | Wynik proby |
+|---|---|---|---|---|
+| T0 | kroki 2-8 | tak (proba generalna) | instalacja probna | kody 10 / 0; sumy 210 z 210; samokontrola ZIELONA (ok 17, ostrzezenia 4); starty 5 z 5 + 1 kod 0 |
+| T0 | krok 9 w nowej postaci (`findstr` na `pip.log`) | tak (proba generalna podala te postac) | instalacja probna | 2 wiersze |
+| T12 | czesc A, kroki 1-5 | tak (proba generalna) | instalacja probna | kody 0 / 0; 6 z 6 sum ustawien rownych |
+| T12 | czesc B, kroki 1-8 | tak (ta paczka) | osobna instalacja w katalogu roboczym paczki | kody 11 z 11 zgodne; kopia = baza co do tresci, nie co do sumy calego pliku |
+| T1 | kroki 1-4 | tak (proba generalna) | instalacja probna | 1 test pada zawsze (`test_b1...`); wynik pelnego przebiegu - w notatkach proby generalnej |
+| T1 | krok 5 (interpreter bazowy) | NIE w tej rundzie | - | punkt odniesienia z 20.11 istnieje |
+| T2 | sterownik (proba skrocona `--plytki 3 --odstep 5`), wersja po poprawkach | tak (ta paczka) | instalacja probna i kopia repo `main` + P15 | 3 z 3; ubytki 12: czerwone 5, zolte 7, zielone 0; lista = prawda TAK; ponowien 0; kod 0 (oba przebiegi) |
+| T2 | sterownik, pelne 10 x 60 s | NIE | - | - |
+| T2 | testy uzupelniajace (2 polecenia) | tylko `--collect-only` (proba generalna) | instalacja probna | wybor `-k` trafia: 2 i 1 test |
+| T3 | sterownik z `--wymagaj-100`, wersja po poprawkach | tak (ta paczka) | instalacja probna | 32 z 32, "ZAL z odstepstwem O5", kod 0 |
+| T3 | 2 polecenia testow uzupelniajacych | tak (proba generalna) | instalacja probna | 33 passed; 60 passed |
+| T7 | czesc A, przypadek 6 (`test_baza.py -k test_d1...` przez `pytest_instalacja.py`) | tak (ta paczka) | instalacja probna | kod 0, zrodlo kodu: INSTALACJA |
+| T7 | czesc A, przypadki 1-5 i reszta 6 | NIE | - | nazwy testow sprawdzone w kodzie (etap 1) |
+| T7 | czesc B, proby 1-3 | NIE | - | - |
+| T10 | polecenie z `--limit 2` | tak (ta paczka) | instalacja probna | patrz raport paczki (sekcja "Runda 1 recenzji") |
+| T10 | pelne 40 skanow | NIE | - | - |
+| T11 | czesc A z `--limit 2` | tak (ta paczka) | instalacja probna | kod 0, `auto_uklad.json` powstal |
+| T11 | czesc B (40 skanow przez aplikacje) | NIE | - | `symulator_skanera.py --help` na instalacji: `--zrodla` przyjmuje wiele katalogow |
+| T11 | krok 3 (2 zapytania `sql_odczyt.py`) | tak (ta paczka) | baza proby T2 | kod 0 |
+| T11 | krok 4 (testy) | NIE | - | - |
+| T4 | 3 polecenia `metryki_pula.py` | tylko `czas --help` (ta paczka) | instalacja probna | kod 0; pomiarow NIE wykonano |
+| T5 | czesc A, polecenie 1 przez `pytest_instalacja.py` | tak (ta paczka) | instalacja probna | kod 0, 20 x PASSED, zrodlo kodu: INSTALACJA; K5: 500 z 500, 0 powtorek |
+| T5 | czesc A, polecenie 2 | NIE | - | - |
+| T5 | czesc B (atrapa na adresie karty, posrednik, 3 skany) | NIE | - | posrednik i narzedzie T9 sprawdzone osobno na danych sztucznych |
+| T6 | `arkusz_syntetyczny.py` | tak (ta paczka) | instalacja probna | kod 0; 30000 wierszy, 200 zapytan |
+| T6 | `test_excel.py` przez `pytest_instalacja.py` | tak (ta paczka) | instalacja probna | kod 0, 129 x PASSED, zrodlo kodu: INSTALACJA (17 modulow, 0 z repo) |
+| T6 | polecenie 3 (`test_aplikacja_rano.py -k ...`) | NIE | - | - |
+| T8 | `raport_metryk.py` x 2 | tak (ta paczka) | instalacja probna, bazy prob T2 i T3 tej paczki | kod 3 i 3 (ponizej progu - to nie FAIL T8) |
+| T8 | `sql_odczyt.py` | tak (ta paczka) | baza proby T2 | kod 0 |
+| T8 | `test_metryki.py` | NIE | - | - |
+| T9 | kroki 1-5 | tak (ta paczka; krok 1 na worktree paczki, kroki 2-5 na danych sztucznych) | kopia repo / katalog roboczy | kody 0; proby ujemne kod 1 |
+| T9 | krok 4, test `test_zz_k8` | tak - w ramach T5 czesc A polecenie 1 | instalacja probna | PASSED |
+| T13 | `t13_higiena.py` | tak (proba generalna, wersja sprzed poprawki; ta paczka - wersja po poprawce) | kopia repo f5c3e01 | sprzed poprawki: 0 naruszen; po poprawce (liczenie samotnych CR): 1 naruszenie - `Ramki/stanowisko/raporty/E3-A6_2026-11-18.md`, 1 samotny CR |
+| T13 | `dowody_lf.py` | tak (ta paczka) | 4 logi prob | 3 z 4 z CRLF naprawione; plik `.sqlite` zgloszony jako zakazany |
+| T14 | kontrola zestawu `--sprawdz` | tak (proba generalna) | instalacja probna | zgodne 22 z 22 krokow, kod 0, 8,3 s |
+
+Niewykonane ani razu (pierwsze wykonanie bedzie w odbiorze - zapisywac krok po kroku): T2 pelny, T4 pomiary, T5 czesc A
+polecenie 2 i czesc B, T7 czesc A przypadki 1-5 i czesc B, T10 pelny, T11 czesc B i krok 4, T6 polecenie 3,
+`test_metryki.py` w T8, T1 krok 5.
 
 ## Lista "sprawdzone przez --help / w kodzie" (stan `main` 9ba9e91 i galezi z 20.11)
 

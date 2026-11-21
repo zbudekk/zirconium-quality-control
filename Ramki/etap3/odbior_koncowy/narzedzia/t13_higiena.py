@@ -107,14 +107,19 @@ def ocen_nowy(sciezka: str, tresc: bytes, maks_kb: int) -> list[str]:
         powody.append(f"plik danych ({rozszerzenie})")
     if len(tresc) > maks_kb * 1024:
         powody.append(f"duzy plik ({len(tresc) // 1024} KB > {maks_kb} KB)")
-    binarny = b"\0" in tresc[:8000] or rozszerzenie in BINARNE_ZNANE
-    if binarny:
+    if rozszerzenie in BINARNE_ZNANE or rozszerzenie in DANE:  # pliki danych ocenia regula wyzej (STL, plik danych)
+        return powody
+    if b"\0" in tresc[:8000]:  # uwaga 22 recenzji: plik tekstowy UTF-16 (bajty NUL) nie moze przejsc jako "binarny"
+        powody.append(f"bajty NUL w pliku {rozszerzenie or 'bez rozszerzenia'} spoza listy binarnych (np. tekst UTF-16)")
         return powody
     nie_ascii = sum(1 for bajt in tresc if bajt > 127)
     if nie_ascii:
         powody.append(f"nie ASCII ({nie_ascii} bajtow)")
     crlf = tresc.count(b"\r\n")
     lf = tresc.count(b"\n") - crlf
+    samotne_cr = tresc.count(b"\r") - crlf
+    if samotne_cr:
+        powody.append(f"konce linii: {samotne_cr} x samotne CR")
     if rozszerzenie in CRLF:
         if lf:
             powody.append(f"konce linii: {lf} x LF w pliku {rozszerzenie} (ma byc CRLF)")
