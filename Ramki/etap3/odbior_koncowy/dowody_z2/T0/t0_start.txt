@@ -1,0 +1,7 @@
+=== <PC-katalog>\t0\odbior2\Stanowisko\Stanowisko.cmd --atrapa --zamknij-po 5 
+KOD=0 
+=== <PC-katalog>\t0\odbior2\Stanowisko\Stanowisko.cmd --zamknij-po 20 
+KOD=0 
+=== C:\Windows\System32\find.exe /c "Traceback" <PC-katalog>\t0\odbior2\Stanowisko\dane\logi\stanowisko.log 
+
+---------- <PC-katalog>\T0\ODBIOR2\STANOWISKO\DANE\LOGI\STANOWISKO.LOG: 0

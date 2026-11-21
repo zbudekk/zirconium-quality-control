@@ -1,0 +1,61 @@
+............................s........................................... [  2%]
+........................................................................ [  5%]
+........................................................................ [  8%]
+........................................................................ [ 11%]
+........................................................................ [ 14%]
+........................................................................ [ 17%]
+........................................................................ [ 20%]
+........................................................................ [ 22%]
+........................................................................ [ 25%]
+........................................................................ [ 28%]
+.........s.............................................................. [ 31%]
+........................................................................ [ 34%]
+........................................................................ [ 37%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........................................................................ [ 45%]
+........................................................................ [ 48%]
+........................................................................ [ 51%]
+........................................................................ [ 54%]
+........................................................................ [ 57%]
+........................................................................ [ 60%]
+........................................................................ [ 62%]
+........................................................................ [ 65%]
+........................................................................ [ 68%]
+........................................................................ [ 71%]
+........................................................................ [ 74%]
+........................................................................ [ 77%]
+........................................................................ [ 80%]
+........................................................................ [ 83%]
+..........................sssss......................................... [ 85%]
+..............................ss........................................ [ 88%]
+........................................................................ [ 91%]
+........................................................................ [ 94%]
+........................................................................ [ 97%]
+...................................................................      [100%]
+============================== warnings summary ===============================
+testy/test_auto_uklad.py::test_numer_spoza_rozpoznanej_rodziny_jest_pomijany
+  <PC-katalog>\t0\repo2\Ramki\stanowisko\testy\test_auto_uklad.py:111: UserWarning: dolki kodu poza skanem (3 z 3 niewidocznych) - podaj numer plytki (--numer)
+    wyr, info = plate.rozpoznaj_uklad(skan, uklady, numer=8, ciecie=False)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+SKIPPED [1] ..\..\..\..\..\repo2\Ramki\stanowisko\testy\test_aplikacja.py:1142: wariant na duzych skanach odniesienia: ustaw E3A3_DANE_REF (folder skan_<typ>_n*.stl) i E3A3_PROJEKTY (folder puli)
+SKIPPED [1] ..\..\..\..\..\repo2\Ramki\stanowisko\testy\test_katalog.py:133: brak folderu projektow z pulpitu
+SKIPPED [4] ..\..\..\..\..\repo2\Ramki\stanowisko\testy\test_silnik.py:1981: wariant na duzych skanach odniesienia: ustaw E3A2_DANE_REF (folder skan_<typ>_n*.stl) i E3A2_PROJEKTY (folder puli)
+SKIPPED [1] ..\..\..\..\..\repo2\Ramki\stanowisko\testy\test_silnik.py:1988: wariant na duzych skanach odniesienia: ustaw E3A2_DANE_REF (folder skan_<typ>_n*.stl) i E3A2_PROJEKTY (folder puli)
+SKIPPED [1] ..\..\..\..\..\repo2\Ramki\stanowisko\testy\test_ui.py:67: P3a: okno jest szkicem - watek silnika (QThread ? plate z Open3D) nie konczy sie pod offscreen; naprawa w P3a-2 (raporty/P3a_postep.md)
+SKIPPED [1] ..\..\..\..\..\repo2\Ramki\stanowisko\testy\test_ui.py:129: brak dane/syntetyczne_P2 albo projektow z pulpitu
+2506 passed, 9 skipped, 1 warning in 2246.86s (0:37:26)
+Fatal Python error: Aborted
+
+Current thread 0x000012a8 (most recent call first):
+  <no Python frame>
+
+Extension modules: markupsafe._speedups, charset_normalizer.md, charset_normalizer.cd, requests.packages.charset_normalizer.md, requests.packages.chardet.md, requests.packages.charset_normalizer.cd, requests.packages.chardet.cd, psutil._psutil_windows, numpy._core._multiarray_umath, numpy.linalg._umath_linalg, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._pcg64, numpy.random._generator, numpy.random._mt19937, numpy.random._philox, numpy.random._sfc64, numpy.random.mtrand, _cyutility, scipy._cyutility, scipy._lib._ccallback_c, scipy.sparse._sparsetools, _csparsetools, scipy.sparse._csparsetools, scipy.spatial._ckdtree, scipy.linalg._fblas, scipy.linalg._flapack, scipy.linalg._batched_linalg, scipy.linalg._cythonized_array_utils, scipy.linalg._solve_toeplitz, scipy.linalg._internal_matfuncs, scipy.linalg._linalg_pythran, scipy.linalg.cython_blas, scipy.linalg.cython_lapack, scipy.linalg._decomp_update, scipy.special._ufuncs_cxx, scipy.special._ellip_harm_2, scipy.special._special_ufuncs, scipy.special._gufuncs, scipy.special._ufuncs, scipy.special._specfun, scipy.special._comb, scipy.spatial._hausdorff, scipy.spatial._distance_wrap, scipy._lib.messagestream, scipy.spatial._qhull, scipy.spatial._voronoi, scipy.spatial.transform._rotation_cy, scipy.spatial.transform._rigid_transform_cy, PIL._imaging, scipy.sparse.linalg._dsolve._superlu, scipy.sparse.linalg._eigen.arpack._arpacklib, scipy.sparse.linalg._propack, scipy.optimize._group_columns, scipy.optimize._trlib._trlib, scipy.optimize._lbfgsb, _moduleTNC, scipy.optimize._moduleTNC, scipy.optimize._slsqplib, scipy.optimize._minpack, scipy.optimize._lsq.givens_elimination, scipy.optimize._zeros, scipy._lib._uarray._uarray, scipy.linalg._decomp_interpolative, scipy.optimize._bglu_dense, scipy.optimize._lsap, scipy.optimize._direct, scipy.sparse.csgraph._tools, scipy.sparse.csgraph._shortest_path, scipy.sparse.csgraph._traversal, scipy.sparse.csgraph._min_spanning_tree, scipy.sparse.csgraph._flow, scipy.sparse.csgraph._matching, scipy.sparse.csgraph._reordering, PIL._imagingft, scipy.ndimage._nd_image, scipy.ndimage._rank_filter_1d, _ni_label, scipy.ndimage._ni_label, shiboken6.Shiboken, PySide6.QtCore, PySide6.QtGui, PySide6.QtWidgets, PySide6.QtTest, _win32sysloader, win32api, win32event, scipy.integrate._odepack, scipy.integrate._quadpack, scipy.integrate._vode, scipy.integrate._dop, scipy.interpolate._fitpack, scipy.interpolate._dierckx, scipy.interpolate._ppoly, scipy.interpolate._interpnd, scipy.interpolate._rbfinterp_pythran, scipy.interpolate._rgi_cython, scipy.special.cython_special, scipy.stats._stats, scipy.stats._biasedurn, scipy.stats._levy_stable.levyst, scipy.stats._stats_pythran, scipy.stats._ansari_swilk_statistics, scipy.stats._sobol, scipy.stats._qmc_cy, scipy.stats._rcont.rcont, scipy.stats._qmvnt_cy (total: 108)
+QThreadStorage: entry 1 destroyed before end of thread 0x1f2a6e310e0
+QThreadStorage: entry 0 destroyed before end of thread 0x1f2a6e310e0
+Windows fatal exception: access violation
+
+Current thread 0x000012a8 (most recent call first):
+  <no Python frame>

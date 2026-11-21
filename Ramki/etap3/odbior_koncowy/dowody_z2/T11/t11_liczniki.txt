@@ -1,0 +1,27 @@
+A bez_numeru z rekordow: ok 40 z 40, zle_ale_pewny 0 | podsumowanie narzedzia: ok 40 z 40, zle_ale_pewny 0 | zgodne: TAK
+A z_numerem z rekordow: ok 16 z 16, zle_ale_pewny 0 | podsumowanie narzedzia: ok 16 z 16, zle_ale_pewny 0 | zgodne: TAK
+prawda: 40 skanow, roznych sha16 40
+dziennik: dobrych zapisow 40, roznych sha16 40, spoza prawdy 0
+skany (TSV): wierszy 40, roznych sha16 40, spoza dziennika 0, sha16 z wiecej niz 1 wierszem 0
+(n) skany z dziennika z wierszem w skany: 40 z 40 (bez wiersza = NIE ZMIERZONO: 0)
+(a) uklad rozpoznany (skany.uklad = plytka z prawdy, status inny niz niezgodny_uklad, uklad_zgodny inny niz 0): 40 z 40
+    uklad_zrodlo = auto: 40 z 40
+    uklad zapisany, ale inny niz w prawdzie: 0
+(b) skany ze zlym ukladem (niezgodny_uklad / uklad_zgodny = 0 / uklad inny niz prawda): 0; zielonych na nich: 0
+(c) skany.uklad niepusty: 40 z 40
+    grupa status / uklad / zrodlo / zgodny: do_powtorzenia / okragla_wieczorna_r54 / auto / 1: 8
+    grupa status / uklad / zrodlo / zgodny: do_powtorzenia / wieczorna_r54 / auto / 1: 7
+    grupa status / uklad / zrodlo / zgodny: plytka_nie_z_trybu / okragla_poranna_r54 / auto / 1: 12
+    grupa status / uklad / zrodlo / zgodny: plytka_nie_z_trybu / poranna_r54 / auto / 1: 8
+    grupa status / uklad / zrodlo / zgodny: przyjety / okragla_wieczorna_r54 / auto / 1: 4
+    grupa status / uklad / zrodlo / zgodny: przyjety / wieczorna_r54 / auto / 1: 1
+    P2 okragla_poranna_r54: rozpoznane 6 z 6
+    P2 okragla_wieczorna_r54: rozpoznane 6 z 6
+    P2 poranna_r54: rozpoznane 6 z 6
+    P2 wieczorna_r54: rozpoznane 6 z 6
+    P3a okragla_poranna_r54: rozpoznane 6 z 6
+    P3a okragla_wieczorna_r54: rozpoznane 6 z 6
+    P3a poranna_r54: rozpoznane 2 z 2
+    P3a wieczorna_r54: rozpoznane 2 z 2
+czas_s (kolumna skany.czas_s; nie jest kryterium): min 12.4, mediana 25.2, max 50.6, pierwszy skan 50.6
+informacyjnie: zielonych razem 114; na skanach plytka_nie_z_trybu (20 skanow): 56

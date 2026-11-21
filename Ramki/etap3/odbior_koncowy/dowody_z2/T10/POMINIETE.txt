@@ -1,0 +1,8 @@
+POMINIETE - katalog T10 (zrodlo na PC: <PC-katalog>\koordynator\robocze\odbior2\final\T10); zostaje na PC, poza repo.
+Regula: bez STL, baz, ZIP, plikow > 1024 KB, katalogow roboczych; ustawienia ze znakami spoza ASCII - poza repo.
+
+- t10_metryki.json (1622818 B) - kopia bajt w bajt surowego wyniku (1 622 818 B = 1585 KB, ponad limit 1024 KB; jak w nocy - decyzja koordynatora nr 26: w repo t10_wynik.md i t10_licz.json)
+- t10_surowe.log (59690 B) - plik surowy (59 KB, CRLF, znaki spoza ASCII); w repo jest jego kopia t10.log po dowody_lf.py --napraw
+- ustawienia_wzor.toml (13037 B) - kopia Ramki/stanowisko/ustawienia.przyklad.toml z commita wydania 0fedbf6 (plik jest w repo; komentarze ze znakami spoza ASCII)
+- robocze\ (katalog: 4 plikow, 87785 B)
+- t10\ (katalog: 1 plikow, 1622818 B)

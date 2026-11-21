@@ -1,0 +1,7 @@
+POMINIETE - katalog T11 (zrodlo na PC: <PC-katalog>\koordynator\robocze\odbior2\final\T11); zostaje na PC, poza repo.
+Regula: bez STL, baz, ZIP, plikow > 1024 KB, katalogow roboczych; ustawienia ze znakami spoza ASCII - poza repo.
+
+- ustawienia_t11.toml (13669 B) - ten wzor z 11 kluczami [sciezki] przestawionymi na katalog roboczy (przepis: ust_t11_sh.txt w dowodach; znaki spoza ASCII)
+- ustawienia_wzor.toml (13037 B) - kopia Ramki/stanowisko/ustawienia.przyklad.toml z commita wydania 0fedbf6 (plik jest w repo; komentarze ze znakami spoza ASCII)
+- robocze\ (katalog: 252 plikow, 2294919303 B)
+- t11_auto\ (katalog: 1 plikow, 37343 B)

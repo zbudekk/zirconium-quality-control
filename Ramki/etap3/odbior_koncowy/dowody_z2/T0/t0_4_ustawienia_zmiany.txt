@@ -1,0 +1,6 @@
+Zmiany w <K>/ustawienia.toml (krok 4; 5 wierszy; zmienione tylko wartosci, komentarze w wierszach bez zmian; UTF-8 bez BOM, CRLF jak we wzorze):
+wiersz 6:folder_eksportu_skanera = "<PC-katalog>/t0/odbior2/dane/eksport"
+wiersz 7:folder_cyrkon = "<PC-katalog>/t0/odbior2/dane/Cyrkon"
+wiersz 8:folder_prywatne = "<PC-katalog>/t0/odbior2/dane/Prywatne"
+wiersz 9:folder_millbox = "<PC-katalog>/t0/odbior2/dane/millbox"
+wiersz 104:operatorzy = ["Technik A"]

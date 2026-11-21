@@ -1,0 +1,264 @@
+== dodatek Z: stany instalacji <PC-katalog>\t0\odbior2_t12\z031\Stanowisko 
+ 
+===== STAN Z2 (0.3.1 po 1 starcie programu, PRZED aktualizacja do 0.3.3) sob. 21.11.2026 17:55:15,56 
+wersja_biezaca: 
+0.3.1
+ 
+wersja_poprzednia: 
+Nie molna odnale?? okre?lonego pliku.
+ 
+-- ustawienia.toml SHA-256: 
+6fb7a03097fd3eebf4513115877626a2fd5216f6dedd8902b6cf76bff711740b
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+90cd5a97a970ad7064597b23d588072f757589aa0bd380b593e8dfa0a02e9079
+86016 dfa0dc2c136b5750469a573f6e01e3cec3c1fc7e1a5c22155f358ef2cb8b7339
+user_version
+1
+-- wierszy: 1
+count(*)
+2
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.1
+ 
+===== STAN Z3 (PO aktualizacji do 0.3.3, PRZED startem) sob. 21.11.2026 17:56:26,84 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+0.3.1
+ 
+-- ustawienia.toml SHA-256: 
+6fb7a03097fd3eebf4513115877626a2fd5216f6dedd8902b6cf76bff711740b
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+90cd5a97a970ad7064597b23d588072f757589aa0bd380b593e8dfa0a02e9079
+86016 dfa0dc2c136b5750469a573f6e01e3cec3c1fc7e1a5c22155f358ef2cb8b7339
+user_version
+1
+-- wierszy: 1
+count(*)
+2
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.3_20261121_175622_v1.sqlite
+-- kopia stanowisko_przed_0.3.3_20261121_175622_v1.sqlite rozmiar 86016 
+1aa174f2b60510421efdedfc9fe22738c56726fdf3c871dfc3dc1d41273ab925
+86016 dfa0dc2c136b5750469a573f6e01e3cec3c1fc7e1a5c22155f358ef2cb8b7339
+user_version
+1
+-- wierszy: 1
+count(*)
+2
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.1
+0.3.3
+ 
+===== STAN Z5 (PO starcie programu 0.3.3) sob. 21.11.2026 17:56:52,53 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+0.3.1
+ 
+-- ustawienia.toml SHA-256: 
+6fb7a03097fd3eebf4513115877626a2fd5216f6dedd8902b6cf76bff711740b
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+051e766ad845d48217a5cd58f6615abdedf75f705b99c6302b83dbee77d5e4c2
+86016 1f22cf8a10ad2bbad593571b0b176b5990e1a205ce20a5fe080bf5723b516c15
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.3_20261121_175622_v1.sqlite
+-- kopia stanowisko_przed_0.3.3_20261121_175622_v1.sqlite rozmiar 86016 
+1aa174f2b60510421efdedfc9fe22738c56726fdf3c871dfc3dc1d41273ab925
+86016 dfa0dc2c136b5750469a573f6e01e3cec3c1fc7e1a5c22155f358ef2cb8b7339
+user_version
+1
+-- wierszy: 1
+count(*)
+2
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.1
+0.3.3
+ 
+===== STAN Z6 (PO powrocie do 0.3.1, PRZED startem) sob. 21.11.2026 17:56:55,49 
+wersja_biezaca: 
+0.3.1
+ 
+wersja_poprzednia: 
+0.3.3
+ 
+-- ustawienia.toml SHA-256: 
+6fb7a03097fd3eebf4513115877626a2fd5216f6dedd8902b6cf76bff711740b
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+051e766ad845d48217a5cd58f6615abdedf75f705b99c6302b83dbee77d5e4c2
+86016 1f22cf8a10ad2bbad593571b0b176b5990e1a205ce20a5fe080bf5723b516c15
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.3_20261121_175622_v1.sqlite
+-- kopia stanowisko_przed_0.3.3_20261121_175622_v1.sqlite rozmiar 86016 
+1aa174f2b60510421efdedfc9fe22738c56726fdf3c871dfc3dc1d41273ab925
+86016 dfa0dc2c136b5750469a573f6e01e3cec3c1fc7e1a5c22155f358ef2cb8b7339
+user_version
+1
+-- wierszy: 1
+count(*)
+2
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.1
+0.3.3
+ 
+===== STAN Z7 (PO starcie 0.3.1 po powrocie = stan koncowy) sob. 21.11.2026 17:57:20,96 
+wersja_biezaca: 
+0.3.1
+ 
+wersja_poprzednia: 
+0.3.3
+ 
+-- ustawienia.toml SHA-256: 
+6fb7a03097fd3eebf4513115877626a2fd5216f6dedd8902b6cf76bff711740b
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+2f75b09dff1337d2c0d9a414054fed15e1b388a6cc1d80d1dc99cfbd74ff51ba
+86016 2e47689b281c79ad742705455b86bbb78c152be017d8a76edfed68ef36ad9995
+user_version
+1
+-- wierszy: 1
+count(*)
+6
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.3_20261121_175622_v1.sqlite
+-- kopia stanowisko_przed_0.3.3_20261121_175622_v1.sqlite rozmiar 86016 
+1aa174f2b60510421efdedfc9fe22738c56726fdf3c871dfc3dc1d41273ab925
+86016 dfa0dc2c136b5750469a573f6e01e3cec3c1fc7e1a5c22155f358ef2cb8b7339
+user_version
+1
+-- wierszy: 1
+count(*)
+2
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.1
+0.3.3
+wiersze Traceback w dane\logi\stanowisko.log: 
+
+---------- <PC-katalog>\T0\ODBIOR2_T12\Z031\STANOWISKO\DANE\LOGI\STANOWISKO.LOG: 0

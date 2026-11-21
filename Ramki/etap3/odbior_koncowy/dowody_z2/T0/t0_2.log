@@ -1,0 +1,9 @@
+=== certutil -hashfile <PC-katalog>\wydania\Stanowisko_0.3.3.zip SHA256 
+SHA256 hash of <PC-katalog>\wydania\Stanowisko_0.3.3.zip:
+b6049229848afb124771944a3a3037664a0ec68aaeaa18a09da76f05103b1377
+CertUtil: -hashfile command completed successfully.
+=== type <PC-katalog>\wydania\Stanowisko_0.3.3.zip.sha256 
+b6049229848afb124771944a3a3037664a0ec68aaeaa18a09da76f05103b1377  Stanowisko_0.3.3.zip
+=== findstr Stanowisko_0.3.3.zip <PC-katalog>\qc\Ramki\etap3\wydania\SHA256SUMS_wydania.txt 
+b6049229848afb124771944a3a3037664a0ec68aaeaa18a09da76f05103b1377  Stanowisko_0.3.3.zip
+=== findstr Stanowisko_0.3.3.zip <PC-katalog>\t0\repo2\Ramki\etap3\wydania\SHA256SUMS_wydania.txt 

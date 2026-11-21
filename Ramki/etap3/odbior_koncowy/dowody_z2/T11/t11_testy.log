@@ -1,0 +1,81 @@
+.............................................                            [100%]
+============================== warnings summary ===============================
+testy/test_auto_uklad.py::test_numer_spoza_rozpoznanej_rodziny_jest_pomijany
+  <PC-katalog>\qc-wt\integ\Ramki\stanowisko\testy\test_auto_uklad.py:111: UserWarning: dolki kodu poza skanem (3 z 3 niewidocznych) - podaj numer plytki (--numer)
+    wyr, info = plate.rozpoznaj_uklad(skan, uklady, numer=8, ciecie=False)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=================================== PASSES ====================================
+______ test_porownaj_auto_rozpoznaje_stara_plytke_i_dobiera_wspolczynnik ______
+---------------------------- Captured stdout setup ----------------------------
+[Open3D WARNING] Too few correspondences (290) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (251) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (180) after mutual filter, fall back to original correspondences.
+---------------------------- Captured stdout call -----------------------------
+[Open3D WARNING] Too few correspondences (290) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (251) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (180) after mutual filter, fall back to original correspondences.
+______________ test_porownaj_auto_poranna_ma_wspolczynnik_jeden _______________
+---------------------------- Captured stdout call -----------------------------
+[Open3D WARNING] Too few correspondences (216) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (291) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (123) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (47) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (43) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (79) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (110) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (51) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (88) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (140) after mutual filter, fall back to original correspondences.
+[Open3D WARNING] Too few correspondences (173) after mutual filter, fall back to original correspondences.
+________________ test_okno_domyslnie_rozpoznaje_automatycznie _________________
+---------------------------- Captured stderr call -----------------------------
+QFontDatabase: Cannot find font directory <PC>/AppData/Local/Programs/Python/Python312/Lib/site-packages/PySide6/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+=========================== short test summary info ===========================
+PASSED testy/test_session_wieczor.py::test_k4_niezgodny_uklad_i_skan_ponownie_bez_zielonych
+PASSED testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-wieczorna]
+PASSED testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-poranna]
+PASSED testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-okragla_wieczorna]
+PASSED testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-okragla_poranna]
+PASSED testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-wieczorna]
+PASSED testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-poranna]
+PASSED testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-okragla_wieczorna]
+PASSED testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-okragla_poranna]
+PASSED testy/test_straznik.py::test_porownaj_niezgodny_uklad_zadnych_gniazd
+PASSED testy/test_kontroler_api.py::test_d_plytka_niezgodna_z_ukladem[atrapa]
+PASSED testy/test_kontroler_api.py::test_d_plytka_niezgodna_z_ukladem[aplikacja]
+PASSED testy/test_auto_uklad.py::test_rozpoznaje_kazdy_z_osmiu_ukladow_bez_numeru[wieczorna]
+PASSED testy/test_auto_uklad.py::test_rozpoznaje_kazdy_z_osmiu_ukladow_bez_numeru[poranna]
+PASSED testy/test_auto_uklad.py::test_rozpoznaje_kazdy_z_osmiu_ukladow_bez_numeru[okragla_wieczorna]
+PASSED testy/test_auto_uklad.py::test_rozpoznaje_kazdy_z_osmiu_ukladow_bez_numeru[okragla_poranna]
+PASSED testy/test_auto_uklad.py::test_rozpoznaje_kazdy_z_osmiu_ukladow_bez_numeru[wieczorna_r54]
+PASSED testy/test_auto_uklad.py::test_rozpoznaje_kazdy_z_osmiu_ukladow_bez_numeru[poranna_r54]
+PASSED testy/test_auto_uklad.py::test_rozpoznaje_kazdy_z_osmiu_ukladow_bez_numeru[okragla_wieczorna_r54]
+PASSED testy/test_auto_uklad.py::test_rozpoznaje_kazdy_z_osmiu_ukladow_bez_numeru[okragla_poranna_r54]
+PASSED testy/test_auto_uklad.py::test_wynik_jak_przy_ukladzie_wybranym_recznie[wieczorna]
+PASSED testy/test_auto_uklad.py::test_wynik_jak_przy_ukladzie_wybranym_recznie[poranna]
+PASSED testy/test_auto_uklad.py::test_wynik_jak_przy_ukladzie_wybranym_recznie[okragla_wieczorna]
+PASSED testy/test_auto_uklad.py::test_wynik_jak_przy_ukladzie_wybranym_recznie[okragla_poranna]
+PASSED testy/test_auto_uklad.py::test_wynik_jak_przy_ukladzie_wybranym_recznie[wieczorna_r54]
+PASSED testy/test_auto_uklad.py::test_wynik_jak_przy_ukladzie_wybranym_recznie[poranna_r54]
+PASSED testy/test_auto_uklad.py::test_wynik_jak_przy_ukladzie_wybranym_recznie[okragla_wieczorna_r54]
+PASSED testy/test_auto_uklad.py::test_wynik_jak_przy_ukladzie_wybranym_recznie[okragla_poranna_r54]
+PASSED testy/test_auto_uklad.py::test_plytka_okragla_ma_numer_z_dolkow[okragla_wieczorna]
+PASSED testy/test_auto_uklad.py::test_plytka_okragla_ma_numer_z_dolkow[okragla_poranna]
+PASSED testy/test_auto_uklad.py::test_plytka_okragla_ma_numer_z_dolkow[okragla_wieczorna_r54]
+PASSED testy/test_auto_uklad.py::test_plytka_okragla_ma_numer_z_dolkow[okragla_poranna_r54]
+PASSED testy/test_auto_uklad.py::test_kwadrat_z_podanym_numerem[wieczorna_r54]
+PASSED testy/test_auto_uklad.py::test_kwadrat_z_podanym_numerem[poranna_r54]
+PASSED testy/test_auto_uklad.py::test_kwadrat_z_podanym_numerem[wieczorna]
+PASSED testy/test_auto_uklad.py::test_kwadrat_z_podanym_numerem[poranna]
+PASSED testy/test_auto_uklad.py::test_numer_spoza_rozpoznanej_rodziny_jest_pomijany
+PASSED testy/test_auto_uklad.py::test_zaden_uklad_nie_pasuje
+PASSED testy/test_auto_uklad.py::test_porownaj_auto_rozpoznaje_stara_plytke_i_dobiera_wspolczynnik
+PASSED testy/test_auto_uklad.py::test_porownaj_auto_poranna_ma_wspolczynnik_jeden
+PASSED testy/test_auto_uklad.py::test_porownaj_auto_nie_rozpoznaje_gdy_brak_ukladu
+PASSED testy/test_auto_uklad.py::test_cli_domyslnie_auto
+PASSED testy/test_auto_uklad.py::test_stary_plik_ustawien_dostaje_uklady_wbudowane
+PASSED testy/test_auto_uklad.py::test_opis_ukladu
+PASSED testy/test_auto_uklad.py::test_okno_domyslnie_rozpoznaje_automatycznie
+45 passed, 174 deselected, 1 warning in 108.16s (0:01:48)

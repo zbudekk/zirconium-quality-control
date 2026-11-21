@@ -1,0 +1,12 @@
+skanow w wyniku (skany[]): 40
+uklad_niezgodny: []
+WYROWNANIE: 40 z 40 (zbiorczo.plate_match.wyrownanie_ok / .skanow), max 0.0143 mm
+TOP-1 scenariusz bokiem    : 38 z 59 (top1_bledny 21)
+TOP-1 scenariusz czesciowo : 35 z 37 (top1_bledny 2)
+TOP-1 scenariusz dobrze    : 276 z 276 (top1_bledny 0)
+TOP-1 scenariusz drgniecie : 39 z 41 (top1_bledny 2)
+FALSZYWE CZERWONE na pracach calych: 0 z 127 (zbiorczo.razem.prace_cale_z_czerwonym / .prac_calych)
+czas calosci [s]: 996.2
+wiersz logu: PRACE CA?E: 127, z czerwonym 0, z alarmem (czerwone / ???te ?sprawd??) 0, nie sprawdzono 9 (powody: {"dane": 9}), gniazda {"zielony": 114, "czerwony": 0, "zolty": 10, "szary": 0, "pomaranczowy": 3}
+wierszy logu: 437
+punkt odniesienia (noc, paczka 0.3.1): 40 z 40 / 276 z 276 (scenariusz dobrze) / 0 z 127

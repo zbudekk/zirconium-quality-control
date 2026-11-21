@@ -1,0 +1,15 @@
+sob. 21.11.2026 17:45:33,50 
+=== git -C <PC-katalog>\t0\repo2 config --get core.autocrlf 
+false
+KOD=0 
+=== git -C <PC-katalog>\t0\repo2 status --short 
+KOD=0 
+=== git -C <PC-katalog>\t0\repo2 rev-parse HEAD 
+0fedbf6e4f97dc68b2f4679061a960ac81edbdbd
+=== if exist <PC-katalog>\t0\repo2\Ramki\stanowisko\ustawienia.toml (przed copy) 
+BRAK 
+=== copy <PC-katalog>\t0\repo2\Ramki\stanowisko\ustawienia.przyklad.toml <PC-katalog>\t0\repo2\Ramki\stanowisko\ustawienia.toml 
+        1 file(s) copied.
+KOD=0 
+=== git -C <PC-katalog>\t0\repo2 status --short (po copy) 
+KOD=0 

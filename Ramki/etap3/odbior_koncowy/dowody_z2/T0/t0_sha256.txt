@@ -1,0 +1,17 @@
+T0 krok 2 - sumy SHA-256 paczki wydania 0.3.3 (21.11.2026 17:37:31)
+
+Plik: <PC-katalog>\wydania\Stanowisko_0.3.3.zip, 447318667 bajtow (zlecenie: 447 318 667 - zgodne)
+
+1. certutil -hashfile <ZIP_N> SHA256                       : b6049229848afb124771944a3a3037664a0ec68aaeaa18a09da76f05103b1377
+2. plik <ZIP_N>.sha256                                     : b6049229848afb124771944a3a3037664a0ec68aaeaa18a09da76f05103b1377  Stanowisko_0.3.3.zip
+3. zlecenie koordynatora (odbior2-final.md)                : b6049229848afb124771944a3a3037664a0ec68aaeaa18a09da76f05103b1377
+4. SHA256SUMS_wydania.txt w main (<PC-katalog>\qc, 1f231d9): b6049229848afb124771944a3a3037664a0ec68aaeaa18a09da76f05103b1377  Stanowisko_0.3.3.zip
+5. SHA256SUMS_wydania.txt w <REPO> (commit wydania 0fedbf6): BRAK wiersza 0.3.3 (wiersz dopisany po zbudowaniu paczki - jak w nocy dla 0.3.1)
+
+Wynik: ZIP zgodny 1 z 1 (cztery zrodla 1-4 daja te sama wartosc). Pelne wyjscie polecen: t0_2.log.
+
+Sumy plikow paczki wg instalatora (krok [1/9], kazde z 3 uruchomien zainstaluj.cmd): "zgodne 227 z 227; wersja 0.3.3, commit 0fedbf6e4f97"
+  (plik SHA256SUMS paczki: 227 wierszy; w paczce 228 plikow = 227 + sam SHA256SUMS; w nocy 0.3.1: 210 z 210, 211 plikow)
+Sumy plikow programu wg samokontroli (sprawdzenie "sumy"): "zgodne 147 z 147 (SUMY_PROGRAMU.sha256), plikow nadmiarowych 0"
+  (katalog programu: 148 plikow = 147 + sam SUMY_PROGRAMU.sha256; w nocy 0.3.1: 130 z 130, 131 plikow)
+Zrodla: t0_zainstaluj_1.log, t0_zainstaluj_2.log, ..\T1\t1_zainstaluj_testy.log, t0_samokontrola.txt, t0_samokontrola.json

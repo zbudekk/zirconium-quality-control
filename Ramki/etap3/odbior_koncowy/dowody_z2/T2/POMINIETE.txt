@@ -1,0 +1,6 @@
+POMINIETE - katalog T2 (zrodlo na PC: <PC-katalog>\koordynator\robocze\odbior2\final\T2); zostaje na PC, poza repo.
+Regula: bez STL, baz, ZIP, plikow > 1024 KB, katalogow roboczych; ustawienia ze znakami spoza ASCII - poza repo.
+
+- ustawienia_wzor.toml (13037 B) - kopia Ramki/stanowisko/ustawienia.przyklad.toml z commita wydania 0fedbf6 (plik jest w repo; komentarze ze znakami spoza ASCII)
+- robocze\ (katalog: 4 plikow, 7030 B)
+- t2\ (katalog: 45 plikow, 30097883 B); skopiowane z niego: t2/t2_wynik.json, t2/t2_wynik.txt, t2/t2_symulator.json, t2/t2_symulator.log, t2/t2_log_ostrzezenia.txt, t2/t2_pid.txt

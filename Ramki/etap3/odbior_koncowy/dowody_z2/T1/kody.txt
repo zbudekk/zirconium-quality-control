@@ -1,0 +1,9 @@
+krok1_zainstaluj_testy KOD=0 
+krok3_wmi KOD=0 
+collect_wersja KOD=0 
+collect_bazowy KOD=0 
+t13_higiena KOD=0 
+t13_diff_stat KOD=0 
+t13_is_ancestor KOD=0 
+krok5_pytest_bazowy KOD=-1073740791 
+krok4_pytest_wersja KOD=-1073741819 

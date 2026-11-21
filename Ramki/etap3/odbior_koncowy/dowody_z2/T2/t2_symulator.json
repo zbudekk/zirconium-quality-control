@@ -1,0 +1,114 @@
+{
+ "zapisy": [
+  {
+   "nr": 1,
+   "rodzaj": "dobry",
+   "zrodlo": 0,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0001.stl",
+   "start": 1795279103.6096,
+   "koniec": 1795279105.925589,
+   "rozmiar": 47772034,
+   "sha16": "a7e5c5c7674cc140",
+   "mtime_ns": 1795279105920587100
+  },
+  {
+   "nr": 2,
+   "rodzaj": "dobry",
+   "zrodlo": 1,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0002.stl",
+   "start": 1795279163.6088204,
+   "koniec": 1795279166.1662624,
+   "rozmiar": 44124484,
+   "sha16": "75db8c4f9ead0dab",
+   "mtime_ns": 1795279166164248900
+  },
+  {
+   "nr": 3,
+   "rodzaj": "dobry",
+   "zrodlo": 2,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0003.stl",
+   "start": 1795279223.608442,
+   "koniec": 1795279227.1866746,
+   "rozmiar": 52132734,
+   "sha16": "9cc2bd761deb672b",
+   "mtime_ns": 1795279227182161200
+  },
+  {
+   "nr": 4,
+   "rodzaj": "dobry",
+   "zrodlo": 3,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0004.stl",
+   "start": 1795279283.6079605,
+   "koniec": 1795279286.957636,
+   "rozmiar": 45492634,
+   "sha16": "9d5eeb980330c768",
+   "mtime_ns": 1795279286953631700
+  },
+  {
+   "nr": 10,
+   "rodzaj": "uciety",
+   "zrodlo": 0,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\zly_01_uciety.stl",
+   "start": 1795279343.6081069,
+   "koniec": 1795279346.8149557,
+   "rozmiar": 28663220,
+   "sha16": "7ac82aa3d8bb0b63",
+   "mtime_ns": 1795279346811952300
+  },
+  {
+   "nr": 5,
+   "rodzaj": "dobry",
+   "zrodlo": 4,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0005.stl",
+   "start": 1795279403.607417,
+   "koniec": 1795279405.8438094,
+   "rozmiar": 53221284,
+   "sha16": "769e0fd025693694",
+   "mtime_ns": 1795279405837303300
+  },
+  {
+   "nr": 6,
+   "rodzaj": "dobry",
+   "zrodlo": 5,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0006.stl",
+   "start": 1795279463.6067946,
+   "koniec": 1795279467.4584231,
+   "rozmiar": 59075684,
+   "sha16": "857369c6c1d3aef3",
+   "mtime_ns": 1795279467455419700
+  },
+  {
+   "nr": 7,
+   "rodzaj": "dobry",
+   "zrodlo": 6,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0007.stl",
+   "start": 1795279523.6062014,
+   "koniec": 1795279526.5249388,
+   "rozmiar": 54913234,
+   "sha16": "247ee785f428396f",
+   "mtime_ns": 1795279526517949900
+  },
+  {
+   "nr": 8,
+   "rodzaj": "dobry",
+   "zrodlo": 7,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0008.stl",
+   "start": 1795279583.60588,
+   "koniec": 1795279587.053696,
+   "rozmiar": 59607434,
+   "sha16": "c21b3b21066fab83",
+   "mtime_ns": 1795279587050698100
+  },
+  {
+   "nr": 9,
+   "rodzaj": "dobry",
+   "zrodlo": 8,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior2\\final\\T2\\t2\\eksport\\skan_0009.stl",
+   "start": 1795279643.60547,
+   "koniec": 1795279647.1293023,
+   "rozmiar": 45478784,
+   "sha16": "13a7fc0c4e281de4",
+   "mtime_ns": 1795279647122796000
+  }
+ ]
+}

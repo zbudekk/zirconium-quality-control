@@ -1,0 +1,36 @@
+T13 higiena repo: 2537f6f..0fedbf6, zmienionych plikow 1145, w tym nowych 1062
+grupa             nowe  zmien.  usun.
+E3                 723      29      0
+R58                242       4      0
+R59                 97      34     16
+NARUSZENIA (grupa E3 i sciezki poza listami): 0
+nie-ASCII: napisy ekranu, odstepstwo O11 (nie licza sie do naruszen): 7 plikow z 7 na liscie
+  A Ramki/stanowisko/stanowisko/dzien_skanera.py -> 110 wierszy nie-ASCII (866 bajtow)
+  A Ramki/stanowisko/stanowisko/dzien_skanera_kroki.toml -> 134 wierszy nie-ASCII (1783 bajtow)
+  A Ramki/stanowisko/stanowisko/dzien_skanera_rdzen.py -> 102 wierszy nie-ASCII (946 bajtow)
+  A Ramki/stanowisko/stanowisko/statusy.py -> 283 wierszy nie-ASCII (2142 bajtow)
+  A Ramki/stanowisko/stanowisko/ui/napisy.py -> 66 wierszy nie-ASCII (318 bajtow)
+  A Ramki/stanowisko/stanowisko/ui/napisy_rano.py -> 111 wierszy nie-ASCII (710 bajtow)
+  A Ramki/stanowisko/testy/test_dzien_skanera.py -> 45 wierszy nie-ASCII (171 bajtow)
+kopie bajtowe R58 w modele_plytek, odstepstwo: decyzja wlasciciela nr 1 z 21.11.2026 (nie licza sie do naruszen; suma SHA-256 = lista R58): 10 plikow z 10 na liscie
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_poranna/plytka_bazowa.stl -> suma zgodna (845e4bd61b405620); pominiete: duzy plik (1228 KB > 1024 KB)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_poranna/plytka_n4.stl -> suma zgodna (5d81f55b8b114ba9); pominiete: duzy plik (1224 KB > 1024 KB)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_poranna/plytka_n5.stl -> suma zgodna (64867b5b63a31db8); pominiete: duzy plik (1246 KB > 1024 KB)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_poranna/plytka_n6.stl -> suma zgodna (7630a029157b2fc6); pominiete: duzy plik (1236 KB > 1024 KB)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_poranna/uklad.json -> suma zgodna (ab6e02a0a9602216); pominiete: nie ASCII (71 bajtow), konce linii: 365 x CRLF (ma byc LF)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_wieczorna/plytka_bazowa.stl -> suma zgodna (322eb892b7acf81c); pominiete: duzy plik (1087 KB > 1024 KB)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_wieczorna/plytka_n1.stl -> suma zgodna (84d361e2389bef12); pominiete: duzy plik (1079 KB > 1024 KB)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_wieczorna/plytka_n2.stl -> suma zgodna (7848aa2395638b33); pominiete: duzy plik (1088 KB > 1024 KB)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_wieczorna/plytka_n3.stl -> suma zgodna (1b8ac3d390870f0a); pominiete: duzy plik (1099 KB > 1024 KB)
+  A Ramki/stanowisko/modele_plytek/okragla_ramkowa_wieczorna/uklad.json -> suma zgodna (d66ef99b799f37c2); pominiete: nie ASCII (71 bajtow), konce linii: 315 x CRLF (ma byc LF)
+UWAGI w grupach spoza etapu 3 (nie licza sie do wyniku T13, do oceny koordynatora): 126
+  R58: duzy plik: 1
+  R58: konce linii: 23
+  R58: nie ASCII: 23
+  R58: plik danych: 2
+  R59: STL poza modele_plytek: 2
+  R59: duzy plik: 10
+  R59: konce linii: 17
+  R59: nie ASCII: 43
+  R59: plik danych: 5
+WYNIK T13: ZAL z odstepstwem O11 (0 naruszen; 7 plikow napisow ekranu nie-ASCII; 10 kopii bajtowych R58 - decyzja wlasciciela nr 1 z 21.11.2026)

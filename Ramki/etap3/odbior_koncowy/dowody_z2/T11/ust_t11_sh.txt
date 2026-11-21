@@ -1,0 +1,19 @@
+#!/bin/bash
+# POLECENIA.md 4.0 - wlasny plik ustawien programu dla T11 czesc B (sed -b zachowuje CRLF)
+R=<PC-katalog>/koordynator/robocze/odbior2/final/T11
+RB=/c/<konto-PC>/koordynator/robocze/odbior2/final/T11
+sed -b -E \
+ -e "s|^folder_eksportu_skanera = \"[^\"]*\"|folder_eksportu_skanera = \"$R/robocze/t11/eksport\"|" \
+ -e "s|^folder_cyrkon = \"[^\"]*\"|folder_cyrkon = \"$R/robocze/Cyrkon\"|" \
+ -e "s|^folder_prywatne = \"[^\"]*\"|folder_prywatne = \"$R/robocze/t11/Prywatne\"|" \
+ -e "s|^folder_millbox = \"[^\"]*\"|folder_millbox = \"$R/robocze/t11/millbox\"|" \
+ -e "s|^baza = \"[^\"]*\"|baza = \"$R/robocze/t11/dane/stanowisko.sqlite\"|" \
+ -e "s|^log_excel = \"[^\"]*\"|log_excel = \"$R/robocze/t11/dane/log_excel.csv\"|" \
+ -e "s|^wyniki = \"[^\"]*\"|wyniki = \"$R/robocze/t11/dane/wyniki\"|" \
+ -e "s|^podglady = \"[^\"]*\"|podglady = \"$R/robocze/t11/dane/podglady\"|" \
+ -e "s|^pula_cache = \"[^\"]*\"|pula_cache = \"$R/robocze/t11/dane/pula_cache\"|" \
+ -e "s|^logi = \"[^\"]*\"|logi = \"$R/robocze/t11/dane/logi\"|" \
+ -e "s|^kalibracja_ramek = \"[^\"]*\"|kalibracja_ramek = \"$R/robocze/t11/dane/kalibracja_ramek.json\"|" \
+ $RB/ustawienia_wzor.toml > $RB/ustawienia_t11.toml
+mkdir -p $RB/robocze/t11/eksport $RB/robocze/t11/Prywatne $RB/robocze/t11/millbox $RB/robocze/t11/dane
+diff $RB/ustawienia_wzor.toml $RB/ustawienia_t11.toml | grep -c '^>'

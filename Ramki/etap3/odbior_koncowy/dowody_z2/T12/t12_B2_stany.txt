@@ -1,0 +1,349 @@
+== czesc B proba 2: stany instalacji <PC-katalog>\t0\odbior2_t12\B\K_B 
+ 
+===== STAN po kroku 3 (PRZED aktualizacja probna) sob. 21.11.2026 18:01:49,54 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+Nie molna odnale?? okre?lonego pliku.
+ 
+-- ustawienia.toml SHA-256: 
+345d65ca5242262eb69e5d8ef958c74359729f44f5274193de8e1233f42fab8d
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+601f23ce99dedcaac4d7b9ac8d1c1df8bdfe61a6fd79d779b51f2e94d75bbd90
+86016 6ad5420b6a5cd53efd11bc4f1356c86e34e1c654304b64a897294fdabd50d8a1
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+ 
+===== STAN po kroku 4 (c1: po aktualizacji, przed startem wersji probnej) sob. 21.11.2026 18:03:05,46 
+wersja_biezaca: 
+0.3.9-migracja
+ 
+wersja_poprzednia: 
+0.3.3
+ 
+-- ustawienia.toml SHA-256: 
+345d65ca5242262eb69e5d8ef958c74359729f44f5274193de8e1233f42fab8d
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+601f23ce99dedcaac4d7b9ac8d1c1df8bdfe61a6fd79d779b51f2e94d75bbd90
+86016 6ad5420b6a5cd53efd11bc4f1356c86e34e1c654304b64a897294fdabd50d8a1
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite rozmiar 86016 
+069f496f30e1c71f4ac8c3305fbee6e03e53513d707acb3035730e9d943e45ae
+86016 6ad5420b6a5cd53efd11bc4f1356c86e34e1c654304b64a897294fdabd50d8a1
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+0.3.9-migracja
+ 
+===== STAN po kroku 5 (c2: po pierwszym starcie wersji probnej) sob. 21.11.2026 18:03:13,94 
+wersja_biezaca: 
+0.3.9-migracja
+ 
+wersja_poprzednia: 
+0.3.3
+ 
+-- ustawienia.toml SHA-256: 
+345d65ca5242262eb69e5d8ef958c74359729f44f5274193de8e1233f42fab8d
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+58e9572068c2b5438c89af4ca69cdb6263c50302b2bf47b329602efacf296600
+90112 8f13b427dc45c51f70131c387893eb2b50d474d74d91d68bf4507559658140a1
+user_version
+2
+-- wierszy: 1
+count(*)
+7
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite rozmiar 86016 
+069f496f30e1c71f4ac8c3305fbee6e03e53513d707acb3035730e9d943e45ae
+86016 6ad5420b6a5cd53efd11bc4f1356c86e34e1c654304b64a897294fdabd50d8a1
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.kopia_v1_20261121_180307.sqlite
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+0.3.9-migracja
+ 
+===== STAN po kroku 6 (powrot bez zgody - oczekiwany kod 8) sob. 21.11.2026 18:03:15,06 
+wersja_biezaca: 
+0.3.9-migracja
+ 
+wersja_poprzednia: 
+0.3.3
+ 
+-- ustawienia.toml SHA-256: 
+345d65ca5242262eb69e5d8ef958c74359729f44f5274193de8e1233f42fab8d
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+58e9572068c2b5438c89af4ca69cdb6263c50302b2bf47b329602efacf296600
+90112 8f13b427dc45c51f70131c387893eb2b50d474d74d91d68bf4507559658140a1
+user_version
+2
+-- wierszy: 1
+count(*)
+7
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite rozmiar 86016 
+069f496f30e1c71f4ac8c3305fbee6e03e53513d707acb3035730e9d943e45ae
+86016 6ad5420b6a5cd53efd11bc4f1356c86e34e1c654304b64a897294fdabd50d8a1
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.kopia_v1_20261121_180307.sqlite
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+0.3.9-migracja
+ 
+===== STAN po kroku 7 (e: po powrocie z przywroceniem kopii) sob. 21.11.2026 18:03:18,63 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+0.3.9-migracja
+ 
+-- ustawienia.toml SHA-256: 
+345d65ca5242262eb69e5d8ef958c74359729f44f5274193de8e1233f42fab8d
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+069f496f30e1c71f4ac8c3305fbee6e03e53513d707acb3035730e9d943e45ae
+86016 6ad5420b6a5cd53efd11bc4f1356c86e34e1c654304b64a897294fdabd50d8a1
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_odlozona_v2_20261121_180316.sqlite
+stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite
+-- kopia stanowisko_odlozona_v2_20261121_180316.sqlite rozmiar 90112 
+ae10ea07eab554a6cad602c7e4ecbb37eff1b20d467987717d66869b3d6f0a8b
+90112 8f13b427dc45c51f70131c387893eb2b50d474d74d91d68bf4507559658140a1
+user_version
+2
+-- wierszy: 1
+count(*)
+7
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite rozmiar 86016 
+069f496f30e1c71f4ac8c3305fbee6e03e53513d707acb3035730e9d943e45ae
+86016 6ad5420b6a5cd53efd11bc4f1356c86e34e1c654304b64a897294fdabd50d8a1
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.kopia_v1_20261121_180307.sqlite
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+0.3.9-migracja
+ 
+===== STAN po kroku 8 (start wersji N na przywroconej bazie) sob. 21.11.2026 18:03:27,96 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+0.3.9-migracja
+ 
+-- ustawienia.toml SHA-256: 
+345d65ca5242262eb69e5d8ef958c74359729f44f5274193de8e1233f42fab8d
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+94071389dd2d507ec4f74eb29cc2addf3ca82bcfe3f9ed2cfd4c805f4fb39294
+86016 baae5b696a9ca5e4bc572ddc5e21a080093c24a9eccdbd04c02713780441753c
+user_version
+1
+-- wierszy: 1
+count(*)
+6
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_odlozona_v2_20261121_180316.sqlite
+stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite
+-- kopia stanowisko_odlozona_v2_20261121_180316.sqlite rozmiar 90112 
+ae10ea07eab554a6cad602c7e4ecbb37eff1b20d467987717d66869b3d6f0a8b
+90112 8f13b427dc45c51f70131c387893eb2b50d474d74d91d68bf4507559658140a1
+user_version
+2
+-- wierszy: 1
+count(*)
+7
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_180301_v1.sqlite rozmiar 86016 
+069f496f30e1c71f4ac8c3305fbee6e03e53513d707acb3035730e9d943e45ae
+86016 6ad5420b6a5cd53efd11bc4f1356c86e34e1c654304b64a897294fdabd50d8a1
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.kopia_v1_20261121_180307.sqlite
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersja_poprzednia.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+0.3.9-migracja
+0.3.3            zainstalowano 2026-11-21 18:00:23 commit 0fedbf6e4f97 schemat bazy 1  BIEZACA
+0.3.9-migracja   zainstalowano 2026-11-21 18:01:51 commit 0fedbf6e4f97 schemat bazy 2  poprzednia

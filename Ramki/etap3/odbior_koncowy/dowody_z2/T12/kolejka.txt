@@ -1,0 +1,8 @@
+2026-11-21 17:42:43 przed krokiem A wolne na C: 31.9 GB
+2026-11-21 17:53:23 krok A KONIEC kod 0
+2026-11-21 17:53:23 przed krokiem Z wolne na C: 27.7 GB
+2026-11-21 17:57:22 krok Z KONIEC kod 0
+2026-11-21 17:57:22 przed krokiem B wolne na C: 22.7 GB
+2026-11-21 17:59:30 krok B KONIEC kod 0
+KOLEJKA KONIEC
+2026-11-21 18:03:29 krok B2 (czesc B proba 2) KONIEC kod 0
