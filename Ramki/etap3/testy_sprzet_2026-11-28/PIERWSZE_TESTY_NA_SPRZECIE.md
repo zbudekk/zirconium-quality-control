@@ -1,17 +1,17 @@
 # Pierwsze testy na prawdziwym sprzecie - 28-29.11.2026
 
-Dokument dla wlasciciela. Wydrukuj go razem z `ARKUSZ_OBSERWACJI.md`. Stan: 21.11.2026, dla paczki
-programu 0.3.3 (jeszcze nie istnieje).
+Dokument dla wlasciciela. Wydrukuj go razem z `ARKUSZ_OBSERWACJI.md`. Stan: 21.11.2026; przeszedl krok
+po kroku na probnej instalacji programu (kod paczki 0.3.3), bez skanera i bez ramki.
 
-Do tej pory program byl sprawdzany tylko bez sprzetu: na danych sztucznych i na "atrapach" (program
-udaje ramke albo skaner). Cel weekendu: zebrac liczby i pliki, ktorych nie da sie zdobyc inaczej. Nie
-wszystko musi zadzialac. Co pojdzie inaczej niz tu napisano, jest wynikiem - zapisz to.
+Program byl dotad sprawdzany tylko bez sprzetu: na danych sztucznych i na "atrapach" (program udaje
+ramke albo skaner). Cel weekendu: zebrac liczby i pliki, ktorych nie da sie zdobyc inaczej. Nie wszystko
+musi zadzialac. Co pojdzie inaczej niz tu napisano, jest wynikiem - zapisz to.
 
 Znaczniki:
 
 - **[NIE SPRAWDZONE BEZ SPRZETU]** - tego nikt nie widzial na prawdziwym urzadzeniu. Moze pojsc inaczej.
-- **[DO POTWIERDZENIA NA 0.3.3]** - opis wedlug raportow programistow; bedzie sprawdzony na nowej paczce
-  przed weekendem. Gdyby wygladalo to inaczej - zapisz, co widzisz.
+- **[DO POTWIERDZENIA NA 0.3.3]** - 3 miejsca (nazwa paczki, 2 teksty komunikatow), ktore moga sie jeszcze
+  zmienic w ostatecznej paczce. Gdyby wygladalo to inaczej - zapisz, co widzisz.
 
 Zasady:
 
@@ -25,21 +25,10 @@ Zasady:
 
 ## 0. Pytania do wlasciciela - odpowiedz najpozniej do srody 25.11.2026
 
-Nie znamy odpowiedzi i nie zgadujemy. Pelne pytania - z wyjasnieniem, co od ktorej odpowiedzi zalezy,
+Nie znamy odpowiedzi i nie zgadujemy. Pytania P1-P9 - z wyjasnieniem, co od ktorej odpowiedzi zalezy,
 i z miejscem na odpowiedz - sa na osobnej stronie: `PYTANIA_DO_WLASCICIELA.md`. Odpowiedz tam albo
-przekaz sesji prowadzacej projekt. Najpilniejsze: P3, P1, P6, P8.
-
-    Pytanie                                               Od odpowiedzi zalezy
-    P1  ktora ramka przyszla, jaka wkladka                kroki 3.7 - 3.9
-    P2  ktore plytki sa na miejscu, czy maja magnesy      kroki 2.3 - 2.5a, 3.5
-    P3  czy na ramce jest wgrany "program ramki"          cala czesc 3
-    P4  na jakim komputerze beda testy                    czesc 4
-    P5  gdzie stoi skaner, gdzie zapisuje skany           kroki 2.1, 2.4, 2.7
-    P6  jaka siec laczy komputer z ramka                  kroki 3.3 - 3.9
-    P7  czy sa projekty STL prac probnych                 krok 2.7
-    P8  klucz (haslo) ramki                               kroki 3.3 - 3.9
-    P9  zlecenia pacjentow w programie skanera;           kroki 2.1, 2.6
-        osobny folder na skany testowe
+przekaz sesji prowadzacej projekt. Najpilniejsze: P3 (czy na ramce jest wgrany program ramki - od tego
+zalezy cala czesc 3), P1 (ktora ramka), P6 (siec), P8 (klucz ramki), P9 (zlecenia pacjentow w skanerze).
 
 ---
 
@@ -113,8 +102,7 @@ Co zrobic:
 5. Kliknij dwa razy `zainstaluj.cmd` JESZCZE RAZ (kilka sekund).
 
 Udalo sie, gdy: ostatni wiersz to `INSTALACJA: GOTOWA - wersja biezaca ...`, a w `C:\Stanowisko` sa pliki
-`Stanowisko.cmd`, `Samokontrola.cmd`, `Polecenie.cmd`, `Dzien_skanera.cmd`. [DO POTWIERDZENIA NA 0.3.3]
-Zanotuj: arkusz 1.2.
+`Stanowisko.cmd`, `Samokontrola.cmd`, `Polecenie.cmd`, `Dzien_skanera.cmd`. Zanotuj: arkusz 1.2.
 Gdy sie nie uda: przepisz wiersze `BLAD:` i `CO ZROBIC:` i zrob to, co mowi `CO ZROBIC`. Windows pyta "Czy
 chcesz uruchomic ten plik?" - zezwol. Bez instalacji przejdz do kroku 3.1.
 [NIE SPRAWDZONE BEZ SPRZETU: laptop firmowy - antywirus, uprawnienia, Notatnik]
@@ -124,8 +112,8 @@ chcesz uruchomic ten plik?" - zezwol. Bez instalacji przejdz do kroku 3.1.
 Co zrobic: kliknij dwa razy `C:\Stanowisko\Samokontrola.cmd`. Potem `C:\Stanowisko\Stanowisko.cmd`; na
 pytanie "Kto teraz pracuje?" kliknij "Tester". Popatrz na pasek u gory i zamknij okno.
 Udalo sie, gdy: samokontrola konczy sie wierszem `SAMOKONTROLA: ZIELONA` i ma wiersz
-`OK modele: uklady plytek z [plytki]: poprawne 10 z 10`. Wiersze `OSTRZEZENIE`
-(ramki, `excel`, `baza`, `pula`) sa teraz normalne. W pasku programu: "Folder skanera: dostepny" i
+`OK modele: uklady plytek z [plytki]: poprawne 10 z 10`. Wiersze `OSTRZEZENIE` (ramki, `excel`,
+`baza`, `pula`, `folder_prywatne`, `folder_millbox`) sa teraz normalne. W pasku programu: "Folder skanera: dostepny" i
 "Ramki: W: brak polaczenia". Zanotuj: arkusz 1.3.
 Gdy sie nie uda: "poprawne 8 z 10" albo "9 z 10" = stara albo niepelna paczka. Przepisz wiersz `BLAD: ...`.
 Mozesz isc do czesci 2.
@@ -139,7 +127,6 @@ zapisuja sie same w `C:\Sprzet_testy\wyniki`, kazdy w osobnym pliku z data i god
 Zanotuj: arkusz 1.4 (dwuklik i przeciaganie pliku: okaze sie w krokach 2.4 i 3.3).
 Gdy sie nie uda: kopiuj pliki skanow na pendrive - policzymy je na PC.
 [NIE SPRAWDZONE BEZ SPRZETU: dwuklik i przeciaganie na prawdziwym ekranie]
-[DO POTWIERDZENIA NA 0.3.3: narzedzia uruchomione z nowej instalacji]
 
 ---
 
@@ -149,8 +136,7 @@ Klikanie w programie skanera: wydrukowana sciaga. Tu tylko to, co dotyczy naszeg
 
 ### Krok 2.1 - okno "Dzien skanera" (5 minut, PRZED pierwszym skanem)
 
-Co zrobic: kliknij dwa razy `C:\Stanowisko\Dzien_skanera.cmd` [DO POTWIERDZENIA NA 0.3.3]. Kliknij "Dodaj
-folder..." i wskaz folder, do ktorego program skanera zapisze skany TESTOWE (P5, P9). Sa w nim zlecenia
+Co zrobic: kliknij dwa razy `C:\Stanowisko\Dzien_skanera.cmd`. Kliknij "Dodaj folder..." i wskaz folder, do ktorego program skanera zapisze skany TESTOWE (P5, P9). Sa w nim zlecenia
 pacjentow: ustaw w programie skanera osobny folder zapisu na ten dzien, a gdy sie nie da - wskaz oknu
 tylko folder zlecenia TEST1, nigdy caly folder zlecen. Nie znasz folderu: "Nie wiem, gdzie skaner
 zapisuje - szukaj". Kliknij na probe "Zrzut ekranu (za 3 s)".
