@@ -412,6 +412,8 @@ plytka kwadratowa R59 tego samego typu oraz te same numery (magnesy = ten sam ko
   (`indicate.wczytaj_kalibracje`): dopisuje TYLKO brakujace uklady z geometrii, wpisow istniejacych
   (takze `"zrodlo": "kalibracja"`) nie zmienia, kopie starego pliku zostawia obok
   (`kalibracja_ramek.json.przed_uzupelnieniem`) i pokazuje ostrzezenie w podpowiedzi paska ramek.
+  Gdy pliku nie da sie zapisac (np. tylko do odczytu), plik zostaje bez zmian, kopia nie powstaje, a uklady
+  sa dopisane tylko w pamieci programu (ostrzezenie "plik kalibracji ramek nie zostal zapisany").
   To samo bez programu stanowiska (np. plik trzymany na Raspberry Pi dla `test_led`): polecenie
   `--uzupelnij` wyzej;
 - test diod: `python -m ramka.test_led --kalibracja <plik> --rola W --uklad okragla_ramkowa_wieczorna`

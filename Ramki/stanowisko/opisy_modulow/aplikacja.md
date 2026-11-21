@@ -303,3 +303,20 @@ D4: czas ladowania modulow z DLL w logu startu (z Open3D przy `pula_wpisow`) - d
   (takie prace nie licza sie przy "Zamknij piec"); pole sluzy oknu: pytanie przed zamknieciem i nazwanie prac po nim
   (`ui_rano.md`). Polecenie `zamknij_piec` kontrolera i klawisz "Zamknij piec" ramki NIE pytaja - pyta okno.
 - Testy: `testy/test_p14_baza_zajeta.py` (11), `testy/test_p14_ekran.py` (N3).
+
+## Plytki okragle ramkowe - kontrakt w wersji 6 (E3-O2, 21.11.2026; wszystko addytywne)
+
+- `WERSJA_KONTRAKTU = 6`. `Plytka` ma dwa pola na koncu (wartosci domyslne - stare wywolania dzialaja): `numer_niezgodny`
+  (bool) i `numer_z_dolkow` (int albo None) - numer podany recznie (`numer_zrodlo` = `podany`) inny niz WAZNY numer odczytany
+  z dolkow kodu plytki; taka plytka nie jest podswietlana przez ramke (wieczorem wynik "bez numeru", rano poza planem -
+  `pominiete.numer_niezgodny` w planie ramki P), skan i wynik zostaja.
+- Nowe rodzaje komunikatow (`StanAplikacji.komunikaty`, teksty w `statusy.KOMUNIKATY`, poziom `ostrzezenie`; okno pokazuje
+  je istniejaca droga - widzet `komunikat_<rodzaj>`, bez zmian w `ui/**`):
+  `plytka_nie_z_ramki` (id `plytka_nie_z_ramki:W` / `:P`), `plytka_inna_niz_skan` (`:W`), `plytka_bez_skanu` (`:P`),
+  `numer_niezgodny` (id `numer_niezgodny:<skan>`, trwaly, takze w `Plytka.komunikaty`) oraz - runda 2 po recenzji PR #55 -
+  `dwa_skany_numeru` (`:W`: wynik skanu wstrzymany na ramce wieczornej, dopoki otwarte jest pytanie `ponowny_skan` wobec
+  innego aktywnego skanu o tym samym numerze plytki, a na ramce lezy plytka o tym numerze) i `plytka_czeka_na_numer`
+  (`:P`: zamiast `plytka_bez_skanu`, gdy piec ma skan bez numeru plytki). Komunikaty o plytce lezacej na ramce znikaja
+  same, gdy przyczyna mija; niczego nie blokuja.
+- Bez nowych polecen, pytan i pol stanu poza wymienionymi; okno nie sprawdza numeru wersji kontraktu. Opis zachowania:
+  `opisy_modulow/indicate.md` (sekcja o plytkach okraglych ramkowych), testy `testy/test_okragle_ramka.py`.

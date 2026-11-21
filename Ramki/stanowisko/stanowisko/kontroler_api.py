@@ -82,7 +82,8 @@ LOG = logging.getLogger(__name__)
 
 # 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7); 4: ramki i Excel (E3-A12); 5: pula per praca (E3-A5i) - addytywnie;
 # 6: plytki okragle ramkowe (E3-O2) - addytywnie: ``Plytka.numer_niezgodny`` / ``numer_z_dolkow``, komunikaty ``plytka_nie_z_ramki``,
-# ``plytka_inna_niz_skan``, ``plytka_bez_skanu``, ``numer_niezgodny``
+# ``plytka_inna_niz_skan``, ``plytka_bez_skanu``, ``numer_niezgodny``; runda 2 (recenzja PR #55): komunikaty ``dwa_skany_numeru``
+# (ramka W wstrzymana do odpowiedzi na pytanie o ponowny skan) i ``plytka_czeka_na_numer`` (ramka P, skan bez numeru)
 WERSJA_KONTRAKTU = 6
 TRYB_WIECZOR = SE.TRYB_WIECZOR
 TRYB_RANO = SE.TRYB_RANO
@@ -1273,7 +1274,9 @@ class KontrolerSesji(Kontroler):
         self._w_ostatni = None  # ramka W: znacznik ostatniego skanu
         self._w_do_wyslania: tuple | None = None  # (znacznik, skan_id) - wynik do wyslania po zbudowaniu stanu
         self._w_aktywny: tuple | None = None  # (znacznik, skan_id, obraz wyslany) wyniku na ramce W
-        self._w_wynik: tuple | None = None  # E3-O2: (skan_id, numer plytki, odpowiedz ``KlientRamki.wynik``) ostatniego wyniku na ramce W
+        # E3-O2: (skan_id, numer plytki, odpowiedz ``KlientRamki.wynik``, numer wstrzymany) ostatniego wyniku na ramce W; "numer
+        # wstrzymany" (runda 2, B1) = numer plytki skanu, ktorego wynik poszedl "bez numeru", bo czeka na odpowiedz o ponowny skan
+        self._w_wynik: tuple | None = None
         self._plytki_na_ramkach: dict = {}  # E3-O2: id komunikatu o plytce na ramce -> stan, dla ktorego go pokazano
         self._przyczyny_bledu: dict = {}  # E3-O2: skan_id -> przyczyna bledu analizy dla technika albo None (z dziennika)
         self._dolki_skanow: dict = {}  # E3-O2: skan_id -> ``numer_z_dolkow`` z pliku wyniku skanu (albo None)
@@ -2167,6 +2170,11 @@ class KontrolerSesji(Kontroler):
             ``plytka_bez_skanu`` (ramka P) - numer, ktorego nie ma w planie pieca wyslanym do ramki (plytka niezeskanowana albo
             zeskanowana pod innym numerem); nie w czasie analizy / skanowania (wynik w drodze) i nie dla plytki, ktora ma juz
             komunikat ``numer_niezgodny`` albo czeka na potwierdzenie ponownego skanu (dwa skany z jednym numerem).
+        Runda 2 (recenzja PR #55):
+        B1 ``dwa_skany_numeru`` (ramka W) - na ramce lezy plytka o numerze skanu, ktorego wynik jest WSTRZYMANY do odpowiedzi na
+            pytanie o ponowny skan (``_czeka_na_ponowny_skan``); inna plytka na ramce w tym czasie = komunikat (b) jak dotad;
+        P1 ``plytka_czeka_na_numer`` (ramka P) - zamiast ``plytka_bez_skanu``, gdy piec ma skan bez numeru plytki (zwykla droga
+            kwadratow): plytka najpewniej BYLA skanowana i czeka na numer - rada "podaj numer w pytaniu", nie "zeskanuj".
         Niczego nie blokuje i nie zmienia skanow. Komunikaty znikaja same, gdy przyczyna mija. Zwraca True, gdy lista komunikatow
         sie zmienila (stan odswieza wolajacy)."""
         if self.ramki is None or self._zamkniety or self._stan_ramek is None:
@@ -2186,11 +2194,17 @@ class KontrolerSesji(Kontroler):
             wlasna = lezy if lezy is not None and not obca else None
             if r.rola == "W":
                 w, aktywny = self._w_wynik, self._w_aktywny
-                ze_skanu = w[1] if (w is not None and aktywny is not None and aktywny[1] == w[0] and w[2] == "wyslany"
-                                    and time.monotonic() >= self._test_led_do) else None
+                biezacy = w is not None and aktywny is not None and aktywny[1] == w[0] and time.monotonic() >= self._test_led_do
+                ze_skanu = w[1] if biezacy and w[2] == "wyslany" else None
+                # runda 2 (B1): wynik wstrzymany do odpowiedzi na pytanie o ponowny skan - numer plytki tego skanu
+                wstrzymany = w[3] if biezacy and w[2] == "bez_numeru" else None
+                if ze_skanu is None:
+                    ze_skanu = wstrzymany  # inna plytka na ramce niz zeskanowana: komunikat (b) jak dotad
                 inna = wlasna is not None and ze_skanu is not None and wlasna != ze_skanu
                 zmiana |= self._komunikat_plytki_na_ramce("plytka_inna_niz_skan", r.rola, (wlasna, w[0]) if inna else None,
                                                           na_ramce=wlasna, ze_skanu=ze_skanu)
+                dwa = wlasna is not None and wstrzymany is not None and wlasna == wstrzymany
+                zmiana |= self._komunikat_plytki_na_ramce("dwa_skany_numeru", r.rola, (wlasna, w[0]) if dwa else None, numer=wstrzymany)
             else:
                 plan = self._plan_p_dane if self._plan_p is not None and time.monotonic() >= self._test_led_do else None
                 brak = wlasna is not None and plan is not None and str(wlasna) not in (plan.get("plytki") or {})
@@ -2198,9 +2212,17 @@ class KontrolerSesji(Kontroler):
                              or any(p.numer_niezgodny and p.numer == wlasna for p in (rano.plytki if rano is not None else ()))):
                     brak = False
                 w_planie = sorted(int(n) for n in (plan.get("plytki") or {})) if plan is not None else []
-                zmiana |= self._komunikat_plytki_na_ramce(
-                    "plytka_bez_skanu", r.rola, (wlasna, plan.get("plan_id"), tuple(w_planie)) if brak else None, na_ramce=wlasna,
-                    w_planie=ST.W_PLANIE_PLYTKI.format(plytki=", ".join(map(str, w_planie))) if w_planie else ST.W_PLANIE_BRAK)
+                klucz = (wlasna, plan.get("plan_id"), tuple(w_planie)) if brak else None
+                # runda 2 (P1): piec ma skan BEZ numeru plytki - plytka na ramce to najpewniej plytka z tego skanu; rada "zeskanuj"
+                # albo "Zmien numer" bylaby falszywa (ponowny skan = zdublowany skan), wiec osobny komunikat: podaj numer w pytaniu
+                # runda 3 (D7): licza sie tylko skany bez numeru, ktore MOGA dostac numer tej plytki (nie np. okragla testowa n9)
+                bez = set((plan.get("pominiete") or {}).get("bez_numeru") or ()) if brak else set()
+                ile_bez = sum(1 for p in (rano.plytki if rano is not None else ()) if p.skan_id in bez and wlasna in self._uklad(p.uklad)[1])
+                bez_numeru = ile_bez > 0
+                pola = {"na_ramce": wlasna, "jest_skan": ST.JEST_SKAN_BEZ_NUMERU[ile_bez > 1],
+                        "w_planie": ST.W_PLANIE_PLYTKI.format(plytki=", ".join(map(str, w_planie))) if w_planie else ST.W_PLANIE_BRAK}
+                zmiana |= self._komunikat_plytki_na_ramce("plytka_bez_skanu", r.rola, None if bez_numeru else klucz, **pola)
+                zmiana |= self._komunikat_plytki_na_ramce("plytka_czeka_na_numer", r.rola, klucz if bez_numeru else None, **pola)
         return zmiana
 
     def _przetworz_ramki(self) -> int:
@@ -2677,12 +2699,38 @@ class KontrolerSesji(Kontroler):
         # E3-O2 (decyzja 5): numer podany recznie inny niz wazny numer z dolkow - ramka ciemna jak dla skanu bez numeru (komunikat
         # ``numer_niezgodny`` przy plytce); po poprawieniu numeru obraz sie zmienia i wynik idzie do ramki
         numer = None if plytka.numer_niezgodny else plytka.numer
+        # runda 2 (recenzja PR #55, B1): skan ma OTWARTE pytanie "Ponowny skan tej samej plytki?" wobec innego aktywnego skanu
+        # o tym samym numerze - program nie wie jeszcze, czy to ta sama plytka. Ramka W rozpoznaje plytke tylko po numerze, wiec
+        # plytka z poprzedniego skanu lezaca na ramce dostalaby wynik NOWEGO skanu. Do odpowiedzi wynik idzie "bez numeru"
+        # (ramka ciemna, jak rano dla zdublowanych plytek) + komunikat ``dwa_skany_numeru``; po odpowiedzi obraz sie zmienia
+        wstrzymany = plytka.numer if numer is not None and self._czeka_na_ponowny_skan(stan, plytka) else None
+        if wstrzymany is not None:
+            numer = None
         obraz = (numer, plytka.uklad, tuple(sorted(kolory.items())))
         if obraz == wyslane:
+            # runda 3 (recenzja rundy 2, P4): obraz dla ramki bez zmian (numer None przed i po), a numer wstrzymany juz inny - np.
+            # "Zmien numer" przy otwartym pytaniu; bez tego komunikat ``dwa_skany_numeru`` zostawal na ekranie bez pytania
+            if self._w_wynik is not None and self._w_wynik[0] == skan_id and self._w_wynik[3] != wstrzymany:
+                self._w_wynik = self._w_wynik[:3] + (wstrzymany,)
             return
         wynik = k.wynik(numer, plytka.uklad, kolory, znacznik)
         self._w_aktywny = None if wynik == "niewazny" else (znacznik, skan_id, obraz)
-        self._w_wynik = (skan_id, numer, wynik)
+        self._w_wynik = (skan_id, numer, wynik, wstrzymany)
+
+    @staticmethod
+    def _czeka_na_ponowny_skan(stan: StanAplikacji, plytka: Plytka) -> bool:
+        """Runda 2 (B1): ``plytka`` ma otwarte (bez odpowiedzi; takze zwiniete) pytanie ``ponowny_skan`` wobec innego aktywnego
+        skanu o tym samym numerze plytki. Poprzedni skan spoza stanu doby (ponowny skan przez granice 6:00) liczy sie tak samo -
+        wariant bezpieczniejszy: ramka czeka na odpowiedz."""
+        if plytka.numer is None:
+            return False
+        for q in plytka.pytania:
+            if q.rodzaj != "ponowny_skan" or q.poprzedni_id is None or q.poprzedni_id == plytka.skan_id:
+                continue
+            poprzednia = stan.plytka(q.poprzedni_id)
+            if poprzednia is None or (poprzednia.aktywna and poprzednia.numer == plytka.numer):
+                return True
+        return False
 
     def _po_odswiezeniu(self, stan: StanAplikacji) -> None:
         """Po kazdym pelnym zbudowaniu stanu: plan ramki porannej i wynik na ramce wieczornej (bledy - tylko log)."""
@@ -3270,6 +3318,8 @@ class KontrolerSesji(Kontroler):
                 for klucz, wzor in WZORY_PRZYCZYN_BLEDU:
                     m = wzor.search(opis)
                     if m:
+                        if klucz == "znaczniki" and m.group("n") == "0":  # runda 3: 0 z 3 - takze stolik / podloze w skanie
+                            klucz = "znaczniki_0"
                         przyczyna = ST.PRZYCZYNY_BLEDU_ANALIZY[klucz].format(**m.groupdict())
                         break
             if len(self._przyczyny_bledu) > 500:  # opis bledu skanu sie nie zmienia; pamiec nie rosnie bez konca
