@@ -1030,8 +1030,13 @@ nieprzeszukana trescia" w historii: podaj liczby; ZIP wydania nie zawiera danych
 **Pulapki:** nie zapisywac do pliku niczego poza wynikiem skryptu (nie robic `dir` katalogow zlecen do logu);
 `--nazwy-z` wskazuje katalog NADRZEDNY folderow zlecen; nazwy krotsze niz 4 znaki sa pomijane i liczone (liczba w
 pierwszym wierszu - gdy > 0, opisz); skrypt nie rozroznia wielkosci liter (takze polskich) ani znakow diakrytycznych
-(nazwa zapisana bez ogonkow tez jest trafieniem), szuka w UTF-8, cp1250, UTF-16 LE i `\uXXXX`; spacja nazwy pasuje
-takze do `_` i `%20`. Nie szuka: UTF-16 BE, wnetrza plikow spakowanych, tresci plikow binarnych w historii git.
+(nazwa zapisana bez ogonkow tez jest trafieniem), szuka w UTF-8, cp1250, UTF-16 LE i `\uXXXX`; spacja, `_` i `-`
+nazwy pasuja takze do siebie nawzajem oraz do `+` i `%20` (poprawka po uwadze 45 recenzji rundy 2; proba na nazwie
+sztucznej: cala nazwa znaleziona w 7 z 8 wariantow separatora, przed poprawka 2 z 8; nieznajdowany wariant: dwie
+spacje zamiast jednej - wtedy zglaszane sa tylko czlony "do wyjasnienia"). Nie szuka: UTF-16 BE, cp852, iso-8859-2,
+postaci rozlozonej NFD (litera + osobny znak diakrytyczny), `%XX` (poza `%20`), `\xNN`, `\uXXXX` zapisanego
+podwojnie (JSON w JSON: `\\u0142`), wnetrza plikow spakowanych, tresci plikow binarnych w historii git - nazwa w
+takiej postaci moze dac tylko trafienia czlonow ASCII ("do wyjasnienia"), dlatego kazda grupe czlonow trzeba opisac.
 Czlony nazw: 1-2 znakowe i same numery nie sa ani szukane, ani maskowane; 3-4 znakowe z litera sa tylko maskowane
 w wypisywanych sciezkach (nie liczone - `--min-czlon 3` wlacza ich liczenie); pliki sztucznego drzewa A5i maja nazwy
 fikcyjne - trafienia ich czlonow w repo to zwykle slowa. `--dozwolone` / `--wyklucz` to podciag sciezki (wielkosc
