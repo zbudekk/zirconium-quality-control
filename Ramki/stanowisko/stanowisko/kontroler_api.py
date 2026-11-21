@@ -80,7 +80,10 @@ from . import statusy as ST
 
 LOG = logging.getLogger(__name__)
 
-WERSJA_KONTRAKTU = 5  # 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7); 4: ramki i Excel (E3-A12); 5: pula per praca (E3-A5i) - addytywnie
+# 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7); 4: ramki i Excel (E3-A12); 5: pula per praca (E3-A5i) - addytywnie;
+# 6: plytki okragle ramkowe (E3-O2) - addytywnie: ``Plytka.numer_niezgodny`` / ``numer_z_dolkow``, komunikaty ``plytka_nie_z_ramki``,
+# ``plytka_inna_niz_skan``, ``plytka_bez_skanu``, ``numer_niezgodny``
+WERSJA_KONTRAKTU = 6
 TRYB_WIECZOR = SE.TRYB_WIECZOR
 TRYB_RANO = SE.TRYB_RANO
 TRYBY = (TRYB_WIECZOR, TRYB_RANO)
@@ -410,13 +413,13 @@ class Plytka:
     dopuszczona: bool = False
     pominieta: bool = False  # wersja 3 (rano, A6 runda 2): skan pominiety przez osobe - nie liczy sie i nie blokuje
     na_ramce: bool = True  # wersja 3 (rano): plytka idzie do planu ramki porannej (kwadratowa albo okragla ramkowa poranna, numer 4-6)
-    # E3-O2: numer podany recznie ROZNY od waznego numeru odczytanego z dolkow kodu (``numer_z_dolkow``) - komunikat
-    # ``numer_niezgodny``, ramka tej plytki nie podswietla (wieczorem ciemna, rano plytka poza planem); skan i wynik zostaja
-    numer_niezgodny: bool = False
-    numer_z_dolkow: int | None = None
     dozwolone: tuple = ()
     komunikaty: tuple = ()
     pytania: tuple = ()
+    # wersja 6 (E3-O2): numer podany recznie ROZNY od waznego numeru odczytanego z dolkow kodu (``numer_z_dolkow``) - komunikat
+    # ``numer_niezgodny``, ramka tej plytki nie podswietla (wieczorem ciemna, rano plytka poza planem); skan i wynik zostaja
+    numer_niezgodny: bool = False
+    numer_z_dolkow: int | None = None
 
     def gniazdo(self, nr: int) -> Gniazdo | None:
         return next((g for g in self.gniazda if g.nr == nr), None)
