@@ -152,7 +152,7 @@ def test_gniazda_bez_plytki_i_zly_uklad(ramka):
     assert "PRZESUNIECIE" in linie[-1]
 
 
-def test_dwa_uruchomienia_pod_rzad_nie_koliduja(ramka):
+def test_dwa_uruchomienia_pod_rzad_nie_koliduja(ramka, tmp_path):
     """Proba na instalacji (21.11): drugie uruchomienie w tej samej sekundzie dawalo 409 konflikt_wersji (ten sam plan_id)."""
     rola, program, atrapa, r = ramka
     uklad, nr = ("wieczorna", 3) if rola == "W" else ("poranna", 6)
@@ -160,8 +160,9 @@ def test_dwa_uruchomienia_pod_rzad_nie_koliduja(ramka):
     assert _czekaj(lambda: r.stan()["plytka"] == nr and r.stan()["plytka_pewna"])
     for _ in range(3):
         linie = []
-        assert RP.polecenie_gniazda(r, uklad, None, MODELE, False, (0, 0), None, linie.append, lambda _t: "k") == 0
+        assert RP.polecenie_gniazda(r, uklad, None, MODELE, True, (0, 0), tmp_path, linie.append, lambda _t: "widze") == 0
         assert not any("ODMOWILA" in x for x in linie)
+    assert len(list(tmp_path.glob("gniazda_*.csv"))) == 3  # zapis w tej samej sekundzie nie nadpisuje poprzedniego pliku
 
 
 def test_klawiatura_ramki_porannej_piec_rodzajow_zdarzen(ramka, tmp_path):

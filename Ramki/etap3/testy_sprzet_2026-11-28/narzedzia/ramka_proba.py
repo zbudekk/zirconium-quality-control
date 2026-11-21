@@ -114,7 +114,10 @@ def _zapisz_csv(plik: Path | None, naglowek: list, wiersze: list, przedrostek: s
     if plik is None:
         return None
     if plik.is_dir():
-        plik = plik / f"{przedrostek}_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+        podstawa, nr = f"{przedrostek}_{time.strftime('%Y%m%d_%H%M%S')}", 1
+        while (plik / (podstawa + ("" if nr == 1 else f"_{nr}") + ".csv")).exists():  # dwa zapisy w tej samej sekundzie
+            nr += 1
+        plik = plik / (podstawa + ("" if nr == 1 else f"_{nr}") + ".csv")
     plik.parent.mkdir(parents=True, exist_ok=True)
     with open(plik, "w", encoding="ascii", errors="replace", newline="") as f:
         w = csv.writer(f, delimiter=";", lineterminator="\n")
