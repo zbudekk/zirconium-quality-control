@@ -414,10 +414,10 @@ def test_opis_ukladu_odroznia_okragla_ramkowa_od_testowej():
         assert "ramk" in ramkowa and "test" not in ramkowa and "kwadratowa" not in ramkowa
         assert "test" in testowa and "ramk" not in testowa.replace("poza ramk", "") and "kwadratowa" not in testowa
         for opis in (ramkowa, testowa):
-            assert f"płytka {typ}" in opis and "okrągła" in opis and "R59" in opis
+            assert f"p\u0142ytka {typ}" in opis and "okr\u0105g\u0142a" in opis and "R59" in opis
         assert "test" in PO.opis_ukladu(f"okragla_{typ}_r54") and "R54" in PO.opis_ukladu(f"okragla_{typ}_r54")
-        assert PO.opis_ukladu(typ) == f"płytka {typ}, kwadratowa, nowy układ gniazd (R59)"  # kwadrat: tekst bez zmian
-        assert PO.opis_ukladu(f"{typ}_r54") == f"płytka {typ}, kwadratowa, stary układ gniazd (R54)"
+        assert PO.opis_ukladu(typ) == f"p\u0142ytka {typ}, kwadratowa, nowy uk\u0142ad gniazd (R59)"  # kwadrat: tekst bez zmian
+        assert PO.opis_ukladu(f"{typ}_r54") == f"p\u0142ytka {typ}, kwadratowa, stary uk\u0142ad gniazd (R54)"
     opisy = {n: PO.opis_ukladu(n) for n in UST.UKLADY_WBUDOWANE}
     assert len(opisy) == 10 and len(set(opisy.values())) == 10  # 10 ukladow = 10 roznych opisow
     for nazwa in UST.UKLADY_WBUDOWANE:  # z wczytanym ukladem i bez niego: ten sam tekst
@@ -438,8 +438,8 @@ def test_opis_ukladu_w_oknie_proby_miesci_sie_przy_1536x864():
         okno.show()
         najdluzszy = 0
         for nazwa in UST.UKLADY_WBUDOWANE:
-            okno.etykieta_plytki.setText(f"rozpoznano: {nazwa} — {PO.opis_ukladu(nazwa, uklad(nazwa))}; nr 1; współczynnik 1.220"
-                                         + " — NIEPEWNE: wpisz numer płytki albo wybierz układ z listy")
+            okno.etykieta_plytki.setText(f"rozpoznano: {nazwa} \u2014 {PO.opis_ukladu(nazwa, uklad(nazwa))}; nr 1; wsp\u00f3\u0142czynnik 1.220"
+                                         + " \u2014 NIEPEWNE: wpisz numer p\u0142ytki albo wybierz uk\u0142ad z listy")
             QApplication.processEvents()
             potrzebne = okno.minimumSizeHint()
             najdluzszy = max(najdluzszy, potrzebne.width())
