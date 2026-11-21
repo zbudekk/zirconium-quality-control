@@ -5,8 +5,9 @@ Dla ciekawych i dla wykonawcy etapu S2b. Wlasciciel przy sprzecie tego pliku NIE
 
 ## A. Program ramki na Raspberry Pi - najkrotsza droga
 
-Pelna instrukcja (12 krokow, z arkuszem): `C:\Stanowisko\wersje\<wersja>\program\instrukcje\ramka_raspberry_pi.md`
-[DO POTWIERDZENIA NA 0.3.3]. Calosc: [NIE SPRAWDZONE BEZ SPRZETU] - zaden krok nie byl wykonany na prawdziwym
+Pelna instrukcja (12 krokow, z arkuszem): `C:\Stanowisko\wersje\<wersja>\program\instrukcje\ramka_raspberry_pi.md`;
+program ramki: katalog `C:\Stanowisko\wersje\<wersja>\program\ramka` (18 plikow, w tym 4 w `rpi`) - oba sa
+w instalacji probnej. Calosc: [NIE SPRAWDZONE BEZ SPRZETU] - zaden krok nie byl wykonany na prawdziwym
 Raspberry Pi. Potrzebny internet i kilka godzin. Karty SD zastanej w ramce nie nadpisuj (uzyj drugiej karty).
 
 1. Karta SD z systemem (krok 1 instrukcji), nazwa urzadzenia `ramka-w` albo `ramka-p`, siec Wi-Fi pracowni.
@@ -93,11 +94,12 @@ znacznikow, 6 scianka boczna i rowek pokrywki - oraz blok "DO ARKUSZA (przepisz)
 `narzedzia\dzien_skanera.cmd`: tylko awaryjnie, gdy w `C:\Stanowisko` nie ma `Dzien_skanera.cmd` (stara paczka
 0.3.1).
 
-Proba okna "Dzien skanera" dzien wczesniej, bez klikania [DO POTWIERDZENIA NA 0.3.3]:
-`C:\Stanowisko\Dzien_skanera.cmd --nowa --zamknij-po 5` - ma wypisac wiersz `DZIEN SKANERA: sesja
+Proba okna "Dzien skanera" dzien wczesniej, bez klikania (czarne okno: Windows + R, `cmd`):
+`C:\Stanowisko\Dzien_skanera.cmd --nowa --zamknij-po 5` - wypisuje wiersz `DZIEN SKANERA: sesja
 C:\Stanowisko\dane\dzien_skanera\...; ustawienia C:\Stanowisko\ustawienia.toml; foldery obserwowane: ...`.
-Pomiar szczegolowy jednego skanu [DO POTWIERDZENIA NA 0.3.3]:
-`C:\Stanowisko\Polecenie.cmd narzedzia\pomiar_skanu\pomiar_skanu.py <skan.stl>`.
+Sprawdzenie paczki sesji: `C:\Stanowisko\Dzien_skanera.cmd --sprawdz <plik.zip>` (wiersz `SUMY: ... zgodnych`).
+Pomiar szczegolowy jednego skanu: `C:\Stanowisko\Polecenie.cmd narzedzia\pomiar_skanu\pomiar_skanu.py <skan.stl>`
+(kilka sekund; z opcja `--projekty <folder>` ok. 1 minuty); wynik: folder `<skan>_pomiar` obok pliku skanu.
 
 ## E. Stan sprawdzenia (21.11.2026; liczby i polecenia: raport `Ramki/stanowisko/raporty/E3-S2_2026-11-21.md`)
 
@@ -108,7 +110,11 @@ Pomiar szczegolowy jednego skanu [DO POTWIERDZENIA NA 0.3.3]:
   pole 90 mm - nierozpoznana (2 z 2).
 - Na kodzie galezi O2 i O4 (przed ich scaleniem): narzedzie `ramka` z kluczem - zly klucz odrzucony, dobry
   przyjety; ramka zna plytki okragle ramkowe (19 z 19 i 24 z 24 gniazd na ramce udawanej przez program).
-- Nie sprawdzone nigdzie: wszystko z listy zbiorczej dokumentu oraz kazde miejsce [DO POTWIERDZENIA NA 0.3.3]
-  (paczka 0.3.3 jeszcze nie istnieje) - lista z poleceniami sprawdzenia jest w raporcie, sekcja "S2b".
+- Na instalacji z paczki probnej (kod paczki 0.3.3 przed ostatnia runda recenzji; etap S2b-2, 21.11): dokument
+  przeszedl krok po kroku bez skanera i ramki - instalacja, samokontrola, okno "Dzien skanera", `pole_skanu.cmd`
+  i `ramka.cmd` przez `Polecenie.cmd`, kroki 2.7 i 3.8 w oknie programu z plikami skanow sztucznych i ramka
+  udawana przez program (z kluczem). Liczby: raport, sekcja "S2b-2".
+- Nie sprawdzone nigdzie: wszystko z listy zbiorczej dokumentu. Do potwierdzenia na ostatecznej paczce 0.3.3:
+  nazwa paczki i 2 teksty komunikatow (raport, sekcja "S2b-3").
 - Sprawa 4 laptopa (czy zapis na dysk zatrzymuje okno) - nie na ten weekend; wymaga plikow testowych spoza
   paczki.

@@ -136,10 +136,11 @@ Klikanie w programie skanera: wydrukowana sciaga. Tu tylko to, co dotyczy naszeg
 
 ### Krok 2.1 - okno "Dzien skanera" (5 minut, PRZED pierwszym skanem)
 
-Co zrobic: kliknij dwa razy `C:\Stanowisko\Dzien_skanera.cmd`. Kliknij "Dodaj folder..." i wskaz folder, do ktorego program skanera zapisze skany TESTOWE (P5, P9). Sa w nim zlecenia
-pacjentow: ustaw w programie skanera osobny folder zapisu na ten dzien, a gdy sie nie da - wskaz oknu
-tylko folder zlecenia TEST1, nigdy caly folder zlecen. Nie znasz folderu: "Nie wiem, gdzie skaner
-zapisuje - szukaj". Kliknij na probe "Zrzut ekranu (za 3 s)".
+Co zrobic: kliknij dwa razy `C:\Stanowisko\Dzien_skanera.cmd`. Kliknij "Dodaj folder..." i wskaz
+folder, do ktorego program skanera zapisze skany TESTOWE (P5, P9). Sa w nim zlecenia pacjentow: ustaw
+w programie skanera osobny folder zapisu na ten dzien, a gdy sie nie da - wskaz oknu tylko folder
+zlecenia TEST1, nigdy caly folder zlecen. Nie znasz folderu: "Nie wiem, gdzie skaner zapisuje - szukaj".
+Kliknij na probe "Zrzut ekranu (za 3 s)".
 Udalo sie, gdy: otwiera sie okno "Dzien skanera - krok po kroku", na gorze napis "Obserwuje:" i folder.
 Zanotuj: arkusz 2.1.
 Gdy sie nie uda: brak `Dzien_skanera.cmd` - uzyj `C:\Sprzet_testy\narzedzia\dzien_skanera.cmd` (pliku
@@ -161,7 +162,7 @@ Co zrobic: wyczysc stozki plytki. W oknie kamery programu skanera ustaw linie wy
 stolika i co najmniej 3 mm PONIZEJ wierzchu plytki. Zeskanuj pusta plytke (krok 5 okna), zmierz czas
 stoperem. Zapisz skan jako plik STL calej plytki, bez wygladzania. Wierzchu plytki nie obcinaj; stolik
 i podstawke odetnij (linia ciecia przed skanem albo plaszczyzna ciecia, "cutting plane", po skanie).
-Tu obowiazuje ten dokument, nie sciaga skanera (jej "najlepiej ponizej calej plytki" jest nieaktualne).
+Okno "Dzien skanera" mowi tylko o wierzchu plytki - o stoliku mowia ten dokument i sciaga skanera.
 Udalo sie, gdy: plik sam pojawia sie w oknie, a po kilkunastu sekundach jest zielona ocena "SKAN DOBRY:
 cala plytka, ...; obrys ... x ... x ... mm; ...". Zanotuj: arkusz 2.3.
 Gdy sie nie uda:
@@ -261,7 +262,8 @@ zlecenia pacjenta.
 
 Co zrobic: ostatni krok okna ("Na koniec: kopia CALEGO folderu zlecen programu skanera") zrob TYLKO, gdy
 w tym folderze sa wylacznie zlecenia testowe z tego dnia (P9). Inaczej kliknij "Nie udalo sie / pomijam,
-bo ..." i wpisz `dane pacjentow`. Potem "Zakoncz i spakuj".
+bo ..." i wpisz `dane pacjentow`. Potem "Zakoncz i spakuj". Okno zapyta "Brakuje wymaganych krokow ...
+Spakowac teraz?" - kliknij "Yes" / "Tak" (sam Enter znaczy NIE).
 Udalo sie, gdy: okno pisze "Sesja spakowana: ... plikow" i podaje plik ZIP w folderze
 `C:\Stanowisko\dane\dzien_skanera\<data_godzina>\paczka\` [DO POTWIERDZENIA NA 0.3.3]. Zanotuj: arkusz 2.6.
 Gdy sie nie uda (np. brak miejsca): niczego nie kasuj; skopiuj caly folder z data i godzina na pendrive.
@@ -375,7 +377,7 @@ Co zrobic: poloz na ramce pusta plytke. W `ramka.cmd` wybierz `4` (wszystkie gni
 wypisze rodzaje plytek, ktore zna ramka: sam Enter = plytka kwadratowa tej ramki. Dla plytki okraglej
 ramkowej przepisz z listy `okragla_ramkowa_wieczorna` albo `okragla_ramkowa_poranna`
 [DO POTWIERDZENIA NA 0.3.3]; gdy ich nie ma - sam Enter (gniazda sa w tych samych miejscach).
-Przesuniecia: dwa razy sam Enter. Popatrz z gory.
+Przesuniecia: dwa razy sam Enter. Popatrz z gory; na "Wpisz uwage ..." wpisz `ok` albo co jest zle.
 Udalo sie, gdy: kazdy otwor w dnie gniazda swieci, miedzy gniazdami jest ciemno.
 Zanotuj: arkusz 3.7 (osobno wkladka okragla).
 Gdy sie nie uda:
