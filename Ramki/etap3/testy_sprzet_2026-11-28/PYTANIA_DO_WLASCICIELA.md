@@ -6,9 +6,8 @@ Najpilniejsze: P3, P1, P6, P8, P9 - od nich zalezy, co przygotowac PRZED weekend
 **P1. 21.11 odpowiedziales: "Obie kwadratowe oraz jedna okragla" - nie wiemy, czy to ramki, czy plytki.
 Ile ramek przyszlo: jedna czy dwie? Jaki otwor ma wkladka ramki: kwadratowy czy okragly? Jedna ramka:
 wieczorna czy poranna?**
-Od tego zalezy: wieczorna = plytki 1-3; poranna = plytki 4-6 i dodatkowa proba klawiatury (krok 3.9).
-Wkladka okragla: plytka kwadratowa do niej nie wejdzie - bez plytki okraglej ramkowej z czesci 3 zostaja
-kroki 3.1-3.4.
+Od tego zalezy: wieczorna = plytki 1-3; poranna = plytki 4-6 i proba klawiatury (krok 3.9). Wkladka
+okragla: kwadratowa do niej nie wejdzie - bez plytki okraglej ramkowej z czesci 3 zostaja kroki 3.1-3.4.
 Odpowiedz: ......................................................................................
 
 **P2. 21.11: zdjecie pliku `ramka_plytka_okragla_wieczorna_n8_v2.stl` = plytka okragla nr 8 starego ukladu
@@ -45,8 +44,7 @@ Odpowiedz: .....................................................................
 
 **P8. Czy ramka ma ustawiony "klucz" (haslo ramki) i czy go znasz?** Klucz losuje skrypt, ktorym wgrywa
 sie program ramki; zna go osoba, ktora wgrywala. Dwie ramki musza miec TEN SAM klucz.
-Od tego zalezy: bez klucza (gdy ramka go wymaga) odpadaja kroki 3.4-3.9. Sam klucz przywiez na kartce -
-tutaj go NIE wpisuj.
+Od tego zalezy: bez klucza (gdy ramka go wymaga) odpadaja kroki 3.4-3.9; klucz przywiez na kartce, tu NIE wpisuj.
 Odpowiedz (znam / nie znam / ramka bez klucza / nie wiem): ........................................
 
 **P9. Czy w programie skanera sa juz zlecenia pacjentow? Gdzie mozna zalozyc osobny folder na skany
