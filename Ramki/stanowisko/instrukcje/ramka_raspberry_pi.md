@@ -53,6 +53,11 @@ Tych rzeczy instrukcja nie zgaduje. Sprawdz i zapisz:
 
 Potrzebne: karta microSD, czytnik kart w laptopie, internet na laptopie.
 
+**UWAGA - karta, ktora juz siedzi w ramce.** Jesli ramka przyszla z karta microSD w srodku (np. od wykonawcy ramki),
+NIE nadpisuj tej karty: zapis w punkcie 6 kasuje wszystko, co na niej jest, i nie da sie tego cofnac. Wyjmij ja, opisz
+i odloz, a ten krok zrob na NOWEJ karcie. (Mozna tez najpierw sprawdzic karte zastana: krok 2, a potem - po skopiowaniu
+programu z kroku 6 - `sudo bash sprawdz_ramke.sh` pokaze, czego na niej brakuje.)
+
 1. Na laptopie zainstaluj program "Raspberry Pi Imager" (ze strony raspberrypi.com) i uruchom go.
 2. Urzadzenie: wybierz swoj model Raspberry Pi (zapisz go w arkuszu).
 3. System: "Raspberry Pi OS (other)" -> "Raspberry Pi OS Lite (64-bit)". Opis programu ramki zaklada wersje
@@ -241,6 +246,10 @@ i na drugiej ramce zainstaluj tak (zamiast `KLUCZ` - odczytany ciag znakow, bez 
 sudo bash zainstaluj_ramke.sh --bez-uslugi --klucz KLUCZ
 ```
 
+Klucz wpisany w tym poleceniu zostaje w historii polecen tego konta na ramce (plik `~/.bash_history`) i przez chwile
+widac go na liscie procesow. Po instalacji wyczysc historie: `history -c && history -w`. Skrypty same klucza nigdzie
+nie wypisuja.
+
 Co skrypt robi: sprawdza Pythona, kopiuje program do `/opt/ramka/ramka`, zaklada `/etc/ramka/ramka.json` z pliku
 `ramka.json.wzor` (tylko gdy pliku jeszcze nie ma - istniejacego nie zmienia), sprawdza biblioteki i na koncu wypisuje
 tabele kontroli. Wiersze `BRAK` maja pod spodem strzalke `->` i to, co trzeba zrobic. Skrypt mozna uruchamiac wiele razy.
@@ -284,7 +293,7 @@ Program ramki dziala (krok 8 albo 11). Na laptopie:
 curl.exe -H "X-Ramka-Klucz: KLUCZ" http://ramka-w.local:8765/stan
 ```
 
-   Dobrze: wiersz tekstu zaczynajacy sie od `{"protokol": 1` z polami `"rola"`, `"program"`, `"plytka"`.
+   Dobrze: wiersz tekstu zaczynajacy sie od `{"protokol":1` (bez odstepow) z polami `"rola"`, `"program"`, `"plytka"`.
    To samo w przegladarce (`http://ramka-w.local:8765/stan`) pokaze blad 401 - przegladarka nie wysyla klucza;
    blad 401 tez oznacza, ze ramka dziala i jest widoczna w sieci.
 3. Uruchom `Samokontrola.cmd` w katalogu instalacji: wiersz `ramka_wieczorna` / `ramka_poranna` ma zaczynac sie od `OK`.
@@ -377,7 +386,7 @@ Nowsza wersja programu ramki (po aktualizacji programu "Stanowisko" na laptopie)
 `ramka`) i krok 11 (`zainstaluj_ramke.sh`). Plik `/etc/ramka/ramka.json` zostaje bez zmian. Przed kopiowaniem usun
 stara kopie z katalogu domowego na ramce: `rm -rf ~/ramka`.
 
-## Zmiana pliku konfiguracji
+## Zmiana pliku konfiguracji [NIE SPRAWDZONE BEZ SPRZETU]
 
 ```
 sudo nano /etc/ramka/ramka.json
@@ -395,7 +404,10 @@ ramka slucha tylko na nim, ale gdy siec przydzieli jej inny adres, program nie w
 urzadzeniami w sieci, ale polaczenie nie jest szyfrowane - ramki i laptop powinny pracowac w sieci stanowiska,
 nie w sieci dla gosci.
 
-## Typowe bledy
+## Typowe bledy [NIE SPRAWDZONE BEZ SPRZETU]
+
+Komunikaty i rady w tej tabeli tez nie byly sprawdzone na sprzecie (nazwy pozycji `raspi-config`, tresc bledow
+systemu) - gdy ekran pokazuje cos innego, zapisz to w arkuszu.
 
 | Co widzisz | Co to znaczy | Co zrobic |
 |---|---|---|

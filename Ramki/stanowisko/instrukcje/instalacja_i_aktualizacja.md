@@ -56,6 +56,14 @@ zobaczysz ostrzezenie (kod 8): ktora kopia bazy wroci (najnowsza sprawdzona), il
 `Wroc_do_poprzedniej.cmd /przywroc-kopie` (wraca kopia bazy sprzed aktualizacji; baza biezaca zostaje w `dane\kopie\`
 jako `..._odlozona_...`, nie jest kasowana). Brak zgody = zostajesz przy nowej wersji. W skryptach: `/tak` (bez pytania).
 
+Powrot zmienia tylko wersje programu - skrypty w `C:\Stanowisko` zostaja takie, jakie zapisala ostatnia instalacja.
+Po powrocie do wersji 0.3.1 (ktora skryptu `Dzien_skanera.cmd` nie miala) ten skrypt dalej lezy w katalogu i dziala:
+otwiera okno "Dzien skanera" wersji 0.3.1, a sesje zapisuje - tak jak w nowej wersji - do `C:\Stanowisko\dane\dzien_skanera\`
+(nie do katalogu wersji). Dwie roznice w 0.3.1: proba `--zamknij-po` konczy sie kodem 2 i wierszem po angielsku
+`error: unrecognized arguments: --zamknij-po ...` (wersja 0.3.1 nie zna tej opcji - to nie awaria), a przycisk "Pomiar
+szczegolowy" i `Polecenie.cmd narzedzia\pomiar_skanu\...` nie dzialaja (bledy wersji 0.3.1, poprawione w nastepnej).
+To samo po ponownym uruchomieniu `zainstaluj.cmd` z paczki 0.3.1 na katalogu z nowsza wersja: skrypt zostaje.
+
 ## 5. Stare wersje
 
 Nie sa kasowane same (kazda to ok. 1,4 GB w `wersje\`); kopie bazy tez nie. Lista: `Wersje.cmd`. Usuniecie:
@@ -87,10 +95,22 @@ Wyjatek: `UWAGA: wersja biezaca X jest niekompletna` (okno zamkniete w trakcie n
 
 - **Okno "Dzien skanera - krok po kroku":** `C:\Stanowisko\Dzien_skanera.cmd` (dwuklik). Okno czyta
   `C:\Stanowisko\ustawienia.toml` (obserwuje folder z wiersza `folder_eksportu_skanera`) i zapisuje sesje do
-  `C:\Stanowisko\dane\dzien_skanera\<data_godzina>\`. Pliki ZIP do wyslania leza w podfolderze `paczka\` tej sesji.
+  `C:\Stanowisko\dane\dzien_skanera\<data_godzina>\` (skrypt podaje ten katalog oknu wprost, takze po powrocie do
+  wersji 0.3.1 - punkt 4). Pliki ZIP do wyslania leza w podfolderze `paczka\` tej sesji.
   Aktualizacja programu i usuwanie starych wersji tych sesji nie ruszaja.
   Proba bez klikania: `Dzien_skanera.cmd --nowa --zamknij-po 5` (okno otwiera sie i samo zamyka po 5 sekundach, kod 0;
-  zostaje pusta sesja). Sprawdzenie paczki: `Dzien_skanera.cmd --sprawdz <plik zip albo folder sesji>`.
+  opcja dziala od wersji nastepnej po 0.3.1). Na ekranie ma byc wiersz `DZIEN SKANERA: sesja C:\Stanowisko\dane\dzien_skanera\...;
+  ustawienia C:\Stanowisko\ustawienia.toml; foldery obserwowane: <folder skanera>`. Wiersz `UWAGA: ustawienia: ...` pod
+  spodem (albo `ustawienia BRAK`, albo `ustawienia ...ustawienia.przyklad.toml`) znaczy: okno NIE pracuje na Twoim pliku
+  ustawien - pliku nie ma albo ma blad (np. zapisany jako "UTF-8 z BOM"). Popraw plik i powtorz probe; w oknie ten sam
+  powod stoi w dzienniku okna (wiersz "Plik ustawien ma blad ..." albo "Nie wczytano ustawien ...").
+  Po probie zostaje pusta, niedokonczona sesja: przy nastepnym uruchomieniu okno zapyta "Znaleziono niedokonczona sesje
+  ... (0 plikow). Wznowic ja?" - odpowiedz Tak albo Nie, obie odpowiedzi sa dobre (Tak = praca w tej pustej sesji,
+  Nie = nowa sesja).
+  Sprawdzenie paczki: `Dzien_skanera.cmd --sprawdz <plik zip albo folder sesji>`.
+  Komunikat `BLAD: katalog sesji ... lezy w katalogu wersji programu` (okno sie nie otwiera, kod 1) znaczy: ktos wskazal
+  katalog sesji wewnatrz `C:\Stanowisko\wersje\` (opcja `--dane` albo - przy uruchomieniu przez `Polecenie.cmd -m
+  stanowisko.dzien_skanera` - wiersz `baza` w `ustawienia.toml` bez pelnej sciezki). Uruchom `Dzien_skanera.cmd` bez `--dane`.
   Pliku `uruchom_dzien_skanera.bat` w instalacji nie ma (jest tylko w kopii roboczej programu).
 - **Python biezacej wersji dla narzedzi:** `C:\Stanowisko\Polecenie.cmd <argumenty>`, np. pomiar szczegolowy skanu bez okna:
   `Polecenie.cmd narzedzia\pomiar_skanu\pomiar_skanu.py <plik skanu> --wyj <katalog na wynik>` (zwykle 2-6 minut;

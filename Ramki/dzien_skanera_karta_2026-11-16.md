@@ -14,7 +14,8 @@ Klikanie w programie skanera: `sciaga_skaner_DentalScan_2026-11-16.md`. (Urucham
 - [ ] Narzedzie do ukruszen, cienki patyczek (potracenie pracy), telefon (zdjecia ukruszen).
 - [ ] **Laptop z programem stanowiska:** `C:\Stanowisko\Dzien_skanera.cmd` otwiera okno (sprawdzic dzien wczesniej,
       kliknac "Zrzut ekranu" na probe i zamknac). Folder skanera okno bierze z `C:\Stanowisko\ustawienia.toml`
-      (wiersz `folder_eksportu_skanera`). Zasilacz.
+      (wiersz `folder_eksportu_skanera`). Zasilacz. Po takiej probie okno w dniu testu zapyta o niedokonczona
+      sesje (0 plikow) - odpowiedz "Tak" albo "Nie", obie odpowiedzi sa dobre.
 - [ ] **Wolne miejsce na dysku laptopa:** co najmniej 30 GB (program skanera chce ponad 20 GB na zlecenia; sesja
       z kopia folderu i archiwum to kilka GB). Okno pokazuje wolne miejsce u gory.
 - [ ] **Pendrive albo dysk** co najmniej 16 GB, format exFAT albo NTFS.
