@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 STANOWISKO = Path(__file__).resolve().parents[3] / "stanowisko"
-for _p in (STANOWISKO, Path(__file__).resolve().parent):
+for _p in (STANOWISKO, STANOWISKO / "narzedzia", Path(__file__).resolve().parent):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
@@ -341,3 +341,24 @@ def test_blok_do_arkusza_ma_stale_etykiety_takze_w_json(ust, tmp_path):
     w, _, _ = PS.zmierz(_skan(ust, tmp_path, "okragla_wieczorna", 8, 80.0, 24), ust)
     assert list(w["do_arkusza"]) == etykiety and w["do_arkusza"]["program mowi"].startswith("PLYTKA NIE ROZPOZNANA")
     assert "DO ARKUSZA (przepisz):" in PS.raport(w)
+
+
+def test_ograniczenie_o1_plytka_okragla_wzieta_za_kwadrat_dostaje_uwage(ust, tmp_path):
+    """Znane ograniczenie programu (paczka O1, opisy_modulow/plate.md): plytka okragla bez czytelnych dolkow numeru i bez
+    scianki bocznej w skanie jest brana za kwadratowa, 'pewnie'. Narzedzie programu nie poprawia - dopisuje UWAGE, gdy
+    program mowi 'kwadratowa', a dane skanu sa kolem o srednicy plytki okraglej. Skan: konstrukcja jak w recenzji PR #51."""
+    import auto_uklad_r58 as AR
+
+    skan, uk, rng = _pelny(ust, "okragla_ramkowa_wieczorna", 1, 41)
+    skan = AR.usun_scianke_boczna(AR.zaslon_dolki(skan, uk, ["A", "B", "C", "D"]), uk)
+    w, _, _ = PS.zmierz(_zapisz(skan, rng, tmp_path / "okragla_bez_dolkow_i_scianki.stl"), ust)
+    tekst = "\n".join(PS.raport(w))
+    assert w["rozpoznano"] and w["scianka_boczna"]["widoczna"] is False and "scianka boczna: NIE widac" in tekst
+    if w["ksztalt"] == "kwadratowa":   # dzisiejsze zachowanie programu (main 8001b55); po zmianie reguly ksztaltu galaz 'else'
+        assert w["moze_okragla_wzieta_za_kwadrat"] is True and "UWAGA: program mowi 'kwadratowa'" in tekst
+        assert "UWAGA: dane sa kolem jak plytka OKRAGLA" in w["do_arkusza"]["program mowi"]
+    else:
+        assert w["moze_okragla_wzieta_za_kwadrat"] is False and "UWAGA: program mowi" not in tekst
+    w, _, _ = PS.zmierz(_skan(ust, tmp_path, "wieczorna", 1, 95.0, 42), ust)   # prawdziwy kwadrat w polu 95 mm: bez uwagi
+    assert w["uklad"] == "wieczorna" and w["moze_okragla_wzieta_za_kwadrat"] is False
+    assert "UWAGA: program mowi" not in "\n".join(PS.raport(w))

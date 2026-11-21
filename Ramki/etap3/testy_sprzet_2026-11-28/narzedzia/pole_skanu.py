@@ -44,6 +44,7 @@ MIN_KIERUNKOW_POLA = 12      # U1: pole kolowe liczone tylko, gdy dane koncza si
 KONIEC_WEWNATRZ_MM = 1.5     # U1: koniec danych wewnatrz plytki = co najmniej tyle od obrysu (tam ucina pole skanera, nie brzeg plytki)
 RESZTA_POLA_MM = 1.5         # U1: koniec danych "lezy na okregu pola", gdy jest od niego nie dalej niz tyle
 UDZIAL_NA_OKREGU = 0.85      # U1: pole kolowe, gdy co najmniej taka czesc koncow danych lezy na dopasowanym okregu
+MIN_KIERUNKOW_SCIANKI = 6    # scianka boczna "widoczna", gdy sa jej dane w co najmniej tylu z 72 kierunkow (mniej = slady)
 PODLOZE_OD_MM = 140.0        # U5 (plytka nierozpoznana): dane wieksze niz jakakolwiek plytka (kwadrat 96 mm ma przekatna 135,8)
 PODLOZE_ZAPAS_MM = 6.0       # U5 (plytka rozpoznana): dane siegaja poza kolo opisane plytki o wiecej niz tyle
 
@@ -347,8 +348,13 @@ def zmierz(sciezka: Path, ust: dict, numer: int | None = None, seed: int = 0) ->
     bok = (P[:, 2] < th - 0.8) & (odl < 0.8) & (odl > -1.5)
     ile_b = np.bincount(kat[bok], minlength=KIERUNKOW)
     gleb = float(th - np.percentile(P[bok, 2], 2)) if bok.sum() >= 50 else 0.0
-    w["scianka_boczna"] = {"widoczna": bool(bok.sum() >= 50), "kierunkow_z_danymi": int((ile_b >= MIN_PUNKTOW_SEKTORA).sum()),
+    kier_b = int((ile_b >= MIN_PUNKTOW_SEKTORA).sum())
+    w["scianka_boczna"] = {"widoczna": bool(bok.sum() >= 50 and kier_b >= MIN_KIERUNKOW_SCIANKI), "kierunkow_z_danymi": kier_b,
                            "punktow": int(bok.sum()), "widoczna_do_mm_ponizej_wierzchu": round(gleb, 1)}
+    # 5a. znane ograniczenie programu (paczka O1): plytka okragla bez czytelnych dolkow i bez scianki bocznej = "kwadratowa, pewnie".
+    #     Slad w skanie: program mowi "kwadratowa", a dane sa kolem o srednicy plytki okraglej (97,5-100,5 mm).
+    w["moze_okragla_wzieta_za_kwadrat"] = bool(uk.shape != "round" and w["pole_kolowe_mm"] is not None and 97.5 <= w["pole_kolowe_mm"] <= 100.5
+                                               and w["pole_dopasowanie"]["srodek_od_srodka_plytki_mm"] <= 1.5)
     w["rowek_pokrywki"] = {"dotyczy": uk.nazwa.startswith("okragla_ramkowa_")}
     if w["rowek_pokrywki"]["dotyczy"]:
         w["rowek_pokrywki"].update(uskok_scianki(odl, th - P[:, 2], kat))
@@ -391,11 +397,12 @@ def do_arkusza(w: dict) -> dict:
     else:
         pole += "; pola kolowego nie da sie podac"
     pewnosc = "PEWNIE" if w["rozpoznanie_pewne"] else "NIEPEWNIE (pasuje tez: " + (", ".join(w["pasuja_tez"]) or "-") + ")"
-    return {"program mowi": f"{w['rodzaj_plytki']} [{w['uklad']}], {pewnosc}" + (f", powod: {w['powod_wyboru']}" if w["powod_wyboru"] else ""),
+    return {"program mowi": f"{w['rodzaj_plytki']} [{w['uklad']}], {pewnosc}" + (f", powod: {w['powod_wyboru']}" if w["powod_wyboru"] else "")
+            + (" - UWAGA: dane sa kolem jak plytka OKRAGLA" if w["moze_okragla_wzieta_za_kwadrat"] else ""),
             "numer z dolkow": str(w["numer_z_dolkow"]) if w["numer_z_dolkow"] is not None else "nie odczytany",
             "dolki numeru widac": f"{sum(d['stan'] != 'poza skanem' for d in lista)} z {len(lista)}",
             "scianka boczna": (f"widac ({b['kierunkow_z_danymi']} z {KIERUNKOW} kierunkow, do {_l(b['widoczna_do_mm_ponizej_wierzchu'])} mm ponizej wierzchu)"
-                               if b["widoczna"] else "NIE widac"),
+                               if b["widoczna"] else "NIE widac" + (f" (slady w {b['kierunkow_z_danymi']} z {KIERUNKOW} kierunkow)" if b["kierunkow_z_danymi"] else "")),
             "rowek pokrywki": _rowek_tekst(w),
             "brzeg plytki": f"{w['brzeg_widoczny_kierunkow']} z {KIERUNKOW} kierunkow",
             "pole": pole,
@@ -433,6 +440,10 @@ def raport(w: dict) -> list[str]:
     nr = w["numer_wg_programu"]
     t.append("   Numer plytki wg programu: " + (f"{nr} (zrodlo: {w['numer_zrodlo']})" if nr is not None else "nie odczytany ze skanu")
              + (f". Dlaczego ten rodzaj: {POWODY.get(w['powod_wyboru'], w['powod_wyboru'])} [{w['powod_wyboru']}]." if w["powod_wyboru"] else "."))
+    if w["moze_okragla_wzieta_za_kwadrat"]:
+        t.append(f"   UWAGA: program mowi 'kwadratowa', a dane skanu sa kolem ok. {_l(w['pole_kolowe_mm'])} mm - tyle, ile ma plytka OKRAGLA.")
+        t.append("   Mozliwe, ze to plytka okragla wzieta za kwadratowa (znane ograniczenie programu: gdy nie widac dolkow numeru")
+        t.append("   ani scianki bocznej). Zapisz w arkuszu, jaka plytka NAPRAWDE lezala na stoliku.")
     t.append(f"2. Dane skanu: najwezej {_l(w['dane_najwezej_mm'])} mm, w poprzek {_l(w['dane_w_poprzek_mm'])} mm; wokol srodka plytki dane siegaja")
     t.append(f"   wszedzie co najmniej na okrag o srednicy {_l(w['okrag_wpisany_wokol_srodka_plytki_mm'])} mm (tyle pola skaner na pewno ma wokol srodka TEJ plytki).")
     n_brzeg = f"{w['brzeg_widoczny_kierunkow']} z {w['brzeg_kierunkow_razem']}"
@@ -470,7 +481,8 @@ def raport(w: dict) -> list[str]:
              f"szum plaskiego wierzchu {str(round(s['szum_wierzchu_rms_mm'], 3)).replace('.', ',')} mm.")
     b = w["scianka_boczna"]
     if not b["widoczna"]:
-        t.append("6. Scianka boczna plytki: NIE widac jej w skanie (skan konczy sie na wierzchu).")
+        t.append("6. Scianka boczna plytki: NIE widac jej w skanie (skan konczy sie na wierzchu)"
+                 + (f"; slady w {b['kierunkow_z_danymi']} z {KIERUNKOW} kierunkow." if b["kierunkow_z_danymi"] else "."))
     else:
         t.append(f"6. Scianka boczna plytki: widac w {b['kierunkow_z_danymi']} z {KIERUNKOW} kierunkow, do {_l(b['widoczna_do_mm_ponizej_wierzchu'])} mm ponizej wierzchu.")
     t.append(f"   Rowek pokrywki: {_rowek_tekst(w)}.")
