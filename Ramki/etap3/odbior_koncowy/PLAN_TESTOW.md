@@ -44,6 +44,15 @@ Zasady wykonania (obowiazuja kazdego wykonawce):
   `pytest_instalacja.py`) pisza od razu ASCII + LF.
 - Ciezki krok tylko przez blokade (`wspolne.md`): `powershell -NoProfile -ExecutionPolicy Bypass -File
   <PC-katalog>\koordynator\narz\ciezki.ps1 -Kto <kod> [-Tor 2] -Polecenie "<linia cmd z cd /d i przekierowaniem>"`.
+  Blok z wiecej niz jednym poleceniem zapisz jako plik `<ROB>\krok_<nazwa>.cmd` i podaj jego sciezke w `-Polecenie`.
+  W pliku `.cmd` KAZDE wywolanie `Polecenie.cmd`, `Stanowisko.cmd`, `Samokontrola.cmd`, `zainstaluj.cmd`,
+  `Wroc_do_poprzedniej.cmd`, `Wersje.cmd`, `py.cmd` poprzedz slowem `call` - bez `call` plik konczy sie po pierwszym
+  skrypcie i dalsze polecenia NIE sa wykonane. Zaraz po kazdym: `echo <krok> KOD=%ERRORLEVEL% >> <ROB>\kody.txt`.
+  Na poczatku pliku: `set PY=<PC>\AppData\Local\Programs\Python\Python312\python.exe` i
+  `set QT_QPA_PLATFORM=offscreen`; wejscie kazdego polecenia `< NUL`. (Potkniecie D11 proby generalnej; kod wyjscia
+  `ciezki.ps1` = kod pliku, gdy plik konczy sie `exit /b <kod>`. Bloki polecen w tym planie maja `call` wpisane tam,
+  gdzie polecenie zaczyna wiersz; polecenia podane w tekscie krokow - T0, T12, T1, T7, T11 - przepisujac do pliku
+  `.cmd` poprzedz `call` sam. W poleceniach planu `PY` i `%PY%` znacza to samo: zmienna z `set PY=...`.)
   Tor 2 = seria pomiarowa (T2, T4, T10, T11 - jedna naraz na calym PC). Wynik kazdego przebiegu dopisywac do pliku od
   razu (PC bywa restartowany). Od 20.11 22:35 `wspolne.md` ma 4 tory (numer przydziela koordynator) - seria pomiarowa
   nadal jedna naraz na calym PC, a czasy mierzone przy innych ciezkich krokach w toku trzeba opisac ("co jeszcze liczylo").
@@ -85,8 +94,8 @@ Zrodlo: raport `Ramki/stanowisko/raporty/E3-A11i_2026-11-20.md`, p. 12.8 (galaz 
 
 ```
 cd /d <PC-katalog>\qc\Ramki\stanowisko
-<PC-katalog>\koordynator\narz\py.cmd narzedzia\zbuduj_wydanie.py --wyjscie <PC-katalog>\wydania --kola <PC-katalog>\wydania\kola
-<PC-katalog>\koordynator\narz\py.cmd narzedzia\zbuduj_wydanie.py --wyjscie <PC-katalog>\wydania --kola <PC-katalog>\wydania\kola --wersja <N+1>
+call <PC-katalog>\koordynator\narz\py.cmd narzedzia\zbuduj_wydanie.py --wyjscie <PC-katalog>\wydania --kola <PC-katalog>\wydania\kola
+call <PC-katalog>\koordynator\narz\py.cmd narzedzia\zbuduj_wydanie.py --wyjscie <PC-katalog>\wydania --kola <PC-katalog>\wydania\kola --wersja <N+1>
 ```
 
 - Wynik: `Stanowisko_<N>.zip` + `.zip.sha256` (suma takze w ostatnim wierszu wyjscia). `<N>` = tresc pliku
@@ -204,7 +213,9 @@ Oznaczenia czesci B: `<ROB>` = `<PC-katalog>\koordynator\robocze\odbior\T12` (be
 `<ROB>\K_B` (OSOBNA instalacja - nie `<K>` z czesci A), `<PM>` = `<ROB>\paczka_M`, `<M>` = numer paczki probnej
 `0.3.9-migracja` (dowolny numer wiekszy od N, ktorego nie ma w `<KB>\wersje`), `<P1>` = rozpakowana paczka wersji N.
 Wszystkie polecenia w jednym oknie `cmd`, z wejsciem `< NUL`, po `set QT_QPA_PLATFORM=offscreen`; calosc jako jeden
-plik `.cmd` pod blokada (tor 1). Odczyt bazy (bez nazw): `PY -I <ODB>\narzedzia\sql_odczyt.py --baza
+plik `.cmd` pod blokada (tor 1) - w pliku KAZDE `zainstaluj.cmd`, `Stanowisko.cmd`, `Wroc_do_poprzedniej.cmd` z `call`
+i z `echo <krok> KOD=%ERRORLEVEL% >> <ROB>\kody.txt` zaraz po nim (bez `call` wykona sie tylko krok 2 - "Zasady
+wykonania"). Odczyt bazy (bez nazw): `PY -I <ODB>\narzedzia\sql_odczyt.py --baza
 <KB>\dane\stanowisko.sqlite "SELECT count(*) FROM zdarzenia"` i `"SELECT user_version FROM pragma_user_version"`;
 sumy: `certutil -hashfile <plik> SHA256`.
 
@@ -397,12 +408,12 @@ powtarzaja sie (1, 2, 8) - na pytanie programu "to ponowny skan?" sterownik odpo
 (`odp_odrzuc_ponowny_skan`). Pytanie `plytka_nie_z_trybu` zostaje bez odpowiedzi (zapisane, ze sie pojawilo). Kopie i pliki
 pochodne powstaja tylko w `<ROB>\t2` (poza repo). Projekty: `--projekty` = kopia `<PC-katalog>\app\Prace_test`.
 
-**Kroki (tor pomiarowy, jedna linia przez `ciezki.ps1`; katalog `<ROB>\t2` nowy / pusty):**
+**Kroki (tor pomiarowy, plik `.cmd` przez `ciezki.ps1` - z `call`, patrz "Zasady wykonania"; katalog `<ROB>\t2` nowy / pusty):**
 
 ```
 set QT_QPA_PLATFORM=offscreen
-<K>\Polecenie.cmd <ODB>\narzedzia\t2_wieczor.py --ustawienia-wzor <K>\ustawienia.toml --roboczy <ROB>\t2 --projekty <folder_cyrkon> > <ROB>\t2_sterownik.log 2>&1
-echo KOD=%errorlevel%
+call <K>\Polecenie.cmd <ODB>\narzedzia\t2_wieczor.py --ustawienia-wzor <K>\ustawienia.toml --roboczy <ROB>\t2 --projekty <folder_cyrkon> > <ROB>\t2_sterownik.log 2>&1
+echo KOD=%ERRORLEVEL% >> <ROB>\kody.txt
 ```
 
 - Domyslnie 10 plikow co 60 s (`--plytki 10 --odstep 60`); sterownik sam czeka na gotowa pule i silnik, startuje
@@ -435,8 +446,8 @@ Zdarzenia srodowiska (proces silnika ginie - `0xC0000142`, restart silnika, blad
 ```
 set E3A3_DANE_REF=<PC-katalog>\app\dane_ref\syntetyczne_R59_P2
 set E3A3_PROJEKTY=<folder_cyrkon>
-<K>\Polecenie.cmd -m pytest <ST>\testy\test_aplikacja.py -q -s -p no:cacheprovider --rootdir <ST> -k "test_skany_odniesienia_przez_cala_aplikacje_w_petli_qt or test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek" > <ROB>\t2_petla.log 2>&1
-<K>\Polecenie.cmd -m pytest <ST>\testy\test_ui_wieczor.py -q -s -p no:cacheprovider --rootdir <ST> -k "test_6_petla_okna_bez_przerw_10_plytek_po_19_prac" >> <ROB>\t2_petla.log 2>&1
+call <K>\Polecenie.cmd -m pytest <ST>\testy\test_aplikacja.py -q -s -p no:cacheprovider --rootdir <ST> -k "test_skany_odniesienia_przez_cala_aplikacje_w_petli_qt or test_f_petla_qt_bez_przerw_podczas_analizy_10_plytek" > <ROB>\t2_petla.log 2>&1
+call <K>\Polecenie.cmd -m pytest <ST>\testy\test_ui_wieczor.py -q -s -p no:cacheprovider --rootdir <ST> -k "test_6_petla_okna_bez_przerw_10_plytek_po_19_prac" >> <ROB>\t2_petla.log 2>&1
 ```
 
 **Dowody w `T2/`:** `t2_wynik.json`, `t2_wynik.txt`, `t2_sterownik.log`, `t2_symulator.json` (dziennik symulatora: `sha16`,
@@ -487,10 +498,10 @@ ramki i Excel wylaczone. Lista miejsc, w ktorych sterownik siega do wnetrza prog
 
 ```
 set QT_QPA_PLATFORM=offscreen
-<K>\Polecenie.cmd <ODB>\narzedzia\t3_poranek.py --testy <ST>\testy --wyjscie <ROB>\t3 --ustawienia-wzor <K>\ustawienia.toml > <ROB>\t3_sterownik.log 2>&1
-echo KOD=%errorlevel%
-<K>\Polecenie.cmd -m pytest <ST>\testy\test_session_rano.py -q -rA -p no:cacheprovider --rootdir <ST> -k "se10" --basetemp <ROB>\t3_tmp > <ROB>\t3_se10.log 2>&1
-<K>\Polecenie.cmd -m pytest <ST>\testy\test_ui_rano.py <ST>\testy\test_aplikacja_rano.py -q -rA -p no:cacheprovider --rootdir <ST> > <ROB>\t3_ekran.log 2>&1
+call <K>\Polecenie.cmd <ODB>\narzedzia\t3_poranek.py --testy <ST>\testy --wyjscie <ROB>\t3 --ustawienia-wzor <K>\ustawienia.toml > <ROB>\t3_sterownik.log 2>&1
+echo KOD=%ERRORLEVEL% >> <ROB>\kody.txt
+call <K>\Polecenie.cmd -m pytest <ST>\testy\test_session_rano.py -q -rA -p no:cacheprovider --rootdir <ST> -k "se10" --basetemp <ROB>\t3_tmp > <ROB>\t3_se10.log 2>&1
+call <K>\Polecenie.cmd -m pytest <ST>\testy\test_ui_rano.py <ST>\testy\test_aplikacja_rano.py -q -rA -p no:cacheprovider --rootdir <ST> > <ROB>\t3_ekran.log 2>&1
 ```
 
 - Sterownik: ok. 15 s (limit calosci `--limit-s`, domyslnie 600 s). Kody: 0 = scenariusz doszedl do konca i wynik
@@ -632,7 +643,7 @@ prawdy) i `syntetyczne_R59_P3a` (16 + 16) = 40 skanow (kopia tych samych zestawo
 **Kroki (tor 2, jedna linia):**
 
 ```
-<K>\Polecenie.cmd narzedzia\metryki_P3a.py --skany <PC-katalog>\app\dane_ref\syntetyczne_R59_P2 <PC-katalog>\app\dane_ref\syntetyczne_R59_P3a --projekty <PC-katalog>\app\Prace_test --wyjscie <ROB>\t10 --nazwa t10_metryki.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t10.log 2>&1
+call <K>\Polecenie.cmd narzedzia\metryki_P3a.py --skany <PC-katalog>\app\dane_ref\syntetyczne_R59_P2 <PC-katalog>\app\dane_ref\syntetyczne_R59_P3a --projekty <PC-katalog>\app\Prace_test --wyjscie <ROB>\t10 --nazwa t10_metryki.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t10.log 2>&1
 ```
 
 **Liczby kryterium (plik `<ROB>\t10\t10_metryki.json` i `t10.log`):**
@@ -725,11 +736,12 @@ wspolczynniku 1,20 i 1,25 na jednej plytce). Zestaw do przebiegu przez program: 
 **Kroki (tor 2; pamiec podreczna puli w nowym, pustym katalogu `<ROB>\pamiec`):**
 
 ```
-<K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_czas_zimna.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_zimna.log 2>&1
-<K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_czas_ciepla.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_ciepla.log 2>&1
-<K>\Polecenie.cmd narzedzia\metryki_pula.py jakosc --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_jakosc.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_jakosc.log 2>&1
+call <K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_czas_zimna.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_zimna.log 2>&1
+call <K>\Polecenie.cmd narzedzia\metryki_pula.py czas --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_czas_ciepla.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_czas_ciepla.log 2>&1
+call <K>\Polecenie.cmd narzedzia\metryki_pula.py jakosc --katalog <PC-katalog>\e3\a5\pomiary\pula400 --wpisow 400 --pamiec <ROB>\pamiec --linie <ROB>\linie --wyjscie <ROB>\t4 --nazwa t4_jakosc.json --procesy 1 --ustawienia <K>\ustawienia.toml > <ROB>\t4_jakosc.log 2>&1
 ```
 
+Trzy polecenia w jednym pliku `.cmd` wymagaja `call` (bez niego nie bedzie przebiegu cieplego ani `jakosc`).
 Pierwszy przebieg zaczyna od pustych `<ROB>\pamiec` i `<ROB>\linie` (pula zimna), drugi korzysta z tego, co zapisal
 pierwszy (pula ciepla). Opcje `czas` sprawdzone przez `--help`: `--katalog` (wymagana), `--wyjscie`, `--nazwa`, `--pamiec`
 ("pusty = pamiec zimna"), `--linie`, `--wpisow`, `--plytek`, `--procesy`, `--seed`, `--limit`, `--ustawienia`.
@@ -789,8 +801,8 @@ ruch przechodzi przez stos sieciowy, nie przez kabel ani Wi-Fi. Prawdziwa siec =
 **Czesc A - liczby kryterium (testy na dwoch procesach, 127.0.0.1; kod programu z instalacji):**
 
 ```
-<K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t5_zrodlo_kodu_1.txt -- <ST>\testy\test_indicate.py <ST>\testy\test_ramka.py -q -s -rA -p no:cacheprovider --rootdir <ST> -k "test_k1 or test_k2 or test_k4 or test_k5 or test_k6 or test_k7 or test_zz_k8" > <ROB>\t5_testy.log 2>&1
-<K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t5_zrodlo_kodu_2.txt -- <ST>\testy\test_aplikacja_rano.py -q -s -rA -p no:cacheprovider --rootdir <ST> -k "test_a_ or test_k1_plan_ramki_porannej or test_k2_enter or test_k4_spacja" > <ROB>\t5_testy_2.log 2>&1
+call <K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t5_zrodlo_kodu_1.txt -- <ST>\testy\test_indicate.py <ST>\testy\test_ramka.py -q -s -rA -p no:cacheprovider --rootdir <ST> -k "test_k1 or test_k2 or test_k4 or test_k5 or test_k6 or test_k7 or test_zz_k8" > <ROB>\t5_testy.log 2>&1
+call <K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t5_zrodlo_kodu_2.txt -- <ST>\testy\test_aplikacja_rano.py -q -s -rA -p no:cacheprovider --rootdir <ST> -k "test_a_ or test_k1_plan_ramki_porannej or test_k2_enter or test_k4_spacja" > <ROB>\t5_testy_2.log 2>&1
 ```
 
 Ostatni wiersz kazdego przebiegu: "WERDYKT ZRODLA KODU: INSTALACJA" (kod 0) - inaczej liczby pochodza z kodu repo i w
@@ -856,9 +868,9 @@ regula 6.
 **Kroki:**
 
 ```
-<K>\Polecenie.cmd narzedzia\arkusz_syntetyczny.py --wierszy 30000 --zapytan 200 > <ROB>\t6_arkusz.txt 2>&1
-<K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t6_zrodlo_kodu.txt -- <ST>\testy\test_excel.py -q -s -rA -p no:cacheprovider --rootdir <ST> > <ROB>\t6_excel.log 2>&1
-<K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t6_zrodlo_kodu_2.txt -- <ST>\testy\test_aplikacja_rano.py -q -s -rA -p no:cacheprovider --rootdir <ST> -k "test_k3_excel_pytaj or test_k3_excel_cien" > <ROB>\t6_aplikacja.log 2>&1
+call <K>\Polecenie.cmd narzedzia\arkusz_syntetyczny.py --wierszy 30000 --zapytan 200 > <ROB>\t6_arkusz.txt 2>&1
+call <K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t6_zrodlo_kodu.txt -- <ST>\testy\test_excel.py -q -s -rA -p no:cacheprovider --rootdir <ST> > <ROB>\t6_excel.log 2>&1
+call <K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t6_zrodlo_kodu_2.txt -- <ST>\testy\test_aplikacja_rano.py -q -s -rA -p no:cacheprovider --rootdir <ST> -k "test_k3_excel_pytaj or test_k3_excel_cien" > <ROB>\t6_aplikacja.log 2>&1
 ```
 
 Warunek: ostatni wiersz kazdego przebiegu "WERDYKT ZRODLA KODU: INSTALACJA" (kod 0); werdykt "REPO" albo kod 3 = liczby
@@ -895,8 +907,8 @@ skopiuj do `<ROB>\baza_t3.sqlite`. (Baza testu pytest w `<ROB T3>\t3_tmp\se10*` 
 **Kroki:**
 
 ```
-<K>\Polecenie.cmd narzedzia\raport_metryk.py --baza <ROB>\baza_t2.sqlite --tryb wieczor --od <data T2> --do <data T2> --json <ROB>\t8_wieczor.json > <ROB>\t8_wieczor.txt
-<K>\Polecenie.cmd narzedzia\raport_metryk.py --baza <ROB>\baza_t3.sqlite --tryb oba --od 2026-11-17 --do 2026-11-19 --json <ROB>\t8_rano.json > <ROB>\t8_rano.txt
+call <K>\Polecenie.cmd narzedzia\raport_metryk.py --baza <ROB>\baza_t2.sqlite --tryb wieczor --od <data T2> --do <data T2> --json <ROB>\t8_wieczor.json > <ROB>\t8_wieczor.txt
+call <K>\Polecenie.cmd narzedzia\raport_metryk.py --baza <ROB>\baza_t3.sqlite --tryb oba --od 2026-11-17 --do 2026-11-19 --json <ROB>\t8_rano.json > <ROB>\t8_rano.txt
 ```
 
 Kody: 0 = wszystko w progu, 3 = cos ponizej progu, 4 = brak danych, 2 = blad (kod 3 i 4 to nie jest FAIL testu T8 -
