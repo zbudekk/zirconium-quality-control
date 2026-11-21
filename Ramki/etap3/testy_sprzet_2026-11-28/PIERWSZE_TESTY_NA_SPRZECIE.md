@@ -3,9 +3,9 @@
 Dokument dla wlasciciela. Wydrukuj go razem z `ARKUSZ_OBSERWACJI.md`. Stan: 21.11.2026, dla paczki
 programu 0.3.3 (jeszcze nie istnieje).
 
-Do tej pory program byl sprawdzany tylko na danych sztucznych i na "atrapach" (program udaje ramke albo
-skaner). Cel weekendu: zebrac liczby i pliki, ktorych nie da sie zdobyc bez sprzetu. Nie wszystko musi
-zadzialac. Co pojdzie inaczej niz tu napisano, jest wynikiem - zapisz to.
+Do tej pory program byl sprawdzany tylko bez sprzetu: na danych sztucznych i na "atrapach" (program
+udaje ramke albo skaner). Cel weekendu: zebrac liczby i pliki, ktorych nie da sie zdobyc inaczej. Nie
+wszystko musi zadzialac. Co pojdzie inaczej niz tu napisano, jest wynikiem - zapisz to.
 
 Znaczniki:
 
@@ -25,51 +25,21 @@ Zasady:
 
 ## 0. Pytania do wlasciciela - odpowiedz najpozniej do srody 25.11.2026
 
-Nie znamy odpowiedzi i nie zgadujemy. Te same pytania na jednej stronie, z miejscem na odpowiedz, sa
-w pliku `PYTANIA_DO_WLASCICIELA.md` - odpowiedz tam albo przekaz sesji prowadzacej projekt.
-Najpilniejsze: P3, P1, P6, P8 - od nich zalezy, co trzeba przygotowac PRZED weekendem.
+Nie znamy odpowiedzi i nie zgadujemy. Pelne pytania - z wyjasnieniem, co od ktorej odpowiedzi zalezy,
+i z miejscem na odpowiedz - sa na osobnej stronie: `PYTANIA_DO_WLASCICIELA.md`. Odpowiedz tam albo
+przekaz sesji prowadzacej projekt. Najpilniejsze: P3, P1, P6, P8.
 
-**P3. Czy Raspberry Pi w ramce jest zlozone z matryca diod i czujnikami, ma karte SD i czy ktos wgral na nia
-"program ramki"?**
-- Wgrany: cala czesc 3 do zrobienia.
-- Nie albo nie wiesz: ktos musi go wgrac PRZED sobota wedlug instrukcji `ramka_raspberry_pi.md` (12 krokow,
-  kilka godzin; skrot w `ZALACZNIKI.md`). Inaczej z czesci 3 zostaje tylko krok 3.1. Napisz, kto i kiedy.
-
-**P1. Ktora ramka przyszla: wieczorna, poranna czy obie? Wkladka kwadratowa czy okragla?**
-- Wieczorna: plytki 1-3, adres `ramka-w.local`; krok 3.9 odpada.
-- Poranna: plytki 4-6, adres `ramka-p.local`; dochodzi krok 3.9 (klawiatura).
-- Wkladka okragla: w kroku 3.7 wybierasz plytke okragla ramkowa.
-
-**P6. Jaka siec laczy komputer z ramka (router, hotspot)? Jaka siec Wi-Fi jest wpisana w ramce?**
-- Komputer i ramka musza byc w TEJ SAMEJ sieci. Nie wiesz, jaka siec jest w ramce: krok 3.3 moze sie nie
-  udac; wtedy z czesci 3 zostaja kroki 3.1 i 3.2.
-
-**P8. Czy ramka ma ustawiony "klucz" (haslo ramki) i czy go znasz?** Program ramki wgrany skryptem z
-naszej paczki losuje klucz i zapisuje go w pliku ustawien ramki (zna go osoba, ktora wgrywala program).
-- Znasz: przywiez go na kartce (kroki 3.3 i 3.8). Dwie ramki musza miec TEN SAM klucz.
-- Nie znasz, a ramka go wymaga: kroki 3.4-3.9 odpadaja, dopoki klucza nie odczyta osoba, ktora wgrywala
-  program. Krok 3.3 pokaze, czy ramka wymaga klucza.
-
-**P2. Ktore plytki sa na miejscu i czy maja wklejone magnesy?** Kwadratowe (1-6), okragle ramkowe (1-6),
-okragle testowe (8, 9), stare R54.
-- Od tego zalezy, co skanujesz w krokach 2.3-2.5a. Bez plytek okraglych krok 2.5a odpada.
-- Plytki bez magnesow: krok 3.5 odpada, ramka pod nimi nie zaswieci.
-
-**P4. Na jakim komputerze uruchomisz program?** Windows 10 albo 11, 30 GB wolnego miejsca.
-- Laptop stanowiska: dochodzi czesc 4. Inny komputer: czesc 4 odpada.
-
-**P5. Czy skaner stoi przy tym samym komputerze? Do jakiego folderu program skanera zapisuje skany?**
-- Przy innym: instalujesz nasz program takze tam (kroki 1.1-1.4) albo przenosisz pliki skanow pendrivem.
-  Wtedy krok 2.7 odpada, a 2.4 i 2.5a robisz na przeniesionych plikach.
-
-**P7. Czy masz projekty STL (z exocad) prac probnych?**
-- Masz: w kroku 2.7 program porowna prace z projektem. Nie masz: prace beda szare "bez projektu".
-
-**P9. Czy w programie skanera sa juz zlecenia pacjentow? Gdzie mozna zalozyc osobny folder na skany
-testowe z tego dnia?**
-- Sa (albo nie wiesz): skany testowe ida do osobnego folderu (krok 2.1), a kopie calego folderu zlecen
-  (krok 2.6) pomijasz - dane pacjentow nie moga wyjechac z laboratorium.
-- Nie ma: krok 2.6 robisz w calosci.
+    Pytanie                                               Od odpowiedzi zalezy
+    P1  ktora ramka przyszla, jaka wkladka                kroki 3.7 - 3.9
+    P2  ktore plytki sa na miejscu, czy maja magnesy      kroki 2.3 - 2.5a, 3.5
+    P3  czy na ramce jest wgrany "program ramki"          cala czesc 3
+    P4  na jakim komputerze beda testy                    czesc 4
+    P5  gdzie stoi skaner, gdzie zapisuje skany           kroki 2.1, 2.4, 2.7
+    P6  jaka siec laczy komputer z ramka                  kroki 3.3 - 3.9
+    P7  czy sa projekty STL prac probnych                 krok 2.7
+    P8  klucz (haslo) ramki                               kroki 3.3 - 3.9
+    P9  zlecenia pacjentow w programie skanera;           kroki 2.1, 2.6
+        osobny folder na skany testowe
 
 ---
 
@@ -99,14 +69,14 @@ Sprzet:
 ## 2. Skrot dnia
 
     Czesc 1  komputer i program        ok. 40 min    kroki 1.1 - 1.4
-    Czesc 2  skaner                    ok. 2,5 godz. kroki 2.1 - 2.7
+    Czesc 2  skaner                    ok. 3,5 godz. kroki 2.1 - 2.7
     Czesc 3  ramka (jedna wystarczy)   ok. 2 godz.   kroki 3.1 - 3.9
     Czesc 4  laptop stanowiska         ok. 20 min    tylko na laptopie
     Czesc 5  zebranie plikow           ok. 20 min
 
-Cztery najwazniejsze wyniki: (1) wymiar pola skanera - krok 2.4; (2) czy program poznaje plytke okragla,
-gdy nie widzi dolkow numeru - krok 2.5a; (3) czy ramka czyta numer kazdej plytki - krok 3.5; (4) czy diody
-trafiaja pod gniazda - krok 3.7.
+Piec najwazniejszych wynikow: (1) czy skan da sie zrobic bez stolika - krok 2.3; (2) wymiar pola
+skanera - 2.4; (3) czy program poznaje plytke okragla bez dolkow numeru - 2.5a; (4) czy ramka czyta numer
+kazdej plytki - 3.5; (5) czy diody trafiaja pod gniazda - 3.7.
 
 ---
 
@@ -154,7 +124,7 @@ chcesz uruchomic ten plik?" - zezwol. Bez instalacji przejdz do kroku 3.1.
 Co zrobic: kliknij dwa razy `C:\Stanowisko\Samokontrola.cmd`. Potem `C:\Stanowisko\Stanowisko.cmd`; na
 pytanie "Kto teraz pracuje?" kliknij "Tester". Popatrz na pasek u gory i zamknij okno.
 Udalo sie, gdy: samokontrola konczy sie wierszem `SAMOKONTROLA: ZIELONA` i ma wiersz
-`OK modele: uklady plytek z [plytki]: poprawne 10 z 10` [DO POTWIERDZENIA NA 0.3.3]. Wiersze `OSTRZEZENIE`
+`OK modele: uklady plytek z [plytki]: poprawne 10 z 10`. Wiersze `OSTRZEZENIE`
 (ramki, `excel`, `baza`, `pula`) sa teraz normalne. W pasku programu: "Folder skanera: dostepny" i
 "Ramki: W: brak polaczenia". Zanotuj: arkusz 1.3.
 Gdy sie nie uda: "poprawne 8 z 10" albo "9 z 10" = stara albo niepelna paczka. Przepisz wiersz `BLAD: ...`.
@@ -205,7 +175,7 @@ Co zrobic: wyczysc stozki plytki. W oknie kamery programu skanera ustaw linie wy
 stolika i co najmniej 3 mm PONIZEJ wierzchu plytki. Zeskanuj pusta plytke (krok 5 okna), zmierz czas
 stoperem. Zapisz skan jako plik STL calej plytki, bez wygladzania. Wierzchu plytki nie obcinaj; stolik
 i podstawke odetnij (linia ciecia przed skanem albo plaszczyzna ciecia, "cutting plane", po skanie).
-W tej sprawie obowiazuje ten dokument, nie sciaga skanera ("najlepiej ponizej calej plytki" - nieaktualne).
+Tu obowiazuje ten dokument, nie sciaga skanera (jej "najlepiej ponizej calej plytki" jest nieaktualne).
 Udalo sie, gdy: plik sam pojawia sie w oknie, a po kilkunastu sekundach jest zielona ocena "SKAN DOBRY:
 cala plytka, ...; obrys ... x ... x ... mm; ...". Zanotuj: arkusz 2.3.
 Gdy sie nie uda:
@@ -213,53 +183,49 @@ Gdy sie nie uda:
     Widzisz                                  Zrob
     plik sie nie pojawia                     w programie skanera "Explore" albo "Export";
                                              w oknie "Dodaj folder..."
-    czerwone "... nie widac trzech           NAJPIERW popatrz na podglad skanu: wokol plytki widac
-    stozkow znacznikow (znaleziono 0)"       plaski stolik albo podstawke? To SKAN Z PODLOZEM (nizej).
+    czerwone "... nie widac trzech           popatrz na podglad skanu: wokol plytki widac plaski
+    stozkow znacznikow (znaleziono 0)"       stolik albo podstawke? To SKAN Z PODLOZEM (nizej).
                                              Nie widac: zrob krok 2.4 - poda wymiar pola
-    czerwone "... nie widac plaskiego        skan obciety za wysoko: opusc linie ciecia (3 mm
-    wierzchu plytki"                         ponizej wierzchu) i zapisz cala plytke
+    czerwone "... nie widac plaskiego        skan obciety za wysoko: opusc linie ciecia i zapisz
+    wierzchu plytki"                         cala plytke
 
 SKAN Z PODLOZEM - najwieksze ryzyko dnia. Gdy w skanie jest plaski stolik wokol plytki (w naszych probach
-bez skanera: 15 cm i wiecej), program nie rozpoznaje plytki: KAZDY skan jest czerwony, a komunikaty mowia
-o polu skanera i brudnych stozkach. To zla przyczyna - czyszczenie i ponowny skan nie pomoga.
+bez skanera: 15 cm i wiecej), program nie rozpoznaje plytki. KAZDY skan jest czerwony, a komunikaty mowia
+o polu skanera i brudnych stozkach - to zla przyczyna, czyszczenie i ponowny skan nie pomoga.
 
 - Jak rozpoznac: w podgladzie skanu widac plaska plaszczyzne wokol plytki; `pole_skanu.cmd` (krok 2.4)
   pisze "UWAGA: w skanie jest prawdopodobnie PODLOZE".
 - Jak obejsc: podnies linie albo plaszczyzne ciecia powyzej stolika. Zrob DWA skany tej samej plytki:
-  (A) ciecie tuz nad stolikiem - scianka boczna plytki zostaje w skanie; (B) ciecie 3 mm pod wierzchem
-  plytki. Oba pliki sprawdz krokiem 2.4 i wpisz do arkusza 2.3. Dalej skanuj tak, jak w skanie zielonym
-  (oba zielone: jak A).
+  (A) ciecie tuz nad stolikiem - scianka boczna plytki zostaje; (B) ciecie 3 mm pod wierzchem. Oba
+  sprawdz krokiem 2.4 i wpisz do arkusza 2.3. Dalej skanuj jak w skanie zielonym (oba zielone: jak A).
 
-Inna przyczyna czerwonej oceny: pole skanera. W naszych probach bez skanera przy polu 90 mm i mniejszym
-program nie rozpoznaje ZADNEJ plytki (przy 95 mm rozpoznaje); ponowny skan nie pomoze.
-[NIE SPRAWDZONE BEZ SPRZETU: prawdziwy plik ze skanera - nazwa, format, czas zapisu, szum; czy stolik
-trafia do skanu; czy linie ciecia da sie ustawic miedzy stolikiem a wierzchem plytki; skany A i B]
+Inna przyczyna czerwonej oceny: pole skanera 90 mm i mniejsze (w naszych probach bez skanera program nie
+rozpoznaje wtedy ZADNEJ plytki; przy 95 mm rozpoznaje).
+[NIE SPRAWDZONE BEZ SPRZETU: prawdziwy plik ze skanera; czy stolik trafia do skanu; czy linie ciecia da
+sie ustawic miedzy stolikiem a wierzchem plytki; skany A i B]
 
 ### Krok 2.4 - pole skanera w liczbach (15 minut)
 
 Co zrobic:
 
-1. NAJPIERW karton - to glowny pomiar pola. Poloz na stoliku plaski karton wiekszy niz 15 x 15 cm
-   (wiekszy niz pole), linie ciecia opusc pod karton (karton zaslania stolik), zeskanuj i zapisz.
-   Przeciagnij plik myszka na `C:\Sprzet_testy\narzedzia\pole_skanu.cmd`. Pytanie o numer: sam Enter.
-   Pytanie "Co lezy na stoliku?": wpisz `karton`. Narzedzie napisze "PLYTKA NIE ROZPOZNANA" (to dobrze -
-   to karton), a w wierszu 2 wymiar pola: "Dane mieszcza sie w kole o srednicy ok. ... mm" albo "DANE
-   NIE SA KOLEM: ... x ... mm" (przepisz OBIE liczby) i zdanie "Dane sa PLASKIE: to plaski arkusz ...".
-2. Potem plik skanu plytki z kroku 2.3 (folder programu skanera albo w oknie "Otworz folder sesji" ->
-   `kroki`) - pomiar pomocniczy, przyblizony (w naszych probach blad do 5 mm). Pojawi sie 6
-   ponumerowanych wierszy i blok "DO ARKUSZA (przepisz):". Wiersz 2 mowi jedno z czterech:
+1. NAJPIERW karton - to glowny pomiar pola. Poloz na stoliku plaski karton wiekszy niz 15 x 15 cm,
+   linie ciecia opusc pod karton, zeskanuj i zapisz. Przeciagnij plik myszka na
+   `C:\Sprzet_testy\narzedzia\pole_skanu.cmd`. Pytanie o numer: sam Enter. Pytanie "Co lezy na
+   stoliku?": wpisz `karton`. Ma byc "PLYTKA NIE ROZPOZNANA" (to dobrze - to karton), a w wierszu 2
+   wymiar pola: "Dane mieszcza sie w kole o srednicy ok. ... mm" albo "DANE NIE SA KOLEM: ... x ... mm"
+   (przepisz OBIE liczby) i zdanie "Dane sa PLASKIE: to plaski arkusz ...".
+2. Potem plik skanu plytki z kroku 2.3 (z okna: "Otworz folder sesji" -> `kroki`) - pomiar pomocniczy,
+   przyblizony (w naszych probach blad do 5 mm). Pojawi sie 6 wierszy i blok "DO ARKUSZA (przepisz):".
+   Wiersz 2 mowi jedno z czterech - przepisz liczby:
    - "Cala plytka jest w skanie ... pole skanera jest CO NAJMNIEJ takie jak plytka";
-   - "POLE SKANERA MA OK. ... mm" - srednica pola liczona z plytki;
-   - "POLE NIE JEST KOLEM (albo plytka lezy z boku pola): dane najwezej ... mm x ... mm", czasem z
-     dopiskiem "Konce danych pasuja do okregu o srednicy ok. ... mm" - przepisz liczby;
+   - "POLE SKANERA MA OK. ... mm";
+   - "POLE NIE JEST KOLEM (albo plytka lezy z boku pola): dane najwezej ... mm x ... mm", czasem
+     z dopiskiem "Konce danych pasuja do okregu o srednicy ok. ... mm";
    - "Skan konczy sie tuz przy brzegu plytki ...: wielkosci pola z tego skanu nie da sie podac".
 
-   Przy kazdym z czterech liczy sie wynik z kartonu.
-
-Udalo sie, gdy: masz wymiar pola z kartonu: jedna srednice albo dwie liczby (najwezej x w poprzek).
-Zanotuj: arkusz 2.4.
+Udalo sie, gdy: masz wymiar pola z kartonu: jedna srednice albo dwie liczby. Zanotuj: arkusz 2.4.
 Gdy sie nie uda: przy skanie PLYTKI narzedzie pisze "UWAGA: w skanie jest prawdopodobnie PODLOZE" - to
-skan z podlozem, wroc do kroku 2.3. Przy kartonie taka uwage pomin. Inny blad: zabierz plik skanu.
+skan z podlozem, wroc do kroku 2.3. Inny blad: zabierz plik skanu.
 [NIE SPRAWDZONE BEZ SPRZETU: liczby na prawdziwym skanie; skan kartonu; skan z podlozem]
 
 ### Krok 2.5 - kolejne skany wedlug okna (ok. 1 godziny)
@@ -284,25 +250,23 @@ po "ZROB TAK". Skan nierozpoznany tez wpisz do tabeli.
 
 ### Krok 2.5a - plytki okragle: czy program poznaje ksztalt (ok. 50 minut)
 
-Po co: program poznaje plytke okragla po dolkach numeru albo po sciance bocznej. Gdy w skanie nie ma ani
-jednego, ani drugiego, bierze ja za KWADRATOWA i nie ostrzega (plytka ramkowa: mapa gniazd i tak dobra;
-testowa 8, 9: zle gniazda). Trzeba zmierzyc, jak czesto to sie zdarza na prawdziwym skanerze.
+Po co: gdy w skanie plytki okraglej nie ma ani dolkow numeru, ani scianki bocznej, program bierze ja za
+KWADRATOWA i nie ostrzega. Mierzymy, jak czesto to sie zdarza.
 
 Co zrobic: plytke okragla zeskanuj trzy razy (krok 12 okna, z notatka): (i) pusta; (ii) z praca
 w gniezdzie obok dolkow numeru; (iii) z dolkami zaklejonymi tasma papierowa. Kazdy plik przeciagnij na
 `pole_skanu.cmd`; numer - SAM ENTER (podany numer podpowiada programowi ksztalt); "Co lezy na stoliku?" -
 np. `okr-ramk 2, dolki zaklejone`.
-Ile: jeden skan z zapisem i narzedziem to ok. 7 minut. Minimum (ok. 50 minut): 1 plytka okragla ramkowa
-i 1 okragla testowa po 3 skany + 1 kwadratowa pusta dla porownania = 7 skanow. Wszystkie plytki okragle
-(do 8 sztuk = 24 skany, prawie 3 godziny) tylko, gdy zostanie czas.
+Ile: jeden skan z zapisem i narzedziem to ok. 7 minut. Minimum: 1 plytka okragla ramkowa i 1 okragla
+testowa po 3 skany + 1 kwadratowa pusta dla porownania = 7 skanow, ok. 50 minut. Wszystkie plytki
+okragle (do 8 sztuk = 24 skany, prawie 3 godziny) tylko, gdy zostanie czas.
 Udalo sie, gdy: tabela 2.5a ma wiersz dla kazdego skanu. Dobry wynik w wierszu `program mowi:` to
-"okragla ramkowa (do ramki)" albo "okragla testowa (poza ramka)". Wynik zly, ale bardzo wazny: "kwadratowa"
-- przy (i) albo (ii) znaczy, ze skaner nie widzi ani dolkow, ani scianki; tylko przy (iii) - ze jedyna
+"okragla ramkowa (do ramki)" albo "okragla testowa (poza ramka)". Wynik zly, ale bardzo wazny:
+"kwadratowa" - przy (i) albo (ii): skaner nie widzi ani dolkow, ani scianki; tylko przy (iii): jedyna
 ochrona jest numer z dolkow.
 Zanotuj: arkusz 2.5a; na koncu: ile razy plytka okragla zostala nazwana kwadratowa.
 Gdy sie nie uda: nie masz plytek okraglych - pomin. Narzedzie nie dziala - zabierz pliki skanow.
-[NIE SPRAWDZONE BEZ SPRZETU: caly krok, takze czas; w naszych probach bez skanera plytka bez scianki
-i dolkow: 4 z 4 "kwadratowa"]
+[NIE SPRAWDZONE BEZ SPRZETU: caly krok, takze czas]
 
 ### Krok 2.6 - "Zakoncz i spakuj" (10 minut)
 
@@ -310,13 +274,12 @@ UWAGA - dane pacjentow: plik ZIP z tego kroku wyjezdza z laboratorium. Nie moze 
 zlecenia pacjenta.
 
 Co zrobic: ostatni krok okna ("Na koniec: kopia CALEGO folderu zlecen programu skanera") zrob TYLKO, gdy
-w tym folderze sa wylacznie zlecenia testowe z tego dnia (P9). Sa tam zlecenia pacjentow albo nie masz
-pewnosci: kliknij "Nie udalo sie / pomijam, bo ..." i wpisz `dane pacjentow` - skany z tego dnia sa juz
-w sesji. Potem "Zakoncz i spakuj". Przycisku "Pomiar szczegolowy zaznaczonego skanu" dzis nie potrzebujesz.
+w tym folderze sa wylacznie zlecenia testowe z tego dnia (P9). Inaczej kliknij "Nie udalo sie / pomijam,
+bo ..." i wpisz `dane pacjentow`. Potem "Zakoncz i spakuj".
 Udalo sie, gdy: okno pisze "Sesja spakowana: ... plikow" i podaje plik ZIP w folderze
 `C:\Stanowisko\dane\dzien_skanera\<data_godzina>\paczka\` [DO POTWIERDZENIA NA 0.3.3]. Zanotuj: arkusz 2.6.
 Gdy sie nie uda (np. brak miejsca): niczego nie kasuj; skopiuj caly folder z data i godzina na pendrive.
-[NIE SPRAWDZONE BEZ SPRZETU: kopia prawdziwego folderu zlecen - rozmiar, czas, pliki otwarte w skanerze]
+[NIE SPRAWDZONE BEZ SPRZETU: kopia prawdziwego folderu zlecen - rozmiar, czas]
 
 ### Krok 2.7 - program "Stanowisko" sam zauwaza prawdziwy skan (20 minut)
 
@@ -328,7 +291,7 @@ Co zrobic:
 3. `C:\Stanowisko\Samokontrola.cmd` - ma byc wiersz `OK folder_skanera`.
 4. `C:\Stanowisko\Stanowisko.cmd`, kliknij "Tester".
 5. Zeskanuj plytke z pracami i zapisz skan; wlacz stoper w chwili zapisu. Powtorz z plytka okragla
-   o INNYM numerze (ten sam numer: program zapyta "Ponowny skan tej samej plytki?" - krok 3.8 p. 8).
+   o INNYM numerze (dlaczego: krok 3.8).
 
 Udalo sie, gdy: po lewej pojawia sie kafelek "Plytka ...", w srodku mapa gniazd (zatrzymaj stoper).
 Program pyta "Podaj numer plytki", gdy sam nie odczytal numeru z dolkow (plytka kwadratowa: zalezy od
@@ -382,7 +345,7 @@ Co zrobic:
 2. Kliknij dwa razy `C:\Sprzet_testy\narzedzia\ramka.cmd`. Wpisz adres `ramka-w.local` (wieczorna) albo
    `ramka-p.local` (poranna). Wybierz `1` i Enter.
 3. Gdy pojawi sie "RAMKA ODPOWIADA, ale wymaga klucza": menu samo zapyta o klucz (pozycja `7`). Przepisz
-   go z kartki (P8). Po napisie "KLUCZ DOBRY ..." narzedzie wiecej o klucz nie pyta. Wybierz `1`.
+   go z kartki (P8). Po napisie "KLUCZ DOBRY ..." wybierz `1`. Po zmianie adresu zapyta jeszcze raz.
 
 Udalo sie, gdy: jest wiersz `RAMKA ODPOWIADA (... ms): ramka wieczorna (W), program ramki ...` i ponizej
 `plytka na ramce: 0`. Zanotuj: arkusz 3.3 (adres - potrzebny w 3.8; czy ramka wymaga klucza).
@@ -456,44 +419,42 @@ Co zrobic:
 3. `C:\Stanowisko\Stanowisko.cmd`, "Tester". W pasku u gory: "Ramki: W: gotowa".
 4. Poloz plytke na ramce: w pasku "W: gotowa (plytka 1)". Kliknij "Test LED" (matryca swieci kolorami
    ok. 8 sekund). Zdejmij plytke.
-5. Zeskanuj plytke z pracami (jak w 2.7; podaj numer, gdy program pyta) i poloz TE plytke na ramce:
-   swieca gniazda z pracami. Zdejmij ja: gasna. Poloz jeszcze raz: wieczorem zostaje ciemno, bez
-   komunikatu - wynik wraca dopiero po nowym skanie. To normalne.
+5. Zeskanuj plytke z pracami (jak w 2.7) i poloz TE plytke na ramce: swieca gniazda z pracami. Zdejmij
+   ja: gasna. Poloz jeszcze raz: wieczorem zostaje ciemno, bez komunikatu (wynik wraca dopiero po nowym
+   skanie) - to normalne.
 6. Powtorz punkt 5 z plytka okragla ramkowa o INNYM numerze.
 7. Proby celowe - ramka ma NIE swiecic, a nad mapa ma byc zolty panel [DO POTWIERDZENIA NA 0.3.3: tytuly
    paneli z punktow 7 i 8 i z akapitu o ramce porannej]:
    (a) poloz plytke drugiej ramki (np. nr 4 na wieczornej): "Plytka lezy na zlej ramce";
    (b) poloz inna plytke niz ostatnio zeskanowana: "Na ramce lezy inna plytka niz zeskanowana";
-   (c) tylko plytka OKRAGLA, ktorej numer program odczytal sam: lezy na ramce i swieci; kliknij przy
+   (c) tylko plytka OKRAGLA, ktorej numer program odczytal sam: gdy lezy na ramce i swieci, kliknij przy
    niej "Zmien numer" i podaj inny: "Numer plytki nie zgadza sie ze skanem" ("Podany numer plytki to X,
    a program odczytal ze skanu numer Y"). Plytki NIE zdejmuj. "Zmien numer" z powrotem na wlasciwy:
-   panel znika, ramka swieci. Na plytce kwadratowej tej proby nie rob (wyjdzie komunikat b).
-8. Ten sam numer drugi raz (gdy jest czas): w ciagu godziny zeskanuj ponownie plytke z punktu 6, gdy
-   LEZY na ramce. Program pyta "Ponowny skan tej samej plytki?", ramka gasnie, zolty panel "Dwa skany
+   panel znika, ramka swieci. Na plytce kwadratowej tej proby nie rob - wyjdzie komunikat (b).
+8. Ten sam numer drugi raz (gdy jest czas): plytke z punktu 6, gdy LEZY na ramce, zeskanuj ponownie
+   w ciagu godziny. Program pyta "Ponowny skan tej samej plytki?", ramka gasnie, zolty panel "Dwa skany
    z numerem plytki N - ramka czeka na odpowiedz". Kliknij "Tak, to ponowny skan": ramka swieci nowy
-   wynik. ("Nie, to nowy wsad" jest dla INNEJ plytki o tym samym numerze - wtedy najpierw zdejmij z ramki
-   te, ktora lezy.)
+   wynik.
 
 Udalo sie, gdy: pod plytka swieca gniazda z pracami w kolorach jak na mapie - takze pod plytka okragla
 ramkowa [DO POTWIERDZENIA NA 0.3.3] - a proby 7 i 8 daja opisane panele i ciemna ramke.
 Zanotuj: arkusz 3.8; kazdy komunikat, ktory pojawil sie BEZ proby celowej, przepisz.
 Gdy sie nie uda:
 
-- "brak polaczenia" albo "zly klucz" w pasku: sprawdz adres i klucz w ustawieniach. "drugi laptop":
+- Pasek "brak polaczenia" albo "zly klucz": sprawdz adres i klucz w ustawieniach. "drugi laptop":
   zamknij `ramka.cmd` i poczekaj pol minuty.
-- Panel (c) po poprawieniu numeru ZLE odczytanego z dolkow zostaje, ramka ciemna: to wynik pomiaru (skaner
-  zle czyta dolki), nie awaria. Zapisz numer wybity i odczytany, zeskanuj plytke ponownie.
-- Pod plytka swieci wynik INNEJ plytki: na ramce lezala plytka o numerze nowego skanu. Gdy prace maja
-  rozne projekty STL, program o nic nie pyta - dlatego pierwsza zasada. Zapisz to.
-- Ramka ciemna bez komunikatu: zapisz numer plytki i tekst z paska, zrob zdjecie ekranu.
+- Panel (c) zostaje po poprawieniu numeru ZLE odczytanego z dolkow: to wynik pomiaru (skaner zle czyta
+  dolki), nie awaria. Zapisz numer wybity i odczytany, zeskanuj plytke ponownie.
+- Pod plytka swieci wynik INNEJ plytki o tym samym numerze (program nie zawsze pyta o ponowny skan - stad
+  pierwsza zasada) albo ramka jest ciemna bez komunikatu: zapisz numer plytki i tekst z paska, zrob
+  zdjecie ekranu.
 
-Ramka poranna (plytki 4-6): w pasku programu kliknij "-> Poranek" i dopiero wtedy skanuj. Plytka
-polozona bez skanu: ramka ciemna, bez komunikatu. Po skanie swieca gniazda z pracami - takze bez projektow
-STL i bez pliku zlecen; po zdjeciu i ponownym polozeniu wynik WRACA (inaczej niz wieczorem). Program pyta
-o numer, a plytka juz lezy na ramce: panel "Plytka na ramce czeka na numer skanu" - wybierz numer
-w pytaniu "Podaj numer plytki", ramka zaswieci sama. Plytka inna niz zeskanowane: "Na ramce lezy plytka,
-ktorej nie ma w planie pieca". Plytka zeskanowana w trybie "Wieczor" ("Plytka nie z tego trybu"): po
-"-> Poranek" zeskanuj ja jeszcze raz - samo przelaczenie nie wystarcza.
+Ramka poranna (plytki 4-6): najpierw kliknij w pasku programu "-> Poranek". Plytka polozona bez skanu:
+ramka ciemna, bez komunikatu. Po skanie swieca gniazda z pracami - takze bez projektow STL i bez pliku
+zlecen; po zdjeciu i ponownym polozeniu wynik WRACA. Program pyta o numer, a plytka juz lezy: panel
+"Plytka na ramce czeka na numer skanu" - wybierz numer w pytaniu, ramka zaswieci sama. Plytka inna niz
+zeskanowane: "Na ramce lezy plytka, ktorej nie ma w planie pieca". Plytke zeskanowana w trybie "Wieczor"
+("Plytka nie z tego trybu") zeskanuj po przelaczeniu jeszcze raz.
 [NIE SPRAWDZONE BEZ SPRZETU: prawdziwa siec i ramka; jak czesto komunikat (b) pojawia sie w zwyklej pracy]
 
 ### Krok 3.9 - klawiatura ramki porannej (10 minut, tylko ramka poranna)
@@ -509,15 +470,13 @@ Gdy sie nie uda: baterie, odbiornik USB w ramce, NumLock. Zapisz, ktore klawisze
 
 ## Czesc 4 - laptop stanowiska (tylko gdy testy sa na laptopie firmowym)
 
-- **4.1** Po krokach 2.7 i 3.8 nacisnij Windows + R, wpisz `cmd` i Enter. W czarnym oknie wpisz:
+Arkusz, czesc 4, prowadzi przez piec odczytow (czas analizy ze stopera z kroku 2.7 - plan: do 40 s;
+skalowanie ekranu; folder OneDrive "Cyrkon"; wolne miejsce). Jeden wymaga wpisania polecenia: po krokach
+2.7 i 3.8 nacisnij Windows + R, wpisz `cmd` i Enter. W czarnym oknie wpisz:
 
-      findstr /c:"KnownDlls" /c:"proces silnika" C:\Stanowisko\dane\logi\stanowisko.log
+    findstr /c:"KnownDlls" /c:"proces silnika" C:\Stanowisko\dane\logi\stanowisko.log
 
-  To sprawdza, czy program analizy nie przerywal pracy. Policz wiersze; ma byc 0 (nic sie nie wypisuje).
-- **4.2** Czas analizy plytki: czasy ze stopera z kroku 2.7. Plan: do 40 s.
-- **4.3** Skalowanie ekranu (Ustawienia -> System -> Ekran): procent i rozdzielczosc. Czy widac wszystkie
-  przyciski programu?
-- **4.4** Czy folder OneDrive "Cyrkon" jest na tym laptopie? **4.5** Wolne miejsce na dysku.
+Ma nie wypisac nic (0 wierszy) - to znaczy, ze program analizy nie przerywal pracy.
 
 Zanotuj: arkusz, czesc 4. Gdy cos sie nie uda: zapisz i idz dalej - to sa tylko odczyty.
 [NIE SPRAWDZONE BEZ SPRZETU: wszystko w tej czesci]
@@ -554,17 +513,15 @@ nie wysylaj ich poczta.
 
 ## Zbiorcza lista: czego NIE sprawdzono bez sprzetu
 
-Skaner: (1) plik skanu: format, nazwa, liczba plikow, czas zapisu - 2.2, 2.3, 2.7; (2) wymiar i ksztalt
-pola skanera - 2.4; (3) stolik albo uchwyt w skanie - 2.3, 2.4; (4) dolki numeru i trzy stozki - 2.3-2.5;
-(5) scianka boczna i rowek pokrywki - 2.5; (6) plytka okragla brana za kwadratowa - 2.5a; (7) szum, prace
-prawdziwe i ukruszone - 2.5; (8) zrzut ekranu, praca obok programu skanera - 2.1.
+Skaner: plik skanu (format, nazwa, czas zapisu) - 2.2, 2.3, 2.7; wymiar i ksztalt pola - 2.4; stolik
+w skanie i linia ciecia - 2.3; dolki numeru, stozki, scianka boczna, rowek, prace prawdziwe i ukruszone
+- 2.5; plytka okragla brana za kwadratowa - 2.5a; okno obok programu skanera, folder testowy - 2.1, 2.6.
 
-Ramka: (9) Raspberry Pi, program ramki, start po wlaczeniu pradu - 3.2; (10) matryca: kolory, jasnosc,
-kierunek obrazu - 3.4; (11) czujniki i magnesy, plytka na zebrze i skosem - 3.5, 3.6; (12) diody pod
-gniazdami, takze pod wkladka okragla - 3.7; (13) siec, nazwa `ramka-w.local`, klucz - 3.3, 3.8; (14)
-komunikaty o plytce na ramce w zwyklej pracy - 3.8; (15) klawiatura - 3.9; pasowanie plytek - 3.1.
+Ramka: program ramki i start po wlaczeniu pradu - 3.2; matryca diod - 3.4; czujniki, magnesy, plytka
+krzywo - 3.5, 3.6; diody pod gniazdami - 3.7; siec, adres, klucz - 3.3; komunikaty w zwyklej pracy -
+3.8; klawiatura - 3.9; pasowanie plytek - 3.1.
 
-Komputer: (16) instalacja na laptopie firmowym - 1.1, 1.2; (17) dwuklik, przeciaganie pliku, menu z
-klawiatury - 1.4; (18) wyglad okien, czas analizy na laptopie - 1.3, czesc 4.
+Komputer: instalacja na laptopie firmowym - 1.1, 1.2; dwuklik i przeciaganie pliku - 1.4; wyglad okien
+i czas analizy - 1.3, czesc 4.
 
 Wiecej (program ramki na Raspberry Pi, nazwy w programie, pelne teksty komunikatow): `ZALACZNIKI.md`.

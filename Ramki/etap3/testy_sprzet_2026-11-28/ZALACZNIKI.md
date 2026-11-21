@@ -16,8 +16,9 @@ Raspberry Pi. Potrzebny internet i kilka godzin. Karty SD zastanej w ramce nie n
    `ramka\rpi` (krok 7). Skrypt zaklada plik `/etc/ramka/ramka.json` z LOSOWYM KLUCZEM.
 5. Odczyt klucza na ramce: `sudo grep klucz /etc/ramka/ramka.json` - przepisz go na kartke (pytanie P8).
    Druga ramka musi dostac TEN SAM klucz (program ma jedno pole klucza dla obu ramek).
-6. Pierwsze uruchomienie reczne i kontrola skryptem `sprawdz_ramke.sh` (kroki 8-9): wiersze OK / BRAK.
-7. Test diod wedlug gniazd plytki (krok 10) i autostart po wlaczeniu pradu (krok 11).
+6. Pierwsze uruchomienie reczne (krok 8) i kontrola z laptopa (krok 9).
+7. Test diod wedlug gniazd plytki (krok 10), autostart po wlaczeniu pradu i kontrola skryptem
+   `sprawdz_ramke.sh` (krok 11): wiersze OK / BRAK.
 8. Klucz i adres ramki wpisuje sie w `C:\Stanowisko\ustawienia.toml`, sekcja `[ramki]` (krok 3.8 dokumentu).
 
 ## B. Nazwy uzywane przez program (w dokumencie: "rodzaj plytki")
@@ -27,9 +28,13 @@ Raspberry Pi. Potrzebny internet i kilka godzin. Karty SD zastanej w ramce nie n
 | plytka kwadratowa wieczorna / poranna | `wieczorna` / `poranna` | 1-3 / 4-6 |
 | plytka okragla ramkowa (do ramki) | `okragla_ramkowa_wieczorna` / `okragla_ramkowa_poranna` | 1-3 / 4-6 |
 | plytka okragla testowa (poza ramka) | `okragla_wieczorna` / `okragla_poranna` | 8 / 9 |
-| stara plytka R54 | `wieczorna_r54` / `poranna_r54` | - |
+| stara plytka R54 kwadratowa | `wieczorna_r54` / `poranna_r54` | - |
+| stara plytka R54 okragla | `okragla_wieczorna_r54` / `okragla_poranna_r54` | - |
 
-Okno programu nie wypisuje nazwy rodzaju plytki - plytke opisuje numer ("Plytka 1" ... "Plytka 9") i rysunek
+Razem 10 nazw - tyle liczy samokontrola ("poprawne 10 z 10").
+
+Okno programu "Stanowisko" nie wypisuje nazwy rodzaju plytki (okno "Dzien skanera" wypisuje ja w ocenie
+skanu: "cala plytka, uklad ...") - plytke opisuje numer ("Plytka 1" ... "Plytka 9") i rysunek
 mapy (kwadrat z wycietym naroznikiem albo kolo ze scieciem). Nazwy widac w `pole_skanu` (wiersz 1), w menu
 `ramka.cmd` (pozycje 4 i 5) i w plikach wynikow.
 
@@ -52,6 +57,19 @@ Zolty panel nad mapa, przycisk "Zamknij". We wszystkich trzech sytuacjach ramka 
 - (c) "Plytka N: Numer plytki nie zgadza sie ze skanem": "Podany numer plytki to 2, a program odczytal ze
   skanu numer 1. Ramka nie podswietla tej plytki; skan i wynik zostaja. Sprawdz numer wybity na plytce: jesli
   podany numer jest zly - popraw go przyciskiem "Zmien numer"; jesli jest dobry - pracuj wedlug ekranu."
+- Dwa skany z tym samym numerem (runda 2 paczki O2). Pytanie "Ponowny skan tej samej plytki?": "Plytka nr 1
+  byla skanowana 5 min temu. Czy to ponowny skan tych samych prac? ..."; przyciski "Tak, to ponowny skan"
+  / "Nie, to nowy wsad". Gdy plytka o tym numerze lezy na ramce wieczornej - panel "Dwa skany z numerem
+  plytki 1 - ramka czeka na odpowiedz": "Sa dwa skany plytki nr 1 i plytka nr 1 lezy na ramce wieczornej -
+  ramka nie swieci, dopoki nie odpowiesz na pytanie o ponowny skan. Jesli to ta sama plytka zeskanowana
+  drugi raz - kliknij "Tak, to ponowny skan", ramka zaswieci. Jesli to dwie rozne plytki - najpierw zdejmij
+  z ramki te, ktora lezy, potem kliknij "Nie, to nowy wsad"; wynik ostatniego skanu pokaze wtedy ekran."
+  W probie na atrapach (S2b-1): pytanie pojawia sie, gdy prace obu skanow sa te same albo bez projektu;
+  przy roznych rozpoznanych projektach pytania nie ma i pod lezaca plytka swieci wynik nowego skanu.
+- Rano, skan bez numeru i plytka na ramce porannej - "Plytka na ramce czeka na numer skanu": "Na ramce
+  porannej lezy plytka nr 4, a ramka nie ma dla tego pieca zadnej plytki - ramka nie swieci. W tym piecu
+  jest skan bez numeru plytki: jesli to skan tej plytki, wybierz numer 4 w pytaniu "Podaj numer plytki" -
+  ramka zaswieci sama."
 - Blad analizy, tytul "Analiza skanu nie powiodla sie": "Program nie przeanalizowal tego skanu (w skanie widac
   1 z 3 znacznikow plytki - plytka nie miesci sie w polu skanera albo lezy poza srodkiem; ustaw plytke na
   srodku i sprawdz, czy pole skanowania obejmuje cala plytke). Zeskanuj plytke ponownie." Inne nawiasy:
