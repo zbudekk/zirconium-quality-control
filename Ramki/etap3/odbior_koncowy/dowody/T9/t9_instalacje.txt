@@ -1,0 +1,47 @@
+Samotest: nazw 449, czlonow 61, tekstow maski 524, wzorzec kontrolny 1; postaci sprawdzonych 8229, nieznalezionych 0; nazw bez postaci ASCII (transliteracja niemozliwa, postac niesprawdzana): 7
+T9 dane osobowe: szukanych nazw 449 (pominietych krotszych niz 4 znaki: 0), czlonow 61; przeszukanych plikow 739, nieprzeszukanych (spakowane / za duze) 152, wykluczonych (--wyklucz) 75704
+TRAFIENIA calych nazw poza miejscami dozwolonymi: 0 w 0 plikach
+Trafienia w miejscach dozwolonych: 68 w 34 plikach
+Czlony nazw do wyjasnienia (bez calej nazwy): 3213 w 276 plikach
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\instalacja\instalator.py: 1216b2a88975f9d3 x2, 5054e1b14a2e813f x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\instalacja\wzory\Stanowisko.cmd: 414777f6c840fa40 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\instalacja\zainstaluj.cmd: 5054e1b14a2e813f x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\instrukcje\poranek.html: b78cb9ce56d5b7e2 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\instrukcje\poranek.md: b78cb9ce56d5b7e2 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\arkusz_syntetyczny.py: 414777f6c840fa40 x3, 923818e5629f40f9 x1, b78cb9ce56d5b7e2 x8, bb5fe2500e4c0440 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\<sha16:0c88d17099588e8a>: 414777f6c840fa40 x31
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\atrapy_koron.py: 414777f6c840fa40 x2, bef9ad6bbec0ddef x2, c9647b1cbff0d9de x4, f563e2c6c0dcbf98 x8
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\drzewo_syntetyczne.py: 0dcfafab5f8035e7 x3, 17f29b073143d8cd x2, 414777f6c840fa40 x3, 6d223affc23ef544 x1, 923818e5629f40f9 x1, b78cb9ce56d5b7e2 x6, bb5fe2500e4c0440 x2, bef9ad6bbec0ddef x1, c9647b1cbff0d9de x1, f563e2c6c0dcbf98 x2
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\katalog_projektow.py: b78cb9ce56d5b7e2 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\metryki_krawedz.py: 5054e1b14a2e813f x1, 7da6cb013511d41b x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\metryki_P2.py: 5054e1b14a2e813f x19
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\metryki_pula.py: 414777f6c840fa40 x2, 5054e1b14a2e813f x17
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\metryki_skala.py: 5054e1b14a2e813f x21
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\symulator_skanera.py: b78cb9ce56d5b7e2 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\narzedzia\zrzuty_instrukcji.py: 414777f6c840fa40 x7, bb5fe2500e4c0440 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\ramka\__init__.py: 414777f6c840fa40 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\ramka\__main__.py: 414777f6c840fa40 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\ramka\program.py: 414777f6c840fa40 x24
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\ramka\README.md: 414777f6c840fa40 x13, fffd71d486fd229a x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\ramka\serwer.py: 414777f6c840fa40 x15
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\ramka\sprzet.py: 414777f6c840fa40 x2
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\ramka\<sha16:1149046b7be57ec3>: 414777f6c840fa40 x5
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\ramka\test_led.py: 414777f6c840fa40 x5
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\aplikacja.py: 414777f6c840fa40 x11, b78cb9ce56d5b7e2 x31
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\baza.py: b78cb9ce56d5b7e2 x8
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\dzien_skanera_kroki.toml: 5054e1b14a2e813f x1, b78cb9ce56d5b7e2 x5
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\excel.py: 414777f6c840fa40 x1, 6d223affc23ef544 x2, b78cb9ce56d5b7e2 x33
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\excel_com.py: 414777f6c840fa40 x2
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\indeks.py: b78cb9ce56d5b7e2 x8
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\indicate.py: 414777f6c840fa40 x2
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\katalog.py: 0dcfafab5f8035e7 x3, 1216b2a88975f9d3 x3, 17f29b073143d8cd x3, 7da6cb013511d41b x6, 9722d4a4b59ce537 x3, b78cb9ce56d5b7e2 x1, f253e9a27ab18977 x3
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\kontroler_api.py: 0dcfafab5f8035e7 x3, 414777f6c840fa40 x22, b78cb9ce56d5b7e2 x88
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\krawedz.py: 5054e1b14a2e813f x32
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\match.py: 414777f6c840fa40 x1, 5054e1b14a2e813f x28, b78cb9ce56d5b7e2 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\metryki.py: 6d223affc23ef544 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\nazwy.py: 17f29b073143d8cd x1, 7da6cb013511d41b x1, b78cb9ce56d5b7e2 x5
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\pula.py: b78cb9ce56d5b7e2 x4
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\samokontrola.py: 414777f6c840fa40 x1
+  <PC-katalog>\t0\odbior\paczka_0.3.1\program\stanowisko\scanner.py: 414777f6c840fa40 x4
+  ... i jeszcze 236 plikow (pelna lista: --json)
+WYNIK T9 (cale nazwy): ZAL - czlony do wyjasnienia: 3213

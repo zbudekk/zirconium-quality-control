@@ -191,10 +191,10 @@ wersji, `dane\kopie`). Instalator wymaga na wersje ok. 1860 MB wolnego miejsca (
 
 1. Czy opisany przebieg (paczka ZIP; 2 uruchomienia `zainstaluj.cmd` z edycja `ustawienia.toml` pomiedzy nimi; ok. 3 minuty)
    przyjmujesz jako sposob wgrywania programu - czyli czy G3 jest zaliczona "po fakcie", czy chcesz zobaczyc ja na zywo / na laptopie?
-2. Czy powrot po aktualizacji zmieniajacej baze moze zostac: 2 polecenia i utrata wpisow zrobionych po aktualizacji (`RAPORT.md` 4a poz. 11)?
+2. Czy powrot po aktualizacji zmieniajacej baze moze zostac: 2 polecenia i utrata wpisow zrobionych po aktualizacji (`RAPORT.md` 4a poz. 4)?
 3. Czy przyjmujesz odstepstwo O1 (swiezy katalog zamiast czystego konta, siec nieodcieta) do czasu instalacji na laptopie
-   (`RAPORT.md` 4a poz. 13), czy zlecic probe na nowym koncie Windows z odlaczona siecia?
+   (`RAPORT.md` 4a poz. 16), czy zlecic probe na nowym koncie Windows z odlaczona siecia?
 4. Kto wpisze foldery w `ustawienia.toml` na laptopie (eksport skanera, Cyrkon, Prywatne, MillBox, osoby) i jakie to sciezki?
-5. Czy zlecic sprawdzenie tego, czego T0 nie objal: dwuklik i pauza, `/skrot`, Python bez `/python` (`RAPORT.md` 4a poz. 27)?
+5. Czy zlecic sprawdzenie tego, czego T0 nie objal: dwuklik i pauza, `/skrot`, Python bez `/python` (`RAPORT.md` 4a poz. 16)?
 6. Kanal przekazania paczki (424 MB): pendrive, OneDrive czy katalog wydan na serwerze (plan etapu 3, sekcja 8)?
 7. Stare wersje (ok. 1,5 GB kazda) i kopie bazy nie kasuja sie same - czy tak ma zostac (`RAPORT.md` sekcja 8, decyzja nr 8)?

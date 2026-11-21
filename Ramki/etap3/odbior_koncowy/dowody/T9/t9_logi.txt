@@ -1,0 +1,49 @@
+Samotest: nazw 449, czlonow 61, tekstow maski 524, wzorzec kontrolny 1; postaci sprawdzonych 8229, nieznalezionych 0; nazw bez postaci ASCII (transliteracja niemozliwa, postac niesprawdzana): 7
+T9 dane osobowe: szukanych nazw 449 (pominietych krotszych niz 4 znaki: 0), czlonow 61; przeszukanych plikow 1172, nieprzeszukanych (spakowane / za duze) 652, wykluczonych (--wyklucz) 101649
+TRAFIENIA calych nazw poza miejscami dozwolonymi: 2 w 2 plikach
+  <PC-katalog>\koordynator\robocze\odbior\T1\robocze\t1_collect_bazowy_pelny.txt: 5460764f2024f994 x1
+  <PC-katalog>\koordynator\robocze\odbior\T1\robocze\t1_collect_wersja_pelny.txt: 5460764f2024f994 x1
+Trafienia w miejscach dozwolonych: 303 w 105 plikach
+Czlony nazw do wyjasnienia (bez calej nazwy): 3050 w 292 plikach
+  <PC-katalog>\koordynator\robocze\odbior\T0\GOTOWE.txt: 414777f6c840fa40 x1
+  <PC-katalog>\koordynator\robocze\odbior\T0\kody.txt: 414777f6c840fa40 x1
+  <PC-katalog>\koordynator\robocze\odbior\T0\krok_6_9.cmd: 414777f6c840fa40 x3
+  <PC-katalog>\koordynator\robocze\odbior\T0\t0_kroki.md: 414777f6c840fa40 x1, b78cb9ce56d5b7e2 x1
+  <PC-katalog>\koordynator\robocze\odbior\T0\t0_sha256.txt: b78cb9ce56d5b7e2 x2
+  <PC-katalog>\koordynator\robocze\odbior\T0\t0_start.txt: 414777f6c840fa40 x1
+  <PC-katalog>\koordynator\robocze\odbior\T0\WYNIK.md: 414777f6c840fa40 x1
+  <PC-katalog>\koordynator\robocze\odbior\T1\t1_pominiete.txt: 5054e1b14a2e813f x3
+  <PC-katalog>\koordynator\robocze\odbior\T1\t1_pytest.log: 5054e1b14a2e813f x3
+  <PC-katalog>\koordynator\robocze\odbior\T1\t1_pytest_bazowy.log: 5054e1b14a2e813f x3
+  <PC-katalog>\koordynator\robocze\odbior\T1\WYNIK.md: 5054e1b14a2e813f x3
+  <PC-katalog>\koordynator\robocze\odbior\T10\robocze\dowody_kontrola\WYNIK.md: 6d223affc23ef544 x2
+  <PC-katalog>\koordynator\robocze\odbior\T10\robocze\proba_skryptu\proba.md: 5054e1b14a2e813f x2
+  <PC-katalog>\koordynator\robocze\odbior\T10\WYNIK.md: 6d223affc23ef544 x2
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045040_a33966994b515b9e_wynik.json: 7da6cb013511d41b x19
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045101_af212769571c0d65_wynik.json: 7da6cb013511d41b x21
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045145_a5c5683e20431cf3_wynik.json: 7da6cb013511d41b x21
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045234_5e03ed10436c2b30_wynik.json: 7da6cb013511d41b x19
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045319_40f034fd7d24fbcb_wynik.json: 7da6cb013511d41b x29
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045359_6e60a2f8be92efe5_wynik.json: 7da6cb013511d41b x19
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045454_ec033c0713e90c42_wynik.json: 7da6cb013511d41b x26
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045525_65df2f5ed75a75c9_wynik.json: 7da6cb013511d41b x22
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045615_8358e17160a25742_wynik.json: 7da6cb013511d41b x23
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045702_b0aabeec69834bca_wynik.json: 7da6cb013511d41b x22
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045750_842d039b1fc1020c_wynik.json: 7da6cb013511d41b x24
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045830_9d5eeb980330c768_wynik.json: 7da6cb013511d41b x23
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045915_75fa520430894f99_wynik.json: 7da6cb013511d41b x20
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_045954_b03385ae8316e226_wynik.json: 7da6cb013511d41b x21
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050043_823181c04ea8f815_wynik.json: 7da6cb013511d41b x24
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050129_b75451bfe836239b_wynik.json: 7da6cb013511d41b x24
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050223_007e56008bd77efb_wynik.json: 7da6cb013511d41b x24
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050300_b7dfa66ec8a53eb3_wynik.json: 7da6cb013511d41b x20
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050345_37b6d5f5a6f45340_wynik.json: 7da6cb013511d41b x23
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050431_f20136b8b0af6e00_wynik.json: 7da6cb013511d41b x21
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050514_7e2cb93bbeaf4701_wynik.json: 7da6cb013511d41b x25
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050607_9a1cc0ad42a1b9b0_wynik.json: 7da6cb013511d41b x25
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050638_9cc2bd761deb672b_wynik.json: 7da6cb013511d41b x22
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050734_1745b6260092155c_wynik.json: 7da6cb013511d41b x24
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050821_5283ca8eabec7b56_wynik.json: 7da6cb013511d41b x20
+  <PC-katalog>\koordynator\robocze\odbior\T11\robocze\dane\wyniki\20261121_050912_c34cb8aea9d7521d_wynik.json: 7da6cb013511d41b x21
+  ... i jeszcze 252 plikow (pelna lista: --json)
+WYNIK T9 (cale nazwy): FAIL
