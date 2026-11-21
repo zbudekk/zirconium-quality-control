@@ -2,8 +2,9 @@
 
 Uzycie (z katalogu stanowisko/; jeden proces, bez puli):
     python narzedzia/auto_uklad_r58.py --wyjscie <katalog> --odniesienie <folder> [<folder> ...]
-           [--kryteria 2,3,4,6,z] [--ustawienia <plik>] [--pola 100,90,80] [--ziarna-k2 4] [--ziarna-k4 2]
-           [--pomiary-k6 10] [--limit N] [--wznow] [--uwaga "co jeszcze liczylo"]
+           [--kryteria 2,3,4,6,g,z] [--ustawienia <plik>] [--pola 100,90,80] [--ziarna-k2 4] [--ziarna-k4 2]
+           [--pomiary-k6 10] [--ziarna-g 3] [--limit N] [--wznow] [--uwaga "co jeszcze liczylo"]
+    python narzedzia/auto_uklad_r58.py --wyjscie <katalog> --z-przebiegow <przebiegi.jsonl> [<przebiegi.jsonl> ...]
 
 Mierzy kryteria paczki E3-O1 (``Ramki/etap3/plan_plytki_okragle_n1-n6_2026-11-21.md`` sekcja 4) funkcja
 ``plate.rozpoznaj_uklad`` programu, bez zmiany kodu rozpoznania. Kandydaci "10" = wszystkie uklady z ``[plytki]``
@@ -19,13 +20,24 @@ ustawien, kandydaci "8" = te same bez ukladow ``okragla_ramkowa_*`` (stan sprzed
      drugiego ksztaltu - co program zwraca (dla ukladow sprzed paczki takze przy 8 kandydatach);
   6  czas rozpoznania plytek R59 z folderow odniesienia: ``--pomiary-k6`` skanow, 8 i 10 kandydatow na przemian,
      mediana czasu sciennego; wzrost mediany nie wiekszy niz 1,0 s;
+  g  "granice" - OGRANICZENIE (poza bramka), runda 2 recenzji: plytka okragla bez waznego numeru z dolkow, gdy w skanie
+     nie ma scianki bocznej plytki. (a) plytki okragle testowe R59 n8 / n9: bez zaslony / dolek D zasloniety / 4 dolki
+     zasloniete, pola 100, 99, 98, 97 mm i pole 100 ze skanem BEZ scianki bocznej (usuniete trojkaty ponizej wierzchu
+     o srodku r >= 49 mm - "skaner patrzacy z gory"; konstrukcja, nie pomiar skanera), ``--ziarna-g`` ziaren, 8 i 10
+     kandydatow: ile par "8: dobry i pewny -> 10: zly" i ile "pewny zly" przy 10; (b) plytki ramkowe n1, n2, n4, n5
+     z 4 dolkami zaslonietymi, pola 100, 99, 98 i 100 bez scianki, bez numeru i z numerem zgodnym, 10 kandydatow: ile
+     "kwadrat, pewny", jaki numer i zrodlo; (c) kontrola: kwadraty R59 n2 / n5 w polach jak (a), 10 kandydatow.
+     Wynik nie wchodzi do wiersza BRAMKA ani do kodu wyjscia;
   z  plytka ramkowa z dolkami kodu zaslonietymi przez przedmiot lezacy na plytce (walec fi 4 x 3 mm na dolku, wierzch
      plytki pod nim usuniety): wszystkie dolki albo jeden dolek bitu ustawionego; pomiar dodatkowy, bez progu.
 
 Kazdy przebieg jest dopisywany do ``<wyjscie>/przebiegi.jsonl`` zaraz po zakonczeniu (PC bywa restartowany);
-``--wznow`` pomija przebiegi juz zapisane. Na koniec: ``<wyjscie>/auto_uklad_r58.json`` (podsumowanie + przebiegi)
+``--wznow`` pomija przebiegi juz zapisane. ``--z-przebiegow`` niczego nie mierzy: ocenia wpisy z podanych plikow
+``przebiegi.jsonl`` (np. wyniki wczesniejszego pomiaru po poprawce funkcji oceny). Na koniec: ``<wyjscie>/auto_uklad_r58.json`` (podsumowanie + przebiegi)
 i ``<wyjscie>/auto_uklad_r58.txt`` (tabela, ASCII). W wyniku sa tylko nazwy skanow syntetycznych i skroty ``sha16``
-projektow z plikow prawdy - bez nazw plikow projektow. Kod wyjscia: 0 = wszystkie zmierzone kryteria spelnione,
+projektow z plikow prawdy - bez nazw plikow projektow i bez sciezek katalogow (teksty ostrzezen i bledow ida przez
+``baza.bez_sciezek``). Ocena: przebieg bez wyniku (wyjatek rozpoznania) nigdy nie liczy sie jako dobry - para 8 / 10
+kandydatow bez wyniku jest para zla (kryterium 3), a kryterium 4 wymaga co najmniej jednego wyniku przy polu 100. Kod wyjscia: 0 = wszystkie zmierzone kryteria spelnione,
 1 = ktores niespelnione, 2 = blad wywolania.
 """
 from __future__ import annotations
@@ -51,10 +63,11 @@ import numpy as np  # noqa: E402
 import trimesh  # noqa: E402
 
 import atrapy_koron  # noqa: E402
-from stanowisko import plate, porownaj as PO, synth, uklad as U, ustawienia as UST  # noqa: E402
+from stanowisko import baza as BA, plate, porownaj as PO, synth, uklad as U, ustawienia as UST  # noqa: E402
 
 RAMKOWE = ("okragla_ramkowa_wieczorna", "okragla_ramkowa_poranna")
-KRYTERIA = ("2", "3", "4", "6", "z")
+KRYTERIA = ("2", "3", "4", "6", "g", "z")
+DOMYSLNE = ("2", "3", "4", "6", "g")
 PRZYROST_CZASU_MAX_S = 1.0  # kryterium 6
 SKANOW_K2 = 48  # kryterium 2: 6 numerow x 4 ziarna x 2 tryby
 POLA_FRAGMENTU_RODZINY = ("uklad", "odrzucony", "numer_z_dolkow", "numer_z_dolkow_wazny", "dolki_widoczne", "numer_podany_pasuje",
@@ -62,6 +75,12 @@ POLA_FRAGMENTU_RODZINY = ("uklad", "odrzucony", "numer_z_dolkow", "numer_z_dolko
 PARA_PORY = {1: 4, 2: 5, 3: 6, 4: 1, 5: 2, 6: 3, 8: 9, 9: 8}  # ten sam numer kolejny plytki drugiej pory dnia
 PROMIEN_ZASLONY = 2.0  # mm: walec na dolku kodu (dolek fi 2)
 WYSOKOSC_ZASLONY = 3.0
+PROMIEN_SCIANKI = 49.0  # mm: trojkaty ponizej wierzchu o srodku dalej od osi plytki = scianka boczna (kryterium g)
+POLA_GRANIC = ((100.0, False), (99.0, False), (98.0, False), (97.0, False), (100.0, True))  # (pole, bez scianki bocznej)
+TESTOWE_GRANIC = (("okragla_wieczorna", 8), ("okragla_poranna", 9))
+RAMKOWE_GRANIC = (("okragla_ramkowa_wieczorna", 1), ("okragla_ramkowa_wieczorna", 2), ("okragla_ramkowa_poranna", 4), ("okragla_ramkowa_poranna", 5))
+KWADRATY_GRANIC = (("wieczorna", 2), ("poranna", 5))
+KLASY = ("dobry_pewny", "dobry_niepewny", "zly_niepewny", "zly_pewny", "brak_wyniku")
 
 
 # ----------------------------------------------------------------------------
@@ -110,30 +129,60 @@ def zaslon_dolki(skan: trimesh.Trimesh, uk: U.UkladPlytki, bity: list[str]) -> t
     return trimesh.util.concatenate([plytka, *czesci])
 
 
+def usun_scianke_boczna(skan: trimesh.Trimesh, uk: U.UkladPlytki) -> trimesh.Trimesh:
+    """Skan w ukladzie plytki bez scianki bocznej: bez trojkatow ponizej wierzchu o srodku r >= 49,0 mm ("skaner patrzacy
+    z gory"). Konstrukcja recenzenta PR #51 (proba W9 / D4), nie pomiar skanera."""
+    c = skan.triangles_center
+    scianka = (np.hypot(c[:, 0], c[:, 1]) >= PROMIEN_SCIANKI) & (c[:, 2] < uk.thickness - 0.05)
+    bez = trimesh.Trimesh(skan.vertices, skan.faces[~scianka], process=False)
+    bez.remove_unreferenced_vertices()
+    return bez
+
+
 def skan_syntetyczny(uk: U.UkladPlytki, numer: int, projekty: list[Path], seed: int, pole: float = 100.0, ust: dict | None = None,
-                     zaslon: list[str] | None = None):
+                     zaslon: list[str] | None = None, bez_scianki: bool = False):
     """Sztuczny skan plytki ``uk`` nr ``numer``: 3 atrapy, losowa poza skanera, pole fi ``pole``, skala 1,22 / 1,0.
 
-    ``zaslon`` (lista bitow) = dolki kodu zasloniete przedmiotem; wtedy przyciecie do pola i poza sa nakladane tutaj
-    funkcjami ``synth.przytnij_do_kola`` i ``synth.losowa_poza_skanu`` (te same co w generatorze).
+    ``zaslon`` (lista bitow) = dolki kodu zasloniete przedmiotem; ``bez_scianki`` = skan bez scianki bocznej plytki
+    (``usun_scianke_boczna``). W obu przypadkach przyciecie do pola i poza sa nakladane tutaj funkcjami
+    ``synth.przytnij_do_kola`` i ``synth.losowa_poza_skanu`` (te same co w generatorze).
     """
     w = 1.0 if synth.poranna(uk.nazwa) else 1.22
     wspolne = dict(plytka=uk.nazwa, prace_na_plytce=len(projekty), wspolczynnik=(w, w), ubytki_na_prace=(0, 0))
     rng = np.random.default_rng(seed)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        if not zaslon:
+        if not zaslon and not bez_scianki:
             op = synth.Opcje.z_toml(ust, poza_uklad=True, pole=float(pole), **wspolne)
             return synth.generuj_plytke(uk, numer, list(projekty), rng, op, seed)
         op = synth.Opcje.z_toml(ust, poza_uklad=False, **wspolne)
         skan, prawda = synth.generuj_plytke(uk, numer, list(projekty), rng, op, seed)
-        skan = zaslon_dolki(skan, uk, zaslon)
+        if zaslon:
+            skan = zaslon_dolki(skan, uk, zaslon)
+        if bez_scianki:
+            skan = usun_scianke_boczna(skan, uk)
         sr = rng.uniform(-1.5, 1.5, 2)
         skan = synth.przytnij_do_kola(skan, sr, float(pole) / 2)
         P = synth.losowa_poza_skanu(rng)
         skan.apply_transform(P)
         prawda.pole_d, prawda.pole_srodek, prawda.poza_skanu = float(pole), [float(sr[0]), float(sr[1])], P.tolist()
     return skan, prawda
+
+
+def bez_sciezek(tekst) -> str:
+    """Tekst ostrzezenia / bledu bez sciezek katalogow (``plate`` wpisuje do ostrzezen katalog modelu, a ten na PC
+    wlasciciela zawiera nazwe konta) - uwaga 4 recenzji PR #51."""
+    return BA.bez_sciezek(str(tekst))
+
+
+def bez_sciezek_w_wpisie(w: dict) -> dict:
+    """Kopia wpisu przebiegu z ostrzezeniami i bledem bez sciezek (wpisy wczytane z pliku starszego pomiaru)."""
+    w = dict(w)
+    if w.get("ostrzezenia"):
+        w["ostrzezenia"] = [bez_sciezek(o) for o in w["ostrzezenia"]]
+    if w.get("blad"):
+        w["blad"] = bez_sciezek(w["blad"])
+    return w
 
 
 def rozpoznaj(skan: trimesh.Trimesh, kandydaci: list[U.UkladPlytki], numer: int | None, ciecie: bool = False) -> dict:
@@ -144,7 +193,7 @@ def rozpoznaj(skan: trimesh.Trimesh, kandydaci: list[U.UkladPlytki], numer: int 
             warnings.simplefilter("always")
             wyr, info = plate.rozpoznaj_uklad(skan, kandydaci, numer=numer, ciecie=ciecie)
     except Exception as e:  # noqa: BLE001 - blad jednego skanu nie zatrzymuje pomiaru
-        return {"wybrany": None, "pewny": False, "powod": None, "blad": f"{type(e).__name__}: {str(e)[:200]}",
+        return {"wybrany": None, "pewny": False, "powod": None, "blad": f"{type(e).__name__}: {bez_sciezek(e)[:200]}",
                 "czas_scienny_s": round(time.perf_counter() - t0, 3), "kandydatow": len(kandydaci), "numer_podany": numer}
     return {
         "wybrany": info["wybrany"], "pewny": bool(info["pewny"]), "powod": info["powod"], "blad": None,
@@ -152,7 +201,7 @@ def rozpoznaj(skan: trimesh.Trimesh, kandydaci: list[U.UkladPlytki], numer: int 
         "bity": list(wyr.bity), "czas_rozpoznania_s": info["czas_rozpoznania_s"], "czas_scienny_s": round(time.perf_counter() - t0, 3),
         "kandydatow": len(kandydaci), "numer_podany": numer,
         "rodzina": [{k: c.get(k) for k in POLA_FRAGMENTU_RODZINY} for c in info["kandydaci"] if c["stozki_pasuja"]],
-        "ostrzezenia": [str(o.message)[:200] for o in ostrz][:6],
+        "ostrzezenia": [bez_sciezek(o.message)[:200] for o in ostrz][:6],
         "_wyr": wyr,
     }
 
@@ -199,11 +248,14 @@ def ocen_k3(wpisy: list[dict]) -> dict:
         if 8 not in p or 10 not in p:
             continue
         a, b = p[8], p[10]
+        # para jest dobra tylko, gdy OBA przebiegi maja wynik: brak wyniku w ktorymkolwiek = para zla, liczona osobno
+        bez = bool(a.get("blad")) or bool(b.get("blad"))
         wiersze.append({
             "skan": skan, "tryb": tryb, "prawda": a["prawda"], "wybrany_8": a["wybrany"], "wybrany_10": b["wybrany"],
             "pewny_8": a["pewny"], "pewny_10": b["pewny"], "powod_8": a["powod"], "powod_10": b["powod"],
-            "ten_sam_uklad": a["wybrany"] == b["wybrany"] and bool(a.get("blad")) == bool(b.get("blad")),
-            "pewnosc_nie_gorsza": not (a["pewny"] and not b["pewny"]),
+            "bez_wyniku": bez, "bez_wyniku_8": bool(a.get("blad")), "bez_wyniku_10": bool(b.get("blad")),
+            "ten_sam_uklad": not bez and a["wybrany"] == b["wybrany"],
+            "pewnosc_nie_gorsza": not bez and not (a["pewny"] and not b["pewny"]),
             "numer_ten_sam": (a.get("numer"), a.get("numer_zrodlo")) == (b.get("numer"), b.get("numer_zrodlo")),
             "zgodny_z_prawda_8": a["wybrany"] == a["prawda"], "zgodny_z_prawda_10": b["wybrany"] == b["prawda"],
             "macierz_roznica_max": b.get("macierz_roznica_max"),
@@ -219,11 +271,12 @@ def ocen_k3(wpisy: list[dict]) -> dict:
             "par": len(r), "ten_sam_uklad": sum(x["ten_sam_uklad"] for x in r), "pewnosc_nie_gorsza": sum(x["pewnosc_nie_gorsza"] for x in r),
             "pewny_8": sum(bool(x["pewny_8"]) for x in r), "pewny_10": sum(bool(x["pewny_10"]) for x in r),
             "zgodny_z_prawda_8": sum(x["zgodny_z_prawda_8"] for x in r), "zgodny_z_prawda_10": sum(x["zgodny_z_prawda_10"] for x in r),
-            "numer_ten_sam": sum(x["numer_ten_sam"] for x in r),
+            "numer_ten_sam": sum(x["numer_ten_sam"] for x in r), "bez_wyniku": sum(x["bez_wyniku"] for x in r),
             "przejscia_powod": dict(Counter(f"{x['powod_8']} -> {x['powod_10']}" for x in r)),
         }
     roznice = [x["macierz_roznica_max"] for x in wiersze if x["macierz_roznica_max"] is not None]
     return {"skanow": len(skany), "skanow_ok": len(skany_ok), "par": len(wiersze), "par_ok": len(dobre),
+            "par_bez_wyniku": sum(x["bez_wyniku"] for x in wiersze),
             "spelnione": bool(skany) and len(skany_ok) == len(skany), "per_tryb": per_tryb,
             "macierz_roznica_max": max(roznice) if roznice else None,
             "zle": [x for x in wiersze if x not in dobre], "pary": wiersze}
@@ -256,6 +309,7 @@ def ocen_k4(wpisy: list[dict], uklady: dict[str, list[int]] | None = None, ziarn
                                     "powody": dict(Counter(str(w["powod"]) for w in zgodne if w["prawda"] == nazwa and w["tryb"] == t and not w.get("blad")))}
                                 for t in ("bez_numeru", "z_numerem")}
         per_pole[str(pole)] = {
+            "bez_wyniku": sum(klasa(w) == "brak_wyniku" for w in zgodne), "wynikow": sum(klasa(w) != "brak_wyniku" for w in zgodne),
             "pelny_zestaw": pelny, "zgodne": licz(zgodne), "per_tryb": {t: licz([w for w in zgodne if w["tryb"] == t]) for t in ("bez_numeru", "z_numerem")},
             "niepewne": sum(klasa(w) in ("dobry_niepewny", "zly_niepewny") for w in zgodne),
             "dobry_niepewny_powody": dict(Counter(str(w["powod"]) for w in zgodne if klasa(w) == "dobry_niepewny")),
@@ -267,10 +321,12 @@ def ocen_k4(wpisy: list[dict], uklady: dict[str, list[int]] | None = None, ziarn
         }
     zly_pewny = sum(p["zgodne"]["zly_pewny"] for p in per_pole.values())
     zly_pewny_niezg = sum(p["niezgodne_10"]["zly_pewny"] for p in per_pole.values())
-    return {"per_pole": per_pole, "zly_pewny_zgodne": zly_pewny, "zly_pewny_niezgodne_10": zly_pewny_niezg,
+    # "0 pewnych zlych" przy samych przebiegach bez wyniku nie jest spelnieniem: potrzebny co najmniej 1 wynik przy polu 100
+    wynikow_100 = sum(p["wynikow"] for pole, p in per_pole.items() if float(pole) == 100.0)
+    return {"per_pole": per_pole, "zly_pewny_zgodne": zly_pewny, "zly_pewny_niezgodne_10": zly_pewny_niezg, "wynikow_pole_100": wynikow_100,
             "zly_pewny_niezgodne_8": sum(p["niezgodne_8"]["zly_pewny"] for p in per_pole.values()),
             "pelny_zestaw": None if uklady is None else all(p["pelny_zestaw"] for p in per_pole.values()) and bool(per_pole),
-            "spelnione": bool(per_pole) and zly_pewny == 0 and (uklady is None or all(p["pelny_zestaw"] for p in per_pole.values()))}
+            "spelnione": bool(per_pole) and zly_pewny == 0 and wynikow_100 > 0 and (uklady is None or all(p["pelny_zestaw"] for p in per_pole.values()))}
 
 
 def ocen_k6(wpisy: list[dict]) -> dict:
@@ -308,7 +364,91 @@ def ocen_z(wpisy: list[dict]) -> dict:
     return {"skanow": len({w["skan"] for w in wpisy}), "per_wariant": per}
 
 
-OCENY = {"2": ocen_k2, "3": ocen_k3, "4": ocen_k4, "6": ocen_k6, "z": ocen_z}
+def _wariant_pola(w: dict) -> str:
+    return f"{w['pole']:g}" + (" bez scianki" if w.get("bez_scianki") else "")
+
+
+def ocen_g(wpisy: list[dict]) -> dict:
+    """Granice rozpoznania (OGRANICZENIE, poza bramka) - bez pola ``spelnione``: wynik nie zmienia kodu wyjscia."""
+    # (a) plytki okragle testowe: pary 8 / 10 kandydatow na tym samym skanie
+    pary: dict[str, dict] = {}
+    for w in wpisy:
+        if w["czesc"] == "testowa":
+            pary.setdefault(w["skan"], {})[w["kandydatow_zestaw"]] = w
+    wiersze = []
+    for skan, p in sorted(pary.items()):
+        if 8 not in p or 10 not in p:
+            continue
+        a, b = p[8], p[10]
+        k8, k10 = klasa(a), klasa(b)
+        wiersze.append({"skan": skan, "prawda": a["prawda"], "zaslona": a["zaslona"], "pole": _wariant_pola(a), "klasa_8": k8, "klasa_10": k10,
+                        "wybrany_8": a["wybrany"], "wybrany_10": b["wybrany"], "powod_8": a["powod"], "powod_10": b["powod"],
+                        "pogorszenie": k8 == "dobry_pewny" and k10.startswith("zly"),
+                        "gorzej_inaczej": k8 == "dobry_pewny" and k10 in ("dobry_niepewny", "brak_wyniku")})
+
+    def licz_pary(r: list[dict]) -> dict:
+        return {"par": len(r), "pogorszenie": sum(x["pogorszenie"] for x in r), "gorzej_inaczej": sum(x["gorzej_inaczej"] for x in r),
+                "dobry_pewny_8": sum(x["klasa_8"] == "dobry_pewny" for x in r), "dobry_pewny_10": sum(x["klasa_10"] == "dobry_pewny" for x in r),
+                "zly_pewny_8": sum(x["klasa_8"] == "zly_pewny" for x in r), "zly_pewny_10": sum(x["klasa_10"] == "zly_pewny" for x in r),
+                "bez_wyniku_8": sum(x["klasa_8"] == "brak_wyniku" for x in r), "bez_wyniku_10": sum(x["klasa_10"] == "brak_wyniku" for x in r),
+                "wynik_10": dict(Counter(f"{x['wybrany_10']} ({x['powod_10']})" for x in r))}
+
+    kolejnosc_pol = [f"{p:g}" + (" bez scianki" if b else "") for p, b in POLA_GRANIC]
+    pola = [p for p in kolejnosc_pol if any(x["pole"] == p for x in wiersze)] + sorted({x["pole"] for x in wiersze} - set(kolejnosc_pol))
+    zaslony = [z for z in ("brak", "D", "ABCD") if any(x["zaslona"] == z for x in wiersze)] + sorted({x["zaslona"] for x in wiersze} - {"brak", "D", "ABCD"})
+    graniczne = [x for x in wiersze if x["zaslona"] != "brak" and x["pole"] != "100"]  # dolek zasloniety i brak scianki bocznej w skanie
+    testowe = {**licz_pary(wiersze),
+               "zaslona_i_brak_scianki": licz_pary(graniczne),
+               "reszta": licz_pary([x for x in wiersze if x not in graniczne]),
+               "per_zaslona_pole": {f"{z}/{p}": licz_pary([x for x in wiersze if x["zaslona"] == z and x["pole"] == p]) for z in zaslony for p in pola},
+               "pogorszone": [x for x in wiersze if x["pogorszenie"]]}
+    # (b) plytki ramkowe z 4 dolkami zaslonietymi, 10 kandydatow
+    ram = [w for w in wpisy if w["czesc"] == "ramkowa" and w["kandydatow_zestaw"] == 10]
+
+    def kwadrat_pewny(w: dict) -> bool:
+        return not w.get("blad") and bool(w["pewny"]) and w["wybrany"] == w["prawda"].replace("okragla_ramkowa_", "")
+
+    def licz_ramkowe(r: list[dict]) -> dict:
+        return {"przebiegow": len(r), "kwadrat_pewny": sum(kwadrat_pewny(w) for w in r), **{k: sum(klasa(w) == k for w in r) for k in KLASY},
+                "wynik": dict(Counter(f"{w['wybrany']} pewny={w['pewny']} {w['powod']} nr {w.get('numer')} ({w.get('numer_zrodlo')})" for w in r))}
+
+    pola_r = [p for p in kolejnosc_pol if any(_wariant_pola(w) == p for w in ram)]
+    ramkowe = {**licz_ramkowe(ram),
+               "per_pole_tryb": {f"{p}/{t}": licz_ramkowe([w for w in ram if _wariant_pola(w) == p and w["tryb"] == t]) for p in pola_r for t in ("bez_numeru", "z_numerem")},
+               "kwadrat_pewny_lista": [{k: w.get(k) for k in ("skan", "tryb", "wybrany", "pewny", "powod", "numer", "numer_zrodlo", "numer_z_dolkow")} for w in ram if kwadrat_pewny(w)]}
+    # (c) kontrola: kwadraty R59
+    kw = [w for w in wpisy if w["czesc"] == "kwadrat" and w["kandydatow_zestaw"] == 10]
+    kwadraty = {"przebiegow": len(kw), **{k: sum(klasa(w) == k for w in kw) for k in KLASY},
+                "per_pole": {p: {"przebiegow": sum(_wariant_pola(w) == p for w in kw), "dobry_pewny": sum(_wariant_pola(w) == p and klasa(w) == "dobry_pewny" for w in kw)}
+                             for p in kolejnosc_pol if any(_wariant_pola(w) == p for w in kw)},
+                "powody": dict(Counter(str(w["powod"]) for w in kw))}
+    return {"testowe": testowe, "ramkowe": ramkowe, "kwadraty": kwadraty}
+
+
+def zadania_granice(ziarna: int) -> list[tuple]:
+    """Zestaw kryterium g: (czesc, uklad, numer, ziarno, pole, zaslona - lista bitow, bez scianki, [(tryb, numer podany, zestaw)])."""
+    wszystkie = ["A", "B", "C", "D"]
+    z = []
+    for n, nr in TESTOWE_GRANIC:
+        for i in range(ziarna):
+            for bity in ([], ["D"], wszystkie):
+                for pole, bez in POLA_GRANIC:
+                    z.append(("testowa", n, nr, 7000 + nr * 10 + i, pole, bity, bez, [("bez_numeru", None, 8), ("bez_numeru", None, 10)]))
+    for n, nr in RAMKOWE_GRANIC:
+        for pole, bez in POLA_GRANIC:
+            if pole != 97.0:
+                z.append(("ramkowa", n, nr, 7100 + nr, pole, wszystkie, bez, [("bez_numeru", None, 10), ("z_numerem", nr, 10)]))
+    for n, nr in KWADRATY_GRANIC:
+        for pole, bez in POLA_GRANIC:
+            z.append(("kwadrat", n, nr, 7200 + nr, pole, [], bez, [("bez_numeru", None, 10)]))
+    return z
+
+
+def nazwa_skanu_granic(n: str, nr: int, seed: int, pole: float, bity: list[str], bez: bool) -> str:
+    return f"syn_{n}_n{nr}_s{seed}_p{pole:g}" + ("_zasl" + "".join(bity) if bity else "") + ("_bezscianki" if bez else "")
+
+
+OCENY = {"2": ocen_k2, "3": ocen_k3, "4": ocen_k4, "6": ocen_k6, "z": ocen_z, "g": ocen_g}
 
 
 # ----------------------------------------------------------------------------
@@ -328,17 +468,20 @@ def tabela(wynik: dict) -> str:
     if "3" in k:
         o = k["3"]
         L += ["", f"KRYTERIUM 3 (BRAMKA; skany odniesienia, 8 vs 10 kandydatow): {o['skanow_ok']} z {o['skanow']} skanow ten sam uklad i nie gorsza pewnosc "
-                  f"(pary {o['par_ok']} z {o['par']}; najwieksza roznica macierzy {o['macierz_roznica_max']}) -> {tn(o['spelnione'])}"]
+                  f"(pary {o['par_ok']} z {o['par']}; pary bez wyniku przy 8 albo 10 kand. sa zle: bez wyniku {o['par_bez_wyniku']} z {o['par']}; "
+                  f"najwieksza roznica macierzy {o['macierz_roznica_max']}) -> {tn(o['spelnione'])}"]
         for tryb, p in o["per_tryb"].items():
             L.append(f"  {tryb:11s} par {p['par']}: ten sam uklad {p['ten_sam_uklad']}, pewnosc nie gorsza {p['pewnosc_nie_gorsza']}, pewny 8/10 kand. {p['pewny_8']}/{p['pewny_10']}, "
-                     f"zgodny z prawda 8/10 kand. {p['zgodny_z_prawda_8']}/{p['zgodny_z_prawda_10']}, numer i zrodlo te same {p['numer_ten_sam']}")
+                     f"zgodny z prawda 8/10 kand. {p['zgodny_z_prawda_8']}/{p['zgodny_z_prawda_10']}, numer i zrodlo te same {p['numer_ten_sam']}, pary bez wyniku {p['bez_wyniku']}")
             L += [f"      powod {a}: {n}" for a, n in sorted(p["przejscia_powod"].items())]
         L += [f"  ZLE {z['skan']} [{z['tryb']}] prawda {z['prawda']}: 8 -> {z['wybrany_8']} pewny={z['pewny_8']} {z['powod_8']}; 10 -> {z['wybrany_10']} pewny={z['pewny_10']} {z['powod_10']}"
               for z in o["zle"]]
     if "4" in k:
         o = k["4"]
         L += ["", f"KRYTERIUM 4 (BRAMKA; 10 kandydatow, kazdy uklad i numer, numer zgodny albo brak): pewny ze zlym ukladem {o['zly_pewny_zgodne']} -> {tn(o['spelnione'])}"
-                  + ("" if o["pelny_zestaw"] in (True, None) else " (zestaw niepelny)"),
+                  + ("" if o["pelny_zestaw"] in (True, None) else " (zestaw niepelny)")
+                  + ("" if o["wynikow_pole_100"] else " (brak wyniku przy polu 100 - bramki nie da sie orzec)"),
+              "  " + ", ".join(f"pole {float(pole):g}: bez wyniku {p['bez_wyniku']} z {p['zgodne']['przebiegow']}" for pole, p in o["per_pole"].items()),
               f"  numer podany NIEZGODNY: pewny ze zlym ukladem {o['zly_pewny_niezgodne_10']} (10 kandydatow), {o['zly_pewny_niezgodne_8']} (8 kandydatow, uklady sprzed paczki)",
               "  pole  przebiegow  dobry_pewny  dobry_niepewny  zly_niepewny  zly_pewny  brak_wyniku"]
         for pole, p in o["per_pole"].items():
@@ -371,6 +514,28 @@ def tabela(wynik: dict) -> str:
             L += [f"      NUMER {z}" for z in p["numer_zly"]]
     b = wynik["bramka"]
     L += ["", "BRAMKA (kryteria 3 i 4): " + ("nie zmierzono w tym przebiegu (potrzebne oba kryteria)" if b["spelniona"] is None else ("SPELNIONA" if b["spelniona"] else "NIESPELNIONA"))]
+    if "g" in k:
+        o = k["g"]
+        t, r, kw = o["testowe"], o["ramkowe"], o["kwadraty"]
+        g = t["zaslona_i_brak_scianki"]
+        L += ["", "OGRANICZENIE (poza bramka) - granice rozpoznania: plytka okragla bez waznego numeru z dolkow, bez scianki bocznej w skanie",
+              f"  plytki okragle testowe R59 n8 / n9 (8 vs 10 kandydatow, bez numeru podanego): pogorszenie wobec 8 kandydatow: {t['pogorszenie']} z {t['par']} par "
+              f"(8: dobry i pewny -> 10: zly); pewny zly przy 10: {t['zly_pewny_10']} z {t['par']} (przy 8: {t['zly_pewny_8']} z {t['par']}); "
+              f"8: dobry i pewny -> 10: niepewny albo bez wyniku: {t['gorzej_inaczej']}",
+              f"    w tym dolek zasloniety i brak scianki w skanie (pola 99 / 98 / 97, pole 100 bez scianki): pogorszenie {g['pogorszenie']} z {g['par']} par, "
+              f"pewny zly przy 10: {g['zly_pewny_10']} z {g['par']} (przy 8: {g['zly_pewny_8']}); pozostale przypadki: pogorszenie {t['reszta']['pogorszenie']} z {t['reszta']['par']}, "
+              f"pewny zly przy 10: {t['reszta']['zly_pewny_10']} z {t['reszta']['par']}",
+              "    zaslona/pole          par  8:dobry_pewny  10:dobry_pewny  8:zly_pewny  10:zly_pewny  pogorszenie  bez wyniku 8/10  wynik przy 10"]
+        for nazwa, p in t["per_zaslona_pole"].items():
+            L.append(f"    {nazwa:20s} {p['par']:>4d} {p['dobry_pewny_8']:>14d} {p['dobry_pewny_10']:>15d} {p['zly_pewny_8']:>12d} {p['zly_pewny_10']:>13d} {p['pogorszenie']:>12d} "
+                     f"{str(p['bez_wyniku_8']) + '/' + str(p['bez_wyniku_10']):>16s}  {p['wynik_10']}")
+        L.append(f"  plytki ramkowe n1, n2, n4, n5, 4 dolki zasloniete (10 kandydatow): jako kwadrat, pewny: {r['kwadrat_pewny']} z {r['przebiegow']} przebiegow; "
+                 f"dobry_pewny {r['dobry_pewny']}, dobry_niepewny {r['dobry_niepewny']}, zly_niepewny {r['zly_niepewny']}, zly_pewny {r['zly_pewny']}, bez wyniku {r['brak_wyniku']}")
+        for nazwa, p in r["per_pole_tryb"].items():
+            L.append(f"    {nazwa:28s} przebiegow {p['przebiegow']}: kwadrat pewny {p['kwadrat_pewny']}, dobry_pewny {p['dobry_pewny']}; {p['wynik']}")
+        L.append(f"  kontrola - kwadraty R59 n2 / n5 (10 kandydatow, bez numeru): dobry_pewny {kw['dobry_pewny']} z {kw['przebiegow']}; zly_pewny {kw['zly_pewny']}, niepewnych "
+                 f"{kw['dobry_niepewny'] + kw['zly_niepewny']}, bez wyniku {kw['brak_wyniku']}; powody {kw['powody']}; per pole "
+                 + ", ".join(f"{pole}: {x['dobry_pewny']} z {x['przebiegow']}" for pole, x in kw["per_pole"].items()))
     return "\n".join(str(x) for x in L).encode("ascii", "backslashreplace").decode("ascii") + "\n"
 
 
@@ -384,10 +549,22 @@ class Dziennik:
         self.plik = plik
         self.wpisy: list[dict] = []
         if wznow and plik.exists():
-            self.wpisy = [json.loads(w) for w in plik.read_text(encoding="utf-8").split("\n") if w.strip()]
+            self.wpisy = self.wczytaj([plik])
         elif plik.exists():
             plik.unlink()
         self.klucze = {self.klucz(w) for w in self.wpisy}
+
+    @staticmethod
+    def wczytaj(pliki: list[Path]) -> list[dict]:
+        return [bez_sciezek_w_wpisie(json.loads(w)) for p in pliki for w in Path(p).read_text(encoding="utf-8").split("\n") if w.strip()]
+
+    @classmethod
+    def z_plikow(cls, pliki: list[Path]) -> "Dziennik":
+        """Dziennik tylko do oceny (``--z-przebiegow``): wpisy z podanych plikow, nic nie jest zapisywane ani kasowane."""
+        dz = cls.__new__(cls)
+        dz.plik, dz.wpisy = None, cls.wczytaj(pliki)
+        dz.klucze = {cls.klucz(w) for w in dz.wpisy}
+        return dz
 
     @staticmethod
     def klucz(w: dict) -> tuple:
@@ -418,8 +595,11 @@ def przebieg(a: argparse.Namespace) -> dict:
     if not set(RAMKOWE) <= set(wg_nazwy):
         raise SystemExit(f"w [plytki] ustawien nie ma ukladow {', '.join(RAMKOWE)} - pomiar wymaga 10 ukladow")
     a.wyjscie.mkdir(parents=True, exist_ok=True)
-    dz = Dziennik(a.wyjscie / "przebiegi.jsonl", a.wznow)
-    korony = atrapy(a.wyjscie / "atrapy")
+    if a.z_przebiegow:  # sama ocena zapisanych przebiegow - nic nie jest mierzone
+        dz, mierzone, korony = Dziennik.z_plikow(a.z_przebiegow), (), []
+    else:
+        dz, mierzone = Dziennik(a.wyjscie / "przebiegi.jsonl", a.wznow), a.kryteria
+        korony = atrapy(a.wyjscie / "atrapy")
     skany_odn = []
     for f in a.odniesienie or []:
         z = sorted(p for p in Path(f).glob("skan_*.stl") if p.with_suffix(".json").exists())
@@ -436,7 +616,7 @@ def przebieg(a: argparse.Namespace) -> dict:
         return w
 
     # --- kryterium 2 ---
-    if "2" in a.kryteria:
+    if "2" in mierzone:
         zadania = [(n, nr, i) for n in RAMKOWE for nr in wg_nazwy[n].numery for i in range(a.ziarna_k2)]
         for n, nr, i in zadania[: a.limit] if a.limit else zadania:
             seed = 5800 + nr * 10 + i
@@ -450,7 +630,7 @@ def przebieg(a: argparse.Namespace) -> dict:
                     dz.dopisz(w)
 
     # --- kryterium 3 ---
-    if "3" in a.kryteria:
+    if "3" in mierzone:
         if not skany_odn:
             raise SystemExit("kryterium 3: brak skanow odniesienia (--odniesienie <folder> ze skan_*.stl i prawda .json)")
         for plik in skany_odn:
@@ -472,7 +652,7 @@ def przebieg(a: argparse.Namespace) -> dict:
                     dz.dopisz(w)
 
     # --- kryterium 4 ---
-    if "4" in a.kryteria:
+    if "4" in mierzone:
         zadania = [(pole, u, nr, i) for pole in a.pola for u in k10 for nr in u.numery for i in range(a.ziarna_k4)]
         for pole, uk, nr, i in zadania[: a.limit] if a.limit else zadania:
             seed = 4000 + k10.index(uk) * 100 + nr * 10 + i
@@ -492,7 +672,7 @@ def przebieg(a: argparse.Namespace) -> dict:
                     dz.dopisz(w)
 
     # --- kryterium 6 ---
-    if "6" in a.kryteria:
+    if "6" in mierzone:
         r59 = [p for p in skany_odn if not U.WZOR_WERSJI_UKLADU.search(synth.wczytaj_prawde(p.with_suffix(".json")).plytka)]
         if not r59:
             raise SystemExit("kryterium 6: brak skanow plytek R59 w folderach --odniesienie")
@@ -516,7 +696,7 @@ def przebieg(a: argparse.Namespace) -> dict:
                         dz.dopisz(w)
 
     # --- dodatkowo: dolki zasloniete ---
-    if "z" in a.kryteria:
+    if "z" in mierzone:
         zadania = [(n, nr) for n in RAMKOWE for nr in wg_nazwy[n].numery]
         for n, nr in zadania[: a.limit] if a.limit else zadania:
             uk = wg_nazwy[n]
@@ -533,6 +713,19 @@ def przebieg(a: argparse.Namespace) -> dict:
                     if w:
                         dz.dopisz(w)
 
+    # --- granice rozpoznania (OGRANICZENIE, poza bramka) ---
+    if "g" in mierzone:
+        zadania = zadania_granice(a.ziarna_g)
+        for czesc, n, nr, seed, pole, bity, bez, lista in zadania[: a.limit] if a.limit else zadania:
+            nazwa = nazwa_skanu_granic(n, nr, seed, pole, bity, bez)
+            if all(dz.jest(kryterium="g", skan=nazwa, tryb=t, numer_podany=p, kandydatow_zestaw=z) for t, p, z in lista):
+                continue
+            skan, prawda = skan_syntetyczny(wg_nazwy[n], nr, korony, seed, pole, ust, zaslon=bity or None, bez_scianki=bez)
+            for tryb, podany, zestaw in lista:
+                w = uruchom("g", nazwa, skan, prawda, tryb, podany, zestaw, seed=seed, czesc=czesc, zaslona="".join(bity) or "brak", bez_scianki=bez)
+                if w:
+                    dz.dopisz(w)
+
     kryteria = {}
     for k in KRYTERIA:
         wpisy = [w for w in dz.wpisy if w["kryterium"] == k]
@@ -543,7 +736,8 @@ def przebieg(a: argparse.Namespace) -> dict:
     wynik = {
         "narzedzie": "auto_uklad_r58", "data": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "uwaga": a.uwaga,
         "kandydaci_10": [u.nazwa for u in k10], "kandydaci_8": [u.nazwa for u in k8],
-        "parametry": {"kryteria": list(a.kryteria), "pola": list(a.pola), "ziarna_k2": a.ziarna_k2, "ziarna_k4": a.ziarna_k4, "pomiary_k6": a.pomiary_k6,
+        "parametry": {"kryteria": list(a.kryteria), "pola": list(a.pola), "ziarna_k2": a.ziarna_k2, "ziarna_k4": a.ziarna_k4, "pomiary_k6": a.pomiary_k6, "ziarna_g": a.ziarna_g,
+                      "z_przebiegow": {"plikow": len(a.z_przebiegow), "wpisow": len(dz.wpisy)} if a.z_przebiegow else None,
                       "limit": a.limit, "odniesienie": [Path(f).name for f in a.odniesienie or []], "prog_ksztaltu_mm2": plate.PROG_KSZTALTU_MM2},
         "kryteria": kryteria, "bramka": {"spelniona": bramka, "kryterium_3": kryteria.get("3", {}).get("spelnione"), "kryterium_4": kryteria.get("4", {}).get("spelnione")},
         "przebiegi": dz.wpisy,
@@ -577,12 +771,15 @@ def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0], epilog="Opis kryteriow: naglowek pliku narzedzia/auto_uklad_r58.py.")
     ap.add_argument("--wyjscie", type=Path, required=True, help="katalog wynikow (przebiegi.jsonl, auto_uklad_r58.json, auto_uklad_r58.txt, atrapy/)")
     ap.add_argument("--odniesienie", type=Path, nargs="*", default=[], help="foldery skanow odniesienia (skan_*.stl + prawda .json) - kryteria 3 i 6")
-    ap.add_argument("--kryteria", type=_lista_kryteriow, default=("2", "3", "4", "6"), help="ktore kryteria mierzyc: 2,3,4,6,z (domyslnie 2,3,4,6)")
+    ap.add_argument("--kryteria", type=_lista_kryteriow, default=DOMYSLNE, help="ktore kryteria mierzyc: 2,3,4,6,g,z (domyslnie 2,3,4,6,g; g = granice rozpoznania, poza bramka)")
     ap.add_argument("--ustawienia", type=Path, default=None, help="plik ustawien z [plytki] (domyslnie ustawienia.przyklad.toml programu)")
     ap.add_argument("--pola", type=_lista_pol, default=(100.0, 90.0, 80.0), help="kryterium 4: srednice pola skanu w mm (domyslnie 100,90,80)")
     ap.add_argument("--ziarna-k2", type=int, default=4, help="kryterium 2: ziaren na numer (domyslnie 4)")
     ap.add_argument("--ziarna-k4", type=int, default=2, help="kryterium 4: ziaren na numer i pole (domyslnie 2)")
     ap.add_argument("--pomiary-k6", type=int, default=10, help="kryterium 6: liczba skanow R59 (domyslnie 10)")
+    ap.add_argument("--ziarna-g", type=int, default=3, help="granice (g): ziaren na przypadek plytki okraglej testowej (domyslnie 3)")
+    ap.add_argument("--z-przebiegow", type=Path, nargs="+", default=None, metavar="PLIK",
+                    help="nie mierz: ocen wpisy z podanych plikow przebiegi.jsonl (wynik do --wyjscie)")
     ap.add_argument("--limit", type=int, default=0, help="proba: najwyzej tyle skanow na kryterium / folder (0 = wszystkie)")
     ap.add_argument("--wznow", action="store_true", help="nie kasuj przebiegi.jsonl - pomin przebiegi juz zapisane")
     ap.add_argument("--uwaga", default="", help="tekst do wyniku, np. co jeszcze liczylo w czasie pomiaru")
@@ -591,8 +788,10 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     a = parser().parse_args(argv)
-    if min(a.ziarna_k2, a.ziarna_k4, a.pomiary_k6) < 1 or a.limit < 0:
-        parser().error("--ziarna-k2, --ziarna-k4, --pomiary-k6 musza byc >= 1, --limit >= 0")
+    if min(a.ziarna_k2, a.ziarna_k4, a.pomiary_k6, a.ziarna_g) < 1 or a.limit < 0:
+        parser().error("--ziarna-k2, --ziarna-k4, --pomiary-k6, --ziarna-g musza byc >= 1, --limit >= 0")
+    if a.z_przebiegow and any(not Path(p).is_file() for p in a.z_przebiegow):
+        parser().error("--z-przebiegow: nie ma pliku " + ", ".join(Path(p).name for p in a.z_przebiegow if not Path(p).is_file()))
     wynik = przebieg(a)
     return 0 if all(o.get("spelnione", True) for o in wynik["kryteria"].values()) else 1
 
