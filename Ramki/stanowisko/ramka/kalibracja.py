@@ -9,20 +9,29 @@ Format (wersja 1):
   {"wersja": 1,
    "matryca": {"szerokosc": 64, "wysokosc": 64, "raster_mm": 2.5},
    "ramki": {"W": {"wieczorna": {"zrodlo": "geometria", "gniazda": {"1": [x, y, w, h], ...}}, ...},
-             "P": {"poranna": {...}, "poranna_r54": {...}}}}
+             "P": {"poranna": {...}, "poranna_r54": {...}, "okragla_ramkowa_poranna": {...}}}}
 x, y = lewy gorny piksel bloku (uklad klatki z obraz.py), w, h = rozmiar. Kazdy blok w obszarze
 plytki, bloki jednego ukladu sie nie nakladaja. "zrodlo": "geometria" (policzone z uklad.json)
 albo "kalibracja" (sprawdzone na ramce, PR 9 krok 13 - paczka C2).
 
+Uklady na ramkach (E3-O2): kwadratowe `wieczorna` / `poranna` (R59 i R54) oraz okragle ramkowe
+`okragla_ramkowa_wieczorna` (plytki n1-n3, ramka W) i `okragla_ramkowa_poranna` (n4-n6, ramka P) -
+R58: te same gniazda i srodek co kwadrat R59, wiec wartosci startowe sa rowne wartosciom kwadratu.
+Plytki okragle testowe n8 / n9 (`okragla_wieczorna`, `okragla_poranna`) na ramce nie leza - bez wpisu.
+Plik sprzed E3-O2 (bez ukladow ramkowych) uzupelnia `uzupelnij`: dopisuje TYLKO brakujace uklady
+(z geometrii), istniejacych wpisow - takze "kalibracja" - nie rusza.
+
 Wiersz polecen:
   python -m ramka.kalibracja --domyslna --modele modele_plytek --wyjscie dane/kalibracja_ramek.json
   python -m ramka.kalibracja --sprawdz dane/kalibracja_ramek.json
+  python -m ramka.kalibracja --uzupelnij dane/kalibracja_ramek.json --modele modele_plytek
 """
 from __future__ import annotations
 
 import argparse
 import json
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -30,7 +39,10 @@ from pathlib import Path
 from . import obraz
 
 WERSJA_PLIKU = 1
-ROLE_UKLADOW = {"wieczorna": "W", "poranna": "P"}  # pole "plate" w uklad.json -> ramka
+ROLE_UKLADOW = {"wieczorna": "W", "poranna": "P"}  # pole "plate" w uklad.json -> ramka (plytki kwadratowe)
+# E3-O2: plytki okragle ramkowe n1-n6 (R58; pole "plate" = nazwa ukladu, "shape" = "round") -> ramka
+ROLE_UKLADOW_RAMKOWYCH = {"okragla_ramkowa_wieczorna": "W", "okragla_ramkowa_poranna": "P"}
+PRZYROSTEK_KOPII = ".przed_uzupelnieniem"  # kopia pliku kalibracji sprzed dopisania ukladow (`uzupelnij_plik`)
 BOK_GNIAZDA = 3            # blok 3 x 3 pod gniazdem okraglym (plan_ramki_v2 9 krok 13)
 WYSOKOSC_RYNIENKI = 3
 WZOR_UKLADU = re.compile(r"[a-z0-9_]{1,40}")  # tylko fullmatch (D-N9: koncowe "\n" odrzucane)
@@ -64,13 +76,25 @@ def domyslna_dla_ukladu(uklad: dict) -> dict:
     return wynik
 
 
+def rola_ukladu(uklad: dict):
+    """Ramka ("W" / "P"), na ktorej lezy plytka o tym `uklad.json`, albo None (plytka okragla testowa n8 / n9, uklad
+    nieznany): kwadrat `wieczorna` / `poranna` albo okragla ramkowa `okragla_ramkowa_*` (E3-O2)."""
+    ksztalt = uklad.get("shape", "square")
+    if ksztalt == "square":
+        return ROLE_UKLADOW.get(uklad.get("plate"))
+    if ksztalt == "round":
+        return ROLE_UKLADOW_RAMKOWYCH.get(uklad.get("plate"))
+    return None
+
+
 def domyslna(katalog_modeli) -> dict:
-    """Kalibracja startowa dla ukladow kwadratowych (okragle plytki nie pasuja do wkladki ramki)."""
+    """Kalibracja startowa z geometrii dla ukladow lezacych na ramkach: kwadratowych i okraglych ramkowych (`rola_ukladu`;
+    plytki okragle testowe n8 / n9 nie pasuja do wkladki ramki)."""
     ramki = {"W": {}, "P": {}}
     for plik in sorted(Path(katalog_modeli).glob("*/uklad.json")):
         uklad = json.loads(plik.read_text(encoding="utf-8"))
-        rola = ROLE_UKLADOW.get(uklad.get("plate"))
-        if rola is None or uklad.get("shape", "square") != "square":
+        rola = rola_ukladu(uklad)
+        if rola is None:
             continue
         ramki[rola][plik.parent.name] = {"zrodlo": "geometria", "gniazda": domyslna_dla_ukladu(uklad)}
     dane = {"wersja": WERSJA_PLIKU,
@@ -152,6 +176,47 @@ def zapisz(dane, sciezka) -> None:
         f.write(tekst)
 
 
+def uzupelnij(dane: dict, katalog_modeli) -> list:
+    """Dopisuje do `dane` (w miejscu) uklady, ktore maja kalibracje startowa (`domyslna`), a ktorych w `dane` nie ma - np.
+    uklady okragle ramkowe w pliku sprzed E3-O2. Istniejacych wpisow (takze "zrodlo": "kalibracja") NIE zmienia. Zwraca
+    liste dopisanych [(rola, uklad), ...] (pusta = nic do dopisania)."""
+    sprawdz(dane)
+    wzor = domyslna(katalog_modeli)
+    dopisane = []
+    for rola in ("W", "P"):
+        for nazwa in sorted(wzor["ramki"][rola]):
+            if nazwa not in dane["ramki"].get(rola, {}):
+                dane["ramki"].setdefault(rola, {})[nazwa] = wzor["ramki"][rola][nazwa]
+                dopisane.append((rola, nazwa))
+    if dopisane:
+        sprawdz(dane)
+    return dopisane
+
+
+def uzupelnij_plik(sciezka, katalog_modeli) -> tuple:
+    """Plik kalibracji uzupelniony o brakujace uklady (`uzupelnij`): zwraca (dane, dopisane). Gdy cos dopisano: kopia
+    starego pliku obok (`<nazwa>.przed_uzupelnieniem`, istniejacej kopii nie nadpisuje), potem zapis przez plik tymczasowy
+    i podmiane (plik nigdy nie zostaje w polowie zapisany). Nic do dopisania = pliku nie rusza. Zly plik = BladKalibracji;
+    blad zapisu = OSError (wolajacy moze wtedy uzupelnic dane w pamieci przez `uzupelnij`)."""
+    sciezka = Path(sciezka)
+    dane = wczytaj(sciezka)
+    dopisane = uzupelnij(dane, katalog_modeli)
+    if dopisane:
+        kopia = sciezka.with_name(sciezka.name + PRZYROSTEK_KOPII)
+        if not kopia.exists():
+            kopia.write_bytes(sciezka.read_bytes())
+        tymczasowy = sciezka.with_name(sciezka.name + ".tmp")
+        try:
+            zapisz(dane, tymczasowy)
+            os.replace(tymczasowy, sciezka)
+        finally:
+            try:
+                tymczasowy.unlink()
+            except OSError:
+                pass
+    return dane, dopisane
+
+
 def blok(kal: dict, rola: str, uklad: str, gniazdo) -> list:
     """[x, y, w, h] gniazda; KeyError, gdy ramka, uklad albo gniazdo nie ma kalibracji."""
     return list(kal["ramki"][rola][uklad]["gniazda"][str(int(gniazdo))])
@@ -175,8 +240,23 @@ def main(argv=None) -> int:
     p.add_argument("--modele", help="katalog modele_plytek (tylko odczyt)")
     p.add_argument("--wyjscie", help="plik wynikowy (np. dane/kalibracja_ramek.json)")
     p.add_argument("--sprawdz", help="sprawdz plik kalibracji")
+    p.add_argument("--uzupelnij", help="dopisz do pliku kalibracji brakujace uklady z geometrii (wymaga --modele)")
     a = p.parse_args(argv)
     try:
+        if a.uzupelnij:
+            if not a.modele:
+                print("blad: --uzupelnij wymaga --modele", file=sys.stderr)
+                return 2
+            try:
+                _, dopisane = uzupelnij_plik(a.uzupelnij, a.modele)
+            except OSError as e:
+                print(f"blad: pliku nie da sie zapisac ({type(e).__name__})", file=sys.stderr)
+                return 1
+            if dopisane:
+                print(f"dopisano do {a.uzupelnij} (z geometrii): " + ", ".join(f"{r}: {u}" for r, u in dopisane))
+            else:
+                print(f"{a.uzupelnij}: nic do dopisania")
+            return 0
         if a.domyslna:
             if not a.modele or not a.wyjscie:
                 print("blad: --domyslna wymaga --modele i --wyjscie", file=sys.stderr)

@@ -109,13 +109,16 @@ def numery_plytki(uklad: str | None) -> tuple[int, ...] | None:
     c = SE.czesci_ukladu(uklad)
     if c is None or c["typ"] != SE.TYP_PLYTKI_TRYBU[SE.TRYB_RANO]:
         return None
+    if c["ramkowa"]:  # E3-O2: plytka okragla ramkowa n4-n6 - numery jak kwadrat (``session.NUMERY_RAMKOWE``)
+        return SE.numery_ramkowe(uklad)
     return NUMERY_PLYTEK_OKRAGLYCH_PORANNYCH if c["okragla"] else NUMERY_PLYTEK_PORANNYCH
 
 
 def na_ramce(uklad: str | None) -> bool:
-    """Czy plytka tego ukladu lezy na ramce porannej (kwadratowa poranna; okragle nie pasuja do wkladki - R58)."""
+    """Czy plytka tego ukladu lezy na ramce porannej: kwadratowa poranna albo okragla ramkowa poranna (E3-O2; R58 - wkladka
+    okragla, gniazda i srodek jak w kwadracie). Okragla testowa n9 (bez magnesow i rowka klucza) na ramce nie lezy."""
     c = SE.czesci_ukladu(uklad)
-    return c is not None and c["typ"] == SE.TYP_PLYTKI_TRYBU[SE.TRYB_RANO] and not c["okragla"]
+    return c is not None and c["typ"] == SE.TYP_PLYTKI_TRYBU[SE.TRYB_RANO] and (not c["okragla"] or c["ramkowa"])
 
 
 def _klucz_kuwety(kuweta: str | None) -> tuple:
@@ -353,7 +356,7 @@ class SesjaRano:
 
     def podaj_numer_plytki(self, skan_id: int, numer: Any, operator: str | None = None, *, mimo_nowego_wsadu: bool = False) -> int:
         """Numer plytki wskazany recznie (Z3: rano obowiazkowy przed "Zamknij piec") - tylko numer plytki porannej tego ukladu
-        (kwadratowe 4-6 = plytki ramki porannej, okragle 9); potem ``Sesja.podaj_numer_plytki``.
+        (kwadratowe i okragle ramkowe 4-6 = plytki ramki porannej, okragle testowe 9); potem ``Sesja.podaj_numer_plytki``.
 
         Zmiana numeru skanu, ktory ma ten sam numer co inny skan pieca z INNYMI pracami (``_podstawa`` = None - zwykle nastepny wsad
         przy niezamknietym piecu), jest odrzucana: inaczej plan dla plytki o starym numerze bralby prace starego wsadu i ramka
@@ -830,7 +833,8 @@ class SesjaRano:
                               "zeby": info.get("zeby"), "miejsca": [{"skan_id": x["skan_id"], "numer_plytki": skan_po_id[x["skan_id"]]["numer_plytki"],
                                                                       "gniazdo": x["gniazdo"], "praca_id": x["id"]} for x in miejsca[pr]]})
         konflikty.sort(key=lambda k: (k["miejsca"][0]["skan_id"], k["miejsca"][0]["praca_id"]))
-        # numer plytki blokuje tylko plytki ramki (kwadratowe poranne); okragle poranne (poza ramka) - ostrzezenie (r2 D7)
+        # numer plytki blokuje tylko plytki ramki (kwadratowe poranne i - E3-O2 - okragle ramkowe: lista ``kwadratowe``); okragle
+        # testowe n9 (poza ramka: lista ``okragle``) - ostrzezenie (r2 D7)
         kwadratowe = [s for s in aktywne if na_ramce(s["uklad"])]
         okragle = [s for s in aktywne if numery_plytki(s["uklad"]) is not None and not na_ramce(s["uklad"])]
         bez_numeru = [s["id"] for s in kwadratowe if s["numer_plytki"] is None]
@@ -1267,16 +1271,19 @@ class SesjaRano:
         return d
 
     # --- plan plytek dla ramki porannej (A8) ---------------------------------------------------
-    def plan_plytek(self, sesja_pieca_id: int | None = None, kolejnosc: str = "liczba") -> dict:
+    def plan_plytek(self, sesja_pieca_id: int | None = None, kolejnosc: str = "liczba", *, wstrzymane: Any = ()) -> dict:
         """Plan plytek pieca dla ramki porannej (kontrakt dla ``indicate``, A8): numer plytki -> gniazda (``id``, ``kolor``,
         ``kuweta`` tylko dla pracy rozpoznanej z kuweta zgodna z protokolem), lista kuwet w kolejnosci ``kolejnosc``
         ("liczba" - od najliczniejszej, "numer" - wg numeru), ``braki`` (kuwety zlecen niekompletnych tego pieca).
 
-        Do planu idzie tylko plytka, ktora ramka przyjmie: aktywny, niepominiety skan kwadratowej plytki porannej o numerze 4-6,
-        numer jedyny w piecu (dwa skany z tym samym numerem = ``pominiete.zdublowane_plytki``, plytka bez obrazu). Reszta trafia do
-        ``pominiete`` (``bez_numeru``, ``zdublowane_plytki``, ``poza_ramka``, ``poza_gniazdem``). To NIE jest gotowa tresc
-        ``PUT /plan``: ``indicate`` dodaje ``px`` z kalibracji (uklad z ``uklady``), ``protokol``, ``wersja``, ``start_id``,
-        ``zdarzenia_do``, ``wazny_s``, ``potwierdzone``, ``wybrane`` i pomija pola pomocnicze."""
+        Do planu idzie tylko plytka, ktora ramka przyjmie: aktywny, niepominiety skan plytki porannej lezacej na ramce (kwadratowa
+        albo okragla ramkowa - ``na_ramce``) o numerze 4-6, numer jedyny w piecu (dwa skany z tym samym numerem - takze kwadrat
+        i okragla ramkowa, ramka ich nie odroznia - = ``pominiete.zdublowane_plytki``, plytka bez obrazu). Reszta trafia do
+        ``pominiete`` (``bez_numeru``, ``zdublowane_plytki``, ``poza_ramka``, ``poza_gniazdem``, ``numer_niezgodny``).
+        ``wstrzymane`` (E3-O2) - id skanow, ktorych plytki NIE maja swiecic, choc skan sie liczy: kontroler podaje tu skany z numerem
+        podanym recznie roznym od waznego numeru z dolkow kodu (``pominiete.numer_niezgodny``; bez blokady "Zamknij piec").
+        To NIE jest gotowa tresc ``PUT /plan``: ``indicate`` dodaje ``px`` z kalibracji (uklad z ``uklady``), ``protokol``,
+        ``wersja``, ``start_id``, ``zdarzenia_do``, ``wazny_s``, ``potwierdzone``, ``wybrane`` i pomija pola pomocnicze."""
         if kolejnosc not in KOLEJNOSCI:
             raise SE.BladSesji(f"nieznana kolejnosc kuwet {kolejnosc!r} (znane: {', '.join(KOLEJNOSCI)})")
         biezacy = self.otwarty_piec()
@@ -1288,7 +1295,8 @@ class SesjaRano:
         piec = biezacy
         stan = self.stan_pieca(piec["id"])
         po_numerze: dict[int, list[dict]] = {}
-        bez_numeru, poza_ramka = [], []
+        bez_numeru, poza_ramka, numer_niezgodny = [], [], []
+        wstrzymane = set(wstrzymane or ())
         for s in stan["skany"]:
             if not s["aktywny"]:
                 continue
@@ -1296,6 +1304,8 @@ class SesjaRano:
                 bez_numeru.append(s["id"])
             elif not s["na_ramce"]:
                 poza_ramka.append(s["id"])
+            elif s["id"] in wstrzymane:  # E3-O2: numer podany niezgodny z dolkami - plytka bez obrazu na ramce, skan zostaje
+                numer_niezgodny.append(s["id"])
             else:
                 po_numerze.setdefault(s["numer_plytki"], []).append(s)
         zdublowane = sorted(set(stan["zdublowane_plytki"]))
@@ -1337,4 +1347,5 @@ class SesjaRano:
         return {"plan_id": plan_id(piec), "tryb": SE.TRYB_RANO, "sesja_pieca_id": piec["id"], "plytki": plytki,
                 "kuwety": [{"kuweta": k, "plytki": sorted(na_plytkach[k])} for k in porzadek], "braki": braki[:MAX_BRAKOW_PLANU],
                 "uklady": uklady, "skany": skany, "liczba_prac": {k: liczba[k] for k in porzadek},
-                "pominiete": {"bez_numeru": bez_numeru, "poza_gniazdem": poza, "zdublowane_plytki": zdublowane, "poza_ramka": poza_ramka}}
+                "pominiete": {"bez_numeru": bez_numeru, "poza_gniazdem": poza, "zdublowane_plytki": zdublowane, "poza_ramka": poza_ramka,
+                              "numer_niezgodny": numer_niezgodny}}
