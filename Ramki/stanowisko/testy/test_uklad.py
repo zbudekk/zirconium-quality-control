@@ -75,7 +75,7 @@ def test_wszystkie_plytki_z_ustawien():
 
     ust = UST.wczytaj_ustawienia()
     nowe = {"wieczorna", "poranna", "okragla_wieczorna", "okragla_poranna"}
-    assert set(ust["plytki"]) == nowe | {n + "_r54" for n in nowe}  # R59: układ nowy i poprzedni (stare płytki)
+    assert set(ust["plytki"]) == nowe | {n + "_r54" for n in nowe} | {"okragla_ramkowa_wieczorna", "okragla_ramkowa_poranna"}  # R59: układ nowy i poprzedni (stare płytki); E3-O1: 2 uklady okragle ramkowe (R58)
     for nazwa in ust["plytki"]:
         uk = U.wczytaj(nazwa, UST.katalog_plytki(ust, nazwa))
         m = uk.markers
