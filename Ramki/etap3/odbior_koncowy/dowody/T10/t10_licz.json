@@ -1,0 +1,285 @@
+{
+ "wyrownanie": {
+  "skanow_wejscie": 40,
+  "rekordow": 40,
+  "uklad_niezgodny": 0,
+  "bez_rekordu": 0,
+  "rekordy_spoza_wejscia": 0,
+  "ok_moje": 40,
+  "ok_flaga_narzedzia": 40,
+  "max_mm": 0.0143,
+  "zle": [],
+  "zbiorczo": {
+   "skanow": 40,
+   "wyrownanie_ok": 40,
+   "wyrownanie_max_mm": 0.014252892770705261,
+   "uklad_niezgodny": 0
+  }
+ },
+ "top1": {
+  "prac_prawda_razem": 397,
+  "per_scenariusz_z_prawdy": {
+   "dobrze": {
+    "prac": 276,
+    "top1_ok": 276,
+    "brak_gniazda": 0
+   },
+   "bokiem": {
+    "prac": 44,
+    "top1_ok": 26,
+    "brak_gniazda": 0
+   },
+   "czesciowo": {
+    "prac": 37,
+    "top1_ok": 35,
+    "brak_gniazda": 0
+   },
+   "drgniecie": {
+    "prac": 40,
+    "top1_ok": 38,
+    "brak_gniazda": 0
+   }
+  },
+  "dobrze_m": 276,
+  "dobrze_n": 276,
+  "bledne_dobrze": [],
+  "narzedzie_z_rekordow": {
+   "prac": 276,
+   "top1_bledny": 0
+  },
+  "zbiorczo": {
+   "prac": 276,
+   "top1_bledny": 0,
+   "top1_udzial": 1.0,
+   "statusy_gniazd": {
+    "zielony": 111,
+    "czerwony": 64,
+    "zolty": 100,
+    "szary": 0,
+    "pomaranczowy": 1
+   }
+  }
+ },
+ "wielokrotne_gniazda": [
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_poranna",
+   "numer": 9,
+   "seed": 310,
+   "gniazdo": 1,
+   "wpisow": 3,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_poranna",
+   "numer": 9,
+   "seed": 312,
+   "gniazdo": 3,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_poranna",
+   "numer": 9,
+   "seed": 313,
+   "gniazdo": 1,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_poranna",
+   "numer": 9,
+   "seed": 313,
+   "gniazdo": 3,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_poranna",
+   "numer": 9,
+   "seed": 313,
+   "gniazdo": 7,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_poranna",
+   "numer": 9,
+   "seed": 350,
+   "gniazdo": 2,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_poranna",
+   "numer": 9,
+   "seed": 351,
+   "gniazdo": 19,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_wieczorna",
+   "numer": 8,
+   "seed": 300,
+   "gniazdo": 11,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_wieczorna",
+   "numer": 8,
+   "seed": 301,
+   "gniazdo": 9,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_wieczorna",
+   "numer": 8,
+   "seed": 340,
+   "gniazdo": 7,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_wieczorna",
+   "numer": 8,
+   "seed": 341,
+   "gniazdo": 8,
+   "wpisow": 2,
+   "scenariusz": "drgniecie"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "okragla_wieczorna",
+   "numer": 8,
+   "seed": 341,
+   "gniazdo": 4,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "poranna",
+   "numer": 4,
+   "seed": 331,
+   "gniazdo": 4,
+   "wpisow": 2,
+   "scenariusz": "bokiem"
+  },
+  {
+   "zestaw": "P3a",
+   "plytka": "wieczorna",
+   "numer": 1,
+   "seed": 320,
+   "gniazdo": 3,
+   "wpisow": 3,
+   "scenariusz": "bokiem"
+  }
+ ],
+ "czerwone": {
+  "prac_calych_moje": 126,
+  "z_czerwonym_moje": 0,
+  "lista": [],
+  "wpisow_calych_moje": 127,
+  "wpisow_calych_z_czerwonym_moje": 0,
+  "z_alarmem_wpisy_moje": 0,
+  "nie_sprawdzono_wpisy_moje": 9,
+  "narzedzie_z_rekordow": {
+   "prac_calych": 127,
+   "z_czerwonym": 0
+  },
+  "zbiorczo": {
+   "prac_calych": 127,
+   "prace_cale_z_czerwonym": 0,
+   "prace_cale_z_alarmem": 0,
+   "prace_cale_nie_sprawdzono": 9
+  },
+  "szerszy": {
+   "prac_bez_ubytkow_w_prawdzie": 150,
+   "czerwone": 0,
+   "lista": []
+  }
+ },
+ "log": {
+  "wierszy": 437,
+  "wierszy_skanow": 40,
+  "traceback": 0,
+  "nie_pasuje": 0,
+  "wiersz_prace_cale": "PRACE CA\\u0141E: 127, z czerwonym 0, z alarmem (czerwone / \\u017c\\xf3\\u0142te \\u201esprawd\\u017a\\u201d) 0, nie sprawdzono 9 (powody: {\"dane\": 9}), gniazda {\"zielony\": 114, \"czerwony\": 0, \"zolty\": 10, \"szary\": 0, \"pomaranczowy\": 3}",
+  "prace_cale_log": [
+   127,
+   0,
+   0,
+   9
+  ]
+ },
+ "czasy": {
+  "n": 40,
+  "min": 9.9,
+  "mediana": 20.7,
+  "max": 50.88,
+  "suma": 849.6,
+  "mediana_etapow": {
+   "plate": 2.42,
+   "match": 16.95,
+   "inspect": 1.5
+  },
+  "czas_calosci_s": 861.4
+ },
+ "informacja": {
+  "top1_razem": [
+   388,
+   397
+  ],
+  "wykrycie_dowolna": [
+   226,
+   249
+  ],
+  "A_B_czerwone": [
+   189,
+   110,
+   83
+  ],
+  "falszywe_ubytki_miejsca": 7,
+  "falszywe_czerwone_miejsca": 2,
+  "drgniecie": {
+   "prac": 39,
+   "wykryte": 36,
+   "falszywe": 2
+  },
+  "poprawki": {
+   "prac": 14,
+   "wykryte": 5,
+   "falszywe": 0
+  },
+  "statusy_gniazd": {
+   "zielony": 116,
+   "czerwony": 66,
+   "zolty": 201,
+   "szary": 26,
+   "pomaranczowy": 4
+  },
+  "pominiete_projekty": 283,
+  "nie_sprawdzono_powody": {
+   "dane": 9
+  }
+ },
+ "werdykty": {
+  "wyrownanie": true,
+  "top1_dobrze": true,
+  "falszywe_czerwone": true,
+  "moje_liczby_zgodne_z_narzedziem_i_logiem": true
+ }
+}

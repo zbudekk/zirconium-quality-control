@@ -1,0 +1,7 @@
+=== <PC-katalog>\t0\odbior\Stanowisko\Stanowisko.cmd --atrapa --zamknij-po 5 
+KOD=0 
+=== <PC-katalog>\t0\odbior\Stanowisko\Stanowisko.cmd --zamknij-po 20 
+KOD=0 
+=== find /c "Traceback" <PC-katalog>\t0\odbior\Stanowisko\dane\logi\stanowisko.log 
+
+---------- <PC-katalog>\T0\ODBIOR\STANOWISKO\DANE\LOGI\STANOWISKO.LOG: 0

@@ -1,0 +1,11 @@
+dowody_lf.py: plikow 9, naruszen 1
+OK        kody.txt
+OK        krok_t10.cmd
+OK        t10.log
+OK        t10_licz.json
+OK        t10_licz.py
+ZAKAZANY  t10_metryki.json: 1586 KB > 1024 KB - nie dodawac do repo
+OK        t10_t9.txt
+OK        t10_wynik.md
+OK        WYNIK.md
+WYNIK: FAIL (1 naruszen)

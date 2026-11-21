@@ -1,0 +1,37 @@
+{
+ "zapisy": [
+  {
+   "nr": 1,
+   "rodzaj": "dobry",
+   "zrodlo": 0,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior\\T7\\robocze\\b3\\eksport\\skan_0001.stl",
+   "start": 1795227619.8231487,
+   "koniec": 1795227621.4289367,
+   "rozmiar": 58251084,
+   "sha16": "c85504f17628ac3f",
+   "mtime_ns": 1795227621422929700
+  },
+  {
+   "nr": 2,
+   "rodzaj": "dobry",
+   "zrodlo": 1,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior\\T7\\robocze\\b3\\eksport\\skan_0002.stl",
+   "start": 1795227679.8328452,
+   "koniec": 1795227681.9070761,
+   "rozmiar": 48890984,
+   "sha16": "edb739f16b06e032",
+   "mtime_ns": 1795227681907076200
+  },
+  {
+   "nr": 3,
+   "rodzaj": "dobry",
+   "zrodlo": 2,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior\\T7\\robocze\\b3\\eksport\\skan_0003.stl",
+   "start": 1795227739.8331397,
+   "koniec": 1795227743.9359038,
+   "rozmiar": 56152084,
+   "sha16": "0b1286719e932bbd",
+   "mtime_ns": 1795227743935903700
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+czas_zimna START sob. 21.11.2026  3:54:17,36 
+czas_zimna KOD=0 sob. 21.11.2026  4:04:25,97 
+czas_ciepla START sob. 21.11.2026  4:04:25,97 
+czas_ciepla KOD=0 sob. 21.11.2026  4:08:45,25 
+jakosc START sob. 21.11.2026  4:08:45,25 
+jakosc KOD=0 sob. 21.11.2026  4:17:18,53 

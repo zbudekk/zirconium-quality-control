@@ -1,0 +1,20 @@
+== stan KONCOWY instalacji czesci A: sob. 21.11.2026  2:56:10,29 
+SHA256 hash of <PC-katalog>\t0\odbior_t12\Stanowisko\ustawienia.toml:
+1274f09de600273b69713fd327e1bfa1ba5fa76d098c3e6a50c114ab6da4d022
+CertUtil: -hashfile command completed successfully.
+0.3.1            zainstalowano 2026-11-21 02:49:56 commit 571e186cb817 schemat bazy 1  BIEZACA
+0.3.2            zainstalowano 2026-11-21 02:52:16 commit 571e186cb817 schemat bazy 1  poprzednia
+count(*)
+0
+-- wierszy: 1
+count(*)
+8
+-- wierszy: 1
+user_version
+1
+-- wierszy: 1
+pliki w dane\kopie: 
+stanowisko_przed_0.3.2_20261121_025311_v1.sqlite
+wiersze Traceback w dane\logi\stanowisko.log: 
+
+---------- <PC-katalog>\T0\ODBIOR_T12\STANOWISKO\DANE\LOGI\STANOWISKO.LOG: 0

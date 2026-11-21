@@ -1,0 +1,40 @@
+03:20:04.085 === proba b3 tryb=silnik ile=3 ; instalacja <PC-katalog>\t0\odbior_t12\Stanowisko ; ustawienia <PC-katalog>\koordynator\robocze\odbior\T7\ustawienia_b3.toml
+03:20:04.997 okno 1 uruchomione (cmd PID 13280): Polecenie.cmd -m stanowisko.aplikacja --ustawienia ... --zamknij-po 600
+03:20:17.951 posrednik programu: PID 35620, StartTime 03:20:05.050
+03:20:19.634 okno 2 uruchomione (cmd PID 24204): symulator_skanera.py --ile 3 --odstep 60 --rownolegle 1 --seed 1
+03:20:20.160 1. plik skanu pojawil sie w folderze eksportu
+03:21:24.661 2. skan zapisany (rozmiar staly 2,5 s; 65 s po starcie symulatora). skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; plikow STL w eksporcie: 2 ; wynikow w logu: 1 ; zadania_niezakonczone.json: False
+03:21:24.666 wynikow w logu: 1 (czekano 0,0 s od zapisu 2. skanu)
+03:21:28.785 tuz przed zakonczeniem silnika: skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; plikow STL w eksporcie: 2 ; wynikow w logu: 1 ; zadania_niezakonczone.json: False
+03:21:29.621 PID silnika: 33092 (StartTime 03:20:06.380); sposob: regula planu (dokladnie 2 procesy, mlodszy = silnik), potwierdzona lancuchem rodzic-potomek
+03:21:29.624 WYKONANO: Stop-Process -Id 33092 -Force
+03:21:31.632 po 2 s: silnik zyje: False; posrednik zyje: True; interpreter zyje: True
+03:21:39.652 po 10 s: potomkowie interpretera (nowy proces silnika?): 33448 start 03:21:29
+03:21:59.745 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	1 | -- wierszy: 2 ; plikow STL w eksporcie: 2 ; wynikow w logu: 2 ; zadania_niezakonczone.json: False
+03:22:19.834 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	1 | -- wierszy: 2 ; plikow STL w eksporcie: 2 ; wynikow w logu: 2 ; zadania_niezakonczone.json: False
+03:22:39.956 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	1 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 2 ; zadania_niezakonczone.json: False
+03:23:00.059 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:23:20.136 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:23:40.220 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:24:00.296 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:24:20.370 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:24:40.445 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:25:00.529 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:25:20.611 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:25:40.717 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:26:00.804 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:26:20.889 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:26:40.973 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:27:01.055 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:27:21.135 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:27:41.223 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:28:01.299 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:28:21.378 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:28:41.454 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:29:01.533 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:29:21.644 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:29:41.723 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:30:01.809 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:30:21.901 skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:30:21.903 okno 1 zakonczone: True; okno 2 (symulator) zakonczone: True
+03:30:25.613 KONIEC proby b3. skany: status	count(*) | blad	1 | plytka_nie_z_trybu	2 | -- wierszy: 2 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False

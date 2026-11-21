@@ -1,0 +1,13 @@
+dowody_lf.py: plikow 11, naruszen 0 (po naprawie)
+OK        kody.txt
+OK        krok_t10.cmd
+OK        POMINIETE.txt
+OK        t10.log
+OK        t10_dowody_lf.txt
+OK        t10_licz.json
+OK        t10_licz.py
+OK        t10_t9.txt
+OK        t10_t9_dowody.txt
+OK        t10_wynik.md
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

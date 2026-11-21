@@ -1,0 +1,8 @@
+SHA256 hash of <PC-katalog>\wydania\Stanowisko_0.3.1.zip:
+f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8
+CertUtil: -hashfile command completed successfully.
+f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8  Stanowisko_0.3.1.zip
+SHA256 hash of <PC-katalog>\wydania\Stanowisko_0.3.2.zip:
+030c72d86420e9461a3de93b47d7a68baa80bfbb52aa0078bf1907c42abad96c
+CertUtil: -hashfile command completed successfully.
+030c72d86420e9461a3de93b47d7a68baa80bfbb52aa0078bf1907c42abad96c  Stanowisko_0.3.2.zip

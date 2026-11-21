@@ -1,0 +1,24 @@
+03:01:16.212 STAN (zmiana): "lacznosc": false "nr_zdarzenia": 1 "plan_id": null "plan_wersja": null "plytka": 0 "plytki_planu": [] "tryb": "gotowa" "wlasciciel": false 
+03:01:23.261 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 1 "plan_id": null "plan_wersja": null "plytka": 0 "plytki_planu": [] "tryb": "gotowa" "wlasciciel": false 
+03:01:30.311 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 3 "plan_id": null "plan_wersja": null "plytka": 0 "plytki_planu": [] "tryb": "analiza" "wlasciciel": true 
+03:02:21.308 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 9 "plan_id": "2026-11-21-w-9a7168" "plan_wersja": 5 "plytka": 0 "plytki_planu": [1] "tryb": "wynik" "wlasciciel": true 
+03:02:21.374 POLECENIE: plytka 1
+03:02:22.482 POLECENIE: stan
+03:02:23.602 STAN po 'plytka 1': {"blad_sprzetu": false, "czas_s": 129.168, "kuweta": null, "lacznosc": true, "najstarsze_zdarzenie": 1, "nr_zdarzenia": 10, "plan_id": "2026-11-21-w-9a7168", "plan_pozostalo_s": 29.045, "plan_wazny_s": 30.0, "plan_wersja": 5, "plytka": 1, "plytka_pewna": true, "plytki_planu": [1], "potwierdzone": [], "program": "0.1.3", "protokol": 1, "rola": "W", "start_id": "837fac54", "temp_c": null, "tryb": "wynik", "wlasciciel": true, "wpisywane": "", "wybrane": {}}
+03:02:23.725 POLECENIE: klawisz enter
+03:02:24.837 POLECENIE: stan
+03:02:25.956 STAN po 'klawisz enter': {"blad_sprzetu": false, "czas_s": 131.188, "kuweta": null, "lacznosc": true, "najstarsze_zdarzenie": 1, "nr_zdarzenia": 10, "plan_id": "2026-11-21-w-9a7168", "plan_pozostalo_s": 27.026, "plan_wazny_s": 30.0, "plan_wersja": 5, "plytka": 1, "plytka_pewna": true, "plytki_planu": [1], "potwierdzone": [], "program": "0.1.3", "protokol": 1, "rola": "W", "start_id": "837fac54", "temp_c": null, "tryb": "wynik", "wlasciciel": true, "wpisywane": "", "wybrane": {}}
+03:02:29.484 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 12 "plan_id": null "plan_wersja": null "plytka": 1 "plytki_planu": [] "tryb": "analiza" "wlasciciel": true 
+03:02:56.972 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 15 "plan_id": "2026-11-21-w-9a7168" "plan_wersja": 7 "plytka": 1 "plytki_planu": [3] "tryb": "wynik" "wlasciciel": true 
+03:02:57.049 POLECENIE: plytka 3
+03:02:58.173 POLECENIE: stan
+03:02:59.300 STAN po 'plytka 3': {"blad_sprzetu": false, "czas_s": 164.522, "kuweta": null, "lacznosc": true, "najstarsze_zdarzenie": 1, "nr_zdarzenia": 16, "plan_id": "2026-11-21-w-9a7168", "plan_pozostalo_s": 29.037, "plan_wazny_s": 30.0, "plan_wersja": 7, "plytka": 3, "plytka_pewna": true, "plytki_planu": [3], "potwierdzone": [], "program": "0.1.3", "protokol": 1, "rola": "W", "start_id": "837fac54", "temp_c": null, "tryb": "wynik", "wlasciciel": true, "wpisywane": "", "wybrane": {}}
+03:03:02.772 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 16 "plan_id": "2026-11-21-w-9a7168" "plan_wersja": 7 "plytka": 3 "plytki_planu": [3] "tryb": "wynik" "wlasciciel": true 
+03:03:30.238 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 18 "plan_id": null "plan_wersja": null "plytka": 3 "plytki_planu": [] "tryb": "analiza" "wlasciciel": true 
+03:03:54.566 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 22 "plan_id": "2026-11-21-w-9a7168" "plan_wersja": 10 "plytka": 3 "plytki_planu": [2] "tryb": "wynik" "wlasciciel": true 
+03:03:54.647 POLECENIE: plytka 2
+03:03:55.757 POLECENIE: stan
+03:03:56.867 STAN po 'plytka 2': {"blad_sprzetu": false, "czas_s": 222.0, "kuweta": null, "lacznosc": true, "najstarsze_zdarzenie": 1, "nr_zdarzenia": 23, "plan_id": "2026-11-21-w-9a7168", "plan_pozostalo_s": 29.037, "plan_wazny_s": 30.0, "plan_wersja": 10, "plytka": 2, "plytka_pewna": true, "plytki_planu": [2], "potwierdzone": [], "program": "0.1.3", "protokol": 1, "rola": "W", "start_id": "837fac54", "temp_c": null, "tryb": "wynik", "wlasciciel": true, "wpisywane": "", "wybrane": {}}
+03:04:00.411 STAN (zmiana): "lacznosc": true "nr_zdarzenia": 24 "plan_id": null "plan_wersja": null "plytka": 2 "plytki_planu": [] "tryb": "gotowa" "wlasciciel": true 
+03:04:27.876 STAN (zmiana): "lacznosc": false "nr_zdarzenia": 24 "plan_id": null "plan_wersja": null "plytka": 2 "plytki_planu": [] "tryb": "gotowa" "wlasciciel": false 
+03:04:40 petla zatrzymana

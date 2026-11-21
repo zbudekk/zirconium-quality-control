@@ -1,0 +1,21 @@
+
+[A12, Aplikacja] Spacja -> ramka W 69 ms; kolory W = mapa w 19 gniazdach; plan P = session: 278 pol
+.
+[kryterium 1] 5 plany na atrapie P = plan_plytek: 1115 pol zgodnych, 0 roznych
+.
+[kryterium 2] potwierdzenie z Enter: 1 wpis po 3 uruchomieniach (historia x2); zamknij_piec biezacy: zamknieto 1; z historii: nieaktualne, piec otwarty; zdarzen ramki 17, duplikatow 0
+.
+[kryterium 4] Spacja -> stan atrapy W: maks 36 ms (5 prob, prog 1000 ms); kolory W = mapa w 95 gniazdach; najdluzsza przerwa petli okna 34 ms (tykniec 378)
+.
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_a_prawdziwa_aplikacja_spacja_ramka_w_kolory_mapy_i_plan_ramki_p
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k1_plan_ramki_porannej_rowny_planowi_session_pole_po_polu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k2_enter_na_ramce_raz_w_zdarzeniach_po_restarcie_i_zamknij_piec_tylko_biezacy
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k4_spacja_ramka_w_ponizej_1s_kolory_rowne_mapie_i_petla_okna
+4 passed, 24 deselected in 13.49s
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 60 modulow, z repo poza testami 0 modulow, modulow testow z repo 4; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

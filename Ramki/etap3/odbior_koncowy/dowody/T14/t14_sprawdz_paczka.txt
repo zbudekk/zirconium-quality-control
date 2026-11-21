@@ -1,0 +1,50 @@
+02:52:07 ZGODNE     1. start: program pyta o osobe
+02:52:07 ZGODNE     2. W1 Spacja: program czeka na plik skanu
+02:52:08 Spacja - skan 1 z 4 za 0.3 s
+02:52:08 skan podany: plytka 1: dwie prace czerwone (gniazda 3 i 11), jedna zolta (6), jedna szara (15), reszta zielona
+02:52:08 ZGODNE     3. W1 po skanie mapa plytki 1 na ekranie
+02:52:08 ZGODNE     4. W2 czerwone i pozostale prace do obejrzenia jak w scenariuszu [czerwone [3, 11], do obejrzenia [3, 6, 11, 15]]
+02:52:08 ZGODNE     5. W2 klikniecie czerwonego gniazda otwiera prace z rozmiarem ubytku
+02:52:08 osoba: decyzja ukruszona - plytka 1, gniazdo 3
+02:52:08 lista do dofrezowania: 1
+02:52:08 ZGODNE     6. W3 "Ukruszona": podpis gniazda UKRUSZONA
+02:52:08 osoba: decyzja ok - plytka 1, gniazdo 11
+02:52:09 ZGODNE     7. W3 "OK": podpis gniazda "OK - zatwierdzona"
+02:52:09 Spacja - skan 2 z 4 za 0.3 s
+02:52:09 skan podany: plytka 2: praca w gniezdzie 4 lezy zle - popraw ulozenie, skan do powtorzenia
+02:52:09 ZGODNE     8. W4 ekran zostaje na plytce 1: przycisk "Pokaz nowy wynik" i pole "Nowy wynik czeka" nazywaja plytke 2, komunikatu jeszcze nie widac
+02:52:09 ZGODNE     9. W4 komunikat "Skan do powtorzenia" z powodem i gniazdem [popraw ulozenie pracy (gniazdo 4)]
+02:52:10 Spacja - skan 3 z 4 za 0.3 s
+02:52:10 skan podany: plytka 2 po poprawieniu: te same prace, wszystkie zielone - program pyta o ponowny skan
+02:52:10 osoba: odpowiedz na pytanie o ponowny skan
+02:52:11 ZGODNE    10. W4 po ponownym skanie i "Tak, to ponowny skan": plytka 2 zielona, komunikat zniknal [podpisy ['OK', 'OK', 'OK', 'OK']]
+02:52:11 ZGODNE    11. W5 lista do dofrezowania ma jedna pozycje (kuweta, zab, krazek) [9003, 13, K-1]
+02:52:11 ZGODNE    12. dziennik notuje polecenia osoby (2 decyzje z miejscem, odpowiedz na pytanie) [wierszy osoby: 3]
+02:52:11 PODSUMOWANIE (wieczor): osoba: wybrana
+02:52:11 plytek na ekranie: 3; decyzji: 2 (ukruszona: 1, ok: 1); lista do dofrezowania: 1
+02:52:11 statusy plytek: 1: przyjety, 2: zastapiony, 2: przyjety
+02:52:11 ZGODNE    13. start: tryb Poranek, program pyta o osobe
+02:52:11 Spacja - skan 1 z 3 za 0.3 s
+02:52:12 skan podany: plytka 6 pieca: gniazdo 7 zolte (dwaj kandydaci), reszta rozpoznana
+02:52:12 Spacja - skan 2 z 3 za 0.3 s
+02:52:12 skan podany: plytka 5 pieca: trzy prace rozpoznane
+02:52:12 ZGODNE    14. R1 dwie plytki pieca na ekranie, piec otwarty
+02:52:12 ZGODNE    15. R2 zolte gniazdo jak w scenariuszu [zolte [7]]
+02:52:13 ZGODNE    16. R6 za wczesnie: pytanie "Zamknac piec mimo prac bez rozstrzygniecia?", Esc = powrot, piec otwarty
+02:52:13 osoba: praca rozstrzygnieta (bez rozstrzygniecia zostalo: 0)
+02:52:13 ZGODNE    17. R2 po "To ten projekt" gniazdo zielone (przypisana)
+02:52:14 osoba: kuweta 3277 rozlozona
+02:52:14 ZGODNE    18. R3 biezaca kuweta obwiedziona na plytkach, Enter = rozlozona [kuweta 3277, gniazd 4]
+02:52:14 osoba: kuweta 3284 rozlozona
+02:52:14 osoba: kuweta 3284 cofnieta
+02:52:14 ZGODNE    19. R4 Backspace cofa ostatnia kuwete (znowu biezaca) [kuweta 3284]
+02:52:14 osoba: wybrana kuweta 3298
+02:52:15 ZGODNE    20. R5 numer wpisany cyframi i Enter: ta kuweta jest biezaca [kuweta 3298]
+02:52:15 ZGODNE    21. R6 po "Zamknij piec": zlecenia kompletne i braki jak w scenariuszu [kompletne ['3277', '3284', '3291'], braki ['3298', '3305']]
+02:52:15 osoba: piec zamkniety
+02:52:15 ZGODNE    22. dziennik notuje polecenia osoby (wybor projektu, kuweta rozlozona i cofnieta, kuweta wybrana, piec zamkniety) [wierszy osoby: 10]
+02:52:15 PODSUMOWANIE (rano): osoba: wybrana
+02:52:15 piec: ZAMKNIETY; plytek: 2; nierozstrzygniete: dwuznaczne 0, nieznane 0
+02:52:15 kuwety rozlozone przed zamknieciem pieca (wg dziennika): 3277; biezaca: -
+02:52:15 kompletne: 3277, 3284, 3291; braki: 3298, 3305
+02:52:15 SPRAWDZENIE T14 BEZ EKRANU: zgodne 22 z 22 krokow

@@ -1,0 +1,47 @@
+Samotest: nazw 449, czlonow 61, tekstow maski 524, wzorzec kontrolny 1; postaci sprawdzonych 8229, nieznalezionych 0; nazw bez postaci ASCII (transliteracja niemozliwa, postac niesprawdzana): 7
+T9 dane osobowe: szukanych nazw 449 (pominietych krotszych niz 4 znaki: 0), czlonow 61; przeszukanych plikow 383, nieprzeszukanych (spakowane / za duze) 0, wykluczonych (--wyklucz) 0
+TRAFIENIA calych nazw poza miejscami dozwolonymi: 0 w 0 plikach
+Trafienia w miejscach dozwolonych: 0 w 0 plikach
+Czlony nazw do wyjasnienia (bez calej nazwy): 220 w 86 plikach
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T0\GOTOWE.txt: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T0\kody.txt: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T0\krok_6_9.cmd: 414777f6c840fa40 x3
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T0\t0_kroki.md: 414777f6c840fa40 x1, b78cb9ce56d5b7e2 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T0\t0_sha256.txt: b78cb9ce56d5b7e2 x2
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T0\t0_start.txt: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T0\WYNIK.md: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T1\t1_pominiete.txt: 5054e1b14a2e813f x3
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T1\t1_pytest.log: 5054e1b14a2e813f x3
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T1\t1_pytest_bazowy.log: 5054e1b14a2e813f x3
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T1\WYNIK.md: 5054e1b14a2e813f x3
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T10\WYNIK.md: 6d223affc23ef544 x2
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T11\t11_testy.log: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T11\t11_testy_instalacja.log: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T12\czasy.txt: 414777f6c840fa40 x2
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T12\dowody_lf.txt: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T12\kody.txt: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T12\krok_A1.cmd: 414777f6c840fa40 x5
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T12\t12_kroki.md: 414777f6c840fa40 x2, b78cb9ce56d5b7e2 x3
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T12\<sha16:0c331f796a64e3c1>: 414777f6c840fa40 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T12\WYNIK.md: b78cb9ce56d5b7e2 x3
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T13\t13_diff_stat.txt: 414777f6c840fa40 x2
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T2\WYNIK.md: b78cb9ce56d5b7e2 x2
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T3\t3_ekran.log: 414777f6c840fa40 x1, b78cb9ce56d5b7e2 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T3\t3_se10.log: b78cb9ce56d5b7e2 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T3\t3_sterownik.log: b78cb9ce56d5b7e2 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T3\t3_wynik.json: b78cb9ce56d5b7e2 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T3\t3_wynik.txt: b78cb9ce56d5b7e2 x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T4\WYNIK.md: 5054e1b14a2e813f x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\<sha16:b02d53e14229b689>: 414777f6c840fa40 x4
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\<sha16:1bce8085784c9301>: 414777f6c840fa40 x4
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\dowody_lf.txt: 414777f6c840fa40 x4
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\<sha16:80f35c5ee05eaad8>: 414777f6c840fa40 x4
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\<sha16:50630938b7445651>: 414777f6c840fa40 x4
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\t5_ruch_liczniki.txt: 414777f6c840fa40 x2
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\t5_siec_lokalna.md: 414777f6c840fa40 x15, 5054e1b14a2e813f x1
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\t5_wynik.md: 414777f6c840fa40 x8
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T5\WYNIK.md: 414777f6c840fa40 x8
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T6\t6_excel.log: 414777f6c840fa40 x1, 6d223affc23ef544 x1, b78cb9ce56d5b7e2 x3
+  <PC-katalog>\qc-wt\odbior\Ramki\etap3\odbior_koncowy\dowody\T6\t6_wynik.md: b78cb9ce56d5b7e2 x4
+  ... i jeszcze 46 plikow (pelna lista: --json)
+WYNIK T9 (cale nazwy): ZAL - czlony do wyjasnienia: 220

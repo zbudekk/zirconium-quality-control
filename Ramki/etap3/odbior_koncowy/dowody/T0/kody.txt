@@ -1,0 +1,10 @@
+krok3_zainstaluj_1 KOD=10 
+krok5_zainstaluj_2 KOD=0 
+krok6a_samokontrola_bez_sieci KOD=0 
+krok6b_samokontrola_json KOD=0 
+krok7a_start_atrapa KOD=0 
+krok7b_start_kontroler KOD=0 
+krok7c_find_traceback KOD=1 (1 = 0 wierszy) 
+krok8_wmi KOD=0 
+krok9a_findstr_pip KOD=0 
+krok9b_findstr_dziennik KOD=0 

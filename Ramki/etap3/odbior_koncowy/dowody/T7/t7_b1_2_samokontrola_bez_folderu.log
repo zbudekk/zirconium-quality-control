@@ -1,0 +1,22 @@
+OK python: Python 3.12.10
+OK pakiety: wersje pakietow zgodne 11 z 11 z requirements.txt (bez pytest)
+OK moduly: moduly programu z bibliotekami DLL: zaladowane 27 z 27 (Qt, Open3D, scipy, trimesh, lancuch analizy, ramki, Excel)
+OK ustawienia: plik ustawien wczytany i poprawny: <PC-katalog>\koordynator\robocze\odbior\T7\ustawienia_b1.toml - 0 kluczy z wartoscia domyslna
+OK operatorzy: osoby do wyboru na poczatku zmiany: 1
+OK folder_skanera: folder eksportu skanera istnieje i daje sie czytac: <PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/eksport
+BLAD folder_cyrkon: brak folderu projektow Cyrkon: <PC-katalog>/koordynator/robocze/odbior/T7/robocze/Cyrkon - pula projektow jest pusta i skany czekaja bez wyniku; otworz plik ustawien <PC-katalog>\koordynator\robocze\odbior\T7\ustawienia_b1.toml i popraw klucz [sciezki] folder_cyrkon (wiersz folder_cyrkon = "...", sciezka z ukosnikami /) albo utworz / podlacz ten folder
+OK folder_prywatne: folder projektow Prywatne istnieje i daje sie czytac: <PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/Prywatne
+OK folder_millbox: folder MillBox istnieje i daje sie czytac: <PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/millbox
+OK dane_folder: folder danych istnieje, zapis mozliwy: <PC-katalog>\koordynator\robocze\odbior\T7\robocze\b1\dane
+OK dane_miejsce: wolne miejsce na dysku folderu danych: 50.8 GB
+OK dane_polozenie: dane programu poza folderami synchronizowanymi OneDrive / SharePoint (sprawdzone sciezki: 7, znane foldery synchronizowane: 1)
+OK baza: baza otwiera sie do odczytu, wersja schematu 1 zgodna z programem, quick_check ok, 0.1 MB
+OK modele: uklady plytek z [plytki]: poprawne 8 z 8 (uklad.json i modele plytka_n*.stl)
+OSTRZEZENIE pula: pula z jednego folderu (pula_wpisow = false): [sciezki] folder_cyrkon niedostepny - pula pusta, skany beda czekac; popraw folder (wiersz folder_cyrkon)
+OK pamiec_puli: pamiec puli na dysku: 0 wpisow, 0 MB, sprzatanie wpisow nieuzywanych od 30 dni
+OSTRZEZENIE ramka_wieczorna: proby polaczenia z ramka wieczorna nie bylo - pominieto (--bez-sieci); gdy ramka jest wlaczona, uruchom samokontrole bez --bez-sieci, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie
+OSTRZEZENIE ramka_poranna: proby polaczenia z ramka poranna nie bylo - pominieto (--bez-sieci); gdy ramka jest wlaczona, uruchom samokontrole bez --bez-sieci, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie
+OSTRZEZENIE excel: Excel nie jest uruchomiony w tej sesji uzytkownika; przed poranna praca otworz plik zlecen w Excelu na tym laptopie (z Autozapisem), bez Excela program dziala - zlecenia odhacza sie wtedy recznie
+OK egzemplarz: program Stanowisko nie jest teraz uruchomiony na tej bazie
+OK sumy: sumy SHA-256 plikow programu zgodne 130 z 130 (SUMY_PROGRAMU.sha256), plikow nadmiarowych 0
+SAMOKONTROLA: CZERWONA (ok 16, ostrzezenia 4, bledy 1)

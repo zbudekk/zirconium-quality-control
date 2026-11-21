@@ -1,0 +1,5 @@
+Pliki i katalogi testu T7, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T7/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 111 plikow, 527003174 B | katalog roboczy - dane prob B: bazy, skany STL, kopia folderu projektow, sterowniki

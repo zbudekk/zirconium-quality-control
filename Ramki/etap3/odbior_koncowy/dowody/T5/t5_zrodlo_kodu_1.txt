@@ -1,0 +1,5 @@
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 20 modulow, z repo poza testami 0 modulow, modulow testow z repo 4; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

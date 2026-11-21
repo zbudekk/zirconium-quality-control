@@ -1,0 +1,1623 @@
+{
+ "narzedzie": "t2_wieczor.py",
+ "data": "2026-11-21 04:27:21",
+ "przerwano": null,
+ "blad_sterownika": null,
+ "pomiar_caly": true,
+ "odstep_s": 60.0,
+ "plikow": 10,
+ "limit_s": 1800.0,
+ "katalog_programu": "program",
+ "python": "3.12.10",
+ "scenariusz": "t2_scenariusz.json",
+ "wybrane": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10
+ ],
+ "pula_cache": "pusta (zimna)",
+ "platforma_qt": "offscreen",
+ "procesy_po_sprzataniu": [],
+ "kod_programu": 0,
+ "obsluzone_zgodnie_z_prawda": {
+  "zgodnych": 10,
+  "z": 10
+ },
+ "start_analizy_od_zapisu_s": {
+  "zmierzonych": 9,
+  "z": 9,
+  "max": 0.428,
+  "wartosci": [
+   0.428,
+   0.413,
+   0.422,
+   0.414,
+   0.423,
+   0.368,
+   0.372,
+   0.417,
+   0.38
+  ],
+  "ponizej_1_s": 9,
+  "czekaly_w_kolejce": [],
+  "uwaga": "kryterium liczone dla WSZYSTKICH plikow dobrych; pole czekaly_w_kolejce = wartosci plikow zapisanych, gdy program liczyl jeszcze poprzednia plytke (przyczyna, nie wylaczenie z kryterium); przy --odstep krotszym niz czas analizy (proba skrocona) takie pliki sa nieuniknione",
+  "zrodlo": "analiza.od stanu programu (zdarzenie 'start' silnika) minus koniec zapisu z dziennika symulatora"
+ },
+ "mapa_od_zapisu_s": {
+  "zmierzonych": 9,
+  "mediana": 15.04,
+  "max": 39.54,
+  "pierwsza_plytka": 39.54,
+  "kolejne": [
+   19.1,
+   15.04,
+   22.05,
+   11.57,
+   2.85,
+   15.04,
+   24.39,
+   14.45
+  ],
+  "zrodlo": "pierwszy odczyt plytki w stan().plytki (co 20 ms) minus koniec zapisu - gorne ograniczenie",
+  "do_40_s": {
+   "pierwsza_plytka_pula_zimna": [
+    1,
+    1
+   ],
+   "kolejne_pula_ciepla": [
+    8,
+    8
+   ]
+  },
+  "w_oknie": {
+   "zmierzonych": 3,
+   "mediana": 15.04,
+   "max": 39.54,
+   "zrodlo": "pierwsze tykniecie (co 20 ms), w ktorym okno.pokazana_plytka() = ta plytka, bez klikniecia sterownika w kafelek, minus koniec zapisu - gorne ograniczenie; gdy okno nie przelaczy mapy samo (technik oglada inna plytke) - NIE ZMIERZONO"
+  }
+ },
+ "petla_okna": {
+  "tykniec": 28281,
+  "okres_ms": 20,
+  "prog_ms": 200.0,
+  "najdluzsza_przerwa_ms": 34.7,
+  "przekroczen": 0,
+  "przekroczenia": [],
+  "sterownik_tyk_max_ms": 27.5,
+  "sterownik_tyk_max_co": "klik przycisk_ukruszona",
+  "tykniec_w_srodku_klikniecia": 0,
+  "tykniecie_zamykajace_ms": 1331.6,
+  "uwaga": "tykniecie zamykajace (odczyt stanu koncowego i QApplication.quit() - zamkniecie okien programu) konczy pomiar: po nim nie ma kolejnego tykniecia, jego czas nie jest przerwa petli w trakcie pracy"
+ },
+ "lista_do_dofrezowania": {
+  "rowna": false,
+  "oczekiwanych": 26,
+  "w_programie": 25,
+  "brakuje_w_programie": [
+   [
+    "247ee785f428396f",
+    4
+   ]
+  ],
+  "nadmiarowe_w_programie": []
+ },
+ "kolory_prac": {
+  "ubytki_wg_prawdy": {
+   "czerwony": 10,
+   "zolty": 15,
+   "zielony": 1,
+   "inny": 0,
+   "brak_pracy_w_programie": 0,
+   "plytka_nieobejrzana": 0,
+   "z": 26
+  },
+  "cale_wg_prawdy": {
+   "czerwony": 0,
+   "zolty": 0,
+   "zielony": 31,
+   "inny": 0,
+   "z": 31
+  },
+  "ekran_inny_niz_stan": 0,
+  "prac_odczytanych": 57
+ },
+ "klikniecia": {
+  "ukruszona": [
+   25,
+   26
+  ],
+  "ok_falszywy_alarm": [
+   0,
+   0
+  ],
+  "pominiete_przeoczone": 1,
+  "ponowien": 0,
+  "czekan_na_ochrone_mapy": 5
+ },
+ "przeglady_map": [
+  {
+   "nr": 1,
+   "sha16": "df2e6a790700131d",
+   "s_od_startu": 45.36,
+   "wynik": "obejrzana",
+   "prac_na_mapie": 9,
+   "czekan_na_ochrone": 0,
+   "klikniec_zaplanowanych": 6
+  },
+  {
+   "nr": 2,
+   "sha16": "75db8c4f9ead0dab",
+   "s_od_startu": 85.98,
+   "wynik": "obejrzana",
+   "prac_na_mapie": 9,
+   "czekan_na_ochrone": 1,
+   "klikniec_zaplanowanych": 3
+  },
+  {
+   "nr": 3,
+   "sha16": "9cc2bd761deb672b",
+   "s_od_startu": 143.24,
+   "wynik": "obejrzana",
+   "prac_na_mapie": 9,
+   "czekan_na_ochrone": 1,
+   "klikniec_zaplanowanych": 3
+  },
+  {
+   "nr": 4,
+   "sha16": "9d5eeb980330c768",
+   "s_od_startu": 209.82,
+   "wynik": "obejrzana",
+   "prac_na_mapie": 11,
+   "czekan_na_ochrone": 1,
+   "klikniec_zaplanowanych": 4
+  },
+  {
+   "nr": 8,
+   "sha16": "247ee785f428396f",
+   "s_od_startu": 442.6,
+   "wynik": "obejrzana",
+   "prac_na_mapie": 9,
+   "czekan_na_ochrone": 1,
+   "klikniec_zaplanowanych": 3
+  },
+  {
+   "nr": 10,
+   "sha16": "8358e17160a25742",
+   "s_od_startu": 562.58,
+   "wynik": "obejrzana",
+   "prac_na_mapie": 10,
+   "czekan_na_ochrone": 1,
+   "klikniec_zaplanowanych": 6
+  }
+ ],
+ "decyzje": [
+  {
+   "nr": 1,
+   "sha16": "df2e6a790700131d",
+   "gniazdo": 1,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 1,
+   "sha16": "df2e6a790700131d",
+   "gniazdo": 2,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 1,
+   "sha16": "df2e6a790700131d",
+   "gniazdo": 3,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 1,
+   "sha16": "df2e6a790700131d",
+   "gniazdo": 4,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 1,
+   "sha16": "df2e6a790700131d",
+   "gniazdo": 6,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 1,
+   "sha16": "df2e6a790700131d",
+   "gniazdo": 8,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 2,
+   "sha16": "75db8c4f9ead0dab",
+   "gniazdo": 1,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 2,
+   "sha16": "75db8c4f9ead0dab",
+   "gniazdo": 2,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 2,
+   "sha16": "75db8c4f9ead0dab",
+   "gniazdo": 4,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 3,
+   "sha16": "9cc2bd761deb672b",
+   "gniazdo": 2,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 3,
+   "sha16": "9cc2bd761deb672b",
+   "gniazdo": 10,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 3,
+   "sha16": "9cc2bd761deb672b",
+   "gniazdo": 20,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 4,
+   "sha16": "9d5eeb980330c768",
+   "gniazdo": 1,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 4,
+   "sha16": "9d5eeb980330c768",
+   "gniazdo": 17,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 4,
+   "sha16": "9d5eeb980330c768",
+   "gniazdo": 19,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 4,
+   "sha16": "9d5eeb980330c768",
+   "gniazdo": 20,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 8,
+   "sha16": "247ee785f428396f",
+   "gniazdo": 4,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zielony",
+   "wynik": "POMINIETA: praca z ubytkiem wg prawdy pokazana przez program jako zielony - technik jej nie oglada (przeoczona przez program)",
+   "decyzja": null,
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.0
+  },
+  {
+   "nr": 8,
+   "sha16": "247ee785f428396f",
+   "gniazdo": 1,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 8,
+   "sha16": "247ee785f428396f",
+   "gniazdo": 6,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 8,
+   "sha16": "247ee785f428396f",
+   "gniazdo": 9,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 10,
+   "sha16": "8358e17160a25742",
+   "gniazdo": 1,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 10,
+   "sha16": "8358e17160a25742",
+   "gniazdo": 3,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 10,
+   "sha16": "8358e17160a25742",
+   "gniazdo": 7,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "zolty",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona_niewykryta",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 10,
+   "sha16": "8358e17160a25742",
+   "gniazdo": 15,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 10,
+   "sha16": "8358e17160a25742",
+   "gniazdo": 17,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  },
+  {
+   "nr": 10,
+   "sha16": "8358e17160a25742",
+   "gniazdo": 20,
+   "rodzaj": "ukruszona",
+   "kolor_przed": "czerwony",
+   "wynik": "wykonana",
+   "decyzja": "ukruszona",
+   "ponowien": 0,
+   "czekan_na_ochrone": 0,
+   "czas_s": 0.12
+  }
+ ],
+ "odpowiedzi_na_pytania": [
+  {
+   "pytanie": "brak_numeru_plytki",
+   "odpowiedz": "numer 1",
+   "skan_id": 1,
+   "s_od_startu": 45.34
+  },
+  {
+   "pytanie": "brak_numeru_plytki",
+   "odpowiedz": "numer 3",
+   "skan_id": 3,
+   "s_od_startu": 142.72
+  },
+  {
+   "pytanie": "brak_numeru_plytki",
+   "odpowiedz": "numer 2",
+   "skan_id": 5,
+   "s_od_startu": 317.62
+  },
+  {
+   "pytanie": "brak_numeru_plytki",
+   "odpowiedz": "numer 2",
+   "skan_id": 7,
+   "s_od_startu": 441.76
+  },
+  {
+   "pytanie": "ponowny_skan",
+   "odpowiedz": "odrzuc",
+   "skan_id": 7,
+   "s_od_startu": 441.78
+  },
+  {
+   "pytanie": "ponowny_skan",
+   "odpowiedz": "odrzuc",
+   "skan_id": 9,
+   "s_od_startu": 562.06
+  }
+ ],
+ "pytania_programu": [
+  [
+   "brak_numeru_plytki",
+   1,
+   45.34
+  ],
+  [
+   "brak_numeru_plytki",
+   3,
+   142.11
+  ],
+  [
+   "brak_numeru_plytki",
+   5,
+   317.3
+  ],
+  [
+   "brak_numeru_plytki",
+   7,
+   441.44
+  ],
+  [
+   "ponowny_skan",
+   7,
+   441.78
+  ],
+  [
+   "plytka_nie_z_trybu",
+   8,
+   511.33
+  ],
+  [
+   "ponowny_skan",
+   9,
+   561.43
+  ]
+ ],
+ "komunikaty_programu": {
+  "ramka_wieczorna_niedostepna": [
+   2.88,
+   1
+  ],
+  "konflikt_projektu": [
+   85.14,
+   9
+  ],
+  "plik_odrzucony": [
+   251.76,
+   1
+  ],
+  "skan_do_powtorzenia": [
+   317.3,
+   1
+  ],
+  "niezgodny_uklad": [
+   370.19,
+   1
+  ]
+ },
+ "plytki": [
+  {
+   "nr": 1,
+   "sklad": "uklad R59, kwadratowa wieczorna",
+   "oczekiwany_status": "przyjety",
+   "sha16": "df2e6a790700131d",
+   "kolejnosc": 1,
+   "oczekiwany_uklad": "wieczorna",
+   "oczekiwany_numer": 1,
+   "prac_prawda": 9,
+   "faktyczny_status": "przyjety",
+   "faktyczny_uklad": "wieczorna",
+   "faktyczny_numer": 1,
+   "prac_program": 9,
+   "zielonych": 3,
+   "pytania": [],
+   "czas_s_programu": 38.96,
+   "numer_zrodlo": "podany przez technika na pytanie programu",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.428,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 39.54,
+   "mapa_w_oknie_od_zapisu_s": 39.54,
+   "kolory_prac_z_ekranu": {
+    "1": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "2": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "3": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "4": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "5": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "6": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    },
+    "8": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    },
+    "9": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "10": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    }
+   }
+  },
+  {
+   "nr": 2,
+   "sklad": "uklad R59, okragla wieczorna",
+   "oczekiwany_status": "przyjety",
+   "sha16": "75db8c4f9ead0dab",
+   "kolejnosc": 2,
+   "oczekiwany_uklad": "okragla_wieczorna",
+   "oczekiwany_numer": 8,
+   "prac_prawda": 9,
+   "faktyczny_status": "przyjety",
+   "faktyczny_uklad": "okragla_wieczorna",
+   "faktyczny_numer": 8,
+   "prac_program": 9,
+   "zielonych": 6,
+   "pytania": [],
+   "czas_s_programu": 18.58,
+   "numer_zrodlo": "odczytany przez program",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.413,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 19.1,
+   "mapa_w_oknie_od_zapisu_s": "NIE ZMIERZONO: okno nie pokazalo tej plytki samo (pokazywalo inna) przed kliknieciem sterownika",
+   "kolory_prac_z_ekranu": {
+    "1": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "2": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    },
+    "3": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "4": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "5": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "7": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "8": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "9": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "10": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    }
+   }
+  },
+  {
+   "nr": 3,
+   "sklad": "uklad R54, kwadratowa wieczorna",
+   "oczekiwany_status": "przyjety",
+   "sha16": "9cc2bd761deb672b",
+   "kolejnosc": 3,
+   "oczekiwany_uklad": "wieczorna_r54",
+   "oczekiwany_numer": 3,
+   "prac_prawda": 9,
+   "faktyczny_status": "przyjety",
+   "faktyczny_uklad": "wieczorna_r54",
+   "faktyczny_numer": 3,
+   "prac_program": 9,
+   "zielonych": 6,
+   "pytania": [],
+   "czas_s_programu": 14.52,
+   "numer_zrodlo": "podany przez technika na pytanie programu",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.422,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 15.04,
+   "mapa_w_oknie_od_zapisu_s": "NIE ZMIERZONO: okno nie pokazalo tej plytki samo (pokazywalo inna) przed kliknieciem sterownika",
+   "kolory_prac_z_ekranu": {
+    "1": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "2": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "3": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "4": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "5": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "10": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    },
+    "15": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "16": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "20": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    }
+   }
+  },
+  {
+   "nr": 4,
+   "sklad": "uklad R54, okragla wieczorna",
+   "oczekiwany_status": "przyjety",
+   "sha16": "9d5eeb980330c768",
+   "kolejnosc": 4,
+   "oczekiwany_uklad": "okragla_wieczorna_r54",
+   "oczekiwany_numer": 8,
+   "prac_prawda": 11,
+   "faktyczny_status": "przyjety",
+   "faktyczny_uklad": "okragla_wieczorna_r54",
+   "faktyczny_numer": 8,
+   "prac_program": 11,
+   "zielonych": 7,
+   "pytania": [],
+   "czas_s_programu": 21.52,
+   "numer_zrodlo": "odczytany przez program",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.414,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 22.05,
+   "mapa_w_oknie_od_zapisu_s": "NIE ZMIERZONO: okno nie pokazalo tej plytki samo (pokazywalo inna) przed kliknieciem sterownika",
+   "kolory_prac_z_ekranu": {
+    "1": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "2": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "3": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "4": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "5": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "15": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "16": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "17": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "18": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "19": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "20": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    }
+   }
+  },
+  {
+   "nr": 5,
+   "sklad": "1 plik uciety (60 % bajtow pliku nr 1)",
+   "oczekiwany_status": "plik_odrzucony",
+   "sha16": "6b0e98d5073f7c98",
+   "kolejnosc": 5,
+   "faktyczny_status": "plik_odrzucony",
+   "plytka_w_stanie": false,
+   "zdarzen_plik_odrzucony": 1,
+   "komunikat_plik_odrzucony": true,
+   "zgodne": true
+  },
+  {
+   "nr": 6,
+   "sklad": "uklad R59, kwadratowa wieczorna, 1 drgniecie",
+   "oczekiwany_status": "do_powtorzenia",
+   "sha16": "769e0fd025693694",
+   "kolejnosc": 6,
+   "oczekiwany_uklad": "wieczorna",
+   "oczekiwany_numer": 2,
+   "prac_prawda": 8,
+   "faktyczny_status": "do_powtorzenia",
+   "faktyczny_uklad": "wieczorna",
+   "faktyczny_numer": 2,
+   "prac_program": 8,
+   "zielonych": 0,
+   "pytania": [],
+   "czas_s_programu": 11.02,
+   "numer_zrodlo": "podany przez technika na pytanie programu",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.423,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 11.57,
+   "mapa_w_oknie_od_zapisu_s": "NIE ZMIERZONO: okno nie pokazalo tej plytki samo (pokazywalo inna) przed kliknieciem sterownika"
+  },
+  {
+   "nr": 7,
+   "sklad": "1 niezgodny uklad (rozstaw stozkow x 1,12)",
+   "oczekiwany_status": "niezgodny_uklad",
+   "sha16": "857369c6c1d3aef3",
+   "kolejnosc": 7,
+   "oczekiwany_uklad": "wieczorna",
+   "oczekiwany_numer": 3,
+   "prac_prawda": 10,
+   "faktyczny_status": "niezgodny_uklad",
+   "faktyczny_uklad": "auto",
+   "faktyczny_numer": null,
+   "prac_program": 0,
+   "zielonych": 0,
+   "pytania": [],
+   "czas_s_programu": 2.37,
+   "numer_zrodlo": "brak (program nie odczytal i nie pytal albo odpowiedz nieudzielona)",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.368,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 2.85,
+   "mapa_w_oknie_od_zapisu_s": 2.85
+  },
+  {
+   "nr": 8,
+   "sklad": "uklad R59, kwadratowa wieczorna",
+   "oczekiwany_status": "przyjety",
+   "sha16": "247ee785f428396f",
+   "kolejnosc": 8,
+   "oczekiwany_uklad": "wieczorna",
+   "oczekiwany_numer": 2,
+   "prac_prawda": 9,
+   "faktyczny_status": "przyjety",
+   "faktyczny_uklad": "wieczorna",
+   "faktyczny_numer": 2,
+   "prac_program": 9,
+   "zielonych": 6,
+   "pytania": [],
+   "czas_s_programu": 14.53,
+   "numer_zrodlo": "podany przez technika na pytanie programu",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.372,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 15.04,
+   "mapa_w_oknie_od_zapisu_s": 15.04,
+   "kolory_prac_z_ekranu": {
+    "1": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "2": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "3": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "4": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": true
+    },
+    "5": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "6": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    },
+    "8": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "9": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "10": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    }
+   }
+  },
+  {
+   "nr": 9,
+   "sklad": "uklad R59, kwadratowa poranna w trybie wieczornym",
+   "oczekiwany_status": "plytka_nie_z_trybu",
+   "sha16": "c21b3b21066fab83",
+   "kolejnosc": 9,
+   "oczekiwany_uklad": "poranna",
+   "oczekiwany_numer": 4,
+   "prac_prawda": 10,
+   "faktyczny_status": "plytka_nie_z_trybu",
+   "faktyczny_uklad": "poranna",
+   "faktyczny_numer": null,
+   "prac_program": 10,
+   "zielonych": 0,
+   "pytania": [
+    "plytka_nie_z_trybu"
+   ],
+   "czas_s_programu": 23.85,
+   "numer_zrodlo": "brak (program nie odczytal i nie pytal albo odpowiedz nieudzielona)",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.417,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 24.39,
+   "mapa_w_oknie_od_zapisu_s": "NIE ZMIERZONO: okno nie pokazalo tej plytki samo (pokazywalo inna) przed kliknieciem sterownika"
+  },
+  {
+   "nr": 10,
+   "sklad": "uklad R54, okragla wieczorna",
+   "oczekiwany_status": "przyjety",
+   "sha16": "8358e17160a25742",
+   "kolejnosc": 10,
+   "oczekiwany_uklad": "okragla_wieczorna_r54",
+   "oczekiwany_numer": 8,
+   "prac_prawda": 10,
+   "faktyczny_status": "przyjety",
+   "faktyczny_uklad": "okragla_wieczorna_r54",
+   "faktyczny_numer": 8,
+   "prac_program": 10,
+   "zielonych": 4,
+   "pytania": [],
+   "czas_s_programu": 13.96,
+   "numer_zrodlo": "odczytany przez program",
+   "zgodne": true,
+   "start_analizy_od_zapisu_s": 0.38,
+   "kolejka_przy_zapisie": 0,
+   "mapa_od_zapisu_s": 14.45,
+   "mapa_w_oknie_od_zapisu_s": "NIE ZMIERZONO: okno nie pokazalo tej plytki samo (pokazywalo inna) przed kliknieciem sterownika",
+   "kolory_prac_z_ekranu": {
+    "1": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "2": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "3": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "4": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "7": {
+     "piksel": "#f0c828",
+     "klasa": "zolty",
+     "status": "zolty",
+     "klasa_stanu": "zolty",
+     "ubytek_wg_prawdy": true
+    },
+    "15": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    },
+    "16": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "17": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    },
+    "18": {
+     "piksel": "#3cb44b",
+     "klasa": "zielony",
+     "status": "zielony",
+     "klasa_stanu": "zielony",
+     "ubytek_wg_prawdy": false
+    },
+    "20": {
+     "piksel": "#dc3232",
+     "klasa": "czerwony",
+     "status": "czerwony",
+     "klasa_stanu": "czerwony",
+     "ubytek_wg_prawdy": true
+    }
+   }
+  }
+ ],
+ "stan_koncowy": {
+  "do_dofrezowania": [
+   {
+    "skan_id": 1,
+    "numer_plytki": 1,
+    "gniazdo": 1,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 1,
+    "numer_plytki": 1,
+    "gniazdo": 2,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 1,
+    "numer_plytki": 1,
+    "gniazdo": 3,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 1,
+    "numer_plytki": 1,
+    "gniazdo": 4,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 1,
+    "numer_plytki": 1,
+    "gniazdo": 6,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 1,
+    "numer_plytki": 1,
+    "gniazdo": 8,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 2,
+    "numer_plytki": 8,
+    "gniazdo": 1,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 2,
+    "numer_plytki": 8,
+    "gniazdo": 2,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 2,
+    "numer_plytki": 8,
+    "gniazdo": 4,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 3,
+    "numer_plytki": 3,
+    "gniazdo": 2,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 3,
+    "numer_plytki": 3,
+    "gniazdo": 10,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 3,
+    "numer_plytki": 3,
+    "gniazdo": 20,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 4,
+    "numer_plytki": 8,
+    "gniazdo": 1,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 4,
+    "numer_plytki": 8,
+    "gniazdo": 17,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 4,
+    "numer_plytki": 8,
+    "gniazdo": 19,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 4,
+    "numer_plytki": 8,
+    "gniazdo": 20,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 7,
+    "numer_plytki": 2,
+    "gniazdo": 1,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 7,
+    "numer_plytki": 2,
+    "gniazdo": 6,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 7,
+    "numer_plytki": 2,
+    "gniazdo": 9,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 9,
+    "numer_plytki": 8,
+    "gniazdo": 1,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 9,
+    "numer_plytki": 8,
+    "gniazdo": 3,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 9,
+    "numer_plytki": 8,
+    "gniazdo": 7,
+    "decyzja": "ukruszona_niewykryta"
+   },
+   {
+    "skan_id": 9,
+    "numer_plytki": 8,
+    "gniazdo": 15,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 9,
+    "numer_plytki": 8,
+    "gniazdo": 17,
+    "decyzja": "ukruszona"
+   },
+   {
+    "skan_id": 9,
+    "numer_plytki": 8,
+    "gniazdo": 20,
+    "decyzja": "ukruszona"
+   }
+  ],
+  "kolejka": 0,
+  "pula": "gotowa",
+  "pula_stl": 17,
+  "komunikaty_otwarte": [
+   "konflikt_projektu",
+   "niezgodny_uklad",
+   "plik_odrzucony",
+   "ramka_wieczorna_niedostepna",
+   "skan_do_powtorzenia"
+  ],
+  "pytania_otwarte": [
+   "plytka_nie_z_trybu"
+  ]
+ },
+ "baza": {
+  "skany": [
+   {
+    "id": 1,
+    "status": "przyjety",
+    "uklad": "wieczorna",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 1,
+    "czas_pliku": "2026-11-21T04:17:59",
+    "czas_analizy": "2026-11-21T04:18:39",
+    "czas_s": 38.96
+   },
+   {
+    "id": 2,
+    "status": "przyjety",
+    "uklad": "okragla_wieczorna",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 1,
+    "czas_pliku": "2026-11-21T04:18:59",
+    "czas_analizy": "2026-11-21T04:19:18",
+    "czas_s": 18.58
+   },
+   {
+    "id": 3,
+    "status": "przyjety",
+    "uklad": "wieczorna_r54",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 1,
+    "czas_pliku": "2026-11-21T04:20:00",
+    "czas_analizy": "2026-11-21T04:20:15",
+    "czas_s": 14.52
+   },
+   {
+    "id": 4,
+    "status": "przyjety",
+    "uklad": "okragla_wieczorna_r54",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 1,
+    "czas_pliku": "2026-11-21T04:21:00",
+    "czas_analizy": "2026-11-21T04:21:22",
+    "czas_s": 21.52
+   },
+   {
+    "id": 5,
+    "status": "do_powtorzenia",
+    "uklad": "wieczorna",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 1,
+    "czas_pliku": "2026-11-21T04:22:59",
+    "czas_analizy": "2026-11-21T04:23:10",
+    "czas_s": 11.02
+   },
+   {
+    "id": 6,
+    "status": "niezgodny_uklad",
+    "uklad": "auto",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 0,
+    "czas_pliku": "2026-11-21T04:24:01",
+    "czas_analizy": "2026-11-21T04:24:03",
+    "czas_s": 2.37
+   },
+   {
+    "id": 7,
+    "status": "przyjety",
+    "uklad": "wieczorna",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 1,
+    "czas_pliku": "2026-11-21T04:25:00",
+    "czas_analizy": "2026-11-21T04:25:15",
+    "czas_s": 14.53
+   },
+   {
+    "id": 8,
+    "status": "plytka_nie_z_trybu",
+    "uklad": "poranna",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 1,
+    "czas_pliku": "2026-11-21T04:26:00",
+    "czas_analizy": "2026-11-21T04:26:24",
+    "czas_s": 23.85
+   },
+   {
+    "id": 9,
+    "status": "przyjety",
+    "uklad": "okragla_wieczorna_r54",
+    "uklad_zrodlo": "auto",
+    "uklad_zgodny": 1,
+    "czas_pliku": "2026-11-21T04:27:00",
+    "czas_analizy": "2026-11-21T04:27:15",
+    "czas_s": 13.96
+   }
+  ],
+  "zdarzenia": {
+   "scanner/nowy_skan": 9,
+   "scanner/plik_odrzucony": 1,
+   "silnik/skan_przyjety": 9,
+   "system/konflikt_projektu": 5,
+   "system/podglad": 8,
+   "system/program_start": 1,
+   "system/program_stop": 1,
+   "ui/ponowny_skan_odrzucony": 2
+  }
+ },
+ "zapisy_symulatora": [
+  {
+   "nr": 1,
+   "rodzaj": "dobry",
+   "sha16": "df2e6a790700131d",
+   "rozmiar": 54501084,
+   "start": 1795231077.1695492,
+   "koniec": 1795231079.490457
+  },
+  {
+   "nr": 2,
+   "rodzaj": "dobry",
+   "sha16": "75db8c4f9ead0dab",
+   "rozmiar": 44124484,
+   "start": 1795231137.1696272,
+   "koniec": 1795231139.73205
+  },
+  {
+   "nr": 3,
+   "rodzaj": "dobry",
+   "sha16": "9cc2bd761deb672b",
+   "rozmiar": 52132734,
+   "start": 1795231197.1698859,
+   "koniec": 1795231200.7527602
+  },
+  {
+   "nr": 4,
+   "rodzaj": "dobry",
+   "sha16": "9d5eeb980330c768",
+   "rozmiar": 45492634,
+   "start": 1795231257.1707747,
+   "koniec": 1795231260.5223768
+  },
+  {
+   "nr": 10,
+   "rodzaj": "uciety",
+   "sha16": "6b0e98d5073f7c98",
+   "rozmiar": 32700650,
+   "start": 1795231317.1711032,
+   "koniec": 1795231320.3843389
+  },
+  {
+   "nr": 5,
+   "rodzaj": "dobry",
+   "sha16": "769e0fd025693694",
+   "rozmiar": 53221284,
+   "start": 1795231377.1716385,
+   "koniec": 1795231379.412051
+  },
+  {
+   "nr": 6,
+   "rodzaj": "dobry",
+   "sha16": "857369c6c1d3aef3",
+   "rozmiar": 59075684,
+   "start": 1795231437.172015,
+   "koniec": 1795231441.0254586
+  },
+  {
+   "nr": 7,
+   "rodzaj": "dobry",
+   "sha16": "247ee785f428396f",
+   "rozmiar": 54913234,
+   "start": 1795231497.172231,
+   "koniec": 1795231500.0908227
+  },
+  {
+   "nr": 8,
+   "rodzaj": "dobry",
+   "sha16": "c21b3b21066fab83",
+   "rozmiar": 59607434,
+   "start": 1795231557.1722834,
+   "koniec": 1795231560.6258826
+  },
+  {
+   "nr": 9,
+   "rodzaj": "dobry",
+   "sha16": "8358e17160a25742",
+   "rozmiar": 48053334,
+   "start": 1795231617.1727622,
+   "koniec": 1795231620.6646209
+  }
+ ],
+ "zdarzenia_srodowiska": {
+  "log": {
+   "WARNING": 4,
+   "ERROR": 0,
+   "slowa": {},
+   "plik": "t2_log_ostrzezenia.txt"
+  },
+  "plytki_ze_statusem_blad": 0,
+  "komunikaty_bledow": {}
+ },
+ "numery_plytek": {
+  "odczytane_przez_program": 3,
+  "podane_przez_technika": 4,
+  "brak": 2,
+  "z": 9,
+  "uwaga": "na plytkach kwadratowych dolki numeru sa poza polem skanu (raport R59: numer trzeba podac) - program pyta 'Podaj numer plytki', sterownik klika numer z prawdy; plytka nie z trybu i niezgodny uklad: bez pytania o numer"
+ },
+ "werdykty": {
+  "10 z 10 zgodnie z prawda": "ZAL (10 z 10)",
+  "start analizy < 1 s": "ZAL",
+  "mapa do 40 s (mediana)": "ZAL",
+  "okno bez przerw > 200 ms": "ZAL",
+  "lista do dofrezowania = prawda": "FAIL (lista = prawda: NIE; ubytki wg prawdy 26: program pokazal czerwone 10, zolte 15, zielone (przeoczone) 1, inne / brak pracy / nieobejrzane 0; nieklikniete przez technika 1 z 26; falszywe alarmy - cale wg prawdy na czerwono: 0 z 31)",
+  "T2 LACZNIE": "FAIL (4 z 5 kryteriow ZAL, 1 FAIL, 0 NIE ZMIERZONO)"
+ }
+}

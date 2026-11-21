@@ -1,0 +1,20 @@
+T13 - reczna kontrola 3 losowych pozycji wyniku (21.11.2026)
+losowanie: System.Random(13): pozycja 3 listy O11 (z 7), pozycja 154 listy nowych plikow grupy E3 (z 245, kolejnosc git diff --name-status --no-renames), pozycja 107 listy uwag poza etapem (z 126); indeksy od 0
+sposob: bajty pliku z katalogu roboczego <REPO> (detached 571e186, core.autocrlf=false); zgodnosc z obiektem commita: git hash-object <plik> = git rev-parse 571e186:<sciezka>
+
+POZYCJA: Ramki/stanowisko/stanowisko/statusy.py
+  git diff --name-status: A	Ramki/stanowisko/stanowisko/statusy.py ; plik istnial w 2537f6f: False ; blob = plik roboczy: True (40e87538245f2b4b8a270877be0d2440343c91d4)
+  rozmiar 43903 B ; bajtow nie-ASCII 1665 ; wierszy z bajtem nie-ASCII 240 ; CRLF 0 ; CR razem 0 ; LF 600
+
+POZYCJA: Ramki/stanowisko/raporty/PR13_poprawki_dzien_skanera_2026-11-17.md
+  git diff --name-status: A	Ramki/stanowisko/raporty/PR13_poprawki_dzien_skanera_2026-11-17.md ; plik istnial w 2537f6f: False ; blob = plik roboczy: True (2775824daab971114ccfdbcc9cd434724ff7bce9)
+  rozmiar 20268 B ; bajtow nie-ASCII 0 ; wierszy z bajtem nie-ASCII 0 ; CRLF 0 ; CR razem 0 ; LF 210
+
+POZYCJA: Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter13.md
+  git diff --name-status: A	Ramki/wyniki_v2/raport/raport_wykonawcy_SPRAWDZ_iter13.md ; plik istnial w 2537f6f: False ; blob = plik roboczy: True (f32dfc499e5220ea0ff9b4557a0b72fe65eb188e)
+  rozmiar 291691 B ; bajtow nie-ASCII 11728 ; wierszy z bajtem nie-ASCII 2637 ; CRLF 2666 ; CR razem 2666 ; LF 2666
+
+OCENA:
+  1. statusy.py - wynik skryptu: 'A ... 240 wierszy nie-ASCII (1665 bajtow)', odstepstwo O11 (plik jest na liscie t13_wyjatki_ascii.txt, wiersz 4 z 7).
+  2. PR13_poprawki_dzien_skanera_2026-11-17.md - nowy plik grupy E3 (przedrostek 'E3 Ramki/stanowisko/'), skrypt nie zglosil naruszenia: oczekiwane 0 bajtow nie-ASCII, 0 CR, rozmiar <= 1024 KB, rozszerzenie spoza listy danych.
+  3. raport_wykonawcy_SPRAWDZ_iter13.md - wynik skryptu: uwaga poza etapem, grupa R58 (przedrostek 'R58 Ramki/wyniki_v2/'): 'konce linii: 2666 x CRLF (ma byc LF)'.

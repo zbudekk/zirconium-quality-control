@@ -1,0 +1,36 @@
+T7 proba B2 - stan bazy po probie (03:20:15); polecenia: PY -I <ODB>\narzedzia\sql_odczyt.py --baza <ROB>\robocze\b2\dane\stanowisko.sqlite "<zapytanie>"
+
+== SELECT status, count(*) FROM skany GROUP BY status
+status	count(*)
+plytka_nie_z_trybu	4
+-- wierszy: 1
+
+== SELECT typ, count(*) FROM zdarzenia GROUP BY typ
+typ	count(*)
+nowy_skan	5
+podglad	4
+program_start	2
+program_stop	1
+skan_przyjety	4
+-- wierszy: 5
+
+== SELECT id, czas, typ, dane FROM zdarzenia WHERE typ IN ('nowy_skan','program_start','program_stop') ORDER BY id
+id	czas	typ	dane
+1	2026-11-21T03:08:18	program_start	{"wersja": "etap3-A3a", "wznowione": 0, "znane_pliki": 0}
+2	2026-11-21T03:08:36	nowy_skan	{"duplikat": false, "ponowny": false, "rozmiar": 58251084, "sha16": "c85504f17628ac3f", "trojkaty": 1165020, "zastany": false}
+5	2026-11-21T03:09:36	nowy_skan	{"duplikat": false, "ponowny": false, "rozmiar": 48890984, "sha16": "edb739f16b06e032", "trojkaty": 977818, "zastany": false}
+6	2026-11-21T03:09:45	program_start	{"wersja": "etap3-A3a", "wznowione": 0, "znane_pliki": 1}
+7	2026-11-21T03:09:45	nowy_skan	{"duplikat": false, "ponowny": false, "rozmiar": 48890984, "sha16": "edb739f16b06e032", "trojkaty": 977818, "zastany": true}
+10	2026-11-21T03:10:38	nowy_skan	{"duplikat": false, "ponowny": false, "rozmiar": 56152084, "sha16": "0b1286719e932bbd", "trojkaty": 1123040, "zastany": false}
+13	2026-11-21T03:11:38	nowy_skan	{"duplikat": false, "ponowny": false, "rozmiar": 55927534, "sha16": "0eb5872d558cf9e5", "trojkaty": 1118549, "zastany": false}
+16	2026-11-21T03:19:46	program_stop	{"niezakonczone": 0}
+-- wierszy: 8
+
+== SELECT id, status, sha16 FROM skany ORDER BY id
+id	status	sha16
+1	plytka_nie_z_trybu	c85504f17628ac3f
+2	plytka_nie_z_trybu	edb739f16b06e032
+3	plytka_nie_z_trybu	0b1286719e932bbd
+4	plytka_nie_z_trybu	0eb5872d558cf9e5
+-- wierszy: 4
+

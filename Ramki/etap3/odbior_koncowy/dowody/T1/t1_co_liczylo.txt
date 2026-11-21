@@ -1,0 +1,29 @@
+02:53:22 | RAM 74818 MB wolne z 95652 | python: 10 | bazowy x4; t0\odbior_t12\Stanowisko\wersje\0.3.2 x1; bez-sciezki x2; t0\odbior\Stanowisko\wersje\0.3.1 x3 | blokady: CIEZKI.lock=odb-T1, CIEZKI2.lock=T10, CIEZKI4.lock=odb-T12
+02:55:24 | RAM 74296 MB wolne z 95652 | python: 7 | t0\odbior\Stanowisko\wersje\0.3.1 x3; bez-sciezki x1; bazowy x3 | blokady: CIEZKI.lock=odb-T1, CIEZKI2.lock=T10
+02:57:25 | RAM 69939 MB wolne z 95652 | python: 8 | bez-sciezki x1; t0\odbior\Stanowisko\wersje\0.3.1 x2; bazowy x4; koordynator\robocze\odbior\T12\robocze\K_B\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI2.lock=T10, CIEZKI4.lock=odb-T12
+02:59:26 | RAM 70284 MB wolne z 95652 | python: 7 | bez-sciezki x1; t0\odbior\Stanowisko\wersje\0.3.1 x2; bazowy x3; koordynator\robocze\odbior\T12\robocze\K_B\wersje\0.3.9-migracja x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI2.lock=T10, CIEZKI4.lock=odb-T12
+03:01:27 | RAM 69221 MB wolne z 95652 | python: 19 | t0\odbior\Stanowisko\wersje\0.3.1 x6; bazowy x11; bez-sciezki x1; koordynator\robocze\odbior\T12\robocze\K_B2\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI2.lock=T10, CIEZKI3.lock=odb-T5, CIEZKI4.lock=odb-T12
+03:03:28 | RAM 66938 MB wolne z 95652 | python: 21 | t0\odbior\Stanowisko\wersje\0.3.1 x6; bazowy x12; bez-sciezki x2; koordynator\robocze\odbior\T12\robocze\K_B2\wersje\0.3.9-migracja x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI2.lock=T10, CIEZKI3.lock=odb-T5, CIEZKI4.lock=odb-T12
+03:05:29 | RAM 70323 MB wolne z 95652 | python: 8 | bazowy x4; t0\odbior\Stanowisko\wersje\0.3.1 x3; bez-sciezki x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI2.lock=T10, CIEZKI4.lock=odb-T7
+03:07:30 | RAM 74142 MB wolne z 95652 | python: 5 | bez-sciezki x1; t0\odbior\Stanowisko\wersje\0.3.1 x2; bazowy x2 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:09:31 | RAM 72653 MB wolne z 95652 | python: 9 | t0\odbior_t12\Stanowisko\wersje\0.3.1 x2; bez-sciezki x2; t0\odbior\Stanowisko\wersje\0.3.1 x1; bazowy x4 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:11:32 | RAM 72070 MB wolne z 95652 | python: 8 | t0\odbior_t12\Stanowisko\wersje\0.3.1 x2; bez-sciezki x1; bazowy x4; t0\odbior\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:13:33 | RAM 72366 MB wolne z 95652 | python: 6 | bez-sciezki x1; bazowy x3; t0\odbior\Stanowisko\wersje\0.3.1 x1; t0\odbior_t12\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:15:34 | RAM 71954 MB wolne z 95652 | python: 7 | bez-sciezki x1; bazowy x4; t0\odbior\Stanowisko\wersje\0.3.1 x1; t0\odbior_t12\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:17:35 | RAM 70823 MB wolne z 95652 | python: 7 | bazowy x4; bez-sciezki x1; t0\odbior\Stanowisko\wersje\0.3.1 x1; t0\odbior_t12\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:19:36 | RAM 71351 MB wolne z 95652 | python: 6 | bez-sciezki x1; bazowy x3; t0\odbior\Stanowisko\wersje\0.3.1 x1; t0\odbior_t12\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:21:37 | RAM 72815 MB wolne z 95652 | python: 8 | bez-sciezki x1; t0\odbior\Stanowisko\wersje\0.3.1 x1; bazowy x4; t0\odbior_t12\Stanowisko\wersje\0.3.1 x2 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:23:37 | RAM 73323 MB wolne z 95652 | python: 6 | bez-sciezki x1; bazowy x4; t0\odbior_t12\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:25:38 | RAM 71944 MB wolne z 95652 | python: 5 | bez-sciezki x1; bazowy x3; t0\odbior_t12\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:27:39 | RAM 72960 MB wolne z 95652 | python: 5 | bez-sciezki x1; bazowy x3; t0\odbior_t12\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:29:40 | RAM 72490 MB wolne z 95652 | python: 5 | bez-sciezki x1; bazowy x3; t0\odbior_t12\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:31:42 | RAM 73354 MB wolne z 95652 | python: 6 | bez-sciezki x2; bazowy x3; t0\odbior\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:33:43 | RAM 72500 MB wolne z 95652 | python: 5 | bez-sciezki x1; bazowy x3; t0\odbior\Stanowisko\wersje\0.3.1 x1 | blokady: CIEZKI.lock=odb-T1, CIEZKI4.lock=odb-T7
+03:35:44 | RAM 73450 MB wolne z 95652 | python: 3 | bez-sciezki x1; bazowy x2 | blokady: CIEZKI.lock=odb-T1
+03:37:45 | RAM 73129 MB wolne z 95652 | python: 2 | bez-sciezki x1; bazowy x1 | blokady: CIEZKI.lock=odb-T1
+03:39:46 | RAM 73614 MB wolne z 95652 | python: 2 | bez-sciezki x1; bazowy x1 | blokady: CIEZKI.lock=odb-T1
+03:41:46 | RAM 73230 MB wolne z 95652 | python: 3 | bez-sciezki x2; bazowy x1 | blokady: CIEZKI.lock=odb-T1
+03:43:47 | RAM 72474 MB wolne z 95652 | python: 3 | bez-sciezki x1; bazowy x2 | blokady: CIEZKI.lock=odb-T1
+03:45:48 | RAM 72071 MB wolne z 95652 | python: 2 | bez-sciezki x1; bazowy x1 | blokady: CIEZKI.lock=odb-T1
+03:47:49 | RAM 72667 MB wolne z 95652 | python: 3 | bez-sciezki x2; bazowy x1 | blokady: CIEZKI.lock=odb-T1
+03:49:50 | RAM 74658 MB wolne z 95652 | python: 1 | bez-sciezki x1 | blokady: 

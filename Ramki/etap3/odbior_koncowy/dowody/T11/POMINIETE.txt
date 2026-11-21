@@ -1,0 +1,7 @@
+Pliki i katalogi testu T11, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T11/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 170 plikow, 2192357345 B | katalog roboczy - eksport 40 skanow STL, kopia folderu projektow, baza, wyniki, logi programu, skrypty wykonawcy
+katalog | t11_auto\ | 1 plik, 37337 B | pelny wynik narzedzia auto_uklad.json - wg wykonawcy do dowodow idzie tylko wyciag t11_auto_uklad_podsumowanie.json
+plik | ustawienia.toml | 13074 B (13 KB) | kopia pliku ustawien instalacji ze znakami spoza ASCII - wykonawca: nie do repo (zmienione 11 sciezek opisane w WYNIK.md)

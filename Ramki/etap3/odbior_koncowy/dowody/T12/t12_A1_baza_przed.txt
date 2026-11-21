@@ -1,0 +1,18 @@
+== stan bazy PRZED aktualizacja sob. 21.11.2026  2:51:53,10 
+count(*)
+0
+-- wierszy: 1
+count(*)
+2
+-- wierszy: 1
+user_version
+1
+-- wierszy: 1
+SHA256 hash of <PC-katalog>\t0\odbior_t12\Stanowisko\dane\stanowisko.sqlite:
+99f3203a779bc0fa95f7fd91e7a7121ef8d173020a986161f1cfbb56eb3463b0
+CertUtil: -hashfile command completed successfully.
+rozmiar i skrot tresci bez naglowka (bajty od 100.): 
+86016 3d7d9168dd9adeac2b4f6d08c7dd2f8fbf017add7dbe4238604b9710ef95d761
+pliki w dane\kopie: 
+File Not Found
+0.3.1

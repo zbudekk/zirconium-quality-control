@@ -1,0 +1,4 @@
+przebieg1 START sob. 21.11.2026  2:53:21,10 
+przebieg1 KONIEC sob. 21.11.2026  3:22:57,26 KOD=0 
+przebieg2 START sob. 21.11.2026  3:22:58,13 
+przebieg2 KONIEC sob. 21.11.2026  3:48:55,11 KOD=0 

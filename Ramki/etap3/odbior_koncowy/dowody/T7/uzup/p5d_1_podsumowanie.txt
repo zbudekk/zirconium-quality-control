@@ -1,0 +1,65 @@
+PRZEBIEG p5d_1
+{"przebieg": "p5d_1", "przypadek": 5, "wariant": "d", "powt": 1, "start": "05:00:20", "ramki": "atrapy ramek programu: W 127.0.0.2:18765, P 127.0.0.3:18765 (osobne procesy), konczone w trakcie pracy", "atrapy_pid": [34660, 33024], "atrapy_zyja_przed_startem": [true, true], "baza_po": {"skany": {}, "zdarzenia": {"program_start": 1, "program_stop": 1, "start": 2, "tryb_zmieniony": 2}}, "zadania_niezakonczone_json_po": false, "procesy_python_nowe_po_przebiegu": [], "koniec": "05:00:50", "zrzuty": ["p5d_1_e1_01_panel_osoba.png", "p5d_1_e1_02_ramki_gotowe.png", "p5d_1_e1_03_komunikat_ramka_wieczorna_niedostepna.png", "p5d_1_e1_04_komunikat_ramka_niedostepna.png"]}
+
+== odczyty_1.jsonl
+  [    0.00 s 05:00:24.922] ZDARZENIE: start procesu programu {"platforma_qt": "offscreen", "python": "3.12.10", "katalog_programu": "0.3.1", "przypadek": 5, "wariant": "d", "powt": 1, "etap": 1}
+  [    0.86 s 05:00:25.782] ZDARZENIE: okno programu znalezione {"widoczne": true, "rozmiar": [1600, 900]}
+  [    0.86 s 05:00:25.784] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula liczenie, kolejka [0, 0, 0, 0, False], analiza False, tryb wieczor
+  [    0.90 s 05:00:25.825] ZDARZENIE: zrzut {"plik": "p5d_1_e1_01_panel_osoba.png", "zapisany": true}
+  [    0.90 s 05:00:25.825] ZDARZENIE: spelnione: okno programu widoczne {"po_s": 0.0}
+  [    0.95 s 05:00:25.869] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, False], analiza False, tryb wieczor
+  [    1.89 s 05:00:26.815] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    2.05 s 05:00:26.976] ZDARZENIE: klik {"obiekt": "osoba_0", "panel": null, "napis": "Technik A"}
+  [    2.05 s 05:00:26.976] ZDARZENIE: spelnione: klikniecie osoba_0 {"po_s": 0.0}
+  [    2.05 s 05:00:26.976] ZDARZENIE: spelnione: osoba wybrana {"po_s": 0.0}
+  [    2.05 s 05:00:26.976] ZDARZENIE: spelnione: pasek: obie ramki 'gotowa' {"po_s": 0.0}
+  [    2.08 s 05:00:27.008] ZDARZENIE: zrzut {"plik": "p5d_1_e1_02_ramki_gotowe.png", "zapisany": true}
+  [    2.21 s 05:00:27.136] ekran: paneli 0 (); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    5.33 s 05:00:30.253] ZDARZENIE: spelnione: nadzorca zakonczyl atrapy ramek {"po_s": 0.16}
+  [    5.33 s 05:00:30.253] ZDARZENIE: AWARIA: atrapy ramek zakonczone (ramka znika w trakcie pracy) {"wczesniej_gotowe": true}
+  [    5.49 s 05:00:30.410] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    5.52 s 05:00:30.440] ZDARZENIE: zrzut {"plik": "p5d_1_e1_03_komunikat_ramka_wieczorna_niedostepna.png", "zapisany": true}
+  [    5.52 s 05:00:30.440] ZDARZENIE: spelnione: komunikat ramki wieczornej na ekranie {"po_s": 0.19}
+  [   10.66 s 05:00:35.586] ZDARZENIE: klik {"obiekt": "przycisk_przelacz_tryb", "panel": null, "napis": "-> Poranek"}
+  [   10.68 s 05:00:35.598] ZDARZENIE: spelnione: tryb Poranek {"po_s": 0.0}
+  [   10.68 s 05:00:35.598] ZDARZENIE: spelnione: komunikat ramki porannej na ekranie {"po_s": 0.0}
+  [   10.82 s 05:00:35.743] ekran: paneli 2 (komunikat_ramka_niedostepna); kafelki []; stan: komunikaty ['ramka_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb rano
+  [   10.85 s 05:00:35.771] ZDARZENIE: zrzut {"plik": "p5d_1_e1_04_komunikat_ramka_niedostepna.png", "zapisany": true}
+  [   16.80 s 05:00:41.725] ZDARZENIE: klik {"obiekt": "zamknij_komunikat", "panel": "komunikat_ramka_niedostepna", "napis": "Zamknij"}
+  [   16.96 s 05:00:41.884] ekran: paneli 1 (); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb rano
+  [   18.37 s 05:00:43.293] ZDARZENIE: DALSZA PRACA: 'Zamknij' w komunikacie ramki porannej {"klikniety": true, "komunikat_nadal": false}
+  [   18.37 s 05:00:43.293] ZDARZENIE: klik {"obiekt": "przycisk_przelacz_tryb", "panel": null, "napis": "-> Wieczor"}
+  [   18.38 s 05:00:43.302] ZDARZENIE: spelnione: tryb Wieczor (powrot) {"po_s": 0.0}
+  [   18.38 s 05:00:43.302] ZDARZENIE: spelnione: DALSZA PRACA: pula gotowa i silnik gotowy {"po_s": 0.0}
+  [   18.53 s 05:00:43.450] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   22.45 s 05:00:47.371] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   22.45 s 05:00:47.371] ZDARZENIE: koniec scenariusza 
+  [   23.62 s 05:00:48.540] ZDARZENIE: program zakonczony {"kod": 0}
+  [   23.62 s 05:00:48.540] ZDARZENIE: procesy potomne po sprzataniu {"zywe": []}
+  odczytow ze zmiana ekranu: 9; okno programu znalezione w t = 0.859
+  OKNA najwyzszego poziomu widziane: ('OknoWieczor', 'okno_wieczor', 'Stanowisko - kontrola prac przed piecem', '')
+  PANELE widziane (obszar / panel / pierwszy odczyt / ostatni / mial widoczne piksele):
+   - uwagi / panel_osoba: pierwszy 0.86 s (05:00:25.784), ostatni 1.89 s, isVisible True, piksele True
+        tekst: Kto teraz pracuje?
+        tekst: Nie wybrano osoby, ktora pracuje - wybierz ja z listy. Bez tego nie mozna zapisywac decyzji.
+        przyciski: (osoba)
+   - uwagi / komunikat_ramka_wieczorna_niedostepna: pierwszy 5.49 s (05:00:30.410), ostatni 22.45 s, isVisible True, piksele True
+        tekst: Ramka wieczorna nie odpowiada
+        tekst: Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama.
+        przyciski: Zamknij
+   - rano_uwagi / komunikat_ramka_niedostepna: pierwszy 10.82 s (05:00:35.743), ostatni 10.82 s, isVisible True, piksele True
+        tekst: Ramka poranna nie jest podlaczona
+        tekst: Program dziala bez ramki - rozkladaj prace wedlug ekranu: kuweta po kuwecie (Enter = rozlozona, Backspace = cofnij, cyfry i Enter = wybor kuwety).
+        przyciski: Zamknij
+  PASEK STANU (zmiany):
+   [    0.86 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "licze pliki projektow...", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    0.95 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: gotowa | P: gotowa", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    2.21 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: gotowa | P: gotowa", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    5.49 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [   10.82 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Poranek"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [   18.53 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+

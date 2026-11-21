@@ -1,0 +1,6 @@
+Pliki i katalogi testu T3, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T3/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | t3\ | 17 plikow, 158713 B | katalog roboczy - katalog wyjscia sterownika t3_poranek.py: baza SE10 (stanowisko.sqlite - potrzebna do T8 i T9), logi, ustawienia; t3_wynik.txt i t3_wynik.json sa w dowodach jako kopie
+katalog | t3_tmp\ | 10 plikow, 111864 B | katalog roboczy - katalog --basetemp testu pytest (zawiera baze)

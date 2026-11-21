@@ -1,0 +1,11 @@
+t2_sterownik START sob. 21.11.2026  4:17:52,78 
+t2_sterownik KOD=0 sob. 21.11.2026  4:27:21,54 
+uzup_A1 START sob. 21.11.2026  4:27:40,42 
+uzup_A1 test_aplikacja.py KOD=0 sob. 21.11.2026  4:29:29,45 
+uzup_A2 test_ui_wieczor.py KOD=0 sob. 21.11.2026  4:29:41,30 
+uzup_B1 START sob. 21.11.2026  4:29:41,30 
+uzup_B1 test_aplikacja.py KOD=0 sob. 21.11.2026  4:31:37,77 
+uzup_B2 test_ui_wieczor.py KOD=0 sob. 21.11.2026  4:31:49,24 
+powt_1 KOD=0  4:32:40,58 
+powt_2 KOD=0  4:33:25,21 
+powt_3 KOD=0  4:34:09,54 

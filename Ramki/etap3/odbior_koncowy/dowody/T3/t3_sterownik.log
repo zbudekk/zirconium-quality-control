@@ -1,0 +1,56 @@
+T3 - SE10 przez ekran (t3_poranek.py); program 0.3.1; Qt offscreen; czas 10.1 s
+
+nr   wynik         ekran          opis
+R01  PASS          -              dzien 1 wieczor: zlecenie X (3 punkty), zab 13 'Ukruszona' -> lista do dofrezowania
+R02  PASS          -              dzien 1 wieczor: punkt X13 w stanie do_dofrezowania
+R03  PASS          -              piec 1 otwiera sie sam pierwszym skanem porannym (doba, nr w dniu, otwarty, plan_id)
+R04  PASS          -              piec 1: klasy prac plytek 4 i 5 przed rozstrzygnieciem
+R05  PASS          -              dwuznaczna: dwaj kandydaci z kuweta i zebem (podglad obu na ekranie)
+R06  PASS          -              dwuznaczna rozstrzygnieta decyzja wybor_kandydata (klasa, kolor, kuweta, wierszy decyzji)
+R07  PASS          -              nieznana przypisana recznie - przypisanie_reczne (klasa, kolor, kuweta, zab)
+R08  PASS          -              plytka 5 zeskanowana ponownie: propozycja zastapienia, konflikt zeba 3301/22, Zamknij piec odmawia
+R09  PASS          -              po potwierdzeniu: stary skan zastapiony, 0 konfliktow, decyzja starego skanu nie przechodzi (zab 31 znow nieznany)
+R10  PASS          -              nieznana na nowym skanie przypisana recznie ponownie
+R11  PASS          tak            piec 1 przed zamknieciem (stan prowizoryczny): kompletne i braki
+R12  PASS          -              plan plytek pieca 1 dla ramki: gniazda (id, kolor, kuweta), kuwety od najliczniejszej, braki
+R13  PASS          -              plan pieca 1 po dodaniu px z kalibracji przechodzi walidacje protokolu ramki porannej
+R14  PASS          tak            Zamknij piec 1 -> kompletne: Y
+R15  PASS          tak            Zamknij piec 1 -> braki: Z (1 zab), X (1 zab, dofrezowywany) - kolejnosc wg numeru kuwety
+R16  PASS          -              stany punktow po piecu 1 (stan, sesja pieca)
+R17  PASS          nie dotyczy    lista do dofrezowania po piecu 1 bez zmian i zgodna ze stan_punktow
+R18  PASS          -              restart programu miedzy piecami: stan odtworzony (braki, wynik i stan pieca 1, piece doby, punkty), brak otwartego pieca
+R19  PASS          -              piec 2: ten sam projekt (Z32) na plytkach 4 i 6 = konflikt; Zamknij piec odmawia
+R20  PASS          -              konflikt rozstrzygniety: praca z plytki 6 'bez projektu' -> nieznana (status nieznana_rano, biala na ramce), 0 konfliktow
+R21  PASS          tak            Zamknij piec 2 -> kompletne: Z (drugi punkt Z)
+R22  PASS          tak            braki po piecu 2: tylko X (zab 13 dofrezowywany); nierozstrzygnieta 1 praca nieznana
+R23  PASS          -              dzien 2 wieczor: dofrezowany zab X13 zeskanowany wieczorem - lista do dofrezowania bez zmian (punkt domyka poranek)
+R24  PASS          -              piec 3: dofrezowany zab X13 rozpoznany po tym samym STL (sha16) - pewna, domyka dofrezowanie
+R25  PASS          -              piec 3: zab Y21 zlecenia juz odhaczonego = poprawka (bursztyn), nie liczona do kompletu
+R26  PASS          -              restart w trakcie pieca 3: ten sam otwarty piec i identyczny stan pieca
+R27  PASS          -              plan pieca 3: X13 zielony 3263, poprawka Y21 bursztyn 3301, braki puste
+R28  PASS          tak            Zamknij piec 3 -> kompletne: X
+R29  PASS          tak            Zamknij piec 3 -> poprawka Y21 tylko log (lista poprawek, 1 wpis poprawka_rano w dzienniku, Y nie w kompletnych)
+R30  PASS          tak            po piecu 3: braki puste, lista do dofrezowania pusta, punkt X13 rozpoznany w piecu 3
+R31  PASS          czesciowo      restart: wynik_pieca 1-3 (lista dla Excela po restarcie) = oczekiwane kompletne, braki i poprawki kazdego pieca
+R32  PASS          -              dane osobowe: 0 nazw folderow i plikow zlecen w 7 tabelach, plikach wynikow i wynikach API
+
+  ekran R11: tak - strona 'Kompletne i braki' pieca otwartego: tabela_kompletne (kuwety), tabela_braki (kuweta, zeby)
+  ekran R14: tak - po 'Zamknij piec' 1: tabela_kompletne (kuwety)
+  ekran R15: tak - po 'Zamknij piec' 1: tabela_braki (kuweta, zeby)
+  ekran R17: nie dotyczy - listy 'do dofrezowania' ekran poranny nie pokazuje (jest na ekranie wieczornym - tabela_dofrezowania); posrednio: zab jest w tabela_braki_biezace: tak
+  ekran R21: tak - po 'Zamknij piec' 2: tabela_kompletne (kuwety)
+  ekran R22: tak - po 'Zamknij piec' 2: tabela_braki_biezace (kuweta, zeby); druga czesc wiersza (1 praca nieznana nierozstrzygnieta) - napis rano_nierozstrzygniete z liczba (1): BRAK - ekran nazywa nierozstrzygnietymi tylko prace bez decyzji, a ta ma decyzje 'bez projektu'; ta czesc wiersza tylko z API
+  ekran R28: tak - po 'Zamknij piec' 3: tabela_kompletne (kuwety)
+  ekran R29: tak - po 'Zamknij piec' 3: napis rano_poprawki zawiera kuwete i zeby KAZDEJ oczekiwanej poprawki (cale liczby); kuwety poprawki nie ma w tabela_kompletne
+  ekran R30: tak - po 'Zamknij piec' 3: tabela_braki_biezace = oczekiwane braki (puste; listy 'do dofrezowania' ekran poranny nie pokazuje - ta czesc wiersza tylko z API)
+  ekran R31: czesciowo - po restarcie ekran pokazuje tylko ostatni zamkniety piec (3): tabela_kompletne, tabela_braki, rano_poprawki; piecow 1 i 2 (poprzednia doba) ekran nie pokazuje - piec 3 zgodny, piece 1 i 2 tylko z API
+  pytanie okna przed 'Zamknij piec' 1: oczekiwane wg zlecenia nie, bylo nie
+  pytanie okna przed 'Zamknij piec' 2: oczekiwane wg zlecenia tak, bylo nie
+  pytanie okna przed 'Zamknij piec' 3: oczekiwane wg zlecenia nie, bylo nie
+  UWAGA: piec 2: pytanie okna przed 'Zamknij piec' - oczekiwane wg zlecenia: tak, bylo: nie; nierozstrzygniete wg sesji: {"dwuznaczne": 0, "nieznane": 1}, prace bez decyzji wg stanu okna (StanRano.nierozstrzygniete_prace - o nie pyta okno): 0. Okno pyta tylko o prace dwuznaczne / nieznane BEZ decyzji; praca z decyzja 'bez projektu' jest dla sesji nadal nieznana, ale okno o nia nie pyta
+
+SE10 przez ekran: 32 z 32 wierszy zgodnych (wiersz z odczytem ekranu 'nie' / 'nie odczytano' = niezgodny); wg samego API sesji 32 z 32; listy kompletnych i brakow z ekranu: 8 z 9
+WERDYKT T3: ZAL z odstepstwem O5 (32 z 32; ekran: tak 8, czesciowo 1, nie dotyczy 1, nie 0, nie odczytano 0)
+kod wyjscia 0; wynik: t3_wynik.json, t3_wynik.txt w katalogu --wyjscie
+SE10 przez ekran: 32 z 32 wierszy zgodnych (wiersz z odczytem ekranu 'nie' / 'nie odczytano' = niezgodny); wg samego API sesji 32 z 32; listy kompletnych i brakow z ekranu: 8 z 9
+WERDYKT T3: ZAL z odstepstwem O5 (32 z 32; ekran: tak 8, czesciowo 1, nie dotyczy 1, nie 0, nie odczytano 0)

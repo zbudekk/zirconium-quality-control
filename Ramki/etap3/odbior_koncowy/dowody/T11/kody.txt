@@ -1,0 +1,5 @@
+A1 auto_uklad KOD=0 
+A4 testy_polecenie_planu KOD=0 
+A4i testy_pytest_instalacja KOD=0 
+B symulator KOD=0 
+B program KOD=0 

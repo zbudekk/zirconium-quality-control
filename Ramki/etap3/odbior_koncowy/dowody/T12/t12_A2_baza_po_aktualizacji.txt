@@ -1,0 +1,26 @@
+== stan PO aktualizacji, PRZED pierwszym startem 0.3.2: sob. 21.11.2026  2:53:16,20 
+wersja_biezaca.txt: 
+0.3.2
+wersja_poprzednia.txt: 
+0.3.1
+-- baza: 
+SHA256 hash of <PC-katalog>\t0\odbior_t12\Stanowisko\dane\stanowisko.sqlite:
+99f3203a779bc0fa95f7fd91e7a7121ef8d173020a986161f1cfbb56eb3463b0
+CertUtil: -hashfile command completed successfully.
+86016 3d7d9168dd9adeac2b4f6d08c7dd2f8fbf017add7dbe4238604b9710ef95d761
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.2_20261121_025311_v1.sqlite
+-- kopia stanowisko_przed_0.3.2_20261121_025311_v1.sqlite rozmiar 86016 
+SHA256 hash of <PC-katalog>\t0\odbior_t12\Stanowisko\dane\kopie\stanowisko_przed_0.3.2_20261121_025311_v1.sqlite:
+d8831d3faf5cc75db63791311148afede3c6b7f3d7ce0d7bef89b9c24181c770
+CertUtil: -hashfile command completed successfully.
+86016 3d7d9168dd9adeac2b4f6d08c7dd2f8fbf017add7dbe4238604b9710ef95d761
+user_version
+1
+-- wierszy: 1
+count(*)
+2
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1

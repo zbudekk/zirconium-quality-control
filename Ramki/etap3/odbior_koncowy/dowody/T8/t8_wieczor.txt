@@ -1,0 +1,28 @@
+RAPORT METRYK STANOWISKA - okres 2026-11-20 .. 2026-11-21 (dob: 2), tryb: wieczor
+wygenerowano 2026-11-21T04:41:42; baza programu (schemat 1, tylko odczyt); progi odbioru: plan wdrozenia, "Testy odbiorcze i kryteria"
+
+METRYKA                                        WARTOSC  LICZNIK   PROG       OCENA
+----------------------------------------------------------------------------------
+falszywe alarmy (czerwone uznane za OK)           0.0%     0/57   <= 15%     OK
+prace nieznane (bez kandydata) - wieczor        100.0%    57/57   <= 10%     PONIZEJ
+czas przy stanowisku wieczorem (na zmiane)     9.3 min        -   <= 20 min  OK
+skany powtorzone - wieczor                       33.3%      3/9   <= 5%      PONIZEJ
+dni bez awarii (seria do konca okresu)           1 dni        -   >= 5 dni   za krotki okres
+M2 tabela testow wykrywalnosci                       -        -   >= 80%     wymaga zmiany schematu
+
+WIECZOR: skany 9 (aktywne 7), prace 57 w skanach przyjetych (6); poza: do powtorzenia 1, ponowny skan bez odpowiedzi 0 (odrzucone 2)
+  czerwone 10: OK (falszywy alarm) 0, Ukruszona 10, bez decyzji 0
+  tryb cienia: ukruszone, ktorych program nie wskazal 15; wykrywalnosc wzgledem technika 40.0% (10/25) - nie zastepuje M2
+  nieznane (bez kandydata) 57; szare z kandydatem (dwuznaczne) 0
+  skany powtorzone 3 z 9: zastapione 0, do powtorzenia 1, niezgodny uklad 1, plytka nie z trybu 1, blad 0
+  czas: zmian 1 (bez danych 0), posiedzen 1 (bez start_skanu 1), razem 9.3 min, srednio 9.3, max 9.3, zmian > 20 min: 0
+RANO: pominiety (tryb wieczor)
+STABILNOSC: dni pracy 1 (w historii 1), z awaria 0, awarii 0 (restart bez program_stop 0, silnik nie startuje 0); silnik wrocil sam 0
+  seria bez awarii do konca okresu 1 dni, najdluzsza 1; doby z awaria: -
+  program uruchomiony bez program_stop na koniec okresu: nie
+M2: tabela testow wykrywalnosci (5 prac tygodniowo ze znanymi ubytkami) - wymaga zmiany schematu:
+  tabela testy_wykrywalnosci (migracja bazy do wersji 2, decyzja wlasciciela); do tego czasu brak danych
+UWAGI: posiedzenie = start skanu, wykrycie pliku, klikniecie, przyjecie skanu, decyzja; przerwa > 10 min = koniec;
+  blizniacze prace implantologiczne (PW: poza trafnoscia) nie sa wykluczone - baza ich nie rozroznia
+WYNIK: PONIZEJ PROGU (kod 3; metryk bez danych 1 z 5):
+  nieznane_wieczor, powtorzone_wieczor

@@ -1,0 +1,28 @@
+dowody_lf.py: plikow 26, naruszen 0 (po naprawie)
+NAPRAWIONY czasy.txt: CR 12 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY kody.txt: CR 5 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_A.cmd
+OK        krok_B.cmd
+OK        krok_B_program.cmd
+OK        POMINIETE.txt
+NAPRAWIONY t11_auto_uklad.log: CR 9 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t11_auto_uklad_podsumowanie.json
+OK        t11_komunikaty.txt
+OK        t11_liczniki.txt
+OK        t11_prawda.tsv
+OK        t11_skany.tsv
+OK        t11_skany_sha16.tsv
+OK        t11_statusy.tsv
+NAPRAWIONY t11_symulator.json: CR 443 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_symulator.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t11_tabela.tsv
+NAPRAWIONY t11_testy.log: CR 77 -> 0, bajtow spoza ASCII 7 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t11_testy_instalacja.log: CR 82 -> 0, bajtow spoza ASCII 7 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t11_testy_zrodlo_kodu.txt
+OK        t11_wynik.md
+OK        t11_wyniki_uklad.tsv
+OK        t11_zdarzenia.tsv
+OK        t11_zielone.tsv
+OK        t11_zielone_prace.tsv
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

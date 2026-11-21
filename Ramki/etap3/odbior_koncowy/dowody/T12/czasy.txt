@@ -1,0 +1,35 @@
+P3_zainstaluj_N_1 START sob. 21.11.2026  2:49:55,67 
+P3_zainstaluj_N_1 KONIEC sob. 21.11.2026  2:50:46,86 KOD=10 
+P5_zainstaluj_N_2 START sob. 21.11.2026  2:51:20,86 
+P5_zainstaluj_N_2 KONIEC sob. 21.11.2026  2:51:23,98 
+P7a_start_atrapa START sob. 21.11.2026  2:51:23,98 
+P7a_start_atrapa KONIEC sob. 21.11.2026  2:51:30,38 
+P7b_start START sob. 21.11.2026  2:51:30,38 
+P7b_start KONIEC sob. 21.11.2026  2:51:52,89 
+A2_zainstaluj_N1 START sob. 21.11.2026  2:52:15,84 
+A2_zainstaluj_N1 KONIEC sob. 21.11.2026  2:53:16,20 
+A3_samokontrola START sob. 21.11.2026  2:53:16,66 
+A3_start START sob. 21.11.2026  2:53:19,18 
+A3_start KONIEC sob. 21.11.2026  2:53:42,11 
+A4c_wroc_T START sob. 21.11.2026  2:54:10,06 
+A4c_wroc_T KONIEC sob. 21.11.2026  2:54:12,69 
+A5_start START sob. 21.11.2026  2:54:15,85 
+A5_start KONIEC sob. 21.11.2026  2:54:39,08 
+A4e_wroc_tak START sob. 21.11.2026  2:55:40,59 
+A4e_wroc_tak KONIEC sob. 21.11.2026  2:55:43,85 
+B1_budowa START sob. 21.11.2026  2:56:11,06 
+B1_budowa KONIEC sob. 21.11.2026  2:56:17,96 
+B1_rozpakowanie KONIEC sob. 21.11.2026  2:56:22,46 
+B2a_zainstaluj START sob. 21.11.2026  2:56:22,46 
+B2a_zainstaluj KONIEC sob. 21.11.2026  2:57:44,54 
+B2b_zainstaluj KONIEC sob. 21.11.2026  2:57:49,13 
+B4_zainstaluj_M START sob. 21.11.2026  2:58:06,01 
+B4_zainstaluj_M KONIEC sob. 21.11.2026  2:59:24,67 
+B7_wroc_przywroc START sob. 21.11.2026  2:59:34,81 
+B7_wroc_przywroc KONIEC sob. 21.11.2026  2:59:37,96 
+B_KONIEC sob. 21.11.2026  2:59:47,88 
+Bu2a START sob. 21.11.2026  3:00:51,51 
+Bu2a KONIEC sob. 21.11.2026  3:02:12,47 
+Bu4 START sob. 21.11.2026  3:02:34,07 
+Bu4 KONIEC sob. 21.11.2026  3:03:54,80 
+Bu_KONIEC sob. 21.11.2026  3:03:55,41 

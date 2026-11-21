@@ -1,0 +1,6 @@
+Pliki i katalogi testu T2, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T2/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 44 pliki, 45211949 B | katalog roboczy - kopia folderu projektow (Cyrkon), 3 powtorki skanu (powt\), probnik, kopie do kontroli dowodow
+katalog | t2\ | 54 pliki, 592076437 B | katalog roboczy sterownika - eksport ze skanami STL, baza, podglady, wyniki analiz, log programu (baza potrzebna T8 i T9)

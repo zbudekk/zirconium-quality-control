@@ -1,0 +1,8 @@
+krok6a START  2:50:40,82 
+krok6a KONIEC  2:50:42,83 
+krok6b START  2:50:42,83 
+krok6b KONIEC  2:50:47,56 
+krok7a START  2:50:47,56 
+krok7a KONIEC  2:50:54,05 
+krok7b START  2:50:54,05 
+krok7b KONIEC  2:51:16,54 

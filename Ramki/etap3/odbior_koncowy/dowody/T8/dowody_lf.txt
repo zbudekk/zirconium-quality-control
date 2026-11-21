@@ -1,0 +1,17 @@
+dowody_lf.py: plikow 15, naruszen 0 (po naprawie)
+NAPRAWIONY kody.txt: CR 6 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_t8_raporty.cmd
+OK        krok_t8_test.cmd
+OK        POMINIETE.txt
+NAPRAWIONY t8_rano.json: CR 237 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t8_rano.txt: CR 37 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t8_rano_stderr.txt
+OK        t8_recznie.md
+NAPRAWIONY t8_sql_t2.log: CR 23 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t8_sql_t3.log: CR 26 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t8_test_metryki.log: CR 3 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t8_wieczor.json: CR 154 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t8_wieczor.txt: CR 28 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t8_wieczor_stderr.txt
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

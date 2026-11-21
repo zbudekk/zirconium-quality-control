@@ -1,0 +1,26 @@
+T7 proba B1b - stan bazy po probie (03:35:10)
+
+== SELECT id, status, sha16 FROM skany ORDER BY id
+id	status	sha16
+1	plytka_nie_z_trybu	c85504f17628ac3f
+-- wierszy: 1
+
+== SELECT typ, count(*) FROM zdarzenia GROUP BY typ
+typ	count(*)
+nowy_skan	1
+podglad	1
+program_start	2
+program_stop	2
+skan_przyjety	1
+-- wierszy: 5
+
+== SELECT id, czas, zrodlo, typ, skan_id, dane FROM zdarzenia WHERE typ IN ('nowy_skan','program_start','program_stop','skan_przyjety') ORDER BY id
+id	czas	zrodlo	typ	skan_id	dane
+1	2026-11-21T03:30:27	system	program_start		{"wersja": "etap3-A3a", "wznowione": 0, "znane_pliki": 0}
+2	2026-11-21T03:30:40	scanner	nowy_skan		{"duplikat": false, "ponowny": false, "rozmiar": 58251084, "sha16": "c85504f17628ac3f", "trojkaty": 1165020, "zastany": false}
+3	2026-11-21T03:31:59	system	program_stop		{"niezakonczone": 1}
+4	2026-11-21T03:32:00	system	program_start		{"wersja": "etap3-A3a", "wznowione": 1, "znane_pliki": 1}
+5	2026-11-21T03:32:58	silnik	skan_przyjety	1	{"czas_s": 56.2, "prace": 12, "status": "plytka_nie_z_trybu"}
+7	2026-11-21T03:34:32	system	program_stop		{"niezakonczone": 0}
+-- wierszy: 6
+

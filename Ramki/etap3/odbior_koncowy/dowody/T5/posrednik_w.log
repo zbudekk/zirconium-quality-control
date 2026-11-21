@@ -1,0 +1,2 @@
+POSREDNIK port=8766 cel=<adres-IP>:8765 zapis=<PC-katalog>\koordynator\robocze\odbior\T5\ruch_ramka_w.bin
+POSREDNIK koniec: polaczen 57, nieudanych polaczen z celem 0, bajtow do ramki 14265, bajtow z ramki 20794

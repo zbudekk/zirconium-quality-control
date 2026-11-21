@@ -1,0 +1,196 @@
+== p1_1 (przypadek 1, powtorzenie 1, 05:02:54-05:03:54; kody etapow [0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    od wydania polecenia Stop-Process dla procesu silnika: widoczny po 0.31 s (na ekranie: 33.9 s)
+        tytul: "Plytka bez numeru: Analiza skanu nie powiodla sie"
+        tekst: "Program nie przeanalizowal tego skanu (analiza zostala przerwana). Zeskanuj plytke ponownie."
+        przyciski: Zamknij
+    regula PID: {"regula_5s": [[35360, 0.04], [36108, 1.58]], "regula_5s_ok": true, "lancuch_ok": true, "active_children": [36108], "pid_silnika": 36108, "analiza_trwa_przed": true, "kod_stop_process": 0}; Stop-Process trwal 0.25 s
+    spelnione: DALSZA PRACA: skan 2 ma plytke (status inny niz blad) {"po_s": 25.74}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'blad': 1, 'przyjety': 1}, 'zdarzenia': {'blad_analizy': 1, 'blad_analizy_rodzaj': 1, 'nowy_skan': 2, 'podglad': 1, 'program_start': 1, 'program_stop': 1, 'skan_przyjety': 1}}; procesy python pozostale po przebiegu: []
+
+== p1_2 (przypadek 1, powtorzenie 2, 05:03:54-05:04:52; kody etapow [0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    od wydania polecenia Stop-Process dla procesu silnika: widoczny po 0.45 s (na ekranie: 32.4 s)
+        tytul: "Plytka bez numeru: Analiza skanu nie powiodla sie"
+        tekst: "Program nie przeanalizowal tego skanu (analiza zostala przerwana). Zeskanuj plytke ponownie."
+        przyciski: Zamknij
+    regula PID: {"regula_5s": [[29868, 0.03], [25048, 1.11]], "regula_5s_ok": true, "lancuch_ok": true, "active_children": [25048], "pid_silnika": 25048, "analiza_trwa_przed": true, "kod_stop_process": 0}; Stop-Process trwal 0.25 s
+    spelnione: DALSZA PRACA: skan 2 ma plytke (status inny niz blad) {"po_s": 24.27}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'blad': 1, 'przyjety': 1}, 'zdarzenia': {'blad_analizy': 1, 'blad_analizy_rodzaj': 1, 'nowy_skan': 2, 'podglad': 1, 'program_start': 1, 'program_stop': 1, 'skan_przyjety': 1}}; procesy python pozostale po przebiegu: []
+
+== p2_1 (przypadek 2, powtorzenie 1, 04:56:43-04:58:05; kody etapow [1, 0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    po ponownym starcie - od pojawienia sie okna programu: widoczny po 0.40 s (na ekranie: do konca przebiegu)
+        tytul: "Program wznowil prace"
+        tekst: "Po ponownym uruchomieniu program dokancza zalegle skany: 1."
+        przyciski: Zamknij
+    pierwszy odczyt ekranu po restarcie: kafelki ['plytka_1'], naglowek mapy "Plytka 8 - do obejrzenia: 3", plytki w stanie [[1, 'przyjety', '75db8c4f9ead0dab']]
+    zakonczenie programu: {"zabity": "04:57:27", "pidy": {"program": 27772, "posrednik": 15724, "silnik": [16388]}, "zywe_po_1_5_s": [], "kod": 1}; baza miedzy etapami {'skany': {'przyjety': 1}, 'zdarzenia': {'nowy_skan': 2, 'podglad': 1, 'program_start': 1, 'skan_przyjety': 1}}; zadania_niezakonczone.json miedzy etapami: False
+    spelnione: DALSZA PRACA: skan 2 ma plytke po restarcie (2 plytki) {"po_s": 21.98}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'przyjety': 2}, 'zdarzenia': {'konflikt_projektu': 1, 'nowy_skan': 3, 'podglad': 2, 'program_start': 2, 'program_stop': 1, 'skan_przyjety': 2}}; procesy python pozostale po przebiegu: []
+
+== p2_2 (przypadek 2, powtorzenie 2, 04:58:05-04:59:27; kody etapow [1, 0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    po ponownym starcie - od pojawienia sie okna programu: widoczny po 0.40 s (na ekranie: do konca przebiegu)
+        tytul: "Program wznowil prace"
+        tekst: "Po ponownym uruchomieniu program dokancza zalegle skany: 1."
+        przyciski: Zamknij
+    pierwszy odczyt ekranu po restarcie: kafelki ['plytka_1'], naglowek mapy "Plytka 8 - do obejrzenia: 3", plytki w stanie [[1, 'przyjety', '75db8c4f9ead0dab']]
+    zakonczenie programu: {"zabity": "04:58:49", "pidy": {"program": 7732, "posrednik": 27472, "silnik": [26160]}, "zywe_po_1_5_s": [], "kod": 1}; baza miedzy etapami {'skany': {'przyjety': 1}, 'zdarzenia': {'nowy_skan': 2, 'podglad': 1, 'program_start': 1, 'skan_przyjety': 1}}; zadania_niezakonczone.json miedzy etapami: False
+    spelnione: DALSZA PRACA: skan 2 ma plytke po restarcie (2 plytki) {"po_s": 22.44}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'przyjety': 2}, 'zdarzenia': {'konflikt_projektu': 1, 'nowy_skan': 3, 'podglad': 2, 'program_start': 2, 'program_stop': 1, 'skan_przyjety': 2}}; procesy python pozostale po przebiegu: []
+
+== p2c_1 (przypadek 2c, powtorzenie 1, 05:04:52-05:06:14; kody etapow [0, 0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    po ponownym starcie - od pojawienia sie okna programu: widoczny po 0.00 s (na ekranie: do konca przebiegu)
+        tytul: "Program wznowil prace"
+        tekst: "Po ponownym uruchomieniu program dokancza zalegle skany: 1."
+        przyciski: Zamknij
+    pierwszy odczyt ekranu po restarcie: kafelki ['plytka_1'], naglowek mapy "Plytka 8 - do obejrzenia: 3", plytki w stanie [[1, 'przyjety', '75db8c4f9ead0dab']]
+    zakonczenie programu: {"kod": 0}; baza miedzy etapami {'skany': {'przyjety': 1}, 'zdarzenia': {'nowy_skan': 2, 'podglad': 1, 'program_start': 1, 'program_stop': 1, 'skan_przyjety': 1}}; zadania_niezakonczone.json miedzy etapami: True
+    spelnione: DALSZA PRACA: skan 2 ma plytke po restarcie (2 plytki) {"po_s": 23.82}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'przyjety': 2}, 'zdarzenia': {'konflikt_projektu': 1, 'nowy_skan': 2, 'podglad': 2, 'program_start': 2, 'program_stop': 2, 'skan_przyjety': 2}}; procesy python pozostale po przebiegu: []
+
+== p3_1 (przypadek 3, powtorzenie 1, 04:53:36-04:55:11; kody etapow [0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    3a start bez folderu, bez skanu: paneli pula_brak_folderu przed 1. skanem: 0
+    3a - od konca zapisu 1. skanu (folderu nie ma od startu): widoczny po 0.47 s (na ekranie: 5.3 s)
+        tytul: "Brak folderu projektow"
+        tekst: "Program nie widzi folderu projektow - skany czekaja (1). Sprawdz, czy dysk z folderem projektow jest podlaczony, i kliknij "Odswiez pule". Jesli folder jest inny - zglos to."
+        przyciski: Odswiez pule | Zamknij
+    3b folder znika w trakcie, bez skanu: paneli pula_brak_folderu miedzy zniknieciem a koncem zapisu 2. skanu (13.2 s): 0
+    3b - od konca zapisu 2. skanu: widoczny po 5.37 s (na ekranie: 6.3 s)
+        tytul: "Brak folderu projektow"
+        tekst: "Program nie widzi folderu projektow - skany czekaja (1). Sprawdz, czy dysk z folderem projektow jest podlaczony, i kliknij "Odswiez pule". Jesli folder jest inny - zglos to."
+        przyciski: Odswiez pule | Zamknij
+    spelnione: DALSZA PRACA: skan 1 ma plytke po przywroceniu folderu {"po_s": 21.14}
+    spelnione: DALSZA PRACA 3b: skan 2 ma plytke {"po_s": 17.97}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'przyjety': 2}, 'zdarzenia': {'konflikt_projektu': 1, 'nowy_skan': 2, 'podglad': 2, 'program_start': 1, 'program_stop': 1, 'skan_czeka_na_pule': 1, 'skan_przyjety': 2}}; procesy python pozostale po przebiegu: []
+
+== p3_2 (przypadek 3, powtorzenie 2, 04:55:12-04:56:42; kody etapow [0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    3a start bez folderu, bez skanu: paneli pula_brak_folderu przed 1. skanem: 0
+    3a - od konca zapisu 1. skanu (folderu nie ma od startu): widoczny po 0.40 s (na ekranie: 5.3 s)
+        tytul: "Brak folderu projektow"
+        tekst: "Program nie widzi folderu projektow - skany czekaja (1). Sprawdz, czy dysk z folderem projektow jest podlaczony, i kliknij "Odswiez pule". Jesli folder jest inny - zglos to."
+        przyciski: Odswiez pule | Zamknij
+    3b folder znika w trakcie, bez skanu: paneli pula_brak_folderu miedzy zniknieciem a koncem zapisu 2. skanu (13.2 s): 0
+    3b - od konca zapisu 2. skanu: widoczny po 5.42 s (na ekranie: 6.3 s)
+        tytul: "Brak folderu projektow"
+        tekst: "Program nie widzi folderu projektow - skany czekaja (1). Sprawdz, czy dysk z folderem projektow jest podlaczony, i kliknij "Odswiez pule". Jesli folder jest inny - zglos to."
+        przyciski: Odswiez pule | Zamknij
+    spelnione: DALSZA PRACA: skan 1 ma plytke po przywroceniu folderu {"po_s": 20.05}
+    spelnione: DALSZA PRACA 3b: skan 2 ma plytke {"po_s": 13.33}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'przyjety': 2}, 'zdarzenia': {'konflikt_projektu': 1, 'nowy_skan': 2, 'podglad': 2, 'program_start': 1, 'program_stop': 1, 'skan_czeka_na_pule': 1, 'skan_przyjety': 2}}; procesy python pozostale po przebiegu: []
+
+== p4a_1 (przypadek 4a, powtorzenie 1, 04:50:14-04:50:40; kody etapow [0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    ramka wieczorna - od pojawienia sie okna programu (ramka nieosiagalna od startu): widoczny po 2.05 s (na ekranie: 6.3 s)
+        tytul: "Ramka wieczorna nie odpowiada"
+        tekst: "Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama."
+        przyciski: Zamknij
+    ramka poranna - od klikniecia '-> Poranek': widoczny po 0.16 s (na ekranie: 6.1 s)
+        tytul: "Ramka poranna nie jest podlaczona"
+        tekst: "Program dziala bez ramki - rozkladaj prace wedlug ekranu: kuweta po kuwecie (Enter = rozlozona, Backspace = cofnij, cyfry i Enter = wybor kuwety)."
+        przyciski: Zamknij
+    DALSZA PRACA: 'Zamknij' w komunikacie ramki porannej {"klikniety": true, "komunikat_nadal": false}
+    spelnione: DALSZA PRACA: pula gotowa i silnik gotowy {"po_s": 0.0}
+    baza po przebiegu (odczyt mode=ro): {'skany': {}, 'zdarzenia': {'program_start': 1, 'program_stop': 1, 'tryb_zmieniony': 2}}; procesy python pozostale po przebiegu: []
+
+== p4a_2 (przypadek 4a, powtorzenie 2, 04:51:28-04:51:54; kody etapow [0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    ramka wieczorna - od pojawienia sie okna programu (ramka nieosiagalna od startu): widoczny po 2.11 s (na ekranie: 6.3 s)
+        tytul: "Ramka wieczorna nie odpowiada"
+        tekst: "Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama."
+        przyciski: Zamknij
+    ramka poranna - od klikniecia '-> Poranek': widoczny po 0.16 s (na ekranie: 6.1 s)
+        tytul: "Ramka poranna nie jest podlaczona"
+        tekst: "Program dziala bez ramki - rozkladaj prace wedlug ekranu: kuweta po kuwecie (Enter = rozlozona, Backspace = cofnij, cyfry i Enter = wybor kuwety)."
+        przyciski: Zamknij
+    DALSZA PRACA: 'Zamknij' w komunikacie ramki porannej {"klikniety": true, "komunikat_nadal": false}
+    spelnione: DALSZA PRACA: pula gotowa i silnik gotowy {"po_s": 0.0}
+    baza po przebiegu (odczyt mode=ro): {'skany': {}, 'zdarzenia': {'program_start': 1, 'program_stop': 1, 'tryb_zmieniony': 2}}; procesy python pozostale po przebiegu: []
+
+== p4b_1 (przypadek 4b, powtorzenie 1, 04:51:54-04:52:20; kody etapow [0]; ramki: 192.0.2.10 / 192.0.2.11 : 8765 (adresy dokumentacyjne TEST-NET-1 - brak odpowiedzi))
+    ramka wieczorna - od pojawienia sie okna programu (ramka nieosiagalna od startu): widoczny po 2.12 s (na ekranie: 6.3 s)
+        tytul: "Ramka wieczorna nie odpowiada"
+        tekst: "Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama."
+        przyciski: Zamknij
+    ramka poranna - od klikniecia '-> Poranek': widoczny po 0.14 s (na ekranie: 6.1 s)
+        tytul: "Ramka poranna nie jest podlaczona"
+        tekst: "Program dziala bez ramki - rozkladaj prace wedlug ekranu: kuweta po kuwecie (Enter = rozlozona, Backspace = cofnij, cyfry i Enter = wybor kuwety)."
+        przyciski: Zamknij
+    DALSZA PRACA: 'Zamknij' w komunikacie ramki porannej {"klikniety": true, "komunikat_nadal": false}
+    spelnione: DALSZA PRACA: pula gotowa i silnik gotowy {"po_s": 0.0}
+    baza po przebiegu (odczyt mode=ro): {'skany': {}, 'zdarzenia': {'program_start': 1, 'program_stop': 1, 'tryb_zmieniony': 2}}; procesy python pozostale po przebiegu: []
+
+== p4b_2 (przypadek 4b, powtorzenie 2, 04:52:20-04:53:36; kody etapow [0]; ramki: 192.0.2.10 / 192.0.2.11 : 8765 (adresy dokumentacyjne TEST-NET-1 - brak odpowiedzi))
+    ramka wieczorna - od pojawienia sie okna programu (ramka nieosiagalna od startu): widoczny po 1.90 s (na ekranie: 6.3 s)
+        tytul: "Ramka wieczorna nie odpowiada"
+        tekst: "Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama."
+        przyciski: Zamknij
+    ramka poranna - od klikniecia '-> Poranek': widoczny po 0.16 s (na ekranie: 6.1 s)
+        tytul: "Ramka poranna nie jest podlaczona"
+        tekst: "Program dziala bez ramki - rozkladaj prace wedlug ekranu: kuweta po kuwecie (Enter = rozlozona, Backspace = cofnij, cyfry i Enter = wybor kuwety)."
+        przyciski: Zamknij
+    DALSZA PRACA: 'Zamknij' w komunikacie ramki porannej {"klikniety": true, "komunikat_nadal": false}
+    spelnione: DALSZA PRACA: pula gotowa i silnik gotowy {"po_s": 0.0}
+    spelnione: DALSZA PRACA: skan przyjety przy braku ramek (plytka) {"po_s": 49.1}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'przyjety': 1}, 'zdarzenia': {'nowy_skan': 1, 'podglad': 1, 'program_start': 1, 'program_stop': 1, 'skan_przyjety': 1, 'tryb_zmieniony': 2}}; procesy python pozostale po przebiegu: []
+
+== p5a_1 (przypadek 5a, powtorzenie 1, 04:59:28-04:59:54; kody etapow [0]; ramki: 127.0.0.1 : 18799 - nikt nie slucha (polaczenie odrzucane))
+    ramka wieczorna - od pojawienia sie okna programu (ramka nieosiagalna od startu): widoczny po 2.10 s (na ekranie: 6.3 s)
+        tytul: "Ramka wieczorna nie odpowiada"
+        tekst: "Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama."
+        przyciski: Zamknij
+    ramka poranna - od klikniecia '-> Poranek': widoczny po 0.16 s (na ekranie: 6.1 s)
+        tytul: "Ramka poranna nie jest podlaczona"
+        tekst: "Program dziala bez ramki - rozkladaj prace wedlug ekranu: kuweta po kuwecie (Enter = rozlozona, Backspace = cofnij, cyfry i Enter = wybor kuwety)."
+        przyciski: Zamknij
+    DALSZA PRACA: 'Zamknij' w komunikacie ramki porannej {"klikniety": true, "komunikat_nadal": false}
+    spelnione: DALSZA PRACA: pula gotowa i silnik gotowy {"po_s": 0.0}
+    baza po przebiegu (odczyt mode=ro): {'skany': {}, 'zdarzenia': {'program_start': 1, 'program_stop': 1, 'tryb_zmieniony': 2}}; procesy python pozostale po przebiegu: []
+
+== p5a_2 (przypadek 5a, powtorzenie 2, 04:59:54-05:00:20; kody etapow [0]; ramki: 127.0.0.1 : 18799 - nikt nie slucha (polaczenie odrzucane))
+    ramka wieczorna - od pojawienia sie okna programu (ramka nieosiagalna od startu): widoczny po 2.10 s (na ekranie: 6.3 s)
+        tytul: "Ramka wieczorna nie odpowiada"
+        tekst: "Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama."
+        przyciski: Zamknij
+    ramka poranna - od klikniecia '-> Poranek': widoczny po 0.14 s (na ekranie: 6.1 s)
+        tytul: "Ramka poranna nie jest podlaczona"
+        tekst: "Program dziala bez ramki - rozkladaj prace wedlug ekranu: kuweta po kuwecie (Enter = rozlozona, Backspace = cofnij, cyfry i Enter = wybor kuwety)."
+        przyciski: Zamknij
+    DALSZA PRACA: 'Zamknij' w komunikacie ramki porannej {"klikniety": true, "komunikat_nadal": false}
+    spelnione: DALSZA PRACA: pula gotowa i silnik gotowy {"po_s": 0.0}
+    baza po przebiegu (odczyt mode=ro): {'skany': {}, 'zdarzenia': {'program_start': 1, 'program_stop': 1, 'tryb_zmieniony': 2}}; procesy python pozostale po przebiegu: []
+
+== p5d_1 (przypadek 5d, powtorzenie 1, 05:00:20-05:00:50; kody etapow [0]; ramki: atrapy ramek programu: W 127.0.0.2:18765, P 127.0.0.3:18765 (osobne procesy), konczone w trakcie pracy)
+    ramka wieczorna - od prosby o zakonczenie atrap ramek (atrapy dzialaly, pasek 'W: gotowa | P: gotowa'): widoczny po 0.32 s (na ekranie: 5.3 s)
+        tytul: "Ramka wieczorna nie odpowiada"
+        tekst: "Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama."
+        przyciski: Zamknij
+    ramka poranna - od klikniecia '-> Poranek': widoczny po 0.16 s (na ekranie: 6.1 s)
+        tytul: "Ramka poranna nie jest podlaczona"
+        tekst: "Program dziala bez ramki - rozkladaj prace wedlug ekranu: kuweta po kuwecie (Enter = rozlozona, Backspace = cofnij, cyfry i Enter = wybor kuwety)."
+        przyciski: Zamknij
+    DALSZA PRACA: 'Zamknij' w komunikacie ramki porannej {"klikniety": true, "komunikat_nadal": false}
+    spelnione: DALSZA PRACA: pula gotowa i silnik gotowy {"po_s": 0.0}
+    baza po przebiegu (odczyt mode=ro): {'skany': {}, 'zdarzenia': {'program_start': 1, 'program_stop': 1, 'start': 2, 'tryb_zmieniony': 2}}; procesy python pozostale po przebiegu: []
+
+== p6_1 (przypadek 6, powtorzenie 1, 05:00:51-05:01:50; kody etapow [0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    od klikniecia 'Ukruszona' przy zajetej bazie: widoczny po 0.79 s (na ekranie: 15.8 s)
+        tytul: "Decyzja NIE zostala zapisana"
+        tekst: ""Ukruszona" - plytka 8, gniazdo 1 - decyzja NIE jest zapisana: baza stanowiska byla zajeta przez inny program. Kliknij "Ponow teraz"; jesli znowu sie nie uda, odczekaj chwile i kliknij jeszcze raz. Dopoki widzisz ten komunikat, tej decyzji nie ma w programie."
+        przyciski: Ponow teraz | Rezygnuje - nie zapisuj
+    AWARIA: baza zajeta przez osobny proces (BEGIN EXCLUSIVE, 16 s) {"pid": 34584}
+    klikniecie 'Ukruszona' przy zajetej bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.68}
+    'Ponow teraz' przy NADAL zajetej bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.68, "blokada_trwa": true}
+    po 2 s od nieudanego ponowienia {"komunikat_widoczny": true}
+    'Ponow teraz' przy WOLNEJ bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.01}
+    stan po ponowieniu {"decyzja": "ukruszona_niewykryta", "do_dofrezowania": 1, "komunikat_widoczny": false, "ok": true}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'przyjety': 1}, 'zdarzenia': {'nowy_skan': 1, 'podglad': 1, 'program_start': 1, 'program_stop': 1, 'skan_przyjety': 1}}; procesy python pozostale po przebiegu: []
+
+== p6_2 (przypadek 6, powtorzenie 2, 05:01:50-05:02:54; kody etapow [0]; ramki: jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765))
+    od klikniecia 'Ukruszona' przy zajetej bazie: widoczny po 0.32 s (na ekranie: 16.3 s)
+        tytul: "Decyzja NIE zostala zapisana"
+        tekst: ""Ukruszona" - plytka 8, gniazdo 1 - decyzja NIE jest zapisana: baza stanowiska byla zajeta przez inny program. Kliknij "Ponow teraz"; jesli znowu sie nie uda, odczekaj chwile i kliknij jeszcze raz. Dopoki widzisz ten komunikat, tej decyzji nie ma w programie."
+        przyciski: Ponow teraz | Rezygnuje - nie zapisuj
+    AWARIA: baza zajeta przez osobny proces (BEGIN IMMEDIATE, 16 s) {"pid": 9100}
+    klikniecie 'Ukruszona' przy zajetej bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.3}
+    'Ponow teraz' przy NADAL zajetej bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.3, "blokada_trwa": true}
+    po 2 s od nieudanego ponowienia {"komunikat_widoczny": true}
+    'Ponow teraz' przy WOLNEJ bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.02}
+    stan po ponowieniu {"decyzja": "ukruszona_niewykryta", "do_dofrezowania": 1, "komunikat_widoczny": false, "ok": true}
+    baza po przebiegu (odczyt mode=ro): {'skany': {'przyjety': 1}, 'zdarzenia': {'nowy_skan': 1, 'podglad': 1, 'program_start': 1, 'program_stop': 1, 'skan_przyjety': 1}}; procesy python pozostale po przebiegu: []
+

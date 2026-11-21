@@ -1,0 +1,22 @@
+T0 krok 2 - sumy SHA-256 paczki Stanowisko_0.3.1.zip (21.11.2026 02:47)
+
+1. certutil -hashfile <PC-katalog>\wydania\Stanowisko_0.3.1.zip SHA256   (pelne wyjscie: t0_2.log)
+   f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8
+2. <PC-katalog>\wydania\Stanowisko_0.3.1.zip.sha256
+   f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8  Stanowisko_0.3.1.zip
+3. wartosc ze zlecenia odbior-wspolne.md (sekcja "Stan")
+   f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8
+4. Ramki/etap3/wydania/SHA256SUMS_wydania.txt
+   - w <REPO> (<PC-katalog>\t0\repo, commit 571e186): BRAK wiersza Stanowisko_0.3.1.zip (plik ma tylko wiersz 0.3.0) -
+     wiersz paczki nie moze byc w commicie, z ktorego paczke zbudowano;
+   - w repo glownym <PC-katalog>\qc (main 5f962dd, wiersz dodany commitem c399482):
+     f5affa81aea9969c6c42bf8e9e56ed6ad564dc948b15e92b8c7989383e24eec8  Stanowisko_0.3.1.zip
+5. rozmiar pliku ZIP: 444935199 bajtow (zlecenie: 444 935 199)
+
+Zgodnosc sumy ZIP: 1 z 1 (certutil = .zip.sha256 = zlecenie = SHA256SUMS_wydania.txt z main c399482).
+
+Sumy plikow paczki liczone przez instalator (plik SHA256SUMS paczki, 210 wierszy; rozpakowano 211 plikow = 210 + sam SHA256SUMS):
+   instalacja 1 (t0_zainstaluj_1.log): [1/9] zgodne 210 z 210; wersja 0.3.1, commit 571e186cb817
+   instalacja 2 (t0_zainstaluj_2.log): [1/9] zgodne 210 z 210; wersja 0.3.1, commit 571e186cb817
+   program skopiowany do katalogu wersji: "skopiowano 131 plikow, sumy zgodne"
+   samokontrola (t0_samokontrola.txt): OK sumy: sumy SHA-256 plikow programu zgodne 130 z 130 (SUMY_PROGRAMU.sha256), plikow nadmiarowych 0

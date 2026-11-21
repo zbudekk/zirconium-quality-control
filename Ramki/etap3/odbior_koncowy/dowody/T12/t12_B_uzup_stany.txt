@@ -1,0 +1,35 @@
+== czesc B uzupelnienie (K_B2): kontrola c1 
+ustawienia K_B2: zmienionych wierszy 5 (oczekiwane 5)
+===== STAN po kroku 3 (PRZED aktualizacja probna) sob. 21.11.2026  3:02:33,73 
+0.3.1
+8904d20a3d55290571703ae5f74807bbc2ba76a12ee4dd2e7e5100903c0aefcd
+86016 a18a01fc738820b6547bd2122de236d2809bdab4af4e3d9a348f4d154618cc61
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+===== STAN po kroku 4 - kontrola c1 (po aktualizacji, PRZED startem wersji probnej) sob. 21.11.2026  3:03:54,80 
+0.3.9-migracja
+8904d20a3d55290571703ae5f74807bbc2ba76a12ee4dd2e7e5100903c0aefcd
+86016 a18a01fc738820b6547bd2122de236d2809bdab4af4e3d9a348f4d154618cc61
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+-- pliki w dane\kopie: 
+stanowisko_przed_0.3.9-migracja_20261121_030348_v1.sqlite
+-- kopia stanowisko_przed_0.3.9-migracja_20261121_030348_v1.sqlite rozmiar 86016 
+62207351c4173a7c7484028a35d410d90c9130886078e89be64521117725b634
+86016 a18a01fc738820b6547bd2122de236d2809bdab4af4e3d9a348f4d154618cc61
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1

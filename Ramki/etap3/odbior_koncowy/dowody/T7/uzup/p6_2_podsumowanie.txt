@@ -1,0 +1,69 @@
+PRZEBIEG p6_2
+{"przebieg": "p6_2", "przypadek": 6, "wariant": "", "powt": 2, "start": "05:01:50", "ramki": "jak w ustawieniach instalacji (ramka-w.local / ramka-p.local : 8765)", "baza_po": {"skany": {"przyjety": 1}, "zdarzenia": {"nowy_skan": 1, "podglad": 1, "program_start": 1, "program_stop": 1, "skan_przyjety": 1}}, "zadania_niezakonczone_json_po": false, "procesy_python_nowe_po_przebiegu": [], "koniec": "05:02:54", "zrzuty": ["p6_2_e1_01_komunikat_decyzja_niezapisana.png"]}
+
+== odczyty_1.jsonl
+  [    0.00 s 05:01:51.775] ZDARZENIE: start procesu programu {"platforma_qt": "offscreen", "python": "3.12.10", "katalog_programu": "0.3.1", "przypadek": 6, "wariant": "", "powt": 2, "etap": 1}
+  [    0.85 s 05:01:52.623] ZDARZENIE: okno programu znalezione {"widoczne": true, "rozmiar": [1600, 900]}
+  [    0.85 s 05:01:52.623] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula liczenie, kolejka [0, 0, 0, 0, False], analiza False, tryb wieczor
+  [    0.85 s 05:01:52.627] ZDARZENIE: spelnione: okno programu widoczne {"po_s": 0.0}
+  [    0.95 s 05:01:52.723] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, False], analiza False, tryb wieczor
+  [    1.88 s 05:01:53.656] ekran: paneli 1 (panel_osoba); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    1.88 s 05:01:53.656] ZDARZENIE: klik {"obiekt": "osoba_0", "panel": null, "napis": "Technik A"}
+  [    1.88 s 05:01:53.659] ZDARZENIE: spelnione: klikniecie osoba_0 {"po_s": 0.0}
+  [    1.88 s 05:01:53.659] ZDARZENIE: spelnione: osoba wybrana {"po_s": 0.0}
+  [    1.88 s 05:01:53.659] ZDARZENIE: spelnione: pula gotowa i silnik gotowy {"po_s": 0.0}
+  [    2.04 s 05:01:53.815] ekran: paneli 0 (); kafelki []; stan: komunikaty [], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    2.97 s 05:01:54.742] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [    5.03 s 05:01:56.800] ZDARZENIE: start symulatora skanera {"nr": 1, "zrodlo": "a", "pid": 36724}
+  [    7.84 s 05:01:59.614] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki []; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [], pula gotowa, kolejka [1, 1, 0, 0, True], analiza True, tryb wieczor
+  [   33.21 s 05:02:24.989] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   33.21 s 05:02:24.989] ZDARZENIE: spelnione: skan 1 ma plytke {"po_s": 28.19}
+  [   36.33 s 05:02:28.108] ZDARZENIE: plytka {"skan_id": 1, "status": "przyjety", "gniazd_z_praca": 9, "kolory": ["czerwony", "zielony", "zolty"]}
+  [   36.33 s 05:02:28.108] ZDARZENIE: spelnione: mapa bez ochrony {"po_s": 0.0}
+  [   36.33 s 05:02:28.108] ZDARZENIE: klik gniazdo {"gniazdo": 1, "kolor": "zolty"}
+  [   36.34 s 05:02:28.113] ZDARZENIE: spelnione: widok pokazuje wybrana prace {"po_s": 0.0}
+  [   37.60 s 05:02:29.375] ZDARZENIE: spelnione: proces blokady trzyma BEGIN IMMEDIATE {"po_s": 0.16}
+  [   37.60 s 05:02:29.375] ZDARZENIE: AWARIA: baza zajeta przez osobny proces (BEGIN IMMEDIATE, 16 s) {"pid": 9100}
+  [   38.22 s 05:02:29.994] ZDARZENIE: klik {"obiekt": "przycisk_ukruszona", "panel": null, "napis": "Ukruszona  [U]"}
+  [   38.52 s 05:02:30.294] ZDARZENIE: klikniecie 'Ukruszona' przy zajetej bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.3}
+  [   38.52 s 05:02:30.294] ZDARZENIE: spelnione: komunikat decyzja_niezapisana na ekranie {"po_s": 0.0}
+  [   38.53 s 05:02:30.310] ekran: paneli 2 (komunikat_decyzja_niezapisana, komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna', 'decyzja_niezapisana'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   38.57 s 05:02:30.341] ZDARZENIE: zrzut {"plik": "p6_2_e1_01_komunikat_decyzja_niezapisana.png", "zapisany": true}
+  [   41.04 s 05:02:32.811] ZDARZENIE: klik {"obiekt": "komunikat_ponow_polecenie", "panel": "komunikat_decyzja_niezapisana", "napis": "Ponow teraz"}
+  [   41.34 s 05:02:33.116] ZDARZENIE: 'Ponow teraz' przy NADAL zajetej bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.3, "blokada_trwa": true}
+  [   41.50 s 05:02:33.272] ekran: paneli 2 (komunikat_decyzja_niezapisana, komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna', 'decyzja_niezapisana'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   43.38 s 05:02:35.156] ZDARZENIE: po 2 s od nieudanego ponowienia {"komunikat_widoczny": true}
+  [   53.56 s 05:02:45.338] ZDARZENIE: spelnione: proces blokady zwolnil baze {"po_s": 10.18}
+  [   54.65 s 05:02:46.429] ZDARZENIE: klik {"obiekt": "komunikat_ponow_polecenie", "panel": "komunikat_decyzja_niezapisana", "napis": "Ponow teraz"}
+  [   54.67 s 05:02:46.447] ZDARZENIE: 'Ponow teraz' przy WOLNEJ bazie - powrot z klikniecia {"klikniety": true, "klik_trwal_s": 0.02}
+  [   54.67 s 05:02:46.447] ZDARZENIE: spelnione: DALSZA PRACA: decyzja zapisana po 'Ponow teraz' i komunikat zniknal {"po_s": 0.0}
+  [   54.67 s 05:02:46.447] ZDARZENIE: stan po ponowieniu {"decyzja": "ukruszona_niewykryta", "do_dofrezowania": 1, "komunikat_widoczny": false, "ok": true}
+  [   54.81 s 05:02:46.588] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   58.74 s 05:02:50.514] ekran: paneli 1 (komunikat_ramka_wieczorna_niedostepna); kafelki ['plytka_1']; stan: komunikaty ['ramka_wieczorna_niedostepna'], pytania [], plytki [[1, 'przyjety', '75db8c4f9ead0dab']], pula gotowa, kolejka [0, 0, 0, 0, True], analiza False, tryb wieczor
+  [   58.74 s 05:02:50.514] ZDARZENIE: koniec scenariusza 
+  [   59.99 s 05:02:51.763] ZDARZENIE: program zakonczony {"kod": 0}
+  [   59.99 s 05:02:51.763] ZDARZENIE: procesy potomne po sprzataniu {"zywe": []}
+  odczytow ze zmiana ekranu: 11; okno programu znalezione w t = 0.848
+  OKNA najwyzszego poziomu widziane: ('OknoWieczor', 'okno_wieczor', 'Stanowisko - kontrola prac przed piecem', '')
+  PANELE widziane (obszar / panel / pierwszy odczyt / ostatni / mial widoczne piksele):
+   - uwagi / panel_osoba: pierwszy 0.85 s (05:01:52.623), ostatni 1.88 s, isVisible True, piksele True
+        tekst: Kto teraz pracuje?
+        tekst: Nie wybrano osoby, ktora pracuje - wybierz ja z listy. Bez tego nie mozna zapisywac decyzji.
+        przyciski: (osoba)
+   - uwagi / komunikat_ramka_wieczorna_niedostepna: pierwszy 2.97 s (05:01:54.742), ostatni 58.74 s, isVisible True, piksele True
+        tekst: Ramka wieczorna nie odpowiada
+        tekst: Program dziala bez ramki - wynik plytki pokazuje ekran. Sprawdz zasilanie ramki i siec stanowiska; ramka dolaczy sama.
+        przyciski: Zamknij
+   - pasek_bledow / komunikat_decyzja_niezapisana: pierwszy 38.53 s (05:02:30.310), ostatni 41.50 s, isVisible True, piksele True
+        tekst: Decyzja NIE zostala zapisana
+        tekst: "Ukruszona" - plytka 8, gniazdo 1 - decyzja NIE jest zapisana: baza stanowiska byla zajeta przez inny program. Kliknij "Ponow teraz"; jesli znowu sie nie uda, odczekaj chwile i kliknij jeszcze raz. Dopoki widzisz ten komunikat, tej decyzji nie ma w programie.
+        przyciski: Ponow teraz | Rezygnuje - nie zapisuj
+  PASEK STANU (zmiany):
+   [    0.85 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "licze pliki projektow...", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    0.95 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "nie wybrano", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+   [    2.04 s] {"napis_doba": "20.11.2026 | zmiana 3", "napis_osoba": "Technik A", "napis_pula": "plikow projektow: 17", "napis_ramki": "W: brak polaczenia | P: brak polaczenia", "napis_skaner": "dostepny", "napis_tryb": "Wieczor"} | podpowiedz ramek: Brak polaczenia z ramka - sprawdz zasilanie ramki i siec stanowiska.
+Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+
+symulator symulator_1: koniec zapisu epoka 1795233719.107 (05:01:59), sha16 75db8c4f9ead0dab, rozmiar 44124484

@@ -1,0 +1,1491 @@
+{
+ "narzedzie": "t3_poranek.py",
+ "scenariusz": "SE10 (test_session_rano.TABELA_SE10) przez okno programu",
+ "wersja_programu": "0.3.1",
+ "interpreter": "<PC-katalog>\\t0\\odbior\\Stanowisko\\wersje\\0.3.1\\venv\\Scripts\\python.exe",
+ "python": "3.12.10",
+ "system": "Windows-11-10.0.26300-SP0",
+ "platforma_qt": "offscreen",
+ "kontroler": "stanowisko.aplikacja.Aplikacja (ramki=False, excel=False)",
+ "limit_s": 600.0,
+ "czas_s": 10.1,
+ "przerwano": null,
+ "starty_programu": 4,
+ "pytania_zamkniecia": {
+  "1": {
+   "oczekiwane_wg_zlecenia": false,
+   "bylo": false,
+   "zgodne": true,
+   "nierozstrzygniete_wg_sesji": {
+    "dwuznaczne": 0,
+    "nieznane": 0
+   },
+   "prace_bez_decyzji_wg_stanu_okna": 0
+  },
+  "2": {
+   "oczekiwane_wg_zlecenia": true,
+   "bylo": false,
+   "zgodne": false,
+   "nierozstrzygniete_wg_sesji": {
+    "dwuznaczne": 0,
+    "nieznane": 1
+   },
+   "prace_bez_decyzji_wg_stanu_okna": 0
+  },
+  "3": {
+   "oczekiwane_wg_zlecenia": false,
+   "bylo": false,
+   "zgodne": true,
+   "nierozstrzygniete_wg_sesji": {
+    "dwuznaczne": 0,
+    "nieznane": 0
+   },
+   "prace_bez_decyzji_wg_stanu_okna": 0
+  }
+ },
+ "podane_wyniki": [
+  {
+   "skan": "w1",
+   "tryb": "wieczor",
+   "skan_id": 1,
+   "sha16_skanu": "28b8a8fd5083c2ab",
+   "czas_scenariusza": "2026-11-17T19:00:00"
+  },
+  {
+   "skan": "w2",
+   "tryb": "wieczor",
+   "skan_id": 2,
+   "sha16_skanu": "c371f36257315ee7",
+   "czas_scenariusza": "2026-11-17T19:20:00"
+  },
+  {
+   "skan": "p1_4",
+   "tryb": "rano",
+   "skan_id": 3,
+   "sha16_skanu": "dcccaea9b3c56a60",
+   "czas_scenariusza": "2026-11-18T07:00:00"
+  },
+  {
+   "skan": "p1_5",
+   "tryb": "rano",
+   "skan_id": 4,
+   "sha16_skanu": "c7d26e7f5e082815",
+   "czas_scenariusza": "2026-11-18T07:05:00"
+  },
+  {
+   "skan": "p1_5_ponownie",
+   "tryb": "rano",
+   "skan_id": 5,
+   "sha16_skanu": "bb2a697fb0a5ee86",
+   "czas_scenariusza": "2026-11-18T07:12:00"
+  },
+  {
+   "skan": "p2_4",
+   "tryb": "rano",
+   "skan_id": 6,
+   "sha16_skanu": "7cb0124a872b734d",
+   "czas_scenariusza": "2026-11-18T09:30:00"
+  },
+  {
+   "skan": "p2_6",
+   "tryb": "rano",
+   "skan_id": 7,
+   "sha16_skanu": "1c537f2135a58bb7",
+   "czas_scenariusza": "2026-11-18T09:35:00"
+  },
+  {
+   "skan": "w3",
+   "tryb": "wieczor",
+   "skan_id": 8,
+   "sha16_skanu": "bad2a2d21dcff974",
+   "czas_scenariusza": "2026-11-18T20:00:00"
+  },
+  {
+   "skan": "p3_4",
+   "tryb": "rano",
+   "skan_id": 9,
+   "sha16_skanu": "9a96d0e2c6488b57",
+   "czas_scenariusza": "2026-11-19T07:00:00"
+  }
+ ],
+ "czynnosci": [
+  {
+   "czas_scenariusza": "2026-11-17T18:00:01",
+   "czynnosc": "klik osoba_0"
+  },
+  {
+   "czas_scenariusza": "2026-11-17T19:30:01",
+   "czynnosc": "klik mapa wieczorna gniazdo 4"
+  },
+  {
+   "czas_scenariusza": "2026-11-17T19:30:02",
+   "czynnosc": "klik przycisk_ukruszona"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T06:59:01",
+   "czynnosc": "klik przycisk_przelacz_tryb"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:08:01",
+   "czynnosc": "klik osoba_0"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:08:02",
+   "czynnosc": "klik mapa poranna skan 4 gniazdo 2"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:08:03",
+   "czynnosc": "klik kandydat_1_wybierz"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:08:04",
+   "czynnosc": "klik mapa poranna skan 4 gniazdo 3"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:08:05",
+   "czynnosc": "klik praca_rano_przypisz"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:08:06",
+   "czynnosc": "klik praca_rano_przypisz_kuweta + klawisze '412' + Enter"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:08:07",
+   "czynnosc": "klik projekt_6"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:14:01",
+   "czynnosc": "klik odp_potwierdz_ponowny_skan"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:14:02",
+   "czynnosc": "klik mapa poranna skan 5 gniazdo 3"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:14:03",
+   "czynnosc": "klik praca_rano_przypisz"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:14:04",
+   "czynnosc": "klik praca_rano_przypisz_kuweta + klawisze '412' + Enter"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:14:05",
+   "czynnosc": "klik projekt_6"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:14:06",
+   "czynnosc": "klik rano_strona_wynik"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:14:07",
+   "czynnosc": "klik rano_strona_rozkladanie"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:30:01",
+   "czynnosc": "klik przycisk_zamknij_piec"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T07:30:01",
+   "czynnosc": "restart programu (okno i kontroler zamkniete, nowe na tej samej bazie)"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T09:29:01",
+   "czynnosc": "klik osoba_0"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T09:40:01",
+   "czynnosc": "klik mapa poranna skan 7 gniazdo 3"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T09:40:02",
+   "czynnosc": "klik praca_rano_bez_projektu"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T09:45:01",
+   "czynnosc": "klik przycisk_zamknij_piec"
+  },
+  {
+   "czas_scenariusza": "2026-11-18T19:59:01",
+   "czynnosc": "klik przycisk_przelacz_tryb"
+  },
+  {
+   "czas_scenariusza": "2026-11-19T06:59:01",
+   "czynnosc": "klik przycisk_przelacz_tryb"
+  },
+  {
+   "czas_scenariusza": "2026-11-19T07:00:00",
+   "czynnosc": "restart programu (okno i kontroler zamkniete, nowe na tej samej bazie)"
+  },
+  {
+   "czas_scenariusza": "2026-11-19T07:20:01",
+   "czynnosc": "klik osoba_0"
+  },
+  {
+   "czas_scenariusza": "2026-11-19T07:20:02",
+   "czynnosc": "klik przycisk_zamknij_piec"
+  },
+  {
+   "czas_scenariusza": "2026-11-19T07:20:02",
+   "czynnosc": "restart programu (okno i kontroler zamkniete, nowe na tej samej bazie)"
+  },
+  {
+   "czas_scenariusza": "2026-11-19T07:20:03",
+   "czynnosc": "klik rano_strona_wynik"
+  }
+ ],
+ "uwagi": [
+  "piec 2: pytanie okna przed 'Zamknij piec' - oczekiwane wg zlecenia: tak, bylo: nie; nierozstrzygniete wg sesji: {\"dwuznaczne\": 0, \"nieznane\": 1}, prace bez decyzji wg stanu okna (StanRano.nierozstrzygniete_prace - o nie pyta okno): 0. Okno pyta tylko o prace dwuznaczne / nieznane BEZ decyzji; praca z decyzja 'bez projektu' jest dla sesji nadal nieznana, ale okno o nia nie pyta"
+ ],
+ "dodatkowo": {
+  "procesy_potomne_zabite_na_koncu": 0,
+  "nazwy_poza_dane": {
+   "plikow_sprawdzonych": 3,
+   "plikow_z_nazwami": 0
+  }
+ },
+ "liczniki": {
+  "wierszy": 32,
+  "zgodnych": 32,
+  "niezgodnych": 0,
+  "zgodnych_wg_api": 32,
+  "niezgodnych_tylko_ekran": 0,
+  "nie_policzono": 0,
+  "listy_z_ekranu": {
+   "tak": 8,
+   "nie": 0,
+   "nie odczytano": 0,
+   "czesciowo": 1,
+   "nie dotyczy": 1
+  },
+  "listy_z_ekranu_tak": 8,
+  "listy_z_ekranu_z": 9
+ },
+ "werdykt": "ZAL z odstepstwem O5",
+ "podsumowanie": "SE10 przez ekran: 32 z 32 wierszy zgodnych (wiersz z odczytem ekranu 'nie' / 'nie odczytano' = niezgodny); wg samego API sesji 32 z 32; listy kompletnych i brakow z ekranu: 8 z 9\nWERDYKT T3: ZAL z odstepstwem O5 (32 z 32; ekran: tak 8, czesciowo 1, nie dotyczy 1, nie 0, nie odczytano 0)",
+ "wiersze": [
+  {
+   "nr": "R01",
+   "opis": "dzien 1 wieczor: zlecenie X (3 punkty), zab 13 'Ukruszona' -> lista do dofrezowania",
+   "oczekiwane": [
+    [
+     "3263",
+     "13"
+    ]
+   ],
+   "faktyczne": [
+    [
+     "3263",
+     "13"
+    ]
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "klik: osoba_0, plytka_<id>, gniazdo 4 mapy, przycisk_ukruszona"
+  },
+  {
+   "nr": "R02",
+   "opis": "dzien 1 wieczor: punkt X13 w stanie do_dofrezowania",
+   "oczekiwane": "do_dofrezowania",
+   "faktyczne": "do_dofrezowania",
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R03",
+   "opis": "piec 1 otwiera sie sam pierwszym skanem porannym (doba, nr w dniu, otwarty, plan_id)",
+   "oczekiwane": [
+    "2026-11-18",
+    1,
+    true,
+    "2026-11-18-p1"
+   ],
+   "faktyczne": [
+    "2026-11-18",
+    1,
+    true,
+    "2026-11-18-p1"
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R04",
+   "opis": "piec 1: klasy prac plytek 4 i 5 przed rozstrzygnieciem",
+   "oczekiwane": {
+    "4": {
+     "2": "pewna",
+     "3": "pewna",
+     "4": "pewna"
+    },
+    "5": {
+     "2": "dwuznaczna",
+     "3": "nieznana"
+    }
+   },
+   "faktyczne": {
+    "4": {
+     "2": "pewna",
+     "3": "pewna",
+     "4": "pewna"
+    },
+    "5": {
+     "2": "dwuznaczna",
+     "3": "nieznana"
+    }
+   },
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R05",
+   "opis": "dwuznaczna: dwaj kandydaci z kuweta i zebem (podglad obu na ekranie)",
+   "oczekiwane": [
+    [
+     "3301",
+     "22"
+    ],
+    [
+     "#1234",
+     "46"
+    ]
+   ],
+   "faktyczne": [
+    [
+     "3301",
+     "22"
+    ],
+    [
+     "#1234",
+     "46"
+    ]
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "dodatkowo ekran: kandydatow na ekranie 2"
+  },
+  {
+   "nr": "R06",
+   "opis": "dwuznaczna rozstrzygnieta decyzja wybor_kandydata (klasa, kolor, kuweta, wierszy decyzji)",
+   "oczekiwane": [
+    "przypisana",
+    "zielony",
+    "3301",
+    1
+   ],
+   "faktyczne": [
+    "przypisana",
+    "zielony",
+    "3301",
+    1
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "klik: gniazdo 2 mapy porannej, kandydat_1_wybierz (kandydat z kuweta scenariusza)"
+  },
+  {
+   "nr": "R07",
+   "opis": "nieznana przypisana recznie - przypisanie_reczne (klasa, kolor, kuweta, zab)",
+   "oczekiwane": [
+    "przypisana",
+    "zielony",
+    "412",
+    "31"
+   ],
+   "faktyczne": [
+    "przypisana",
+    "zielony",
+    "412",
+    "31"
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "klik: gniazdo 3, praca_rano_przypisz, numer kuwety klawiszami + Enter, projekt_<id>"
+  },
+  {
+   "nr": "R08",
+   "opis": "plytka 5 zeskanowana ponownie: propozycja zastapienia, konflikt zeba 3301/22, Zamknij piec odmawia",
+   "oczekiwane": [
+    true,
+    [
+     [
+      "3301",
+      "22"
+     ]
+    ],
+    true
+   ],
+   "faktyczne": [
+    true,
+    [
+     [
+      "3301",
+      "22"
+     ]
+    ],
+    true
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": {
+    "przycisk_zamknij_piec": "nieaktywny",
+    "rano_blokady": "\u201eZamknij piec\u201d teraz niemo\u017cliwe: P\u0142ytka 5: dwa skany z tym samym numerem \u2014 potwierd\u017a ponowny skan, popraw numer albo pomi\u0144 jeden skan. Rozstrzygnij konflikty (1): ten sam projekt w kilku gniazdach \u2014 dla jednej z prac wybierz inny projekt albo \u201eBez projektu\u201d.",
+    "blokady_w_stanie_pieca": 2,
+    "zrodlo": "ekran: przycisk widoczny i nieaktywny (nie da sie kliknac), powod w napisie rano_blokady"
+   }
+  },
+  {
+   "nr": "R09",
+   "opis": "po potwierdzeniu: stary skan zastapiony, 0 konfliktow, decyzja starego skanu nie przechodzi (zab 31 znow nieznany)",
+   "oczekiwane": [
+    "zastapiony",
+    0,
+    "nieznana"
+   ],
+   "faktyczne": [
+    "zastapiony",
+    0,
+    "nieznana"
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "klik: odp_potwierdz_ponowny_skan"
+  },
+  {
+   "nr": "R10",
+   "opis": "nieznana na nowym skanie przypisana recznie ponownie",
+   "oczekiwane": "przypisana",
+   "faktyczne": "przypisana",
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "klik: gniazdo 3 nowego skanu, praca_rano_przypisz, numer kuwety + Enter, projekt_<id>"
+  },
+  {
+   "nr": "R11",
+   "opis": "piec 1 przed zamknieciem (stan prowizoryczny): kompletne i braki",
+   "oczekiwane": [
+    [
+     "3301"
+    ],
+    [
+     [
+      "412",
+      [
+       [
+        "32",
+        "oczekuje"
+       ]
+      ]
+     ],
+     [
+      "3263",
+      [
+       [
+        "13",
+        "do_dofrezowania"
+       ]
+      ]
+     ]
+    ]
+   ],
+   "faktyczne": [
+    [
+     "3301"
+    ],
+    [
+     [
+      "412",
+      [
+       [
+        "32",
+        "oczekuje"
+       ]
+      ]
+     ],
+     [
+      "3263",
+      [
+       [
+        "13",
+        "do_dofrezowania"
+       ]
+      ]
+     ]
+    ]
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "tak",
+   "ekran_opis": "strona 'Kompletne i braki' pieca otwartego: tabela_kompletne (kuwety), tabela_braki (kuweta, zeby)",
+   "ekran_odczyt": [
+    [
+     "3301"
+    ],
+    [
+     [
+      "412",
+      "32"
+     ],
+     [
+      "3263",
+      "13"
+     ]
+    ]
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R12",
+   "opis": "plan plytek pieca 1 dla ramki: gniazda (id, kolor, kuweta), kuwety od najliczniejszej, braki",
+   "oczekiwane": [
+    {
+     "4": [
+      [
+       2,
+       "zielony",
+       "3263"
+      ],
+      [
+       3,
+       "zielony",
+       "3263"
+      ],
+      [
+       4,
+       "zielony",
+       "3301"
+      ]
+     ],
+     "5": [
+      [
+       2,
+       "zielony",
+       "3301"
+      ],
+      [
+       3,
+       "zielony",
+       "412"
+      ]
+     ]
+    },
+    [
+     [
+      "3263",
+      [
+       4
+      ]
+     ],
+     [
+      "3301",
+      [
+       4,
+       5
+      ]
+     ],
+     [
+      "412",
+      [
+       5
+      ]
+     ]
+    ],
+    [
+     "412",
+     "3263"
+    ]
+   ],
+   "faktyczne": [
+    {
+     "4": [
+      [
+       2,
+       "zielony",
+       "3263"
+      ],
+      [
+       3,
+       "zielony",
+       "3263"
+      ],
+      [
+       4,
+       "zielony",
+       "3301"
+      ]
+     ],
+     "5": [
+      [
+       2,
+       "zielony",
+       "3301"
+      ],
+      [
+       3,
+       "zielony",
+       "412"
+      ]
+     ]
+    },
+    [
+     [
+      "3263",
+      [
+       4
+      ]
+     ],
+     [
+      "3301",
+      [
+       4,
+       5
+      ]
+     ],
+     [
+      "412",
+      [
+       5
+      ]
+     ]
+    ],
+    [
+     "412",
+     "3263"
+    ]
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R13",
+   "opis": "plan pieca 1 po dodaniu px z kalibracji przechodzi walidacje protokolu ramki porannej",
+   "oczekiwane": true,
+   "faktyczne": true,
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R14",
+   "opis": "Zamknij piec 1 -> kompletne: Y",
+   "oczekiwane": [
+    "3301"
+   ],
+   "faktyczne": [
+    "3301"
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "tak",
+   "ekran_opis": "po 'Zamknij piec' 1: tabela_kompletne (kuwety)",
+   "ekran_odczyt": [
+    [
+     "3301"
+    ]
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R15",
+   "opis": "Zamknij piec 1 -> braki: Z (1 zab), X (1 zab, dofrezowywany) - kolejnosc wg numeru kuwety",
+   "oczekiwane": [
+    [
+     "412",
+     [
+      [
+       "32",
+       "brak_po_piecu"
+      ]
+     ]
+    ],
+    [
+     "3263",
+     [
+      [
+       "13",
+       "do_dofrezowania"
+      ]
+     ]
+    ]
+   ],
+   "faktyczne": [
+    [
+     "412",
+     [
+      [
+       "32",
+       "brak_po_piecu"
+      ]
+     ]
+    ],
+    [
+     "3263",
+     [
+      [
+       "13",
+       "do_dofrezowania"
+      ]
+     ]
+    ]
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "tak",
+   "ekran_opis": "po 'Zamknij piec' 1: tabela_braki (kuweta, zeby)",
+   "ekran_odczyt": [
+    [
+     [
+      "412",
+      "32"
+     ],
+     [
+      "3263",
+      "13"
+     ]
+    ]
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R16",
+   "opis": "stany punktow po piecu 1 (stan, sesja pieca)",
+   "oczekiwane": {
+    "X11": [
+     "rozpoznany",
+     1
+    ],
+    "X12": [
+     "rozpoznany",
+     1
+    ],
+    "X13": [
+     "do_dofrezowania",
+     null
+    ],
+    "Y21": [
+     "rozpoznany",
+     1
+    ],
+    "Y22": [
+     "rozpoznany",
+     1
+    ],
+    "Z31": [
+     "rozpoznany",
+     1
+    ],
+    "Z32": [
+     "brak_po_piecu",
+     1
+    ],
+    "Q46": null,
+    "V36": null
+   },
+   "faktyczne": {
+    "X11": [
+     "rozpoznany",
+     1
+    ],
+    "X12": [
+     "rozpoznany",
+     1
+    ],
+    "X13": [
+     "do_dofrezowania",
+     null
+    ],
+    "Y21": [
+     "rozpoznany",
+     1
+    ],
+    "Y22": [
+     "rozpoznany",
+     1
+    ],
+    "Z31": [
+     "rozpoznany",
+     1
+    ],
+    "Z32": [
+     "brak_po_piecu",
+     1
+    ],
+    "Q46": null,
+    "V36": null
+   },
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R17",
+   "opis": "lista do dofrezowania po piecu 1 bez zmian i zgodna ze stan_punktow",
+   "oczekiwane": [
+    [
+     [
+      "3263",
+      "13"
+     ]
+    ],
+    true
+   ],
+   "faktyczne": [
+    [
+     [
+      "3263",
+      "13"
+     ]
+    ],
+    true
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "nie dotyczy",
+   "ekran_opis": "listy 'do dofrezowania' ekran poranny nie pokazuje (jest na ekranie wieczornym - tabela_dofrezowania); posrednio: zab jest w tabela_braki_biezace: tak",
+   "ekran_odczyt": [
+    [
+     [
+      "412",
+      "32"
+     ],
+     [
+      "3263",
+      "13"
+     ]
+    ]
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R18",
+   "opis": "restart programu miedzy piecami: stan odtworzony (braki, wynik i stan pieca 1, piece doby, punkty), brak otwartego pieca",
+   "oczekiwane": true,
+   "faktyczne": true,
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "restart; tryb po restarcie: rano"
+  },
+  {
+   "nr": "R19",
+   "opis": "piec 2: ten sam projekt (Z32) na plytkach 4 i 6 = konflikt; Zamknij piec odmawia",
+   "oczekiwane": [
+    [
+     [
+      "412",
+      "32",
+      [
+       4,
+       6
+      ]
+     ]
+    ],
+    true
+   ],
+   "faktyczne": [
+    [
+     [
+      "412",
+      "32",
+      [
+       4,
+       6
+      ]
+     ]
+    ],
+    true
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": {
+    "przycisk_zamknij_piec": "nieaktywny",
+    "rano_blokady": "\u201eZamknij piec\u201d teraz niemo\u017cliwe: Rozstrzygnij konflikty (1): ten sam projekt w kilku gniazdach \u2014 dla jednej z prac wybierz inny projekt albo \u201eBez projektu\u201d.",
+    "blokady_w_stanie_pieca": 1,
+    "zrodlo": "ekran: przycisk widoczny i nieaktywny (nie da sie kliknac), powod w napisie rano_blokady"
+   }
+  },
+  {
+   "nr": "R20",
+   "opis": "konflikt rozstrzygniety: praca z plytki 6 'bez projektu' -> nieznana (status nieznana_rano, biala na ramce), 0 konfliktow",
+   "oczekiwane": [
+    "nieznana",
+    "nieznana_rano",
+    "bialy",
+    0
+   ],
+   "faktyczne": [
+    "nieznana",
+    "nieznana_rano",
+    "bialy",
+    0
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "klik: gniazdo 3 plytki 6, praca_rano_bez_projektu"
+  },
+  {
+   "nr": "R21",
+   "opis": "Zamknij piec 2 -> kompletne: Z (drugi punkt Z)",
+   "oczekiwane": [
+    "412"
+   ],
+   "faktyczne": [
+    "412"
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "tak",
+   "ekran_opis": "po 'Zamknij piec' 2: tabela_kompletne (kuwety)",
+   "ekran_odczyt": [
+    [
+     "412"
+    ]
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R22",
+   "opis": "braki po piecu 2: tylko X (zab 13 dofrezowywany); nierozstrzygnieta 1 praca nieznana",
+   "oczekiwane": [
+    [
+     [
+      "3263",
+      [
+       [
+        "13",
+        "do_dofrezowania"
+       ]
+      ]
+     ]
+    ],
+    {
+     "dwuznaczne": 0,
+     "nieznane": 1
+    }
+   ],
+   "faktyczne": [
+    [
+     [
+      "3263",
+      [
+       [
+        "13",
+        "do_dofrezowania"
+       ]
+      ]
+     ]
+    ],
+    {
+     "dwuznaczne": 0,
+     "nieznane": 1
+    }
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "tak",
+   "ekran_opis": "po 'Zamknij piec' 2: tabela_braki_biezace (kuweta, zeby); druga czesc wiersza (1 praca nieznana nierozstrzygnieta) - napis rano_nierozstrzygniete z liczba (1): BRAK - ekran nazywa nierozstrzygnietymi tylko prace bez decyzji, a ta ma decyzje 'bez projektu'; ta czesc wiersza tylko z API",
+   "ekran_odczyt": [
+    [
+     [
+      "3263",
+      "13"
+     ]
+    ]
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R23",
+   "opis": "dzien 2 wieczor: dofrezowany zab X13 zeskanowany wieczorem - lista do dofrezowania bez zmian (punkt domyka poranek)",
+   "oczekiwane": [
+    [
+     [
+      "3263",
+      "13"
+     ]
+    ],
+    "do_dofrezowania"
+   ],
+   "faktyczne": [
+    [
+     [
+      "3263",
+      "13"
+     ]
+    ],
+    "do_dofrezowania"
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R24",
+   "opis": "piec 3: dofrezowany zab X13 rozpoznany po tym samym STL (sha16) - pewna, domyka dofrezowanie",
+   "oczekiwane": [
+    "pewna",
+    true,
+    "b006bc2d2a90f740"
+   ],
+   "faktyczne": [
+    "pewna",
+    true,
+    "b006bc2d2a90f740"
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R25",
+   "opis": "piec 3: zab Y21 zlecenia juz odhaczonego = poprawka (bursztyn), nie liczona do kompletu",
+   "oczekiwane": [
+    "poprawka",
+    "bursztynowy",
+    true,
+    false
+   ],
+   "faktyczne": [
+    "poprawka",
+    "bursztynowy",
+    true,
+    false
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R26",
+   "opis": "restart w trakcie pieca 3: ten sam otwarty piec i identyczny stan pieca",
+   "oczekiwane": true,
+   "faktyczne": true,
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": "restart; tryb po restarcie: rano"
+  },
+  {
+   "nr": "R27",
+   "opis": "plan pieca 3: X13 zielony 3263, poprawka Y21 bursztyn 3301, braki puste",
+   "oczekiwane": [
+    {
+     "4": [
+      [
+       2,
+       "zielony",
+       "3263"
+      ],
+      [
+       3,
+       "bursztyn",
+       "3301"
+      ]
+     ]
+    },
+    [
+     [
+      "3263",
+      [
+       4
+      ]
+     ],
+     [
+      "3301",
+      [
+       4
+      ]
+     ]
+    ],
+    []
+   ],
+   "faktyczne": [
+    {
+     "4": [
+      [
+       2,
+       "zielony",
+       "3263"
+      ],
+      [
+       3,
+       "bursztyn",
+       "3301"
+      ]
+     ]
+    },
+    [
+     [
+      "3263",
+      [
+       4
+      ]
+     ],
+     [
+      "3301",
+      [
+       4
+      ]
+     ]
+    ],
+    []
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": null
+  },
+  {
+   "nr": "R28",
+   "opis": "Zamknij piec 3 -> kompletne: X",
+   "oczekiwane": [
+    "3263"
+   ],
+   "faktyczne": [
+    "3263"
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "tak",
+   "ekran_opis": "po 'Zamknij piec' 3: tabela_kompletne (kuwety)",
+   "ekran_odczyt": [
+    [
+     "3263"
+    ]
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R29",
+   "opis": "Zamknij piec 3 -> poprawka Y21 tylko log (lista poprawek, 1 wpis poprawka_rano w dzienniku, Y nie w kompletnych)",
+   "oczekiwane": [
+    [
+     [
+      "3301",
+      "21",
+      true
+     ]
+    ],
+    1,
+    false
+   ],
+   "faktyczne": [
+    [
+     [
+      "3301",
+      "21",
+      true
+     ]
+    ],
+    1,
+    false
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "tak",
+   "ekran_opis": "po 'Zamknij piec' 3: napis rano_poprawki zawiera kuwete i zeby KAZDEJ oczekiwanej poprawki (cale liczby); kuwety poprawki nie ma w tabela_kompletne",
+   "ekran_odczyt": [
+    [
+     "3263"
+    ],
+    "Z\u0105b dofrezowany do zlecenia odhaczonego (tylko log): 3301 (z. 21)"
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R30",
+   "opis": "po piecu 3: braki puste, lista do dofrezowania pusta, punkt X13 rozpoznany w piecu 3",
+   "oczekiwane": [
+    [],
+    [],
+    [
+     "rozpoznany",
+     3
+    ]
+   ],
+   "faktyczne": [
+    [],
+    [],
+    [
+     "rozpoznany",
+     3
+    ]
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "tak",
+   "ekran_opis": "po 'Zamknij piec' 3: tabela_braki_biezace = oczekiwane braki (puste; listy 'do dofrezowania' ekran poranny nie pokazuje - ta czesc wiersza tylko z API)",
+   "ekran_odczyt": [
+    []
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R31",
+   "opis": "restart: wynik_pieca 1-3 (lista dla Excela po restarcie) = oczekiwane kompletne, braki i poprawki kazdego pieca",
+   "oczekiwane": [
+    [
+     1,
+     [
+      "3301"
+     ],
+     [
+      [
+       "412",
+       [
+        [
+         "32",
+         "brak_po_piecu"
+        ]
+       ]
+      ],
+      [
+       "3263",
+       [
+        [
+         "13",
+         "do_dofrezowania"
+        ]
+       ]
+      ]
+     ],
+     [],
+     "Technik A"
+    ],
+    [
+     2,
+     [
+      "412"
+     ],
+     [],
+     [],
+     "Technik A"
+    ],
+    [
+     3,
+     [
+      "3263"
+     ],
+     [],
+     [
+      [
+       "3301",
+       "21",
+       true
+      ]
+     ],
+     "Technik A"
+    ]
+   ],
+   "faktyczne": [
+    [
+     1,
+     [
+      "3301"
+     ],
+     [
+      [
+       "412",
+       [
+        [
+         "32",
+         "brak_po_piecu"
+        ]
+       ]
+      ],
+      [
+       "3263",
+       [
+        [
+         "13",
+         "do_dofrezowania"
+        ]
+       ]
+      ]
+     ],
+     [],
+     "Technik A"
+    ],
+    [
+     2,
+     [
+      "412"
+     ],
+     [],
+     [],
+     "Technik A"
+    ],
+    [
+     3,
+     [
+      "3263"
+     ],
+     [],
+     [
+      [
+       "3301",
+       "21",
+       true
+      ]
+     ],
+     "Technik A"
+    ]
+   ],
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "czesciowo",
+   "ekran_opis": "po restarcie ekran pokazuje tylko ostatni zamkniety piec (3): tabela_kompletne, tabela_braki, rano_poprawki; piecow 1 i 2 (poprzednia doba) ekran nie pokazuje - piec 3 zgodny, piece 1 i 2 tylko z API",
+   "ekran_odczyt": [
+    [
+     "3263"
+    ],
+    [],
+    "Z\u0105b dofrezowany do zlecenia odhaczonego (tylko log): 3301 (z. 21)"
+   ],
+   "zrodlo": null
+  },
+  {
+   "nr": "R32",
+   "opis": "dane osobowe: 0 nazw folderow i plikow zlecen w 7 tabelach, plikach wynikow i wynikach API",
+   "oczekiwane": true,
+   "faktyczne": true,
+   "zgodny": true,
+   "zgodny_wg_api": true,
+   "wynik": "PASS",
+   "powod": null,
+   "ekran": "-",
+   "ekran_opis": null,
+   "ekran_odczyt": null,
+   "zrodlo": {
+    "czyste": true,
+    "plikow_w_dane": 9
+   }
+  }
+ ]
+}

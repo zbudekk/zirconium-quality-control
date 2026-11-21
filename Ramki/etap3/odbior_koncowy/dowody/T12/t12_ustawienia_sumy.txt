@@ -1,0 +1,9 @@
+T12 - sumy SHA-256 pliku <PC-katalog>\t0\odbior_t12\Stanowisko\ustawienia.toml (certutil -hashfile ... SHA256)
+
+1274f09de600273b69713fd327e1bfa1ba5fa76d098c3e6a50c114ab6da4d022  przed aktualizacja (krok 1, 02:51:53)  [t12_ustawienia_przed.txt]
+1274f09de600273b69713fd327e1bfa1ba5fa76d098c3e6a50c114ab6da4d022  po aktualizacji do 0.3.2 i starcie programu (krok 3, 02:53:42)  [t12_ustawienia_po_N1.txt]
+1274f09de600273b69713fd327e1bfa1ba5fa76d098c3e6a50c114ab6da4d022  po powrocie do 0.3.1 i starcie programu (krok 5, 02:54:39)  [t12_ustawienia_po_powrocie.txt]
+1274f09de600273b69713fd327e1bfa1ba5fa76d098c3e6a50c114ab6da4d022  stan koncowy po dodatkowym cyklu /tak (02:56:10)  [t12_A6_stan_koncowy.txt]
+
+roznych sum: 1 (oczekiwane 1); identyczne 4 z 4 (plan wymaga 3: przed / po N+1 / po powrocie)
+instalator przy aktualizacji (t12_zainstaluj_N1.log): 'istniejacy ustawienia.toml zostaje bez zmian (SHA-256 1274f09de600273b...)'
