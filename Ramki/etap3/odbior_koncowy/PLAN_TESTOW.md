@@ -855,7 +855,7 @@ ile bylo>" i odstepstwem O6.
 **Dowody w `T11/`:** `t11_auto_uklad_podsumowanie.json` (sama sekcja `podsumowanie`), `t11_skany.tsv`, `t11_zielone.tsv`,
 `t11_testy.log`, `t11_wynik.md`.
 
-**Czas:** 60 min (A 5, B 40 = 40 x 45 s + start + ostatnia analiza, testy 10). **Ciezar:** czesc B ciezka (tor 2), reszta lekka. **Rownolegle:** B nie z T2, T4, T10.
+**Czas:** 60-70 min (A 5, B 35-50 = 40 x 45 s + start + kolejka i ostatnia analiza, testy 10). **Ciezar:** czesc B ciezka (tor 2), reszta lekka. **Rownolegle:** B nie z T2, T4, T10.
 
 **Pulapki:** uklady `*_r54` wymagaja katalogow `modele_plytek\*_r54` (sa w paczce - potwierdza samokontrola); skany
 `_r54` sa tylko sztuczne; `<PC-katalog>\e3`, `r58` i `<PC>\Desktop\Ramki` nie maja skanow `r54`.
@@ -1331,7 +1331,8 @@ paczki leza poza repo (katalog roboczy paczki). To NIE sa wyniki odbioru.
 | T3 | 2 polecenia testow uzupelniajacych | tak (proba generalna) | instalacja probna | 33 passed; 60 passed |
 | T7 | czesc A, przypadki 2-6 przez `pytest_instalacja.py` | tak (ta paczka) | instalacja probna | przypadek 2: 4 passed; 3: 3 passed; 4: 3 passed (+ `test_k5` z `test_indicate.py` w T5); 5: 2 passed; 6: 1 + 30 passed (w tym caly `test_p14_baza_zajeta.py`); wszystkie kod 0, zrodlo kodu: INSTALACJA |
 | T7 | czesc A, przypadek 1 (zabicie silnika; 2 polecenia) | tak (ta paczka) | instalacja probna | `test_aplikacja.py`: kod 0; 2 passed, 27 deselected in 2.87s; zrodlo kodu: INSTALACJA; `test_silnik.py`: pierwszy przebieg kod 1 (2 passed, 1 error: brak pliku ustawien w katalogu programu wersji); po poprawce narzedzia kod 0; 3 passed, 66 deselected in 85.59s (0:01:25); zrodlo kodu: INSTALACJA |
-| T7 | czesc B, proby 1-3 | NIE | - | - |
+| T7 | czesc B, proba 2 | tak (recenzent rundy 2, na 2 skanach `*_r54`, program z wlasnym plikiem ustawien) | instalacja probna | `skany` 2 z 2; zdarzenie `nowy_skan` z `zastany` true; po `Stop-Process` posrednika 3 z 3 procesow nie zyje |
+| T7 | czesc B, proby 1 i 3 | NIE | - | - |
 | T10 | polecenie z `--limit 2` | tak (ta paczka) | instalacja probna | patrz raport paczki (sekcja "Runda 1 recenzji") |
 | T10 | pelne 40 skanow | NIE | - | - |
 | T11 | czesc A z `--limit 2` | tak (ta paczka) | instalacja probna | kod 0, `auto_uklad.json` powstal |
@@ -1354,7 +1355,7 @@ paczki leza poza repo (katalog roboczy paczki). To NIE sa wyniki odbioru.
 | T13 | `dowody_lf.py` | tak (ta paczka) | 4 logi prob | 3 z 4 z CRLF naprawione; plik `.sqlite` zgloszony jako zakazany |
 | T14 | kontrola zestawu `--sprawdz` | tak (proba generalna) | instalacja probna | zgodne 22 z 22 krokow, kod 0, 8,3 s |
 
-Niewykonane ani razu (pierwsze wykonanie bedzie w odbiorze - zapisywac krok po kroku): T2 pelny (10 x 60 s); T4 pomiary; T5 czesc B; T7 czesc B (proby 1-3); T10 pelny; T11 czesc B (40 skanow przez aplikacje); T1 krok 5.
+Niewykonane ani razu (pierwsze wykonanie bedzie w odbiorze - zapisywac krok po kroku): T2 pelny (10 x 60 s); T4 pomiary; T5 czesc B; T7 czesc B (proby 1 i 3; proba 2 tylko w postaci skroconej - recenzent, 2 skany); T10 pelny; T11 czesc B (40 skanow przez aplikacje); T1 krok 5.
 
 ## Lista "sprawdzone przez --help / w kodzie" (stan `main` 9ba9e91 i galezi z 20.11)
 
