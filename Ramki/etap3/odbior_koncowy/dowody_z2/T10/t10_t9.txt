@@ -1,0 +1,6 @@
+Samotest: nazw 32, czlonow 42, tekstow maski 80, wzorzec kontrolny 1; postaci sprawdzonych 1189, nieznalezionych 0; nazw bez postaci ASCII (transliteracja niemozliwa, postac niesprawdzana): 7
+T9 dane osobowe: szukanych nazw 32 (pominietych krotszych niz 4 znaki: 0), czlonow 42; przeszukanych plikow 2, nieprzeszukanych (spakowane / za duze) 0, wykluczonych (--wyklucz) 0
+TRAFIENIA calych nazw poza miejscami dozwolonymi: 0 w 0 plikach
+Trafienia w miejscach dozwolonych: 0 w 0 plikach
+Czlony nazw do wyjasnienia (bez calej nazwy): 0 w 0 plikach
+WYNIK T9 (cale nazwy): ZAL (0 trafien)

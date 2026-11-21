@@ -1,0 +1,9 @@
+TEN PRZEBIEG z rekordow: {"dobrze_prac": 276, "dobrze_top1_bledny": 0, "max_mm": 0.0143, "prac_calych": 127, "prace_cale_z_czerwonym": 0, "skanow": 40, "wyrownanie_ok": 40}
+NOC          z rekordow: {"dobrze_prac": 276, "dobrze_top1_bledny": 0, "max_mm": 0.0143, "prac_calych": 127, "prace_cale_z_czerwonym": 0, "skanow": 40, "wyrownanie_ok": 40}
+TEN PRZEBIEG zbiorczo  : {"dobrze_prac": 276, "dobrze_top1_bledny": 0, "prac_calych": 127, "prace_cale_z_czerwonym": 0, "skanow": 40, "wyrownanie_ok": 40}
+rekordy = zbiorczo (6 pol): TAK
+zbiorczo.drgniecie: teraz {"prac": 39, "wykryte": 36, "falszywe": 1}, noc {"prac": 39, "wykryte": 36, "falszywe": 1}
+wpisow gniazd: teraz 413, noc 413; tylko teraz 0, tylko w nocy 0
+ROZNICA P3a / skan_okragla_wieczorna_n8_s0300.stl / gniazdo 11 wpis 1 / scenariusz bokiem / ubytkow w prawdzie 1 / sha16 066fcc6858e01759: status_match: noc zielony -> teraz szary; status_gniazda: noc zolty -> teraz szary; status_inspekcji: noc sprawdz -> teraz None
+wpisow gniazd rozniacych sie od nocy (4 pola: status_match, status_gniazda, projekt, status_inspekcji): 1 z 413
+statusy gniazd: teraz {"czerwony": 66, "pomaranczowy": 4, "szary": 27, "zielony": 116, "zolty": 200}, noc {"czerwony": 66, "pomaranczowy": 4, "szary": 26, "zielony": 116, "zolty": 201}
