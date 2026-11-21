@@ -169,3 +169,70 @@ okno offscreen (kroki, przyciski, przeciaganie, pakowanie, pomiar szczegolowy ja
   (match / inspect) - do tego sluzy `uruchom_okno.bat` na zebranych plikach.
 - Pomiar szczegolowy (`narzedzia/pomiar_skanu`) to kopia narzedzia T10 zalezna od `stanowisko.match` i `inspect`;
   po przebudowie tych modulow wymaga ponownego sprawdzenia.
+
+## W instalacji z paczki wydania (E3-O4, 21.11.2026)
+
+**Bylo (wydanie 0.3.1, raport E3-S1 POTRZEBUJE 1 i 2).** W instalacji okno uruchamiane przez
+`Polecenie.cmd -m stanowisko.dzien_skanera` czytalo `ustawienia.przyklad.toml` z katalogu wersji (obserwowalo folder ze
+wzoru, nie z `<instalacja>\ustawienia.toml`) i zapisywalo sesje do `wersje\<wersja>\program\dane\dzien_skanera` (katalog
+wersji: ginie z `Wersje.cmd /usun`, samokontrola tego nie widzi). Pomiar szczegolowy nie dzialal zadna z 3 drog.
+
+**Jest.**
+
+- Skrot `<instalacja>\Dzien_skanera.cmd` (wzor `instalacja/wzory/Dzien_skanera.cmd`, zakladany przez instalator razem
+  z pozostalymi - `instalator.WZORY_SKRYPTOW`). Uzywa tego samego mechanizmu co `Stanowisko.cmd`: uruchamia
+  `-m stanowisko.dzien_skanera --ustawienia <instalacja>\ustawienia.toml --dane <instalacja>\dane\dzien_skanera`
+  Pythonem srodowiska wersji, w katalogu programu wersji, z wyczyszczonymi `PYTHONPATH` / `PYTHONHOME`. Opcje przechodza
+  dalej (`--nowa`, `--sesja`, `--sprawdz`, ...; wlasne `--dane` stoi po opcji skrotu, wiec ma pierwszenstwo).
+  Katalog sesji podany wprost (runda 2, uwaga P2 recenzji): skrot zostaje w katalogu takze po powrocie do wersji 0.3.1
+  (`instalator.wroc` skryptow nie zmienia) i uruchamia wtedy STARY modul - ten zna `--ustawienia` i `--dane`, wiec sesje
+  dalej trafiaja do `<instalacja>\dane\dzien_skanera\`, a nie do katalogu wersji 0.3.1. Stary modul nie zna `--zamknij-po`
+  (kod 2, wiersz po angielsku) i nie ma poprawek pomiaru szczegolowego - opis: instrukcja instalacji, punkt 4.
+- Katalog sesji bez opcji `--dane` (droga `Polecenie.cmd -m stanowisko.dzien_skanera`, kopia repo) wyznacza
+  `dzien_skanera_rdzen.katalog_sesji(ust, plik_ustawien)`:
+  1. ustawienia wczytane z pliku wskazanego (`--ustawienia`) albo z pliku instalacji: `dzien_skanera` w katalogu bazy
+     z `[sciezki] baza` - dokladnie tak program "Stanowisko" wyznacza katalog danych (`aplikacja`: katalog pliku bazy).
+     W instalacji instalator wpisuje `baza = "<instalacja>/dane/stanowisko.sqlite"`, wiec sesje sa w
+     `<instalacja>\dane\dzien_skanera\`. Baza przeniesiona w ustawieniach gdzie indziej = sesje obok niej;
+  2. program lezy w katalogu wersji instalacji, ale ustawien instalacji nie da sie uzyc (pliku nie ma albo ma blad):
+     `<instalacja>\dane\dzien_skanera\`. Plik z bledem (np. BOM): okno pracuje na wzorze i pisze o tym w dzienniku okna -
+     jak dotad. Pliku NIE MA (runda 2, uwaga P1): okno nie czyta ani wzoru, ani `ustawienia.toml` z katalogu wersji -
+     dziala bez ustawien (zbiera pliki, nie ocenia skanow, folder skanera trzeba wskazac przyciskiem) i pisze w dzienniku,
+     ktorego pliku brakuje;
+  3. kopia repo na wlasnym `ustawienia.toml` albo wzorze: `dane/dzien_skanera/` w katalogu programu - bez zmian.
+  Uwaga dla kopii repo: `--ustawienia INNY_PLIK` bez `--dane` przenosi teraz sesje do katalogu bazy z tego pliku (regula 1);
+  `uruchom_dzien_skanera.bat` opcji `--ustawienia` nie podaje, wiec z repo nic sie nie zmienia.
+- **W instalacji katalog sesji wewnatrz `<instalacja>\wersje\` jest odrzucany** (runda 2, uwaga P1):
+  `dzien_skanera_rdzen.sprawdz_katalog_sesji` wolane z `wybierz_sesje` - dotyczy katalogu z reguly 1 (gdy `[sciezki] baza`
+  w `ustawienia.toml` jest sciezka wzgledna, liczona od katalogu programu, czyli od katalogu wersji) i katalogu z `--dane`.
+  Wynik: `BLAD: katalog sesji ... lezy w katalogu wersji programu ... CO ZROBIC: ...` (stderr; przy uruchomieniu bez
+  `--zamknij-po` takze okienko), kod 1, nic nie powstaje. Wznowienie wskazanej sesji (`--sesja <folder>`) nie jest
+  sprawdzane - tak otwiera sie stare sesje wersji 0.3.1. Z kopii repo kontrola niczego nie odrzuca.
+- Uklad instalacji rozpoznaje `dzien_skanera_rdzen.katalog_instalacji()`: katalog programu ma postac
+  `<instalacja>/wersje/<wersja>/program` i jest choc jeden plik zakladany przez instalator: `wersje/<wersja>/instalacja.json`,
+  `<instalacja>/wersja_biezaca.txt` albo `<instalacja>/ustawienia.toml` (runda 2: brak samego pliku ustawien nie robi
+  z instalacji kopii repo). Dzieki temu takze stara droga `Polecenie.cmd -m stanowisko.dzien_skanera` (bez `--ustawienia`)
+  bierze ustawienia i dane instalacji (`wczytaj_ustawienia_bezpiecznie` - z repo: plik wskazany -> `ustawienia.toml`
+  programu -> wzor; w instalacji: plik wskazany -> plik instalacji -> wzor, a wzor tylko wtedy, gdy plik instalacji
+  istnieje; `ustawienia.toml` z katalogu wersji nie jest czytany nigdy).
+- Nowa opcja `--zamknij-po S` (proba uruchomienia, jak w programie "Stanowisko"): okno zamyka sie samo po S sekundach,
+  bez okien z pytaniami (niedokonczona sesja jest wznawiana, inaczej powstaje nowa), na ekran idzie wiersz
+  `DZIEN SKANERA: sesja <folder>; ustawienia <plik albo BRAK>; foldery obserwowane: ...`, a gdy okno nie pracuje na pliku,
+  ktory mu wskazano (brak pliku, blad w pliku) - drugi wiersz `UWAGA: ustawienia: <powod>` (kod dalej 0: okno dziala);
+  blad startu = `BLAD: ...` i kod 1. Proba zostawia pusta niedokonczona sesje (nastepne uruchomienie o nia zapyta).
+- Pomiar szczegolowy: przycisk podaje narzedziu plik ustawien okna (`--ustawienia`), interpreter = interpreter okna
+  (w instalacji srodowisko wersji); `narzedzia/pomiar_skanu/pomiar_skanu.py` sam dodaje katalog programu do sciezki
+  importu i bez opcji bierze w instalacji `<instalacja>\ustawienia.toml` - opis: `narzedzia/pomiar_skanu/README.md`.
+  Gdy tego pliku nie ma: `blad: ustawienia: brak pliku ustawien instalacji <plik> - uruchom zainstaluj.cmd ...`, kod 2
+  (runda 2: narzedzie nie radzi juz zalozenia `ustawienia.toml` w katalogu wersji i nie czyta pliku stamtad).
+
+**Sesje zapisane przez stary kod w katalogu wersji NIE sa przenoszone automatycznie** (program niczego nie przenosi i nie
+kasuje - zasada nadrzedna modulu). Leza w `<instalacja>\wersje\0.3.1\program\dane\dzien_skanera\<data_godzina>\` i sa
+kompletne (kazda ma `sesja.json`, a po spakowaniu `paczka\`). Co z nimi zrobic: skopiowac cale podfoldery sesji do
+`<instalacja>\dane\dzien_skanera\` (recznie, Eksploratorem) - nowe okno pokaze je wtedy na liscie sesji i wznowi ostatnia
+niedokonczona; albo otworzyc jedna wprost: `Dzien_skanera.cmd --sesja <folder sesji>`. Dopoki wersja 0.3.1 nie jest
+usunieta (`Wersje.cmd /usun 0.3.1`), nic nie ginie. Okno nie ostrzega o sesjach lezacych w katalogach starych wersji.
+
+**Testy.** `testy/test_o4_instalacja_dzien_skanera.py` (20, w tym 8 rundy 2): uklad instalacji odtworzony w `tmp_path` funkcjami instalatora,
+polecenia brane z wiersza Pythona w skrotach (`Dzien_skanera.cmd`, `Polecenie.cmd`), katalog repo poza `PYTHONPATH`.
+Nie sprawdzaja srodowiska wersji ani samego `cmd.exe` - to proba na instalacji probnej (raport E3-O4).

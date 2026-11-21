@@ -1,0 +1,27 @@
+# ramka.service - program ramki swietlnej jako usluga systemd (E3-O4).
+# [NIE SPRAWDZONE BEZ SPRZETU] - plik napisany wg README programu ramki, nie byl uruchomiony na Raspberry Pi.
+# Instaluje go skrypt zainstaluj_ramke.sh (kopia do /etc/systemd/system/ramka.service). Opis: instrukcje/ramka_raspberry_pi.md.
+#
+# - User=root: biblioteka matrycy (rgbmatrix) wymaga uprawnien administratora (dostep do GPIO; program nie oddaje
+#   uprawnien, bo czyta tez klawiature z /dev/input).
+# - After / Wants network-online.target: start po polaczeniu z siecia.
+# - Restart=always, RestartSec=2, StartLimitIntervalSec=0: po kazdej awarii ponowny start po 2 s, bez limitu prob.
+# - Rola, adres nasluchu, port, klucz i ustawienia matrycy: TYLKO w pliku /etc/ramka/ramka.json.
+# - Logi: sudo journalctl -u ramka -n 50 --no-pager
+
+[Unit]
+Description=Program ramki swietlnej (stanowisko kontroli)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ramka
+ExecStart=/usr/bin/python3 -m ramka --sprzet rpi --konfiguracja /etc/ramka/ramka.json
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1194,7 +1194,10 @@ class KlientRamki:
 
 def wczytaj_kalibracje(sciezka, katalog_modeli) -> tuple:
     """(kalibracja albo None, ostrzezenia). Brak pliku = wartosci startowe z geometrii plytek (plik nie jest zapisywany);
-    zly plik = None (gniazda ciemne - lepiej nic niz zle gniazdo)."""
+    zly plik = None (gniazda ciemne - lepiej nic niz zle gniazdo). E3-O2: plikowi, w ktorym brakuje ukladow majacych
+    kalibracje startowa (plik sprzed E3-O2 nie ma ukladow okraglych ramkowych), brakujace uklady sa DOPISYWANE z geometrii
+    i plik jest zapisywany (kopia starego obok; wpisy istniejace, takze "zrodlo": "kalibracja", bez zmian) + ostrzezenie;
+    pliku nie da sie zapisac = uklady dopisane tylko w pamieci programu + ostrzezenie."""
     sciezka = Path(sciezka)
     if not sciezka.exists():
         try:
@@ -1203,9 +1206,39 @@ def wczytaj_kalibracje(sciezka, katalog_modeli) -> tuple:
         except Exception as e:  # noqa: BLE001
             return None, [f"Brak kalibracji ramek ({type(e).__name__}) - gniazda nie beda wskazywane."]
     try:
-        return RP.wczytaj_kalibracje(sciezka), []
+        kal = RP.wczytaj_kalibracje(sciezka)
     except ValueError as e:
         return None, [f"Zly plik kalibracji ramek ({e}) - gniazda nie beda wskazywane."]
+    return _uzupelnij_kalibracje(kal, sciezka, katalog_modeli)
+
+
+def _uzupelnij_kalibracje(kal: dict, sciezka: Path, katalog_modeli) -> tuple:
+    """(kalibracja, ostrzezenia): poprawny plik kalibracji + uklady, ktorych w nim brakuje (E3-O2). Blad uzupelniania
+    (np. brak katalogu modeli) nie odbiera kalibracji z pliku - zostaje, jak byla."""
+    def lista(dopisane) -> str:
+        return ", ".join(f"{u} (ramka {r})" for r, u in dopisane)
+
+    try:
+        dane, dopisane = RP.uzupelnij_kalibracje(sciezka, katalog_modeli)
+    except OSError as e:
+        try:
+            dopisane = RP.uzupelnij_kalibracje_w_pamieci(kal, katalog_modeli)
+        except Exception:  # noqa: BLE001
+            log.exception("kalibracja ramek: brakujacych ukladow nie da sie dopisac")
+            return kal, []
+        if not dopisane:
+            return kal, []
+        log.warning("kalibracja ramek: pliku nie da sie zapisac (%s) - uklady dopisane tylko w pamieci", type(e).__name__)
+        return kal, [f"Uklady {lista(dopisane)} maja wartosci startowe z geometrii plytek, ale plik kalibracji ramek nie zostal "
+                     f"zapisany ({type(e).__name__}) - przed praca z tymi plytkami skalibruj diody na ramce."]
+    except Exception:  # noqa: BLE001 - np. brak katalogu modeli: kalibracja z pliku zostaje
+        log.exception("kalibracja ramek: brakujacych ukladow nie da sie dopisac")
+        return kal, []
+    if not dopisane:
+        return dane, []
+    log.warning("kalibracja ramek: do pliku dopisano uklady z geometrii: %s", lista(dopisane))
+    return dane, [f"Do pliku kalibracji ramek dopisano uklady {lista(dopisane)} - wartosci startowe z geometrii plytek; przed "
+                  f"praca z tymi plytkami skalibruj diody na ramce (kopia starego pliku: z koncowka {RP.KAL.PRZYROSTEK_KOPII})."]
 
 
 def identyfikator_laptopa(katalog) -> str:

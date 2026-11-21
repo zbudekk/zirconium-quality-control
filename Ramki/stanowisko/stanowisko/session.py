@@ -125,23 +125,34 @@ def katalog_wynikow(ust: dict) -> Path:
     return B.sciezka_z_ustawien(ust, "wyniki")
 
 
-_WZOR_UKLADU = re.compile(r"^(?P<okragla>okragla_)?(?P<typ>wieczorna|poranna)(?P<wersja>_r\d+)?$")
+# E3-O2: ``okragla_ramkowa_<typ>`` = plytka okragla n1-n6 do ramek (R58): gniazda, stozki i numery jak kwadrat R59 tego typu
+_WZOR_UKLADU = re.compile(r"^(?P<okragla>okragla_(?P<ramkowa>ramkowa_)?)?(?P<typ>wieczorna|poranna)(?P<wersja>_r\d+)?$")
+# numery plytek ukladu ramkowego wg typu (= ``modele_plytek/okragla_ramkowa_<typ>/plytka_n*.stl`` = ``ramka/protokol.py`` RODZINY)
+NUMERY_RAMKOWE = {"wieczorna": (1, 2, 3), "poranna": (4, 5, 6)}
 
 
 def czesci_ukladu(nazwa: str | None) -> dict | None:
-    """Nazwa ukladu z wyniku rozlozona na czesci: ksztalt (``okragla``), ``typ`` (wieczorna / poranna), ``wersja`` (np. ``_r54``).
+    """Nazwa ukladu z wyniku rozlozona na czesci: ksztalt (``okragla``), ``ramkowa`` (plytka okragla n1-n6 do ramek - E3-O2),
+    ``typ`` (wieczorna / poranna), ``wersja`` (np. ``_r54``).
 
     JEDYNE miejsce, w ktorym ``session`` czyta znaczenie nazwy ukladu (rodzina do ponownego skanu, typ do blokady trybu).
     None = nazwa spoza wzoru (uklad nieznany tej wersji programu).
     """
-    m = _WZOR_UKLADU.match(nazwa) if nazwa else None
-    return {"okragla": bool(m["okragla"]), "typ": m["typ"], "wersja": m["wersja"] or ""} if m else None
+    m = _WZOR_UKLADU.fullmatch(nazwa) if nazwa else None
+    return {"okragla": bool(m["okragla"]), "ramkowa": bool(m["ramkowa"]), "typ": m["typ"], "wersja": m["wersja"] or ""} if m else None
 
 
 def rodzina_ukladu(nazwa: str | None) -> str | None:
-    """Rodzina ukladu plytki: ten sam rozstaw stozkow i gniazd (kwadrat i kolo naleza do jednej): ``okragla_poranna_r54`` -> ``poranna_r54``."""
+    """Rodzina ukladu plytki: ten sam rozstaw stozkow i gniazd (kwadrat i kolo naleza do jednej): ``okragla_poranna_r54`` -> ``poranna_r54``;
+    uklad ramkowy nalezy do rodziny kwadratu R59 (``okragla_ramkowa_poranna`` -> ``poranna``)."""
     c = czesci_ukladu(nazwa)
     return c["typ"] + c["wersja"] if c else nazwa
+
+
+def numery_ramkowe(nazwa: str | None) -> tuple[int, ...] | None:
+    """Numery plytek ukladu okraglego ramkowego (wieczorna 1-3, poranna 4-6); None = uklad nie jest okragly ramkowy."""
+    c = czesci_ukladu(nazwa)
+    return NUMERY_RAMKOWE[c["typ"]] if c is not None and c["ramkowa"] else None
 
 
 def typ_plytki(nazwa: str | None) -> str | None:
@@ -373,6 +384,12 @@ class Sesja:
         else:
             status = STATUS_PRZYJETY
         wybor = wynik.get("plytka_wybor")
+        numer, numer_zrodlo = wynik.get("numer"), wynik.get("numer_zrodlo")
+        dozwolone = numery_ramkowe(wynik.get("plytka"))
+        if dozwolone is not None and numer is not None and numer not in dozwolone:
+            # E3-O2: plytka okragla ramkowa z numerem spoza numerow ukladu (np. 0 przy zaslonietych dolkach kodu) = numer NIEZNANY
+            # (pytanie o numer jak dla kwadratu), nie blad; odczyt dolkow zostaje w pliku wyniku (``numer``, ``numer_z_dolkow``)
+            numer, numer_zrodlo = None, "nieznany"
         # konflikt projektu (SE8) to regula WIECZORU: skan poranny nie dostaje wpisu ``konflikt_projektu`` w dzienniku (ta sama
         # praca w dwoch piecach doby to nie konflikt; konflikty poranka liczy sesja poranna - recenzja PR #23 D6)
         wieczor = tryb == TRYB_WIECZOR
@@ -383,8 +400,8 @@ class Sesja:
                 "skany", plik=str(plik), sha16=sha16, rozmiar=_pole(zdarzenie, "rozmiar"),
                 czas_pliku=_czas_iso(_pole(zdarzenie, "czas_pliku")), czas_analizy=teraz, czas_s=(wynik.get("czas_s") or {}).get("razem"),
                 tryb=tryb, uklad=wynik.get("plytka"), uklad_zrodlo=("auto" if wybor == "auto" else "reczny") if wybor else None,
-                uklad_zgodny=None if zgodny is None else int(bool(zgodny)), numer_plytki=wynik.get("numer"),
-                numer_zrodlo=wynik.get("numer_zrodlo"), status=status, wersja_programu=self.wersja_programu, skrot_ustawien=self.skrot_ust)
+                uklad_zgodny=None if zgodny is None else int(bool(zgodny)), numer_plytki=numer,
+                numer_zrodlo=numer_zrodlo, status=status, wersja_programu=self.wersja_programu, skrot_ustawien=self.skrot_ust)
             w_gniezdzie: dict[Any, int] = {}
             do_wyboru: dict[str, list] = {}
             z_puli: dict[str, int | None] = {}

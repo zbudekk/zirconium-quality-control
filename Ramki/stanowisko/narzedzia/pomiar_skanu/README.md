@@ -7,9 +7,9 @@ x wspolczynnik, braki danych i zaokraglenie na krawedzi brzegu, a z dwoch skanow
 
 | Plik | Co | Zmiany wzgledem T10 |
 |---|---|---|
-| `pomiar_skanu.py` | pomiar i raport (`raport.txt`, `pomiar.json`) | bez zmian (SHA-256 `a609778a71edd4ba...`) |
+| `pomiar_skanu.py` | pomiar i raport (`raport.txt`, `pomiar.json`) | E3-O4 (21.11.2026), tylko uruchamianie - liczenie bez zmian: katalog programu na sciezce importu, opcja `--ustawienia`, w instalacji plik ustawien instalacji, ustawienia czytane przed skanem (zly plik = komunikat i kod 2), wiersz `ustawienia: <plik>` na ekranie, kod wyjscia 0 |
 | `c_wspolne.py` | linie krawedzi z projektu (kopia z T3) | bez zmian (SHA-256 `f45046438231a8b6...`) |
-| `pomiar_skanu.cmd` | uruchomienie przez przeciagniecie pliku | tylko sciezki: program stanowiska szukany wzgledem pliku, Python przez `py -3.12` |
+| `pomiar_skanu.cmd` | uruchomienie przez przeciagniecie pliku | tylko sciezki: program stanowiska szukany wzgledem pliku, Python przez `py -3.12`; E3-O4: w instalacji Python srodowiska wersji (`..\venv`), bez `py` z PATH |
 
 ## Uzycie
 
@@ -20,7 +20,21 @@ x wspolczynnik, braki danych i zaokraglenie na krawedzi brzegu, a z dwoch skanow
 2. Recznie: przeciagnij plik skanu (albo dwa: skan i powtorke) na `pomiar_skanu.cmd`; projekty w folderze `projekty`
    obok skanu. Wynik w folderze `<skan>_pomiar` obok skanu.
 3. Z wiersza polecen (katalog `stanowisko/`):
-   `py -3.12 narzedzia/pomiar_skanu/pomiar_skanu.py SKAN.stl [--projekty FOLDER] [--wspolczynnik 1.22] [--powtorka SKAN2.stl] [--wyj KATALOG] [--bez-plytki]`
+   `py -3.12 narzedzia/pomiar_skanu/pomiar_skanu.py SKAN.stl [--projekty FOLDER] [--wspolczynnik 1.22] [--powtorka SKAN2.stl] [--wyj KATALOG] [--bez-plytki] [--ustawienia PLIK]`
+
+## W instalacji z paczki wydania (E3-O4)
+
+- Przycisk okna: okno uruchomione przez `Dzien_skanera.cmd` podaje pomiarowi plik ustawien instalacji (`--ustawienia`)
+  i uruchamia go Pythonem srodowiska wersji (tym samym, w ktorym dziala okno).
+- Wiersz polecen, w katalogu instalacji (np. `C:\Stanowisko`):
+  `Polecenie.cmd narzedzia\pomiar_skanu\pomiar_skanu.py SKAN.stl [--projekty FOLDER] [--wspolczynnik 1.22] [--wyj KATALOG]`
+  - bez `--ustawienia` narzedzie bierze `<instalacja>\ustawienia.toml` (pierwszy wiersz na ekranie: `ustawienia: <plik>`).
+    Gdy tego pliku nie ma: `blad: ustawienia: brak pliku ustawien instalacji ... - uruchom zainstaluj.cmd ...`, kod 2
+    (pliku `ustawienia.toml` w katalogu wersji narzedzie w instalacji nie czyta i nie radzi go zakladac).
+- `pomiar_skanu.cmd` (przeciagniecie pliku) lezy w `<instalacja>\wersje\<wersja>\program\narzedzia\pomiar_skanu\` i bierze
+  Pythona srodowiska tej wersji. Sprawdzone tylko po tresci pliku (skrypt pyta, czeka na klawisz i otwiera Notatnik -
+  w sesji bez ekranu nie byl uruchomiony); droga pewna to dwie powyzsze.
+- Plik ustawien, ktorego nie ma albo ktory ma blad: `blad: ustawienia: ...` i kod 2, zanim zacznie sie wczytywanie skanu.
 
 Jak czytac raport i progi orientacyjne: `raporty/testy_krawedz/T10/INSTRUKCJA_test_skanera.md` (poza gitem) - skrot:
 szum sigma do 0,015 mm dobrze, ponad 0,025 zle; odstep punktow do 0,05 mm dobrze, ponad 0,08 zle; blad skali ponizej

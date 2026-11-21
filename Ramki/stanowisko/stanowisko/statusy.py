@@ -448,6 +448,39 @@ KOMUNIKATY: dict[str, Wzor] = {
                                       "przyciskiem na ekranie."),
     "ramki_test_led": Wzor(POZIOM_INFO, "Test diod ramek",
                            "Ramki przez kilka sekund pokazują kolejne kolory na wszystkich diodach; potem wraca plan pieca."),
+    # E3-O2 (plytki okragle ramkowe n1-n6; decyzja 5: komunikat + ramka ciemna, skan PRZYJETY, bez twardej blokady):
+    # numer plytki lezacej na ramce a rola ramki, numer z ramki a numer plytki ze skanu, numer podany a numer z dolkow kodu
+    "plytka_nie_z_ramki": Wzor(POZIOM_OSTRZEZENIE, "Płytka leży na złej ramce",
+                               "Na ramce {ramka} leży płytka nr {numer}, a ta ramka podświetla tylko płytki {numery} — ramka nie "
+                               "świeci. {rada}"),
+    "plytka_inna_niz_skan": Wzor(POZIOM_OSTRZEZENIE, "Na ramce leży inna płytka niż zeskanowana",
+                                 "Na ramce wieczornej leży płytka nr {na_ramce}, a ostatni skan to płytka nr {ze_skanu} — ramka nie "
+                                 "świeci. Połóż na ramce płytkę nr {ze_skanu}. Jeśli na ramce leży właściwa płytka, to numer skanu "
+                                 "jest zły — popraw go przyciskiem „Zmień numer” przy tej płytce na ekranie."),
+    "plytka_bez_skanu": Wzor(POZIOM_OSTRZEZENIE, "Na ramce leży płytka, której nie ma w planie pieca",
+                             "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. Zeskanuj płytkę "
+                             "nr {na_ramce}. Jeśli była już skanowana, to numer jej skanu jest zły — popraw go przyciskiem "
+                             "„Zmień numer” przy tej płytce na ekranie."),
+    # runda 2 (recenzja PR #55, P1): piec ma skan bez numeru plytki - plytka na ramce najpewniej BYLA skanowana i czeka na numer;
+    # runda 3 (D7): ``jest_skan`` = ``JEST_SKAN_BEZ_NUMERU`` (jeden skan / kilka), drugie zdanie - plytka mogla nie byc skanowana
+    "plytka_czeka_na_numer": Wzor(POZIOM_OSTRZEZENIE, "Płytka na ramce czeka na numer skanu",
+                                  "Na ramce porannej leży płytka nr {na_ramce}, a {w_planie} — ramka nie świeci. W tym piecu "
+                                  "{jest_skan}, wybierz numer {na_ramce} w pytaniu „Podaj numer płytki” — ramka zaświeci sama. "
+                                  "Jeśli tej płytki jeszcze nie skanowano — zeskanuj ją."),
+    # runda 2 (recenzja PR #55, B1): wynik skanu wstrzymany na ramce wieczornej do odpowiedzi na pytanie o ponowny skan (napisy
+    # przyciskow = ``PRZYCISKI["potwierdz_ponowny_skan"]`` / ``["odrzuc_ponowny_skan"]`` - test paczki pilnuje zgodnosci);
+    # runda 3 (P3): rady wg kryterium PYTANIA ("te same prace"), nie "ta sama plytka" - nowy wsad na tej samej plytce to "Nie"
+    "dwa_skany_numeru": Wzor(POZIOM_OSTRZEZENIE, "Dwa skany z numerem płytki {numer} — ramka czeka na odpowiedź",
+                             "Są dwa skany płytki nr {numer} i płytka nr {numer} leży na ramce wieczornej — ramka nie świeci, dopóki "
+                             "nie odpowiesz na pytanie o ponowny skan. Te same prace zeskanowane drugi raz — kliknij „Tak, to "
+                             "ponowny skan”, ramka zaświeci. Nowe prace na tej samej płytce — kliknij „Nie, to nowy wsad”, ramka "
+                             "zaświeci. Na ramce leży inna płytka niż ta z ostatniego skanu — najpierw zdejmij z ramki tę, która "
+                             "leży, potem kliknij „Nie, to nowy wsad”; wynik ostatniego skanu pokaże wtedy ekran."),
+    # przycisk przy plytce z numerem ma na ekranie napis "Zmień numer" (``ui.napisy.ZMIEN_NUMER`` - test paczki pilnuje zgodnosci)
+    "numer_niezgodny": Wzor(POZIOM_OSTRZEZENIE, "Numer płytki nie zgadza się ze skanem",
+                            "Podany numer płytki to {podany}, a program odczytał ze skanu numer {dolki}. Ramka nie podświetla tej "
+                            "płytki; skan i wynik zostają. Sprawdź numer wybity na płytce: jeśli podany numer jest zły — popraw go "
+                            "przyciskiem „Zmień numer”; jeśli jest dobry — pracuj według ekranu."),
     "excel_blad": Wzor(POZIOM_OSTRZEZENIE, "Excel nie odpowiada",
                        "{powod} — program działa dalej. Otwórz plik zleceń w Excelu i kliknij „Excel: wskaż wiersz” albo odhacz "
                        "ręcznie zlecenia kompletne pieca nr {nr} z {doba} ({ile}): {kuwety}."),
@@ -470,6 +503,21 @@ BLEDY_RAMEK = {
     "polecenie_odrzucone": "Ramka odrzuca polecenie — program ponawia.",
     "brak_kalibracji": "Brak poprawnej kalibracji diod ramki — gniazda nie będą wskazywane.",
 }
+# E3-O2: pola komunikatow ``plytka_nie_z_ramki`` / ``plytka_bez_skanu`` (rola ramki: "W" wieczorna, "P" poranna)
+RAMKA_KTOREJ = {"W": "wieczornej", "P": "porannej"}
+# rada wg roli ramki, gdy numer nalezy do DRUGIEJ ramki; None - numer spoza obu ramek (np. 7)
+RADY_PLYTKA_NIE_Z_RAMKI = {
+    "W": "To numer płytki porannej — połóż ją na ramce porannej. Jeśli to jednak płytka wieczorna, sprawdź, czy leży równo "
+         "w ramce, i połóż ją jeszcze raz.",
+    "P": "To numer płytki wieczornej — połóż ją na ramce wieczornej. Jeśli to jednak płytka poranna, sprawdź, czy leży równo "
+         "w ramce, i połóż ją jeszcze raz.",
+    None: "Sprawdź, czy płytka leży równo w ramce, i połóż ją jeszcze raz.",
+}
+W_PLANIE_PLYTKI = "ramka ma dla tego pieca tylko płytki: {plytki}"
+W_PLANIE_BRAK = "ramka nie ma dla tego pieca żadnej płytki"
+# runda 3 (D7): pole ``jest_skan`` komunikatu ``plytka_czeka_na_numer`` - klucz: czy skanow bez numeru jest wiecej niz jeden
+JEST_SKAN_BEZ_NUMERU = {False: "jest skan bez numeru płytki: jeśli to skan tej płytki",
+                        True: "są skany bez numeru płytki: jeśli jeden z nich to skan tej płytki"}
 # E3-A12: napisy odmow polecen ramek i Excela (``Odpowiedz.tekst``)
 NAPIS_RAMKI_NIEPODLACZONE = "Ramki nie są podłączone — program pracuje bez ramek (sekcja [ramki] w ustawieniach)."
 NAPIS_EXCEL_NIEPODLACZONY = "Excel nie jest podłączony — odhacz zlecenia kompletne ręcznie."
@@ -519,6 +567,18 @@ POWODY_BLEDU_ANALIZY = {
     "start": "analiza nie wystartowała",
     "plik_niedostepny": "pliku nie dało się odczytać",
     "plik_zmieniony": "plik zmienił się przed analizą",
+}
+# E3-O2 (przeglad narzedzi E3-S1, poz. 3): przyczyna bledu analizy rozpoznana z opisu bledu w dzienniku (``blad_analizy``) -
+# zamiast samego "błąd analizy"; technik wie, CO poprawic przed ponownym skanem (wchodzi w pole ``powod`` komunikatu)
+PRZYCZYNY_BLEDU_ANALIZY = {
+    "znaczniki": "w skanie widać {n} z 3 znaczników płytki — płytka nie mieści się w polu skanera albo leży poza środkiem; "
+                 "ustaw płytkę na środku i sprawdź, czy pole skanowania obejmuje całą płytkę",
+    # runda 3: 0 z 3 - druga mozliwa przyczyna (skan z plaskim podlozem wokol plytki: 0 z 3 znacznikow) i rada o cieciu skanu
+    "znaczniki_0": "w skanie widać 0 z 3 znaczników płytki — płytka nie mieści się w polu skanera albo leży poza środkiem, albo "
+                   "w skanie jest stolik (podłoże) wokół płytki; ustaw płytkę na środku, sprawdź, czy pole skanowania obejmuje "
+                   "całą płytkę, i ustaw cięcie skanu powyżej stolika",
+    "wierzch": "w skanie nie widać płaskiego wierzchu płytki — to nie jest skan całej płytki; połóż płytkę płasko na środku skanera",
+    "pusty": "skan jest prawie pusty — sprawdź, czy płytka leży w skanerze",
 }
 POWODY_ODRZUCENIA = {
     "pusty": "plik pusty",
@@ -581,9 +641,10 @@ PLYTKA_BEZ_NUMERU_W_BLOKADZIE = "płytka bez numeru"
 
 
 def tekst_komunikatu(rodzaj: str, **pola) -> tuple[str, str, str]:
-    """(poziom, tytul, tekst) komunikatu ``rodzaj`` z wypelnionymi polami; nieznany rodzaj = komunikat ogolny (bez wyjatku)."""
+    """(poziom, tytul, tekst) komunikatu ``rodzaj`` z wypelnionymi polami; nieznany rodzaj = komunikat ogolny (bez wyjatku).
+    E3-O2: pola sa wypelniane takze w tytule (``ramka_blad``: "Ramka {ramka}: problem" szlo na ekran z doslownym "{ramka}")."""
     w = KOMUNIKATY.get(rodzaj) or Wzor(POZIOM_OSTRZEZENIE, "Uwaga", "{powod}")
-    return w.poziom, w.tytul, _wypelnij(w.tekst, pola)
+    return w.poziom, (_wypelnij(w.tytul, pola) if "{" in w.tytul else w.tytul), _wypelnij(w.tekst, pola)
 
 
 def tekst_pytania(rodzaj: str, **pola) -> tuple[str, str, str]:

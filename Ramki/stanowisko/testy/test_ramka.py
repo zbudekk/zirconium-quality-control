@@ -1501,11 +1501,11 @@ def test_kalibracja_domyslna_z_ukladow_waliduje_sie_i_nie_zmienia_ukladow():
     assert przed == po
     kalibracja.sprawdz(kal_)
     ramki = kal_["ramki"]
-    assert sorted(ramki["W"]) == ["wieczorna", "wieczorna_r54"]
-    assert sorted(ramki["P"]) == ["poranna", "poranna_r54"]
+    assert sorted(ramki["W"]) == ["okragla_ramkowa_wieczorna", "wieczorna", "wieczorna_r54"]
+    assert sorted(ramki["P"]) == ["okragla_ramkowa_poranna", "poranna", "poranna_r54"]
     liczby = {(r, u): len(v["gniazda"]) for r in ramki for u, v in ramki[r].items()}
     assert liczby == {("W", "wieczorna"): 19, ("W", "wieczorna_r54"): 20, ("P", "poranna"): 24,
-                      ("P", "poranna_r54"): 33}
+                      ("P", "poranna_r54"): 33, ("W", "okragla_ramkowa_wieczorna"): 19, ("P", "okragla_ramkowa_poranna"): 24}
     # rynienka szersza niz gniazdo okragle; gniazdo okragle = blok 3 x 3
     assert kalibracja.blok(kal_, "P", "poranna", 1)[2] > 3
     assert kalibracja.blok(kal_, "P", "poranna", 2)[2:] == [3, 3]

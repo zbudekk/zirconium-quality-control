@@ -51,7 +51,7 @@ python narzedzia/zbuduj_wydanie.py --pobierz-kola --kola KATALOG [--python pytho
 
 ```
 <KATALOG>\                      domyslnie C:\Stanowisko (opcja /katalog); nie w OneDrive / SharePoint
-  Stanowisko.cmd  Samokontrola.cmd  Wroc_do_poprzedniej.cmd  Wersje.cmd  Polecenie.cmd
+  Stanowisko.cmd  Samokontrola.cmd  Wroc_do_poprzedniej.cmd  Wersje.cmd  Polecenie.cmd  Dzien_skanera.cmd
   ustawienia.toml               przy pierwszej instalacji ze wzoru, potem nietykany (bajt w bajt)
   dane\                         baza, wyniki, logi, dane\kopie\ (kopie bazy) - poza katalogiem wersji
   wersja_biezaca.txt            wskaznik = plik tekstowy z numerem wersji (nie dowiazanie), zapis atomowy
@@ -66,10 +66,17 @@ python narzedzia/zbuduj_wydanie.py --pobierz-kola --kola KATALOG [--python pytho
 Skrypty ustawiaja `PYTHONUTF8=1`, `PYTHONDONTWRITEBYTECODE=1` (katalog programu zostaje identyczny z paczka),
 `PYTHONNOUSERSITE=1`, czyszcza `PYTHONPATH` i `PYTHONHOME` i uruchamiaja `wersje\<biezaca>\venv\Scripts\python.exe`
 w katalogu programu. `Stanowisko.cmd` dodaje `--ustawienia <KATALOG>\ustawienia.toml` i przekazuje argumenty (`--atrapa`,
-`--zamknij-po 5`); `Polecenie.cmd <argumenty pythona>` to Python wersji biezacej (np. `Polecenie.cmd -m stanowisko.dzien_skanera`).
+`--zamknij-po 5`); `Polecenie.cmd <argumenty pythona>` to Python wersji biezacej (np. `Polecenie.cmd narzedzia\symulator_skanera.py`).
+`Dzien_skanera.cmd` (E3-O4) uruchamia okno "Dzien skanera" tym samym sposobem co `Stanowisko.cmd`: `-m stanowisko.dzien_skanera
+--ustawienia <KATALOG>\ustawienia.toml --dane <KATALOG>\dane\dzien_skanera` + argumenty (`--nowa`, `--sprawdz <zip>`,
+`--zamknij-po 5`); sesje trafiaja do `<KATALOG>\dane\dzien_skanera\` (katalog podany wprost - takze modul wersji 0.3.1,
+uruchomiony tym skryptem po powrocie do niej, zapisuje sesje tam, a nie w katalogu wersji), przy bledzie okno czeka tylko,
+gdy uruchomiono bez argumentow. `wroc` skryptow nie zmienia: po powrocie do 0.3.1 w katalogu zostaje 6 skryptow nowszej wersji.
+Lista skryptow: `instalator.WZORY_SKRYPTOW` (6 pozycji) - `zapisz_skrypty` kopiuje je przy przelaczeniu wersji; samokontrola
+listy skrotow nie ma (sprawdza katalog programu wersji, nie katalog instalacji).
 Pauza na koncu: `zainstaluj.cmd`, `Wroc_do_poprzedniej.cmd` i `Wersje.cmd` czekaja na klawisz ZAWSZE, chyba ze podano
 `/bez-pauzy` (okno uruchomione ze skrotu albo Win+R nie zamyka sie przed przeczytaniem wyniku); `Stanowisko.cmd`,
-`Samokontrola.cmd` i `Polecenie.cmd` przekazuja wszystkie argumenty dalej, wiec czekaja tylko przy uruchomieniu bez argumentow.
+`Samokontrola.cmd`, `Polecenie.cmd` i `Dzien_skanera.cmd` przekazuja wszystkie argumenty dalej, wiec czekaja tylko przy uruchomieniu bez argumentow.
 
 ## zainstaluj.cmd [/katalog K] [/python P] [/skrot] [/testy] [/bez-sieci] [/bez-pauzy]
 
@@ -137,7 +144,7 @@ kazde nieznane sprawdzenie) - takze przy pierwszej instalacji - to kod 1: `Bledy
 | 1 | samokontrola czerwona (aktualizacja; pierwsza instalacja, gdy choc jeden blad nie dotyczy ustawien) - wersja zainstalowana, nie przelaczona |
 | 2 | samokontroli nie dalo sie wykonac: kod 2 modulu, proces zginal w 3 probach albo kod 0 / 1 bez wiersza koncowego `SAMOKONTROLA:` - wersja zainstalowana, nie przelaczona |
 | 3 | paczka: sumy, braki, blad wydania, inna budowa albo inna pisownia numeru wersji uzywanej |
-| 4 | `zainstaluj.cmd`: brak Pythona 3.12 albo zla wersja; skrypty katalogu instalacji (`Stanowisko.cmd`, `Samokontrola.cmd`, `Wroc_do_poprzedniej.cmd`, `Wersje.cmd`, `Polecenie.cmd`): nie ma gotowej wersji biezacej (brak wskaznika, brak srodowiska albo znacznik `NIEDOKONCZONA.txt`) - "uruchom zainstaluj.cmd z rozpakowanej paczki wydania" |
+| 4 | `zainstaluj.cmd`: brak Pythona 3.12 albo zla wersja; skrypty katalogu instalacji (`Stanowisko.cmd`, `Samokontrola.cmd`, `Wroc_do_poprzedniej.cmd`, `Wersje.cmd`, `Polecenie.cmd`, `Dzien_skanera.cmd`): nie ma gotowej wersji biezacej (brak wskaznika, brak srodowiska albo znacznik `NIEDOKONCZONA.txt`) - "uruchom zainstaluj.cmd z rozpakowanej paczki wydania" |
 | 5 | program uruchomiony albo baza zajeta przez inny program (takze odmowa dostepu przy zamianie pliku bazy w powrocie i plik `-journal` obok bazy) |
 | 6 | katalog, miejsce na dysku, venv, pip, przerwanie, baza nieczytelna / kopia bazy nieudana, druga instalacja naraz |
 | 7 | ustawienia: blad pliku, BOM albo sciezki wzgledne w `[sciezki]` |
@@ -214,10 +221,16 @@ Proby na PC z pelna paczka i liczby: `raporty/E3-A11i_2026-11-20.md`.
 - Srodowisko wersji wskazuje interpreter bazowy (`pyvenv.cfg`): odinstalowanie albo przeniesienie Pythona 3.12 psuje
   wszystkie wersje - naprawa: ponowne `zainstaluj.cmd`. Katalogu instalacji nie przenosic (skrypty srodowiska maja
   wpisana sciezke).
-- **Znane ograniczenie (a) - dane w katalogu wersji.** `stanowisko/dzien_skanera_rdzen.py` (sesje `dane/dzien_skanera/`)
-  i `stanowisko/ui_test.py` (`dane/decyzje.csv`) pisza na stale do `<katalog programu>/dane`, czyli w instalacji z paczki
-  do katalogu WERSJI: te dane nie przechodza do nowej wersji i znikaja z `Wersje.cmd /usun`. Poprawka nalezy do osobnej
-  paczki (sciezka z ustawien zamiast stalej). Program "Stanowisko" (baza, wyniki, logi) tego nie dotyczy.
+- **Znane ograniczenie (a) - dane w katalogu wersji (do wydania 0.3.1 wlacznie).** `stanowisko/ui_test.py`
+  (`dane/decyzje.csv`) i `stanowisko/dzien_skanera_rdzen.py` (sesje `dane/dzien_skanera/`) pisaly do
+  `<katalog programu>/dane`, czyli w instalacji z paczki do katalogu WERSJI: te dane nie przechodza do nowej wersji i znikaja
+  z `Wersje.cmd /usun`. Program "Stanowisko" (baza, wyniki, logi) tego nie dotyczyl. Poprawione w E3-O4 (21.11.2026):
+  w instalacji sesje ida do `<KATALOG>\dane\dzien_skanera\` (`opisy_modulow/dzien_skanera.md`, "W instalacji z paczki
+  wydania"), a decyzje okna testowego do `<KATALOG>\dane\decyzje.csv` (`ui_test.plik_decyzji_domyslny` - to samo
+  rozpoznanie instalacji; okno testowe nie ma skrotu w instalacji i dalej wymaga `--ustawienia <KATALOG>\ustawienia.toml`;
+  `narzedzia/import_decyzji.py` bez opcji `--plik` szuka pliku dalej w katalogu programu - w instalacji trzeba podac
+  `--plik <KATALOG>\dane\decyzje.csv`). Sesje i decyzje zapisane przez 0.3.1 zostaja
+  w `wersje\0.3.1\program\dane\` - nie sa przenoszone automatycznie; przed `Wersje.cmd /usun 0.3.1` trzeba je skopiowac recznie.
 - **Znane ograniczenie (b) - przyszly klucz `[sciezki]`.** Dane poza katalogiem wersji trzyma wylacznie `ustawienia.toml`
   ze sciezkami bezwzglednymi. Nowy klucz `[sciezki]` z domyslna wartoscia wzgledna (`dane/...`), ktorego nie ma
   w istniejacym pliku, zatrzyma aktualizacje (kod 7) do recznego dopisania wiersza podanego w komunikacie - instalator
