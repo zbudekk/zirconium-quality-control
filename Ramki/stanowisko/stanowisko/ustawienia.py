@@ -36,8 +36,9 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "logi": (str, "aplikacja"),
         "kalibracja_ramek": (str, "indicate"),  # E3-A8i, opcjonalny (DOMYSLNE_NOWYCH)
     },
-    # dowolne nazwy układów płytek → katalog modeli: wieczorna, poranna, okragla_wieczorna, okragla_poranna (układ R59)
-    # oraz wieczorna_r54, poranna_r54, okragla_wieczorna_r54, okragla_poranna_r54 (poprzedni układ R54, stare płytki);
+    # dowolne nazwy układów płytek → katalog modeli: wieczorna, poranna, okragla_wieczorna, okragla_poranna (układ R59),
+    # wieczorna_r54, poranna_r54, okragla_wieczorna_r54, okragla_poranna_r54 (poprzedni układ R54, stare płytki)
+    # oraz okragla_ramkowa_wieczorna, okragla_ramkowa_poranna (E3-O1: plytki okragle n1-n6 do ramek, R58);
     # wymagane są tylko dwa pierwsze, reszta jest dostępna, gdy jest wpisana w [plytki]
     "plytki": {
         "wieczorna": (str, "ustawienia"),
@@ -140,8 +141,12 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
 # Układy płytek dostarczane z programem. Układ, którego nie ma w [plytki] lokalnego ustawienia.toml (plik sprzed R59 nie ma
 # wierszy *_r54), jest dopisywany przy wczytaniu, jeśli jego katalog z uklad.json istnieje — stare płytki fizyczne działają
 # bez ręcznej zmiany pliku, a automatyczne rozpoznanie układu (porownaj: --plytka auto) widzi wszystkie układy.
+# E3-O1 (21.11.2026): okragla_ramkowa_* = plytki okragle n1-n6 do ramek (R58; te same gniazda, stozki i numery co kwadrat R59,
+# dolki kodu i obrys jak okragla testowa n8 / n9). Sa dopisane NA KONCU: kolejnosc [plytki] to kolejnosc kandydatow
+# rozpoznania ukladu (plate.rozpoznaj_uklad), a przy wyborze "domyslny" wygrywa pierwszy kandydat bez widocznych dolkow.
 UKLADY_WBUDOWANE = ("wieczorna", "poranna", "okragla_wieczorna", "okragla_poranna",
-                    "wieczorna_r54", "poranna_r54", "okragla_wieczorna_r54", "okragla_poranna_r54")
+                    "wieczorna_r54", "poranna_r54", "okragla_wieczorna_r54", "okragla_poranna_r54",
+                    "okragla_ramkowa_wieczorna", "okragla_ramkowa_poranna")
 KATALOG_MODELI_WZGLEDNY = "modele_plytek"
 
 

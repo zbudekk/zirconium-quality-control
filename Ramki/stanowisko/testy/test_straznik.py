@@ -245,7 +245,7 @@ def test_stary_plik_ustawien_podpowiada_brakujace_uklady_r54(wynik_niezgodny, wy
     assert wynik_pelny["uklad_podpowiedz"] == "" and "ustawienia.przyklad.toml" not in wynik_pelny["uklad_komunikat"]
     assert not PO.brak_ukladow_poprzednich(ust)
     # stare ustawienia: zaden uklad nie pasuje, komunikat mowi, ktorych wierszy brakuje
-    assert set(stare["plytki"]) == set(TYPY) and PO.brak_ukladow_poprzednich(stare)
+    assert set(stare["plytki"]) == set(TYPY) | {"okragla_ramkowa_wieczorna", "okragla_ramkowa_poranna"} and PO.brak_ukladow_poprzednich(stare)  # E3-O1: 2 uklady okragle ramkowe (R58)
     assert wynik["uklad_zgodny"] is False and wynik["uklady_pasujace"] == [] and wynik["gniazda"] == []
     assert all(n == 0 for n in wynik["statusy_gniazd"].values())
     assert wynik["uklad_podpowiedz"] == PO.PODPOWIEDZ_BRAK_R54 and wynik["uklad_komunikat"].startswith(KOMUNIKAT)
