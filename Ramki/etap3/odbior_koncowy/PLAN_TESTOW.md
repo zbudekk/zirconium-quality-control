@@ -226,7 +226,9 @@ instaluje pakiety tylko z kol paczki (pip `--no-index` - takze bez opcji `/bez-s
 polaczenia samokontroli z ramkami - stwierdzone w probie generalnej 21.11) - fizycznie sieci nie odcinamy. Pelne T0 na
 czystym komputerze = laptop stanowiska (`ODLOZONE.md`, D4).
 
-**Kroki** (okno `cmd.exe`; kazdy krok z przekierowaniem do `<ROB>\t0_<nr>.log`; kody wyjscia zapisz `echo KOD=%errorlevel%`):
+**Kroki** (okno `cmd.exe` po `set PY=<PC>\AppData\Local\Programs\Python\Python312\python.exe` - `%PY%` w
+poleceniach to ta zmienna; kazdy krok z przekierowaniem do `<ROB>\t0_<nr>.log`; kody wyjscia zapisz
+`echo KOD=%errorlevel%`; w pliku `.cmd` kazdy skrypt z `call`):
 
 1. `<PC-katalog>\koordynator\narz\ram.cmd` - zapisz wolny RAM. Krok 3 jest ciezki: uruchom go przez `ciezki.ps1` (tor 1).
 2. Sumy paczki: `certutil -hashfile <ZIP_N> SHA256` - porownaj z `<ZIP_N>.sha256` i z wierszem w
@@ -239,8 +241,9 @@ czystym komputerze = laptop stanowiska (`ODLOZONE.md`, D4).
 4. Wpisz foldery w `<K>\ustawienia.toml` (jak w "Krok wspolny"; katalogi musza istniec).
 5. Ponownie krok 3. Oczekiwane: **kod 0**, "juz zainstalowana i zgodna", samokontrola ZIELONA. Czas 6-15 s.
 6. `<K>\Samokontrola.cmd --bez-sieci` - oczekiwane: kod 0, wiersz podsumowania "ZIELONA" z licznikami (ok / ostrzezenia /
-   bledy = n / m / 0). Kody: 0 zielona, 1 bledy, 2 nie dalo sie wykonac. Zapisz tez wersje JSON:
-   `<K>\Samokontrola.cmd --bez-sieci --json > <ROB>\t0_samokontrola.json` (wzor `Samokontrola.cmd` przekazuje opcje
+   bledy = n / m / 0). Kody: 0 zielona, 1 bledy, 2 nie dalo sie wykonac. Zapisz tez wersje JSON PELNEJ samokontroli
+   (z proba polaczenia z ramkami - bez `--bez-sieci`; w probie generalnej: kod 0, ZIELONA, ok 17, ostrzezenia 4, 4,7 s):
+   `<K>\Samokontrola.cmd --json > <ROB>\t0_samokontrola.json` (wzor `Samokontrola.cmd` przekazuje opcje
    dalej - `%*` - i sam dodaje `--ustawienia` oraz `--sumy`; sprawdzone w pliku wzoru na galezi `e3/a11i`).
 7. Start programu: `set QT_QPA_PLATFORM=offscreen` i `<K>\Stanowisko.cmd --atrapa --zamknij-po 5` (kod 0), potem
    `<K>\Stanowisko.cmd --zamknij-po 20` (prawdziwy kontroler, kod 0). W `<DANE>\logi\stanowisko.log` 0 wierszy `Traceback`.
@@ -254,10 +257,13 @@ czystym komputerze = laptop stanowiska (`ODLOZONE.md`, D4).
 
 **Liczby kryterium:** (a) program startuje = kody 0 w kroku 7 (2 z 2; liczy sie przede wszystkim start BEZ `--atrapa` -
 `--atrapa` to pokaz okna na danych sztucznych, bez kontrolera, bazy, silnika i blokady); (b) samokontrola = kod 0 i "bledy 0" w kroku 6;
-(c) sumy = zgodnosc SHA-256 ZIP w kroku 2 (1 z 1) + licznik "sumy n z n" instalatora w kroku 3.
+(c) sumy = zgodnosc SHA-256 ZIP w kroku 2 (1 z 1) + licznik "sumy n z n" instalatora w kroku 3; (d) "bez internetu" =
+2 wiersze z `pip.log` i wiersz dziennika instalacji z kroku 9 (dowodem NIE jest sama opcja `/bez-sieci` - ona nie
+dotyczy pip; odstepstwo O1).
 
 **Dowody w `T0/`:** `t0_kroki.md` (tabela krok / polecenie / kod / czas / wynik), `t0_sha256.txt`, `t0_zainstaluj_1.log`,
-`t0_zainstaluj_2.log`, `t0_samokontrola.txt`, `t0_samokontrola.json`, `t0_start.txt`.
+`t0_zainstaluj_2.log`, `t0_samokontrola.txt`, `t0_samokontrola.json`, `t0_start.txt`, `t0_pip_bez_sieci.txt` (wyjscie
+`findstr` z kroku 9 + wiersz z `dziennik_instalacji.txt`).
 
 **Czas:** 20 min. **Ciezar:** ciezki (krok 3; tor 1). **Rownolegle:** nie z T1 i T12 (ten sam tor); z lekkimi tak.
 
@@ -272,7 +278,8 @@ ramek = OSTRZEZENIE, nie blad; kod 5 = program juz dziala albo baza zajeta (zamk
 **Kryterium (plan):** wersja N -> N+1 -> powrot do N - jedno polecenie; ustawienia zachowane; baza zmigrowana z kopia.
 
 **Gdzie:** instalacja z paczki, katalog `<K>` = `<PC-katalog>\t0\czysta` po T0 (z baza po co najmniej jednym starcie
-programu). **Dane:** `<ZIP_N1>`; do czesci B paczka z probna migracja (nizej).
+programu). W ODBIORZE (ustalenie koordynatora 21.11): WLASNA instalacja T12 w `<PC-katalog>\t0\odbior_t12\` - najpierw
+kroki 2-5 i 7 z T0 w tym katalogu (kody 10, potem 0; start programu kod 0; bez `/testy`), dopiero potem kroki nizej. **Dane:** `<ZIP_N1>`; do czesci B paczka z probna migracja (nizej).
 
 **Kroki:**
 
@@ -502,6 +509,10 @@ kliknieciem w te plytke; odczyt kazdej pracy jest w wyniku (`plytki[].kolory_pra
 - praca cala wg prawdy pokazana na czerwono = falszywy alarm: klikniecie "OK" (licznik osobno; listy nie psuje),
 - prac calych pokazanych na zolto sterownik nie klika (liczy je).
 
+Zalozenie sterownika (O13): technik ogladajacy prace ZOLTA zawsze zauwazy ubytek - w probach wiekszosc ubytkow byla
+zolta, nie czerwona (7 z 12 w probie skroconej wykonawcy, 2 z 3 w probie recenzenta); liczby czerwonych / zoltych /
+zielonych sa w wyniku osobno.
+
 Oczekiwana lista "do dofrezowania" = WSZYSTKIE prace z ubytkiem w prawdzie plytek przyjetych (plytka, gniazdo) - nie
 zalezy od tego, co sterownik kliknal. Ochrona klikniec mapy (mapa przygaszona ok. 800 ms po zmianie zawartosci albo po
 zmianie komunikatow nad mapa - E3-P15): sterownik czeka na jej zdjecie, przed decyzja sprawdza, ze widok pracy pokazuje
@@ -654,8 +665,9 @@ brak sieci; brak ramki; baza zajeta - za kazdym razem komunikat z PW zal. F i da
 **Gdzie:** testy z `<REPO>` na KODZIE PROGRAMU Z INSTALACJI (czesc A; decyzja koordynatora nr 4 po recenzji) + 3 proby
 reczne na programie z paczki (czesc B).
 
-**Czesc A - testy (jedna linia na przypadek; log `<ROB>\t7_<nr>.log`):** kazdy przypadek przez
-`<K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t7_<nr>_zrodlo_kodu.txt -- <ST>\testy\<plik> -q -rA -p no:cacheprovider --rootdir <ST> -k "<nazwy>" > <ROB>\t7_<nr>.log 2>&1`
+**Czesc A - testy (osobne polecenie na KAZDY plik testow przypadku; log `<ROB>\t7_<nr><a,b,c>.log`, wynik
+`t7_<nr><a,b,c>_zrodlo_kodu.txt` - przypadki maja po 2-4 pliki testow, a `>` nadpisuje log):** kazdy plik przez
+`<K>\Polecenie.cmd <ODB>\narzedzia\pytest_instalacja.py --st <ST> --wynik <ROB>\t7_<nr><a>_zrodlo_kodu.txt -- <ST>\testy\<plik> -q -rA -p no:cacheprovider --rootdir <ST> -k "<nazwy>" > <ROB>\t7_<nr><a>.log 2>&1`
 (skrypt laduje pakiety `stanowisko` i `ramka` z katalogu programu wersji przed startem pytest i po testach wypisuje, ile
 modulow programu przyszlo z instalacji, a ile z repo; ostatni wiersz "WERDYKT ZRODLA KODU: INSTALACJA" jest warunkiem
 zaliczenia przypadku jako "na programie z paczki"; kod 3 albo werdykt "REPO" = przypadek liczony z odstepstwem O14).
@@ -673,9 +685,14 @@ powtorz zwyklym `<K>\Polecenie.cmd -m pytest ...` i zapisz OBA wyniki - ten przy
 | 3 | brak folderu "Cyrkon" | `test_aplikacja.py -k "test_g_bez_projektow_skany_czekaja_do_odswiezenia_puli or test_folder_skanera_pojawia_sie_pozniej"`; `test_pula_aplikacja_r3.py -k test_r3_d8_nieudane_odswiezenie_ponawiane` |
 | 4 | brak sieci | `test_indicate.py -k test_k5_utrata_sieci_5_potwierdzen_100_powtorzen`; `test_ramka.py -k "test_k5_utrata_sieci or test_ramka_poranna_bez_sieci_trzyma_plan_do_limitu"`; `test_excel.py -k test_excel_niedostepny_komunikat_bez_awarii` |
 | 5 | brak ramki | `test_aplikacja_rano.py -k test_k5_wylaczona_ramka_i_brak_excela_ostrzezenie_i_dalsza_praca`; `test_ui_rano.py -k test_k5_bez_ramki_i_excela_komunikat_program_dziala_dalej` |
-| 6 | baza zajeta | `test_aplikacja.py -k "test_baza_zajeta_wynik_nie_ginie or test_p8_blad_analizy_przy_zajetej_bazie"`; `test_baza.py -k test_d1_baza_zajeta_przez_inny_proces_daje_czytelny_komunikat`; `test_aplikacja_rano.py -k test_d2_baza_zajeta_zdarzenia_ramki_czekaja_i_wracaja`; po scaleniu P14: `test_p14_baza_zajeta.py` (caly plik: prawdziwa blokada `BEGIN EXCLUSIVE` / `IMMEDIATE`, 17 przypadkow, odpowiedz w 1,0 s, komunikat `decyzja_niezapisana` / `polecenie_niezapisane` z "Ponow teraz") - potwierdzone 20.11 na kopii integracyjnej a2236c1: plik `testy\test_p14_baza_zajeta.py` jest, oba rodzaje komunikatow sa w `statusy.py` |
+| 6 | baza zajeta | `test_aplikacja.py -k "test_baza_zajeta_wynik_nie_ginie or test_p8_blad_analizy_przy_zajetej_bazie"`; `test_baza.py -k test_d1_baza_zajeta_przez_inny_proces_daje_czytelny_komunikat`; `test_aplikacja_rano.py -k test_d2_baza_zajeta_zdarzenia_ramki_czekaja_i_wracaja`; po scaleniu P14: `test_p14_baza_zajeta.py` (caly plik: prawdziwa blokada `BEGIN EXCLUSIVE` / `IMMEDIATE`, 27 testow na f5c3e01, odpowiedz w 1,0 s, komunikat `decyzja_niezapisana` / `polecenie_niezapisane` z "Ponow teraz") - potwierdzone 20.11 na kopii integracyjnej a2236c1: plik `testy\test_p14_baza_zajeta.py` jest, oba rodzaje komunikatow sa w `statusy.py` |
 
 **Czesc B - proby reczne na programie z paczki (`set QT_QPA_PLATFORM=offscreen`; kazda: stan przed, zdarzenie, log, stan po):**
+
+Na instalacji wspolnej odbioru program i samokontrola ida z WLASNYM plikiem ustawien ("Ustalenia koordynatora do
+wykonania odbioru", zasady 3 i 5): `<K>\Stanowisko.cmd --zamknij-po <s>` nizej czytaj jako
+`<K>\Polecenie.cmd -m stanowisko.aplikacja --ustawienia <ROB>\ustawienia.toml --zamknij-po <s>`, a katalog
+`<nazwa>_wej\Cyrkon` i `<folder_eksportu_skanera>` jako `folder_cyrkon` i `folder_eksportu_skanera` tej kopii.
 
 1. Brak folderu "Cyrkon": zmien nazwe katalogu `<nazwa>_wej\Cyrkon` na `Cyrkon_x`, `<K>\Stanowisko.cmd --zamknij-po 30`,
    w `<DANE>\logi\stanowisko.log` szukaj komunikatu `pula_brak_folderu`; przywroc nazwe; `Samokontrola.cmd --bez-sieci`
@@ -717,16 +734,20 @@ recenzji PR #40 runda 1 ma 12 wierszy, z czego 8 ma odpowiednik w programie. Tes
 tekst wzgledem zal. F. Wykonawca sporzadza tabele `t7_komunikaty.md`: 6 przypadkow x (rodzaj komunikatu z testu, tekst
 ze `statusy.py`, wiersz zal. F albo wiersz tabeli `instrukcje/co_robic_gdy_nie_dziala.md` z A11d, zgodne tak / nie).
 **Decyzja koordynatora 20.11 nr 3 (zamyka POTRZEBUJE 4):** przypadek, w ktorym program daje komunikat i pracuje dalej,
-ale tekstu komunikatu nie ma w PW zal. F: wynik przypadku = **"ZAL z odstepstwem (komunikat spoza zal. F: <tekst>)"** +
+ale tekstu komunikatu nie ma w PW zal. F: wynik przypadku = **"ZAL z odstepstwem O12 (komunikat spoza zal. F: <tekst>)"** +
 pozycja na liscie zadan wlasciciela w `RAPORT.md` (uzupelnic zal. F albo zmienic napis). Brak komunikatu ALBO brak
 dalszej pracy ALBO stan nieodtworzony z bazy = **FAIL** przypadku. W `t7_komunikaty.md` kolumna "wynik" ma wiec trzy
-wartosci: ZAL / ZAL z odstepstwem / FAIL; w `RAPORT.md` liczniki "przypadki n z 6, w tym z odstepstwem k".
+wartosci: ZAL / ZAL z odstepstwem O12 / FAIL; w `RAPORT.md` liczniki "przypadki n z 6, w tym z odstepstwem k".
+Wynik calego T7 = **ZAL bez odstepstwa**, gdy 6 z 6 przypadkow ma ZAL (kazdy komunikat jest w zal. F) i kazdy przebieg
+czesci A ma werdykt "INSTALACJA"; O12 dziala tylko przy komunikacie spoza zal. F, O14 tylko przy werdykcie "REPO" /
+kodzie 3 - wtedy "ZAL z odstepstwem O12" / "O14".
 
 **Liczby kryterium:** 6 z 6 przypadkow: (a) testy `PASSED` (licznik na przypadek), (b) komunikat wskazany w tabeli
 (tekst w zal. F = ZAL; tekst spoza zal. F = ZAL z odstepstwem; brak komunikatu = FAIL), (c) "dalsza praca" i "stan z
 bazy" = asercje testow z wiersza 1, 2, 6 + proby B (brak ktoregokolwiek = FAIL).
 
-**Dowody w `T7/`:** `t7_1.log`..`t7_6.log`, `t7_proby_reczne.md`, `t7_komunikaty.md`, `t7_wynik.md`.
+**Dowody w `T7/`:** `t7_<nr><a,b,c>.log` i `t7_<nr><a,b,c>_zrodlo_kodu.txt` (po jednej parze na plik testow kazdego z 6
+przypadkow), `t7_proby_reczne.md`, `t7_b2_pid.txt`, `t7_b2_symulator.json`, `t7_komunikaty.md`, `t7_wynik.md`.
 
 **Czas:** 45 min. **Ciezar:** `test_silnik.py` (wybrane testy) - sredni, uruchamiac pojedynczo; reszta lekka.
 **Rownolegle:** tak, poza seria pomiarowa; proby B na wlasnej instalacji roboczej.
@@ -795,7 +816,11 @@ wynik zawiera nazwy plikow projektow = dane - do repo idzie tylko to, co przeszl
 2. Czesc B (przez aplikacje, tor 2): pusta baza; `<K>\Stanowisko.cmd --zamknij-po <s>` i
    `<K>\Polecenie.cmd narzedzia\symulator_skanera.py --folder <folder_eksportu_skanera> --zrodla <PC-katalog>\app\dane_ref\syntetyczne_r54_P2 <PC-katalog>\app\dane_ref\syntetyczne_r54_P3a --ile 40 --odstep 45 --rownolegle 1 --seed 1 --dziennik <ROB>\t11_symulator.json`
    (WSZYSTKIE 40 skanow `*_r54` zestawu: 24 z P2 + 16 z P3a - decyzja koordynatora nr 5 po recenzji; `--zamknij-po` =
-   40 x 45 s + 300 s zapasu = 2100). Gdy w zestawie jest inna liczba plikow albo symulator nie przyjmie dwoch katalogow -
+   3000: 40 x 45 s + 1200 s zapasu na start, pule zimna i kolejke - zmierzone 21.11: skan `*_r54` 47,5 s przy puli
+   zimnej i 27,4 s przy cieplej, wiec przy odstepie 45 s kolejka moze rosnac). Skan z dziennika symulatora bez wiersza
+   w `skany` w chwili zamkniecia programu = NIE ZMIERZONO (powtorz z dluzszym czasem), nie FAIL. Na instalacji
+   wspolnej program z wlasnym plikiem ustawien ("Ustalenia koordynatora", zasada 3), `--folder` symulatora =
+   `folder_eksportu_skanera` tej kopii. Gdy w zestawie jest inna liczba plikow albo symulator nie przyjmie dwoch katalogow -
    podaj liczbe faktyczna i powod (liczniki "z <tyle, ile bylo>"). Plytki poranne w trybie wieczornym dostaja status
    `plytka_nie_z_trybu` - uklad ma byc mimo to zapisany.
 3. `PY -I <ODB>\narzedzia\sql_odczyt.py --baza <DANE>\stanowisko.sqlite "SELECT id, status, uklad, uklad_zrodlo, uklad_zgodny FROM skany ORDER BY id"`
@@ -820,8 +845,12 @@ w brzmieniu "uklad rozpoznany").
 **Decyzja koordynatora 20.11 nr 4 (zamyka POTRZEBUJE 5):** kryterium ma "albo" - plytka z ukladem rozpoznanym = skan
 zaliczony; ostrzezenie BEZ nazwy wlasciwego ukladu (skan nierozpoznany, status `niezgodny_uklad`) = **FAIL tego skanu**
 (licznik "FAIL n z 40" w wyniku); zielona praca przy zlym ukladzie (skan z `uklad_zgodny` = 0 albo statusem
-`niezgodny_uklad` i `zielonych` > 0) = **FAIL calego testu**. Wynik T11 = "ZAL z odstepstwem O6" tylko przy 40 z 40
-rozpoznanych i 0 zielonych przy zlym ukladzie (O6: druga galaz kryterium niespelnialna).
+`niezgodny_uklad` i `zielonych` > 0) = **FAIL calego testu**. Wynik T11 = **ZAL** (bez odstepstwa) przy 40 z 40
+rozpoznanych, 0 zielonych przy zlym ukladzie i 40 z 40 ukladow zapisanych w `skany`: kryterium ma "albo" i jest wtedy
+spelnione doslownie pierwsza galezia (ustalenie koordynatora 21.11 po rundzie 2 recenzji, uwaga 36). O6 zostaje jako
+INFORMACJA i pozycja do decyzji wlasciciela (druga galaz kryterium niespelnialna w programie - brak B5), nie jako
+odstepstwo wyniku. Mniej niz 40 skanow przeprowadzonych przez aplikacje (z powodem) = wynik z dopiskiem "n z <tyle,
+ile bylo>" i odstepstwem O6.
 
 **Dowody w `T11/`:** `t11_auto_uklad_podsumowanie.json` (sama sekcja `podsumowanie`), `t11_skany.tsv`, `t11_zielone.tsv`,
 `t11_testy.log`, `t11_wynik.md`.
@@ -868,7 +897,7 @@ obok zestawu w `<PC-katalog>\e3` (tylko odczyt), skopiuj zestaw do `<ROB>\pula40
 **Decyzja koordynatora 20.11 nr 6 (O7, zamyka pytanie o pule zimna / ciepla):** mierz i podaj OBA przebiegi - pierwsza
 plytka po starcie programu (pula zimna) i kolejne (pula ciepla) - z osobnymi licznikami "do 40 s: n z m". Kryterium
 "plytka do 40 s" jest liczone dla WSZYSTKICH plytek: (a) wszystkie do 40 s = ZAL; (b) przekracza je TYLKO pierwsza plytka
-po zimnym starcie = **"ZAL z odstepstwem"** z liczba sekund i pozycja do decyzji wlasciciela w `RAPORT.md`; (c) przekracza
+po zimnym starcie = **"ZAL z odstepstwem O7"** z liczba sekund i pozycja do decyzji wlasciciela w `RAPORT.md`; (c) przekracza
 ktorakolwiek plytka przy puli cieplej (plytki 2-10 przebiegu zimnego i wszystkie 10 przebiegu cieplego) = **FAIL**.
 W `t4_wynik.md` trzy wiersze: "zimna, plytka 1: _ s (do 40 s: _ z 1)", "zimna, plytki 2-10: maks. _ s (do 40 s: _ z 9)",
 "ciepla, plytki 1-10: maks. _ s (do 40 s: _ z 10)". Dotychczasowe pomiary: przy puli zimnej plytka 1 liczy linie brzegu
@@ -932,19 +961,25 @@ Wartosci zmierzone sa w wyjsciu `-s` - przepisz je do `t5_wynik.md` (nie samo `P
 "siec lokalna" = adres karty sieciowej PC (`ipconfig`, np. 192.168.x.x), ramka i program na tym samym komputerze - ruch
 przechodzi przez stos sieciowy, ale nie przez kabel ani Wi-Fi. Prawdziwa siec = T15 (`ODLOZONE.md`).
 
-1. Ramki (2 okna, procesy wlasne): `<K>\Polecenie.cmd -m ramka --rola W --sprzet atrapa --host <adres PC> --port 8765 --sterowanie-atrapy`
-   i `--rola P --port 8767`. Alternatywa z konsola polecen (`plytka <n>`, `klawisz <nazwa>`, `stan`, `koniec`):
+1. Ramki (2 okna, procesy wlasne) - obie role przez atrape Z KONSOLA polecen (`plytka <n>`, `klawisz <nazwa>`, `stan`,
+   `koniec` - potrzebna w kroku 4):
+   `<K>\Polecenie.cmd narzedzia\atrapa_ramki.py --rola W --host <adres PC> --port 8765 --sterowanie` i
    `<K>\Polecenie.cmd narzedzia\atrapa_ramki.py --rola P --host <adres PC> --port 8767 --sterowanie`.
+   (Postac `<K>\Polecenie.cmd -m ramka --rola W --sprzet atrapa --host <adres PC> --port 8765 --sterowanie-atrapy`
+   uruchamia ramke BEZ konsoli - z odczytu kodu; opcje istnieja, `--help` kod 0 - nie nadaje sie do kroku 4.)
 2. Posrednik z zapisem ruchu (po jednym na ramke):
    `PY -I <ODB>\narzedzia\posrednik_ruchu.py --sluchaj <adres PC>:8766 --cel <adres PC>:8765 --zapis <ROB>\ruch_ramka_w.bin`
    (ramka P: `--sluchaj <adres PC>:8768 --cel <adres PC>:8767 --zapis <ROB>\ruch_ramka_p.bin`).
-3. `<K>\ustawienia.toml`, `[ramki]`: `port` = 8766 (port posrednika), `wieczorna_host` = `<adres PC>`. Uwaga: `[ramki]
+3. Kopia `<K>\ustawienia.toml` -> `<ROB>\ustawienia.toml` (pliku `<K>\ustawienia.toml` NIE zmieniac - instalacja jest
+   wspolna; kopie podaj w kroku 4 jako `--ustawienia-wzor`), w kopii `[ramki]`: `port` = 8766 (port posrednika),
+   `wieczorna_host` = `<adres PC>`. Gdyby mimo to zmieniono plik instalacji: zachowaj jego kopie sprzed zmiany i
+   przywroc ja zaraz po kroku 5 (przed T7 czesc B i kazdym innym testem). Uwaga: `[ramki]
    port` jest JEDEN dla obu ramek (sprawdzone w `ustawienia.py` i `indicate.py`), a obie atrapy stoja na jednym
    komputerze - dlatego posrednik ramki P musi sluchac na tym samym porcie pod innym adresem: `--sluchaj 127.0.0.1:8766
    --cel <adres PC>:8767`, `poranna_host` = `127.0.0.1` (posrednik ramki W: `--sluchaj <adres PC>:8766`).
 4. Wieczor - 3 skany wieczorne przez program z paczki prowadzony sterownikiem T2 (sekcja `[ramki]` przechodzi z pliku
    wzoru do kopii ustawien sterownika; `set QT_QPA_PLATFORM=offscreen`):
-   `<K>\Polecenie.cmd <ODB>\narzedzia\t2_wieczor.py --ustawienia-wzor <K>\ustawienia.toml --roboczy <ROB>\t5_wieczor --projekty <folder_cyrkon> --wybierz 1,3,8 --odstep 60 > <ROB>\t5_wieczor.log 2>&1`
+   `<K>\Polecenie.cmd <ODB>\narzedzia\t2_wieczor.py --ustawienia-wzor <ROB>\ustawienia.toml --roboczy <ROB>\t5_wieczor --projekty <folder_cyrkon> --wybierz 1,3,8 --odstep 60 > <ROB>\t5_wieczor.log 2>&1`
    (ramka W ma dostac plan i kolory; w konsoli atrapy: `plytka 1`, `stan`,
    `klawisz enter` - klawisze ramki: `enter`, `backspace`, `zamknij_piec`, cyfry `0`-`9`; Spacja to klawisz laptopa, nie
    ramki - sprawdzone w `ramka\protokol.py`). Tryb poranny wybiera sie na ekranie
@@ -956,7 +991,8 @@ przechodzi przez stos sieciowy, ale nie przez kabel ani Wi-Fi. Prawdziwa siec = 
    sztucznych - raport paczki) - pierwsze wykonanie zapisz krok po kroku. Gdy PC nie ma adresu sieci lokalnej (`ipconfig`)
    albo zapora odmowi nasluchu: 127.0.0.1 i wpis "NIE ZMIERZONO w sieci lokalnej" (O8).
 
-**Dowody w `T5/`:** `t5_testy.log`, `t5_wynik.md`, `t5_siec_lokalna.md` (adres, porty, liczby z posrednikow, co widziala
+**Dowody w `T5/`:** `t5_testy.log`, `t5_testy_2.log`, `t5_zrodlo_kodu_1.txt`, `t5_zrodlo_kodu_2.txt`, `t5_wieczor.log`,
+`t5_wynik.md`, `t5_siec_lokalna.md` (adres, porty, liczby z posrednikow, co widziala
 atrapa). Plikow `ruch_ramka_*.bin` NIE dodawac do repo (zostaja w `<ROB>` do T9).
 
 **Czas:** 40 min (A 10, B 30). **Ciezar:** lekki. **Rownolegle:** czesc A nie w czasie serii pomiarowej (progi 1 s i
@@ -1000,7 +1036,13 @@ zapytan przez `excel_com` na prawdziwym skoroszycie, a raport E3-A9 mowi wprost 
 uruchamiano". Uruchamianie Excela wlasciciela z konta `<konto-PC>` bez jego decyzji pomijamy (wariant najbezpieczniejszy);
 Excel na prawdziwym skoroszycie = T17 (`ODLOZONE.md`).
 
-**Dowody w `T6/`:** `t6_arkusz.txt` (liczniki arkusza), `t6_excel.log`, `t6_aplikacja.log`, `t6_wynik.md`. Log Excela
+**Wynik T6 (ustalenie koordynatora 21.11 po rundzie 2 recenzji, uwaga 36):** arkusz w pamieci JEST "sztucznym
+arkuszem" z kryterium sekcji 7, wiec przy liczbach w normie i werdykcie "INSTALACJA" w kazdym przebiegu wynik T6 =
+**ZAL** (bez odstepstwa); O9 zostaje jako informacja (Excel przez COM = T17). Werdykt "REPO" albo kod 3 = "ZAL z
+odstepstwem O14".
+
+**Dowody w `T6/`:** `t6_arkusz.txt` (liczniki arkusza), `t6_excel.log`, `t6_aplikacja.log`, `t6_zrodlo_kodu.txt`,
+`t6_zrodlo_kodu_2.txt`, `t6_wynik.md`. Log Excela
 z testow (kolumna `folder`) to dane sztuczne - mimo to nie kopiowac go do dowodow.
 
 **Czas:** 15 min. **Ciezar:** lekki. **Rownolegle:** tak.
@@ -1073,15 +1115,18 @@ kazdej instalacji (tabele `zlecenia.folder`, `projekty.plik`), `--baza <baza SE1
 
 **Kroki (kazdy wynik do osobnego pliku przez `--wynik` - skrypt sam pisze plik ASCII z LF; NIE uzywac przekierowania
 `>`, ktore daje CRLF; `T9` = `PY -I <ODB>\narzedzia\t9_dane_osobowe.py`, `N` = wspolne opcje `--nazwy-z ... --baza ...`,
-`D` = `--dozwolone stanowisko.sqlite --dozwolone stanowisko.kopia_ --dozwolone log_excel.csv`):**
+`D` = `--dozwolone stanowisko.sqlite --dozwolone \kopie\stanowisko_ --dozwolone log_excel.csv` - kopie bazy robione
+przez instalator nazywaja sie `kopie\stanowisko_przed_<wersja>_<data>_v<n>.sqlite` i `kopie\stanowisko_odlozona_...`;
+wzor `stanowisko.kopia_` do nich nie pasowal i dawal falszywy FAIL w kroku 2):**
 
 1. Repo: `PY -I <ODB>\narzedzia\t9_dane_osobowe.py N --repo <REPO> --json <DOW>\t9_repo.json --wynik <DOW>\t9_repo.txt`
    (tresc i sciezki plikow sledzonych + historia od `2537f6f` do `HEAD`: opis, autor i tresc zmian kazdego commita,
    `--od` domyslnie `2537f6f`). PRZED `git add` dowodow:
    `T9 N --cel <worktree>\Ramki\etap3\odbior_koncowy\dowody --wynik <ROB>\t9_dowody.txt` BEZ `--dozwolone` - wymagany
    kod 0; po scaleniu galezi dowodow powtorz krok 1.
-2. Logi: `T9 N --cel <DANE>\logi --cel <PC-katalog>\koordynator\robocze\odbior D --dozwolone t4_surowe --dozwolone t10_surowe --wyklucz \zrodla\ --wynik <DOW>\t9_logi.txt`
-   (dla kazdej instalacji roboczej). Dozwolone (przeszukiwane, liczone osobno): bazy T2 / T3 i ich kopie, log Excela,
+2. Logi: `T9 N --cel <DANE>\logi --cel <PC-katalog>\koordynator\robocze\odbior D --dozwolone t4_surowe --dozwolone t10_surowe --wyklucz \zrodla\ --wyklucz \wersje\ --wyklucz \paczka_M\ --wyklucz \drzewo_M\ --wynik <DOW>\t9_logi.txt`
+   (dla kazdego katalogu danych testu; `\wersje\`, `\paczka_M\`, `\drzewo_M\` = instalacja i paczka probna T12 czesc B
+   w katalogu roboczym T12, ok. 2,6 GB kodu i pakietow - nieczytane, liczba w pierwszym wierszu). Dozwolone (przeszukiwane, liczone osobno): bazy T2 / T3 i ich kopie, log Excela,
    surowe wyniki T4 / T10 (`t4\t4_surowe_*.json`, `t10\t10_surowe_metryki.json`, `t10_surowe.log` - zawieraja sciezki
    zlecen i zostaja w `<ROB>`; wzor `--dozwolone` NIE moze pasowac do zadnego pliku z listy dowodow - dlatego `t10_surowe`,
    nie `t10_`: nazwa wstrzyknieta do `T10\t10_wynik.txt` dawala przy wzorze `t10_` kod 0; do `<DOW>`
@@ -1199,7 +1244,11 @@ T13 pisz przez `--json` i przekierowanie, po czym przepusc przez `dowody_lf.py` 
 
 ## Podzial na wykonawcow i kolejnosc
 
-Warunek startu: paczki A11s, A11i, A11w, P14, A11d scalone; `<ZIP_N>` i `<ZIP_N1>` zbudowane; `<REPO>` zalozone.
+**W odbiorze obowiazuje podzial na fale T-A / T-B / T-C i jedna instalacja wspolna - sekcja "Ustalenia koordynatora do
+wykonania odbioru". Tabela W1-W4 nizej zostaje jako zrodlo czasow i zaleznosci miedzy testami (wczesniejszy wariant:
+wlasna instalacja kazdego wykonawcy).**
+
+Warunek startu: paczki A11s, A11i, A11w, P14, A11d, P15 scalone; `<ZIP_N>` i `<ZIP_N1>` zbudowane; `<REPO>` zalozone.
 Kazdy wykonawca: wlasna instalacja robocza `<PC-katalog>\t0\w<n>` (z `/testy`), wlasna galaz `e3/odb-w<n>`, rozlaczne
 katalogi dowodow.
 
@@ -1221,8 +1270,11 @@ Kolejnosc i zaleznosci:
 2. W1 zaczyna T0 (tor 1). Rownolegle W2 i W3 zakladaja instalacje robocze - **po kolei przez tor 1** (instalacja probna =
    ciezki krok), wiec realnie: T0 -> instalacja `w2` -> instalacja `w3` -> T12 -> T1.
 3. W2: T10 i T4 nie potrzebuja programu w oknie - startuja zaraz po instalacji `w2`; T4 i T10 nigdy jednoczesnie
-   (jedna sesja pomiarowa naraz); T2 i T11 po nich. T1 (tor 1) i seria W2 (tor 2) moga isc jednoczesnie tylko przy wolnym
-   RAM >= 6000 MB przed startem T4 - inaczej T4 czeka na koniec T1.
+   (jedna sesja pomiarowa naraz); T2 i T11 po nich. T1 (2 przebiegi po 30-45 min) nie biegnie w czasie T2, T4 ani
+   T11 czesc B (kryteria czasowe T2 i T4; kolejka skanow w T11) - T1 idzie przed startem tych testow albo po nich; z
+   T10 moze isc rownolegle (kryterium T10 nie zalezy od czasu - fala T-A), z zapisem "co jeszcze liczylo". Kroki z
+   silnikiem innych testow (T5 B4, T7 `test_silnik`, T7 B2 / B3) tak samo nie w czasie T2 i T4 - godziny podaje
+   koordynator.
 4. W3: T3, T6 od razu po instalacji `w3`; czesc A T5 i testy czasowe T7 poza oknami serii pomiarowej W2 (albo powtorka
    po serii, z zapisem obu wynikow).
 5. W4: T13 kiedykolwiek; T8 po T2 i T3; T9 na samym koncu, po zebraniu dowodow wszystkich wykonawcow.
@@ -1238,8 +1290,8 @@ gdy byl mierzony. "Seria pomiarowa" = test, ktorego liczby zaleza od obciazenia 
 | T0 | ciezki (instalacja) | 20 min (polecenia: 52,5 s + 5,8 s + starty ok. 1 min) | budowa paczek | lekkimi; nie z T1 / T12 na tej samej instalacji |
 | T14 kontrola zestawu | lekki | 1 min (8,3 s) | T0 | wszystkim |
 | T12 | ciezki | 30 min (A: 2 min 40 s; B: 2 min 45 s, osobna instalacja) | T0 | lekkimi; czesc B wszystkim poza seria pomiarowa |
-| T1 | ciezki | 30-45 min na przebieg (zmierzone interpreterem wersji: 27 min 20 s), 2 przebiegi | T0 (instalacja z `/testy`) | nie z seria pomiarowa (testy czasowe) |
-| T10 | ciezki, seria pomiarowa | 40-60 min | instalacja robocza | nie z T2, T4, T11, T1 |
+| T1 | ciezki | 30-45 min na przebieg (zmierzone interpreterem wersji: 27 min 20 s), 2 przebiegi | T0 (instalacja z `/testy`) | nie z T2, T4, T11 czesc B; z T10 tak (fala T-A; testy czasowe T1 pod obciazeniem - regula w "Ustalenia koordynatora") |
+| T10 | ciezki, seria pomiarowa | 40-60 min | instalacja robocza | nie z T2, T4, T11; z T1 tak (kryterium T10 bez czasu) |
 | T4 | ciezki, seria pomiarowa | 45 min | instalacja robocza | nie z T2, T10, T11, T1 |
 | T2 | ciezki, seria pomiarowa | 30 min (sterownik 11-13 min; proba skrocona 89 s) | instalacja robocza | nie z T4, T10, T11, T1 |
 | T11 | czesc B ciezka, seria pomiarowa | 60 min (B: ok. 35 min) | instalacja robocza | B nie z T2, T4, T10 |
@@ -1253,8 +1305,9 @@ gdy byl mierzony. "Seria pomiarowa" = test, ktorego liczby zaleza od obciazenia 
 
 Rownolegle mozna puscic najwyzej: 1 serie pomiarowa (T10 -> T4 -> T2 -> T11, razem ok. 3-3,5 h) + 1 ciezki krok
 instalacyjny / pytest (T0 -> T12 -> T1, ok. 2 h; T1 NIE w czasie T2 / T4 - czeka albo idzie przed nimi) + testy lekkie
-(T3, T6, T13, T8, T9 w dowolnej chwili; T5 czesc A i testy czasowe T7 w oknach miedzy seriami pomiarowymi). Najkrotsza
-sciezka zegarowa: ok. 4 h przy 3 wykonawcach (seria pomiarowa wyznacza czas); wszystko po kolei: ok. 9 h.
+(T3, T6, T13, T8 w dowolnej chwili, T9 na koncu; T5 czesc A i testy czasowe T7 w oknach miedzy seriami pomiarowymi).
+Najkrotsza sciezka zegarowa: ok. 5-5,5 h przy 3 wykonawcach (seria pomiarowa wyznacza czas, a T1 nie biegnie w czasie
+T2 / T4); wszystko po kolei: ok. 9 h.
 
 ## Stan sprawdzenia polecen (21.11, runda 1 recenzji)
 
@@ -1297,7 +1350,7 @@ paczki leza poza repo (katalog roboczy paczki). To NIE sa wyniki odbioru.
 | T8 | `test_metryki.py` | tak (ta paczka) | instalacja probna | kod 0; 106 passed |
 | T9 | kroki 1-5 | tak (ta paczka; krok 1 na worktree paczki, kroki 2-5 na danych sztucznych) | kopia repo / katalog roboczy | kody 0; proby ujemne kod 1 |
 | T9 | krok 4, test `test_zz_k8` | tak - w ramach T5 czesc A polecenie 1 | instalacja probna | PASSED |
-| T13 | `t13_higiena.py` | tak (proba generalna, wersja sprzed poprawki; ta paczka - wersja po poprawce) | kopia repo f5c3e01 | sprzed poprawki: 0 naruszen; po poprawce (liczenie samotnych CR): 1 naruszenie - `Ramki/stanowisko/raporty/E3-A6_2026-11-18.md`, 1 samotny CR |
+| T13 | `t13_higiena.py` | tak (proba generalna, wersja sprzed poprawki; ta paczka - wersja po poprawce) | kopia repo f5c3e01 | sprzed poprawki: 0 naruszen; po poprawce (liczenie samotnych CR): 1 naruszenie - `Ramki/stanowisko/raporty/E3-A6_2026-11-18.md`, 1 samotny CR (usuwa go paczka E3-P15 - po jej scaleniu oczekiwane 0 naruszen; inaczej T13 = FAIL) |
 | T13 | `dowody_lf.py` | tak (ta paczka) | 4 logi prob | 3 z 4 z CRLF naprawione; plik `.sqlite` zgloszony jako zakazany |
 | T14 | kontrola zestawu `--sprawdz` | tak (proba generalna) | instalacja probna | zgodne 22 z 22 krokow, kod 0, 8,3 s |
 
@@ -1340,7 +1393,7 @@ Niewykonane ani razu (pierwsze wykonanie bedzie w odbiorze - zapisywac krok po k
 | Test | Liczba kryterium | Zrodlo |
 |---|---|---|
 | T0 | kody 0 / 10 / 0; samokontrola bledy 0; SHA-256 | kody wyjscia `.cmd`, wyjscie `Samokontrola.cmd`, `certutil` |
-| T1 | 0 failed, 0 errors, pominiete = 9 znanych | ostatni wiersz i sekcja `-rs` logu pytest |
+| T1 | 0 failed, 0 errors, pominiete = 9 znanych | wiersz podsumowania i sekcja `-rs` logu pytest + osobno kod wyjscia procesu; liczba testow z `--collect-only` |
 | T2 | 10 z 10; start < 1 s; mapa mediana <= 40 s; przerwa <= 200 ms; lista | `t2_wynik.json` sterownika `t2_wieczor.py`: `obsluzone_zgodnie_z_prawda`, `start_analizy_od_zapisu_s` (doslownie), `mapa_od_zapisu_s` (gorne ograniczenie), `petla_okna` (doslownie od pierwszego tykniecia okna), `lista_do_dofrezowania` + `kolory_prac` (kolory z ekranu, przeoczone), `werdykty` z wierszem "T2 LACZNIE" |
 | T3 | 32 z 32 wierszy; listy kompletnych i brakow | `t3_wynik.txt` sterownika `t3_poranek.py`: wiersz "WERDYKT T3" (n z 32 liczone z ekranu), kolumna "ekran" dla 10 wierszy z listami; uzupelniajaco `test_se10[R01..R32]` |
 | T4 | top-1 n z n; plytka maks. s; szczyt MB | `metryki_pula jakosc` / `czas`: `top1_projekt`, `top1_wpis`, `plytki[].czas_s`, `szczyt_mb` |
