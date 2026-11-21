@@ -1,0 +1,16 @@
+...                                                                      [100%]
+=================================== PASSES ====================================
+______________ test_awaria_prawdziwej_analizy_i_nastepne_zadanie ______________
+---------------------------- Captured stdout call -----------------------------
+
+[kryterium 7, wynik po restarcie procesu] pol roznych: 0 przy tolerancji 1e-9, 0 na poziomie miar (2e-3, liczniki probek z tolerancja), 0 na poziomie decyzji (liczby do 0,1); wymagany poziom 2
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_silnik.py::test_awarie_zly_plik_zabity_proces_brak_pliku
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_silnik.py::test_zabicie_procesu_z_zewnatrz
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_silnik.py::test_awaria_prawdziwej_analizy_i_nastepne_zadanie
+3 passed, 66 deselected in 111.99s (0:01:51)
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 34 modulow, z repo poza testami 0 modulow, modulow testow z repo 2; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

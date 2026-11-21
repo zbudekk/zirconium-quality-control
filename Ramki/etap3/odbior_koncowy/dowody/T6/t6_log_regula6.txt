@@ -1,0 +1,20 @@
+1753_test_k1_zero_zapisow_w_zlym_wi0.csv: naglowek[:8] = pola reguly 6: TAK; pol naglowka 12 (data;godzina;kuweta;folder;numer_zlecenia_b;arkusz;wiersz;kto_zatwierdzil;skoroszyt;regula;wynik;tryb); wierszy danych 204; wynik {'blad': 4, 'juz_odhaczone': 19, 'pominieto': 33, 'wskazano_recznie': 38, 'zapisano': 110}; tryb {'pytaj': 204}; naruszenia {'kuweta_puste': 2}
+1753_test_k3_log_csv_ma_pola_reguly0.csv: naglowek[:8] = pola reguly 6: TAK; pol naglowka 12 (data;godzina;kuweta;folder;numer_zlecenia_b;arkusz;wiersz;kto_zatwierdzil;skoroszyt;regula;wynik;tryb); wierszy danych 4; wynik {'juz_odhaczone': 1, 'pominieto': 1, 'zapisano': 2}; tryb {'pytaj': 4}; naruszenia 0
+1753_test_k4_tryb_cien_nie_zapisuje0.csv: naglowek[:8] = pola reguly 6: TAK; pol naglowka 12 (data;godzina;kuweta;folder;numer_zlecenia_b;arkusz;wiersz;kto_zatwierdzil;skoroszyt;regula;wynik;tryb); wierszy danych 200; wynik {'juz_odhaczone': 19, 'pominieto': 33, 'tylko_log': 148}; tryb {'cien': 200}; naruszenia {'kuweta_puste': 2}
+1753_test_k4_zapisz_cien_loguje_cal0.csv: naglowek[:8] = pola reguly 6: TAK; pol naglowka 12 (data;godzina;kuweta;folder;numer_zlecenia_b;arkusz;wiersz;kto_zatwierdzil;skoroszyt;regula;wynik;tryb); wierszy danych 40; wynik {'tylko_log': 40}; tryb {'cien': 40}; naruszenia 0
+1754_test_k3_excel_cien_tylko_log_i0.csv: naglowek[:8] = pola reguly 6: TAK; pol naglowka 12 (data;godzina;kuweta;folder;numer_zlecenia_b;arkusz;wiersz;kto_zatwierdzil;skoroszyt;regula;wynik;tryb); wierszy danych 3; wynik {'tylko_log': 2, 'zapisano': 1}; tryb {'cien': 2, 'pytaj': 1}; naruszenia 0
+1754_test_k3_excel_pytaj_propozycje0.csv: naglowek[:8] = pola reguly 6: TAK; pol naglowka 12 (data;godzina;kuweta;folder;numer_zlecenia_b;arkusz;wiersz;kto_zatwierdzil;skoroszyt;regula;wynik;tryb); wierszy danych 25; wynik {'tylko_log': 1, 'wskazano_recznie': 1, 'zapisano': 23}; tryb {'pytaj': 25}; naruszenia 0
+1753_test_k1_zero_zapisow_w_zlym_wi0.csv 204
+  wiersz logu 159 | kuweta jest | wynik blad | regula 5 | wiersz arkusza jest | numer_b jest | folder jest | kto jest | tryb pytaj
+  wiersz logu 161 | kuweta jest | wynik blad | regula 5 | wiersz arkusza jest | numer_b jest | folder jest | kto jest | tryb pytaj
+  wiersz logu 163 | kuweta jest | wynik blad | regula 5 | wiersz arkusza jest | numer_b jest | folder jest | kto jest | tryb pytaj
+  wiersz logu 165 | kuweta jest | wynik blad | regula 5 | wiersz arkusza jest | numer_b jest | folder jest | kto jest | tryb pytaj
+  wiersz logu 171 | kuweta pusta | wynik pominieto | regula 5 | wiersz arkusza pusty | numer_b pusty | folder jest | kto jest | tryb pytaj
+  wiersz logu 172 | kuweta pusta | wynik pominieto | regula 5 | wiersz arkusza pusty | numer_b pusty | folder jest | kto jest | tryb pytaj
+  rozne daty ['2026-11-18'] | osob 1 | arkusze ['Zlecenia'] | roznych (folder, kuweta) w wierszach nie-blad 200 | wierszy nie-blad 200
+1753_test_k4_tryb_cien_nie_zapisuje0.csv 200
+  wiersz logu 167 | kuweta pusta | wynik pominieto | regula 5 | wiersz arkusza pusty | numer_b pusty | folder jest | kto jest | tryb cien
+  wiersz logu 168 | kuweta pusta | wynik pominieto | regula 5 | wiersz arkusza pusty | numer_b pusty | folder jest | kto jest | tryb cien
+  rozne daty ['2026-11-18'] | osob 1 | arkusze ['Zlecenia'] | roznych (folder, kuweta) w wierszach nie-blad 200 | wierszy nie-blad 200
+1753_test_k4_zapisz_cien_loguje_cal0.csv 40
+  rozne daty ['2026-11-18'] | osob 1 | arkusze ['Zlecenia'] | roznych (folder, kuweta) w wierszach nie-blad 40 | wierszy nie-blad 40

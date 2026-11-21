@@ -1,0 +1,5 @@
+Pliki i katalogi testu T1, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T1/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 2 pliki, 382382 B | katalog roboczy - pelne listy --collect-only obu interpreterow (2 x 191 KB) - w dowodach jest t1_collect.txt

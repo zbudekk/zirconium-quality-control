@@ -1,0 +1,268 @@
+............................................................             [100%]
+=================================== PASSES ====================================
+_____________ test_k1_trzy_plytki_pieca_podpisy_i_kolory_100_proc _____________
+---------------------------- Captured stdout call -----------------------------
+
+[kryterium 1] 3 plytki, 72 gniazd: kolor (dane i piksel), kuweta, zab i miniatura zgodne w 72 z 72
+__________ test_k4_zamknij_piec_kompletne_i_braki_rowne_wynikowi_A6 ___________
+---------------------------- Captured stdout call -----------------------------
+
+[kryterium 4] kompletne 24 = A6 24; braki 8 = A6 8; lista brakow biezaca 8 = A6 8
+_ test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[piec_z_kolorami] _
+---------------------------- Captured stdout call -----------------------------
+
+[uklad poranny piec_z_kolorami, dpr 1]
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  150proc_zmaksymalizowane 1280x642: usterek 0, promien gniazda 14 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+_ test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[dwuznaczna_kandydaci] _
+---------------------------- Captured stdout call -----------------------------
+
+[uklad poranny dwuznaczna_kandydaci, dpr 1]
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  150proc_zmaksymalizowane 1280x642: usterek 0, promien gniazda 14 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+_ test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[nieznana_przypisana] _
+---------------------------- Captured stdout call -----------------------------
+
+[uklad poranny nieznana_przypisana, dpr 1]
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  150proc_zmaksymalizowane 1280x642: usterek 0, promien gniazda 14 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+___ test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[konflikt] ___
+---------------------------- Captured stdout call -----------------------------
+
+[uklad poranny konflikt, dpr 1]
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  150proc_zmaksymalizowane 1280x642: usterek 0, promien gniazda 14 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+_ test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[zamknij_piec_wynik] _
+---------------------------- Captured stdout call -----------------------------
+
+[uklad poranny zamknij_piec_wynik, dpr 1]
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  150proc_zmaksymalizowane 1280x642: usterek 0, promien gniazda 14 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+_ test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[poprawka_bursztyn] _
+---------------------------- Captured stdout call -----------------------------
+
+[uklad poranny poprawka_bursztyn, dpr 1]
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  150proc_zmaksymalizowane 1280x642: usterek 0, promien gniazda 14 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 14 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 20 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 18 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 26 px
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 26 px
+_ test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[ostatni_zamkniety_piec] _
+---------------------------- Captured stdout call -----------------------------
+
+[uklad poranny ostatni_zamkniety_piec, dpr 1]
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 35 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 30 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 19 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 24 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 17 px
+  150proc_zmaksymalizowane 1280x642: usterek 0, promien gniazda 12 px
+  150proc_ekran 1280x720: usterek 0, promien gniazda 17 px
+  125proc_zmaksymalizowane 1536x784: usterek 0, promien gniazda 24 px
+  125proc_ekran 1536x864: usterek 0, promien gniazda 19 px
+  100proc_zmaksymalizowane 1920x1001: usterek 0, promien gniazda 31 px
+  100proc_ekran 1920x1080: usterek 0, promien gniazda 36 px
+______________ test_odswiezenie_ekranu_rano_3_plytki_x_23_prace _______________
+---------------------------- Captured stdout call -----------------------------
+
+[rano, atrapa] odswiezen ekranu 13, najdluzsze 7.5 ms
+_______________________ test_t14_szesc_zadan_porannych ________________________
+---------------------------- Captured stdout call -----------------------------
+
+[T14 rano] 6 z 6 zadan: skan 2 plytek, dwuznaczna, kuweta wedlug ekranu, cofniecie pomylki, kuweta po numerze, zamknij piec i braki
+_______________ test_r2_p2_petla_okna_z_historia_20_tys_zlecen ________________
+---------------------------- Captured stdout call -----------------------------
+
+[rano, historia 20 tys. zlecen] lista brakow od nowa: 312 ms (raz); akcje 4, 17, 12, 11, 4, 7, 17, 28 ms; najdluzsza przerwa petli 35 ms
+______ test_k1_prawdziwy_kontroler_trzy_plytki_przez_skaner_i_petla_okna ______
+---------------------------- Captured stdout call -----------------------------
+
+[rano, petla okna, prawdziwy kontroler] 3 plytki x 23 prace policzone w 2.9 s; najdluzsza przerwa 51 ms (prog 200 ms); odswiezen ekranu 13, najdluzsze 7.5 ms; tykniec 280
+[D7] zbierania GC poza watkiem okna w tescie: [('silnik-nadzorca', 0, 567)]; obiekty USER / GDI: (11, 0) -> (13, 0)
+[D7] przerwane proby uruchomienia procesu silnika (E3-A2p): 0; starty procesu 1
+____ test_a_prawdziwa_aplikacja_spacja_ramka_w_kolory_mapy_i_plan_ramki_p _____
+---------------------------- Captured stdout call -----------------------------
+
+[A12, Aplikacja] Spacja -> ramka W 20 ms; kolory W = mapa w 19 gniazdach; plan P = session: 278 pol
+_______ test_k1_plan_ramki_porannej_rowny_planowi_session_pole_po_polu ________
+---------------------------- Captured stdout call -----------------------------
+
+[kryterium 1] 5 plany na atrapie P = plan_plytek: 1115 pol zgodnych, 0 roznych
+_ test_k2_enter_na_ramce_raz_w_zdarzeniach_po_restarcie_i_zamknij_piec_tylko_biezacy _
+---------------------------- Captured stdout call -----------------------------
+
+[kryterium 2] potwierdzenie z Enter: 1 wpis po 3 uruchomieniach (historia x2); zamknij_piec biezacy: zamknieto 1; z historii: nieaktualne, piec otwarty; zdarzen ramki 17, duplikatow 0
+________ test_d2_wyjatek_po_zamknieciu_pieca_uniewaznia_pamiec_brakow _________
+------------------------------ Captured log call ------------------------------
+ERROR    stanowisko.kontroler_api:kontroler_api.py:3299 kontroler: polecenie zamknij_piec nie powiodlo sie
+Traceback (most recent call last):
+  File "<PC-katalog>\t0\repo\Ramki\stanowisko\stanowisko\kontroler_api.py", line 3293, in _polecenie
+    dane = funkcja()
+           ^^^^^^^^^
+  File "<PC-katalog>\t0\repo\Ramki\stanowisko\stanowisko\kontroler_api.py", line 3600, in wykonaj
+    wynik = self.rano.zamknij_piec(sesja_pieca_id=sesja_pieca_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\t0\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py", line 715, in zamknij_i_wyjatek
+    raise RuntimeError("blad po zapisie")
+RuntimeError: blad po zapisie
+_ test_k3_excel_pytaj_propozycje_rowne_kompletnym_i_tylko_kolor_wlasciwych_komorek _
+---------------------------- Captured stdout call -----------------------------
+
+[kryterium 3] propozycje 24 = kompletne A6 24; zatwierdzone 24, pominiete 0, do sprawdzenia 1; komorek zmienionych 24 (tylko B wlasciwych wierszy); przerwa petli 31 ms
+______ test_k4_spacja_ramka_w_ponizej_1s_kolory_rowne_mapie_i_petla_okna ______
+---------------------------- Captured stdout call -----------------------------
+
+[kryterium 4] Spacja -> stan atrapy W: maks 28 ms (5 prob, prog 1000 ms); kolory W = mapa w 95 gniazdach; najdluzsza przerwa petli okna 24 ms (tykniec 376)
+______ test_k5_wylaczona_ramka_i_brak_excela_ostrzezenie_i_dalsza_praca _______
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.indicate:indicate.py:300 ramka P: polecenie gaszace przy zamykaniu nie doszlo
+WARNING  stanowisko.indicate:indicate.py:300 ramka W: polecenie gaszace przy zamykaniu nie doszlo
+WARNING  stanowisko.kontroler_api:kontroler_api.py:2622 kontroler: zgaszenie ramki W przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+WARNING  stanowisko.kontroler_api:kontroler_api.py:2622 kontroler: zgaszenie ramki P przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+_ test_k5_zamkniecie_programu_gasi_ramki_zatrzymuje_klientow_i_rozlacza_excel _
+---------------------------- Captured stdout call -----------------------------
+
+[kryterium 5] zamkniecie programu 7 ms: ramki W i P zgaszone, klienci zatrzymani, Excel rozlaczony
+__________ test_polecenia_a12_bez_ramek_i_excela_odmowa_bez_wyjatku ___________
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3260 kontroler: polecenie przejmij_ramke ze zlymi argumentami (blad okna)
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3260 kontroler: polecenie przejmij_ramke ze zlymi argumentami (blad okna)
+__________ test_b1_podwojne_klikniecie_zatwierdz_i_pomin_jeden_zapis __________
+---------------------------- Captured stdout call -----------------------------
+
+[B1] podwojne klikniecie: zapisow koloru 1, wpisow logu 2 (zapisano, pominieto)
+____________ test_p2_blad_planu_gasi_ramke_komunikat_i_ponowienie _____________
+------------------------------ Captured log call ------------------------------
+ERROR    stanowisko.kontroler_api:kontroler_api.py:2498 kontroler: planu ramki porannej nie da sie przygotowac - ramka zgaszona, ponowienie
+Traceback (most recent call last):
+  File "<PC-katalog>\t0\repo\Ramki\stanowisko\stanowisko\kontroler_api.py", line 2484, in _synchronizuj_ramke_p
+    pp = self.rano.plan_plytek(r.sesja_pieca_id, kolejnosc=self._kolejnosc)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\t0\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py", line 1144, in zepsuty
+    raise RuntimeError("blad odczytu bazy")
+RuntimeError: blad odczytu bazy
+__________ test_p8_nieoczekiwany_blad_excela_komunikat_z_lista_kuwet __________
+------------------------------ Captured log call ------------------------------
+ERROR    stanowisko.kontroler_api:kontroler_api.py:2705 kontroler: krok Excela (piec) nie powiodl sie
+Traceback (most recent call last):
+  File "<PC-katalog>\t0\repo\Ramki\stanowisko\stanowisko\kontroler_api.py", line 2699, in _przetworz_excel
+    self._excel_krok_piec(krok[1], poprawki=krok[2])
+  File "<PC-katalog>\t0\repo\Ramki\stanowisko\stanowisko\kontroler_api.py", line 2747, in _excel_krok_piec
+    pozycje = ex.propozycje({**wynik, "kompletne": kompletne}) if kompletne else []
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\t0\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py", line 1297, in zepsute
+    raise TypeError("nieznany typ komorki")
+TypeError: nieznany typ komorki
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_k1_trzy_plytki_pieca_podpisy_i_kolory_100_proc
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_k2_klik_w_zolte_dwaj_kandydaci_wybor_zapisuje_decyzje_i_zmienia_kolor
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_k2_bez_osoby_wybor_nieaktywny_z_wyjasnieniem
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_k3_trzy_sposoby_kolejnosci_kuwet
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_k3_rozkladanie_enter_i_cofniecie_backspace
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_k4_zamknij_piec_kompletne_i_braki_rowne_wynikowi_A6
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_k5_bez_ramki_i_excela_komunikat_program_dziala_dalej
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_nieznana_przypisana_recznie_po_numerze_kuwety
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_konflikt_blokuje_zamkniecie_poprawka_bursztyn_z9
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_plytka_bez_numeru_ponowny_skan_i_plytka_wieczorna_rano
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_a6r2_reczne_zamkniecie_braku_ponowne_otwarcie_pieca_i_zamkniecie_w_trakcie_analizy
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_przelacznik_trybu_wieczor_poranek_i_pamiec_po_restarcie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_okno_zmaksymalizowane_w_trybie_rano
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[piec_z_kolorami]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[dwuznaczna_kandydaci]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[nieznana_przypisana]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[konflikt]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[zamknij_piec_wynik]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[poprawka_bursztyn]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec[ostatni_zamkniety_piec]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_przy_100_proc_w_gniezdzie_kuweta_zab_i_miniatura
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_odswiezenie_ekranu_rano_3_plytki_x_23_prace
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_zero_sciezek_i_nazw_plikow_na_ekranie_porannym
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_t14_szesc_zadan_porannych
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_r2_b1_enter_niesie_kuwete_pokazana_odmowa_gdy_w_kontrolerze_inna
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_r2_p1_zakladka_ostatni_zamkniety_piec_po_skanie_nastepnego
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_r2_p2_petla_okna_z_historia_20_tys_zlecen
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_r2_p3_zamknij_piec_niedostepne_w_trakcie_skanowania
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_r2_p4_obwodka_tylko_gniazd_z_listy_kuwet
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_r2_p5_napisy_poprawki_wg_zlecenie_odhaczone
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_r2_a6r4_nowy_wsad_pytanie_w_oknie_numer_mimo_i_przeniesienie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_ui_rano.py::test_k1_prawdziwy_kontroler_trzy_plytki_przez_skaner_i_petla_okna
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_a_prawdziwa_aplikacja_spacja_ramka_w_kolory_mapy_i_plan_ramki_p
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k1_plan_ramki_porannej_rowny_planowi_session_pole_po_polu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k2_enter_na_ramce_raz_w_zdarzeniach_po_restarcie_i_zamknij_piec_tylko_biezacy
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k2_zdarzenia_ramki_klucz_unikalny_tylko_biezacy_piec_i_pamiec_brakow
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_d2_wyjatek_po_zamknieciu_pieca_uniewaznia_pamiec_brakow
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k3_excel_pytaj_propozycje_rowne_kompletnym_i_tylko_kolor_wlasciwych_komorek
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k3_excel_cien_tylko_log_i_restart_okna_excela
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k4_spacja_ramka_w_ponizej_1s_kolory_rowne_mapie_i_petla_okna
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k5_wylaczona_ramka_i_brak_excela_ostrzezenie_i_dalsza_praca
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k5_zamkniecie_programu_gasi_ramki_zatrzymuje_klientow_i_rozlacza_excel
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_okno_1920x1080_bez_obciec_z_paskiem_ramek_i_oknem_excela
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_polecenia_a12_bez_ramek_i_excela_odmowa_bez_wyjatku
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_ramki_i_excel_z_ustawien_ostrzezenie_bez_awarii
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_b1_podwojne_klikniecie_zatwierdz_i_pomin_jeden_zapis
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_p2_blad_planu_gasi_ramke_komunikat_i_ponowienie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_p3_zamknij_piec_z_ramki_w_trybie_wieczor_gasi_ramke_p
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_p4_pozycje_excela_tozsamoscia_po_odswiezeniu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_p5_nowy_piec_nie_zastepuje_po_cichu_niezalatwionych
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_p6_powtorzony_i_przemianowany_plik_nie_gasi_ramki_w_i_silnik_wrocil
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_p7_stare_zamknij_piec_po_ponownym_otwarciu_nieaktualne
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_p8_nieoczekiwany_blad_excela_komunikat_z_lista_kuwet
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_d2_baza_zajeta_zdarzenia_ramki_czekaja_i_wracaja
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_d9_poprzednia_proba_z_bledem_widoczna_przy_pozycji
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_enter_na_ramce_kuweta_rozlozona_na_ekranie_takze_po_restarcie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_pn1_kuweta_z_praca_na_plytce_okraglej_rozlozona_dopiero_na_ekranie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_pn2_pozycja_excela_z_bledem_da_sie_pominac_i_cien_bez_dubli
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_pn3_zalegly_piec_osiagalny_z_ekranu_gdy_ostatni_zalatwiony
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_pr31_enter_na_ramce_w_trybie_wieczor_bez_automatu_rozlozenia
+60 passed in 64.01s (0:01:04)

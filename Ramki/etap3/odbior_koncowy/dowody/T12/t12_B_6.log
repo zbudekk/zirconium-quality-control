@@ -1,0 +1,10 @@
+[1/4] Powrot z wersji 0.3.9-migracja do 0.3.1...
+[2/4] Baza: schemat 2; wersja 0.3.1 obsluguje schemat do 1
+      UWAGA: wersja 0.3.9-migracja zmienila schemat bazy - wersja 0.3.1 tej bazy NIE otworzy.
+      Kopia sprzed aktualizacji: stanowisko.kopia_v1_20261121_025926.sqlite z 2026-11-21 02:59 (schemat 1) - najnowsza sprawdzona.
+      Inne kopie: starszych kopii: 1; pominieto nowsze: 0 o nowszym schemacie, 0 takich, ktore nie przeszly kontroli.
+      Po przywroceniu z bazy roboczej zniknie wszystko, co zapisano po tej chwili: 3 wpisow w 1 tabelach.
+        tabela zdarzenia: 4 w kopii, 7 teraz (+3)
+BLAD: powrot do 0.3.1 wymaga przywrocenia kopii bazy sprzed aktualizacji
+CO ZROBIC: Jesli zgadzasz sie na utrate wpisow wymienionych powyzej, uruchom: Wroc_do_poprzedniej.cmd /przywroc-kopie (biezaca baza zostanie odlozona do dane\kopie, nie skasowana). Niczego nie zmieniono.
+POWROT: NIEUDANA (kod 8) - wersja biezaca bez zmian: 0.3.9-migracja

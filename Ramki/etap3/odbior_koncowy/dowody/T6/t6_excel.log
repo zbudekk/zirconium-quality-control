@@ -1,0 +1,179 @@
+
+pulapka                      ok / razem
+  prosty                        10 / 10
+  ta_sama_kuweta_inne_daty      10 / 10
+  zera_wiodace                   8 / 8
+  kod_sklejony                   8 / 8
+  inicjal_imienia_w_h            8 / 8
+  inicjaly_zamiast_nazwiska     10 / 10
+  puste_h                       10 / 10
+  puste_h_nowszy_inny            8 / 8
+  pole_b_zielone                10 / 10
+  reklamacja_nowy_wiersz        10 / 10
+  reklamacja_oba_zielone         6 / 6
+  dwa_otwarte_to_samo_h          6 / 6
+  duplikat_ta_sama_data          6 / 6
+  brak_kuwety_w_arkuszu          8 / 8
+  zlecenie_bez_wiersza           8 / 8
+  fragment_kuwety                8 / 8
+  c_liczba_spacje                6 / 6
+  data_tekstem                   6 / 6
+  nfd                            6 / 6
+  wielkosc_liter_spacje          6 / 6
+  pole_b_inny_kolor              4 / 4
+  kuweta_niejednoznaczna         4 / 4
+  brak_numeru                    2 / 2
+  prywatne_numer_w_b             6 / 6
+  prywatne_numer_w_h             4 / 4
+  prywatne_zielone               3 / 3
+  prywatne_brak                  3 / 3
+  niewpisane_stary_pusty_h       6 / 6
+  reklamacja_inne_h              4 / 4
+  prywatne_kolizja_b             2 / 2
+  dopisane_po_odczycie           4 / 4
+klasa, regula: {('jeden_wiersz', 2): 76, ('jeden_wiersz', 3): 34, ('juz_odhaczone', 4): 19, ('wskaz_wiersz', 5): 71}
+RAZEM: 200 z 200
+.
+wyniki: {'zapisano': 110, 'wskazano_recznie': 38, 'juz_odhaczone': 19, 'pominieto': 33}; zapisow 148: z wyboru programu 110, wiersz wskazany przez test 38; w zlym wierszu 0
+.
+odczyt i indeks 30 tys. wierszy: pierwszy 203 ms, ponowny 21 ms; zapytanie: mediana 0.012 ms, max 0.094 ms (200 zapytan)
+...
+tryb cien: {'tylko_log': 148, 'juz_odhaczone': 19, 'pominieto': 33}; zapisow koloru: 0
+............................................................................................................................
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_k1_200_zapytan_wlasciwa_klasa
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_k1_zero_zapisow_w_zlym_wierszu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_k2_wyszukanie_ponizej_50_ms
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_k3_log_csv_ma_pola_reguly_6
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_k4_domyslnie_pytaj_przed_zapisem
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_k4_tryb_cien_nie_zapisuje_niczego
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_k4_zapisz_cien_loguje_caly_piec
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_k5_zapis_dotyka_tylko_koloru_jednej_komorki
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_arkusz_zmieniony_po_propozycji_odmowa_bez_zapisu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_p1_wiersz_zlecenia_dopisany_po_odczycie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_p2_zapis_tylko_do_skoroszytu_i_arkusza_z_propozycji
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_pole_b_zazielenione_w_miedzyczasie_tylko_log
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_wskaz_wiersz_tylko_z_listy_kandydatow
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_operator_wymagany_i_podwojne_zatwierdzenie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_d3_x4_zapis_tylko_dla_pozycji_z_zamknietego_pieca
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_r3_d2_zaloguj_juz_odhaczone_odmawia_przy_do_sprawdzenia
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_odswiezanie_odczytu_co_kilka_minut
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_excel_niedostepny_komunikat_bez_awarii
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_d1_repr_bez_nazwiska
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r1 dokladnie, nie fragment]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r2 nazwa rozstrzyga, nowszy wiersz innej osoby zielony]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[P3 r2 nowszy otwarty wiersz innej osoby]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r2 normalizacja H]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r3 inicjal imienia, najnowszy]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r3 puste H, najnowszy]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r3 najnowszy innej osoby]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r3 inicjaly zamiast nazwiska]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r3 dwa najnowsze z ta sama data]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r3 wiersz bez daty pod najnowszym]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r3 wiersz bez daty nad najnowszym]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r3 data tekstem i numer seryjny]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[D8 data z przyszlosci = bez daty]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r4 pole B juz zielone]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r4 reklamacja: stary zielony, nowy otwarty]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r4 reklamacja: oba zielone]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r4 bialy = bez wypelnienia]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[P3 reklamacja z innym H, stary otwarty]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[P3 reklamacja z innym H, stary zielony]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[P3 zlecenie niewpisane: stary wiersz, puste H]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[P3 zlecenie niewpisane: stary wiersz, puste H, zielony]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[limit wieku: H jak folder, ponad 60 dni]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[limit wieku: H jak folder, zielone, ponad 60 dni]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[limit wieku: wiersz bez daty]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r5 inne wypelnienie B]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r5 dwa otwarte z ta sama nazwa]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r5 starszy otwarty, najnowszy zielony]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r5 brak kuwety w C]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r5 brak numeru kuwety]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[r5 kuweta niejednoznaczna]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[zera wiodace i spacje w C]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[prywatne: numer w B]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[prywatne: numer w H]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[prywatne: dwa wiersze]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[prywatne: zielone]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[prywatne: brak]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[P3 prywatne: B zwyklego zlecenia z 2019]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[P3 prywatne: B zwyklego zlecenia biezacego]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[P3 prywatne: wiersz prywatny ponad limit]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_reguly_1_5_na_malym_arkuszu[D4 prywatne: wiersz ponad limit i swiezy]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_p3_limit_wieku_wylaczony_i_do_sprawdzenia
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[3263.0-3263]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[3263-3263_0]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[3263-3263_1]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[ 3263 -3263]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[03263-3263]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[0412-412]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[3263\xa0-3263]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[None-None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[-None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[  -None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[13263-13263]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[3263/2-3263/2]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[3263a-3263a]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[3263.5-3263.5]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_kuweta[#1234-#1234]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[v0-oczekiwane0]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[v1-oczekiwane1]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[16.11.2026-oczekiwane2]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[2026-11-16-oczekiwane3]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[16.11.26-oczekiwane4]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[16-11-2026-oczekiwane5]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[16/11/2026-oczekiwane6]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[ 16.11.2026 -oczekiwane7]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[46342.0-oczekiwane8]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[46342-oczekiwane9]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[None-None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[-None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[abc-None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[5.0-None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[31.02.2026-None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_data_z_komorki[True-None]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_numer[40123.0-40123]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_numer[40123-40123]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_numer[ 40123 -40123]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_numer[None-]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_numer[Z-12/2026-Z-12/2026]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_norm_numer[12.5-12.5]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Testowski 3263 zs-3263-oczekiwane0]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Testowski 1784PG-1784-oczekiwane1]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Testowski J. 3263 zs-3263-oczekiwane2]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Testowski J.3263-3263-oczekiwane3]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Testowski 0412-412-oczekiwane4]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[3263 Testowski Jan-3263-oczekiwane5]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Testowski_88_zs-88-oczekiwane6]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Testowski 512 Anna-512-oczekiwane7]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Nowak-Testowa 3263 zs-3263-oczekiwane8]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[Z\u0307o\u0301\u0142tkowska 3263 ZS1-3263-oczekiwane9]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[#1234 Testowski-#1234-oczekiwane10]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_nazwisko_z_folderu[J.K. 3263-3263-oczekiwane11]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_d9_kolumny_do_xfd
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_propozycje_z_wyniku_pieca_i_tabela_excel_zapisy
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_a6_wynik_zamknij_piec_z_sesji_rano_do_propozycji_i_zapisu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_p1_propozycje_robia_swiezy_odczyt
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_d3_x4_pozycja_z_otwartego_pieca_odmowa
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_p5_blad_logu_csv_po_zapisie_koloru
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_excel_com_atrapa_interfejsu_odczyt_i_kolor
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_excel_com_pelny_przebieg_zmienia_tylko_kolor_jednej_komorki
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_b1_odrzucony_zapis_i_wstawiony_wiersz_zadnego_zapisu_w_zlym_wierszu
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_b1_odrzucony_zapis_bez_zmian_ponowienie_udane
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_b1_wiersz_zmieniony_zaraz_po_zapisie_komunikat_i_blad
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_r3_p1_czesciowy_sukces_zapisu_bez_falszywego_juz_odhaczone
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_r3_p1_czesciowy_sukces_przy_przesunietych_wierszach_wykryty
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_r3_p1_blad_zapisu_i_odczytu_koloru_zapis_mogl_dojsc
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_r3_d5_powod_odmowy_zachowany_gdy_log_zawiedzie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_d2_rozlacz_zwalnia_obiekty_com_i_laczy_ponownie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_excel_com_bez_pywin32_czytelny_blad
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_kolor_com_w_obie_strony
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_tylko_biblioteka_standardowa_i_com_leniwie
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_excel.py::test_arkusz_syntetyczny_pulapki_i_fikcyjne_nazwy
+129 passed in 43.03s
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 17 modulow, z repo poza testami 0 modulow, modulow testow z repo 3; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

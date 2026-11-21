@@ -1,0 +1,12 @@
+=== git -C <PC-katalog>\t0\repo config --get core.autocrlf 
+false
+KOD=0 
+=== git -C <PC-katalog>\t0\repo status --short 
+KOD=0 
+=== git -C <PC-katalog>\t0\repo rev-parse HEAD 
+571e186cb8178209da670dde244dfc56bba5e300
+=== copy <PC-katalog>\t0\repo\Ramki\stanowisko\ustawienia.przyklad.toml <PC-katalog>\t0\repo\Ramki\stanowisko\ustawienia.toml 
+        1 file(s) copied.
+KOD=0 
+=== git -C <PC-katalog>\t0\repo status --short (po copy) 
+KOD=0 

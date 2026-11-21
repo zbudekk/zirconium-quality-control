@@ -1,0 +1,15 @@
+{
+ "zapisy": [
+  {
+   "nr": 1,
+   "rodzaj": "dobry",
+   "zrodlo": 0,
+   "plik": "<PC-katalog>\\koordynator\\robocze\\odbior\\T7\\robocze\\b1b\\eksport\\skan_0001.stl",
+   "start": 1795228238.8709674,
+   "koniec": 1795228240.457641,
+   "rozmiar": 58251084,
+   "sha16": "c85504f17628ac3f",
+   "mtime_ns": 1795228240457640900
+  }
+ ]
+}

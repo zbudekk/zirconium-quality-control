@@ -1,0 +1,41 @@
+[1/9] Sumy SHA-256 paczki (<PC-katalog>\t0\odbior\paczka_0.3.1)...
+      zgodne 210 z 210; wersja 0.3.1, commit 571e186cb817
+[2/9] Python 3.12...
+      <PC>\AppData\Local\Programs\Python\Python312\python.exe: 3.12.10
+[3/9] Katalog instalacji <PC-katalog>\koordynator\robocze\odbior\T12\robocze\K_B2...
+      wersja biezaca: brak (pierwsza instalacja)
+[4/9] Ustawienia...
+      istniejacy ustawienia.toml zostaje bez zmian (SHA-256 e149da2ba52f52c2...)
+      baza: jeszcze jej nie ma; program 0.3.1 obsluguje schemat 1
+[5/9] Katalog wersji 0.3.1...
+      wersja 0.3.1 jest juz zainstalowana i zgodna z paczka - pliki bez zmian
+[6/9] Kopia bazy...
+      bazy jeszcze nie ma - program zalozy ja przy pierwszym uruchomieniu
+[7/9] Samokontrola wersji 0.3.1...
+      OK python: Python 3.12.10
+      OK pakiety: wersje pakietow zgodne 11 z 11 z requirements.txt (bez pytest)
+      OK moduly: moduly programu z bibliotekami DLL: zaladowane 27 z 27 (Qt, Open3D, scipy, trimesh, lancuch analizy, ramki, Excel)
+      OK ustawienia: plik ustawien wczytany i poprawny: <PC-katalog>\koordynator\robocze\odbior\T12\robocze\K_B2\ustawienia.toml - 0 kluczy z wartoscia domyslna
+      OK operatorzy: osoby do wyboru na poczatku zmiany: 1
+      OK folder_skanera: folder eksportu skanera istnieje i daje sie czytac: <PC-katalog>/koordynator/robocze/odbior/T12/robocze/wej/eksport
+      OK folder_cyrkon: folder projektow Cyrkon istnieje i daje sie czytac: <PC-katalog>/koordynator/robocze/odbior/T12/robocze/wej/Cyrkon
+      OK folder_prywatne: folder projektow Prywatne istnieje i daje sie czytac: <PC-katalog>/koordynator/robocze/odbior/T12/robocze/wej/Prywatne
+      OK folder_millbox: folder MillBox istnieje i daje sie czytac: <PC-katalog>/koordynator/robocze/odbior/T12/robocze/wej/millbox
+      OK dane_folder: folder danych istnieje, zapis mozliwy: <PC-katalog>\koordynator\robocze\odbior\T12\robocze\K_B2\dane
+      OK dane_miejsce: wolne miejsce na dysku folderu danych: 52.3 GB
+      OK dane_polozenie: dane programu poza folderami synchronizowanymi OneDrive / SharePoint (sprawdzone sciezki: 7, znane foldery synchronizowane: 1)
+      OSTRZEZENIE baza: brak pliku bazy - zostanie zalozona przy pierwszym starcie programu: <PC-katalog>\koordynator\robocze\odbior\T12\robocze\K_B2\dane\stanowisko.sqlite; nic nie rob - baza powstanie sama przy pierwszym uruchomieniu programu
+      OK modele: uklady plytek z [plytki]: poprawne 8 z 8 (uklad.json i modele plytka_n*.stl)
+      OSTRZEZENIE pula: pula z jednego folderu (pula_wpisow = false): 0 plikow STL, [sciezki] folder_cyrkon - skany beda czekac na projekty; skopiuj projekty STL do folderu puli i uzyj w programie Odswiez pule - bez projektow skany czekaja
+      OK pamiec_puli: pamiec puli na dysku: 0 wpisow, 0 MB, sprzatanie wpisow nieuzywanych od 30 dni (folder powstanie przy pierwszej budowie puli)
+      OSTRZEZENIE ramka_wieczorna: proby polaczenia z ramka wieczorna nie bylo - pominieto (--bez-sieci); gdy ramka jest wlaczona, uruchom samokontrole bez --bez-sieci, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie
+      OSTRZEZENIE ramka_poranna: proby polaczenia z ramka poranna nie bylo - pominieto (--bez-sieci); gdy ramka jest wlaczona, uruchom samokontrole bez --bez-sieci, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie
+      OSTRZEZENIE excel: Excel nie jest uruchomiony w tej sesji uzytkownika; przed poranna praca otworz plik zlecen w Excelu na tym laptopie (z Autozapisem), bez Excela program dziala - zlecenia odhacza sie wtedy recznie
+      OK egzemplarz: program Stanowisko nie jest teraz uruchomiony na tej bazie
+      OK sumy: sumy SHA-256 plikow programu zgodne 130 z 130 (SUMY_PROGRAMU.sha256), plikow nadmiarowych 0
+      SAMOKONTROLA: ZIELONA (ok 16, ostrzezenia 5)
+[8/9] Przelaczenie wersji biezacej...
+      wersja biezaca: 0.3.1; poprzednia: brak
+[9/9] Skrot na pulpicie...
+      pominiety (opcja /skrot zaklada skrot Stanowisko na pulpicie)
+INSTALACJA: GOTOWA - wersja biezaca 0.3.1 (poprzednia: brak). Uruchamianie: <PC-katalog>\koordynator\robocze\odbior\T12\robocze\K_B2\Stanowisko.cmd

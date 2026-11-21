@@ -1,0 +1,5 @@
+Pliki i katalogi testu T6, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T6/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+katalog | robocze\ | 8 plikow, 57686 B | katalog roboczy - kopie logow Excela z testow (kolumna folder - dane sztuczne; plan: nie kopiowac) i 2 skrypty liczace

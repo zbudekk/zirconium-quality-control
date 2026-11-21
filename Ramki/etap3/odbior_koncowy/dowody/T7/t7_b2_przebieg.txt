@@ -1,0 +1,43 @@
+03:08:16.789 === proba b2 tryb=program ile=4 ; instalacja <PC-katalog>\t0\odbior_t12\Stanowisko ; ustawienia <PC-katalog>\koordynator\robocze\odbior\T7\ustawienia_b2.toml
+03:08:17.674 okno 1 uruchomione (cmd PID 8268): Polecenie.cmd -m stanowisko.aplikacja --ustawienia ... --zamknij-po 600
+03:08:30.627 posrednik programu: PID 29100, StartTime 03:08:17.717
+03:08:32.401 okno 2 uruchomione (cmd PID 36120): symulator_skanera.py --ile 4 --odstep 60 --rownolegle 1 --seed 1
+03:08:34.938 1. plik skanu pojawil sie w folderze eksportu
+03:09:39.511 2. skan zapisany (rozmiar staly 2,5 s; 67 s po starcie symulatora). skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; plikow STL w eksporcie: 2 ; wynikow w logu: 1 ; zadania_niezakonczone.json: False
+03:09:39.526 przed zakonczeniem: potomkowie posrednika: 32888; ich potomkowie: 18536
+03:09:39.536 WYKONANO: Stop-Process -Id 29100 -Force
+03:09:41.049 po 1,5 s: nie zyje 3 z 3 procesow programu (zyja: )
+03:09:41.132 po zakonczeniu programu: skany: status	count(*) | plytka_nie_z_trybu	1 | -- wierszy: 1 ; plikow STL w eksporcie: 2 ; wynikow w logu: 1 ; zadania_niezakonczone.json: False
+03:09:44.155 okno 1 uruchomione PONOWNIE (cmd PID 15572)
+03:10:17.072 skany: status	count(*) | plytka_nie_z_trybu	2 | -- wierszy: 1 ; plikow STL w eksporcie: 2 ; wynikow w logu: 2 ; zadania_niezakonczone.json: False
+03:10:37.155 skany: status	count(*) | plytka_nie_z_trybu	2 | -- wierszy: 1 ; plikow STL w eksporcie: 3 ; wynikow w logu: 2 ; zadania_niezakonczone.json: False
+03:10:57.242 skany: status	count(*) | plytka_nie_z_trybu	2 | -- wierszy: 1 ; plikow STL w eksporcie: 3 ; wynikow w logu: 2 ; zadania_niezakonczone.json: False
+03:11:17.334 skany: status	count(*) | plytka_nie_z_trybu	3 | -- wierszy: 1 ; plikow STL w eksporcie: 3 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:11:37.460 skany: status	count(*) | plytka_nie_z_trybu	3 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:11:57.590 skany: status	count(*) | plytka_nie_z_trybu	3 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 3 ; zadania_niezakonczone.json: False
+03:12:17.693 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:12:37.799 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:12:57.892 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:13:17.967 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:13:38.044 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:13:58.128 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:14:18.205 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:14:38.285 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:14:58.369 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:15:18.450 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:15:38.536 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:15:58.627 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:16:18.705 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:16:38.802 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:16:58.873 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:17:18.951 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:17:39.030 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:17:59.124 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:18:19.216 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:18:39.301 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:18:59.417 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:19:19.508 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:19:39.594 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:19:59.690 skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False
+03:19:59.693 okno 1 zakonczone: True; okno 2 (symulator) zakonczone: True
+03:20:02.598 KONIEC proby b2. skany: status	count(*) | plytka_nie_z_trybu	4 | -- wierszy: 1 ; plikow STL w eksporcie: 4 ; wynikow w logu: 4 ; zadania_niezakonczone.json: False

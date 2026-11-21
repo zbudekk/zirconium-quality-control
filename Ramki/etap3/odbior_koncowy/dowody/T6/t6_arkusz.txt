@@ -1,0 +1,1 @@
+wierszy 30000 (scenariusze 297, tlo 29703); zapytan 200: jeden_wiersz 110, juz_odhaczone 19, wskaz_wiersz 71

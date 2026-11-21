@@ -1,0 +1,6 @@
+krok1_zainstaluj_testy KOD=0 
+krok3_wmi KOD=0 
+collect_wersja KOD=0 
+collect_bazowy KOD=0 
+krok4_pytest_wersja KOD=0 
+krok5_pytest_bazowy KOD=0 

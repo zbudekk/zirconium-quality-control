@@ -1,0 +1,20 @@
+..                                                                       [100%]
+=================================== PASSES ====================================
+____________ test_zabity_proces_analizy_komunikat_i_nastepny_skan _____________
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.aplikacja:aplikacja.py:1474 stanowisko: analiza skanu 26476705f55c40a1 nie dala wyniku (proces)
+__________ test_silnik_nie_startuje_skan_czeka_i_wraca_po_restarcie ___________
+------------------------------ Captured log call ------------------------------
+ERROR    stanowisko.silnik:silnik.py:1754 proces silnika nie wystartowal: ModuleNotFoundError: No module named 'nie_ma_takiego_modulu_analizy'
+WARNING  stanowisko.aplikacja:aplikacja.py:1474 stanowisko: analiza skanu 41c935d1f4890a4a nie dala wyniku (start)
+ERROR    stanowisko.silnik:silnik.py:1754 proces silnika nie wystartowal: ModuleNotFoundError: No module named 'nie_ma_takiego_modulu_analizy'
+WARNING  stanowisko.aplikacja:aplikacja.py:1474 stanowisko: analiza skanu 41c935d1f4890a4a nie dala wyniku (start)
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja.py::test_zabity_proces_analizy_komunikat_i_nastepny_skan
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja.py::test_silnik_nie_startuje_skan_czeka_i_wraca_po_restarcie
+2 passed, 27 deselected in 3.71s
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 42 modulow, z repo poza testami 0 modulow, modulow testow z repo 3; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

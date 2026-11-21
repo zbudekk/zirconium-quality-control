@@ -1,0 +1,41 @@
+T7 proba B3 - stan bazy po probie i po dodatkowym starcie kontrolnym (03:31:05); polecenia: PY -I <ODB>\narzedzia\sql_odczyt.py --baza <ROB>\robocze\b3\dane\stanowisko.sqlite "<zapytanie>"
+
+== SELECT status, count(*) FROM skany GROUP BY status
+status	count(*)
+blad	1
+plytka_nie_z_trybu	2
+-- wierszy: 2
+
+== SELECT id, status, sha16 FROM skany ORDER BY id
+id	status	sha16
+1	plytka_nie_z_trybu	c85504f17628ac3f
+2	blad	edb739f16b06e032
+3	plytka_nie_z_trybu	0b1286719e932bbd
+-- wierszy: 3
+
+== SELECT typ, count(*) FROM zdarzenia GROUP BY typ
+typ	count(*)
+blad_analizy	1
+blad_analizy_rodzaj	1
+nowy_skan	3
+podglad	2
+program_start	2
+program_stop	2
+skan_przyjety	2
+-- wierszy: 7
+
+== SELECT id, czas, zrodlo, typ, skan_id, dane FROM zdarzenia WHERE typ IN ('nowy_skan','program_start','program_stop','blad_analizy','blad_analizy_rodzaj','skan_przyjety') ORDER BY id
+id	czas	zrodlo	typ	skan_id	dane
+1	2026-11-21T03:20:06	system	program_start		{"wersja": "etap3-A3a", "wznowione": 0, "znane_pliki": 0}
+2	2026-11-21T03:20:21	scanner	nowy_skan		{"duplikat": false, "ponowny": false, "rozmiar": 58251084, "sha16": "c85504f17628ac3f", "trojkaty": 1165020, "zastany": false}
+3	2026-11-21T03:21:16	silnik	skan_przyjety	1	{"czas_s": 54.28, "prace": 12, "status": "plytka_nie_z_trybu"}
+5	2026-11-21T03:21:22	scanner	nowy_skan		{"duplikat": false, "ponowny": false, "rozmiar": 48890984, "sha16": "edb739f16b06e032", "trojkaty": 977818, "zastany": false}
+6	2026-11-21T03:21:29	silnik	blad_analizy	2	{"opis": "proces: proces silnika zakonczyl sie w trakcie analizy (kod wyjscia 4294967295); analiza przerwana", "typ": null}
+7	2026-11-21T03:21:29	silnik	blad_analizy_rodzaj	2	{"rodzaj": "proces"}
+8	2026-11-21T03:22:24	scanner	nowy_skan		{"duplikat": false, "ponowny": false, "rozmiar": 56152084, "sha16": "0b1286719e932bbd", "trojkaty": 1123040, "zastany": false}
+9	2026-11-21T03:22:58	silnik	skan_przyjety	3	{"czas_s": 33.89, "prace": 12, "status": "plytka_nie_z_trybu"}
+11	2026-11-21T03:30:07	system	program_stop		{"niezakonczone": 0}
+12	2026-11-21T03:30:43	system	program_start		{"wersja": "etap3-A3a", "wznowione": 0, "znane_pliki": 3}
+13	2026-11-21T03:31:05	system	program_stop		{"niezakonczone": 0}
+-- wierszy: 11
+

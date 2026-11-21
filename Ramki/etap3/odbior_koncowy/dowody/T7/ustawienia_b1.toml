@@ -1,0 +1,120 @@
+# WZOR pliku ustawien. Skopiuj jako ustawienia.toml (ten plik nie trafia do git) i uzupelnij sciezki tej maszyny.
+# Jedyny plik ustawien programu stanowiska (sciezki, progi, parametry skanera); kod: stanowisko/ustawienia.py.
+# Wartosci progow z planu wdrozenia v2; stroi sie je na probie testowej, nie w kodzie.
+
+[sciezki]
+folder_eksportu_skanera = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/eksport"       # obserwowany przez modul scanner (do potwierdzenia: Order Save Path)
+folder_cyrkon = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/Cyrkon"     # projekty STL (SharePoint zsynchronizowany lokalnie)
+folder_prywatne = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/Prywatne"
+folder_millbox = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/millbox"
+baza = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/dane/stanowisko.sqlite"                     # plik bazy (SQLite): skany, prace, decyzje; sciezka wzgledna = od katalogu programu; poza OneDrive
+log_excel = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/dane/log_excel.csv"
+wyniki = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/dane/wyniki"                              # opcjonalny (etap 3): pliki wynikow skanow <skan>_wynik.json zapisywane przez modul session
+podglady = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/dane/podglady"                          # opcjonalny (etap 3): pliki *_podglad.npz z analizy (punkty i odchylki gniazd - obraz odchylek w oknie)
+pula_cache = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/dane/pula_cache"                      # opcjonalny (etap 3): pamiec linii brzegu projektow na dysku (przyspiesza pierwsza plytke po starcie)
+logi = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/dane/logi"                                  # opcjonalny (etap 3): log programu "Stanowisko" i procesu analizy
+kalibracja_ramek = "<PC-katalog>/koordynator/robocze/odbior/T7/robocze/b1/dane/kalibracja_ramek.json"    # opcjonalny (E3-A8i): lokalny plik kalibracji diod ramek (blok pikseli pod kazdym gniazdem, plik od paczki C2); brak pliku = wartosci startowe z geometrii plytek
+
+[plytki]   # katalogi z uklad.json i plytka_n*.stl, wzgledem katalogu programu (nie cwd)
+wieczorna = "modele_plytek/wieczorna"
+poranna = "modele_plytek/poranna"
+okragla_wieczorna = "modele_plytek/okragla_wieczorna"   # plytki okragle ?100 (R57, 2.11.2026)
+okragla_poranna = "modele_plytek/okragla_poranna"
+# Powyzej uklad gniazd R59 (14.11.2026: wieczorna 18 + 1 rynienka, poranna 23 + 1). Ponizej poprzedni uklad R54
+# (18 + 2 i 31 + 2) - dla plytek fizycznych zamowionych przed R59; numery plytek sa te same (n1-n6, n8, n9),
+# wiec uklad rozpoznaje program ze skanu po rozstawie stozkow (porownaj: --plytka auto, okno: "rozpoznaj automatycznie");
+# przy ukladzie wybranym recznie program ostrzega, gdy skan do niego nie pasuje (plate: straznik ukladu).
+# Wiersze okragla_* i *_r54 sa opcjonalne: brakujace uklady dostarczane z programem sa dopisywane przy wczytaniu ustawien.
+wieczorna_r54 = "modele_plytek/wieczorna_r54"
+poranna_r54 = "modele_plytek/poranna_r54"
+okragla_wieczorna_r54 = "modele_plytek/okragla_wieczorna_r54"
+okragla_poranna_r54 = "modele_plytek/okragla_poranna_r54"
+
+[match]
+prog_akceptacji_pokrycie = 0.85     # udzial powierzchni skanu w odleglosci ? odleglosc_max od projektu
+odleglosc_max_mm = 0.05
+prog_ostrzezenia_pokrycie = 0.6     # pokrycie ponizej akceptacji, ale powyzej tego = zolte (sprawdz), nizej = szare
+pewnosc_min = 0.1                   # pokrycie 1. kandydata musi przewyzszac 2. co najmniej o tyle
+filtr_wymiar_mm = 1.5               # filtr wstepny: wymiary obrysu/wysokosc fragmentu vs projekt ? wspolczynnik, tolerancja mm...
+filtr_wymiar_udzial = 0.15          # ...albo udzial (wieksze z dwojga)
+filtr_objetosc_udzial = 0.35        # tolerancja objetosci otoczki wypuklej
+filtr_wysokosc_min_udzial = 0.5     # fragment moze byc nizszy niz projekt (dol w gniezdzie, widok z gory), ale nie nizszy niz tyle jego wysokosci; obrys i objetosc liczone wobec projektu przycietego do wysokosci fragmentu (1.0 = stara regula ? tolerancja)
+korekta_skali = true                # korekta skali ze skanu dla rozpoznanej pracy (decyzja 06.11.2026); na plytkach porannych tylko pomiar, bez stosowania
+korekta_skali_okno_proc = 1.0       # poprawka skali stosowana tylko w oknie ? tyle procent wokol wspolczynnika z puli; poza oknem: bez korekty + ostrzezenie
+korekta_skali_ostrzezenie_proc = 0.3  # |poprawka| powyzej tego = ostrzezenie "sprawdz wspolczynnik / krazek"
+korekta_skali_pas_brzegu_mm = 2.0   # punkty skanu blizej brzegu niz tyle (od z = 0 projektu w dol) nie biora udzialu w wyznaczaniu skali - ukruszenie / odchylka krawedzi nie zmienia skali
+pula_wieczor_dni = 2
+pula_rano_dni_roboczych = 4
+usun_z_puli_po_dniach = 10
+
+[inspect]
+prog_glebokosci_mm = 0.08           # skan co najmniej tyle pod powierzchnia projektu
+srednica_min_mm = 0.2
+srednica_max_mm = 1.5
+pas_brzegu_mm = 1.5
+poprawka_min_mm = 2.0               # gladka roznica wieksza niz to = poprawka reczna, nie ubytek
+krawedz_pas_mm = 0.15               # metoda A: pierscien wokol plamy, w ktorym odchylka ma wrocic do ~0 (ostra krawedz; ubytek ma sciane < 0,05 mm, poprawka lagodne zbocze)
+min_punktow_plamy = 6               # metoda A: mniej punktow pod powierzchnia to szum, nie plama
+drgniecie_odchylka_mm = 0.07        # drgniecie: |odchylka| powyzej tego = punkt "rozmyty"
+drgniecie_udzial_w_komorce = 0.10   # drgniecie: komorka 1 mm jest rozmyta, gdy tyle jej punktow jest rozmytych
+drgniecie_udzial_obszaru = 0.10     # drgniecie: tyle rozmytych komorek = podwojna powierzchnia ? skan ponownie
+wciecie_min_mm = 0.2                # metoda B: wciecie linii brzegu = ukruszenie
+wciecie_pewne_mm = 0.4              # metoda B: samo wciecie tej wielkosci = czerwone (bez potwierdzenia metoda A)
+linia_min_udzial = 0.9              # metoda B tylko gdy linia brzegu widoczna prawie cala; mniej (bokiem, zaslonieta) ? B pominieta (P3a: przy 0,6 bokiem dawalo 18 falszywych wciec); zmierzyc na prawdziwym skanie w P3b
+pas_brzegu_od = "linia_i_plaszczyzna"  # pas brzegu = suma pasa od linii krawedzi brzegu kazdego filaru (P2) i pasa sprzed P2 (od najwyzszego punktu pracy); "nie sprawdzono" tylko przy braku danych skanu. "linia" = sam pas od linii (niepewna linia projektu tez daje "nie sprawdzono"), "plaszczyzna" = sposob sprzed P2 - do porownan
+brzeg_min_sprawdzony = 0.9          # filar jest sprawdzony, gdy co najmniej taka czesc jego linii brzegu ma pewna linie projektu i dane skanu; mniej ? "nie sprawdzono" (zolte, nigdy zielone)
+brzeg_max_przerwa_mm = 1.5          # ... i gdy najdluzszy odcinek linii bez sprawdzenia nie przekracza tej dlugosci (odcinek krotszy niz pas brzegu jest objety kontrola z sasiednich odcinkow)
+
+[synth]    # generator sztucznych skanow; zakres srednic i pas brzegu ubytkow bierze z [inspect]
+szum_sigma_mm = 0.03
+wspolczynnik_min = 1.20
+wspolczynnik_max = 1.25
+odstep_ubytku_mm = 0.05             # odstep punktow nowej powierzchni ubytku i jej otoczenia (gestosc skanu przyjeta w testach krawedzi; zmierzyc na skanerze w P3b)
+krawedz_rozmiar_min_mm = 0.08       # K6 (--krawedz): ukruszenia celowe na krawedzi brzegu, rozmiar = promien kuli o srodku na powierzchni
+krawedz_rozmiar_max_mm = 0.40
+
+[excel]
+kolumna_kuwety = "C"
+kolumna_nazwy = "H"
+kolumna_odhaczenia = "B"
+kolor_rgb = [198, 239, 206]
+tryb_pytaj_przed_zapisem = true     # etap 3 (DW10): zawsze pytaj albo cien - false NIE wlacza zapisu samodzielnego
+# E3-A9: klucze opcjonalne (plik bez nich dziala - wartosci jak ponizej); uklad arkusza DO POTWIERDZENIA na kopii pliku (D2)
+kolumna_daty = "A"                  # data zlecenia (regula 3: najnowsza data sposrod wierszy kuwety)
+pierwszy_wiersz = 2                 # pierwszy wiersz danych (wiersz 1 = naglowek)
+skoroszyt = ""                      # nazwa (albo jej fragment) otwartego pliku zlecen; "" = aktywny skoroszyt
+arkusz = ""                         # nazwa arkusza; "" = aktywny arkusz (plan wdrozenia: "biezacy arkusz")
+tryb = "pytaj"                      # "pytaj" = kolor pola B dopiero po zatwierdzeniu przez czlowieka; "cien" = nic nie zapisuje, tylko log porownawczy
+odswiez_co_min = 5.0                # co ile minut program czyta kolumny A-I arkusza do pamieci (propozycja i zatwierdzenie czytaja zawsze od nowa)
+maks_wiek_dni = 60                  # wiersz wybrany regulami starszy niz tyle dni (albo bez daty w A) = "Excel: wskaz wiersz"; 0 = bez limitu; liczba do potwierdzenia na kopii pliku (D2)
+
+[ramki]
+port = 8765
+wieczorna_host = "ramka-w.local"
+poranna_host = "ramka-p.local"
+klucz = ""                          # opcjonalny (E3-A8i): wspolny klucz laptopa i ramek (naglowek X-Ramka-Klucz) - WPISZ tylko w lokalnym pliku ustawien, ten sam co klucz w pliku konfiguracji ramki (16-256 znakow bez odstepu); pusty = bez klucza: wolno tylko w sieci, w ktorej sa wylacznie laptop i ramki
+odpytywanie_s = 25.0                # opcjonalny (E3-A8i): najdluzsze czekanie na zdarzenia ramki w jednym zapytaniu, sekundy 0.5-25 (ramka i tak skraca)
+
+[sesja]    # opcjonalna (etap 3): plik ustawien sprzed etapu 3 nie ma tej sekcji i dziala - brakujace klucze dostaja wartosci jak ponizej
+operatorzy = ["Technik A"]                     # WPISZ osoby do wyboru na poczatku zmiany, np. ["Technik A", "Technik B"]; wybrana osoba trafia do kolumny "operator" przy kazdej decyzji; przy pustej liscie program dziala i przyjmuje skany, ale decyzji "Ukruszona" / "OK" nie zapisuje
+przechowuj_skany_dni = 0            # po ilu dniach wolno usuwac pliki skanow; 0 = nie usuwac (tryb cienia: trzymamy wszystko), po trybie cienia 30; wyniki i baza zostaja bezterminowo
+granica_doby_godz = 6               # poczatek doby roboczej: skany przyjete od 6:00 do 6:00 nastepnego dnia (zmiany 1, 2 i 3) naleza do jednej doby, nazwanej data poczatku
+zmiany_start_godz = [6, 14, 22]     # poczatki zmian 1, 2, 3 (numer zmiany przy skanie i na liscie "do dofrezowania"); godziny rosnace, pierwsza = granica_doby_godz
+ponowny_skan_okno_min = 60          # ta sama plytka przyjeta do tylu minut po poprzednim skanie = pytanie "to ponowny skan?"; pozniej = nowy wsad; musi byc > 0
+ponowny_skan_min_wspolnych = 0.5    # E3-A1p: pytanie "to ponowny skan?" tylko, gdy wspolne projekty prac rozpoznanych (top-1, bez szarych) nowego i poprzedniego skanu tej plytki stanowia co najmniej taka czesc mniejszego z obu zbiorow projektow - te same prace = ten sam wsad; plytka z nowym wsadem nie dostaje pytania; ten sam plik skanu albo mniej niz 3 projekty rozpoznane w ktoryms skanie = pytanie jak dawniej; 0 = bez tego warunku (regula sprzed 18.11.2026); udzial z [0, 1]
+
+[scanner]  # opcjonalna (etap 3): obserwacja folderu eksportu skanera ([sciezki] folder_eksportu_skanera); wartosci jak ponizej = domyslne modulu scanner
+stabilizacja_ms = 300               # tyle bez zmiany rozmiaru i czasu pliku, zanim plik jest oceniany jako zapisany do konca
+min_rozmiar_mb = 0.0                # mniejszy plik nie jest skanem (0 = bez progu; prog dla prawdziwego skanera po pierwszych skanach)
+min_trojkatow = 1                   # plik z mniejsza liczba trojkatow nie jest skanem
+wzorzec_pliku = "*.stl"             # wzorzec NAZWY pliku skanu (bez rozrozniania wielkosci liter)
+rekurencyjnie = true                # czy patrzec tez w podfoldery folderu eksportu
+obserwator = "watchdog"             # "watchdog" albo "odpytywanie" (sam przeglad folderu co 2 s, np. dla dysku sieciowego)
+
+[silnik]   # opcjonalna (etap 3): analiza skanu w osobnym procesie; wartosci jak ponizej = domyslne modulu silnik
+limit_zadania_s = 600.0             # analiza jednej plytki dluzsza niz tyle sekund jest przerywana (blad "analiza trwala za dlugo")
+czekaj_na_plik_s = 60.0             # jak dlugo ponawiac kopiowanie pliku skanu, ktory trzyma inny program
+pamiec_linii = true                 # czy trzymac linie brzegu projektow na dysku ([sciezki] pula_cache); true = szybsza pierwsza plytka po starcie (E3-A5i: domyslnie true)
+ponow_plik_niedostepny = 3          # ile razy program sam ponawia analize skanu, ktorego pliku nie dalo sie odczytac, zanim zglosi blad
+pula_wpisow = false                 # E3-A5i: true = pula per praca z katalogu zlecen (indeks folder_cyrkon / folder_prywatne + wspolczynniki.csv w folder_millbox: kazda praca ze wspolczynnikiem swojego krazka, wynik wskazuje frezowanie); false = pula z jednego folderu i wspolczynnik reczny (jak dotad)
+pamiec_puli_dni = 30                # E3-A5i: przy starcie programu usun z pamieci puli ([sciezki] pula_cache/projekty, ok. 5 MB na wpis) wpisy nieuzywane od tylu dni; 0 = nie usuwac

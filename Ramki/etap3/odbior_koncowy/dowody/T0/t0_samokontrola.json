@@ -1,0 +1,137 @@
+{
+  "samokontrola": "ZIELONA",
+  "kod_wyjscia": 0,
+  "ok": 17,
+  "ostrzezenia": 4,
+  "bledy": 0,
+  "podsumowanie": "SAMOKONTROLA: ZIELONA (ok 17, ostrzezenia 4)",
+  "czas_s": 4.3,
+  "sprawdzenia": [
+    {
+      "kod": "python",
+      "poziom": "OK",
+      "opis": "Python 3.12.10",
+      "rada": ""
+    },
+    {
+      "kod": "pakiety",
+      "poziom": "OK",
+      "opis": "wersje pakietow zgodne 11 z 11 z requirements.txt (bez pytest)",
+      "rada": ""
+    },
+    {
+      "kod": "moduly",
+      "poziom": "OK",
+      "opis": "moduly programu z bibliotekami DLL: zaladowane 27 z 27 (Qt, Open3D, scipy, trimesh, lancuch analizy, ramki, Excel)",
+      "rada": ""
+    },
+    {
+      "kod": "ustawienia",
+      "poziom": "OK",
+      "opis": "plik ustawien wczytany i poprawny: <PC-katalog>\\t0\\odbior\\Stanowisko\\ustawienia.toml - 0 kluczy z wartoscia domyslna",
+      "rada": ""
+    },
+    {
+      "kod": "operatorzy",
+      "poziom": "OK",
+      "opis": "osoby do wyboru na poczatku zmiany: 1",
+      "rada": ""
+    },
+    {
+      "kod": "folder_skanera",
+      "poziom": "OK",
+      "opis": "folder eksportu skanera istnieje i daje sie czytac: <PC-katalog>/t0/odbior/dane/eksport",
+      "rada": ""
+    },
+    {
+      "kod": "folder_cyrkon",
+      "poziom": "OK",
+      "opis": "folder projektow Cyrkon istnieje i daje sie czytac: <PC-katalog>/t0/odbior/dane/Cyrkon",
+      "rada": ""
+    },
+    {
+      "kod": "folder_prywatne",
+      "poziom": "OK",
+      "opis": "folder projektow Prywatne istnieje i daje sie czytac: <PC-katalog>/t0/odbior/dane/Prywatne",
+      "rada": ""
+    },
+    {
+      "kod": "folder_millbox",
+      "poziom": "OK",
+      "opis": "folder MillBox istnieje i daje sie czytac: <PC-katalog>/t0/odbior/dane/millbox",
+      "rada": ""
+    },
+    {
+      "kod": "dane_folder",
+      "poziom": "OK",
+      "opis": "folder danych istnieje, zapis mozliwy: <PC-katalog>\\t0\\odbior\\Stanowisko\\dane",
+      "rada": ""
+    },
+    {
+      "kod": "dane_miejsce",
+      "poziom": "OK",
+      "opis": "wolne miejsce na dysku folderu danych: 59.9 GB",
+      "rada": ""
+    },
+    {
+      "kod": "dane_polozenie",
+      "poziom": "OK",
+      "opis": "dane programu poza folderami synchronizowanymi OneDrive / SharePoint (sprawdzone sciezki: 7, znane foldery synchronizowane: 1)",
+      "rada": ""
+    },
+    {
+      "kod": "baza",
+      "poziom": "OSTRZEZENIE",
+      "opis": "brak pliku bazy - zostanie zalozona przy pierwszym starcie programu: <PC-katalog>\\t0\\odbior\\Stanowisko\\dane\\stanowisko.sqlite",
+      "rada": "nic nie rob - baza powstanie sama przy pierwszym uruchomieniu programu"
+    },
+    {
+      "kod": "modele",
+      "poziom": "OK",
+      "opis": "uklady plytek z [plytki]: poprawne 8 z 8 (uklad.json i modele plytka_n*.stl)",
+      "rada": ""
+    },
+    {
+      "kod": "pula",
+      "poziom": "OK",
+      "opis": "pula z jednego folderu (pula_wpisow = false): 17 plikow STL, [sciezki] folder_cyrkon",
+      "rada": ""
+    },
+    {
+      "kod": "pamiec_puli",
+      "poziom": "OK",
+      "opis": "pamiec puli na dysku: 0 wpisow, 0 MB, sprzatanie wpisow nieuzywanych od 30 dni (folder powstanie przy pierwszej budowie puli)",
+      "rada": ""
+    },
+    {
+      "kod": "ramka_wieczorna",
+      "poziom": "OSTRZEZENIE",
+      "opis": "ramka wieczorna nieobecna: brak polaczenia z ramka-w.local:8765 (gaierror)",
+      "rada": "wlacz ramke, sprawdz Wi-Fi i [ramki] wieczorna_host w pliku ustawien, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie"
+    },
+    {
+      "kod": "ramka_poranna",
+      "poziom": "OSTRZEZENIE",
+      "opis": "ramka poranna nieobecna: brak polaczenia z ramka-p.local:8765 (gaierror)",
+      "rada": "wlacz ramke, sprawdz Wi-Fi i [ramki] poranna_host w pliku ustawien, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie"
+    },
+    {
+      "kod": "excel",
+      "poziom": "OSTRZEZENIE",
+      "opis": "Excel nie jest uruchomiony w tej sesji uzytkownika",
+      "rada": "przed poranna praca otworz plik zlecen w Excelu na tym laptopie (z Autozapisem), bez Excela program dziala - zlecenia odhacza sie wtedy recznie"
+    },
+    {
+      "kod": "egzemplarz",
+      "poziom": "OK",
+      "opis": "program Stanowisko nie jest teraz uruchomiony na tej bazie",
+      "rada": ""
+    },
+    {
+      "kod": "sumy",
+      "poziom": "OK",
+      "opis": "sumy SHA-256 plikow programu zgodne 130 z 130 (SUMY_PROGRAMU.sha256), plikow nadmiarowych 0",
+      "rada": ""
+    }
+  ]
+}

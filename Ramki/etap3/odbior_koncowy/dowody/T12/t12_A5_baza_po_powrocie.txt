@@ -1,0 +1,26 @@
+== stan PO powrocie, PRZED startem 0.3.1: sob. 21.11.2026  2:54:15,37 
+count(*)
+0
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+user_version
+1
+-- wierszy: 1
+SHA256 hash of <PC-katalog>\t0\odbior_t12\Stanowisko\dane\stanowisko.sqlite:
+7208547446f07db8cf0135469e185f6404f503d3905d9bfc78c03920d9050f41
+CertUtil: -hashfile command completed successfully.
+86016 32e37bc05a5ed1da63ac06cc87070363826d04e13737227b6ae970a4ab4d17d8
+stanowisko_przed_0.3.2_20261121_025311_v1.sqlite
+== stan PO starcie 0.3.1 po powrocie: sob. 21.11.2026  2:54:39,40 
+count(*)
+0
+-- wierszy: 1
+count(*)
+6
+-- wierszy: 1
+user_version
+1
+-- wierszy: 1
+stanowisko_przed_0.3.2_20261121_025311_v1.sqlite

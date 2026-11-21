@@ -1,0 +1,13 @@
+
+[kryterium 3] propozycje 24 = kompletne A6 24; zatwierdzone 24, pominiete 0, do sprawdzenia 1; komorek zmienionych 24 (tylko B wlasciwych wierszy); przerwa petli 29 ms
+..
+=================================== PASSES ====================================
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k3_excel_pytaj_propozycje_rowne_kompletnym_i_tylko_kolor_wlasciwych_komorek
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_aplikacja_rano.py::test_k3_excel_cien_tylko_log_i_restart_okna_excela
+2 passed, 26 deselected in 4.07s
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 51 modulow, z repo poza testami 0 modulow, modulow testow z repo 4; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

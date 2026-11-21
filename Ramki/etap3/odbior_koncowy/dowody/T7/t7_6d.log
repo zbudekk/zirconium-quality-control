@@ -1,0 +1,184 @@
+...........................                                              [100%]
+=================================== PASSES ====================================
+__________ test_n1_decyzja_przy_zajetej_bazie_zostaje_do_ponowienia ___________
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie ukruszona czeka na ponowienie przez osobe
+_ test_n1_ponowna_decyzja_technika_zdejmuje_komunikat_a_rezygnacja_nie_zapisuje _
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie ukruszona czeka na ponowienie przez osobe
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie ok czeka na ponowienie przez osobe
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie ok czeka na ponowienie przez osobe
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie ok czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[wieczor-ukruszona-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 wieczor] proba 1: ok; ukruszona (EXCLUSIVE): odpowiedz po 649 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie ukruszona czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[wieczor-ok-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 wieczor] proba 1: ok; ok (EXCLUSIVE): odpowiedz po 655 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie ok czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[wieczor-cofnij-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 wieczor] proba 1: ok; cofnij (EXCLUSIVE): odpowiedz po 657 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie cofnij czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[rano-wybierz_kandydata-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 rano] proba 1: ok; wybierz_kandydata (EXCLUSIVE): odpowiedz po 651 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie wybierz_kandydata czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[rano-przypisz_recznie-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 rano] proba 1: ok; przypisz_recznie (EXCLUSIVE): odpowiedz po 645 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie przypisz_recznie czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[rano-potwierdz_kuwete-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 rano] proba 1: ok; potwierdz_kuwete (EXCLUSIVE): odpowiedz po 649 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie potwierdz_kuwete czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[rano-zamknij_piec-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 rano] proba 1: ok; zamknij_piec (EXCLUSIVE): odpowiedz po 662 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie zamknij_piec czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-potwierdz_ponowny_skan-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; potwierdz_ponowny_skan (EXCLUSIVE): odpowiedz po 655 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie potwierdz_ponowny_skan czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-potwierdz_ponowny_skan-IMMEDIATE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; potwierdz_ponowny_skan (IMMEDIATE): odpowiedz po 305 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie potwierdz_ponowny_skan czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-cofnij_zastapienie-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; cofnij_zastapienie (EXCLUSIVE): odpowiedz po 657 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie cofnij_zastapienie czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-cofnij_zastapienie-IMMEDIATE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; cofnij_zastapienie (IMMEDIATE): odpowiedz po 293 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie cofnij_zastapienie czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-dopusc_plytke-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; dopusc_plytke (EXCLUSIVE): odpowiedz po 645 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie dopusc_plytke czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-dopusc_plytke-IMMEDIATE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; dopusc_plytke (IMMEDIATE): odpowiedz po 300 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie dopusc_plytke czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-cofnij_dopuszczenie-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; cofnij_dopuszczenie (EXCLUSIVE): odpowiedz po 651 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie cofnij_dopuszczenie czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-cofnij_dopuszczenie-IMMEDIATE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; cofnij_dopuszczenie (IMMEDIATE): odpowiedz po 294 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie cofnij_dopuszczenie czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-podaj_numer_plytki-EXCLUSIVE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; podaj_numer_plytki (EXCLUSIVE): odpowiedz po 666 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie podaj_numer_plytki czeka na ponowienie przez osobe
+_ test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-podaj_numer_plytki-IMMEDIATE] _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 plytka] proba 1: ok; podaj_numer_plytki (IMMEDIATE): odpowiedz po 294 ms, przetworz 0 ms (limit 1000 ms); przestoj procesu 0 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie podaj_numer_plytki czeka na ponowienie przez osobe
+________ test_r2_p4_zalegly_stan_po_udanym_zapisie_nadrabia_zegar_okna ________
+---------------------------- Captured stdout call -----------------------------
+
+[P4b] stan nadrobiony po 1.06 s (okres 1.0 s), odczytow 2
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:1328 kontroler: baza zajeta - stan nie zostal odswiezony
+_____ test_r2_p1_odczyty_okna_przy_zajetej_bazie_nie_stoja_i_nie_rzucaja ______
+---------------------------- Captured stdout call -----------------------------
+
+[P1 odczyty] szczegoly_pracy 674 ms, projekty_kuwety 679 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3882 kontroler: baza zajeta - szczegolow pracy nie da sie teraz odczytac
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3776 kontroler: projektow kuwety nie da sie odczytac (BladBazy)
+________ test_r2_d7_zapisz_liste_przy_zajetej_bazie_czeka_na_baze_raz _________
+---------------------------- Captured stdout call -----------------------------
+
+[D7] zapisz_liste przy zajetej bazie: 470 ms, odczytow stanu 1
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:1328 kontroler: baza zajeta - stan nie zostal odswiezony
+____ test_r2_d8_spacja_na_atrapie_przy_zajetej_bazie_nie_stoi_i_nie_rzuca _____
+---------------------------- Captured stdout call -----------------------------
+
+[D8] atrapa start_skanu przy zajetej bazie: 662 ms, ok=True
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:4264 atrapa: baza zajeta - start skanu bez wpisu w dzienniku
+_ test_n1_spacja_na_prawdziwej_aplikacji_przy_zajetej_bazie_nie_stoi_i_nie_rzuca _
+---------------------------- Captured stdout call -----------------------------
+
+[N1 aplikacja] start_skanu przy zajetej bazie: 675 ms, odpowiedz ok=True kod=''
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.aplikacja:aplikacja.py:1124 stanowisko: baza zajeta - start skanu bez wpisu w dzienniku (program czeka na plik skanu jak zwykle)
+______ test_n1_okno_odpowiada_w_limicie_i_pokazuje_decyzje_do_ponowienia ______
+---------------------------- Captured stdout call -----------------------------
+
+[N1 okno] proba 1: ok; klikniecie przy zajetej bazie: 674 ms, kolejne 150 ms pracy okna wydluzone o 4 ms (limit 1000 ms); przestoj procesu 50 ms, dysku 0 ms
+------------------------------ Captured log call ------------------------------
+WARNING  stanowisko.kontroler_api:kontroler_api.py:3373 kontroler: baza zajeta - polecenie ukruszona czeka na ponowienie przez osobe
+=========================== short test summary info ===========================
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_baza_czekanie_skraca_czekanie_na_blokade_i_przywraca
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_decyzja_przy_zajetej_bazie_zostaje_do_ponowienia
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_ponowna_decyzja_technika_zdejmuje_komunikat_a_rezygnacja_nie_zapisuje
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[wieczor-ukruszona-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[wieczor-ok-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[wieczor-cofnij-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[rano-wybierz_kandydata-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[rano-przypisz_recznie-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[rano-potwierdz_kuwete-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[rano-zamknij_piec-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-potwierdz_ponowny_skan-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-potwierdz_ponowny_skan-IMMEDIATE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-cofnij_zastapienie-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-cofnij_zastapienie-IMMEDIATE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-dopusc_plytke-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-dopusc_plytke-IMMEDIATE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-cofnij_dopuszczenie-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-cofnij_dopuszczenie-IMMEDIATE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-podaj_numer_plytki-EXCLUSIVE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_polecenie_klikane_przy_zajetej_bazie_wraca_w_limicie_i_daje_sie_ponowic[plytka-podaj_numer_plytki-IMMEDIATE]
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_r2_p4_zalegly_stan_po_udanym_zapisie_nadrabia_zegar_okna
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_r2_p1_odczyty_okna_przy_zajetej_bazie_nie_stoja_i_nie_rzucaja
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_r2_d3_kazde_polecenie_ponawiane_ma_napis_dla_technika
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_r2_d7_zapisz_liste_przy_zajetej_bazie_czeka_na_baze_raz
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_r2_d8_spacja_na_atrapie_przy_zajetej_bazie_nie_stoi_i_nie_rzuca
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_spacja_na_prawdziwej_aplikacji_przy_zajetej_bazie_nie_stoi_i_nie_rzuca
+PASSED ..\..\..\..\..\repo\Ramki\stanowisko\testy\test_p14_baza_zajeta.py::test_n1_okno_odpowiada_w_limicie_i_pokazuje_decyzje_do_ponowienia
+27 passed in 29.09s
+pytest_instalacja.py: wersja programu (katalog) 0.3.1; interpreter venv\Scripts; kod pytest 0
+KOD PROGRAMU W TESTACH: z instalacji 54 modulow, z repo poza testami 0 modulow, modulow testow z repo 5; pliki *.py instalacji (stanowisko, ramka, narzedzia) = repo: 79 z 79
+plik ustawien domyslnych w testach: <ST>\ustawienia.toml (stala PLIK_USTAWIEN ustawiona w procesie testow)
+ograniczenie: procesy potomne testow (ramka, proces silnika) importuja kod sami - tego wiersza nie obejmuje licznik modulow
+WERDYKT ZRODLA KODU: INSTALACJA

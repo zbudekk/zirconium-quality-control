@@ -1,0 +1,11 @@
+Pliki i katalogi testu T5, ktore NIE poszly do repo (zostaja na PC, poza repo).
+Miejsce na PC: <PC-katalog>/koordynator/robocze/odbior/T5/ (stan z 21.11.2026).
+Format: rodzaj | nazwa | rozmiar | powod pominiecia
+
+plik | posrednik_p.err | 0 B (0 KB) | rozszerzenie .err nie jest dowodem tekstowym wg dowody_lf.py (plik pusty)
+plik | posrednik_w.err | 0 B (0 KB) | rozszerzenie .err nie jest dowodem tekstowym wg dowody_lf.py (plik pusty)
+katalog | robocze\ | 26 plikow, 44934461 B | katalog roboczy - kopia puli projektow (STL, nazwy folderow zlecen), pomocniki i pliki polecen konsoli
+plik | ruch_ramka_p.bin | 10157 B (10 KB) | zapis ruchu (*.bin)
+plik | ruch_ramka_w.bin | 37678 B (37 KB) | zapis ruchu (*.bin)
+katalog | t5_wieczor\ | 34 pliki, 172518706 B | katalog roboczy sterownika T2 z kroku B4: baza, kopie skanow STL, logi programu
+plik | ustawienia.toml | 12848 B (13 KB) | kopia ustawien z [ramki]; wykonawca T5 wskazal: NIE do repo

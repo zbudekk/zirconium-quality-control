@@ -1,0 +1,23 @@
+dowody_lf.py: plikow 21, naruszen 0 (po naprawie)
+NAPRAWIONY atrapa_p.log: CR 8 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY atrapa_w.log: CR 87 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY kody.txt: CR 9 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        krok_t5_a1.cmd
+OK        krok_t5_a2.cmd
+OK        krok_t5_b1_atrapa_p.cmd
+OK        krok_t5_b1_atrapa_w.cmd
+OK        krok_t5_b4.cmd
+OK        POMINIETE.txt
+NAPRAWIONY posrednik_p.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY posrednik_w.log: CR 2 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t5_konsola_w.log
+OK        t5_ruch_liczniki.txt
+OK        t5_siec_lokalna.md
+NAPRAWIONY t5_testy.log: CR 43 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t5_testy_2.log: CR 21 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+NAPRAWIONY t5_wieczor.log: CR 36 -> 0, bajtow spoza ASCII 0 -> 0 (kodowanie utf-8; znakow zamienionych na '?': 0)
+OK        t5_wynik.md
+OK        t5_zrodlo_kodu_1.txt
+OK        t5_zrodlo_kodu_2.txt
+OK        WYNIK.md
+WYNIK: ZAL (ASCII + LF, nic zakazanego)

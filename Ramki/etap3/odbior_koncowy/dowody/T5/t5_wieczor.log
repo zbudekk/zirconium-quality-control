@@ -1,0 +1,36 @@
+T2 wieczor - wynik sterownika (2026-11-21 03:03:56); platforma Qt: offscreen; plikow: 3; odstep 60.0 s
+przerwano: nie; blad sterownika: brak; kod programu: 0
+UWAGA: PROBA SKROCONA (kryterium: 10 plikow co 60 s) - liczby i werdykty NIE sa wynikiem odbioru
+
+ nr kol sha16            oczekiwany          faktyczny           uklad                  num      prac  start[s]  mapa[s] zgodne
+  1   1 df2e6a790700131d przyjety            przyjety            wieczorna                1       9/9     0.442    54.12 TAK
+  3   2 9cc2bd761deb672b przyjety            przyjety            wieczorna_r54            3       9/9     0.446    26.26 TAK
+  8   3 247ee785f428396f przyjety            przyjety            wieczorna                2       9/9     0.381    25.31 TAK
+
+kolory prac odczytane z ekranu PRZED kliknieciami (piksel mapy -> klasa koloru); U = praca z ubytkiem wg prawdy, C = cala wg prawdy
+ nr sha16            prac U czerw U zolte U ziel U inne C czerw C zolte C ziel C inne
+  1 df2e6a790700131d    9       2       4      0      0       0       0      3      0
+  3 9cc2bd761deb672b    9       2       1      0      0       0       0      6      0
+  8 247ee785f428396f    9       1       2      1      0       0       0      5      0
+ubytki wg prawdy (13): czerwonych 5, zoltych 7, zielonych (przeoczonych) 1, innych 0, bez pracy w programie 0, na plytce nieobejrzanej 0
+prace cale wg prawdy (14): czerwonych (falszywe alarmy) 0, zoltych 0, zielonych 14, innych 0; kolor z ekranu inny niz klasa w stanie programu: 0 z 27 prac
+
+obsluzone zgodnie z prawda: 3 z 3
+start analizy od zapisu (pomiar doslowny): ponizej 1 s 3 z 3 plikow dobrych (zmierzono 3), max 0.446 s, wartosci [0.442, 0.446, 0.381]; w tym pliki zapisane, gdy program liczyl poprzednia plytke: []
+mapa od zapisu (plytka w stanie programu, gorne ograniczenie): mediana 26.26 s, max 54.12 s, pierwsza plytka (pula zimna) 54.12 s, kolejne [26.26, 25.31]; do 40 s: pierwsza 0 z 1, kolejne 2 z 2
+mapa w oknie od zapisu (okno samo pokazalo plytke, gorne ograniczenie): zmierzono 1 z 3, mediana 54.12 s, max 54.12 s
+petla okna: najdluzsza przerwa 50.6 ms, przekroczen progu 200 ms: 0 (tykniec 7757, w tym 0 w srodku klikniecia; najdluzsze tykniecie sterownika w trakcie pomiaru 21.5 ms: klik przycisk_ukruszona; tykniecie zamykajace program, poza pomiarem: 350.2 ms)
+lista do dofrezowania: ROZNA (oczekiwanych 13, w programie 12, brakuje 1, nadmiarowych 0)
+decyzje technika (klikniecia tylko na pracach pokazanych na czerwono / zolto): 'Ukruszona' wykonanych 12 z 13 zaplanowanych, 'OK' na falszywym alarmie 0 z 0, prace z ubytkiem NIEKLIKNIETE (program pokazal je inaczej niz czerwono / zolto) 1; ponowien klikniec 0, czekan na zdjecie ochrony mapy 2; odpowiedzi na pytania: 3; pytania programu: ['brak_numeru_plytki', 'brak_numeru_plytki', 'brak_numeru_plytki']
+numery plytek: odczytane przez program 0, podane przez technika na pytanie programu 3, brak 0 (z 3 plikow dobrych)
+zdarzenia srodowiska: log WARNING 1, ERROR 0, slowa {}; plytki ze statusem blad: 0; komunikaty bledow: {}
+procesy potomne po sprzataniu: []
+
+werdykty:
+  10 z 10 zgodnie z prawda: ZAL (3 z 3)
+  start analizy < 1 s: ZAL
+  mapa do 40 s (mediana): ZAL
+  okno bez przerw > 200 ms: ZAL
+  lista do dofrezowania = prawda: FAIL (lista = prawda: NIE; ubytki wg prawdy 13: program pokazal czerwone 5, zolte 7, zielone (przeoczone) 1, inne / brak pracy / nieobejrzane 0; nieklikniete przez technika 1 z 13; falszywe alarmy - cale wg prawdy na czerwono: 0 z 14)
+  T2 LACZNIE: FAIL (4 z 5 kryteriow ZAL, 1 FAIL, 0 NIE ZMIERZONO)
+

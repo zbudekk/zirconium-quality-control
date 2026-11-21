@@ -1,0 +1,18 @@
+2026-11-21 03:08:18,839 INFO __main__: stanowisko: diagnostyka DLL - uchwyty katalogu obiektow Known DLLs procesu okna przy starcie: 0x58
+2026-11-21 03:08:18,879 INFO __main__: stanowisko: start, zadan wznowionych 0, plikow znanych 0
+2026-11-21 03:08:18,882 WARNING __main__: stanowisko: ramki - Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+2026-11-21 03:08:36,488 INFO stanowisko.scanner: nowy skan nr 1: c85504f17628ac3f sha16=c85504f17628ac3f rozmiar=58251084 trojkatow=1165020
+2026-11-21 03:09:32,609 INFO __main__: stanowisko: skan c85504f17628ac3f przyjety jako 1 (56.0 s)
+2026-11-21 03:09:36,901 INFO stanowisko.scanner: nowy skan nr 2: edb739f16b06e032 sha16=edb739f16b06e032 rozmiar=48890984 trojkatow=977818
+2026-11-21 03:09:45,339 INFO __main__: stanowisko: diagnostyka DLL - uchwyty katalogu obiektow Known DLLs procesu okna przy starcie: 0x58
+2026-11-21 03:09:45,370 INFO __main__: stanowisko: start, zadan wznowionych 0, plikow znanych 1
+2026-11-21 03:09:45,386 WARNING __main__: stanowisko: ramki - Brak pliku kalibracji ramek - wartosci startowe z geometrii plytek (kalibracja na ramce: paczka C2).
+2026-11-21 03:09:45,720 INFO stanowisko.scanner: nowy skan nr 1: edb739f16b06e032 sha16=edb739f16b06e032 rozmiar=48890984 trojkatow=977818 (plik zastany - nadrabianie)
+2026-11-21 03:10:10,216 INFO __main__: stanowisko: skan edb739f16b06e032 przyjety jako 2 (23.5 s)
+2026-11-21 03:10:38,943 INFO stanowisko.scanner: nowy skan nr 2: 0b1286719e932bbd sha16=0b1286719e932bbd rozmiar=56152084 trojkatow=1123040
+2026-11-21 03:11:03,979 INFO __main__: stanowisko: skan 0b1286719e932bbd przyjety jako 3 (25.0 s)
+2026-11-21 03:11:38,564 INFO stanowisko.scanner: nowy skan nr 3: 0eb5872d558cf9e5 sha16=0eb5872d558cf9e5 rozmiar=55927534 trojkatow=1118549
+2026-11-21 03:12:04,811 INFO __main__: stanowisko: skan 0eb5872d558cf9e5 przyjety jako 4 (26.2 s)
+2026-11-21 03:19:46,504 WARNING stanowisko.kontroler_api: kontroler: zgaszenie ramki W przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+2026-11-21 03:19:46,504 WARNING stanowisko.kontroler_api: kontroler: zgaszenie ramki P przy zamknieciu nie doszlo - ramka moze swiecic do konca waznosci planu
+2026-11-21 03:19:46,857 INFO __main__: stanowisko: zamkniete, zadan niezakonczonych 0

@@ -1,0 +1,5 @@
+f27b958 2026-11-17 17:13:09 +0100 Etap 3: blokada plytki niezgodnej z trybem (wymaganie wlasciciela, Z1)
+7b56025 2026-11-17 16:52:02 +0100 Etap 3: recenzja PR #16, decyzje wlasciciela do A1, limity PC
+f6cfcd3 2026-11-17 14:58:31 +0100 Etap 3: odpowiedz wlasciciela na G0, start fali 1 (A1, A2), stan PR #13
+e088f45 2026-11-16 00:34:03 +0100 Plan etapu 3: rozpoznawanie ukladu juz gotowe (Z2)
+2537f6f 2026-11-16 00:05:05 +0100 Plan etapu 3: pelna aplikacja stanowiska (do akceptacji wlasciciela, bramka G0)

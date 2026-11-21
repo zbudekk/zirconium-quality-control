@@ -1,0 +1,22 @@
+== ruch_ramka_w.bin (posrednik <adres-IP>:8766 -> atrapa W <adres-IP>:8765)
+kawalkow 166; polaczen z danymi 56; bajtow > 14265, < 20794; nieprzeczytany ogon 0 bajtow
+zadania: {'DELETE /plan': 1, 'GET /stan': 1, 'GET /zdarzenia': 35, 'PUT /plan': 10, 'PUT /tryb': 9}
+odpowiedzi (kody): {'(kawalek bez wiersza odpowiedzi)': 55, '200': 55}
+naglowki zadan: {'connection': 56, 'content-length': 19, 'content-type': 19, 'host': 56, 'x-laptop-id': 56}
+PUT /tryb kolejno: [(4, 'skanowanie'), (6, 'analiza'), (13, 'gotowa'), (26, 'skanowanie'), (28, 'analiza'), (32, 'gotowa'), (41, 'skanowanie'), (43, 'analiza'), (47, 'gotowa')]
+plan (polaczenie 15): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 1, 'start_id': '837fac54', 'zdarzenia_do': 4, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['1']; gniazd 9; kolory {'czerwony': 2, 'zielony': 3, 'zolty': 4}
+plan (polaczenie 17): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 2, 'start_id': '837fac54', 'zdarzenia_do': 5, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['1']; gniazd 9; kolory {'czerwony': 3, 'zielony': 3, 'zolty': 3}
+plan (polaczenie 19): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 3, 'start_id': '837fac54', 'zdarzenia_do': 6, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['1']; gniazd 9; kolory {'czerwony': 4, 'zielony': 3, 'zolty': 2}
+plan (polaczenie 21): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 4, 'start_id': '837fac54', 'zdarzenia_do': 7, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['1']; gniazd 9; kolory {'czerwony': 5, 'zielony': 3, 'zolty': 1}
+plan (polaczenie 23): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 5, 'start_id': '837fac54', 'zdarzenia_do': 8, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['1']; gniazd 9; kolory {'czerwony': 6, 'zielony': 3}
+plan (polaczenie 34): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 6, 'start_id': '837fac54', 'zdarzenia_do': 13, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['3']; gniazd 9; kolory {'czerwony': 2, 'zielony': 6, 'zolty': 1}
+plan (polaczenie 36): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 7, 'start_id': '837fac54', 'zdarzenia_do': 14, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['3']; gniazd 9; kolory {'czerwony': 3, 'zielony': 6}
+plan (polaczenie 49): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 8, 'start_id': '837fac54', 'zdarzenia_do': 19, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['2']; gniazd 9; kolory {'czerwony': 1, 'zielony': 6, 'zolty': 2}
+plan (polaczenie 51): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 9, 'start_id': '837fac54', 'zdarzenia_do': 20, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['2']; gniazd 9; kolory {'czerwony': 2, 'zielony': 6, 'zolty': 1}
+plan (polaczenie 53): pola {'protokol': 1, 'plan_id': '2026-11-21-w-9a7168', 'wersja': 10, 'start_id': '837fac54', 'zdarzenia_do': 21, 'wazny_s': 30.0, 'tryb': 'wieczor', 'plytki': '<dict 1>'}; plytki ['2']; gniazd 9; kolory {'czerwony': 3, 'zielony': 6}
+== ruch_ramka_p.bin (posrednik 127.0.0.1:8766 -> atrapa P <adres-IP>:8767)
+kawalkow 55; polaczen z danymi 19; bajtow > 2681, < 6625; nieprzeczytany ogon 0 bajtow
+zadania: {'DELETE /plan': 1, 'GET /stan': 1, 'GET /zdarzenia': 17}
+odpowiedzi (kody): {'(kawalek bez wiersza odpowiedzi)': 18, '200': 18}
+naglowki zadan: {'connection': 19, 'host': 19, 'x-laptop-id': 19}
+PUT /tryb kolejno: []
