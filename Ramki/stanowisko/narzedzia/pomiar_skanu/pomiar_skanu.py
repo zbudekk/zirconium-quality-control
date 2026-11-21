@@ -651,8 +651,17 @@ def _json(o):
 
 def wczytaj_ustawienia_pomiaru(podany: str | None) -> tuple[dict, Path]:
     """(ustawienia, plik). E3-O4: plik z ``--ustawienia`` (tak podaje go okno "Dzien skanera"); bez opcji - w instalacji
-    ``<instalacja>/ustawienia.toml`` (w katalogu wersji pliku ustawien nie ma), z repo ``ustawienia.toml`` programu jak dotad."""
-    plik = Path(podany) if podany else (DR.plik_ustawien_instalacji() or U.PLIK_USTAWIEN)
+    ``<instalacja>/ustawienia.toml`` (w katalogu wersji pliku ustawien nie ma), z repo ``ustawienia.toml`` programu jak dotad.
+    Runda 2 (P1): w instalacji bez pliku ustawien komunikat wskazuje plik INSTALACJI i ``zainstaluj.cmd`` - nigdy nie radzi
+    zalozenia ``ustawienia.toml`` w katalogu wersji i nie czyta pliku stamtad."""
+    if podany:
+        return U.wczytaj_ustawienia(Path(podany)), Path(podany)
+    plik = DR.plik_ustawien_instalacji()
+    if plik is None:
+        plik = U.PLIK_USTAWIEN
+    elif not plik.is_file():
+        raise FileNotFoundError(f"brak pliku ustawien instalacji {plik} - uruchom zainstaluj.cmd z paczki wydania (zalozy plik "
+                                f"ze wzoru) albo podaj inny plik opcja --ustawienia")
     return U.wczytaj_ustawienia(plik), plik
 
 

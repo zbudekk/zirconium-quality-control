@@ -397,6 +397,11 @@ def test_instrukcja_kazdy_krok_ma_znacznik_niesprawdzone():
     assert [int(re.match(r"Krok (\d+)", k).group(1)) for k in kroki] == list(range(1, len(kroki) + 1))
     bez = [k for k, tresc in kroki.items() if ZNACZNIK not in k + tresc]
     assert bez == []
+    # runda 2 (uwaga D5): sekcje koncowe z twierdzeniami nie do sprawdzenia na PC tez maja znacznik w naglowku
+    naglowki = re.findall(r"^## ([^\n]*)$", INSTRUKCJA.read_bytes().decode("ascii"), flags=re.M)
+    for sekcja in ("Zmiana pliku konfiguracji", "Typowe bledy"):
+        pasujace = [n for n in naglowki if n.startswith(sekcja)]
+        assert len(pasujace) == 1 and ZNACZNIK in pasujace[0], sekcja
 
 
 def test_instrukcja_obejmuje_wymagane_tematy_i_nazwy_z_kodu():
@@ -456,3 +461,48 @@ def test_katalog_rpi_i_instrukcja_trafiaja_do_paczki_bez_zmiany_bajtow(tmp_path)
     for nazwa in nazwy:
         assert pliki[nazwa] == (STANOWISKO / nazwa).read_bytes(), nazwa
     assert sum(1 for n in pliki if n.startswith("ramka/rpi/")) == len(PLIKI)
+
+
+# ----------------------------------------------------------------------------- runda 2 (uwagi D recenzji PR #52)
+
+def test_d2_plik_z_kluczem_ma_prawa_600_w_skrypcie_instalacji():
+    """Uwaga D2: plik konfiguracji z kluczem ma byc czytelny tylko dla root. Na PC nie da sie tego sprawdzic przebiegiem
+    (Git Bash na NTFS nie zmienia praw: plik po ``chmod 600`` dalej pokazuje 644), wiec test pilnuje tresci skryptu:
+    ``chmod 600`` dla pliku zastanego i nowego, ``umask 077`` wokol tworzenia, ``0o600`` przy otwarciu z ``O_EXCL``."""
+    skrypt = (RPI / "zainstaluj_ramke.sh").read_bytes().decode("ascii")
+    wiersze = [w.strip() for w in skrypt.splitlines()]
+    assert wiersze.count('chmod 600 "$PLIK_KONFIGURACJI"') == 2
+    assert sum(w.startswith("if ! (umask 077 && ") and '"$PLIK_KONFIGURACJI"' in w for w in wiersze) == 1
+    assert sum("os.O_EXCL, 0o600)" in w for w in wiersze) == 1
+    assert not re.search(r"chmod\s+(?:[0-7]*[1-7][0-7]|[0-7]*[1-7])\s+\"\$PLIK_KONFIGURACJI\"", skrypt)  # zadnych praw dla grupy / innych
+    assert "0o644" not in skrypt and "umask 022" not in skrypt
+    # kontrola na ramce: sprawdz_ramke.sh ma wiersz o prawach pliku (na sprzecie to on zlapie zle prawa)
+    assert "600" in (RPI / "sprawdz_ramke.sh").read_bytes().decode("ascii")
+
+
+def test_d3_instrukcja_podaje_poczatek_odpowiedzi_stan_tak_jak_wysyla_go_program():
+    """Uwaga D3: krok 9 kaze porownac poczatek odpowiedzi ``/stan`` - ma byc znak w znak taki, jaki wysyla program."""
+    konf = program_ramki.konfiguracja_z_argumentow(program_ramki.parsuj_argumenty(
+        ["--konfiguracja", str(RPI / "ramka.json.wzor"), "--sprzet", "atrapa", "--host", "127.0.0.1", "--port", "0"]))
+    prog = ProgramRamki(konf, sprzet=SprzetAtrapa())
+    _, port = prog.uruchom()
+    try:
+        c = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        c.request("GET", "/stan", headers={"X-Ramka-Klucz": konf.klucz})
+        tresc = c.getresponse().read().decode("utf-8")
+        c.close()
+    finally:
+        prog.zatrzymaj()
+    poczatek = '{"protokol":' + str(json.loads(tresc)["protokol"])
+    assert tresc.startswith(poczatek)
+    tekst = INSTRUKCJA.read_bytes().decode("ascii")
+    assert f"`{poczatek}`" in tekst and '{"protokol": ' not in tekst
+
+
+def test_d4_d6_instrukcja_ostrzega_o_karcie_zastanej_i_o_kluczu_w_historii():
+    kroki = _kroki_instrukcji()
+    krok1 = next(tresc for k, tresc in kroki.items() if k.startswith("Krok 1."))
+    assert "NIE nadpisuj" in krok1 and krok1.index("NIE nadpisuj") < krok1.index("Raspberry Pi Imager")  # przed pierwszym punktem
+    assert "NOWEJ karcie" in krok1
+    krok7 = next(tresc for k, tresc in kroki.items() if k.startswith("Krok 7."))
+    assert krok7.index("--klucz KLUCZ") < krok7.index(".bash_history") < krok7.index("history -c")
