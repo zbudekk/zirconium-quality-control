@@ -1,0 +1,1130 @@
+ Ramki/00_NADZOR_STAN.md                            |  490 +-
+ ...wa ramki \342\200\224 decyzje i zamienniki.pdf" |  Bin 410622 -> 418238 bytes
+ Ramki/R58_arkusz_zamowienia.csv                    |    9 +
+ Ramki/R58_arkusz_zamowienia.md                     |   69 +
+ Ramki/R58_wdrozenie_zmiany.md                      |  512 ++
+ Ramki/R59_odbior/kontrola_tresci_zip.py            |   86 +
+ Ramki/R59_odbior/logi/R59K_poprawka_D1_D2.txt      |  220 +
+ Ramki/R59_odbior/logi/T3c_T11_T13_T14.log          |   26 +
+ Ramki/R59_odbior/logi/kontrola_tresci_pakietu.txt  |   20 +
+ Ramki/R59_odbior/t11_t13_t14.py                    |  172 +
+ Ramki/R59_raport_koncowy.md                        |   84 +
+ .../01_Plan_wdrozenia_v2_2026-11-16_R59.md         |  724 ++
+ .../01_Plan_wdrozenia_v2_2026-11-16_R59.pdf        |  Bin 0 -> 866864 bytes
+ .../02_Zakupy_i_druk_2026-11-16_R59.md             |  325 +
+ .../02_Zakupy_i_druk_2026-11-16_R59.pdf            |  Bin 0 -> 421241 bytes
+ ...wa_ramki_decyzje_i_zamienniki_2026-11-16_R59.md |  352 +
+ ...a_ramki_decyzje_i_zamienniki_2026-11-16_R59.pdf |  Bin 0 -> 418238 bytes
+ .../04_Plan_budowy_ramek_v2_2026-11-16_R59.md      |  957 +++
+ .../02_Druk_drukarnia_PA12/arkusz_zamowienia.csv   |   16 +-
+ .../02_Druk_drukarnia_PA12/arkusz_zamowienia.md    |   35 +-
+ .../ramka_plytka_okragla_poranna_n9_v2.stl         |  Bin 1217584 -> 1128884 bytes
+ .../ramka_plytka_okragla_wieczorna_n8_v2.stl       |  Bin 950484 -> 985784 bytes
+ .../ramka_plytka_poranna_n4_v2.stl                 |  Bin 1189084 -> 1095984 bytes
+ .../ramka_plytka_poranna_n5_v2.stl                 |  Bin 1204884 -> 1113784 bytes
+ .../ramka_plytka_poranna_n6_v2.stl                 |  Bin 1200984 -> 1107984 bytes
+ .../ramka_plytka_wieczorna_n1_v2.stl               |  Bin 911684 -> 946584 bytes
+ .../ramka_plytka_wieczorna_n2_v2.stl               |  Bin 921784 -> 956284 bytes
+ .../ramka_plytka_wieczorna_n3_v2.stl               |  Bin 932284 -> 967084 bytes
+ .../ramka_plytka_wieczorna_n1_v2_TEST_SKANERA.stl  |  Bin 911684 -> 946584 bytes
+ .../04_Model_i_animacje/animacja_ramki_R59.html    |  351 +
+ .../04_Model_i_animacje/ramka_3d_v3_R59.html       | 2885 ++++++++
+ .../rendery/animacja_ramki_R59_scena1_P.jpg        |  Bin 0 -> 41984 bytes
+ .../rendery/animacja_ramki_R59_scena1_P_plytka.jpg |  Bin 0 -> 37782 bytes
+ .../rendery/animacja_ramki_R59_scena1_W.jpg        |  Bin 0 -> 39133 bytes
+ .../rendery/animacja_ramki_R59_scena1_W_plytka.jpg |  Bin 0 -> 37591 bytes
+ .../rendery/animacja_ramki_R59_scena3.jpg          |  Bin 0 -> 31161 bytes
+ .../rendery/ramka_3d_v3_R59_P_kolo_gniazd.jpg      |  Bin 0 -> 144313 bytes
+ .../rendery/ramka_3d_v3_R59_P_z_gory.jpg           |  Bin 0 -> 91969 bytes
+ .../ramka_3d_v3_R59_P_z_gory_techniczny.jpg        |  Bin 0 -> 109926 bytes
+ .../rendery/ramka_3d_v3_R59_W_izometria.jpg        |  Bin 0 -> 185759 bytes
+ .../rendery/ramka_3d_v3_R59_W_kolo_gniazd.jpg      |  Bin 0 -> 139185 bytes
+ .../rendery/ramka_3d_v3_R59_W_z_gory.jpg           |  Bin 0 -> 88241 bytes
+ .../ramka_3d_v3_R59_W_z_gory_techniczny.jpg        |  Bin 0 -> 103024 bytes
+ .../04_Model_i_animacje/rendery/render_plytki.png  |  Bin 1909348 -> 1914480 bytes
+ .../rendery/render_rozstrzelony.png                |  Bin 1746639 -> 1746327 bytes
+ .../04_Model_i_animacje/rendery/render_zlozony.png |  Bin 1759258 -> 1760469 bytes
+ .../05_Zrodla/R59_propozycja_ukladu.md             |  254 +
+ .../Ramki_pakiet/05_Zrodla/R59_wdrozenie_zmiany.md |  195 +
+ Ramki/Ramki_pakiet/05_Zrodla/README_wyniki_v2.md   |   85 +-
+ Ramki/Ramki_pakiet/05_Zrodla/arkusz_wymiarow.md    |  113 +-
+ .../05_Zrodla/arkusz_zamowienia_R59.py             |  317 +
+ .../Ramki_pakiet/05_Zrodla/buduj_plan_wdrozenia.py |   29 +-
+ Ramki/Ramki_pakiet/05_Zrodla/kody_plytek.md        |    2 +-
+ Ramki/Ramki_pakiet/05_Zrodla/parametry.json        |   57 +-
+ .../05_Zrodla/protokol_weryfikacji_v2.md           |   26 +-
+ Ramki/Ramki_pakiet/05_Zrodla/ramka_generator.py    |   60 +-
+ .../05_Zrodla/ramka_plytka_okragla_poranna_v2.stl  |  Bin 1206384 -> 1115584 bytes
+ .../ramka_plytka_okragla_wieczorna_v2.stl          |  Bin 935784 -> 971484 bytes
+ .../05_Zrodla/ramka_plytka_poranna_v2.stl          |  Bin 0 -> 1099784 bytes
+ .../05_Zrodla/ramka_plytka_wieczorna_v2.stl        |  Bin 0 -> 954684 bytes
+ Ramki/Ramki_pakiet/05_Zrodla/ramka_v2.blend        |  Bin 14936678 -> 14628298 bytes
+ .../05_Zrodla/raport_recenzenta_PR_R59_runda1.md   |  185 +
+ .../05_Zrodla/raport_recenzenta_R59_iter1.md       |  209 +
+ .../05_Zrodla/raport_wykonawcy_R59_iter2.md        | 2718 ++++++++
+ Ramki/Ramki_pakiet/05_Zrodla/stanowisko_README.md  |  137 +
+ .../05_Zrodla/stanowisko_raport_R59_2026-11-14.md  |  403 ++
+ .../05_Zrodla/uklad_gniazd_okragla_poranna.json    |  309 +-
+ .../05_Zrodla/uklad_gniazd_okragla_wieczorna.json  |  109 +-
+ .../05_Zrodla/uklad_gniazd_poranna.json            |  309 +-
+ .../05_Zrodla/uklad_gniazd_wieczorna.json          |  129 +-
+ Ramki/Ramki_pakiet/05_Zrodla/uklad_kolo_R59.js     |  775 +++
+ .../Ramki_pakiet/05_Zrodla/weryfikuj_uklad_R59.js  |  359 +
+ Ramki/Ramki_pakiet/README.txt                      |   74 +-
+ Ramki/Ramki_pakiet/SHA256SUMS_2026-11-16_R59.txt   |   81 +
+ ...li cyrkonii \342\200\224 plan wdrozenia v2.pdf" |  Bin 848386 -> 866864 bytes
+ ... \342\200\224 stanowisko kontroli cyrkonii.pdf" |  Bin 409036 -> 421241 bytes
+ .../01_Plan_wdrozenia_v2_2026-11-02_R57.md         |    0
+ .../01_Plan_wdrozenia_v2_2026-11-02_R57.pdf        |  Bin
+ .../02_Zakupy_i_druk_2026-11-02_R57.md             |    0
+ .../02_Zakupy_i_druk_2026-11-02_R57.pdf            |  Bin
+ ...wa_ramki_decyzje_i_zamienniki_2026-11-02_R57.md |    0
+ ...a_ramki_decyzje_i_zamienniki_2026-11-02_R57.pdf |  Bin
+ .../04_Plan_budowy_ramek_v2_2026-11-02_R57.md      |    0
+ .../05_R53_projekt_poprawek_pasowan_2026-10-31.md  |   62 +
+ .../01_Dokumenty/06_R53_weryfikacja_2026-10-31.md  |  269 +
+ ...54_gniazda_w_kole_pola_skanowania_2026-11-01.md |  103 +
+ .../08_R54_recenzja_plytek_2026-11-01.md           |   88 +
+ .../02_Druk_drukarnia_PA12/arkusz_zamowienia.csv   |   18 +
+ .../02_Druk_drukarnia_PA12/arkusz_zamowienia.md    |   51 +
+ .../04_Model_i_animacje/animacja_ramki_R53.html    |    0
+ .../04_Model_i_animacje/ramka_3d_v3_R54.html       |    0
+ .../rendery/ramka_3d_v3_R54_P_kolo_gniazd.jpg      |  Bin
+ .../rendery/ramka_3d_v3_R54_W_kolo_gniazd.jpg      |  Bin
+ .../rendery/ramka_3d_v3_R54_zmierz_10.jpg          |  Bin
+ .../04_Model_i_animacje/rendery/render_plytki.png  |  Bin 0 -> 1909348 bytes
+ .../rendery/render_rozstrzelony.png                |  Bin 0 -> 1746639 bytes
+ .../04_Model_i_animacje/rendery/render_zlozony.png |  Bin 0 -> 1759258 bytes
+ .../05_Zrodla/R57_wdrozenie_zmiany.md              |  100 +
+ .../05_Zrodla/README_wyniki_v2.md                  |   85 +
+ .../05_Zrodla/arkusz_wymiarow.md                   |  603 ++
+ .../05_Zrodla/arkusz_zamowienia_R57.py             |    0
+ .../05_Zrodla/buduj_plan_wdrozenia.py              |  856 +++
+ .../05_Zrodla/dostawcy_druk_i_pleksi.md            |   29 +
+ .../05_Zrodla/kody_plytek.md                       |   21 +
+ .../05_Zrodla/parametry.json                       |  347 +
+ .../05_Zrodla/protokol_weryfikacji_v2.md           |  157 +
+ .../05_Zrodla/ramka_generator.py                   | 4495 +++++++++++++
+ .../05_Zrodla/ramka_v2.blend                       |  Bin 0 -> 14936678 bytes
+ .../05_Zrodla/raport_recenzenta_R57_iter1.md       |   93 +
+ .../05_Zrodla/raport_wykonawcy_R54_iter1.md        | 2336 +++++++
+ .../05_Zrodla/raport_wykonawcy_R55_iter1.md        | 2286 +++++++
+ .../05_Zrodla/raport_wykonawcy_R57_iter2.md        | 3150 +++++++++
+ .../05_Zrodla/uklad_gniazd_okragla_poranna.json    |  421 ++
+ .../05_Zrodla/uklad_gniazd_okragla_wieczorna.json  |  291 +
+ .../05_Zrodla/uklad_gniazd_poranna.json            |  442 ++
+ .../05_Zrodla/uklad_gniazd_wieczorna.json          |  312 +
+ .../05_Zrodla/uklad_kolo_R54.js                    |    0
+ .../05_Zrodla/weryfikuj_uklad_R54.js               |    0
+ .../Ramki_pakiet_przed_R59_2026-11-16/README.txt   |   37 +
+ .../SHA256SUMS_2026-11-02_R57.txt                  |    0
+ ...uduj_plan_wdrozenia_przed_R59_PDF_2026-11-15.py |  869 +++
+ Ramki/dzien_skanera_karta_2026-11-16.md            |   77 +
+ .../odbior_koncowy/E3-ODB_raport_2026-11-20.md     |  522 ++
+ Ramki/etap3/odbior_koncowy/ODLOZONE.md             |   71 +
+ Ramki/etap3/odbior_koncowy/PLAN_TESTOW.md          | 1409 ++++
+ Ramki/etap3/odbior_koncowy/POKAZ_G3.md             |  200 +
+ Ramki/etap3/odbior_koncowy/RAPORT.md               |  342 +
+ .../odbior_koncowy/T13/proba_integ_a2236c1.txt     |   26 +
+ .../odbior_koncowy/T13/proba_main_9ba9e91.txt      |   24 +
+ Ramki/etap3/odbior_koncowy/T14/README.md           |   86 +
+ Ramki/etap3/odbior_koncowy/dowody/README.md        |  156 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/GOTOWE.txt    |   10 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/WYNIK.md      |  130 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/dowody_lf.txt |   27 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/kody.txt      |   10 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/krok_3.cmd    |   11 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/krok_5.cmd    |   11 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/krok_6_9.cmd  |   47 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_1.log      |    3 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_2.log      |    4 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_2b.log     |    8 +
+ .../odbior_koncowy/dowody/T0/t0_2b_proba2.log      |    1 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_3_czas.txt |    2 +
+ .../odbior_koncowy/dowody/T0/t0_4_robocopy.log     |   16 +
+ .../dowody/T0/t0_4_ustawienia_zmiany.txt           |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_5_czas.txt |    2 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_8.log      |    1 +
+ .../odbior_koncowy/dowody/T0/t0_czasy_6_9.txt      |    8 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_kroki.md   |   30 +
+ .../odbior_koncowy/dowody/T0/t0_pip_bez_sieci.txt  |    5 +
+ .../odbior_koncowy/dowody/T0/t0_samokontrola.json  |  137 +
+ .../odbior_koncowy/dowody/T0/t0_samokontrola.txt   |   22 +
+ .../dowody/T0/t0_samokontrola_json_stderr.txt      |    0
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_sha256.txt |   22 +
+ Ramki/etap3/odbior_koncowy/dowody/T0/t0_start.txt  |    7 +
+ .../odbior_koncowy/dowody/T0/t0_zainstaluj_1.log   |   46 +
+ .../odbior_koncowy/dowody/T0/t0_zainstaluj_2.log   |   41 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/POMINIETE.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/WYNIK.md      |  125 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/dowody_lf.txt |   23 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/kody.txt      |    6 +
+ .../etap3/odbior_koncowy/dowody/T1/kolejka_t1.ps1  |   12 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/krok_1_3.cmd  |   14 +
+ .../odbior_koncowy/dowody/T1/krok_2_collect.cmd    |   36 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/krok_4.cmd    |   13 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/krok_5.cmd    |   13 +
+ .../etap3/odbior_koncowy/dowody/T1/monitor_t1.ps1  |   13 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/t1_1_czas.txt |    2 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/t1_2_repo.txt |   12 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/t1_3_wmi.log  |    1 +
+ .../odbior_koncowy/dowody/T1/t1_co_liczylo.txt     |   29 +
+ .../etap3/odbior_koncowy/dowody/T1/t1_collect.txt  |   10 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/t1_czasy.txt  |    4 +
+ .../etap3/odbior_koncowy/dowody/T1/t1_kolejka.log  |    7 +
+ .../odbior_koncowy/dowody/T1/t1_pominiete.txt      |   30 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/t1_pytest.log |   45 +
+ .../odbior_koncowy/dowody/T1/t1_pytest_bazowy.log  |   45 +
+ Ramki/etap3/odbior_koncowy/dowody/T1/t1_wynik.md   |   30 +
+ .../dowody/T1/t1_zainstaluj_testy.log              |   43 +
+ .../etap3/odbior_koncowy/dowody/T10/POMINIETE.txt  |    8 +
+ Ramki/etap3/odbior_koncowy/dowody/T10/WYNIK.md     |  219 +
+ .../etap3/odbior_koncowy/dowody/T10/dowody_lf.txt  |   13 +
+ Ramki/etap3/odbior_koncowy/dowody/T10/kody.txt     |    3 +
+ Ramki/etap3/odbior_koncowy/dowody/T10/krok_t10.cmd |   10 +
+ Ramki/etap3/odbior_koncowy/dowody/T10/t10.log      |  437 ++
+ .../odbior_koncowy/dowody/T10/t10_dowody_lf.txt    |   11 +
+ .../etap3/odbior_koncowy/dowody/T10/t10_licz.json  |  285 +
+ Ramki/etap3/odbior_koncowy/dowody/T10/t10_licz.py  |  243 +
+ Ramki/etap3/odbior_koncowy/dowody/T10/t10_t9.txt   |    6 +
+ .../odbior_koncowy/dowody/T10/t10_t9_dowody.txt    |    6 +
+ Ramki/etap3/odbior_koncowy/dowody/T10/t10_wynik.md |   42 +
+ .../etap3/odbior_koncowy/dowody/T11/POMINIETE.txt  |    7 +
+ Ramki/etap3/odbior_koncowy/dowody/T11/WYNIK.md     |  320 +
+ Ramki/etap3/odbior_koncowy/dowody/T11/czasy.txt    |   12 +
+ .../etap3/odbior_koncowy/dowody/T11/dowody_lf.txt  |   28 +
+ Ramki/etap3/odbior_koncowy/dowody/T11/kody.txt     |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T11/krok_A.cmd   |   21 +
+ Ramki/etap3/odbior_koncowy/dowody/T11/krok_B.cmd   |   25 +
+ .../odbior_koncowy/dowody/T11/krok_B_program.cmd   |    9 +
+ .../odbior_koncowy/dowody/T11/t11_auto_uklad.log   |    9 +
+ .../dowody/T11/t11_auto_uklad_podsumowanie.json    |   95 +
+ .../odbior_koncowy/dowody/T11/t11_komunikaty.txt   |   19 +
+ .../odbior_koncowy/dowody/T11/t11_liczniki.txt     |   19 +
+ .../etap3/odbior_koncowy/dowody/T11/t11_prawda.tsv |   41 +
+ .../etap3/odbior_koncowy/dowody/T11/t11_skany.tsv  |   42 +
+ .../odbior_koncowy/dowody/T11/t11_skany_sha16.tsv  |   42 +
+ .../odbior_koncowy/dowody/T11/t11_statusy.tsv      |    8 +
+ .../odbior_koncowy/dowody/T11/t11_symulator.json   |  444 ++
+ .../odbior_koncowy/dowody/T11/t11_symulator.log    |    2 +
+ .../etap3/odbior_koncowy/dowody/T11/t11_tabela.tsv |   41 +
+ .../etap3/odbior_koncowy/dowody/T11/t11_testy.log  |   77 +
+ .../dowody/T11/t11_testy_instalacja.log            |   82 +
+ .../dowody/T11/t11_testy_zrodlo_kodu.txt           |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T11/t11_wynik.md |   94 +
+ .../odbior_koncowy/dowody/T11/t11_wyniki_uklad.tsv |   41 +
+ .../odbior_koncowy/dowody/T11/t11_zdarzenia.tsv    |    8 +
+ .../odbior_koncowy/dowody/T11/t11_zielone.tsv      |   42 +
+ .../dowody/T11/t11_zielone_prace.tsv               |   42 +
+ .../etap3/odbior_koncowy/dowody/T12/POMINIETE.txt  |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/WYNIK.md     |  104 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/czasy.txt    |   35 +
+ .../etap3/odbior_koncowy/dowody/T12/dowody_lf.txt  |   58 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/kody.txt     |   41 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/krok_A1.cmd  |   39 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/krok_A2.cmd  |   52 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/krok_A4.cmd  |   53 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/krok_B.cmd   |  123 +
+ .../odbior_koncowy/dowody/T12/krok_B_uzup.cmd      |   56 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/krok_P3.cmd  |   13 +
+ .../dowody/T12/t12_A1_baza_przed.txt               |   18 +
+ .../dowody/T12/t12_A1_wersje_przed.log             |    1 +
+ .../dowody/T12/t12_A2_baza_po_aktualizacji.txt     |   26 +
+ .../dowody/T12/t12_A3_baza_po_starcie_N1.txt       |   15 +
+ .../dowody/T12/t12_A3_samokontrola_N1.log          |   22 +
+ .../odbior_koncowy/dowody/T12/t12_A3_start_N1.log  |    0
+ .../dowody/T12/t12_A3_wersje_po_N1.log             |    2 +
+ .../dowody/T12/t12_A5_baza_po_powrocie.txt         |   26 +
+ .../dowody/T12/t12_A5_samokontrola_N.log           |   22 +
+ .../odbior_koncowy/dowody/T12/t12_A5_start_N.log   |    0
+ .../dowody/T12/t12_A5_wersje_po_powrocie.log       |    2 +
+ .../dowody/T12/t12_A6_samokontrola_koniec.log      |   22 +
+ .../dowody/T12/t12_A6_stan_koncowy.txt             |   20 +
+ .../dowody/T12/t12_A6_start_koniec.log             |    0
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_2a.log |   46 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_2b.log |   41 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_3a.log |    0
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_3b.log |    0
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_4.log  |   45 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_5.log  |    0
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_6.log  |   10 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_7.log  |   33 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_B_8.log  |    0
+ .../odbior_koncowy/dowody/T12/t12_B_paczka.txt     |    9 +
+ .../odbior_koncowy/dowody/T12/t12_B_stany.txt      |  150 +
+ .../odbior_koncowy/dowody/T12/t12_B_uzup_2a.log    |   46 +
+ .../odbior_koncowy/dowody/T12/t12_B_uzup_2b.log    |   41 +
+ .../odbior_koncowy/dowody/T12/t12_B_uzup_3a.log    |    0
+ .../odbior_koncowy/dowody/T12/t12_B_uzup_3b.log    |    0
+ .../odbior_koncowy/dowody/T12/t12_B_uzup_4.log     |   45 +
+ .../odbior_koncowy/dowody/T12/t12_B_uzup_stany.txt |   35 +
+ .../dowody/T12/t12_P3_zainstaluj_N_1.log           |   46 +
+ .../dowody/T12/t12_P5_zainstaluj_N_2.log           |   41 +
+ .../dowody/T12/t12_P7a_start_atrapa.log            |    0
+ .../odbior_koncowy/dowody/T12/t12_P7b_start.log    |    0
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_kroki.md |   63 +
+ .../odbior_koncowy/dowody/T12/t12_migracja_B.md    |   97 +
+ .../odbior_koncowy/dowody/T12/t12_sha256_zip.txt   |    8 +
+ .../dowody/T12/t12_ustawienia_po_N1.txt            |    3 +
+ .../dowody/T12/t12_ustawienia_po_powrocie.txt      |    3 +
+ .../dowody/T12/t12_ustawienia_przed.txt            |    3 +
+ .../dowody/T12/t12_ustawienia_sumy.txt             |    9 +
+ .../dowody/T12/t12_wersje_przed_po.txt             |   16 +
+ Ramki/etap3/odbior_koncowy/dowody/T12/t12_wroc.log |   46 +
+ .../odbior_koncowy/dowody/T12/t12_wroc_tak.log     |   64 +
+ .../dowody/T12/t12_zainstaluj_N1.log               |   45 +
+ Ramki/etap3/odbior_koncowy/dowody/T13/WYNIK.md     |   94 +
+ Ramki/etap3/odbior_koncowy/dowody/T13/czasy.txt    |    2 +
+ .../etap3/odbior_koncowy/dowody/T13/dowody_lf.txt  |   14 +
+ .../dowody/T13/drugi_przebieg/WYNIK.md             |   51 +
+ .../dowody/T13/drugi_przebieg/dowody_lf.txt        |   12 +
+ .../T13/drugi_przebieg/dowody_lf_caly_katalog.txt  |  390 ++
+ .../drugi_przebieg/proba_1_807aa83/dowody_lf.txt   |    5 +
+ .../drugi_przebieg/proba_1_807aa83/t13_wynik.json  |  850 +++
+ .../drugi_przebieg/proba_1_807aa83/t13_wynik.txt   |   27 +
+ .../proba_1_807aa83/t13_wynik_stderr.txt           |    0
+ .../dowody/T13/drugi_przebieg/t13_diff_stat.txt    | 1036 +++
+ .../dowody/T13/drugi_przebieg/t13_wynik.json       |  837 +++
+ .../dowody/T13/drugi_przebieg/t13_wynik.txt        |   25 +
+ .../dowody/T13/drugi_przebieg/t13_wynik_stderr.txt |    0
+ Ramki/etap3/odbior_koncowy/dowody/T13/kody.txt     |    3 +
+ Ramki/etap3/odbior_koncowy/dowody/T13/krok_T13.cmd |   18 +
+ .../odbior_koncowy/dowody/T13/t13_diff_stat.txt    |  647 ++
+ .../dowody/T13/t13_kontrola_niezalezna.txt         |   17 +
+ .../dowody/T13/t13_kontrola_reczna.txt             |   20 +
+ .../dowody/T13/t13_poczatek_etapu.txt              |    5 +
+ .../odbior_koncowy/dowody/T13/t13_repo_stan.txt    |    1 +
+ .../etap3/odbior_koncowy/dowody/T13/t13_wynik.json |  837 +++
+ .../etap3/odbior_koncowy/dowody/T13/t13_wynik.txt  |   25 +
+ .../odbior_koncowy/dowody/T13/t13_wynik_stderr.txt |    0
+ Ramki/etap3/odbior_koncowy/dowody/T14/WYNIK.md     |   13 +
+ .../etap3/odbior_koncowy/dowody/T14/dowody_lf.txt  |    6 +
+ Ramki/etap3/odbior_koncowy/dowody/T14/kody.txt     |    1 +
+ Ramki/etap3/odbior_koncowy/dowody/T14/t14_czas.txt |    2 +
+ .../dowody/T14/t14_sprawdz_paczka.txt              |   50 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/POMINIETE.txt |    6 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/WYNIK.md      |  250 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/dowody_lf.txt |   20 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/kody.txt      |   11 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/krok_t2.cmd   |   12 +
+ .../odbior_koncowy/dowody/T2/krok_t2_powt.cmd      |   12 +
+ .../odbior_koncowy/dowody/T2/krok_t2_uzup.cmd      |   22 +
+ .../odbior_koncowy/dowody/T2/pas_brzegu/WYNIK.md   |  120 +
+ .../dowody/T2/pas_brzegu/licz_pas.txt              |  147 +
+ .../dowody/T2/t2_log_ostrzezenia.txt               |    4 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/t2_petla.log  |   20 +
+ .../odbior_koncowy/dowody/T2/t2_petla_plan.log     |   10 +
+ .../odbior_koncowy/dowody/T2/t2_procesy_csv.txt    |  502 ++
+ .../odbior_koncowy/dowody/T2/t2_sterownik.log      |   45 +
+ .../odbior_koncowy/dowody/T2/t2_symulator.json     |  114 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/t2_t9.txt     |    7 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/t2_wynik.json | 1623 +++++
+ Ramki/etap3/odbior_koncowy/dowody/T2/t2_wynik.md   |   28 +
+ Ramki/etap3/odbior_koncowy/dowody/T2/t2_wynik.txt  |   44 +
+ .../odbior_koncowy/dowody/T2/t2_zrodlo_kodu_1.txt  |    5 +
+ .../odbior_koncowy/dowody/T2/t2_zrodlo_kodu_2.txt  |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T3/POMINIETE.txt |    6 +
+ Ramki/etap3/odbior_koncowy/dowody/T3/WYNIK.md      |   96 +
+ Ramki/etap3/odbior_koncowy/dowody/T3/dowody_lf.txt |   14 +
+ Ramki/etap3/odbior_koncowy/dowody/T3/kody.txt      |    9 +
+ .../dowody/T3/krok_t3_1_sterownik.cmd              |   12 +
+ .../odbior_koncowy/dowody/T3/krok_t3_2_se10.cmd    |   12 +
+ .../odbior_koncowy/dowody/T3/krok_t3_3_ekran.cmd   |   12 +
+ Ramki/etap3/odbior_koncowy/dowody/T3/t3_ekran.log  |  268 +
+ Ramki/etap3/odbior_koncowy/dowody/T3/t3_se10.log   |   73 +
+ .../odbior_koncowy/dowody/T3/t3_sterownik.log      |   56 +
+ Ramki/etap3/odbior_koncowy/dowody/T3/t3_wynik.json | 1491 +++++
+ Ramki/etap3/odbior_koncowy/dowody/T3/t3_wynik.md   |   96 +
+ Ramki/etap3/odbior_koncowy/dowody/T3/t3_wynik.txt  |   53 +
+ Ramki/etap3/odbior_koncowy/dowody/T4/POMINIETE.txt |    6 +
+ Ramki/etap3/odbior_koncowy/dowody/T4/WYNIK.md      |  120 +
+ Ramki/etap3/odbior_koncowy/dowody/T4/dowody_lf.txt |   15 +
+ Ramki/etap3/odbior_koncowy/dowody/T4/kody.txt      |    6 +
+ Ramki/etap3/odbior_koncowy/dowody/T4/krok_t4.cmd   |   16 +
+ .../odbior_koncowy/dowody/T4/t4_czas_ciepla.json   |  367 ++
+ .../odbior_koncowy/dowody/T4/t4_czas_ciepla.log    |  152 +
+ .../odbior_koncowy/dowody/T4/t4_czas_zimna.json    |  367 ++
+ .../odbior_koncowy/dowody/T4/t4_czas_zimna.log     |  152 +
+ .../etap3/odbior_koncowy/dowody/T4/t4_jakosc.json  |  414 ++
+ Ramki/etap3/odbior_koncowy/dowody/T4/t4_jakosc.log |  291 +
+ .../odbior_koncowy/dowody/T4/t4_procesy_csv.txt    |  699 ++
+ Ramki/etap3/odbior_koncowy/dowody/T4/t4_t9.txt     |    7 +
+ Ramki/etap3/odbior_koncowy/dowody/T4/t4_wynik.md   |   28 +
+ Ramki/etap3/odbior_koncowy/dowody/T5/POMINIETE.txt |   11 +
+ Ramki/etap3/odbior_koncowy/dowody/T5/WYNIK.md      |  158 +
+ Ramki/etap3/odbior_koncowy/dowody/T5/atrapa_p.log  |    8 +
+ Ramki/etap3/odbior_koncowy/dowody/T5/atrapa_w.log  |   87 +
+ Ramki/etap3/odbior_koncowy/dowody/T5/dowody_lf.txt |   23 +
+ Ramki/etap3/odbior_koncowy/dowody/T5/kody.txt      |    9 +
+ .../etap3/odbior_koncowy/dowody/T5/krok_t5_a1.cmd  |   12 +
+ .../etap3/odbior_koncowy/dowody/T5/krok_t5_a2.cmd  |   12 +
+ .../dowody/T5/krok_t5_b1_atrapa_p.cmd              |    5 +
+ .../dowody/T5/krok_t5_b1_atrapa_w.cmd              |    5 +
+ .../etap3/odbior_koncowy/dowody/T5/krok_t5_b4.cmd  |   14 +
+ .../etap3/odbior_koncowy/dowody/T5/posrednik_p.log |    2 +
+ .../etap3/odbior_koncowy/dowody/T5/posrednik_w.log |    2 +
+ .../odbior_koncowy/dowody/T5/t5_konsola_w.log      |   24 +
+ .../odbior_koncowy/dowody/T5/t5_ruch_liczniki.txt  |   22 +
+ .../odbior_koncowy/dowody/T5/t5_siec_lokalna.md    |  123 +
+ Ramki/etap3/odbior_koncowy/dowody/T5/t5_testy.log  |   43 +
+ .../etap3/odbior_koncowy/dowody/T5/t5_testy_2.log  |   21 +
+ .../etap3/odbior_koncowy/dowody/T5/t5_wieczor.log  |   36 +
+ Ramki/etap3/odbior_koncowy/dowody/T5/t5_wynik.md   |  158 +
+ .../odbior_koncowy/dowody/T5/t5_zrodlo_kodu_1.txt  |    5 +
+ .../odbior_koncowy/dowody/T5/t5_zrodlo_kodu_2.txt  |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T6/POMINIETE.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T6/WYNIK.md      |  104 +
+ Ramki/etap3/odbior_koncowy/dowody/T6/dowody_lf.txt |   13 +
+ Ramki/etap3/odbior_koncowy/dowody/T6/kody.txt      |    7 +
+ Ramki/etap3/odbior_koncowy/dowody/T6/krok_t6.cmd   |   18 +
+ .../odbior_koncowy/dowody/T6/t6_aplikacja.log      |   13 +
+ Ramki/etap3/odbior_koncowy/dowody/T6/t6_arkusz.txt |    1 +
+ Ramki/etap3/odbior_koncowy/dowody/T6/t6_excel.log  |  179 +
+ .../odbior_koncowy/dowody/T6/t6_log_regula6.txt    |   20 +
+ Ramki/etap3/odbior_koncowy/dowody/T6/t6_wynik.md   |  104 +
+ .../odbior_koncowy/dowody/T6/t6_zrodlo_kodu.txt    |    5 +
+ .../odbior_koncowy/dowody/T6/t6_zrodlo_kodu_2.txt  |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/POMINIETE.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/WYNIK.md      |   93 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/czasy.txt     |   30 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/dowody_lf.txt |   80 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/kody.txt      |   34 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/krok_A.cmd    |   69 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/krok_B1.cmd   |   35 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/krok_B1b.cmd  |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/krok_B2.cmd   |    6 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/krok_B3.cmd   |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_1a.log     |   20 +
+ .../odbior_koncowy/dowody/T7/t7_1a_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_1b.log     |   16 +
+ .../odbior_koncowy/dowody/T7/t7_1b_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_2a.log     |   12 +
+ .../odbior_koncowy/dowody/T7/t7_2a_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_2b.log     |   10 +
+ .../odbior_koncowy/dowody/T7/t7_2b_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_3a.log     |   11 +
+ .../odbior_koncowy/dowody/T7/t7_3a_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_3b.log     |   13 +
+ .../odbior_koncowy/dowody/T7/t7_3b_zrodlo_kodu.txt |    5 +
+ .../T7/t7_45_samokontrola_z_proba_polaczenia.log   |   22 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_4a.log     |   13 +
+ .../odbior_koncowy/dowody/T7/t7_4a_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_4b.log     |   14 +
+ .../odbior_koncowy/dowody/T7/t7_4b_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_4c.log     |   10 +
+ .../odbior_koncowy/dowody/T7/t7_4c_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_5a.log     |   16 +
+ .../odbior_koncowy/dowody/T7/t7_5a_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_5b.log     |   10 +
+ .../odbior_koncowy/dowody/T7/t7_5b_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_6a.log     |   18 +
+ .../odbior_koncowy/dowody/T7/t7_6a_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_6b.log     |   10 +
+ .../odbior_koncowy/dowody/T7/t7_6b_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_6c.log     |   10 +
+ .../odbior_koncowy/dowody/T7/t7_6c_zrodlo_kodu.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_6d.log     |  184 +
+ .../odbior_koncowy/dowody/T7/t7_6d_zrodlo_kodu.txt |    5 +
+ .../dowody/T7/t7_b1_0_samokontrola_z_folderem.log  |   22 +
+ .../dowody/T7/t7_b1_1_program_bez_folderu.log      |    0
+ .../dowody/T7/t7_b1_2_samokontrola_bez_folderu.log |   22 +
+ .../T7/t7_b1_3_samokontrola_po_przywroceniu.log    |   22 +
+ .../dowody/T7/t7_b1_4_program_po_przywroceniu.log  |    0
+ .../etap3/odbior_koncowy/dowody/T7/t7_b1_baza.txt  |   10 +
+ .../etap3/odbior_koncowy/dowody/T7/t7_b1_czasy.txt |    5 +
+ .../dowody/T7/t7_b1_log_programu.txt               |   12 +
+ .../etap3/odbior_koncowy/dowody/T7/t7_b1b_baza.txt |   26 +
+ .../dowody/T7/t7_b1b_log_programu.txt              |   14 +
+ .../odbior_koncowy/dowody/T7/t7_b1b_program_1.log  |    3 +
+ .../odbior_koncowy/dowody/T7/t7_b1b_program_2.log  |    3 +
+ .../odbior_koncowy/dowody/T7/t7_b1b_przebieg.txt   |   17 +
+ .../odbior_koncowy/dowody/T7/t7_b1b_symulator.json |   15 +
+ .../odbior_koncowy/dowody/T7/t7_b1b_symulator.log  |    2 +
+ .../etap3/odbior_koncowy/dowody/T7/t7_b2_baza.txt  |   36 +
+ .../dowody/T7/t7_b2_log_programu.txt               |   18 +
+ .../odbior_koncowy/dowody/T7/t7_b2_okno1_1.log     |    3 +
+ .../odbior_koncowy/dowody/T7/t7_b2_okno1_2.log     |    3 +
+ .../etap3/odbior_koncowy/dowody/T7/t7_b2_okno2.log |    2 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_b2_pid.txt |   24 +
+ .../odbior_koncowy/dowody/T7/t7_b2_przebieg.txt    |   43 +
+ .../odbior_koncowy/dowody/T7/t7_b2_symulator.json  |   48 +
+ .../etap3/odbior_koncowy/dowody/T7/t7_b3_baza.txt  |   41 +
+ .../dowody/T7/t7_b3_log_programu.txt               |   20 +
+ .../odbior_koncowy/dowody/T7/t7_b3_okno1_1.log     |    3 +
+ .../dowody/T7/t7_b3_okno1_restart.log              |    0
+ .../etap3/odbior_koncowy/dowody/T7/t7_b3_okno2.log |    2 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_b3_pid.txt |   25 +
+ .../odbior_koncowy/dowody/T7/t7_b3_przebieg.txt    |   40 +
+ .../odbior_koncowy/dowody/T7/t7_b3_symulator.json  |   37 +
+ .../odbior_koncowy/dowody/T7/t7_komunikaty.md      |   51 +
+ .../odbior_koncowy/dowody/T7/t7_proby_reczne.md    |  149 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/t7_wynik.md   |   48 +
+ .../odbior_koncowy/dowody/T7/ustawienia_b1.toml    |  120 +
+ .../odbior_koncowy/dowody/T7/ustawienia_b1b.toml   |  120 +
+ .../odbior_koncowy/dowody/T7/ustawienia_b2.toml    |  120 +
+ .../odbior_koncowy/dowody/T7/ustawienia_b3.toml    |  120 +
+ .../odbior_koncowy/dowody/T7/uzup/POMINIETE.txt    |   18 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/uzup/WYNIK.md |  193 +
+ .../dowody/T7/uzup/czasy_komunikatow.txt           |  196 +
+ .../odbior_koncowy/dowody/T7/uzup/dowody_lf.txt    |   45 +
+ Ramki/etap3/odbior_koncowy/dowody/T7/uzup/kody.txt |   16 +
+ .../odbior_koncowy/dowody/T7/uzup/krok_4a_1.cmd    |    5 +
+ .../odbior_koncowy/dowody/T7/uzup/krok_seria1.cmd  |   33 +
+ .../dowody/T7/uzup/p1_1_odczyty_1.txt              |   52 +
+ .../dowody/T7/uzup/p1_1_podsumowanie.txt           |   62 +
+ .../dowody/T7/uzup/p1_2_odczyty_1.txt              |   51 +
+ .../dowody/T7/uzup/p1_2_podsumowanie.txt           |   62 +
+ .../dowody/T7/uzup/p2_1_odczyty_1.txt              |   37 +
+ .../dowody/T7/uzup/p2_1_odczyty_2.txt              |   34 +
+ .../dowody/T7/uzup/p2_1_podsumowanie.txt           |  104 +
+ .../dowody/T7/uzup/p2_2_odczyty_1.txt              |   38 +
+ .../dowody/T7/uzup/p2_2_odczyty_2.txt              |   34 +
+ .../dowody/T7/uzup/p2_2_podsumowanie.txt           |  104 +
+ .../dowody/T7/uzup/p2c_1_odczyty_1.txt             |   39 +
+ .../dowody/T7/uzup/p2c_1_odczyty_2.txt             |   34 +
+ .../dowody/T7/uzup/p2c_1_podsumowanie.txt          |  103 +
+ .../dowody/T7/uzup/p3_1_odczyty_1.txt              |   83 +
+ .../dowody/T7/uzup/p3_1_podsumowanie.txt           |   93 +
+ .../dowody/T7/uzup/p3_2_odczyty_1.txt              |   80 +
+ .../dowody/T7/uzup/p3_2_podsumowanie.txt           |   94 +
+ .../dowody/T7/uzup/p4a_1_odczyty_1.txt             |   36 +
+ .../dowody/T7/uzup/p4a_1_podsumowanie.txt          |   61 +
+ .../dowody/T7/uzup/p4a_2_odczyty_1.txt             |   36 +
+ .../dowody/T7/uzup/p4a_2_podsumowanie.txt          |   61 +
+ .../dowody/T7/uzup/p4b_1_odczyty_1.txt             |   36 +
+ .../dowody/T7/uzup/p4b_1_podsumowanie.txt          |   61 +
+ .../dowody/T7/uzup/p4b_2_odczyty_1.txt             |   64 +
+ .../dowody/T7/uzup/p4b_2_podsumowanie.txt          |   66 +
+ .../dowody/T7/uzup/p5a_1_odczyty_1.txt             |   36 +
+ .../dowody/T7/uzup/p5a_1_podsumowanie.txt          |   61 +
+ .../dowody/T7/uzup/p5a_2_odczyty_1.txt             |   36 +
+ .../dowody/T7/uzup/p5a_2_podsumowanie.txt          |   61 +
+ .../dowody/T7/uzup/p5d_1_odczyty_1.txt             |   40 +
+ .../dowody/T7/uzup/p5d_1_podsumowanie.txt          |   65 +
+ .../dowody/T7/uzup/p6_1_odczyty_1.txt              |   63 +
+ .../dowody/T7/uzup/p6_1_podsumowanie.txt           |   69 +
+ .../dowody/T7/uzup/p6_2_odczyty_1.txt              |   65 +
+ .../dowody/T7/uzup/p6_2_podsumowanie.txt           |   69 +
+ .../dowody/T7/uzup/sonda_komunikaty.py             |  900 +++
+ .../dowody/T7/uzup/zrzuty_i_kontrole.txt           |   53 +
+ Ramki/etap3/odbior_koncowy/dowody/T8/POMINIETE.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T8/WYNIK.md      |  169 +
+ Ramki/etap3/odbior_koncowy/dowody/T8/dowody_lf.txt |   17 +
+ Ramki/etap3/odbior_koncowy/dowody/T8/kody.txt      |    6 +
+ .../odbior_koncowy/dowody/T8/krok_t8_raporty.cmd   |   10 +
+ .../odbior_koncowy/dowody/T8/krok_t8_test.cmd      |    8 +
+ Ramki/etap3/odbior_koncowy/dowody/T8/t8_rano.json  |  238 +
+ Ramki/etap3/odbior_koncowy/dowody/T8/t8_rano.txt   |   37 +
+ .../odbior_koncowy/dowody/T8/t8_rano_stderr.txt    |    0
+ Ramki/etap3/odbior_koncowy/dowody/T8/t8_recznie.md |  158 +
+ Ramki/etap3/odbior_koncowy/dowody/T8/t8_sql_t2.log |  307 +
+ Ramki/etap3/odbior_koncowy/dowody/T8/t8_sql_t3.log |  257 +
+ .../odbior_koncowy/dowody/T8/t8_test_metryki.log   |    3 +
+ .../etap3/odbior_koncowy/dowody/T8/t8_wieczor.json |  155 +
+ .../etap3/odbior_koncowy/dowody/T8/t8_wieczor.txt  |   28 +
+ .../odbior_koncowy/dowody/T8/t8_wieczor_stderr.txt |    0
+ Ramki/etap3/odbior_koncowy/dowody/T9/POMINIETE.txt |    5 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/WYNIK.md      |  329 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/dowody_lf.txt |   44 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/kody.txt      |   19 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/krok_t9.ps1   |   31 +
+ .../odbior_koncowy/dowody/T9/krok_t9_4_test.cmd    |    9 +
+ .../dowody/T9/krok_t9_4_test_proba3.cmd            |   10 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_N.txt      |   90 +
+ .../odbior_koncowy/dowody/T9/t9_N_bez_SE10.txt     |   84 +
+ .../odbior_koncowy/dowody/T9/t9_cele_dane.txt      |   60 +
+ .../odbior_koncowy/dowody/T9/t9_cele_wyniki.txt    |  152 +
+ .../odbior_koncowy/dowody/T9/t9_czlony_binarne.txt |   10 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_dane.txt   |   47 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_dowody.txt |   47 +
+ .../etap3/odbior_koncowy/dowody/T9/t9_dowody_2.txt |   47 +
+ .../odbior_koncowy/dowody/T9/t9_dowody_wlasne.txt  |   12 +
+ .../odbior_koncowy/dowody/T9/t9_instalacje.txt     |   47 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_logi.txt   |   49 +
+ .../odbior_koncowy/dowody/T9/t9_logi_bez_SE10.txt  |   47 +
+ .../odbior_koncowy/dowody/T9/t9_logi_proba1.txt    |   88 +
+ .../dowody/T9/t9_nieprzeszukane_typy.txt           |    8 +
+ .../odbior_koncowy/dowody/T9/t9_npz_dodatkowo.txt  |    4 +
+ .../odbior_koncowy/dowody/T9/t9_polecenia.txt      |   16 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_repo.json  | 6969 ++++++++++++++++++++
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_repo.txt   |   61 +
+ .../odbior_koncowy/dowody/T9/t9_repo_bez_SE10.json | 6673 +++++++++++++++++++
+ .../odbior_koncowy/dowody/T9/t9_repo_bez_SE10.txt  |   48 +
+ .../odbior_koncowy/dowody/T9/t9_repo_odbior.txt    |   61 +
+ .../odbior_koncowy/dowody/T9/t9_repo_odbior_2.txt  |   61 +
+ .../dowody/T9/t9_repo_odbior_bez_SE10.txt          |   48 +
+ .../dowody/T9/t9_repo_odbior_bez_SE10_2.txt        |   48 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_ruch.txt   |    6 +
+ .../odbior_koncowy/dowody/T9/t9_sql_liczby.txt     |   16 +
+ .../dowody/T9/t9_test_zz_k8_proba1.log             |   45 +
+ .../dowody/T9/t9_test_zz_k8_proba1_czas.txt        |    2 +
+ .../dowody/T9/t9_test_zz_k8_proba2.log             |   45 +
+ .../dowody/T9/t9_test_zz_k8_proba2_czas.txt        |    2 +
+ .../dowody/T9/t9_test_zz_k8_proba3.log             |   21 +
+ .../dowody/T9/t9_test_zz_k8_proba3_czas.txt        |    2 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_wynik.md   |  329 +
+ Ramki/etap3/odbior_koncowy/dowody/T9/t9_wyniki.txt |   47 +
+ .../odbior_koncowy/dowody/T9/t9_zrodla_repo.txt    |   84 +
+ .../dowody/T9/t9_zrodla_wszystkie.txt              |  243 +
+ .../odbior_koncowy/dowody/t9_dowody_zbior.txt      |   47 +
+ Ramki/etap3/odbior_koncowy/narzedzia/dowody_lf.py  |   98 +
+ .../odbior_koncowy/narzedzia/posrednik_ruchu.py    |  114 +
+ .../odbior_koncowy/narzedzia/pytest_instalacja.py  |  150 +
+ Ramki/etap3/odbior_koncowy/narzedzia/sql_odczyt.py |   60 +
+ .../narzedzia/t12_paczka_migracja.py               |  132 +
+ .../odbior_koncowy/narzedzia/t13_dozwolone.txt     |   47 +
+ .../etap3/odbior_koncowy/narzedzia/t13_higiena.py  |  280 +
+ .../odbior_koncowy/narzedzia/t13_wyjatki_ascii.txt |   11 +
+ .../odbior_koncowy/narzedzia/t2_scenariusz.json    |   55 +
+ .../narzedzia/t2_scenariusz_okragle.json           |   49 +
+ Ramki/etap3/odbior_koncowy/narzedzia/t2_wieczor.py | 1117 ++++
+ Ramki/etap3/odbior_koncowy/narzedzia/t3_poranek.py | 1019 +++
+ .../odbior_koncowy/narzedzia/t9_dane_osobowe.py    |  533 ++
+ .../etap3/plan_plytki_okragle_n1-n6_2026-11-21.md  |  230 +
+ ...pozycja_wariant_C_regula_ksztaltu_2026-11-21.md |  116 +
+ Ramki/etap3/t14/README.md                          |   66 +
+ Ramki/etap3/t14/arkusz_obserwacji.html             |   42 +
+ Ramki/etap3/t14/arkusz_obserwacji.md               |   37 +
+ Ramki/etap3/t14/jedna_strona.html                  |   53 +
+ Ramki/etap3/t14/jedna_strona.md                    |   50 +
+ Ramki/etap3/t14/obrazki/rano_ekran.png             |  Bin 0 -> 290754 bytes
+ Ramki/etap3/t14/obrazki/rano_kandydaci.png         |  Bin 0 -> 35005 bytes
+ Ramki/etap3/t14/obrazki/wieczor_ekran.png          |  Bin 0 -> 247823 bytes
+ Ramki/etap3/t14/obrazki/wieczor_praca.png          |  Bin 0 -> 51212 bytes
+ Ramki/etap3/t14/scenariusz_symulatora.md           |   92 +
+ Ramki/etap3/t14/scenariusz_t14.json                |   43 +
+ Ramki/etap3/t14/symulator_t14.py                   |  482 ++
+ Ramki/etap3/wydania/README.md                      |   34 +
+ Ramki/etap3/wydania/SHA256SUMS_wydania.txt         |    2 +
+ Ramki/etap3/wydania/Stanowisko_0.3.0.wydanie.json  |  548 ++
+ Ramki/etap3/wydania/Stanowisko_0.3.1.wydanie.json  |  549 ++
+ Ramki/narzedzia/arkusz_zamowienia_R58.py           |  268 +
+ Ramki/narzedzia/buduj_plan_wdrozenia.py            |   12 +-
+ Ramki/narzedzia/studium_R58.py                     |  192 +
+ Ramki/narzedzia/test_R58_p3_d1.py                  |  109 +
+ Ramki/narzedzia/zbuduj_pakiet_R59.sh               |  339 +-
+ Ramki/narzedzia/zbuduj_zamowienie_R58.py           |  124 +
+ Ramki/parametry.json                               |   36 +-
+ Ramki/plan_etap3_pelna_aplikacja_2026-11-16.md     |   12 +-
+ Ramki/plan_ramki_v2.md                             |   77 +-
+ Ramki/protokol_weryfikacji_v2.md                   |   25 +-
+ Ramki/ramka_generator.py                           | 2142 +++++-
+ Ramki/recenzja/r58_runda1/kolizje.py               |   66 +
+ Ramki/recenzja/r58_runda1/log_r13.txt              |   27 +
+ Ramki/recenzja/r58_runda1/log_r14.txt              |   25 +
+ Ramki/recenzja/r58_runda1/log_r15.txt              |   10 +
+ Ramki/recenzja/r58_runda1/log_r16.txt              |   56 +
+ Ramki/recenzja/r58_runda1/log_r17.txt              |   25 +
+ Ramki/recenzja/r58_runda1/log_r22.txt              |   10 +
+ Ramki/recenzja/r58_runda1/pokaz.py                 |    8 +
+ Ramki/recenzja/r58_runda1/r10_kolizje_nominal.py   |   26 +
+ Ramki/recenzja/r58_runda1/r11_kontrola.py          |   12 +
+ Ramki/recenzja/r58_runda1/r12_zle_polozenie.py     |   12 +
+ Ramki/recenzja/r58_runda1/r13_pokrywka.py          |   48 +
+ Ramki/recenzja/r58_runda1/r14_pasowania.py         |   50 +
+ .../r58_runda1/r15_zle_polozenie_analiza.py        |   90 +
+ Ramki/recenzja/r58_runda1/r16_sha.py               |   54 +
+ Ramki/recenzja/r58_runda1/r17_json.py              |   27 +
+ Ramki/recenzja/r58_runda1/r18_otwory_polki.py      |   28 +
+ Ramki/recenzja/r58_runda1/r19_ascii_kanal.py       |   14 +
+ Ramki/recenzja/r58_runda1/r1_topologia.py          |   15 +
+ Ramki/recenzja/r58_runda1/r20_sprawdz_diff.py      |    8 +
+ Ramki/recenzja/r58_runda1/r21_wkladka_przod.py     |   15 +
+ .../recenzja/r58_runda1/r22_normalne_przeciecia.py |   22 +
+ Ramki/recenzja/r58_runda1/r23_cyfra1.py            |   18 +
+ Ramki/recenzja/r58_runda1/r24_okna.py              |   36 +
+ Ramki/recenzja/r58_runda1/r2_spod.py               |   46 +
+ Ramki/recenzja/r58_runda1/r3_wierzch.py            |   48 +
+ Ramki/recenzja/r58_runda1/r4_cyfry_spod.py         |   35 +
+ Ramki/recenzja/r58_runda1/r5_plytka_wymiary.py     |   99 +
+ Ramki/recenzja/r58_runda1/r6_scianki.py            |   82 +
+ Ramki/recenzja/r58_runda1/r7_wkladka.py            |   85 +
+ Ramki/recenzja/r58_runda1/r8_wkladka_porownanie.py |   58 +
+ Ramki/recenzja/r58_runda1/r9_kanaly.py             |   50 +
+ Ramki/recenzja/r58_runda1/rastr.py                 |   64 +
+ Ramki/recenzja/r58_runda1/siatka.py                |  151 +
+ Ramki/recenzja/r58_runda2/kolizje.py               |   66 +
+ Ramki/recenzja/r58_runda2/log_r1.txt               |   36 +
+ Ramki/recenzja/r58_runda2/log_r13.txt              |   20 +
+ Ramki/recenzja/r58_runda2/log_r16.txt              |   39 +
+ Ramki/recenzja/r58_runda2/log_r2.txt               |   40 +
+ Ramki/recenzja/r58_runda2/log_r22.txt              |   10 +
+ Ramki/recenzja/r58_runda2/log_r30.txt              |   31 +
+ Ramki/recenzja/r58_runda2/log_r31.txt              |   15 +
+ Ramki/recenzja/r58_runda2/log_r42.txt              |    6 +
+ Ramki/recenzja/r58_runda2/log_r5.txt               |   70 +
+ Ramki/recenzja/r58_runda2/log_r7.txt               |   68 +
+ Ramki/recenzja/r58_runda2/log_test_p3_d1.txt       |   11 +
+ Ramki/recenzja/r58_runda2/pokaz.py                 |    8 +
+ Ramki/recenzja/r58_runda2/r10_kolizje_nominal.py   |   26 +
+ Ramki/recenzja/r58_runda2/r11_kontrola.py          |   12 +
+ Ramki/recenzja/r58_runda2/r12_zle_polozenie.py     |   12 +
+ Ramki/recenzja/r58_runda2/r13_pokrywka.py          |   36 +
+ Ramki/recenzja/r58_runda2/r14_pasowania.py         |   50 +
+ .../r58_runda2/r15_zle_polozenie_analiza.py        |   90 +
+ Ramki/recenzja/r58_runda2/r16_sha.py               |   49 +
+ Ramki/recenzja/r58_runda2/r17_json.py              |   27 +
+ Ramki/recenzja/r58_runda2/r18_otwory_polki.py      |   28 +
+ Ramki/recenzja/r58_runda2/r19_ascii_kanal.py       |   14 +
+ Ramki/recenzja/r58_runda2/r1_topologia.py          |   15 +
+ Ramki/recenzja/r58_runda2/r20_sprawdz_diff.py      |    8 +
+ Ramki/recenzja/r58_runda2/r21_wkladka_przod.py     |   15 +
+ .../recenzja/r58_runda2/r22_normalne_przeciecia.py |   22 +
+ Ramki/recenzja/r58_runda2/r23_cyfra1.py            |   18 +
+ Ramki/recenzja/r58_runda2/r24_okna.py              |   36 +
+ Ramki/recenzja/r58_runda2/r2_plytki_mapy.py        |   34 +
+ Ramki/recenzja/r58_runda2/r2_spod.py               |   46 +
+ Ramki/recenzja/r58_runda2/r30_ulozenia.py          |  122 +
+ Ramki/recenzja/r58_runda2/r31_kolizje.py           |   34 +
+ Ramki/recenzja/r58_runda2/r3_wierzch.py            |   48 +
+ Ramki/recenzja/r58_runda2/r40_resztki.py           |    7 +
+ Ramki/recenzja/r58_runda2/r41_plus.py              |    6 +
+ Ramki/recenzja/r58_runda2/r42_jezyk.py             |   10 +
+ Ramki/recenzja/r58_runda2/r4_cyfry_spod.py         |   35 +
+ Ramki/recenzja/r58_runda2/r5_plytka_wymiary.py     |   99 +
+ Ramki/recenzja/r58_runda2/r5_rowek_klucza.py       |   86 +
+ Ramki/recenzja/r58_runda2/r6_scianki.py            |   82 +
+ Ramki/recenzja/r58_runda2/r7_wkladka.py            |   63 +
+ Ramki/recenzja/r58_runda2/r8_wkladka_porownanie.py |   58 +
+ Ramki/recenzja/r58_runda2/r9_kanaly.py             |   50 +
+ Ramki/recenzja/r58_runda2/rastr.py                 |   64 +
+ Ramki/recenzja/r58_runda2/siatka.py                |  151 +
+ Ramki/recenzja/r58_runda3/kolizje.py               |   66 +
+ Ramki/recenzja/r58_runda3/log_r1.txt               |    4 +
+ Ramki/recenzja/r58_runda3/log_r13.txt              |   25 +
+ Ramki/recenzja/r58_runda3/log_r16.txt              |   51 +
+ Ramki/recenzja/r58_runda3/log_r30.txt              |   31 +
+ Ramki/recenzja/r58_runda3/log_r31.txt              |   13 +
+ Ramki/recenzja/r58_runda3/log_r32.txt              |    9 +
+ Ramki/recenzja/r58_runda3/log_r7.txt               |   28 +
+ Ramki/recenzja/r58_runda3/pokaz.py                 |    8 +
+ Ramki/recenzja/r58_runda3/r10_kolizje_nominal.py   |   26 +
+ Ramki/recenzja/r58_runda3/r11_kontrola.py          |   12 +
+ Ramki/recenzja/r58_runda3/r12_zle_polozenie.py     |   12 +
+ Ramki/recenzja/r58_runda3/r13_pokrywka.py          |   46 +
+ Ramki/recenzja/r58_runda3/r14_pasowania.py         |   50 +
+ .../r58_runda3/r15_zle_polozenie_analiza.py        |   90 +
+ Ramki/recenzja/r58_runda3/r16_sha.py               |   49 +
+ Ramki/recenzja/r58_runda3/r17_json.py              |   27 +
+ Ramki/recenzja/r58_runda3/r18_otwory_polki.py      |   28 +
+ Ramki/recenzja/r58_runda3/r19_ascii_kanal.py       |   14 +
+ Ramki/recenzja/r58_runda3/r1_topologia.py          |   20 +
+ Ramki/recenzja/r58_runda3/r20_sprawdz_diff.py      |    8 +
+ Ramki/recenzja/r58_runda3/r21_wkladka_przod.py     |   15 +
+ .../recenzja/r58_runda3/r22_normalne_przeciecia.py |   22 +
+ Ramki/recenzja/r58_runda3/r23_cyfra1.py            |   18 +
+ Ramki/recenzja/r58_runda3/r24_okna.py              |   36 +
+ Ramki/recenzja/r58_runda3/r2_plytki_mapy.py        |   34 +
+ Ramki/recenzja/r58_runda3/r2_spod.py               |   46 +
+ Ramki/recenzja/r58_runda3/r30_ulozenia.py          |  122 +
+ Ramki/recenzja/r58_runda3/r31_kolizje.py           |   34 +
+ Ramki/recenzja/r58_runda3/r32_kolnierz.py          |  106 +
+ Ramki/recenzja/r58_runda3/r3_wierzch.py            |   48 +
+ Ramki/recenzja/r58_runda3/r40_resztki.py           |    7 +
+ Ramki/recenzja/r58_runda3/r41_plus.py              |    6 +
+ Ramki/recenzja/r58_runda3/r42_jezyk.py             |   10 +
+ Ramki/recenzja/r58_runda3/r4_cyfry_spod.py         |   35 +
+ Ramki/recenzja/r58_runda3/r5_plytka_wymiary.py     |   99 +
+ Ramki/recenzja/r58_runda3/r5_rowek_klucza.py       |   86 +
+ Ramki/recenzja/r58_runda3/r6_scianki.py            |   82 +
+ Ramki/recenzja/r58_runda3/r7_wkladka.py            |   41 +
+ Ramki/recenzja/r58_runda3/r8_wkladka_porownanie.py |   58 +
+ Ramki/recenzja/r58_runda3/r9_kanaly.py             |   50 +
+ Ramki/recenzja/r58_runda3/rastr.py                 |   64 +
+ Ramki/recenzja/r58_runda3/siatka.py                |  151 +
+ Ramki/recenzja/raport_recenzenta_PR13_runda1.md    |   97 +
+ Ramki/recenzja/raport_recenzenta_PR13_runda2.md    |  133 +
+ Ramki/recenzja/raport_recenzenta_PR13_runda3.md    |   50 +
+ Ramki/recenzja/raport_recenzenta_PR16_runda1.md    |  172 +
+ Ramki/recenzja/raport_recenzenta_PR16_runda2.md    |  125 +
+ Ramki/recenzja/raport_recenzenta_PR16_runda3.md    |  261 +
+ Ramki/recenzja/raport_recenzenta_PR17_runda1.md    |  134 +
+ Ramki/recenzja/raport_recenzenta_PR17_runda2.md    |  123 +
+ Ramki/recenzja/raport_recenzenta_PR18_runda1.md    |  119 +
+ Ramki/recenzja/raport_recenzenta_PR18_runda2.md    |  126 +
+ Ramki/recenzja/raport_recenzenta_PR19_runda1.md    |  156 +
+ Ramki/recenzja/raport_recenzenta_PR19_runda2.md    |  194 +
+ Ramki/recenzja/raport_recenzenta_PR20_runda1.md    |  160 +
+ Ramki/recenzja/raport_recenzenta_PR21_PR20r2.md    |  248 +
+ Ramki/recenzja/raport_recenzenta_PR37_runda1.md    |  151 +
+ Ramki/recenzja/raport_recenzenta_PR38_runda1.md    |  129 +
+ Ramki/recenzja/raport_recenzenta_PR38_runda2.md    |  185 +
+ Ramki/recenzja/raport_recenzenta_PR39_runda1.md    |  223 +
+ Ramki/recenzja/raport_recenzenta_PR39_runda2.md    |  214 +
+ Ramki/recenzja/raport_recenzenta_PR39_runda3.md    |  226 +
+ Ramki/recenzja/raport_recenzenta_PR40_runda1.md    |  181 +
+ Ramki/recenzja/raport_recenzenta_PR40_runda2.md    |  167 +
+ Ramki/recenzja/raport_recenzenta_PR42_runda1.md    |  220 +
+ Ramki/recenzja/raport_recenzenta_PR42_runda2.md    |  215 +
+ Ramki/recenzja/raport_recenzenta_PR43_runda1.md    |  200 +
+ Ramki/recenzja/raport_recenzenta_PR43_runda2.md    |  267 +
+ Ramki/recenzja/raport_recenzenta_PR44_runda1.md    |  174 +
+ Ramki/recenzja/raport_recenzenta_PR44_runda2.md    |  192 +
+ Ramki/recenzja/raport_recenzenta_PR45_runda1.md    |  109 +
+ Ramki/recenzja/raport_recenzenta_PR45_runda2.md    |  145 +
+ Ramki/recenzja/raport_recenzenta_PR51_runda1.md    |  149 +
+ Ramki/recenzja/raport_recenzenta_PR51_runda2.md    |  129 +
+ Ramki/recenzja/raport_recenzenta_PR_R59_runda2.md  |  192 +
+ Ramki/recenzja/raport_recenzenta_PR_R59_runda3.md  |  101 +
+ Ramki/recenzja/raport_recenzenta_R58_runda1.md     |  158 +
+ Ramki/recenzja/raport_recenzenta_R58_runda2.md     |  124 +
+ Ramki/recenzja/raport_recenzenta_R58_runda3.md     |   86 +
+ Ramki/sciaga_skaner_DentalScan_2026-11-16.md       |  204 +
+ Ramki/stanowisko/README.md                         |   59 +-
+ Ramki/stanowisko/WERSJA                            |    1 +
+ Ramki/stanowisko/instalacja/instalator.py          | 1663 +++++
+ .../stanowisko/instalacja/wzory/Dzien_skanera.cmd  |   30 +
+ Ramki/stanowisko/instalacja/wzory/Polecenie.cmd    |   25 +
+ Ramki/stanowisko/instalacja/wzory/Samokontrola.cmd |   27 +
+ Ramki/stanowisko/instalacja/wzory/Stanowisko.cmd   |   29 +
+ Ramki/stanowisko/instalacja/wzory/Wersje.cmd       |   36 +
+ .../instalacja/wzory/Wroc_do_poprzedniej.cmd       |   38 +
+ Ramki/stanowisko/instalacja/zainstaluj.cmd         |   81 +
+ Ramki/stanowisko/instalacja/zamrozone.txt          |   76 +
+ Ramki/stanowisko/instalacja/zamrozone_testy.txt    |    5 +
+ .../instrukcje/co_robic_gdy_nie_dziala.html        |   37 +
+ .../instrukcje/co_robic_gdy_nie_dziala.md          |   31 +
+ .../instrukcje/instalacja_i_aktualizacja.md        |  123 +
+ Ramki/stanowisko/instrukcje/poranek.html           |   48 +
+ Ramki/stanowisko/instrukcje/poranek.md             |   66 +
+ Ramki/stanowisko/instrukcje/ramka_raspberry_pi.md  |  435 ++
+ Ramki/stanowisko/instrukcje/wieczor.html           |   51 +
+ Ramki/stanowisko/instrukcje/wieczor.md             |   68 +
+ .../okragla_ramkowa_poranna/plytka_bazowa.stl      |  Bin 0 -> 1258284 bytes
+ .../okragla_ramkowa_poranna/plytka_n4.stl          |  Bin 0 -> 1253884 bytes
+ .../okragla_ramkowa_poranna/plytka_n5.stl          |  Bin 0 -> 1275984 bytes
+ .../okragla_ramkowa_poranna/plytka_n6.stl          |  Bin 0 -> 1266684 bytes
+ .../okragla_ramkowa_poranna/uklad.json             |  366 +
+ .../okragla_ramkowa_wieczorna/plytka_bazowa.stl    |  Bin 0 -> 1113584 bytes
+ .../okragla_ramkowa_wieczorna/plytka_n1.stl        |  Bin 0 -> 1105084 bytes
+ .../okragla_ramkowa_wieczorna/plytka_n2.stl        |  Bin 0 -> 1114784 bytes
+ .../okragla_ramkowa_wieczorna/plytka_n3.stl        |  Bin 0 -> 1125484 bytes
+ .../okragla_ramkowa_wieczorna/uklad.json           |  316 +
+ Ramki/stanowisko/narzedzia/arkusz_syntetyczny.py   |  531 ++
+ Ramki/stanowisko/narzedzia/atrapa_ramki.py         |   95 +
+ Ramki/stanowisko/narzedzia/auto_uklad_r58.py       |  800 +++
+ Ramki/stanowisko/narzedzia/drzewo_syntetyczne.py   |  161 +
+ Ramki/stanowisko/narzedzia/import_decyzji.py       |  178 +
+ Ramki/stanowisko/narzedzia/instrukcje_html.py      |  582 ++
+ Ramki/stanowisko/narzedzia/metryki_P3a.py          |   53 +-
+ Ramki/stanowisko/narzedzia/metryki_krawedz.py      |  664 ++
+ Ramki/stanowisko/narzedzia/metryki_pula.py         |  558 ++
+ Ramki/stanowisko/narzedzia/metryki_skala.py        |  499 ++
+ Ramki/stanowisko/narzedzia/pomiar_skanu/README.md  |   51 +
+ .../stanowisko/narzedzia/pomiar_skanu/c_wspolne.py |  435 ++
+ .../narzedzia/pomiar_skanu/pomiar_skanu.cmd        |   36 +
+ .../narzedzia/pomiar_skanu/pomiar_skanu.py         |  715 ++
+ Ramki/stanowisko/narzedzia/raport_metryk.py        |   89 +
+ Ramki/stanowisko/narzedzia/symulator_skanera.py    |  616 ++
+ Ramki/stanowisko/narzedzia/zbuduj_wydanie.py       |  368 ++
+ Ramki/stanowisko/narzedzia/zrzuty_instrukcji.py    |  476 ++
+ Ramki/stanowisko/opisy_modulow/README.md           |   41 +-
+ Ramki/stanowisko/opisy_modulow/aplikacja.md        |  322 +
+ Ramki/stanowisko/opisy_modulow/baza.md             |   56 +
+ Ramki/stanowisko/opisy_modulow/dzien_skanera.md    |  238 +
+ Ramki/stanowisko/opisy_modulow/excel.md            |  185 +
+ Ramki/stanowisko/opisy_modulow/indicate.md         |  260 +
+ Ramki/stanowisko/opisy_modulow/inspect.md          |   35 +-
+ Ramki/stanowisko/opisy_modulow/instalacja.md       |  253 +
+ Ramki/stanowisko/opisy_modulow/krawedz.md          |   85 +
+ Ramki/stanowisko/opisy_modulow/match.md            |   41 +-
+ Ramki/stanowisko/opisy_modulow/metryki.md          |   63 +
+ Ramki/stanowisko/opisy_modulow/pamiec_puli.md      |   64 +
+ Ramki/stanowisko/opisy_modulow/plate.md            |   21 +-
+ Ramki/stanowisko/opisy_modulow/pula.md             |   76 +
+ Ramki/stanowisko/opisy_modulow/samokontrola.md     |  256 +
+ Ramki/stanowisko/opisy_modulow/scanner.md          |  145 +
+ Ramki/stanowisko/opisy_modulow/session.md          |  206 +
+ Ramki/stanowisko/opisy_modulow/silnik.md           |  297 +
+ Ramki/stanowisko/opisy_modulow/synth.md            |   14 +-
+ Ramki/stanowisko/opisy_modulow/ui.md               |    2 +-
+ Ramki/stanowisko/opisy_modulow/ui_rano.md          |  126 +
+ Ramki/stanowisko/opisy_modulow/ui_wieczor.md       |   97 +
+ Ramki/stanowisko/opisy_modulow/uklad.md            |   10 +-
+ Ramki/stanowisko/ramka/README.md                   |  470 ++
+ Ramki/stanowisko/ramka/__init__.py                 |   12 +
+ Ramki/stanowisko/ramka/__main__.py                 |    5 +
+ Ramki/stanowisko/ramka/czcionka.py                 |   55 +
+ Ramki/stanowisko/ramka/kalibracja.py               |  293 +
+ Ramki/stanowisko/ramka/logika.py                   |  599 ++
+ Ramki/stanowisko/ramka/obraz.py                    |  173 +
+ Ramki/stanowisko/ramka/program.py                  |  388 ++
+ Ramki/stanowisko/ramka/protokol.py                 |  362 +
+ Ramki/stanowisko/ramka/rpi/ramka.json.wzor         |   14 +
+ Ramki/stanowisko/ramka/rpi/ramka.service           |   27 +
+ Ramki/stanowisko/ramka/rpi/sprawdz_ramke.sh        |  300 +
+ Ramki/stanowisko/ramka/rpi/zainstaluj_ramke.sh     |  252 +
+ Ramki/stanowisko/ramka/serwer.py                   |  315 +
+ Ramki/stanowisko/ramka/sprzet.py                   |  115 +
+ Ramki/stanowisko/ramka/sprzet_atrapa.py            |  102 +
+ Ramki/stanowisko/ramka/sprzet_rpi.py               |  230 +
+ Ramki/stanowisko/ramka/test_led.py                 |  129 +
+ Ramki/stanowisko/raporty/E3-A10_2026-11-18.md      |  146 +
+ Ramki/stanowisko/raporty/E3-A11d_2026-11-20.md     |  527 ++
+ Ramki/stanowisko/raporty/E3-A11i_2026-11-20.md     |  898 +++
+ Ramki/stanowisko/raporty/E3-A11s_2026-11-20.md     |  386 ++
+ Ramki/stanowisko/raporty/E3-A11w_2026-11-20.md     |  773 +++
+ Ramki/stanowisko/raporty/E3-A12_2026-11-18.md      |  116 +
+ Ramki/stanowisko/raporty/E3-A1_2026-11-17.md       |  205 +
+ Ramki/stanowisko/raporty/E3-A1p_2026-11-18.md      |  127 +
+ Ramki/stanowisko/raporty/E3-A2_2026-11-17.md       |  173 +
+ Ramki/stanowisko/raporty/E3-A2p_2026-11-18.md      |  138 +
+ Ramki/stanowisko/raporty/E3-A3a_2026-11-17.md      |  120 +
+ Ramki/stanowisko/raporty/E3-A3b_2026-11-17.md      |  143 +
+ Ramki/stanowisko/raporty/E3-A4_2026-11-17.md       |  211 +
+ Ramki/stanowisko/raporty/E3-A5_2026-11-18.md       |  279 +
+ Ramki/stanowisko/raporty/E3-A5i_2026-11-19.md      |  124 +
+ Ramki/stanowisko/raporty/E3-A6_2026-11-18.md       |  141 +
+ Ramki/stanowisko/raporty/E3-A7_2026-11-18.md       |   92 +
+ Ramki/stanowisko/raporty/E3-A8-ramka_2026-11-17.md |  313 +
+ Ramki/stanowisko/raporty/E3-A8i_2026-11-18.md      |  124 +
+ Ramki/stanowisko/raporty/E3-A8p_2026-11-18.md      |   56 +
+ Ramki/stanowisko/raporty/E3-A9_2026-11-18.md       |  109 +
+ Ramki/stanowisko/raporty/E3-O1_2026-11-21.md       |  649 ++
+ Ramki/stanowisko/raporty/E3-O2_2026-11-21.md       |  989 +++
+ Ramki/stanowisko/raporty/E3-O3_2026-11-21.md       |  472 ++
+ Ramki/stanowisko/raporty/E3-O4_2026-11-21.md       |  839 +++
+ Ramki/stanowisko/raporty/E3-P14_2026-11-20.md      |  404 ++
+ Ramki/stanowisko/raporty/E3-P15_2026-11-21.md      |  392 ++
+ Ramki/stanowisko/raporty/E3-T0d_2026-11-20.md      |  166 +
+ Ramki/stanowisko/raporty/E3-T0p_2026-11-19.md      |  245 +
+ .../raporty/P2_P4_krawedz_brzegu_2026-11-16.md     |  416 ++
+ .../raporty/P2_P4_pomiary_koncowe_2026-11-17.md    |  471 ++
+ .../PR13_poprawki_dzien_skanera_2026-11-17.md      |  210 +
+ .../raporty/PR13_poprawki_obliczenia_2026-11-17.md |  207 +
+ .../raporty/czesc_A_filtr_i_skala_2026-11-15.md    |  376 ++
+ .../raporty/czesc_A_pomiary_koncowe_2026-11-17.md  |  444 ++
+ .../stanowisko/raporty/dzien_skanera_2026-11-16.md |  194 +
+ Ramki/stanowisko/stanowisko/__init__.py            |   28 +
+ Ramki/stanowisko/stanowisko/aplikacja.py           | 1730 +++++
+ Ramki/stanowisko/stanowisko/baza.py                |  586 ++
+ Ramki/stanowisko/stanowisko/dzien_skanera.py       |  926 +++
+ .../stanowisko/stanowisko/dzien_skanera_kroki.toml |  363 +
+ Ramki/stanowisko/stanowisko/dzien_skanera_rdzen.py | 2820 ++++++++
+ Ramki/stanowisko/stanowisko/excel.py               | 1006 +++
+ Ramki/stanowisko/stanowisko/excel_com.py           |  146 +
+ Ramki/stanowisko/stanowisko/indeks.py              |  395 ++
+ Ramki/stanowisko/stanowisko/indicate.py            | 1330 ++++
+ Ramki/stanowisko/stanowisko/inspect.py             |  344 +-
+ Ramki/stanowisko/stanowisko/kontroler_api.py       | 4756 +++++++++++++
+ Ramki/stanowisko/stanowisko/krawedz.py             |  990 +++
+ Ramki/stanowisko/stanowisko/match.py               | 1084 ++-
+ Ramki/stanowisko/stanowisko/metryki.py             |  602 ++
+ Ramki/stanowisko/stanowisko/nazwy.py               |  185 +
+ Ramki/stanowisko/stanowisko/pamiec_puli.py         |  299 +
+ Ramki/stanowisko/stanowisko/porownaj.py            |  248 +-
+ Ramki/stanowisko/stanowisko/pula.py                |  442 ++
+ Ramki/stanowisko/stanowisko/ramka_protokol.py      |  343 +
+ Ramki/stanowisko/stanowisko/samokontrola.py        | 1432 ++++
+ Ramki/stanowisko/stanowisko/scanner.py             |  753 +++
+ Ramki/stanowisko/stanowisko/session.py             | 1302 ++++
+ Ramki/stanowisko/stanowisko/session_rano.py        | 1351 ++++
+ Ramki/stanowisko/stanowisko/silnik.py              | 1823 +++++
+ Ramki/stanowisko/stanowisko/statusy.py             |  661 ++
+ Ramki/stanowisko/stanowisko/synth.py               |  442 +-
+ Ramki/stanowisko/stanowisko/ui/__init__.py         |   27 +
+ Ramki/stanowisko/stanowisko/ui/czesci.py           | 1408 ++++
+ Ramki/stanowisko/stanowisko/ui/ekran_rano.py       | 1083 +++
+ Ramki/stanowisko/stanowisko/ui/kandydaci.py        |  331 +
+ Ramki/stanowisko/stanowisko/ui/mapa.py             |  424 ++
+ Ramki/stanowisko/stanowisko/ui/mapa_rano.py        |  196 +
+ Ramki/stanowisko/stanowisko/ui/napisy.py           |  154 +
+ Ramki/stanowisko/stanowisko/ui/napisy_rano.py      |  207 +
+ Ramki/stanowisko/stanowisko/ui/obraz.py            |  147 +
+ Ramki/stanowisko/stanowisko/ui/okno.py             |  934 +++
+ Ramki/stanowisko/stanowisko/ui/okno_excela.py      |  296 +
+ Ramki/stanowisko/stanowisko/ui/styl.py             |  198 +
+ Ramki/stanowisko/stanowisko/ui_test.py             |   19 +-
+ Ramki/stanowisko/stanowisko/ustawienia.py          |  213 +-
+ Ramki/stanowisko/stanowisko/wspolczynniki.py       |  537 ++
+ Ramki/stanowisko/testy/conftest.py                 |   12 +-
+ .../dane_sesji/decyzje_okna_testowego.csv.txt      |    8 +
+ Ramki/stanowisko/testy/dane_sesji/indeks.json      |  389 ++
+ Ramki/stanowisko/testy/dane_sesji/rano/se10.json   |   42 +
+ .../testy/dane_sesji/wynik_drgniecie.json          |  611 ++
+ .../testy/dane_sesji/wynik_konflikt.json           |  442 ++
+ .../testy/dane_sesji/wynik_niezgodny_uklad.json    |   75 +
+ .../stanowisko/testy/dane_sesji/wynik_plytka1.json |  942 +++
+ .../testy/dane_sesji/wynik_plytka1_ponownie.json   |  979 +++
+ .../stanowisko/testy/dane_sesji/wynik_plytka2.json |  797 +++
+ .../stanowisko/testy/dane_sesji/wynik_plytka3.json |  628 ++
+ .../testy/dane_sesji/wynik_popraw_ulozenie.json    |  720 ++
+ Ramki/stanowisko/testy/dane_sesji/zdarzenia.json   |   58 +
+ Ramki/stanowisko/testy/pomiar_czasu.py             |  414 ++
+ Ramki/stanowisko/testy/test_aplikacja.py           | 1216 ++++
+ Ramki/stanowisko/testy/test_aplikacja_rano.py      | 1545 +++++
+ Ramki/stanowisko/testy/test_auto_uklad.py          |    4 +-
+ Ramki/stanowisko/testy/test_auto_uklad_r58.py      |  536 ++
+ Ramki/stanowisko/testy/test_baza.py                |  570 ++
+ Ramki/stanowisko/testy/test_dzien_skanera.py       | 1869 ++++++
+ Ramki/stanowisko/testy/test_edge_synth.py          |   58 +-
+ Ramki/stanowisko/testy/test_excel.py               | 1091 +++
+ Ramki/stanowisko/testy/test_indeks.py              |  366 +
+ Ramki/stanowisko/testy/test_indicate.py            | 1439 ++++
+ Ramki/stanowisko/testy/test_inspect.py             |  394 +-
+ Ramki/stanowisko/testy/test_instalacja.py          | 1482 +++++
+ Ramki/stanowisko/testy/test_instrukcje.py          |  570 ++
+ Ramki/stanowisko/testy/test_kontroler_api.py       | 1758 +++++
+ Ramki/stanowisko/testy/test_krawedz.py             |  281 +
+ Ramki/stanowisko/testy/test_match.py               |   78 +-
+ Ramki/stanowisko/testy/test_metryki.py             |  910 +++
+ Ramki/stanowisko/testy/test_narzedzia.py           |   24 +
+ Ramki/stanowisko/testy/test_nazwy.py               |  178 +
+ .../testy/test_o4_instalacja_dzien_skanera.py      |  445 ++
+ Ramki/stanowisko/testy/test_o4_ramka_rpi.py        |  508 ++
+ Ramki/stanowisko/testy/test_o4_test_led.py         |  158 +
+ Ramki/stanowisko/testy/test_okragle_ekran.py       |  476 ++
+ Ramki/stanowisko/testy/test_okragle_ramka.py       | 1409 ++++
+ Ramki/stanowisko/testy/test_okragle_sesja.py       |  235 +
+ Ramki/stanowisko/testy/test_okragle_wydanie.py     |  617 ++
+ Ramki/stanowisko/testy/test_p14_baza_zajeta.py     |  526 ++
+ Ramki/stanowisko/testy/test_p14_ekran.py           |  588 ++
+ Ramki/stanowisko/testy/test_p15_drobne.py          |   92 +
+ Ramki/stanowisko/testy/test_p15_ekran.py           |  322 +
+ Ramki/stanowisko/testy/test_pomiar_czasu.py        |  216 +
+ Ramki/stanowisko/testy/test_ponowny_skan.py        |  607 ++
+ Ramki/stanowisko/testy/test_porownaj_bledy.py      |  129 +
+ Ramki/stanowisko/testy/test_pula.py                |  983 +++
+ Ramki/stanowisko/testy/test_pula_aplikacja.py      |  675 ++
+ Ramki/stanowisko/testy/test_pula_aplikacja_r2.py   |  398 ++
+ Ramki/stanowisko/testy/test_pula_aplikacja_r3.py   |  129 +
+ Ramki/stanowisko/testy/test_pula_match.py          |  791 +++
+ Ramki/stanowisko/testy/test_ramka.py               | 2900 ++++++++
+ Ramki/stanowisko/testy/test_samokontrola.py        | 1621 +++++
+ Ramki/stanowisko/testy/test_scanner.py             |  838 +++
+ Ramki/stanowisko/testy/test_session_rano.py        | 1175 ++++
+ Ramki/stanowisko/testy/test_session_wieczor.py     | 1630 +++++
+ Ramki/stanowisko/testy/test_silnik.py              | 2098 ++++++
+ Ramki/stanowisko/testy/test_skala.py               |  282 +
+ Ramki/stanowisko/testy/test_straznik.py            |    2 +-
+ Ramki/stanowisko/testy/test_synth.py               |  214 +
+ Ramki/stanowisko/testy/test_ui_rano.py             | 1169 ++++
+ Ramki/stanowisko/testy/test_ui_rozdzielczosc.py    |  207 +
+ Ramki/stanowisko/testy/test_ui_wieczor.py          | 2371 +++++++
+ Ramki/stanowisko/testy/test_uklad.py               |    2 +-
+ Ramki/stanowisko/testy/test_uklad_r58.py           |  221 +
+ Ramki/stanowisko/testy/test_ustawienia.py          |  352 +-
+ Ramki/stanowisko/testy/test_zbuduj_wydanie.py      |  451 ++
+ Ramki/stanowisko/uruchom_dzien_skanera.bat         |   10 +
+ Ramki/stanowisko/uruchom_stanowisko.bat            |   10 +
+ Ramki/stanowisko/ustawienia.przyklad.toml          |   59 +-
+ .../json/uklad_gniazd_okragla_ramkowa_poranna.json |  366 +
+ .../uklad_gniazd_okragla_ramkowa_wieczorna.json    |  316 +
+ .../raport/raport_wykonawcy_A_kopiaP3_iter1.md     | 2275 +++++++
+ .../raport/raport_wykonawcy_R58_SPRAWDZ_iter1.md   | 1849 ++++++
+ .../raport/raport_wykonawcy_R58_SPRAWDZ_iter2.md   | 1850 ++++++
+ .../raport/raport_wykonawcy_R58_SPRAWDZ_iter3.md   | 1850 ++++++
+ .../raport/raport_wykonawcy_R58_SPRAWDZ_iter4.md   | 1909 ++++++
+ .../raport/raport_wykonawcy_R58_SPRAWDZ_iter5.md   | 1969 ++++++
+ .../wyniki_v2/raport/raport_wykonawcy_R58_iter1.md | 1854 ++++++
+ .../wyniki_v2/raport/raport_wykonawcy_R58_iter2.md | 1854 ++++++
+ .../wyniki_v2/raport/raport_wykonawcy_R58_iter3.md | 1854 ++++++
+ .../wyniki_v2/raport/raport_wykonawcy_R58_iter4.md | 1855 ++++++
+ .../wyniki_v2/raport/raport_wykonawcy_R58_iter5.md | 1906 ++++++
+ .../wyniki_v2/raport/raport_wykonawcy_R58_iter6.md | 1914 ++++++
+ .../wyniki_v2/raport/raport_wykonawcy_R58_iter7.md | 1914 ++++++
+ .../wyniki_v2/raport/raport_wykonawcy_R58_iter8.md | 1974 ++++++
+ .../raport/raport_wykonawcy_R58powt_iter1.md       | 1855 ++++++
+ .../raport/raport_wykonawcy_R58powt_iter2.md       | 1914 ++++++
+ .../raport/raport_wykonawcy_SPRAWDZ_iter13.md      | 2666 ++++++++
+ .../raport/raport_wykonawcy_SPRAWDZ_iter14.md      | 2666 ++++++++
+ .../raport/raport_wykonawcy_SPRAWDZ_iter15.md      | 2666 ++++++++
+ .../raport/raport_wykonawcy_SPRAWDZ_iter16.md      | 2666 ++++++++
+ .../raport/raport_wykonawcy_SPRAWDZ_iter17.md      | 2666 ++++++++
+ ..._ramka_wkladka_okragla_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 15690 bytes
+ ..._ramka_wkladka_okragla_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 15567 bytes
+ ..._ramka_wkladka_okragla_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 15591 bytes
+ ...zut_gora_ramka_wkladka_okragla_v2_R58_iter4.png |  Bin 0 -> 15690 bytes
+ ...zut_gora_ramka_wkladka_okragla_v2_R58_iter8.png |  Bin 0 -> 15591 bytes
+ .../rzuty/rzut_korpus_P_napis_SPRAWDZ_iter15.png   |  Bin 0 -> 6340 bytes
+ .../rzuty/rzut_korpus_P_napis_SPRAWDZ_iter16.png   |  Bin 0 -> 6340 bytes
+ .../rzuty/rzut_korpus_P_napis_SPRAWDZ_iter17.png   |  Bin 0 -> 6340 bytes
+ .../rzuty/rzut_korpus_W_napis_SPRAWDZ_iter15.png   |  Bin 0 -> 6898 bytes
+ .../rzuty/rzut_korpus_W_napis_SPRAWDZ_iter16.png   |  Bin 0 -> 6898 bytes
+ .../rzuty/rzut_korpus_W_napis_SPRAWDZ_iter17.png   |  Bin 0 -> 6898 bytes
+ ...plytka_okragla_poranna_n9_v2_SPRAWDZ_iter15.png |  Bin 0 -> 1209 bytes
+ ...plytka_okragla_poranna_n9_v2_SPRAWDZ_iter16.png |  Bin 0 -> 1209 bytes
+ ...plytka_okragla_poranna_n9_v2_SPRAWDZ_iter17.png |  Bin 0 -> 1209 bytes
+ ...gla_ramkowa_poranna_n4_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 1154 bytes
+ ...gla_ramkowa_poranna_n4_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 1154 bytes
+ ...gla_ramkowa_poranna_n4_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 1154 bytes
+ ...tka_okragla_ramkowa_poranna_n4_v2_R58_iter4.png |  Bin 0 -> 1154 bytes
+ ...tka_okragla_ramkowa_poranna_n4_v2_R58_iter8.png |  Bin 0 -> 1154 bytes
+ ...gla_ramkowa_poranna_n5_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 1274 bytes
+ ...gla_ramkowa_poranna_n5_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 1274 bytes
+ ...gla_ramkowa_poranna_n5_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 1274 bytes
+ ...tka_okragla_ramkowa_poranna_n5_v2_R58_iter4.png |  Bin 0 -> 1274 bytes
+ ...tka_okragla_ramkowa_poranna_n5_v2_R58_iter8.png |  Bin 0 -> 1274 bytes
+ ...gla_ramkowa_poranna_n6_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 1262 bytes
+ ...gla_ramkowa_poranna_n6_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 1262 bytes
+ ...gla_ramkowa_poranna_n6_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 1262 bytes
+ ...tka_okragla_ramkowa_poranna_n6_v2_R58_iter4.png |  Bin 0 -> 1262 bytes
+ ...tka_okragla_ramkowa_poranna_n6_v2_R58_iter8.png |  Bin 0 -> 1262 bytes
+ ...a_ramkowa_wieczorna_n1_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 1016 bytes
+ ...a_ramkowa_wieczorna_n1_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 1016 bytes
+ ...a_ramkowa_wieczorna_n1_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 1016 bytes
+ ...a_okragla_ramkowa_wieczorna_n1_v2_R58_iter4.png |  Bin 0 -> 1016 bytes
+ ...a_okragla_ramkowa_wieczorna_n1_v2_R58_iter8.png |  Bin 0 -> 1016 bytes
+ ...a_ramkowa_wieczorna_n2_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 1143 bytes
+ ...a_ramkowa_wieczorna_n2_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 1143 bytes
+ ...a_ramkowa_wieczorna_n2_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 1143 bytes
+ ...a_okragla_ramkowa_wieczorna_n2_v2_R58_iter4.png |  Bin 0 -> 1143 bytes
+ ...a_okragla_ramkowa_wieczorna_n2_v2_R58_iter8.png |  Bin 0 -> 1143 bytes
+ ...a_ramkowa_wieczorna_n3_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 1229 bytes
+ ...a_ramkowa_wieczorna_n3_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 1229 bytes
+ ...a_ramkowa_wieczorna_n3_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 1229 bytes
+ ...a_okragla_ramkowa_wieczorna_n3_v2_R58_iter4.png |  Bin 0 -> 1229 bytes
+ ...a_okragla_ramkowa_wieczorna_n3_v2_R58_iter8.png |  Bin 0 -> 1229 bytes
+ ...ytka_okragla_wieczorna_n8_v2_SPRAWDZ_iter15.png |  Bin 0 -> 1354 bytes
+ ...ytka_okragla_wieczorna_n8_v2_SPRAWDZ_iter16.png |  Bin 0 -> 1354 bytes
+ ...ytka_okragla_wieczorna_n8_v2_SPRAWDZ_iter17.png |  Bin 0 -> 1354 bytes
+ ...t_ramka_plytka_poranna_n4_v2_SPRAWDZ_iter15.png |  Bin 0 -> 1172 bytes
+ ...t_ramka_plytka_poranna_n4_v2_SPRAWDZ_iter16.png |  Bin 0 -> 1172 bytes
+ ...t_ramka_plytka_poranna_n4_v2_SPRAWDZ_iter17.png |  Bin 0 -> 1172 bytes
+ ...t_ramka_plytka_poranna_n5_v2_SPRAWDZ_iter15.png |  Bin 0 -> 1359 bytes
+ ...t_ramka_plytka_poranna_n5_v2_SPRAWDZ_iter16.png |  Bin 0 -> 1359 bytes
+ ...t_ramka_plytka_poranna_n5_v2_SPRAWDZ_iter17.png |  Bin 0 -> 1359 bytes
+ ...t_ramka_plytka_poranna_n6_v2_SPRAWDZ_iter15.png |  Bin 0 -> 1323 bytes
+ ...t_ramka_plytka_poranna_n6_v2_SPRAWDZ_iter16.png |  Bin 0 -> 1323 bytes
+ ...t_ramka_plytka_poranna_n6_v2_SPRAWDZ_iter17.png |  Bin 0 -> 1323 bytes
+ ...ramka_plytka_wieczorna_n1_v2_SPRAWDZ_iter15.png |  Bin 0 -> 1064 bytes
+ ...ramka_plytka_wieczorna_n1_v2_SPRAWDZ_iter16.png |  Bin 0 -> 1064 bytes
+ ...ramka_plytka_wieczorna_n1_v2_SPRAWDZ_iter17.png |  Bin 0 -> 1064 bytes
+ ...ramka_plytka_wieczorna_n2_v2_SPRAWDZ_iter15.png |  Bin 0 -> 1224 bytes
+ ...ramka_plytka_wieczorna_n2_v2_SPRAWDZ_iter16.png |  Bin 0 -> 1224 bytes
+ ...ramka_plytka_wieczorna_n2_v2_SPRAWDZ_iter17.png |  Bin 0 -> 1224 bytes
+ ...ramka_plytka_wieczorna_n3_v2_SPRAWDZ_iter15.png |  Bin 0 -> 1294 bytes
+ ...ramka_plytka_wieczorna_n3_v2_SPRAWDZ_iter16.png |  Bin 0 -> 1294 bytes
+ ...ramka_plytka_wieczorna_n3_v2_SPRAWDZ_iter17.png |  Bin 0 -> 1294 bytes
+ ...kragla_ramkowa_poranna_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 7192 bytes
+ ...kragla_ramkowa_poranna_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 7168 bytes
+ ...kragla_ramkowa_poranna_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 7168 bytes
+ ...plytka_okragla_ramkowa_poranna_v2_R58_iter4.png |  Bin 0 -> 7192 bytes
+ ...plytka_okragla_ramkowa_poranna_v2_R58_iter8.png |  Bin 0 -> 7168 bytes
+ ...agla_ramkowa_wieczorna_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 7088 bytes
+ ...agla_ramkowa_wieczorna_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 7065 bytes
+ ...agla_ramkowa_wieczorna_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 7065 bytes
+ ...ytka_okragla_ramkowa_wieczorna_v2_R58_iter4.png |  Bin 0 -> 7088 bytes
+ ...ytka_okragla_ramkowa_wieczorna_v2_R58_iter8.png |  Bin 0 -> 7065 bytes
+ ..._ramka_wkladka_okragla_v2_R58_SPRAWDZ_iter3.png |  Bin 0 -> 30127 bytes
+ ..._ramka_wkladka_okragla_v2_R58_SPRAWDZ_iter4.png |  Bin 0 -> 30127 bytes
+ ..._ramka_wkladka_okragla_v2_R58_SPRAWDZ_iter5.png |  Bin 0 -> 30127 bytes
+ ...zut_spod_ramka_wkladka_okragla_v2_R58_iter4.png |  Bin 0 -> 30127 bytes
+ ...zut_spod_ramka_wkladka_okragla_v2_R58_iter8.png |  Bin 0 -> 30127 bytes
+ .../rzuty/rzut_wkladka_strzalki_SPRAWDZ_iter15.png |  Bin 0 -> 3114 bytes
+ .../rzuty/rzut_wkladka_strzalki_SPRAWDZ_iter16.png |  Bin 0 -> 3114 bytes
+ .../rzuty/rzut_wkladka_strzalki_SPRAWDZ_iter17.png |  Bin 0 -> 3114 bytes
+ Ramki/wyniki_v2/raport/sha256_stl_po_R58.txt       |   12 +
+ .../01_Plan_wdrozenia_v2_2026-11-16_R59.pdf        |  Bin 0 -> 866864 bytes
+ .../02_Zakupy_i_druk_2026-11-16_R59.pdf            |  Bin 0 -> 421241 bytes
+ ...a_ramki_decyzje_i_zamienniki_2026-11-16_R59.pdf |  Bin 0 -> 418238 bytes
+ .../DO_WGRANIA_NA_DRIVE_2026-11-16_R59.md          |   20 +
+ .../INSTRUKCJA_PAKIET_2026-11-16_R59.md            |   35 +
+ Ramki_do_wgrania/NA_SERWER_2026-11-16_R59.md       |   19 +
+ ...ki_pakiet_2026-11-16_R59_cz1_dokumenty_druk.zip |  Bin 0 -> 4599220 bytes
+ .../Ramki_pakiet_2026-11-16_R59_cz2_model.zip      |  Bin 0 -> 8359286 bytes
+ .../Ramki_pakiet_2026-11-16_R59_cz3_zrodla.zip     |  Bin 0 -> 6891313 bytes
+ Ramki_do_wgrania/SHA256SUMS_2026-11-16_R59.txt     |   81 +
+ Ramki_do_wgrania/SHA256SUMS_2026-11-19_R58.txt     |   24 +
+ .../Zamowienie_komplet_okragly_R58_2026-11-19.zip  |  Bin 0 -> 3049099 bytes
+ 1129 files changed, 248681 insertions(+), 1285 deletions(-)

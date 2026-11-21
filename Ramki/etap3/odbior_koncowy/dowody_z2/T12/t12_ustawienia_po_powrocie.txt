@@ -1,0 +1,3 @@
+SHA256 hash of <PC-katalog>\t0\odbior2_t12\Stanowisko\ustawienia.toml:
+afc8042112adad1506538fdfc712e645ad666ddda20bd869101f23686f96123c
+CertUtil: -hashfile command completed successfully.

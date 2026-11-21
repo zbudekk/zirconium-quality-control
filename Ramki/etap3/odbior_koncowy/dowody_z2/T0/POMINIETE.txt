@@ -1,0 +1,4 @@
+POMINIETE - katalog T0 (zrodlo na PC: <PC-katalog>\koordynator\robocze\odbior2\final\T0); zostaje na PC, poza repo.
+Regula: bez STL, baz, ZIP, plikow > 1024 KB, katalogow roboczych; ustawienia ze znakami spoza ASCII - poza repo.
+
+- robocze\ (katalog: 4 plikow, 17287 B)

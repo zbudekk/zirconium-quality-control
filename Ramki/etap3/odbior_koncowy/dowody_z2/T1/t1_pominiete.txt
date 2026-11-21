@@ -1,0 +1,26 @@
+T1 - testy pominiete (skipped) w obu przebiegach wobec punktu odniesienia (21.11.2026, wydanie 0.3.3, commit 0fedbf6)
+
+Przebieg 1 (interpreter srodowiska wersji, t1_pytest.log): 9 skipped; pozycje "s" w kolejnosci testow: 29, 730, 2115-2119, 2191, 2192
+Przebieg 2 (interpreter bazowy, t1_pytest_bazowy.log):      9 skipped; pozycje "s": 29, 730, 2115-2119, 2191, 2192 (te same)
+Nazwy testow = pozycje z listy --collect-only (2515 identyfikatorow, ta sama kolejnosc w obu interpreterach: roznic 0).
+
+Nr | Pozycja | Test | Wiersz -rs (plik:wiersz) | Powod z -rs (oba przebiegi ten sam; bez znakow diakrytycznych)
+1 | 29 | testy/test_aplikacja.py::test_skany_odniesienia_przez_cala_aplikacje_w_petli_qt | test_aplikacja.py:1142 [1] | wariant na duzych skanach odniesienia: ustaw E3A3_DANE_REF (folder skan_<typ>_n*.stl) i E3A3_PROJEKTY (folder puli)
+2 | 730 | testy/test_katalog.py::test_projekty_z_pulpitu_exocad_i_mieszcza_sie | test_katalog.py:133 [1] | brak folderu projektow z pulpitu
+3 | 2115 | testy/test_silnik.py::test_skany_odniesienia_wynik_rowny_wierszowi_polecen[wieczorna] | test_silnik.py:1981 [4] | wariant na duzych skanach odniesienia: ustaw E3A2_DANE_REF (folder skan_<typ>_n*.stl) i E3A2_PROJEKTY (folder puli)
+4 | 2116 | testy/test_silnik.py::test_skany_odniesienia_wynik_rowny_wierszowi_polecen[poranna] | test_silnik.py:1981 [4] | jak nr 3
+5 | 2117 | testy/test_silnik.py::test_skany_odniesienia_wynik_rowny_wierszowi_polecen[okragla_wieczorna] | test_silnik.py:1981 [4] | jak nr 3
+6 | 2118 | testy/test_silnik.py::test_skany_odniesienia_wynik_rowny_wierszowi_polecen[okragla_poranna] | test_silnik.py:1981 [4] | jak nr 3
+7 | 2119 | testy/test_silnik.py::test_skany_odniesienia_qt_offscreen | test_silnik.py:1988 [1] | wariant na duzych skanach odniesienia: ustaw E3A2_DANE_REF (folder skan_<typ>_n*.stl) i E3A2_PROJEKTY (folder puli)
+8 | 2191 | testy/test_ui.py::test_okno_porownaj_mapa_klik_decyzja_zapis | test_ui.py:67 [1] | P3a: okno jest szkicem - watek silnika (QThread -> plate z Open3D) nie konczy sie pod offscreen; naprawa w P3a-2 (raporty/P3a_postep.md)
+9 | 2192 | testy/test_ui.py::test_okno_na_skanie_P2 | test_ui.py:129 [1] | brak dane/syntetyczne_P2 albo projektow z pulpitu
+
+Punkt odniesienia (lista 9 znanych):
+- noc 20/21.11, wydanie 0.3.1, commit 571e186: <PC-katalog>\koordynator\robocze\odbior\T1\t1_pominiete.txt - te same 9 testow (te same
+  nazwy, te same pliki:wiersze -rs i powody); pozycje wtedy 29, 678, 1846-1850, 1922, 1923 z 2222 (doszly nowe testy przed nimi).
+- log koordynatora z -rs z 21.11: <PC-katalog>\koordynator\robocze\koord\pytest_o2_7ebb5cd.log ("2496 passed, 9 skipped") - te same
+  6 wierszy SKIPPED (1 + 1 + 4 + 1 + 1 + 1 = 9), te same pliki:wiersze i powody.
+- main bf00921 (<PC-katalog>\koordynator\log\pytest_bazowy_bf00921.log, "1829 passed, 9 skipped", bez -rs): uklad 1 + 1 + 5 + 2.
+
+Wynik porownania: pominiete 9 z 9 znanych w kazdym przebiegu; pominietych spoza listy znanych: 0 (przebieg 1) i 0 (przebieg 2).
+Uklad 1 + 1 + 5 + 2 (test_aplikacja, test_katalog, test_silnik, test_ui) zgodny z punktem odniesienia.

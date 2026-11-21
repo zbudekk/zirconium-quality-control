@@ -1,0 +1,4 @@
+POMINIETE - katalog T12 (zrodlo na PC: <PC-katalog>\koordynator\robocze\odbior2\final\T12); zostaje na PC, poza repo.
+Regula: bez STL, baz, ZIP, plikow > 1024 KB, katalogow roboczych; ustawienia ze znakami spoza ASCII - poza repo.
+
+- robocze\ (katalog: 25851 plikow, 2348307530 B)

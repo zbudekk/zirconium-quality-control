@@ -1,0 +1,53 @@
+== skany 
+id	sha16	status	tryb	uklad	uklad_zrodlo	uklad_zgodny	numer_plytki	numer_zrodlo	czas_s
+1	a7e5c5c7674cc140	przyjety	wieczor	okragla_ramkowa_wieczorna	auto	1	1	dolki	48.13
+2	75db8c4f9ead0dab	przyjety	wieczor	okragla_wieczorna	auto	1	8	dolki	15.58
+3	9cc2bd761deb672b	przyjety	wieczor	wieczorna_r54	auto	1	3	podany	14.62
+4	9d5eeb980330c768	przyjety	wieczor	okragla_wieczorna_r54	auto	1	8	dolki	25.39
+5	769e0fd025693694	do_powtorzenia	wieczor	wieczorna	auto	1	2	podany	12.12
+6	857369c6c1d3aef3	niezgodny_uklad	wieczor	auto	auto	0		nieznany	2.48
+7	247ee785f428396f	przyjety	wieczor	wieczorna	auto	1	2	podany	17.28
+8	c21b3b21066fab83	plytka_nie_z_trybu	wieczor	poranna	auto	1		nieznany	28.97
+9	13a7fc0c4e281de4	przyjety	wieczor	okragla_ramkowa_wieczorna	auto	1	3	dolki	25.02
+-- wierszy: 9
+== prace plytek okraglych ramkowych wg status_gniazda 
+id	sha16	uklad	status_gniazda	prac
+1	a7e5c5c7674cc140	okragla_ramkowa_wieczorna	czerwony	2
+1	a7e5c5c7674cc140	okragla_ramkowa_wieczorna	zielony	3
+1	a7e5c5c7674cc140	okragla_ramkowa_wieczorna	zolty	4
+9	13a7fc0c4e281de4	okragla_ramkowa_wieczorna	zielony	10
+-- wierszy: 4
+== gniazda plytek okraglych ramkowych 
+id	gniazdo	status_gniazda	status_inspekcji
+1	1	zolty	sprawdz
+1	2	zolty	sprawdz
+1	3	zolty	sprawdz
+1	4	czerwony	ubytek
+1	5	zielony	ok
+1	6	czerwony	ubytek
+1	8	zolty	sprawdz
+1	9	zielony	ok
+1	10	zielony	ok
+9	1	zielony	ok
+9	2	zielony	ok
+9	3	zielony	ok
+9	4	zielony	ok
+9	5	zielony	ok
+9	6	zielony	ok
+9	8	zielony	ok
+9	9	zielony	ok
+9	10	zielony	ok
+9	11	zielony	ok
+-- wierszy: 19
+== zdarzenia 
+zrodlo	typ	count(*)
+scanner	nowy_skan	9
+scanner	plik_odrzucony	1
+silnik	skan_przyjety	9
+system	konflikt_projektu	5
+system	podglad	8
+system	program_start	1
+system	program_stop	1
+ui	ponowny_skan_odrzucony	1
+-- wierszy: 8
+KOD=0 

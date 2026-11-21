@@ -1,0 +1,248 @@
+== czesc B: stany instalacji <PC-katalog>\koordynator\robocze\odbior2\final\T12\robocze\K_B 
+ 
+===== STAN po kroku 3 (PRZED aktualizacja probna) sob. 21.11.2026 17:59:10,78 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+Nie molna odnale?? okre?lonego pliku.
+ 
+-- ustawienia.toml SHA-256: 
+2e42534701cb1b4332227769009920675055e227a2ef314c297783bb53a14a12
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+f3d141f27bbc3171e6c8e75741fd659bcf2e7dac49a3ffdd99baf6a1a464c8f0
+86016 bc8f912cc32dab04323d515adf6e023dcc079b01039cad4a885450e547b27b2c
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+ 
+===== STAN po kroku 4 (c1: po aktualizacji, przed startem wersji probnej) sob. 21.11.2026 17:59:11,96 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+Nie molna odnale?? okre?lonego pliku.
+ 
+-- ustawienia.toml SHA-256: 
+2e42534701cb1b4332227769009920675055e227a2ef314c297783bb53a14a12
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+f3d141f27bbc3171e6c8e75741fd659bcf2e7dac49a3ffdd99baf6a1a464c8f0
+86016 bc8f912cc32dab04323d515adf6e023dcc079b01039cad4a885450e547b27b2c
+user_version
+1
+-- wierszy: 1
+count(*)
+4
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+ 
+===== STAN po kroku 5 (c2: po pierwszym starcie wersji probnej) sob. 21.11.2026 17:59:20,18 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+Nie molna odnale?? okre?lonego pliku.
+ 
+-- ustawienia.toml SHA-256: 
+2e42534701cb1b4332227769009920675055e227a2ef314c297783bb53a14a12
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+6bb44228cf92ad6ebb3b556d36ca397ada8c82d6618d2e951b9e4f4a6a3cf3d4
+86016 1351853219b600251a073874dbf48877b7903e7aa5f39ff8dab7e2af964ea79e
+user_version
+1
+-- wierszy: 1
+count(*)
+6
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+ 
+===== STAN po kroku 6 (powrot bez zgody - oczekiwany kod 8) sob. 21.11.2026 17:59:20,77 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+Nie molna odnale?? okre?lonego pliku.
+ 
+-- ustawienia.toml SHA-256: 
+2e42534701cb1b4332227769009920675055e227a2ef314c297783bb53a14a12
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+6bb44228cf92ad6ebb3b556d36ca397ada8c82d6618d2e951b9e4f4a6a3cf3d4
+86016 1351853219b600251a073874dbf48877b7903e7aa5f39ff8dab7e2af964ea79e
+user_version
+1
+-- wierszy: 1
+count(*)
+6
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+ 
+===== STAN po kroku 7 (e: po powrocie z przywroceniem kopii) sob. 21.11.2026 17:59:21,37 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+Nie molna odnale?? okre?lonego pliku.
+ 
+-- ustawienia.toml SHA-256: 
+2e42534701cb1b4332227769009920675055e227a2ef314c297783bb53a14a12
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+6bb44228cf92ad6ebb3b556d36ca397ada8c82d6618d2e951b9e4f4a6a3cf3d4
+86016 1351853219b600251a073874dbf48877b7903e7aa5f39ff8dab7e2af964ea79e
+user_version
+1
+-- wierszy: 1
+count(*)
+6
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+ 
+===== STAN po kroku 8 (start wersji N na przywroconej bazie) sob. 21.11.2026 17:59:29,55 
+wersja_biezaca: 
+0.3.3
+ 
+wersja_poprzednia: 
+Nie molna odnale?? okre?lonego pliku.
+ 
+-- ustawienia.toml SHA-256: 
+2e42534701cb1b4332227769009920675055e227a2ef314c297783bb53a14a12
+-- baza dane\stanowisko.sqlite (SHA-256; rozmiar i skrot bez naglowka; user_version; zdarzenia; skany): 
+6721ef054b56b5786f00d290e5e28c737d9be7563e98aee4d7f1c73ecd255496
+86016 a5a53ee37bc791cb323b071aca31af8a570cb1e5703d80913ffa8b5b2e0b0f3f
+user_version
+1
+-- wierszy: 1
+count(*)
+8
+-- wierszy: 1
+count(*)
+0
+-- wierszy: 1
+-- pliki w dane\kopie: 
+File Not Found
+-- pliki w dane (inne kopie obok bazy): 
+stanowisko.sqlite
+-- katalog instalacji: 
+dane
+dziennik_instalacji.txt
+Dzien_skanera.cmd
+instalator.blokada
+Polecenie.cmd
+Samokontrola.cmd
+Stanowisko.cmd
+ustawienia.toml
+wersja_biezaca.txt
+wersje
+Wersje.cmd
+Wroc_do_poprzedniej.cmd
+-- katalog wersje: 
+0.3.3
+0.3.3            zainstalowano 2026-11-21 17:57:34 commit 0fedbf6e4f97 schemat bazy 1  BIEZACA

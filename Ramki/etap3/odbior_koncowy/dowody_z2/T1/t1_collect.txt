@@ -1,0 +1,12 @@
+T1 --collect-only na commicie wydania 0fedbf6 (21.11.2026 17:45:33-17:45:50), <REPO> = <PC-katalog>\t0\repo2
+
+interpreter srodowiska wersji: <K>\Polecenie.cmd -m pytest <ST>\testy -q --collect-only -p no:cacheprovider --rootdir <ST>
+  kod 0; identyfikatorow testow: 2515; ostatni wiersz: 2515 tests collected in 7.91s
+
+interpreter bazowy: cd /d <ST> && <PC-katalog>\koordynator\narz\py.cmd -m pytest -q --collect-only -p no:cacheprovider
+  kod 0; identyfikatorow testow: 2515; ostatni wiersz: 2515 tests collected in 5.28s
+
+roznic miedzy listami identyfikatorow obu interpreterow (po sprowadzeniu sciezek do testy/...): 0
+plikow testy\test_*.py: 59 (noc, 0.3.1: 2222 testy w 50 plikach)
+punkt odniesienia koordynatora (drzewo wydania przed scaleniem, interpreter bazowy): 2506 passed / 9 skipped / 0 failed = 2515
+pelne listy: robocze\t1_collect_wersja_pelny.txt, robocze\t1_collect_bazowy_pelny.txt

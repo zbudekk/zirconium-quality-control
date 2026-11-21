@@ -1,0 +1,41 @@
+[1/9] Sumy SHA-256 paczki (<PC-katalog>\t0\odbior2\paczka_0.3.3)...
+      zgodne 227 z 227; wersja 0.3.3, commit 0fedbf6e4f97
+[2/9] Python 3.12...
+      <PC>\AppData\Local\Programs\Python\Python312\python.exe: 3.12.10
+[3/9] Katalog instalacji <PC-katalog>\t0\odbior2\Stanowisko...
+      wersja biezaca: brak (pierwsza instalacja)
+[4/9] Ustawienia...
+      istniejacy ustawienia.toml zostaje bez zmian (SHA-256 9a9c1095c5b4758e...)
+      baza: jeszcze jej nie ma; program 0.3.3 obsluguje schemat 1
+[5/9] Katalog wersji 0.3.3...
+      wersja 0.3.3 jest juz zainstalowana i zgodna z paczka - pliki bez zmian
+[6/9] Kopia bazy...
+      bazy jeszcze nie ma - program zalozy ja przy pierwszym uruchomieniu
+[7/9] Samokontrola wersji 0.3.3...
+      OK python: Python 3.12.10
+      OK pakiety: wersje pakietow zgodne 11 z 11 z requirements.txt (bez pytest)
+      OK moduly: moduly programu z bibliotekami DLL: zaladowane 27 z 27 (Qt, Open3D, scipy, trimesh, lancuch analizy, ramki, Excel)
+      OK ustawienia: plik ustawien wczytany i poprawny: <PC-katalog>\t0\odbior2\Stanowisko\ustawienia.toml - 0 kluczy z wartoscia domyslna
+      OK operatorzy: osoby do wyboru na poczatku zmiany: 1
+      OK folder_skanera: folder eksportu skanera istnieje i daje sie czytac: <PC-katalog>/t0/odbior2/dane/eksport
+      OK folder_cyrkon: folder projektow Cyrkon istnieje i daje sie czytac: <PC-katalog>/t0/odbior2/dane/Cyrkon
+      OK folder_prywatne: folder projektow Prywatne istnieje i daje sie czytac: <PC-katalog>/t0/odbior2/dane/Prywatne
+      OK folder_millbox: folder MillBox istnieje i daje sie czytac: <PC-katalog>/t0/odbior2/dane/millbox
+      OK dane_folder: folder danych istnieje, zapis mozliwy: <PC-katalog>\t0\odbior2\Stanowisko\dane
+      OK dane_miejsce: wolne miejsce na dysku folderu danych: 33.3 GB
+      OK dane_polozenie: dane programu poza folderami synchronizowanymi OneDrive / SharePoint (sprawdzone sciezki: 7, znane foldery synchronizowane: 1)
+      OSTRZEZENIE baza: brak pliku bazy - zostanie zalozona przy pierwszym starcie programu: <PC-katalog>\t0\odbior2\Stanowisko\dane\stanowisko.sqlite; nic nie rob - baza powstanie sama przy pierwszym uruchomieniu programu
+      OK modele: uklady plytek z [plytki]: poprawne 10 z 10 (uklad.json i modele plytka_n*.stl)
+      OK pula: pula z jednego folderu (pula_wpisow = false): 17 plikow STL, [sciezki] folder_cyrkon
+      OK pamiec_puli: pamiec puli na dysku: 0 wpisow, 0 MB, sprzatanie wpisow nieuzywanych od 30 dni (folder powstanie przy pierwszej budowie puli)
+      OSTRZEZENIE ramka_wieczorna: proby polaczenia z ramka wieczorna nie bylo - pominieto (--bez-sieci); gdy ramka jest wlaczona, uruchom samokontrole bez --bez-sieci, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie
+      OSTRZEZENIE ramka_poranna: proby polaczenia z ramka poranna nie bylo - pominieto (--bez-sieci); gdy ramka jest wlaczona, uruchom samokontrole bez --bez-sieci, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie
+      OSTRZEZENIE excel: Excel nie jest uruchomiony w tej sesji uzytkownika; przed poranna praca otworz plik zlecen w Excelu na tym laptopie (z Autozapisem), bez Excela program dziala - zlecenia odhacza sie wtedy recznie
+      OK egzemplarz: program Stanowisko nie jest teraz uruchomiony na tej bazie
+      OK sumy: sumy SHA-256 plikow programu zgodne 147 z 147 (SUMY_PROGRAMU.sha256), plikow nadmiarowych 0
+      SAMOKONTROLA: ZIELONA (ok 17, ostrzezenia 4)
+[8/9] Przelaczenie wersji biezacej...
+      wersja biezaca: 0.3.3; poprzednia: brak
+[9/9] Skrot na pulpicie...
+      pominiety (opcja /skrot zaklada skrot Stanowisko na pulpicie)
+INSTALACJA: GOTOWA - wersja biezaca 0.3.3 (poprzednia: brak). Uruchamianie: <PC-katalog>\t0\odbior2\Stanowisko\Stanowisko.cmd

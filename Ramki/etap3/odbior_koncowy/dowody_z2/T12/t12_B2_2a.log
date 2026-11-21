@@ -1,0 +1,46 @@
+[1/9] Sumy SHA-256 paczki (<PC-katalog>\t0\odbior2_t12\paczka_0.3.3)...
+      zgodne 227 z 227; wersja 0.3.3, commit 0fedbf6e4f97
+[2/9] Python 3.12...
+      <PC>\AppData\Local\Programs\Python\Python312\python.exe: 3.12.10
+[3/9] Katalog instalacji <PC-katalog>\t0\odbior2_t12\B\K_B...
+      wersja biezaca: brak (pierwsza instalacja)
+[4/9] Ustawienia...
+      zalozono ustawienia.toml ze wzoru (sciezki danych: <PC-katalog>/t0/odbior2_t12/B/K_B/dane/...) - UZUPELNIJ foldery pracy w [sciezki] i osoby w [sesja] operatorzy
+      baza: jeszcze jej nie ma; program 0.3.3 obsluguje schemat 1
+[5/9] Katalog wersji 0.3.3...
+      miejsce na dysku: potrzeba ok. 1869 MB, wolne 20356 MB
+      program: skopiowano 148 plikow, sumy zgodne
+      srodowisko wirtualne zalozone i startuje
+      instalacja 73 pakietow z kol paczki (bez sieci) - to trwa kilka minut...
+      pakiety zgodne z lista zamrozona: 73 z 73
+[6/9] Kopia bazy...
+      bazy jeszcze nie ma - program zalozy ja przy pierwszym uruchomieniu
+[7/9] Samokontrola wersji 0.3.3...
+      OK python: Python 3.12.10
+      OK pakiety: wersje pakietow zgodne 11 z 11 z requirements.txt (bez pytest)
+      OK moduly: moduly programu z bibliotekami DLL: zaladowane 27 z 27 (Qt, Open3D, scipy, trimesh, lancuch analizy, ramki, Excel)
+      OK ustawienia: plik ustawien wczytany i poprawny: <PC-katalog>\t0\odbior2_t12\B\K_B\ustawienia.toml - 0 kluczy z wartoscia domyslna
+      OSTRZEZENIE operatorzy: lista osob jest pusta - program przyjmuje skany, ale nie zapisuje decyzji Ukruszona / OK; wpisz osoby w pliku ustawien: [sesja] operatorzy = ["...", "..."]
+      BLAD folder_skanera: brak folderu eksportu skanera: C:/Aidite/Scandata - zaden skan nie trafi do programu; otworz plik ustawien <PC-katalog>\t0\odbior2_t12\B\K_B\ustawienia.toml i popraw klucz [sciezki] folder_eksportu_skanera (wiersz folder_eksportu_skanera = "...", sciezka z ukosnikami /) albo utworz / podlacz ten folder
+      BLAD folder_cyrkon: brak folderu projektow Cyrkon: C:/sciezka/do/OneDrive/Cyrkon - pula projektow jest pusta i skany czekaja bez wyniku; otworz plik ustawien <PC-katalog>\t0\odbior2_t12\B\K_B\ustawienia.toml i popraw klucz [sciezki] folder_cyrkon (wiersz folder_cyrkon = "...", sciezka z ukosnikami /) albo utworz / podlacz ten folder
+      OSTRZEZENIE folder_prywatne: brak folderu projektow Prywatne: C:/sciezka/do/OneDrive/Prywatne - przy pula_wpisow = false program z niego nie korzysta (bedzie potrzebny po wlaczeniu puli per praca); otworz plik ustawien <PC-katalog>\t0\odbior2_t12\B\K_B\ustawienia.toml i popraw klucz [sciezki] folder_prywatne (wiersz folder_prywatne = "...", sciezka z ukosnikami /) albo utworz / podlacz ten folder
+      OSTRZEZENIE folder_millbox: brak folderu MillBox: C:/MillBox/raporty - przy pula_wpisow = false program z niego nie korzysta (bedzie potrzebny po wlaczeniu puli per praca); otworz plik ustawien <PC-katalog>\t0\odbior2_t12\B\K_B\ustawienia.toml i popraw klucz [sciezki] folder_millbox (wiersz folder_millbox = "...", sciezka z ukosnikami /) albo utworz / podlacz ten folder
+      OK dane_folder: folder danych istnieje, zapis mozliwy: <PC-katalog>\t0\odbior2_t12\B\K_B\dane
+      OK dane_miejsce: wolne miejsce na dysku folderu danych: 18.4 GB
+      OK dane_polozenie: dane programu poza folderami synchronizowanymi OneDrive / SharePoint (sprawdzone sciezki: 7, znane foldery synchronizowane: 1)
+      OSTRZEZENIE baza: brak pliku bazy - zostanie zalozona przy pierwszym starcie programu: <PC-katalog>\t0\odbior2_t12\B\K_B\dane\stanowisko.sqlite; nic nie rob - baza powstanie sama przy pierwszym uruchomieniu programu
+      OK modele: uklady plytek z [plytki]: poprawne 10 z 10 (uklad.json i modele plytka_n*.stl)
+      OSTRZEZENIE pula: pula z jednego folderu (pula_wpisow = false): [sciezki] folder_cyrkon niedostepny - pula pusta, skany beda czekac; popraw folder (wiersz folder_cyrkon)
+      OK pamiec_puli: pamiec puli na dysku: 0 wpisow, 0 MB, sprzatanie wpisow nieuzywanych od 30 dni (folder powstanie przy pierwszej budowie puli)
+      OSTRZEZENIE ramka_wieczorna: proby polaczenia z ramka wieczorna nie bylo - pominieto (--bez-sieci); gdy ramka jest wlaczona, uruchom samokontrole bez --bez-sieci, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie
+      OSTRZEZENIE ramka_poranna: proby polaczenia z ramka poranna nie bylo - pominieto (--bez-sieci); gdy ramka jest wlaczona, uruchom samokontrole bez --bez-sieci, bez ramek program dziala - rozkladanie wedlug podpisow na ekranie
+      OSTRZEZENIE excel: Excel nie jest uruchomiony w tej sesji uzytkownika; przed poranna praca otworz plik zlecen w Excelu na tym laptopie (z Autozapisem), bez Excela program dziala - zlecenia odhacza sie wtedy recznie
+      OK egzemplarz: program Stanowisko nie jest teraz uruchomiony na tej bazie
+      OK sumy: sumy SHA-256 plikow programu zgodne 147 z 147 (SUMY_PROGRAMU.sha256), plikow nadmiarowych 0
+      SAMOKONTROLA: CZERWONA (ok 11, ostrzezenia 8, bledy 2)
+Wersja 0.3.3 jest zainstalowana, ale jeszcze NIE jest wersja biezaca - samokontrola wskazala, co uzupelnic:
+  BLAD folder_skanera: brak folderu eksportu skanera: C:/Aidite/Scandata - zaden skan nie trafi do programu; otworz plik ustawien <PC-katalog>\t0\odbior2_t12\B\K_B\ustawienia.toml i popraw klucz [sciezki] folder_eksportu_skanera (wiersz folder_eksportu_skanera = "...", sciezka z ukosnikami /) albo utworz / podlacz ten folder
+  BLAD folder_cyrkon: brak folderu projektow Cyrkon: C:/sciezka/do/OneDrive/Cyrkon - pula projektow jest pusta i skany czekaja bez wyniku; otworz plik ustawien <PC-katalog>\t0\odbior2_t12\B\K_B\ustawienia.toml i popraw klucz [sciezki] folder_cyrkon (wiersz folder_cyrkon = "...", sciezka z ukosnikami /) albo utworz / podlacz ten folder
+Plik ustawien: <PC-katalog>\t0\odbior2_t12\B\K_B\ustawienia.toml
+CO ZROBIC: otworz plik ustawien w Notatniku, wpisz w [sciezki] foldery tej maszyny (z ukosnikami /) i osoby w [sesja] operatorzy, zapisz (UTF-8) i uruchom zainstaluj.cmd JESZCZE RAZ - pakiety nie instaluja sie drugi raz, to trwa kilka sekund.
+INSTALACJA: WSTRZYMANA - uzupelnij ustawienia.toml i uruchom zainstaluj.cmd ponownie (kod 10)
