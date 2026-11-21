@@ -133,6 +133,12 @@ Pomiar szczegolowy jednego skanu: `C:\Stanowisko\Polecenie.cmd narzedzia\pomiar_
   147 z 147, samokontrola zielona, "poprawne 10 z 10"; teksty komunikatow z czesci C odczytane z programu
   zainstalowanego i porownane znak po znaku (17 z 17 zgodnych); testy narzedzi 57 z 57. Krokow dokumentu na
   wydaniu 0.3.3 nie powtarzano - przeszly na instalacji probnej (wiersz wyzej).
+- Plytki, ktore wlasciciel ma (odpowiedz 21.11 19:30; etap S2b-4, kod wydania 0.3.3, skany sztuczne i ramka
+  udawana przez program): plytka okragla R54 nr 8 - `pole_skanu` 12 z 12 "okragla testowa (poza ramka),
+  wieczorna, stary rozstaw R54", numer 8 z dolkow; z dolkami zaslonietymi, polem 98 mm albo bez scianki 12 z 12
+  nadal okragla (numer 0 = program pyta o numer); na ramce W ciemno, bez komunikatu (bez magnesow ramka czyta 0).
+  Kwadrat R54 nr 1: ramka W swieci 20 z 20 gniazd w miejscach `wieczorna_r54`; `ramka.cmd` pozycja 4 z samym
+  Enterem zapala bloki ukladu R59 - z 20 blokow R54 tylko 1 jest ten sam.
 - Nie sprawdzone nigdzie: wszystko z listy zbiorczej dokumentu.
 - Sprawa 4 laptopa (czy zapis na dysk zatrzymuje okno) - nie na ten weekend; wymaga plikow testowych spoza
   paczki.

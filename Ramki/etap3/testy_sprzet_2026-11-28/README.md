@@ -19,6 +19,7 @@
   i teksty komunikatow potwierdzone na wydaniu 0.3.3 (`Stanowisko_0.3.3.zip`, 447 318 667 bajtow; teksty
   odczytane z programu zainstalowanego). Znacznikow "do potwierdzenia na 0.3.3" nie ma (0); zostaja
   znaczniki `[NIE SPRAWDZONE BEZ SPRZETU]`. Dowody: raport `Ramki/stanowisko/raporty/E3-S2_2026-11-21.md`,
-  sekcja "S2b-3".
+  sekcja "S2b-3". Etap S2b-4 (21.11): odpowiedz wlasciciela z 19:30 ("Obie kwadratowe oraz jedna okragla";
+  plytka okragla = testowa R54 nr 8) w P1 / P2 i warianty krokow bez plytek okraglych ramkowych; sekcja "S2b-4".
 - Strony do druku (PDF / HTML) powstaja poza repo skryptem `koordynator\robocze\s2\b3\druk.py`; do gita
   nie ida.

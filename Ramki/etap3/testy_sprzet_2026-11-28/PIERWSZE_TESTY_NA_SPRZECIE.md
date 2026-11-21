@@ -1,6 +1,6 @@
 # Pierwsze testy na prawdziwym sprzecie - 28-29.11.2026
 
-Dokument dla wlasciciela. Wydrukuj go razem z arkuszem obserwacji. Stan: 21.11.2026; przeszedl krok
+Dokument dla wlasciciela. Wydrukuj go razem z arkuszem obserwacji. Stan: 21.11.2026 wieczor; przeszedl krok
 po kroku na probnej instalacji wersji 0.3.3 programu, bez skanera i bez ramki; nazwa paczki i teksty
 komunikatow sa sprawdzone na wydanej wersji 0.3.3.
 
@@ -19,6 +19,7 @@ Zasady:
    (P9). Bierz prace probne albo odrzuty.
 3. Krok nie udaje sie dluzej niz 15 minut? Zdjecie ekranu telefonem, notatka i dalej.
 4. Mozna zrobic sam skaner (czesc 2) bez ramki i sama ramke (czesc 3) bez skanera. Jedna ramka wystarcza.
+   Plytek okraglych ramkowych (1-6) jeszcze nie masz (P2): kroki z nimi maja wariant "nie masz jej".
 
 ---
 
@@ -29,8 +30,8 @@ prowadzacej projekt. Te same pytania z szerszym wyjasnieniem: osobna strona pyta
 
 | Nr | Pytanie | Od odpowiedzi zalezy | Odpowiedz |
 |---|---|---|---|
-| P1 | Ktora ramka przyszla: wieczorna, poranna czy obie? Wkladka kwadratowa czy okragla? | plytki 1-3 albo 4-6; klawiatura (krok 3.9) tylko przy porannej; wkladka okragla: krok 3.7 na plytce okraglej | .......... |
-| P2 | Ktore plytki sa na miejscu (kwadratowe 1-6, okragle ramkowe 1-6, okragle testowe 8 i 9, stare) i czy maja wklejone magnesy? | co skanujesz (bez okraglych krok 2.5a odpada); bez magnesow ramka nie odczyta numeru (krok 3.5) | .......... |
+| P1 | 21.11 odpowiedziales: "Obie kwadratowe oraz jedna okragla" - nie wiemy, czy to ramki, czy plytki. Ile ramek przyszlo: jedna czy dwie? Jaki otwor ma wkladka ramki: kwadratowy czy okragly? Jedna ramka: wieczorna czy poranna? | plytki 1-3 albo 4-6; klawiatura (krok 3.9) tylko przy porannej; wkladka okragla: plytka kwadratowa do niej nie wejdzie - bez plytki okraglej ramkowej z czesci 3 zostaja kroki 3.1-3.4 | .......... |
+| P2 | 21.11: zdjecie pliku `ramka_plytka_okragla_wieczorna_n8_v2.stl` = plytka okragla nr 8 starego ukladu R54 (20 gniazd) - to plytka TESTOWA, nie do ramki. Na kazdej plytce policz dlugie rynienki (1 = uklad R59, 2 = stary R54; kwadratowa wieczorna ma 19 albo 20 gniazd, poranna 24 albo 33) i przepisz numer wybity. Czy plytki kwadratowe maja wklejone magnesy? | program zna oba uklady; plytka R54 w kroku 3.7: `wieczorna_r54` / `poranna_r54`; plytka nr 8 nie ma magnesow - na ramce nie swieci; bez magnesow ramka nie odczyta numeru (krok 3.5) | .......... |
 | P3 | Czy Raspberry Pi w ramce jest zlozone, ma karte SD i czy ktos wgral na nia program ramki? | cala czesc 3; bez programu ktos musi go wgrac PRZED sobota (kilka godzin) - kto i kiedy? | .......... |
 | P4 | Na jakim komputerze uruchomisz program (Windows 10 albo 11, 30 GB wolnego miejsca)? | laptop stanowiska: dochodzi czesc 4 | .......... |
 | P5 | Czy skaner stoi przy tym samym komputerze? Do jakiego folderu program skanera zapisuje skany? | inny komputer: skany przenosisz pendrivem, krok 2.7 odpada | .......... |
@@ -73,8 +74,8 @@ Sprzet:
     Czesc 5  zebranie plikow           ok. 20 min
 
 Piec najwazniejszych wynikow: (1) czy skan da sie zrobic bez stolika - krok 2.3; (2) wymiar pola
-skanera - 2.4; (3) czy program poznaje plytke okragla bez dolkow numeru - 2.5a; (4) czy ramka czyta numer
-kazdej plytki - 3.5; (5) czy diody trafiaja pod gniazda - 3.7.
+skanera - 2.4; (3) czy program poznaje plytke okragla bez dolkow numeru - 2.5a (dzis na plytce testowej nr 8);
+(4) czy ramka czyta numer kazdej plytki kwadratowej - 3.5; (5) czy diody trafiaja pod gniazda - 3.7.
 
 ---
 
@@ -230,8 +231,9 @@ Co zrobic: kroki 6-13 okna. Najwazniejsze, w tej kolejnosci:
 
 1. plytka z 6-10 pracami calymi (krok 6 okna) i TO SAMO drugi raz bez ruszania plytki (krok 7),
 2. plytka z 2-3 pracami celowo ukruszonymi (krok 9) - zapisz, ktore gniazdo i gdzie ukruszenie,
-3. kazdy RODZAJ plytki, jaki masz (kwadratowa, okragla ramkowa, okragla testowa, stara) - po jednym skanie
-   pustej. Te skany rob w kroku 12 okna ("Skan 7: druga plytka"); w notatce wpisz, ktora to plytka.
+3. kazdy RODZAJ plytki, jaki masz (dzis: kwadratowe i okragla testowa nr 8; okragla ramkowa, gdy
+   dojdzie) - po jednym skanie pustej. Te skany rob w kroku 12 okna ("Skan 7: druga plytka"); w notatce
+   wpisz, ktora to plytka.
 
 Kazdy plik przeciagnij na `pole_skanu.cmd`: numer - sam Enter; "Co lezy na stoliku?" - wpisz, jaka plytka
 NAPRAWDE lezy i co na niej jest (np. `kw 2, 8 prac`). Blok "DO ARKUSZA" i godzine z wiersza "Zapisano:"
@@ -245,20 +247,21 @@ Gdy sie nie uda: ocena zolta "inna plytka niz w skanie ..." albo czerwona "TEN S
 tekst po "ZROB TAK". Skan nierozpoznany tez wpisz do tabeli.
 [NIE SPRAWDZONE BEZ SPRZETU: dolki numeru, scianka boczna i rowek na prawdziwym skanie; prace ukruszone]
 
-### Krok 2.5a - plytki okragle: czy program poznaje ksztalt (ok. 50 minut)
+### Krok 2.5a - plytki okragle: czy program poznaje ksztalt (30-50 minut)
 
 Po co: gdy w skanie plytki okraglej nie ma ani dolkow numeru, ani scianki bocznej, program bierze ja za
-KWADRATOWA i nie ostrzega. Mierzymy, jak czesto to sie zdarza.
+KWADRATOWA i nie ostrzega. Mierzymy, jak czesto to sie zdarza (skany sztuczne plytki nr 8 R54: 0 z 12).
 
 Co zrobic: plytke okragla zeskanuj trzy razy (krok 12 okna, z notatka): (i) pusta; (ii) z praca
 w gniezdzie obok dolkow numeru; (iii) z dolkami zaklejonymi tasma papierowa. Kazdy plik przeciagnij na
 `pole_skanu.cmd`; numer - SAM ENTER (podany numer podpowiada programowi ksztalt); "Co lezy na stoliku?" -
-np. `okr-ramk 2, dolki zaklejone`.
-Ile: jeden skan z zapisem i narzedziem to ok. 7 minut. Minimum: 1 plytka okragla ramkowa i 1 okragla
-testowa po 3 skany + 1 kwadratowa pusta dla porownania = 7 skanow, ok. 50 minut. Wszystkie plytki
-okragle (do 8 sztuk = 24 skany, prawie 3 godziny) tylko, gdy zostanie czas.
+np. `okr-test 8, dolki zaklejone`.
+Ile: jeden skan z zapisem i narzedziem to ok. 7 minut. Plytki okraglej ramkowej (1-6) jeszcze nie ma:
+minimum = plytka okragla nr 8 po 3 skany + 1 kwadratowa pusta dla porownania = 4 skany, ok. 30 minut
+(z plytka ramkowa: +3 skany). Wiecej plytek okraglych tylko, gdy zostanie czas.
 Udalo sie, gdy: tabela 2.5a ma wiersz dla kazdego skanu. Dobry wynik w wierszu `program mowi:` to
-"okragla ramkowa (do ramki)" albo "okragla testowa (poza ramka)". Wynik zly, ale bardzo wazny:
+"okragla ramkowa (do ramki)" albo "okragla testowa (poza ramka)" - dla nr 8 z dopiskiem "stary rozstaw
+R54"; przy (iii) `numer z dolkow: 0` (dolki nieczytelne - tak ma byc). Wynik zly, ale bardzo wazny:
 "kwadratowa" - przy (i) albo (ii): skaner nie widzi ani dolkow, ani scianki; tylko przy (iii): jedyna
 ochrona jest numer z dolkow.
 Zanotuj: arkusz 2.5a; na koncu: ile razy plytka okragla zostala nazwana kwadratowa.
@@ -289,8 +292,8 @@ Co zrobic:
    (ukosniki `/`). Nie wskazuj folderu ze starymi zleceniami: program przeanalizuje takze stare skany.
 3. `C:\Stanowisko\Samokontrola.cmd` - ma byc wiersz `OK folder_skanera`.
 4. `C:\Stanowisko\Stanowisko.cmd`, kliknij "Tester".
-5. Zeskanuj plytke z pracami i zapisz skan; wlacz stoper w chwili zapisu. Powtorz z plytka okragla
-   o INNYM numerze (dlaczego: krok 3.8).
+5. Zeskanuj plytke z pracami i zapisz skan; wlacz stoper w chwili zapisu. Powtorz z plytka o INNYM
+   numerze, np. okragla nr 8 (dlaczego: krok 3.8).
 
 Udalo sie, gdy: po lewej pojawia sie kafelek "Plytka ...", w srodku mapa gniazd (zatrzymaj stoper).
 Program pyta "Podaj numer plytki", gdy sam nie odczytal numeru z dolkow (plytka kwadratowa: zalezy od
@@ -327,10 +330,11 @@ Na czas krokow 3.3-3.7 i 3.9 ZAMKNIJ program "Stanowisko": ramke obsluguje jeden
 
 ### Krok 3.1 - ogledziny i pasowanie, BEZ pradu (15 minut)
 
-Co zrobic: wloz kazda plytke we wkladke; sprobuj tez obrocona o cwierc obrotu. Zaloz pokrywke i odwroc.
-Zmierz suwmiarka plytke (bok albo srednica, grubosc) i otwor wkladki.
-Udalo sie, gdy: plytka wchodzi lekko i lezy plasko tylko w jednym polozeniu. Okragla ramkowa obrocona
-lezy krzywo na zebrze (jedna krawedz ok. 4,5 mm wyzej). Zanotuj: arkusz 3.1.
+Co zrobic: wloz kazda plytke ramki we wkladke (plytka okragla nr 8 jest testowa, nie do ramki); sprobuj
+tez obrocona o cwierc obrotu. Zaloz pokrywke i odwroc. Zmierz suwmiarka plytke (bok albo srednica,
+grubosc) i otwor wkladki.
+Udalo sie, gdy: plytka wchodzi lekko i lezy plasko tylko w jednym polozeniu. Okragla ramkowa (gdy jest)
+obrocona lezy krzywo na zebrze (jedna krawedz ok. 4,5 mm wyzej). Zanotuj: arkusz 3.1.
 Gdy sie nie uda: zdjecie i wymiar. Idz dalej.
 [NIE SPRAWDZONE BEZ SPRZETU: wymiary znamy tylko z projektu]
 
@@ -378,7 +382,9 @@ Co zrobic: w `ramka.cmd` wybierz `3`. Przez 5 minut kladz i zdejmuj plytki, kazd
 pojawia sie na ekranie, np. `12:01:03.250  plytka 0 -> 2`, i trafia do pliku w
 `C:\Sprzet_testy\wyniki\ramka\`. Koniec przed czasem: Ctrl+C.
 Udalo sie, gdy: po polozeniu plytki nr 2 jest `0 -> 2`, po zdjeciu `2 -> 0`, za kazdym razem. Na matrycy
-przy lezacej plytce ma byc jej numer i napis "BRAK" (to normalne). Zanotuj: arkusz 3.5 (tabela).
+przy lezacej plytce ma byc jej numer i napis "BRAK" (to normalne). Plytka okragla nr 8 nie ma magnesow:
+ramka jej nie widzi (zostaje `0`) - to dobrze; plytek okraglych ramkowych jeszcze nie ma - pomin je.
+Zanotuj: arkusz 3.5 (tabela).
 Gdy sie nie uda: sprawdz, czy plytka ma magnesy i lezy plasko; zapisz numer wybity i odczytany.
 [NIE SPRAWDZONE BEZ SPRZETU: czujniki i magnesy, takze w plytce okraglej]
 
@@ -395,9 +401,10 @@ Gdy sie nie uda: zapisz, co widac, i idz dalej.
 ### Krok 3.7 - gniazda i diody (20 minut)
 
 Co zrobic: poloz na ramce pusta plytke. W `ramka.cmd` wybierz `4` (wszystkie gniazda naraz). Narzedzie
-wypisze rodzaje plytek, ktore zna ramka: sam Enter = plytka kwadratowa tej ramki. Dla plytki okraglej
-ramkowej przepisz z listy `okragla_ramkowa_wieczorna` albo `okragla_ramkowa_poranna`;
-gdy ich nie ma - sam Enter (gniazda sa w tych samych miejscach).
+wypisze rodzaje plytek, ktore zna ramka: sam Enter = plytka kwadratowa R59 (1 rynienka). Plytka z 2
+rynienkami (stary uklad R54, P2): przepisz `wieczorna_r54` albo `poranna_r54` - sam Enter zapali gniazda
+R59 obok jej gniazd. Plytka okragla ramkowa: `okragla_ramkowa_wieczorna` albo `okragla_ramkowa_poranna`;
+wkladka okragla bez tej plytki - krok pomin (nr 8 nie ma magnesow, kwadratowa nie wejdzie).
 Przesuniecia: dwa razy sam Enter. Popatrz z gory; na "Wpisz uwage ..." wpisz `ok` albo co jest zle.
 Udalo sie, gdy: kazdy otwor w dnie gniazda swieci, miedzy gniazdami jest ciemno.
 Zanotuj: arkusz 3.7 (osobno wkladka okragla).
@@ -413,7 +420,7 @@ Gdy sie nie uda:
 ### Krok 3.8 - program "Stanowisko" razem z ramka (35 minut)
 
 Dwie zasady: przed skanem NASTEPNEJ plytki zdejmij poprzednia z ramki; bierz plytki o ROZNYCH numerach
-(np. kwadratowa 1, okragla 2).
+(np. kwadratowa 1, okragla ramkowa 2, a bez niej kwadratowa 2).
 
 Co zrobic:
 
@@ -431,12 +438,12 @@ Co zrobic:
 5. Zeskanuj plytke z pracami (jak w 2.7) i poloz TE plytke na ramce: swieca gniazda z pracami. Zdejmij
    ja: gasna. Poloz jeszcze raz: wieczorem zostaje ciemno, bez komunikatu (wynik wraca dopiero po nowym
    skanie) - to normalne. Zdejmij ja.
-6. Zeskanuj plytke okragla ramkowa o INNYM numerze (np. 2) i poloz ja na ramce: swieci. Zostaw ja.
-   Kliknij po lewej jej kafelek: "Zmien numer" dotyczy zawsze plytki POKAZANEJ nad mapa.
-7. Proba celowa (c) - tylko plytka OKRAGLA, ktorej numer program odczytal sam, gdy lezy i swieci: nad
-   mapa ma byc "Plytka 2". Kliknij "Zmien numer" i w niebieskim panelu inna cyfre, np. 3. Ramka gasnie,
-   nad mapa zolty panel "Plytka 3: Numer plytki nie zgadza sie ze skanem" ("Podany numer plytki to 3,
-   a program odczytal ze skanu numer 2"). Plytki NIE zdejmuj. "Zmien numer" z powrotem na 2: panel
+6. Zeskanuj plytke o INNYM numerze (np. 2; okragla ramkowa, a bez niej kwadratowa) i poloz ja na
+   ramce: swieci. Zostaw ja. Kliknij po lewej jej kafelek: "Zmien numer" dotyczy plytki POKAZANEJ nad mapa.
+7. Proba celowa (c) - nie masz plytki okraglej ramkowej: pomin. Tylko ta plytka, gdy program sam
+   odczytal jej numer, lezy i swieci: nad mapa ma byc "Plytka 2". Kliknij "Zmien numer" i w niebieskim
+   panelu inna cyfre, np. 3. Ramka gasnie, nad mapa zolty panel "Plytka 3: Numer plytki nie zgadza
+   sie ze skanem" ("Podany numer plytki to 3, a program odczytal ze skanu numer 2"). Plytki NIE zdejmuj. "Zmien numer" z powrotem na 2: panel
    znika, ramka swieci. Na plytce kwadratowej tej proby nie rob - wyjdzie komunikat (b).
 8. Ten sam numer drugi raz: zdejmij te plytke i zeskanuj ja ponownie (w ciagu godziny). Program pyta
    "Ponowny skan tej samej plytki?". Zanim odpowiesz, poloz plytke na ramce: ramka jest ciemna, zolty
@@ -447,8 +454,8 @@ Co zrobic:
    wieczornej): zolty panel "Plytka lezy na zlej ramce"; (b) poloz inna plytke niz ostatnio zeskanowana:
    "Na ramce lezy inna plytka niz zeskanowana".
 
-Udalo sie, gdy: pod plytka swieca gniazda z pracami w kolorach jak na mapie - takze pod plytka okragla
-ramkowa - a punkty 7-9 daja opisane panele i ciemna ramke.
+Udalo sie, gdy: pod plytka swieca gniazda z pracami w kolorach jak na mapie, a punkty 7-9 (bez plytki
+ramkowej: 8-9) daja opisane panele i ciemna ramke. Plytka nr 8 po skanie: ramka ciemna, bez panelu.
 Zanotuj: arkusz 3.8; kazdy komunikat, ktory pojawil sie BEZ proby celowej, przepisz.
 Gdy sie nie uda:
 
