@@ -302,15 +302,16 @@ Zanotuj: arkusz 2.7.
 Gdy sie nie uda:
 
     Widzisz                                  Zrob
-    "Analiza skanu nie powiodla sie" i w     przepisz nawias. Gdy jest "0 z 3": program sam dopisuje
-    nawiasie "w skanie widac N z 3           "albo w skanie jest stolik (podloze) wokol plytki" -
-    znacznikow plytki - ..."                 najpierw sprawdz to (krok 2.3). Inaczej plytka nie miesci
-                                             sie w polu albo lezy z boku: ustaw ja na srodku, plik
-                                             sprawdz krokiem 2.4
+    "Analiza skanu nie powiodla sie" i w     przepisz nawias. Gdy jest "0 z 3": program sam
+    nawiasie "w skanie widac N z 3           dopisuje "albo w skanie jest stolik (podloze) wokol
+    znacznikow plytki - ..."                 plytki" - najpierw sprawdz to (krok 2.3). Inaczej
+                                             plytka nie miesci sie w polu albo lezy z boku:
+                                             ustaw ja na srodku, plik sprawdz krokiem 2.4
     "Plytka nie z tego trybu"                plytka 4-6 wieczorem: kliknij "-> Poranek" w pasku
-                                             i zeskanuj ja JESZCZE RAZ. Stare pytanie zostaje i ma
-                                             teraz zdanie bez sensu ("plytka poranna ... tryb
-                                             Poranek") - to znany blad napisu, liczy sie nowy skan
+                                             i zeskanuj ja JESZCZE RAZ. Stare pytanie zostaje
+                                             i ma teraz zdanie bez sensu ("plytka poranna ...
+                                             tryb Poranek") - to znany blad napisu, liczy sie
+                                             nowy skan
     "Ten sam projekt w dwoch gniazdach"      dwie prace z jednego projektu STL - to nie blad; "Zamknij"
     nic sie nie dzieje                       plik nie konczy sie na .stl albo trafia do innego folderu
 
