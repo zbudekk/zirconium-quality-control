@@ -14,6 +14,7 @@
 - Testy narzedzi, z katalogu `Ramki\stanowisko`:
   `python -m pytest ..\etap3\testy_sprzet_2026-11-28\narzedzia -q -p no:cacheprovider`
 - Narzedzia korzystaja z programu tylko przez import; programu nie zmieniaja.
-- Stan: tresc pisana na paczke 0.3.3; krok 3.8 przeszedl na atrapach na kodzie wszystkich paczek (S2b-1).
-  Miejsca `[DO POTWIERDZENIA NA 0.3.3]` potwierdza etap S2b-2 na instalacji z paczki
-  (raport `Ramki/stanowisko/raporty/E3-S2_2026-11-21.md`).
+- Stan: dokument przeszedl krok po kroku na instalacji z paczki probnej (kod paczki 0.3.3 przed ostatnia
+  runda recenzji; etap S2b-2). Zostaja 3 miejsca `[DO POTWIERDZENIA NA 0.3.3]` w dokumencie i 2 w zalacznikach
+  (nazwa paczki, 2 teksty komunikatow) - lista z poleceniami: raport
+  `Ramki/stanowisko/raporty/E3-S2_2026-11-21.md`, sekcja "S2b-3".

@@ -44,9 +44,11 @@ Granice rozpoznania (opis: `Ramki/stanowisko/opisy_modulow/plate.md`; propozycja
 i bez scianki bocznej w skanie = "kwadratowa, pewnie". Pole skanera 90 mm i mniej = zadna plytka nie jest
 rozpoznana. Krok 2.5a dokumentu mierzy, jak czesto to sie zdarza na prawdziwym skanerze.
 
-## C. Pelne teksty komunikatow programu (wg raportu paczki O2) [DO POTWIERDZENIA NA 0.3.3]
+## C. Pelne teksty komunikatow programu
 
-Zolty panel nad mapa, przycisk "Zamknij". We wszystkich trzech sytuacjach ramka jest ciemna, skan zostaje.
+Zrodlo: ekran programu z instalacji probnej (paczka z kodu 7ebb5cd, plik `stanowisko/statusy.py`), etap S2b-2.
+Dwa teksty oznaczone [DO POTWIERDZENIA NA 0.3.3] zmienia sie jeszcze przed wydaniem 0.3.3. Zolty panel nad
+mapa, przycisk "Zamknij". W sytuacjach (a), (b), (c) ramka jest ciemna, skan zostaje.
 
 - (a) "Plytka lezy na zlej ramce": "Na ramce wieczornej lezy plytka nr 5, a ta ramka podswietla tylko plytki
   1, 2, 3 - ramka nie swieci. To numer plytki porannej - poloz ja na ramce porannej. Jesli to jednak plytka
@@ -55,10 +57,10 @@ Zolty panel nad mapa, przycisk "Zamknij". We wszystkich trzech sytuacjach ramka 
   plytka nr 1 - ramka nie swieci. Poloz na ramce plytke nr 1. Jesli na ramce lezy wlasciwa plytka, to numer
   skanu jest zly - popraw go przyciskiem "Zmien numer" przy tej plytce na ekranie." Rano tytul brzmi "Na ramce
   lezy plytka, ktorej nie ma w planie pieca".
-- (c) "Plytka N: Numer plytki nie zgadza sie ze skanem": "Podany numer plytki to 2, a program odczytal ze
+- (c) "Plytka 2: Numer plytki nie zgadza sie ze skanem" (N = numer PODANY): "Podany numer plytki to 2, a program odczytal ze
   skanu numer 1. Ramka nie podswietla tej plytki; skan i wynik zostaja. Sprawdz numer wybity na plytce: jesli
   podany numer jest zly - popraw go przyciskiem "Zmien numer"; jesli jest dobry - pracuj wedlug ekranu."
-- Dwa skany z tym samym numerem (runda 2 paczki O2). Pytanie "Ponowny skan tej samej plytki?": "Plytka nr 1
+- Dwa skany z tym samym numerem [DO POTWIERDZENIA NA 0.3.3: tekst panelu]. Pytanie "Ponowny skan tej samej plytki?": "Plytka nr 1
   byla skanowana 5 min temu. Czy to ponowny skan tych samych prac? ..."; przyciski "Tak, to ponowny skan"
   / "Nie, to nowy wsad". Gdy plytka o tym numerze lezy na ramce wieczornej - panel "Dwa skany z numerem
   plytki 1 - ramka czeka na odpowiedz": "Sa dwa skany plytki nr 1 i plytka nr 1 lezy na ramce wieczornej -
@@ -68,14 +70,21 @@ Zolty panel nad mapa, przycisk "Zamknij". We wszystkich trzech sytuacjach ramka 
   W probie na atrapach (S2b-1): pytanie pojawia sie, gdy prace obu skanow sa te same albo bez projektu;
   przy roznych rozpoznanych projektach pytania nie ma i pod lezaca plytka swieci wynik nowego skanu.
 - Rano, skan bez numeru i plytka na ramce porannej - "Plytka na ramce czeka na numer skanu": "Na ramce
-  porannej lezy plytka nr 4, a ramka nie ma dla tego pieca zadnej plytki - ramka nie swieci. W tym piecu
+  porannej lezy plytka nr 4, a ramka nie ma dla tego pieca zadnej plytki [albo: ma dla tego pieca tylko
+  plytki: 5] - ramka nie swieci. W tym piecu
   jest skan bez numeru plytki: jesli to skan tej plytki, wybierz numer 4 w pytaniu "Podaj numer plytki" -
   ramka zaswieci sama."
-- Blad analizy, tytul "Analiza skanu nie powiodla sie": "Program nie przeanalizowal tego skanu (w skanie widac
+- Blad analizy [DO POTWIERDZENIA NA 0.3.3], tytul "Analiza skanu nie powiodla sie": "Program nie przeanalizowal tego skanu (w skanie widac
   1 z 3 znacznikow plytki - plytka nie miesci sie w polu skanera albo lezy poza srodkiem; ustaw plytke na
   srodku i sprawdz, czy pole skanowania obejmuje cala plytke). Zeskanuj plytke ponownie." Inne nawiasy:
   "(w skanie nie widac plaskiego wierzchu plytki - to nie jest skan calej plytki; poloz plytke plasko na
   srodku skanera)", "(skan jest prawie pusty - sprawdz, czy plytka lezy w skanerze)".
+- Plytka 4-6 zeskanowana w trybie "Wieczor" - pytanie "Plytka nie z tego trybu": "To plytka poranna, a program
+  pracuje w trybie "Wieczor". Skan jest zablokowany: nic nie jest zielone i nie mozna zapisywac decyzji.";
+  przyciski "Zeskanuje wlasciwa plytke" / "Dopusc te plytke". Po kliknieciu "-> Poranek" pytanie zostaje
+  i podaje tryb "Poranek" (blad tekstu - zgloszony w raporcie).
+- Po drugim skanie, gdy ogladana plytka ma prace do obejrzenia: "Nowy wynik czeka: Plytka 2" - "Ekran zostal
+  na ogladanej plytce. Dokoncz ja albo kliknij "Pokaz nowy wynik"."; przycisk "Pokaz nowy wynik: Plytka 2".
 - Pierwszy start po aktualizacji: w podpowiedzi paska "Ramki" ostrzezenie o dopisaniu plytek okraglych
   ramkowych do pliku kalibracji ramek (polozenia diod startowe, z rysunku plytek).
 
