@@ -3,14 +3,14 @@
 Paczka E3-ODB, 20.11.2026. Zrodlo kryteriow: `Ramki/plan_etap3_pelna_aplikacja_2026-11-16.md`, sekcja 7 (kryteria ponizej
 sa przepisane doslownie). Plan jest napisany dla stanu "`main` po scaleniu paczek A11s, A11i, A11w, P14, A11d";
 nazwy plikow i opcji paczek A11s, A11i, A11w, P14 potwierdzono w etapie 2 na kopii integracyjnej (nizej) - w tym pliku
-nie ma juz miejsc "do potwierdzenia po scaleniu"; zostaly tylko odsylacze do paczki A11d w `T14/README.md` (runda 2 tej
-paczki trwa). Po scaleniu wszystkiego do `main` wystarczy kontrola: commit wydania = stan sprawdzony (roznica plikow
-`git diff --stat a2236c1 <commit wydania> -- Ramki/stanowisko`). Testow koncowych jeszcze nikt nie wykonal - to jest przepis.
+nie ma juz miejsc "do potwierdzenia po scaleniu" (paczka A11d jest scalona w `main` bcd0678). Kontrola przed odbiorem:
+commit wydania = stan sprawdzony (roznica plikow `git diff --stat f5c3e01 <commit wydania> -- Ramki/stanowisko`).
+Testow koncowych jeszcze nikt nie wykonal - to jest przepis.
 
 **Etap 2 (20.11, wieczor):** wpisane decyzje koordynatora do 6 pytan z etapu 1 (T2 i T3 - sterowniki `t2_wieczor.py` i
 `t3_poranek.py`; T7, T11, T13, T4 - akapity "Decyzja koordynatora 20.11"). Nazwy i opcje potwierdzone na kopii
-integracyjnej `<PC-katalog>\qc-wt\integ` (commit a2236c1 = `main` 9ba9e91 + `e3/a11w` + `e3/a11s` + `e3/a11i` + `e3/p14`);
-paczka A11d (runda 2 w toku) nie jest w tej kopii - jej odsylacze zostaja "do potwierdzenia".
+integracyjnej `<PC-katalog>\qc-wt\integ` (commit a2236c1 = `main` 9ba9e91 + `e3/a11w` + `e3/a11s` + `e3/a11i` + `e3/p14`;
+stan 20.11 - paczki A11d w tej kopii jeszcze nie bylo).
 
 **Runda 1 recenzji PR #44 (21.11, noc):** poprawione wg raportu recenzenta (uwagi 1-28) i 8 decyzji koordynatora:
 T2 (sterownik czyta kolory prac z ekranu i klika tylko prace czerwone / zolte), T3 (liczba "n z 32" z ekranu), T9
@@ -20,6 +20,14 @@ ASCII + LF przez `dowody_lf.py`), T14 (22 z 22). `main` = bcd0678 zawiera juz ws
 A11d); w drodze jest tylko E3-P15 (ochrona klikniec mapy - sterownik T2 ja obsluguje). Przy kazdym poleceniu planu jest
 teraz wiadomo, czy bylo wykonane: tabela "Stan sprawdzenia polecen" na koncu pliku (instalacja probna z paczki
 `<PC-katalog>\t0\proba\Stanowisko`, wersja 0.3.1 z commita f5c3e01 = `main` + P15, albo kopia repo).
+
+**Runda 2 recenzji PR #44 (21.11, rano):** poprawki TEKSTU wg raportu recenzenta (uwagi 29-48): T7 czesc B (PID
+programu po sciezce `<K>\wersje\*`, dowod nadrabiania w logu i zdarzeniach), pliki `.cmd` z `call`, T1 (wiersz
+podsumowania + kod wyjscia, liczba testow z `--collect-only`), T9 (baza SE10 jako proba dodatnia, wzory `--dozwolone`
+tylko dla plikow surowych, skan `dowody\` przed `git add`, separatory nazw), T11 (`--zamknij-po` 3000), T5 czesc B
+(atrapa z konsola dla obu rol), testy mozliwe do zaliczenia bez odstepstwa (T1, T8, T9, T10, T6, T11; warunkowo T4, T7).
+Nowa sekcja "Ustalenia koordynatora do wykonania odbioru" (paczki, instalacje, katalogi dowodow, fale T-A / T-B / T-C)
+- gdzie rozni sie od starszych zapisow tego pliku (katalogi `czysta`, `w1`-`w3`, podzial W1-W4), obowiazuje ona.
 
 Zasady wykonania (obowiazuja kazdego wykonawce):
 
@@ -62,10 +70,10 @@ Zasady wykonania (obowiazuja kazdego wykonawce):
 | Znak | Znaczenie |
 |---|---|
 | `PY` | `<PC>\AppData\Local\Programs\Python\Python312\python.exe` (Python 3.12.10) |
-| `<ZIP_N>`, `<ZIP_N1>` | paczki wydania `<PC-katalog>\wydania\Stanowisko_<N>.zip` i `Stanowisko_<N+1>.zip` (buduje koordynator, p. "Krok wspolny") |
+| `<ZIP_N>`, `<ZIP_N1>` | paczki wydania `<PC-katalog>\wydania\Stanowisko_<N>.zip` i `Stanowisko_<N+1>.zip` (buduje koordynator, p. "Krok wspolny"; w odbiorze: `Stanowisko_0.3.1.zip` i `Stanowisko_0.3.2.zip`) |
 | `<P1>`, `<P2>` | rozpakowane paczki: `<PC-katalog>\t0\paczka_N`, `<PC-katalog>\t0\paczka_N1` |
-| `<K>` | katalog instalacji z paczki: `<PC-katalog>\t0\<nazwa>` (T0: `czysta`; kazdy wykonawca ma wlasny: `w1`, `w2`, `w3`) |
-| `<DANE>` | `<K>\dane` (baza `stanowisko.sqlite`, `logi\stanowisko.log`, `wyniki\`, `log_excel.csv`, kopie bazy `kopie\`) - sprawdzone w `instalator.py` galezi `e3/a11i` (dane poza katalogiem wersji; sciezki bezwzgledne w `<K>\ustawienia.toml`, sekcja `[sciezki]`) |
+| `<K>` | katalog instalacji z paczki. W ODBIORZE (sekcja "Ustalenia koordynatora do wykonania odbioru"): T0 i potem instalacja WSPOLNA dla T1-T11 w `<PC-katalog>\t0\odbior\`, T12 w `<PC-katalog>\t0\odbior_t12\`. Nazwy `czysta`, `w1`, `w2`, `w3` w dalszym tekscie pochodza z wczesniejszego podzialu (wlasna instalacja kazdego wykonawcy) - czytaj je jako: `czysta` = instalacja T0 / T12, `w<n>` = instalacja wspolna + wlasny `<ROB>` |
+| `<DANE>` | w T0 i T12: `<K>\dane`; w testach na instalacji wspolnej: katalog danych testu w `<ROB>` (wlasny plik ustawien - "Ustalenia koordynatora", zasada 3) (baza `stanowisko.sqlite`, `logi\stanowisko.log`, `wyniki\`, `log_excel.csv`, kopie bazy `kopie\`) - sprawdzone w `instalator.py` galezi `e3/a11i` (dane poza katalogiem wersji; sciezki bezwzgledne w `<K>\ustawienia.toml`, sekcja `[sciezki]`) |
 | `<REPO>` | czysta kopia `main` z TEGO SAMEGO commita, z ktorego zbudowano `<ZIP_N>`: `<PC-katalog>\t0\repo` (zaklada koordynator: `git clone --no-checkout -c core.autocrlf=false <PC-katalog>\qc <PC-katalog>\t0\repo` + `git -C <PC-katalog>\t0\repo checkout --detach <commit>` - wykonane w probie generalnej 21.11, 4,5 s, repo glowne bez zmian. `<REPO>` MUSI miec konce linii LF: systemowy git na PC ma `core.autocrlf=true`, klon BEZ `-c core.autocrlf=false` dostaje CRLF i testy czytajace bajty plikow padaja - kontrola przed T1: `git -C <REPO> config --get core.autocrlf` ma wypisac `false`. `git worktree add` dziedziczy ustawienie repo, ale nie byl probowany) |
 | `<ST>` | `<REPO>\Ramki\stanowisko` |
 | `<ODB>` | `<REPO>\Ramki\etap3\odbior_koncowy` (skrypty: `<ODB>\narzedzia\`) |
@@ -87,6 +95,90 @@ Ktore testy ida na instalacji z paczki, a ktore wymagaja repo:
 | T8 | `POL narzedzia\raport_metryk.py` | skrypt `sql_odczyt.py` z `<ODB>` |
 | T9 | cele: `<DANE>`, logi, dowody | repo jako cel, skrypt z `<ODB>` |
 | T13 | nie | tak (`git`, skrypt z `<ODB>`) |
+
+## Ustalenia koordynatora do wykonania odbioru (21.11)
+
+Ta sekcja ma pierwszenstwo przed starszymi zapisami planu o katalogach (`czysta`, `w1`-`w3`) i o podziale W1-W4.
+
+**Paczki.** `<ZIP_N>` = `<PC-katalog>\wydania\Stanowisko_0.3.1.zip` (z `main` po scaleniu P15 i tej paczki), `<ZIP_N1>`
+= `<PC-katalog>\wydania\Stanowisko_0.3.2.zip` (ten sam kod, `--wersja 0.3.2`, tylko do T12). N = 0.3.1, N+1 = 0.3.2.
+
+**Instalacje.**
+
+- T0 w `<PC-katalog>\t0\odbior\`. Ta sama instalacja sluzy potem jako WSPOLNA dla T1-T11 - tylko do uruchamiania
+  (`<K>\Polecenie.cmd`, interpreter i kod programu wersji); zaden test nie trzyma w niej swoich danych.
+- T12 na WLASNEJ instalacji w `<PC-katalog>\t0\odbior_t12\` (kroki 2-5 z T0 w tym katalogu, potem co najmniej jeden
+  start programu, potem kroki T12; czesc B jak w planie - osobna `<KB>` w katalogu roboczym T12).
+- Przyjete domyslnie przez wykonawce planu (uklad jak w probie generalnej; koordynator moze podac inny w zleceniu
+  testu): `<K>` = `<PC-katalog>\t0\odbior\Stanowisko`, `<P1>` = `<PC-katalog>\t0\odbior\paczka_0.3.1`, foldery
+  wejsciowe T0 = `<PC-katalog>\t0\odbior\dane\{eksport,Cyrkon,Prywatne,millbox}`; T12: `<K>` =
+  `<PC-katalog>\t0\odbior_t12\Stanowisko`, `<P2>` = `<PC-katalog>\t0\odbior_t12\paczka_0.3.2`, foldery wejsciowe
+  `<PC-katalog>\t0\odbior_t12\dane\...` (paczka 0.3.1 instalowana z tego samego `<P1>` - katalog paczki jest tylko
+  czytany).
+
+**Zasady instalacji wspolnej (wynikaja z planu; bez nich testy psuja sie nawzajem):**
+
+1. Po T0 w `<K>` NIC sie nie zmienia: nikt nie edytuje `<K>\ustawienia.toml`, nie zmienia nazw folderow wejsciowych
+   instalacji i nie uruchamia na `<K>` instalatora. Jedyny wyjatek: doinstalowanie pytest (`zainstaluj.cmd ... /testy`,
+   T1 krok 1) - wykonac ZARAZ po T0, zanim jakikolwiek inny test zacznie uzywac `<K>` (instalator zmienia srodowisko
+   wersji; przy dzialajacym programie konczy kodem 5).
+2. Kazdy test ma wlasny katalog danych, bazy i wynikow: `<ROB>` = `<PC-katalog>\koordynator\robocze\odbior\T<nr>\`.
+   Sterowniki T2 i T3 oraz narzedzia T4, T10, T11 czesc A juz tak dzialaja (`--roboczy`, `--wyjscie` w `<ROB>`;
+   `<K>\ustawienia.toml` tylko czytaja).
+3. Testy, w ktorych plan pisze `<K>\Stanowisko.cmd ...` i czyta `<DANE>` (T7 czesc B, T11 czesc B), na instalacji
+   wspolnej uruchamiaja program z WLASNYM plikiem ustawien: kopia `<K>\ustawienia.toml` -> `<ROB>\ustawienia.toml`, w
+   sekcji `[sciezki]` WSZYSTKIE sciezki przestawione na podkatalogi `<ROB>` (11 kluczy: `folder_eksportu_skanera`,
+   `folder_cyrkon`, `folder_prywatne`, `folder_millbox`, `baza`, `log_excel`, `wyniki`, `podglady`, `pula_cache`, `logi`,
+   `kalibracja_ramek`; ukosniki `/`; `folder_cyrkon` = wlasna kopia `<PC-katalog>\app\Prace_test`), i polecenie
+   `call <K>\Polecenie.cmd -m stanowisko.aplikacja --ustawienia <ROB>\ustawienia.toml --zamknij-po <s>`
+   (to samo co `Stanowisko.cmd`, tylko z innym plikiem ustawien - wykonane przez recenzenta 21.11 na instalacji
+   probnej: kod 0, 2 skany z 2). `<DANE>` w tych testach = katalog, na ktory wskazuja `baza` i `logi` tej kopii.
+   Samokontrola z wlasnym plikiem (T7 B1): `call <K>\Polecenie.cmd -m stanowisko.samokontrola --ustawienia
+   <ROB>\ustawienia.toml --bez-sieci` (opcje sprawdzone w kodzie `samokontrola.py`; w tej postaci NIE wykonane -
+   zapisz pierwsze wykonanie; `Samokontrola.cmd` dodaje jeszcze `--sumy`, tu pominiete - przepisz, co samokontrola
+   wypisze o sumach). T0 i T12 uzywaja `Stanowisko.cmd` i `Samokontrola.cmd` doslownie.
+4. T5 czesc B: sekcje `[ramki]` zmienia sie w kopii `<ROB>\ustawienia.toml` i te kopie podaje sterownikowi jako
+   `--ustawienia-wzor` - nie w `<K>\ustawienia.toml` (inaczej sterownik T2 i inne testy dostalyby adresy posrednikow).
+5. T7 czesc B, proby 2 i 3 (zakonczenie procesu programu / silnika): regula PID "0 wierszy ze sciezka `<K>\wersje\*`
+   przed startem, 1 po starcie" jest na instalacji wspolnej NIESPELNIALNA, gdy inny test uruchamia w tym czasie
+   cokolwiek przez `<K>\Polecenie.cmd` (kazde takie polecenie to proces `python` z ta sama sciezka). Wyjscia, w tej
+   kolejnosci: (a) zalecane - proby 2 i 3 uruchomic z instalacji `<PC-katalog>\t0\odbior_t12\Stanowisko` po
+   zakonczeniu T12 (nikt inny jej nie uzywa; program z wlasnym plikiem ustawien jak w p. 3, wiec dane T12 zostaja
+   nietkniete) - decyzja koordynatora w zleceniu T7; (b) okno, w ktorym zaden inny test nie uzywa `<K>` (uzgodnione z
+   koordynatorem); (c) gdy ani (a), ani (b): "NIE ZMIERZONO", przypadki 1 i 2 licza sie testami czesci A - nie zgadywac
+   PID-u.
+
+**Dowody.** W trakcie testu: `<PC-katalog>\koordynator\robocze\odbior\T<nr>\` - pliki z listy "Dowody" danego testu
++ `WYNIK.md` testu (polecenia DOKLADNE, kody wyjscia, liczby, werdykt: ZAL / ZAL z odstepstwem O<n> / FAIL; czesc
+niezmierzona: NIE ZMIERZONO z powodem). Po komplecie trafiaja do `Ramki/etap3/odbior_koncowy/dowody/T<nr>/` (przed
+`git add`: `dowody_lf.py --napraw` i skan T9 katalogu `dowody\` bez `--dozwolone` - T9 krok 1).
+
+**Fale.**
+
+| Fala | Testy (rownolegle w fali) | Warunek |
+|---|---|---|
+| T-A | T0 -> T1; T10 (jedyna sesja pomiarowa); T3 + T6 + T5; T12 | T10, T3, T6, T5, T1 startuja po T0 i po kroku `/testy`; T12 na wlasnej instalacji |
+| T-B | T4 -> T2 (jedyna sesja pomiarowa); T7; T13 | po T-A |
+| T-C | T11; T8 (po T2 i T3); T9 (na koncu, po wszystkich dowodach) | po T-B |
+
+**Czego NIE wolno puscic rownolegle w obrebie fali (z planu):**
+
+- T-A: nic poza T12 nie startuje przed koncem T0 i kroku `/testy` (zasada 1). T1 rownolegle z T10 jest dopuszczalne,
+  bo kryterium T10 nie zalezy od czasu (40 z 40, top-1, falszywe czerwone) - czasy T10 opisz jako mierzone pod
+  obciazeniem. Ryzyko jest po stronie testow CZASOWYCH: T1 (`test_k4`, `test_6`, `test_f`, klasa `Petla` - prog 0,2 s)
+  i T5 czesc A (progi 1 s i 100 ms) biegna obok T10, T12 (instalacje) i siebie nawzajem. Test czasowy nieudany w tych
+  warunkach: wpisz wynik przebiegu, powtorz ten test osobno 5 razy i caly przebieg po zakonczeniu T10 i T12 - wszystkie
+  logi zostaja; nie oslabiac. T5 czesc B: porty 8765-8768 - jeden wykonawca (testy pytest biora porty wolne, kolizji z
+  T1 nie ma); krok B4 (sterownik T2 z 3 skanami) to prawdziwa analiza - nie w chwili, gdy T1 jest w `test_silnik.py`,
+  jesli da sie to ustalic.
+- T-B: kryteria T4 i T2 SA czasowe (plytka do 40 s; start analizy ponizej 1 s, mapa do 40 s, przerwy okna do 200 ms).
+  Kroki T7 z silnikiem albo prawdziwa analiza (przypadek 1 czesci A - `test_silnik.py`, proby B2 i B3) NIE moga biec w
+  czasie przebiegow `metryki_pula czas` (T4) ani w czasie sterownika T2 (11-13 min) - wykonac je przed startem T4
+  albo po koncu T2. Reszta T7 czesc A (lekkie testy) i T13 moga isc rownolegle. T7 czesc B: zasada 5 wyzej.
+- T-C: T9 NIE idzie rownolegle z T11 ani T8 - przeszukuje ich wyniki i dowody wszystkich testow, wiec startuje po
+  ich zakonczeniu i po zebraniu dowodow. T8 rownolegle z T11 - tak (T8 czyta kopie baz T2 i T3). T11 czesc B: wlasny
+  plik ustawien (zasada 3); kryterium T11 nie zalezy od czasu, ale `--zamknij-po` trzeba dobrac z zapasem.
+- Zawsze: T13 drugi raz po dodaniu dowodow; jedna sesja pomiarowa naraz na calym PC (T10, T4, T2, T11 czesc B).
 
 ## Krok wspolny (koordynator, przed T0): paczki wydania
 
