@@ -96,7 +96,8 @@ ostateczny ustala A12 w `statusy.py`), `ostrzezenia`, `potwierdzone`, `wybrane`,
 Ramka W pokazuje wylacznie wynik OSTATNIEGO skanu (rozstrzygniecie koordynatora po recenzji PR #28): `skanowanie()`,
 `znacznik()` (= Spacja: `PUT /tryb skanowanie`, r3 P-N2), `blad()`, `zgas()`, `tryb()` poza "analiza" i "analiza" bez
 poprzedzajacej Spacji / `znacznik()` zaczynaja nowy skan - poprzedni wynik jest kasowany, ramka gasnie od razu i wynik nie
-wraca z kolejnym planem. Skan bez numeru, zablokowany, spoza rodziny W albo bez kalibracji ukladu (np. okragla) = ramka ciemna
+wraca z kolejnym planem. Skan bez numeru, zablokowany, spoza rodziny W albo bez kalibracji ukladu (np. okragla testowa n8;
+okragla ramkowa n1-n3 MA kalibracje i swieci - E3-O2, nizej) = ramka ciemna
 i stan "gotowa" (nie zostaje "analiza"). Znacznik `Znacznik(start_id, nr, skan)` = start ramki, numer ostatniego zdarzenia
 odebranego przez laptop w chwili Spacji i numer skanu; wynik jest wysylany tylko, gdy: to ostatni skan, ten sam start
 ramki, po znaczniku NIE przyszlo zdjecie tej plytki (`plytka` z `poprzednia` = numer), `plan_wygasl`, `blad_sprzetu` ani
@@ -124,6 +125,8 @@ wysyla je dalej (gdy program poda ten sam piec po migawce, ramka gasnie na chwil
 - Kalibracja: plik lokalny (format `ramka/kalibracja.py`, `python -m ramka.kalibracja --domyslna ...`). Brak pliku =
   wartosci startowe z geometrii `modele_plytek/*/uklad.json` (w pamieci, plik nie jest zapisywany) + ostrzezenie; zly plik =
   ramki bez planow (ciemno; plan zastany gaszony przy pierwszym kontakcie) + ostrzezenie - program dziala dalej.
+  E3-O2: plik poprawny, w ktorym brakuje ukladow majacych kalibracje startowa (plik sprzed E3-O2 nie ma
+  `okragla_ramkowa_*`), jest przy starcie UZUPELNIANY - nizej "Plytki okragle ramkowe".
 - `X-Laptop-Id`: losowy `lap-<16 hex>`, zapisany raz w `dane/ramki_laptop_id.txt` programu (niezaleznie od miejsca pliku
   kalibracji; `z_ustawien(..., katalog_danych=...)`), zapisywany trwale przy pierwszym uruchomieniu, staly dla instalacji -
   nie kopiowac do paczek ani obrazow dysku; nigdy nazwa osoby ani komputera. Gdy zapis sie nie uda (katalog tylko do
@@ -170,3 +173,54 @@ drugi laptop, ustawienia, plan z prawdziwej `SesjaRano.plan_plytek`, walidacja k
   ukladu. Do decyzji wlasciciela / C2.
 - Nazwa hosta ramki (`ramka-*.local`) rozwiazywana przy kazdym zadaniu (recenzja D14) - do sprawdzenia w C1 / T15.
 - Nie sprawdzone bez sprzetu: Wi-Fi firmowe, `.local`, opoznienia prawdziwej sieci (T15, paczka C1).
+
+## Plytki okragle ramkowe n1-n6 (E3-O2, 21.11.2026)
+
+Uklady `okragla_ramkowa_wieczorna` (n1-n3, ramka W) i `okragla_ramkowa_poranna` (n4-n6, ramka P): te same gniazda, stozki,
+srodek i numery co kwadrat R59 (R58). Ramka ich nie odroznia od kwadratu o tym samym numerze (zna tylko numer z magnesow);
+uklad zna laptop ze skanu i wysyla bloki pikseli tego ukladu. Plytki okragle testowe n8 / n9 - bez zmian (bez kalibracji,
+ramka ciemna).
+
+**Kalibracja.** `ramka.kalibracja.domyslna` liczy wartosci startowe takze dla ukladow okraglych ramkowych
+(`rola_ukladu`: pole `plate` = `okragla_ramkowa_wieczorna` -> W, `okragla_ramkowa_poranna` -> P, `shape` = `round`),
+`zrodlo` = "geometria"; bloki sa rowne blokom kwadratu (19 z 19 i 24 z 24 gniazd). `indicate.wczytaj_kalibracje`: plik
+poprawny, w ktorym brakuje ktoregos ukladu z kalibracji startowej, jest uzupelniany (`ramka_protokol.uzupelnij_kalibracje` ->
+`ramka.kalibracja.uzupelnij_plik`): dopisywane sa TYLKO brakujace uklady, wpisy istniejace (takze `zrodlo` = "kalibracja")
+zostaja bajtowo bez zmian, obok zostaje kopia starego pliku (`<nazwa>.przed_uzupelnieniem`, istniejacej kopii nie
+nadpisuje), zapis przez plik tymczasowy i podmiane. Klient dostaje ostrzezenie ("Do pliku kalibracji ramek dopisano
+uklady ... - przed praca z tymi plytkami skalibruj diody na ramce") - widac je w podpowiedzi paska ramek. Pliku nie da sie
+zapisac = uklady dopisane tylko w pamieci programu + ostrzezenie ("plik kalibracji ramek nie zostal zapisany"). Brak
+pliku i zly plik - jak dotad. Kalibracja na zlozonej ramce jest obowiazkowa przed praca (decyzja domyslna 6 z 21.11.2026) -
+tak samo jak dla kwadratow; polozenia diod pod wkladka okragla nie mierzono.
+
+**Wynik i plan.** `KlientRamki.wynik(n, "okragla_ramkowa_wieczorna", ...)` = "wyslany" dla n z 1-3 (przed E3-O2:
+"brak_kalibracji"); plan poranny z `SesjaRano.plan_plytek` niesie plytki okragle ramkowe n4-n6 z `px` jak kwadrat (72 z 72
+blokow rownych; wieczorem 57 z 57).
+
+**Numer plytki a ramka - komunikaty kontrolera (decyzja domyslna 5 z 21.11.2026: komunikat na ekranie + ramka ciemna,
+skan PRZYJETY, bez twardej blokady).** Robi to `kontroler_api.KontrolerSesji` (teksty: `statusy.KOMUNIKATY`), `indicate`
+bez zmian zachowania:
+- `plytka_nie_z_ramki` (id `plytka_nie_z_ramki:W` / `:P`): ramka podaje numer plytki (`stan()["plytka"]`) spoza swojej
+  roli - n4-n6 (albo 7) na ramce W, n1-n3 (albo 7) na ramce P. Ramka i tak nie ma dla niej planu (ciemna).
+- `plytka_inna_niz_skan` (ramka W): na ramce lezy plytka z 1-3 o numerze innym niz numer plytki z ostatniego skanu,
+  ktorego wynik poszedl do ramki ("wyslany"). Ramka swieci tylko pod plytka z planu, wiec jest ciemna.
+- `plytka_bez_skanu` (ramka P): na ramce lezy plytka z 4-6, ktorej nie ma w planie pieca wyslanym do ramki (nie byla
+  skanowana albo ma w programie inny numer). Nie w czasie analizy / skanowania i nie dla plytki, ktora czeka na
+  potwierdzenie ponownego skanu albo ma komunikat `numer_niezgodny`.
+- `numer_niezgodny` (id `numer_niezgodny:<skan>`, przy plytce): numer podany recznie (`numer_zrodlo` = `podany`) inny niz
+  WAZNY numer odczytany z dolkow kodu (`numer_z_dolkow` z pliku wyniku skanu, nalezacy do numerow ukladu). Wieczorem
+  kontroler wola `wynik(None, ...)` (ramka ciemna jak dla skanu bez numeru), rano plytka nie idzie do planu
+  (`plan_plytek(wstrzymane=...)`, `pominiete.numer_niezgodny`). `Plytka.numer_niezgodny` / `Plytka.numer_z_dolkow`.
+  Numer z dolkow spoza numerow ukladu (np. 0 przy zaslonietych dolkach) to numer nieznany (pytanie o numer), nie niezgodnosc.
+Komunikaty o plytce lezacej na ramce znikaja same, gdy przyczyna mija; zamkniety przez technika wraca dopiero przy innej
+plytce / innym skanie. Skany, wyniki i "Zamknij piec" - bez zmian.
+
+**Skad program zna numer plytki (stan faktyczny).** Numer z ramki (magnesy) NIE trafia do analizy skanu ani do
+`skany.numer_plytki`: analiza dostaje `numer` = None (`aplikacja.Zlecenie.numer` nie jest nigdzie ustawiany), numer skanu
+pochodzi z dolkow kodu (plytki okragle) albo z odpowiedzi technika na pytanie (kwadraty - dolki poza polem skanu). Numer
+z ramki program zna dopiero, gdy plytka lezy na ramce (`StanRamki.plytka`), i uzywa go tylko do paska ramek oraz - od
+E3-O2 - do komunikatow wyzej.
+
+**Kryterium "dziala".** `testy/test_okragle_ramka.py` (atrapa ramki w procesie testu, obraz piksel po pikselu): bloki
+72 z 72 i 57 z 57, stary plik kalibracji + 2 uklady, `test_led` na atrapie, komunikaty w 6 z 6 przypadkow (po 2 na
+kazdy rodzaj), ramka ciemna i skan w bazie w kazdym.

@@ -779,8 +779,8 @@ def test_blokada_plytka_zgodna_z_trybem_bez_zmian_i_jedno_miejsce_reguly(sesja):
     for uklad, tryb in (("wieczorna", "wieczor"), ("okragla_wieczorna", "wieczor"), ("wieczorna_r54", "wieczor"), ("okragla_wieczorna_r54", "wieczor"),
                         ("poranna", "rano"), ("okragla_poranna_r54", "rano")):
         assert SE.powod_nie_z_trybu(uklad, tryb) is None, (uklad, tryb)
-    assert SE.czesci_ukladu("okragla_poranna_r54") == {"okragla": True, "typ": "poranna", "wersja": "_r54"}
-    assert SE.czesci_ukladu("wieczorna") == {"okragla": False, "typ": "wieczorna", "wersja": ""} and SE.czesci_ukladu("porannax") is None
+    assert SE.czesci_ukladu("okragla_poranna_r54") == {"okragla": True, "ramkowa": False, "typ": "poranna", "wersja": "_r54"}
+    assert SE.czesci_ukladu("wieczorna") == {"okragla": False, "ramkowa": False, "typ": "wieczorna", "wersja": ""} and SE.czesci_ukladu("porannax") is None
     assert [SE.typ_plytki(u) for u in ("poranna", "okragla_poranna", "poranna_r54", "wieczorna_r54", "okragla_wieczorna", "cos")] == [
         "poranna", "poranna", "poranna", "wieczorna", "wieczorna", None]
     w = wynik("wynik_plytka2")

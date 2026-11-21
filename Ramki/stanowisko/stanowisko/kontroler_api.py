@@ -80,7 +80,10 @@ from . import statusy as ST
 
 LOG = logging.getLogger(__name__)
 
-WERSJA_KONTRAKTU = 5  # 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7); 4: ramki i Excel (E3-A12); 5: pula per praca (E3-A5i) - addytywnie
+# 2: zmiany addytywne po rundzie 2 recenzji PR #20; 3: poranek (E3-A7); 4: ramki i Excel (E3-A12); 5: pula per praca (E3-A5i) - addytywnie;
+# 6: plytki okragle ramkowe (E3-O2) - addytywnie: ``Plytka.numer_niezgodny`` / ``numer_z_dolkow``, komunikaty ``plytka_nie_z_ramki``,
+# ``plytka_inna_niz_skan``, ``plytka_bez_skanu``, ``numer_niezgodny``
+WERSJA_KONTRAKTU = 6
 TRYB_WIECZOR = SE.TRYB_WIECZOR
 TRYB_RANO = SE.TRYB_RANO
 TRYBY = (TRYB_WIECZOR, TRYB_RANO)
@@ -89,6 +92,15 @@ ID_RAMKA_PORANNA = "ramka_poranna"  # staly id komunikatu "ramka poranna nie jes
 ID_EXCEL = "excel"  # staly id komunikatu Excela po "Zamknij piec" (brak Excela, blad Excela, tryb cien)
 ID_RAMKA_WIECZORNA = "ramka_wieczorna"  # staly id komunikatu "ramka wieczorna nie odpowiada" (E3-A12, tryb wieczor)
 ID_TEST_LED = "ramki_test_led"
+# E3-O2: numery plytek, ktore podswietla ramka wieczorna (W) i poranna (P) (= ``ramka/protokol.py`` RODZINY - test paczki)
+NUMERY_RAMEK = {"W": SE.NUMERY_RAMKOWE["wieczorna"], "P": SE.NUMERY_RAMKOWE["poranna"]}
+# E3-O2: przyczyna bledu analizy rozpoznawana z opisu bledu w dzienniku (``zdarzenia.typ`` = ``blad_analizy``, pole ``opis`` -
+# tekst wyjatku ``plate.BladWyrownania``); klucz ``statusy.PRZYCZYNY_BLEDU_ANALIZY``. Nieznany opis = powod ogolny jak dotad
+WZORY_PRZYCZYN_BLEDU = (
+    ("znaczniki", re.compile(r"znaleziono (?P<n>[0-2]) sto[\u017cz]ki znacznik[\u00f3o]w, potrzeba 3")),
+    ("wierzch", re.compile(r"nie znaleziono p[\u0142l]askiego wierzchu p[\u0142l]ytki")),
+    ("pusty", re.compile(r"za ma[\u0142l]o punkt[\u00f3o]w w skanie")),
+)
 OKRES_STANU_RAMEK_S = 0.25  # co ile ``przetworz`` czyta stan klientow ramek (polaczenie, blad, plytka) - zmiana = nowy stan
 CZAS_TEST_LED_S = 8.5  # ramka konczy test diod sama po 8 s (ramka.logika.CZAS_TEST_LED_S); potem plan pieca ponownie
 ZDARZEN_RAMKI_W_PAMIECI = 4000  # tyle ostatnich kluczy zdarzen ramki z dziennika (dziennik ramki ma 2000 ostatnich zdarzen)
@@ -400,10 +412,14 @@ class Plytka:
     moze_zastapic: int | None = None
     dopuszczona: bool = False
     pominieta: bool = False  # wersja 3 (rano, A6 runda 2): skan pominiety przez osobe - nie liczy sie i nie blokuje
-    na_ramce: bool = True  # wersja 3 (rano): plytka idzie do planu ramki porannej (kwadratowa poranna, numer 4-6)
+    na_ramce: bool = True  # wersja 3 (rano): plytka idzie do planu ramki porannej (kwadratowa albo okragla ramkowa poranna, numer 4-6)
     dozwolone: tuple = ()
     komunikaty: tuple = ()
     pytania: tuple = ()
+    # wersja 6 (E3-O2): numer podany recznie ROZNY od waznego numeru odczytanego z dolkow kodu (``numer_z_dolkow``) - komunikat
+    # ``numer_niezgodny``, ramka tej plytki nie podswietla (wieczorem ciemna, rano plytka poza planem); skan i wynik zostaja
+    numer_niezgodny: bool = False
+    numer_z_dolkow: int | None = None
 
     def gniazdo(self, nr: int) -> Gniazdo | None:
         return next((g for g in self.gniazda if g.nr == nr), None)
@@ -1257,6 +1273,10 @@ class KontrolerSesji(Kontroler):
         self._w_ostatni = None  # ramka W: znacznik ostatniego skanu
         self._w_do_wyslania: tuple | None = None  # (znacznik, skan_id) - wynik do wyslania po zbudowaniu stanu
         self._w_aktywny: tuple | None = None  # (znacznik, skan_id, obraz wyslany) wyniku na ramce W
+        self._w_wynik: tuple | None = None  # E3-O2: (skan_id, numer plytki, odpowiedz ``KlientRamki.wynik``) ostatniego wyniku na ramce W
+        self._plytki_na_ramkach: dict = {}  # E3-O2: id komunikatu o plytce na ramce -> stan, dla ktorego go pokazano
+        self._przyczyny_bledu: dict = {}  # E3-O2: skan_id -> przyczyna bledu analizy dla technika albo None (z dziennika)
+        self._dolki_skanow: dict = {}  # E3-O2: skan_id -> ``numer_z_dolkow`` z pliku wyniku skanu (albo None)
         self._excel_pozycje: list = []
         self._excel_piec: tuple | None = None  # (sesja_pieca_id, nr_w_dniu, data) pieca pozycji Excela
         self._excel_blad: str | None = None
@@ -1783,6 +1803,7 @@ class KontrolerSesji(Kontroler):
         dozwolone: list = []
         komunikaty: list = []
         pytania: list = []
+        dolki = self._numer_z_dolkow(s) if otwarty and not pominieta else None  # E3-O2: numer podany inny niz z dolkow
         if otwarty and pominieta:
             dozwolone.append("cofnij_pominiecie")
         elif otwarty:
@@ -1812,7 +1833,8 @@ class KontrolerSesji(Kontroler):
             zmiana=self.sesja.zmiana(s["czas_analizy"]) if s["czas_analizy"] else None, sha16=s["sha16"], gniazda=tuple(gniazda),
             poza_gniazdem=tuple(poza), liczniki=zamroz(liczniki), zielonych=sum(1 for p in prace if p.liczona and s["aktywny"]),
             zastepuje_id=s["zastepuje_id"], moze_zastapic=moze_zastapic, dopuszczona=dopuszczona, dozwolone=tuple(dozwolone),
-            komunikaty=tuple(komunikaty), pytania=tuple(pytania), pominieta=pominieta, na_ramce=bool(s.get("na_ramce", True)))
+            komunikaty=tuple(komunikaty), pytania=tuple(pytania), pominieta=pominieta, na_ramce=bool(s.get("na_ramce", True)),
+            numer_niezgodny=dolki is not None, numer_z_dolkow=dolki)
 
     def _blokady_rano(self, st: dict, zajety: str | None = None) -> tuple:
         """Dlaczego "Zamknij piec" teraz odmowi - napisy dla osoby: najpierw ``zajety`` (analiza albo skanowanie trwa - recenzja
@@ -2092,8 +2114,11 @@ class KontrolerSesji(Kontroler):
                 LOG.exception("kontroler: stanu ramki nie da sie odczytac")
                 return StanRamki(rola=getattr(k, "rola", "?"))
             plytka = s.get("plytka")
+            tryb_ramki = s.get("tryb_ramki")
+            if tryb_ramki == "test_led" and time.monotonic() >= self._test_led_do:
+                tryb_ramki = "gotowa"  # ramka konczy test diod sama (po 8 s), bez zdarzenia dla laptopa (przeglad E3-S1, poz. 8)
             return StanRamki(rola=s.get("rola") or getattr(k, "rola", "?"), polaczona=bool(s.get("polaczona")), blad=s.get("blad"),
-                             komunikat=s.get("komunikat"), plytka=plytka if _jest_liczba(plytka) else None, tryb_ramki=s.get("tryb_ramki"),
+                             komunikat=s.get("komunikat"), plytka=plytka if _jest_liczba(plytka) else None, tryb_ramki=tryb_ramki,
                              plan_przyjety=bool(s.get("plan_przyjety")), wstrzymane=bool(s.get("wstrzymane")),
                              potwierdzone=len(s.get("potwierdzone") or ()), ostrzezenia=tuple(s.get("ostrzezenia") or ()),
                              utracone=int(s.get("utracone") or 0), przepelnienie=int(s.get("przepelnienie") or 0))
@@ -2122,6 +2147,61 @@ class KontrolerSesji(Kontroler):
             nazwa = ST.NAZWY_TRYBOW.get(TRYB_WIECZOR if r.rola == "W" else TRYB_RANO, r.rola)
             self._ustaw_komunikat("ramka_blad", f"ramka_blad:{r.rola}", pokaz, ramka=nazwa,
                                   powod=ST.BLEDY_RAMEK.get(r.blad or "", r.komunikat or r.blad or ""))
+
+    def _komunikat_plytki_na_ramce(self, rodzaj: str, rola: str, klucz: Any, **pola: Any) -> bool:
+        """Komunikat o stalym id ``<rodzaj>:<rola>``: ``klucz`` None - usuwa; inaczej pokazuje. Zamkniety przez technika wraca
+        dopiero, gdy zmieni sie ``klucz`` (inna plytka na ramce, inny skan) - nie przy kazdym odczycie stanu ramki."""
+        id_ = f"{rodzaj}:{rola}"
+        if klucz is None:
+            self._plytki_na_ramkach.pop(id_, None)
+            return self._usun_komunikat(id_)
+        nowy = self._plytki_na_ramkach.get(id_) != klucz
+        self._plytki_na_ramkach[id_] = klucz
+        return self._ustaw_komunikat(rodzaj, id_, True, wroc=nowy, **pola)
+
+    def _komunikaty_plytek_na_ramkach(self) -> bool:
+        """E3-O2 (decyzja 5; kryterium 4a i 4b): komunikat, gdy na ramce lezy plytka, ktorej ta ramka nie podswietli - wtedy ramka
+        jest ciemna, a czlowiek ma wiedziec dlaczego i co zrobic. Numer plytki podaje ramka (magnesy; ``StanRamki.plytka``):
+        (a) ``plytka_nie_z_ramki`` - numer spoza roli ramki (n4-n6 na wieczornej, n1-n3 na porannej, takze np. 7);
+        (b) ``plytka_inna_niz_skan`` (ramka W) - numer inny niz numer plytki z ostatniego skanu, ktorego wynik poszedl do ramki;
+            ``plytka_bez_skanu`` (ramka P) - numer, ktorego nie ma w planie pieca wyslanym do ramki (plytka niezeskanowana albo
+            zeskanowana pod innym numerem); nie w czasie analizy / skanowania (wynik w drodze) i nie dla plytki, ktora ma juz
+            komunikat ``numer_niezgodny`` albo czeka na potwierdzenie ponownego skanu (dwa skany z jednym numerem).
+        Niczego nie blokuje i nie zmienia skanow. Komunikaty znikaja same, gdy przyczyna mija. Zwraca True, gdy lista komunikatow
+        sie zmienila (stan odswieza wolajacy)."""
+        if self.ramki is None or self._zamkniety or self._stan_ramek is None:
+            return False
+        zmiana = False
+        rano = self._stan.rano if self._stan is not None else None
+        for r in (self._stan_ramek.wieczorna, self._stan_ramek.poranna):
+            if r is None or r.rola not in NUMERY_RAMEK:
+                continue
+            wlasne = NUMERY_RAMEK[r.rola]
+            lezy = r.plytka if r.polaczona and r.blad is None and _jest_liczba(r.plytka) and r.plytka > 0 else None
+            obca = lezy is not None and lezy not in wlasne
+            druga = next((x for x in NUMERY_RAMEK if x != r.rola and lezy in NUMERY_RAMEK[x]), None) if obca else None
+            zmiana |= self._komunikat_plytki_na_ramce(
+                "plytka_nie_z_ramki", r.rola, lezy if obca else None, ramka=ST.RAMKA_KTOREJ[r.rola], numer=lezy,
+                numery=", ".join(map(str, wlasne)), rada=ST.RADY_PLYTKA_NIE_Z_RAMKI[r.rola if druga is not None else None])
+            wlasna = lezy if lezy is not None and not obca else None
+            if r.rola == "W":
+                w, aktywny = self._w_wynik, self._w_aktywny
+                ze_skanu = w[1] if (w is not None and aktywny is not None and aktywny[1] == w[0] and w[2] == "wyslany"
+                                    and time.monotonic() >= self._test_led_do) else None
+                inna = wlasna is not None and ze_skanu is not None and wlasna != ze_skanu
+                zmiana |= self._komunikat_plytki_na_ramce("plytka_inna_niz_skan", r.rola, (wlasna, w[0]) if inna else None,
+                                                          na_ramce=wlasna, ze_skanu=ze_skanu)
+            else:
+                plan = self._plan_p_dane if self._plan_p is not None and time.monotonic() >= self._test_led_do else None
+                brak = wlasna is not None and plan is not None and str(wlasna) not in (plan.get("plytki") or {})
+                if brak and (wlasna in ((plan.get("pominiete") or {}).get("zdublowane_plytki") or ()) or self._zajety() is not None
+                             or any(p.numer_niezgodny and p.numer == wlasna for p in (rano.plytki if rano is not None else ()))):
+                    brak = False
+                w_planie = sorted(int(n) for n in (plan.get("plytki") or {})) if plan is not None else []
+                zmiana |= self._komunikat_plytki_na_ramce(
+                    "plytka_bez_skanu", r.rola, (wlasna, plan.get("plan_id"), tuple(w_planie)) if brak else None, na_ramce=wlasna,
+                    w_planie=ST.W_PLANIE_PLYTKI.format(plytki=", ".join(map(str, w_planie))) if w_planie else ST.W_PLANIE_BRAK)
+        return zmiana
 
     def _przetworz_ramki(self) -> int:
         """Zegar okna (``przetworz``): krok Excela (najwyzej jeden odczyt arkusza na obieg - recenzja PR #30 P1), zdarzenia ramek ->
@@ -2174,6 +2254,8 @@ class KontrolerSesji(Kontroler):
                     pelne = True
                 else:
                     zywe = True
+            if self._komunikaty_plytek_na_ramkach():  # E3-O2: plytka na ramce, ktorej ramka nie podswietli (kryterium 4a, 4b)
+                pelne = True
         if pelne:
             self._odswiez()
         elif zywe:
@@ -2481,7 +2563,9 @@ class KontrolerSesji(Kontroler):
         if podpis == self._plan_p_podpis:
             return
         try:
-            pp = self.rano.plan_plytek(r.sesja_pieca_id, kolejnosc=self._kolejnosc)
+            # E3-O2 (decyzja 5): plytka z numerem podanym innym niz wazny numer z dolkow nie idzie do planu (ramka jej nie swieci)
+            wstrzymane = [p.skan_id for p in r.plytki if p.numer_niezgodny]
+            pp = self.rano.plan_plytek(r.sesja_pieca_id, kolejnosc=self._kolejnosc, **({"wstrzymane": wstrzymane} if wstrzymane else {}))
             potwierdzone = None
             if pp["plan_id"] not in self._plany_wyslane:
                 potwierdzone = self._potwierdzone_z_bazy(pp["plan_id"]) or None
@@ -2590,11 +2674,15 @@ class KontrolerSesji(Kontroler):
         from . import ramka_protokol as RP  # noqa: PLC0415 - tylko z ramkami (pakiet ``ramka``)
 
         kolory = {g.nr: RP.kolor_ramki(g.status) for g in plytka.gniazda}
-        obraz = (plytka.numer, plytka.uklad, tuple(sorted(kolory.items())))
+        # E3-O2 (decyzja 5): numer podany recznie inny niz wazny numer z dolkow - ramka ciemna jak dla skanu bez numeru (komunikat
+        # ``numer_niezgodny`` przy plytce); po poprawieniu numeru obraz sie zmienia i wynik idzie do ramki
+        numer = None if plytka.numer_niezgodny else plytka.numer
+        obraz = (numer, plytka.uklad, tuple(sorted(kolory.items())))
         if obraz == wyslane:
             return
-        wynik = k.wynik(plytka.numer, plytka.uklad, kolory, znacznik)
+        wynik = k.wynik(numer, plytka.uklad, kolory, znacznik)
         self._w_aktywny = None if wynik == "niewazny" else (znacznik, skan_id, obraz)
+        self._w_wynik = (skan_id, numer, wynik)
 
     def _po_odswiezeniu(self, stan: StanAplikacji) -> None:
         """Po kazdym pelnym zbudowaniu stanu: plan ramki porannej i wynik na ramce wieczornej (bledy - tylko log)."""
@@ -2605,6 +2693,11 @@ class KontrolerSesji(Kontroler):
                 funkcja(stan)
             except Exception:  # noqa: BLE001 - ramka to dodatek: blad nie zatrzymuje odswiezania
                 LOG.exception("kontroler: blad synchronizacji ramki (%s)", funkcja.__name__)
+        try:  # E3-O2: wynik / plan wlasnie sie zmienil - komunikaty o plytce lezacej na ramce od razu (bez czytania bazy)
+            if self._komunikaty_plytek_na_ramkach():
+                self._pokaz_komunikaty()
+        except Exception:  # noqa: BLE001
+            LOG.exception("kontroler: blad komunikatow o plytkach na ramkach")
 
     def _zamknij_ramki_excel(self) -> None:
         """Zamkniecie programu: obie ramki gasna (``zgas``), klienci zatrzymani (najwyzej ok. 1 s; zgaszenie, ktore nie doszlo -
@@ -3082,12 +3175,14 @@ class KontrolerSesji(Kontroler):
         komunikaty = [dataclasses.replace(k, ukryte=True) if k.id in self._ukryte else k for k in self._komunikaty_plytki(s, prace)]
         pytania = [dataclasses.replace(q, ukryte=True) if q.id in self._ukryte else q
                    for q in self._pytania_plytki(s, propozycja, czasy, typ, numery_plytek)]
+        dolki = self._numer_z_dolkow(s)  # E3-O2: numer podany inny niz wazny numer z dolkow - ramka W tej plytki nie pokazuje
         return Plytka(
             skan_id=s["id"], status=s["status"], aktywna=s["aktywny"], napis=ST.napis_plytki(s["status"]), numer=s["numer_plytki"],
             numer_zrodlo=s["numer_zrodlo"], uklad=s["uklad"], typ=typ, czas=s["czas_analizy"], zmiana=s["zmiana"], czas_s=s["czas_s"],
             sha16=s["sha16"], gniazda=tuple(gniazda), poza_gniazdem=tuple(poza), liczniki=zamroz(liczniki),
             zielonych=liczniki.get(ST.KOLOR_ZIELONY, 0), zastepuje_id=s["zastepuje_id"], moze_zastapic=s["moze_zastapic"],
-            dopuszczona=dopuszczona, dozwolone=tuple(dozwolone), komunikaty=tuple(komunikaty), pytania=tuple(pytania))
+            dopuszczona=dopuszczona, dozwolone=tuple(dozwolone), komunikaty=tuple(komunikaty), pytania=tuple(pytania),
+            numer_niezgodny=dolki is not None, numer_z_dolkow=dolki)
 
     def _nowy_komunikat(self, id_: str, rodzaj: str, *, trwaly: bool = False, czas: str | None = None, skan_id: int | None = None,
                         gniazda: tuple = (), **pola: Any) -> Komunikat:
@@ -3107,8 +3202,10 @@ class KontrolerSesji(Kontroler):
                 wynik.append(self._nowy_komunikat(f"plik_niedostepny:{skan_id}", "plik_niedostepny", trwaly=True, czas=czas, skan_id=skan_id,
                                                   dalej=ST.PLIK_NIEDOSTEPNY_KONIEC))
             else:
+                # E3-O2 (przeglad E3-S1, poz. 3): przyczyna z opisu bledu (np. "w skanie widac 1 z 3 znacznikow"), gdy da sie ja rozpoznac
+                przyczyna = self._przyczyna_bledu(skan_id) if rodzaj in (None, "analiza") else None
                 wynik.append(self._nowy_komunikat(f"blad_analizy:{skan_id}", "blad_analizy", trwaly=True, czas=czas, skan_id=skan_id,
-                                                  powod=ST.POWODY_BLEDU_ANALIZY.get(rodzaj, ST.POWODY_BLEDU_ANALIZY["analiza"])))
+                                                  powod=przyczyna or ST.POWODY_BLEDU_ANALIZY.get(rodzaj, ST.POWODY_BLEDU_ANALIZY["analiza"])))
         elif s["status"] == SE.STATUS_DO_POWTORZENIA:
             powody, gniazda = [], []
             for klucz, pole, wartosc in (("skan_ponownie", "status_inspekcji", "skan_ponownie"), ("popraw_ulozenie", "status_inspekcji", "popraw_ulozenie")):
@@ -3134,7 +3231,51 @@ class KontrolerSesji(Kontroler):
             if bledne:
                 wynik.append(self._nowy_komunikat(f"blad_inspekcji:{skan_id}", "blad_inspekcji", trwaly=True, czas=czas, skan_id=skan_id,
                                                   gniazda=tuple(bledne), nr=", ".join(map(str, bledne))))
+            dolki = self._numer_z_dolkow(s)
+            if dolki is not None:  # E3-O2 (kryterium 4c): numer podany recznie inny niz wazny numer z dolkow kodu
+                wynik.append(self._nowy_komunikat(f"numer_niezgodny:{skan_id}", "numer_niezgodny", trwaly=True, czas=czas, skan_id=skan_id,
+                                                  podany=s["numer_plytki"], dolki=dolki))
         return wynik
+
+    def _numer_z_dolkow(self, s: dict) -> int | None:
+        """E3-O2 (kryterium 4c): numer odczytany z dolkow kodu (``numer_z_dolkow`` w pliku wyniku skanu), gdy jest WAZNY (nalezy do
+        numerow ukladu plytki) i ROZNY od numeru podanego recznie (``numer_zrodlo`` = ``podany``); None = brak niezgodnosci.
+        Numer z dolkow spoza numerow ukladu (np. 0 przy zaslonietych dolkach) to numer nieznany, nie niezgodnosc."""
+        if not s["aktywny"] or s["numer_zrodlo"] != "podany" or s["numer_plytki"] is None:
+            return None
+        if s["id"] not in self._dolki_skanow:  # plik wyniku skanu sie nie zmienia: jeden odczyt na skan (rano numer bywa zawsze podany)
+            tresc = self._wynik_skanu(s["id"])
+            if not tresc:
+                return None  # pliku nie da sie teraz odczytac - nastepne odswiezenie sprobuje ponownie
+            if len(self._dolki_skanow) > 500:
+                self._dolki_skanow.clear()
+            n = tresc.get("numer_z_dolkow")
+            self._dolki_skanow[s["id"]] = n if _jest_liczba(n) else None
+        dolki = self._dolki_skanow[s["id"]]
+        if dolki is None or dolki == s["numer_plytki"] or dolki not in self._uklad(s["uklad"])[1]:
+            return None
+        return dolki
+
+    def _przyczyna_bledu(self, skan_id: int) -> str | None:
+        """E3-O2 (przeglad E3-S1, poz. 3): przyczyna bledu analizy dla technika (``statusy.PRZYCZYNY_BLEDU_ANALIZY``) rozpoznana
+        z opisu bledu zapisanego przez ``session.przyjmij_blad`` w dzienniku (``blad_analizy``, pole ``opis``); None = nieznana."""
+        if skan_id not in self._przyczyny_bledu:
+            przyczyna = None
+            w = self.sesja.baza.wiersz("SELECT dane FROM zdarzenia WHERE skan_id = ? AND typ = 'blad_analizy' ORDER BY id DESC LIMIT 1", (skan_id,))
+            try:
+                opis = json.loads(w["dane"]).get("opis") if w and w["dane"] else None
+            except (ValueError, AttributeError):
+                opis = None
+            if isinstance(opis, str):
+                for klucz, wzor in WZORY_PRZYCZYN_BLEDU:
+                    m = wzor.search(opis)
+                    if m:
+                        przyczyna = ST.PRZYCZYNY_BLEDU_ANALIZY[klucz].format(**m.groupdict())
+                        break
+            if len(self._przyczyny_bledu) > 500:  # opis bledu skanu sie nie zmienia; pamiec nie rosnie bez konca
+                self._przyczyny_bledu.clear()
+            self._przyczyny_bledu[skan_id] = przyczyna
+        return self._przyczyny_bledu[skan_id]
 
     def _rodzaj_bledu(self, skan_id: int) -> str | None:
         """Rodzaj bledu silnika (``silnik.RODZAJE_BLEDU``) zapisany przez kontroler w dzienniku przy skanie ``blad``."""
@@ -4403,12 +4544,13 @@ class AtrapaKontrolera(KontrolerSesji):
         return k
 
     def symuluj_skan(self, rodzaj: str = "zwykla", *, numer: int | None = 1, uklad: str | None = None, gniazda: dict | None = None,
-                     poza_gniazdem: int = 0, projekty: dict | None = None) -> int:
+                     poza_gniazdem: int = 0, projekty: dict | None = None, numer_z_dolkow: int | None = None) -> int:
         """"Skaner zapisal plik, silnik policzyl": przyjmuje sztuczny wynik do sesji i odswieza stan; zwraca ``skan_id``.
 
         ``rodzaj``: ``zwykla`` (mieszanka statusow), ``czysta`` (same zielone), ``do_powtorzenia`` (poruszony skan i dwie
         prace w gniezdzie), ``niezgodny_uklad``, ``nie_z_trybu`` (plytka poranna wieczorem), ``bez_numeru``, ``blad``
         (analiza bez wyniku). ``gniazda`` nadpisuje zestaw prac (numer gniazda -> rodzaj z ``RODZAJE_PRAC``).
+        ``numer_z_dolkow`` (E3-O2) - pole ``numer_z_dolkow`` wyniku (odczyt dolkow kodu plytki okraglej); None = wynik bez pola.
         """
         if rodzaj not in RODZAJE_SKANOW_ATRAPY:
             raise ValueError(f"nieznany rodzaj skanu {rodzaj!r} (znane: {', '.join(RODZAJE_SKANOW_ATRAPY)})")
@@ -4440,6 +4582,8 @@ class AtrapaKontrolera(KontrolerSesji):
         uklad = uklad or (obca if rodzaj == "nie_z_trybu" else wlasciwa)
         wynik = sztuczny_wynik(uklad, None if rodzaj == "bez_numeru" else numer, gniazda if gniazda is not None else domyslne,
                                uklad_zgodny=rodzaj != "niezgodny_uklad", poza_gniazdem=poza_gniazdem, skan=nazwa, projekty=projekty)
+        if numer_z_dolkow is not None:
+            wynik["numer_z_dolkow"] = numer_z_dolkow
         return self._przyjmij_sztuczny(zdarzenie, wynik, znacznik)
 
     def _przyjmij_sztuczny(self, zdarzenie: dict, wynik: dict, znacznik=None) -> int:
@@ -4456,7 +4600,7 @@ class AtrapaKontrolera(KontrolerSesji):
         return skan_id
 
     def symuluj_skan_rano(self, numer: int | None = 4, gniazda: dict | None = None, *, projekty: dict | None = None, uklad: str = "poranna",
-                          poza_gniazdem: int = 0) -> int:
+                          poza_gniazdem: int = 0, numer_z_dolkow: int | None = None) -> int:
         """Skan plytki porannej z kandydatami (``sztuczny_wynik_rano``: rodzaje ``RODZAJE_PRAC_RANO``) - do sesji trybu kontrolera
         (w trybie "rano" - piec). Pula poranna: ``indeks_rano_sztuczny`` (wola ja ta metoda). Zwraca ``skan_id``."""
         indeks_rano_sztuczny(self.sesja.baza, self._teraz())
@@ -4466,6 +4610,8 @@ class AtrapaKontrolera(KontrolerSesji):
                      "rozmiar": 48_000_000 + self._nr_skanu, "czas_pliku": self._teraz()}
         self._analiza, self._czeka_na_skan = None, False
         wynik = sztuczny_wynik_rano(uklad, numer, gniazda, projekty=projekty, poza_gniazdem=poza_gniazdem, skan=nazwa)
+        if numer_z_dolkow is not None:  # E3-O2: odczyt dolkow kodu plytki okraglej (pole wyniku ``numer_z_dolkow``)
+            wynik["numer_z_dolkow"] = numer_z_dolkow
         return self._przyjmij_sztuczny(zdarzenie, wynik)
 
     def _sztuczny_podglad(self, sha16: str, wynik: dict) -> Path | None:
