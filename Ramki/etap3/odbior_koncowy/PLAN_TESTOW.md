@@ -568,19 +568,33 @@ powtorz zwyklym `<K>\Polecenie.cmd -m pytest ...` i zapisz OBA wyniki - ten przy
 2. Zamkniecie w polowie wieczoru (dwa okna `cmd`; pusta baza; folder eksportu pusty):
    okno 1: `<K>\Stanowisko.cmd --zamknij-po 600`;
    okno 2: `<K>\Polecenie.cmd narzedzia\symulator_skanera.py --folder <folder_eksportu_skanera> --zrodla <PC-katalog>\app\dane_ref\syntetyczne_R59_P2 --ile 4 --odstep 60 --rownolegle 1 --seed 1 --dziennik <ROB>\t7_b2_symulator.json`.
-   PID programu: przed startem okna 1 zapisz `powershell -NoProfile -Command "Get-Process python | Select-Object Id,StartTime"`
-   do `<ROB>\t7_b2_pid_przed.txt`, po starcie jeszcze raz - nowe PID-y to program (najstarszy z nowych) i jego proces
-   silnika; cudzych PID-ow nie ruszac. Po zapisie 2. skanu (dziennik symulatora: 2 pozycje w `zapisy`) zakoncz program:
+   PID programu = JEDYNY proces `python` ze sciezka w `<K>\wersje\`:
+   `powershell -NoProfile -Command "Get-Process python | Where-Object { $_.Path -like '<K>\wersje\*' } | Select-Object Id,StartTime,Path"`
+   - przed startem okna 1 ma dac 0 wierszy, po starcie 1 wiersz (posrednik srodowiska wersji; wlasciwy interpreter i
+   proces silnika maja sciezke Pythona bazowego, taka jak procesy innych wykonawcow - po sciezce ich nie odroznisz).
+   Inna liczba wierszy niz 1 = NIE ZMIERZONO. Zakonczenie posrednika konczy takze interpreter i proces silnika
+   (sprawdzone 21.11: 3 z 3 procesow nie zyje po 1,5 s). Instalacja `<K>` tylko tego wykonawcy. Oba odczyty zapisz do
+   `<ROB>\t7_b2_pid.txt`; odczyt "po starcie" zrob PRZED startem okna 2 (symulator przez `Polecenie.cmd` to tez proces
+   ze sciezka `<K>\wersje\*`); cudzych PID-ow nie ruszac. Po zapisie 2. skanu (dziennik symulatora: 2 pozycje w
+   `zapisy`) zakoncz program:
    `powershell -NoProfile -Command "Stop-Process -Id <pid programu> -Force"`; symulator zostaw; uruchom okno 1 ponownie.
    Oczekiwane: `PY -I <ODB>\narzedzia\sql_odczyt.py --baza <DANE>\stanowisko.sqlite "SELECT status, count(*) FROM skany GROUP BY status"`
-   po ok. 6 min = 4 skany z 4; w `<DANE>\logi\stanowisko.log` komunikat `wznowiono`; pliku `zadania_niezakonczone.json`
-   nie ma po nadrobieniu.
+   po ok. 6 min = 4 skany z 4; w `<DANE>\logi\stanowisko.log` wiersz `(plik zastany - nadrabianie)` dla 2. skanu i w
+   zdarzeniach `nowy_skan` z `"zastany": true` (`sql_odczyt.py ... "SELECT typ, dane FROM zdarzenia ORDER BY id"`);
+   komunikat `wznowiono` jest tylko na ekranie - potwierdza go test czesci A
+   `test_e_awaria_bez_zamkniecia_nadrabianie_folderu`; pliku `zadania_niezakonczone.json` nie ma po nadrobieniu.
 3. Zabicie silnika: ten sam uklad dwoch okien z `--ile 3`; w trakcie analizy 2. skanu (ok. 5 s po 2. pozycji `zapisy`)
-   zakoncz proces potomny silnika (najmlodszy z nowych PID-ow z listy jak w p. 2): `Stop-Process -Id <pid silnika> -Force`;
+   zakoncz proces silnika: z listy `Get-Process python | Select-Object Id,StartTime,Path` wez procesy ze sciezka Pythona
+   bazowego i `StartTime` w ciagu 5 s po `StartTime` posrednika z p. 2 - maja byc dokladnie 2 (interpreter programu i,
+   mlodszy, silnik); inna liczba = NIE ZMIERZONO (przypadek 1 liczy sie wtedy tylko testami czesci A - wpisz to):
+   `Stop-Process -Id <pid silnika> -Force`;
    oczekiwane: komunikat `blad_analizy` ("przerwana") w logu i zdarzeniach, nastepny skan przyjety (3. skan ma status w bazie).
-   Proby 2 i 3 NIE byly wykonane w rundzie poprawek (opcje `symulator_skanera.py` i `Stanowisko.cmd --zamknij-po`
-   sprawdzone osobno) - pierwsze wykonanie zapisz krok po kroku; gdy PID-u nie da sie ustalic jednoznacznie: "NIE
-   ZMIERZONO" (nie zabijac na probe).
+   Proba 2 wykonana przez recenzenta 21.11 na instalacji probnej (2 skany `*_r54`, program z wlasnym plikiem ustawien:
+   `skany` 2 z 2, `nowy_skan` z `zastany` true, slowo `wznowiono` w logu 0 razy); proba 3 NIE byla wykonana - pierwsze
+   wykonanie zapisz krok po kroku; gdy PID-u nie da sie ustalic jednoznacznie: "NIE ZMIERZONO" (nie zabijac na probe).
+   Na instalacji WSPOLNEJ odbioru (sekcja "Ustalenia koordynatora do wykonania odbioru") regula "0 wierszy przed
+   startem, 1 po starcie" jest spelnialna tylko wtedy, gdy w tym czasie zaden inny test nie uruchamia niczego przez
+   `<K>\Polecenie.cmd` / `<K>\Stanowisko.cmd` - patrz tam punkt "T7 czesc B".
 
 **Komunikaty a PW zal. F:** tresci komunikatow sa w `stanowisko\statusy.py` (`KOMUNIKATY`, `BLEDY_RAMEK`). Zalacznik F
 jest w dokumencie "Stanowisko kontroli cyrkonii - plan wdrozenia v2" (`Ramki/`, plik `.md` z pauza w nazwie); wg
