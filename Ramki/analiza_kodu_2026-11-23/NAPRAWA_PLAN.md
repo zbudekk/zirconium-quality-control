@@ -5,8 +5,9 @@ Zrodla: `S1_lancuch_analizy.md` (B 2 / P 6 / D 7), `S2_zawieszenia.md` (B 1 / P 
 
 ## Decyzje wlasciciela 23.11.2026
 
-1. Program w dniu testu dziala na OSOBNYM laptopie wlasciciela (nie na komputerze skanera); skany trafiaja do
-   folderu na tym laptopie (pendrive / wspolny folder).
+1. W dniu testu jest TYLKO laptop wlasciciela i skaner; elektroniki ramki nie ma. Testujemy wszystko, co sie da
+   bez ramki - zakres: `../etap3/testy_sprzet_2026-11-28/WARIANT_LAPTOP_I_SKANER.md`. Instalator: ramki domyslnie
+   wylaczone.
 2. Do wydania na dzien testu wchodza: nowy instalator + 3 bezpieczne naprawy (N1, N2, N3 nizej).
 3. Ponowny skan: praca czerwona bez decyzji ZOSTAJE czerwona takze po nowym skanie, do decyzji technika.
 4. Stare skany przy starcie: wlasciciel nie odpowiedzial - przyjete domyslnie (do odwolania): program pyta przy
