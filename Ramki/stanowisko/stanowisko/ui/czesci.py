@@ -141,7 +141,19 @@ def _przygotuj_przycisk(b: QPushButton, nazwa: str | None, rola: str | None, po_
 
 
 def przycisk(tekst: str, nazwa: str | None = None, rola: str | None = None, po_kliknieciu=None, wysokosc: int | None = None) -> QPushButton:
+    """Przycisk ekranu; ``wysokosc`` - najmniejsza wysokosc (None: wysokosc z napisu i dopelnienia arkusza - tak uzywa go ekran poranny)."""
     return _przygotuj_przycisk(PrzyciskEkranu(tekst), nazwa, rola, po_kliknieciu, wysokosc)
+
+
+def guzik(tekst: str, nazwa: str | None = None, rola: str | None = None, po_kliknieciu=None, wysokosc: int | None = None) -> QPushButton:
+    """Przycisk nowego okna: jak ``przycisk``, z wysokoscia wg roli z ``motyw.WYSOKOSCI`` (arkusz wysokosci nie ustawia); przycisk
+    paska stanu ma wysokosc stala, cyfra - najmniejsza szerokosc celu klikniecia."""
+    b = przycisk(tekst, nazwa, rola, po_kliknieciu, wysokosc or motyw.WYSOKOSCI.get(rola, motyw.WYSOKOSC_PRZYCISKU))
+    if rola in ("stan", "stan_blad"):
+        b.setFixedHeight(motyw.WYSOKOSCI[rola])
+    if rola == "cyfra":
+        b.setMinimumWidth(motyw.SZEROKOSC_CYFRY)
+    return b
 
 
 class PrzyciskSkrotu(PrzyciskEkranu):
@@ -791,12 +803,12 @@ class PanelUwagi(QFrame):
 
     def __init__(self, nazwa: str, poziom: str, tytul: str, tekst: str, przyciski, *, rada: str = "", ostrzezenie: str = "",
                  wyjasnienie: str = "", przyciski_pod_tekstem: bool = False, waski: bool = False, r=None, przewijany: bool = False,
-                 licznik: tuple | None = None, wysokosc_przycisku: int | None = None):
+                 licznik: tuple | None = None, wysokosc_przycisku: int | None = None, ciasny: bool = False):
         super().__init__()
         self.setObjectName(nazwa)
         self.setProperty("rola", "uwaga_panel")
         self.setProperty("poziom", poziom if poziom in motyw.POZIOMY else motyw.POZIOM_DOMYSLNY)
-        zwarty = bool(getattr(r, "zwarty", False))
+        zwarty = bool(getattr(r, "zwarty", False)) or ciasny  # ``ciasny``: strefa pytan w ukladzie zwartym okna
         if wysokosc_przycisku is None:
             wysokosc_przycisku = getattr(r, "wysokosc_przycisku", 36)
         uklad = QHBoxLayout(self)
@@ -809,7 +821,7 @@ class PanelUwagi(QFrame):
         naglowek.setSpacing(8)
         naglowek.addWidget(etykieta(tytul, "naglowek", zawijaj=True), 1)
         if licznik is not None:
-            self.przycisk_licznika = przycisk(licznik[0], "uwagi_jeszcze", "lacze", licznik[1])
+            self.przycisk_licznika = guzik(licznik[0], "uwagi_jeszcze", "lacze", licznik[1], 26)
             self.przycisk_licznika.setToolTip(N.JESZCZE_OPIS)
             naglowek.addWidget(self.przycisk_licznika, 0, Qt.AlignmentFlag.AlignTop)
         kolumna.addLayout(naglowek)
@@ -854,7 +866,9 @@ class PanelUwagi(QFrame):
             miejsce.setSpacing(8)
             miejsce.addStretch(1)
         for nazwa_b, napis, nazwa_polecenia, argumenty, aktywny, rola in przyciski:
-            b = przycisk(napis, nazwa_b, rola, lambda p=nazwa_polecenia, a=tuple(argumenty): self.polecenie.emit(p, a))
+            wyslij = lambda p=nazwa_polecenia, a=tuple(argumenty): self.polecenie.emit(p, a)  # noqa: E731
+            # ekran poranny (``r``): wysokosc przycisku z jego arkusza i rozmiarow; nowe okno: z ``motyw.WYSOKOSCI`` (``guzik``)
+            b = przycisk(napis, nazwa_b, rola, wyslij) if r is not None else guzik(napis, nazwa_b, rola, wyslij)
             b.setEnabled(aktywny)
             if rola not in ("cyfra", "lacze"):
                 b.setMinimumHeight(wysokosc_przycisku)
@@ -948,18 +962,20 @@ class StrefaKomunikatow(QFrame):
         self._panel: PanelUwagi | None = None
         self._chroniona = False
         self._wysokosc_przycisku = motyw.CEL_KLIKNIECIA
+        self._ciasny = False
         self.ustaw_uklad(motyw.UKLAD_WYSOKI)
 
     def ustaw_uklad(self, u: motyw.Uklad) -> None:
         self.setFixedHeight(u.strefa)
-        pion = 8 if u.zwarty else 12
+        pion = 6 if u.zwarty else 12
         self._uklad.setContentsMargins(u.bok, pion, u.bok, pion)
         self._wysokosc_przycisku = 40 if u.zwarty else motyw.CEL_KLIKNIECIA
+        self._ciasny = u.zwarty
         self._sygnatura = None
 
     def ustaw(self, uwaga: Uwaga | None, jeszcze: int = 0) -> None:
         """Pokazuje ``uwaga`` (None = strefa pusta); ``jeszcze`` - ile dalszych pozycji czeka za nia."""
-        sygnatura = (uwaga, jeszcze, self._wysokosc_przycisku)
+        sygnatura = (uwaga, jeszcze, self._wysokosc_przycisku, self._ciasny)
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
@@ -968,7 +984,8 @@ class StrefaKomunikatow(QFrame):
         self._panel = None
         if uwaga is not None:
             licznik = (N.JESZCZE_KROTKO.format(n=jeszcze), self.nastepna.emit) if jeszcze > 0 else None
-            self._panel = PanelUwagi.z_uwagi(uwaga, przewijany=True, licznik=licznik, wysokosc_przycisku=self._wysokosc_przycisku)
+            self._panel = PanelUwagi.z_uwagi(uwaga, przewijany=True, licznik=licznik, wysokosc_przycisku=self._wysokosc_przycisku,
+                                             ciasny=self._ciasny)
             self._panel.polecenie.connect(self._wyslij)
             self._miejsce.addWidget(self._panel)
         self._pusta.setVisible(uwaga is None)
@@ -1038,7 +1055,7 @@ class PanelOsoby(QFrame):
             self._uklad.addWidget(etykieta(tekst, "tresc", zawijaj=True))
         przyciski = UkladPlynny(odstep_poziomy=8, odstep_pionowy=8)
         for i, osoba in enumerate(operatorzy):
-            b = przycisk(osoba, f"osoba_{i}", "osoba", lambda o=osoba: self.wybrano.emit(o))
+            b = guzik(osoba, f"osoba_{i}", "osoba", lambda o=osoba: self.wybrano.emit(o))
             b.setCheckable(True)
             b.setChecked(osoba == obecna)
             przyciski.addWidget(b)
@@ -1046,8 +1063,8 @@ class PanelOsoby(QFrame):
             self._uklad.addLayout(przyciski)
         if zmiana_osoby:
             dol = UkladPlynny(odstep_poziomy=8, odstep_pionowy=6)
-            dol.addWidget(przycisk(ST.PRZYCISK_WYLOGUJ, "osoba_wyloguj", "lacze", self.wyloguj.emit))
-            dol.addWidget(przycisk(N.ZOSTAW_OSOBE, "osoba_bez_zmian", "lacze", self.bez_zmian.emit))
+            dol.addWidget(guzik(ST.PRZYCISK_WYLOGUJ, "osoba_wyloguj", "lacze", self.wyloguj.emit, 34))
+            dol.addWidget(guzik(N.ZOSTAW_OSOBE, "osoba_bez_zmian", "lacze", self.bez_zmian.emit, 34))
             self._uklad.addLayout(dol)
         self.updateGeometry()
 
@@ -1081,7 +1098,7 @@ class PasekGorny(QFrame):
         tryby.setSpacing(0)
         self.przyciski_trybu = {}
         for tryb, rola in (("wieczor", "segment_lewy"), ("rano", "segment_prawy")):
-            b = przycisk(ST.NAZWY_TRYBOW[tryb], f"przycisk_tryb_{tryb}", rola, lambda t=tryb: self._klik_trybu(t), 34)
+            b = guzik(ST.NAZWY_TRYBOW[tryb], f"przycisk_tryb_{tryb}", rola, lambda t=tryb: self._klik_trybu(t))
             b.setMinimumWidth(108)  # wybrana czesc ma napis pogrubiony - szerokosc nie zalezy od tego, ktora jest wybrana
             b.setCheckable(True)
             b.setToolTip(NR.PRZELACZ_OPIS.format(tryb=ST.NAZWY_TRYBOW[tryb]))
@@ -1103,7 +1120,7 @@ class PasekGorny(QFrame):
         osoba.addWidget(etykieta(N.OSOBA, "tresc"))
         self.osoba = etykieta("", "osoba", "napis_osoba")
         osoba.addWidget(self.osoba, 0, Qt.AlignmentFlag.AlignVCenter)
-        self.przycisk_osoby = przycisk(N.ZMIEN_OSOBE, "przycisk_zmien_osobe", "wglebiony", self.zmien_osobe.emit, 34)
+        self.przycisk_osoby = guzik(N.ZMIEN_OSOBE, "przycisk_zmien_osobe", "wglebiony", self.zmien_osobe.emit, 34)
         polityka = self.przycisk_osoby.sizePolicy()
         polityka.setRetainSizeWhenHidden(True)  # ukryty zachowuje miejsce: pasek nie zmienia ukladu
         self.przycisk_osoby.setSizePolicy(polityka)
@@ -1246,7 +1263,7 @@ class PasekStanu(QFrame):
         self.kolejka = EtykietaSkracana("stan_wartosc", "napis_kolejka")
         self.kropka_analizy = Kropka(None, 8)
         self.analiza = self._pole(N.ANALIZA, "napis_analiza", self.kropka_analizy, self.postep, self.kolejka, stala=True)
-        self.przycisk_puli = przycisk(ST.PRZYCISKI["odswiez_pule"], "przycisk_odswiez_pule", "stan", self.odswiez_pule.emit)
+        self.przycisk_puli = guzik(ST.PRZYCISKI["odswiez_pule"], "przycisk_odswiez_pule", "stan", self.odswiez_pule.emit)
         self.postep_puli = QProgressBar()  # liczenie puli trwa: pasek bez konca, przycisk nieaktywny
         self.postep_puli.setObjectName("pasek_puli")
         self.postep_puli.setRange(0, 0)
@@ -1256,27 +1273,23 @@ class PasekStanu(QFrame):
         self.kropka_puli = Kropka(None, 8)
         self.pula = self._pole(N.PULA, "napis_pula", self.kropka_puli, self.przycisk_puli, self.postep_puli)
         # E3-A12: stan ramek, "Test LED" i "Przejmij ramke" - tylko gdy program ma ramki (``stan.ramki``)
-        self.przycisk_test_led = przycisk(NR.TEST_LED, "przycisk_test_led", "stan", self.test_led.emit)
+        self.przycisk_test_led = guzik(NR.TEST_LED, "przycisk_test_led", "stan", self.test_led.emit)
         self.przycisk_test_led.setToolTip(NR.TEST_LED_OPIS)
         self._do_przejecia: str | None = None
-        self.przycisk_przejmij = przycisk("", "przycisk_przejmij_ramke", "stan", lambda: self.przejmij_ramke.emit(self._do_przejecia or ""))
+        self.przycisk_przejmij = guzik("", "przycisk_przejmij_ramke", "stan", lambda: self.przejmij_ramke.emit(self._do_przejecia or ""))
         self.przycisk_przejmij.setToolTip(NR.PRZEJMIJ_OPIS)
         self.kropka_ramek = Kropka(None, 8, kwadrat=True)
         self.ramki = self._pole(NR.RAMKI, "napis_ramki", self.kropka_ramek, self.przycisk_test_led, self.przycisk_przejmij)
         self.pole_ramki = self.ramki.parentWidget()
         self.pole_ramki.setVisible(False)
         u.addStretch(1)
-        self.przycisk_bledy = przycisk("", "przycisk_bledy", "stan_blad", self.przelacz_bledy.emit)
+        self.przycisk_bledy = guzik("", "przycisk_bledy", "stan_blad", self.przelacz_bledy.emit)
         self.przycisk_bledy.setToolTip(N.BLEDY_OPIS)
         self.przycisk_bledy.setVisible(False)
         u.addWidget(self.przycisk_bledy)
         self.wersja = etykieta(N.WERSJA.format(wersja=wersja) if wersja else "", "stan", "napis_wersja")
         self.wersja.setVisible(bool(wersja))
         u.addWidget(self.wersja)
-        for w in (self.postep_puli, self.postep):  # ukryte zachowuja miejsce: pola paska nie przesuwaja sie przy zmianie stanu
-            polityka = w.sizePolicy()
-            polityka.setRetainSizeWhenHidden(True)
-            w.setSizePolicy(polityka)
         self._sygnatura = None
         self._liczenie_od: float | None = None
 
@@ -1297,7 +1310,7 @@ class PasekStanu(QFrame):
 
     def ustaw_uklad(self, u: motyw.Uklad) -> None:
         self._uklad.setContentsMargins(u.bok, 0, u.bok, 0)
-        self._uklad.setSpacing(14 if u.zwarty else 24)
+        self._uklad.setSpacing(12 if u.zwarty else 24)
 
     def ustaw_bledy(self, ile: int, rozwiniete: bool) -> None:
         """Licznik bledow programu (przycisk rozwijajacy liste); ``ile`` = 0 - przycisk ukryty."""

@@ -128,7 +128,7 @@ QLabel[rola="uwaga"] {{ color: {m.TEKST}; background: {uwaga_tlo}; border: 1px s
 QLabel[rola="informacja"] {{ color: {m.TEKST}; background: {info_tlo}; border: 1px solid {info_obwodka}; border-radius: {m.PROMIEN}px;
                              padding: {"3px 6px" if r.zwarty else "6px 8px"}; font-size: {r.uwaga}px; }}
 QPushButton {{ background: transparent; color: {m.TEKST}; border: 1px solid {m.OBWODKA}; border-radius: {m.PROMIEN}px;
-               padding: {r.dopelnienie}; font-size: {r.przycisk}px; font-weight: 600; min-height: 0px; }}
+               padding: {r.dopelnienie}; font-size: {r.przycisk}px; font-weight: 600; }}
 QPushButton:hover {{ background: {m.SEGMENT}; }}
 QPushButton:pressed {{ background: {m.WYBOR_TLO}; border-color: {m.AKCENT}; }}
 QPushButton:checked {{ background: {m.AKCENT}; color: {m.NA_AKCENCIE}; border: 1px solid {m.AKCENT}; }}

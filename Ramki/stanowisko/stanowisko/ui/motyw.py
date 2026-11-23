@@ -64,6 +64,11 @@ PROMIEN = 4
 PROMIEN_ZNACZNIKA = 3
 SIATKA = (4, 8, 12, 16, 20)  # odstepy
 CEL_KLIKNIECIA = 44  # najmniejsza wysokosc przycisku akcji (przyciski paska stanu sa mniejsze - makieta)
+# wysokosc przycisku wg roli (piksele): akcje 44 (SPEC), przyciski pomocnicze nizsze - jak na makiecie (pasek stanu 22-24, przelaczniki 30-34)
+WYSOKOSCI = {"lacze": 30, "stan": 22, "stan_blad": 22, "cyfra": 40, "osoba": 40, "segment_lewy": 34, "segment_prawy": 34, "zakres_lewy": 28,
+             "zakres_prawy": 28, "czekanie": 34}
+WYSOKOSC_PRZYCISKU = 36  # przycisk bez wlasnej roli w ``WYSOKOSCI``, ktoremu wolajacy nie podal wysokosci
+SZEROKOSC_CYFRY = 44
 
 WYSOKOSC_PASKA_GORNEGO = 52
 WYSOKOSC_PASKA_STANU = 32
@@ -84,8 +89,7 @@ class Uklad:
     bok: int  # odstep tresci od krawedzi kolumny
     odstep: int
     strefa: int  # stala wysokosc strefy pytan i komunikatow
-    naglowek: int  # stala wysokosc naglowka plytki
-    naglowek_w_wierszu: bool  # numer plytki i opis skanu w jednym wierszu
+    naglowek: int  # stala wysokosc naglowka plytki (dwa wiersze: numer plytki i znak poprzedniej plytki; opis skanu)
     wiersze_listy: int  # widoczne wiersze listy "do dofrezowania" (reszta przewijana)
     wiersz_tabeli: int
     naglowek_tabeli: int
@@ -102,11 +106,11 @@ class Uklad:
         return self.naglowek_listy + self.naglowek_tabeli + self.wiersze_listy * self.wiersz_tabeli + self.odstep
 
 
-UKLAD_WYSOKI = Uklad("wysoki", False, lewa=280, prawa=360, bok=20, odstep=16, strefa=148, naglowek=52, naglowek_w_wierszu=True,
+UKLAD_WYSOKI = Uklad("wysoki", False, lewa=280, prawa=360, bok=20, odstep=16, strefa=148, naglowek=64,
                      wiersze_listy=4, wiersz_tabeli=30, naglowek_tabeli=28, naglowek_listy=48, boczny=208, decyzja=52, przycisk=44,
                      mapa_min=(300, 280), obraz_min=110)
 UKLAD_ZWYKLY = dataclasses.replace(UKLAD_WYSOKI, nazwa="zwykly", wiersze_listy=3, obraz_min=70)
-UKLAD_ZWARTY = Uklad("zwarty", True, lewa=240, prawa=320, bok=12, odstep=12, strefa=148, naglowek=58, naglowek_w_wierszu=False,
+UKLAD_ZWARTY = Uklad("zwarty", True, lewa=240, prawa=320, bok=12, odstep=12, strefa=148, naglowek=58,
                      wiersze_listy=2, wiersz_tabeli=26, naglowek_tabeli=26, naglowek_listy=44, boczny=176, decyzja=48, przycisk=44,
                      mapa_min=(220, 180), obraz_min=36)
 
@@ -226,7 +230,9 @@ def styl_przycisku_statusu(hex_: str) -> str:
 
 
 def arkusz(u: Uklad = UKLAD_WYSOKI) -> str:
-    """Arkusz Qt calego okna dla ukladu ``u``. Role (wlasciwosc ``rola``) nadaja czesci okna; kolorow statusow tu nie ma."""
+    """Arkusz Qt calego okna dla ukladu ``u``. Role (wlasciwosc ``rola``) nadaja czesci okna; kolorow statusow tu nie ma.
+    Wysokosci i najmniejsze szerokosci przyciskow ustawia kod (``czesci.przycisk``, ``WYSOKOSCI``), nie arkusz: wlasciwosc
+    ``min-height`` arkusza nadpisywalaby ``setMinimumHeight`` przy kazdym odswiezeniu stylu."""
     return f"""
 QWidget#okno_stanowiska {{ background: {TLO}; }}
 QWidget {{ color: {TEKST}; font-family: {RODZINY_CSS}; font-size: {PX_PODSTAWOWY}px; }}
@@ -281,7 +287,7 @@ QFrame[rola="uwaga_panel"][poziom="blad"] {{ background: {POZIOMY["blad"][0]}; b
 QFrame[rola="pole_obrazu"] {{ background: {WGLEBIENIE}; border: 1px dashed {OBWODKA_MOCNA}; border-radius: {PROMIEN}px; }}
 
 QPushButton {{ background: transparent; color: {TEKST}; border: 1px solid {OBWODKA}; border-radius: {PROMIEN}px; padding: 4px 14px;
-               font-size: {PX_PODSTAWOWY}px; min-height: 26px; }}
+               font-size: {PX_PODSTAWOWY}px; }}
 QPushButton:hover {{ background: {SEGMENT}; }}
 QPushButton:pressed {{ background: {WYBOR_TLO}; border-color: {AKCENT}; }}
 QPushButton:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 3px 13px; }}
@@ -300,40 +306,38 @@ QPushButton[rola="ok"]:disabled {{ background: {WGLEBIENIE}; color: {TEKST_PRZYG
 QPushButton[rola="akcent"] {{ color: {AKCENT_TEKST}; border: 1px solid {AKCENT}; }}
 QPushButton[rola="akcent"]:focus {{ border: 2px solid {AKCENT_FOKUS}; }}
 QPushButton[rola="akcent"]:disabled {{ background: {WGLEBIENIE}; color: {TEKST_PRZYGASZONY}; border: 1px dashed {OBWODKA}; }}
-QPushButton[rola="cyfra"] {{ background: {WGLEBIENIE}; font-size: {PX_PRZYCISK_DECYZJI}px; font-weight: 600; min-width: 28px;
-                            min-height: {CEL_KLIKNIECIA - 10}px; padding: 4px 8px; }}
+QPushButton[rola="cyfra"] {{ background: {WGLEBIENIE}; font-size: {PX_PRZYCISK_DECYZJI}px; font-weight: 600; padding: 4px 8px; }}
 QPushButton[rola="cyfra"]:hover {{ background: {SEGMENT}; }}
 QPushButton[rola="cyfra"]:focus {{ padding: 3px 7px; }}
 QPushButton[rola="cyfra"]:disabled {{ background: {WGLEBIENIE}; color: {TEKST_PRZYGASZONY}; border: 1px dashed {OBWODKA}; }}
-QPushButton[rola="osoba"] {{ background: {WGLEBIENIE}; font-size: {PX_PRZYCISK_DECYZJI}px; font-weight: 600; min-height: {CEL_KLIKNIECIA - 10}px;
+QPushButton[rola="osoba"] {{ background: {WGLEBIENIE}; font-size: {PX_PRZYCISK_DECYZJI}px; font-weight: 600;
                             padding: 4px 18px; }}
 QPushButton[rola="osoba"]:hover {{ background: {SEGMENT}; }}
 QPushButton[rola="osoba"]:checked {{ background: {AKCENT}; color: {NA_AKCENCIE}; border: 1px solid {AKCENT}; }}
 QPushButton[rola="osoba"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 3px 17px; }}
-QPushButton[rola="lacze"] {{ color: {TEKST_POMOCNICZY}; border: 1px solid {LINIA}; font-size: {PX_TRESC}px; padding: 3px 12px; min-height: 24px; }}
+QPushButton[rola="lacze"] {{ color: {TEKST_POMOCNICZY}; border: 1px solid {LINIA}; font-size: {PX_TRESC}px; padding: 3px 12px; }}
 QPushButton[rola="lacze"]:hover {{ color: {TEKST}; background: {SEGMENT}; }}
 QPushButton[rola="lacze"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 2px 11px; }}
 QPushButton[rola="lacze"]:disabled {{ background: {WGLEBIENIE}; color: {TEKST_PRZYGASZONY}; border: 1px dashed {OBWODKA}; }}
 QPushButton[rola="stan"] {{ color: {TEKST_POMOCNICZY}; border: 1px solid {OBWODKA}; border-radius: {PROMIEN_ZNACZNIKA}px;
-                           font-size: {PX_POMOCNICZY}px; padding: 0px 8px; min-height: 22px; max-height: 22px; }}
+                           font-size: {PX_POMOCNICZY}px; padding: 0px 8px; }}
 QPushButton[rola="stan"]:hover {{ color: {TEKST}; background: {SEGMENT}; }}
-QPushButton[rola="stan"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 0px 7px; min-height: 20px; max-height: 20px; }}
+QPushButton[rola="stan"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 0px 7px; }}
 QPushButton[rola="stan"]:disabled {{ background: {WGLEBIENIE}; color: {TEKST_PRZYGASZONY}; border: 1px dashed {OBWODKA}; }}
 QPushButton[rola="stan_blad"] {{ color: {TEKST}; background: {POZIOMY["blad"][0]}; border: 1px solid {POZIOMY["blad"][1]};
-                                border-radius: {PROMIEN_ZNACZNIKA}px; font-size: {PX_POMOCNICZY}px; font-weight: 600; padding: 0px 8px;
-                                min-height: 22px; max-height: 22px; }}
-QPushButton[rola="stan_blad"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 0px 7px; min-height: 20px; max-height: 20px; }}
+                                border-radius: {PROMIEN_ZNACZNIKA}px; font-size: {PX_POMOCNICZY}px; font-weight: 600; padding: 0px 8px; }}
+QPushButton[rola="stan_blad"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 0px 7px; }}
 QPushButton[rola="czekanie"] {{ color: {TEKST_POMOCNICZY}; border: 1px dashed {OBWODKA}; font-size: {PX_TRESC}px; }}
 QPushButton[rola="czekanie"]:focus {{ border: 2px solid {AKCENT_FOKUS}; }}
 QPushButton[rola="segment_lewy"], QPushButton[rola="segment_prawy"] {{ background: {POWIERZCHNIA}; color: {TEKST_POMOCNICZY};
-                           border: 1px solid {OBWODKA}; padding: 4px 16px; min-height: 24px; }}
+                           border: 1px solid {OBWODKA}; padding: 4px 16px; }}
 QPushButton[rola="segment_lewy"] {{ border-top-right-radius: 0px; border-bottom-right-radius: 0px; }}
 QPushButton[rola="segment_prawy"] {{ border-top-left-radius: 0px; border-bottom-left-radius: 0px; }}
 QPushButton[rola="segment_lewy"]:checked, QPushButton[rola="segment_prawy"]:checked {{ background: {AKCENT}; color: {NA_AKCENCIE};
                            border-color: {AKCENT}; font-weight: 600; }}
 QPushButton[rola="segment_lewy"]:focus, QPushButton[rola="segment_prawy"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 3px 15px; }}
 QPushButton[rola="zakres_lewy"], QPushButton[rola="zakres_prawy"] {{ background: transparent; color: {TEKST_POMOCNICZY};
-                           border: 1px solid {OBWODKA}; font-size: {PX_TRESC}px; padding: 2px 12px; min-height: 22px; }}
+                           border: 1px solid {OBWODKA}; font-size: {PX_TRESC}px; padding: 2px 12px; }}
 QPushButton[rola="zakres_lewy"] {{ border-top-right-radius: 0px; border-bottom-right-radius: 0px; }}
 QPushButton[rola="zakres_prawy"] {{ border-top-left-radius: 0px; border-bottom-left-radius: 0px; }}
 QPushButton[rola="zakres_lewy"]:checked, QPushButton[rola="zakres_prawy"]:checked {{ background: {SEGMENT}; color: {TEKST}; }}

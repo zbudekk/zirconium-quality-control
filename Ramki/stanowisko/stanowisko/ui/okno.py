@@ -66,6 +66,7 @@ OCHRONA_MS = 800  # tyle po zmianie zawartosci mapy / strefy pytan klikniecia i 
 KONFLIKTOW_W_PANELU = 2  # tyle konfliktow projektu wypisanych z gniazdami w jednym komunikacie (reszta: "...")
 PLIK_WERSJI = "WERSJA"  # plik z numerem wydania w katalogu programu (kontrakt okna numeru wydania nie podaje)
 PYTANE = {"brak_numeru_plytki": "podaj_numer_plytki", "plytka_nie_z_trybu": "dopusc_plytke"}  # polecenie plytki, o ktore pyta pytanie
+RANGA_POZIOMU = {ST.POZIOM_BLAD: 0, ST.POZIOM_OSTRZEZENIE: 1, ST.POZIOM_INFO: 2}  # kolejnosc komunikatow w strefie (nieznany poziom: jak ostrzezenie)
 
 
 def otwarte(pozycje) -> list:
@@ -218,6 +219,13 @@ class OknoStanowiska(QWidget):
         # S3-14: znak "POPRZEDNIA PLYTKA" w naglowku (stala wysokosc naglowka - jego pojawienie sie nie rusza mapy, nie zaslania gniazd)
         self.znak_poprzedniej = etykieta(N.MAPA_POPRZEDNIA, "znaczek_uwaga", "mapa_poprzednia")
         self.znak_poprzedniej.setVisible(False)
+        # dwa wiersze: numer plytki i (po prawej) znak poprzedniej plytki; pod nimi opis skanu na cala szerokosc
+        self._naglowek_uklad.addWidget(self.naglowek, 0, 0, Qt.AlignmentFlag.AlignBottom)
+        self._naglowek_uklad.addWidget(self.znak_poprzedniej, 0, 1, Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
+        self._naglowek_uklad.addWidget(self.podnaglowek, 1, 0, 1, 2)
+        self._naglowek_uklad.setColumnStretch(0, 1)
+        self._naglowek_uklad.setHorizontalSpacing(12)
+        self._naglowek_uklad.setVerticalSpacing(0)
         su.addWidget(self.naglowek_pole)
         self.mapa = MapaPlytki()
         self.mapa.klik.connect(self._klik_gniazdo)
@@ -278,24 +286,7 @@ class OknoStanowiska(QWidget):
         self.strefa.ustaw_uklad(u)
         self.setStyleSheet(motyw.arkusz(u))
         self.naglowek_pole.setFixedHeight(u.naglowek)
-        siatka = self._naglowek_uklad
-        for w in (self.naglowek, self.podnaglowek, self.znak_poprzedniej):
-            siatka.removeWidget(w)
-        siatka.setContentsMargins(u.bok, 8 if u.zwarty else 12, u.bok, 0)
-        siatka.setHorizontalSpacing(12)
-        siatka.setVerticalSpacing(0)
-        dol = Qt.AlignmentFlag.AlignBottom
-        if u.naglowek_w_wierszu:  # jeden wiersz: numer plytki, opis skanu (skracany przy braku miejsca), znak poprzedniej plytki
-            siatka.addWidget(self.naglowek, 0, 0, dol)
-            siatka.addWidget(self.podnaglowek, 0, 1, dol)
-            siatka.addWidget(self.znak_poprzedniej, 0, 2, dol | Qt.AlignmentFlag.AlignRight)
-        else:  # uklad zwarty: numer plytki i znak w pierwszym wierszu, opis skanu pod nimi
-            siatka.addWidget(self.naglowek, 0, 0, dol)
-            siatka.addWidget(self.znak_poprzedniej, 0, 1, dol | Qt.AlignmentFlag.AlignRight)
-            siatka.addWidget(self.podnaglowek, 1, 0, 1, 2)
-        siatka.setColumnStretch(0, 0 if u.naglowek_w_wierszu else 1)
-        siatka.setColumnStretch(1, 1 if u.naglowek_w_wierszu else 0)
-        siatka.setColumnStretch(2, 0)
+        self._naglowek_uklad.setContentsMargins(u.bok, 8 if u.zwarty else 12, u.bok, 0)
         self._mapa_uklad.setContentsMargins(u.bok, 4 if u.zwarty else 8, u.bok, 8 if u.zwarty else 12)
         self.mapa.setMinimumSize(*u.mapa_min)
         self.boczny.ustaw_uklad(u)
@@ -344,7 +335,7 @@ class OknoStanowiska(QWidget):
             self.panel_osoby.setGeometry(self.width() - szer - 12, gora + 4, szer, wys)
             self.panel_osoby.raise_()
         if not self.bledy.isHidden():
-            szer = max(240, self.lista_plytek.width() + self.srodek.width() - 16)
+            szer = max(240, self.width() - self._uklad.prawa - 16)  # lewa kolumna i srodek; z rozmiaru okna (uklad moze byc w trakcie zmiany)
             wys = self.bledy.wysokosc_dla(szer, max(110, self._uklad.lista - 4))
             self.bledy.setGeometry(8, dol - wys - 4, szer, wys)
             self.bledy.raise_()
@@ -938,8 +929,15 @@ class OknoStanowiska(QWidget):
                 brak = ST.tekst_komunikatu("brak_operatora" if stan.operatorzy else "pusta_lista_operatorow")[2]
                 pozycje.append(C.uwaga_numeru(plytka.skan_id, numery, plytka.numer, stan.operator is not None, brak, ze_skanem, czas))
             pozycje += [C.uwaga_pytania(q, stan, plytka.typ, ze_skanem, czas) for q in pytania]
-            pozycje += [C.uwaga_komunikatu((k,), ze_skanem or C.tytul_ze_skanem(nazwa, czas)) for k in komunikaty]
-        pozycje += [C.uwaga_komunikatu(tuple(g), dodatek=self._dopisek_konfliktu(stan, g)) for g in grupuj(reszta)]
+        # komunikaty pokazanej plytki i ogolne razem: najpierw wazniejszy poziom, w poziomie od najnowszego - strefa pokazuje jedna
+        # pozycje naraz, wiec swiezy komunikat (np. odmowa polecenia) nie moze czekac za starszym komunikatem plytki
+        grupy = [(k,) for k in komunikaty] + [tuple(g) for g in grupuj(reszta)]
+        grupy.sort(key=lambda g: (RANGA_POZIOMU.get(g[0].poziom, 1), -max(self._nr_komunikatow.get(k.id, 0) for k in g)))
+        for g in grupy:
+            if plytka is not None and g[0].skan_id == plytka.skan_id:
+                pozycje.append(C.uwaga_komunikatu(g, ze_skanem or C.tytul_ze_skanem(nazwa, czas)))
+            else:
+                pozycje.append(C.uwaga_komunikatu(g, dodatek=self._dopisek_konfliktu(stan, g)))
         return tuple(pozycje), bledy
 
     def _odswiez_uwagi(self, stan, plytka) -> None:

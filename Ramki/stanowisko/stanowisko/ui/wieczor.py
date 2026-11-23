@@ -22,8 +22,8 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushBu
 from .. import statusy as ST
 from . import motyw
 from . import napisy as N
-from .czesci import (Kropka, PanelUwagi, UkladPlynny, _do_okna, _fokus_do_okna, dzien, etykieta, godzina, liczba_mm, napis_dopuszczenia,
-                     nazwa_plytki, przegroda, przycisk, przycisk_skrotu, stan_obejrzenia, tabela, ustaw_role, wyczysc, znaczek)
+from .czesci import (Kropka, PanelUwagi, UkladPlynny, _do_okna, _fokus_do_okna, dzien, etykieta, godzina, guzik, liczba_mm, napis_dopuszczenia,
+                     nazwa_plytki, przegroda, przycisk_skrotu, stan_obejrzenia, tabela, wyczysc, znaczek)
 
 KLASY_LICZNIKOW = (ST.KOLOR_CZERWONY, ST.KOLOR_ZOLTY, ST.KOLOR_POMARANCZOWY, ST.KOLOR_SZARY, ST.KOLOR_ZATWIERDZONA_OK, ST.KOLOR_ZIELONY)
 POLECENIA_PLYTKI = ("podaj_numer_plytki", "dopusc_plytke", "cofnij_zastapienie", "cofnij_dopuszczenie")
@@ -175,7 +175,7 @@ class ListaPlytek(QFrame):
         self.ile = etykieta("", "przygaszony", "plytki_ile")
         naglowek.addWidget(self.ile)
         self._uklad.addLayout(naglowek)
-        self.przycisk_nowa = przycisk("", "przycisk_nowa_plytka", "glowny", self.pokaz_nowa.emit, motyw.CEL_KLIKNIECIA)
+        self.przycisk_nowa = guzik("", "przycisk_nowa_plytka", "glowny", self.pokaz_nowa.emit, motyw.CEL_KLIKNIECIA)
         self.przycisk_nowa.setVisible(False)
         self._uklad.addWidget(self.przycisk_nowa)
         self._nowe = None
@@ -222,7 +222,7 @@ class ListaPlytek(QFrame):
         for nr, pozycja in enumerate(reversed(niezapisane)):
             self._kafelki.addWidget(KafelekNiezapisany(nr, pozycja))
         if niezapisane:
-            self._kafelki.addWidget(przycisk(ST.PRZYCISKI["ponow_zapis"], "przycisk_ponow_zapis", "wglebiony", self.ponow_zapis.emit, 36))
+            self._kafelki.addWidget(guzik(ST.PRZYCISKI["ponow_zapis"], "przycisk_ponow_zapis", "wglebiony", self.ponow_zapis.emit, 36))
         if not plytki and not niezapisane:
             self._kafelki.addWidget(etykieta(N.PLYTKI_BRAK, "tresc", "plytki_brak", zawijaj=True))
         for p in reversed(plytki):  # najnowsza na gorze
@@ -232,7 +232,7 @@ class ListaPlytek(QFrame):
             self._kafelki.addWidget(kafelek)
         if wczesniejszych:
             napis = N.WCZESNIEJSZE_UKRYJ if pokazane_wczesniejsze else N.WCZESNIEJSZE_POKAZ.format(n=wczesniejszych)
-            self._kafelki.addWidget(przycisk(napis, "przycisk_wczesniejsze", "lacze", self.przelacz_wczesniejsze.emit, 34))
+            self._kafelki.addWidget(guzik(napis, "przycisk_wczesniejsze", "lacze", self.przelacz_wczesniejsze.emit, 34))
         self._kafelki.addStretch(1)
 
 
@@ -256,6 +256,9 @@ class Legenda(QWidget):
     def pozycje(self) -> list:
         """[(napis, kolor albo None dla pustych gniazd, liczba gniazd), ...] w kolejnosci pokazania - do testow."""
         return list(self._pozycje)
+
+    def ustaw_odstep(self, odstep: int) -> None:
+        self._uklad.setSpacing(odstep)
 
     def ustaw(self, plytka) -> None:
         pozycje: dict = {}
@@ -317,15 +320,20 @@ class PanelBoczny(QWidget):
         self.dopuszczenie = etykieta("", "znaczek_uwaga", "plytka_dopuszczona", zawijaj=True)
         self.dopuszczenie.setVisible(False)
         u.addWidget(self.dopuszczenie)
+        # legenda i prace poza gniazdami: gdy statusow jest wiele, a okno niskie - przewijane (nic nie jest uciete); polecenia
+        # plytki pod nimi sa zawsze widoczne
+        self._przewijanie, self._srodek = _przewijany("legenda_obszar")
+        self._srodek.setSpacing(12)
         self.legenda = Legenda()
-        u.addWidget(self.legenda)
+        self._srodek.addWidget(self.legenda)
         self.poza_pole = QWidget()
         self.poza_pole.setObjectName("poza_gniazdem")
         self._poza_uklad = QVBoxLayout(self.poza_pole)
         self._poza_uklad.setContentsMargins(0, 0, 0, 0)
         self._poza_uklad.setSpacing(6)
-        u.addWidget(self.poza_pole)
-        u.addStretch(1)
+        self._srodek.addWidget(self.poza_pole)
+        self._srodek.addStretch(1)
+        u.addWidget(self._przewijanie, 1)
         self.akcje_pole = QWidget()
         self.akcje_pole.setObjectName("polecenia_plytki")
         self._akcje_uklad = QVBoxLayout(self.akcje_pole)
@@ -338,6 +346,8 @@ class PanelBoczny(QWidget):
     def ustaw_uklad(self, u: motyw.Uklad) -> None:
         self.setFixedWidth(u.boczny)
         self._uklad.setSpacing(8 if u.zwarty else 12)
+        self._srodek.setSpacing(8 if u.zwarty else 12)
+        self.legenda.ustaw_odstep(4 if u.zwarty else 8)
 
     def _zmienione(self, czesc: str, sygnatura) -> bool:
         if self._sygnatury.get(czesc) == sygnatura:
@@ -357,7 +367,7 @@ class PanelBoczny(QWidget):
             if plytka is not None and (plytka.aktywna or plytka.prace):
                 self._poza_uklad.addWidget(etykieta(N.POZA_GNIAZDEM.format(n=len(poza)), "tresc", "poza_ile"))
             for i, p in enumerate(poza):
-                b = przycisk(p.podpis, f"poza_{i}", None, lambda praca_id=p.praca_id: self.poza.emit(praca_id), 34)
+                b = guzik(p.podpis, f"poza_{i}", None, lambda praca_id=p.praca_id: self.poza.emit(praca_id), 34)
                 wybrany = p.praca_id == wybrana_poza
                 b.setStyleSheet(f"QPushButton {{ background: {p.rgb}; color: {motyw.tekst_na(p.rgb)}; border-radius: {motyw.PROMIEN}px; "
                                 f"border: {'3px solid ' + motyw.AKCENT if wybrany else '1px solid ' + p.rgb}; font-size: {motyw.PX_TRESC}px; "
@@ -370,9 +380,9 @@ class PanelBoczny(QWidget):
             for akcja in akcje:
                 if akcja == "podaj_numer_plytki":  # numer wybiera sie w strefie pytan (cyfry); z numerem: "Zmien numer" (A-P5 poz. 2)
                     napis = ST.PRZYCISKI[akcja] if plytka.numer is None else N.ZMIEN_NUMER
-                    b = przycisk(napis, f"plytka_{akcja}", "lacze", self.numer.emit, 34)
+                    b = guzik(napis, f"plytka_{akcja}", "lacze", self.numer.emit, 34)
                 else:
-                    b = przycisk(ST.PRZYCISKI[akcja], f"plytka_{akcja}", "lacze", lambda a=akcja, s=plytka.skan_id: self.polecenie.emit(a, (s,)), 34)
+                    b = guzik(ST.PRZYCISKI[akcja], f"plytka_{akcja}", "lacze", lambda a=akcja, s=plytka.skan_id: self.polecenie.emit(a, (s,)), 34)
                     b.setEnabled(jest_osoba)
                 self._akcje_uklad.addWidget(b)
         self.akcje_pole.setVisible(bool(akcje))
@@ -495,7 +505,7 @@ class WidokPracy(QFrame):
         wiersz = QHBoxLayout()
         wiersz.setSpacing(8)
         self.tytul = etykieta("", "tytul_pracy", "praca_tytul", zawijaj=True)
-        self.z_dwoch = przycisk("", "przycisk_inna_praca", "lacze", self.inna_praca.emit)
+        self.z_dwoch = guzik("", "przycisk_inna_praca", "lacze", self.inna_praca.emit)
         self.przycisk_zamknij = przycisk_skrotu(N.ZAMKNIJ_PRACE, "przycisk_zamknij_prace", "lacze", self.zamknij.emit, 28, barwa="cichy",
                                                 px=motyw.PX_POMOCNICZY, dopelnienie=8)
         wiersz.addWidget(self.tytul, 1)
@@ -528,7 +538,7 @@ class WidokPracy(QFrame):
         self._wpisy_napis = etykieta(N.KRAZEK_DO_WYBORU, "pomocniczy")
         self._wpisy_uklad.addWidget(self._wpisy_napis)
         self._wpisy_przyciski: list[QPushButton] = []
-        self.przycisk_cofnij_wpis = przycisk(N.KRAZEK_COFNIJ, "przycisk_cofnij_wpis", "lacze", self.cofnij_wpis.emit)
+        self.przycisk_cofnij_wpis = guzik(N.KRAZEK_COFNIJ, "przycisk_cofnij_wpis", "lacze", self.cofnij_wpis.emit)
         self._wpisy_uklad.addWidget(self.przycisk_cofnij_wpis)
         self._wpisy_pole.setVisible(False)
         u.addWidget(self._wpisy_pole)
@@ -620,7 +630,7 @@ class WidokPracy(QFrame):
         mozna = praca is not None and "wybierz_wpis" in praca.dozwolone and jest_osoba
         for w in wpisy:
             tekst = w.krazek or str(w.frezowanie_id)
-            b = przycisk(N.KRAZEK_WYBRANY.format(krazek=tekst) if w.wybrany else tekst, f"przycisk_wpis_{w.frezowanie_id}", "wglebiony",
+            b = guzik(N.KRAZEK_WYBRANY.format(krazek=tekst) if w.wybrany else tekst, f"przycisk_wpis_{w.frezowanie_id}", "wglebiony",
                          lambda f=w.frezowanie_id: self.wybor_wpisu.emit(int(f)))
             b.setToolTip(N.KRAZEK_PODPOWIEDZ.format(wspolczynnik=w.wspolczynnik if w.wspolczynnik is not None else N.BRAK_DANYCH))
             b.setEnabled(mozna)
@@ -743,24 +753,26 @@ class ListaDofrezowania(QFrame):
         wiersz.addWidget(self.tytul)
         zakres = QHBoxLayout()
         zakres.setSpacing(0)
-        self.ta_doba = przycisk(N.LISTA_TA_DOBA, "lista_ta_doba", "zakres_lewy", lambda: self._klik_zakresu(False))
-        self.wszystkie = przycisk(N.LISTA_WSZYSTKIE, "lista_wszystkie", "zakres_prawy", lambda: self._klik_zakresu(True))
+        self.ta_doba = guzik(N.LISTA_TA_DOBA, "lista_ta_doba", "zakres_lewy", lambda: self._klik_zakresu(False))
+        self.wszystkie = guzik(N.LISTA_WSZYSTKIE, "lista_wszystkie", "zakres_prawy", lambda: self._klik_zakresu(True))
         for b in (self.ta_doba, self.wszystkie):
             b.setCheckable(True)
             zakres.addWidget(b)
         wiersz.addLayout(zakres)
-        self.pusta = etykieta(N.LISTA_PUSTA, "przygaszony", "lista_pusta")
-        wiersz.addWidget(self.pusta)
         wiersz.addStretch(1)
         self.zapisano = etykieta("", "przygaszony", "lista_zapisano")
         wiersz.addWidget(self.zapisano)
         # polecenie ``zapisz_liste``; lista zapisuje sie tez sama po kazdej zmianie (``StanAplikacji.lista_zapisana``)
-        self.przycisk_zapisz = przycisk(ST.PRZYCISKI["zapisz_liste"], "przycisk_zapisz_liste", "lacze", self.zapisz.emit)
+        self.przycisk_zapisz = guzik(ST.PRZYCISKI["zapisz_liste"], "przycisk_zapisz_liste", "lacze", self.zapisz.emit)
         wiersz.addWidget(self.przycisk_zapisz)
         uklad.addLayout(wiersz)
         self.tabela = tabela("tabela_dofrezowania", N.KOLUMNY_LISTY, motyw.UKLAD_WYSOKI.wiersz_tabeli, motyw.UKLAD_WYSOKI.naglowek_tabeli)
         self.tabela.cellClicked.connect(self._klik)
         uklad.addWidget(self.tabela, 1)
+        self.pusta = etykieta(N.LISTA_PUSTA, "przygaszony", "lista_pusta")  # pod naglowkiem tabeli, gdy lista nie ma pozycji
+        self.pusta.setParent(self.tabela.viewport())
+        self.pusta.adjustSize()
+        self.pusta.move(0, 6)
         self._pozycje: tuple = ()
         self._wszystkie = False
         self._sygnatura = None
@@ -804,6 +816,7 @@ class ListaDofrezowania(QFrame):
                 self.tabela.setItem(r, k, pole)
         self.tabela.clearSelection()
         self.pusta.setVisible(not pozycje)
+        self.pusta.adjustSize()  # dziecko obszaru tabeli (poza ukladem): rozmiar z napisu i czcionki arkusza
         self.zapisano.setText(N.LISTA_PLIK.format(godzina=godzina(zapisana)) if zapisana else "")  # bez nazwy pliku
         self.zapisano.setVisible(bool(zapisana))
 
