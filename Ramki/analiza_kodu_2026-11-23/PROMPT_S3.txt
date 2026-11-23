@@ -9,22 +9,26 @@ Sprawdz droge wyniku od silnika do technika: czy wynik zly (czerwony, zolty, "ni
 zostac POKAZANY JAKO ZIELONY albo przypisany nie tej pracy - na ekranie, na ramce LED, w Excelu - oraz co
 w tej czesci moze ZAMROZIC okno. Kodu nie zmieniasz - wynikiem jest raport.
 
-NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci)
-1. JAK_PRACOWAC_MSI_PC.md - jak sie pracuje na MSI i PC, jak uruchamiac testy, limity, pulapki.
-2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S3".
-Oba pliki leza w repo w Ramki/analiza_kodu_2026-11-23/ na galezi analiza/plan (lokalna galaz repo MSI
-<MSI>\kod\qc, widoczna z kazdego worktree; nie jest wypchnieta na GitHub).
-
 [usunieto w kopii: opis dostepu ssh]
-- Dzialasz na MSI we wlasnym worktree repo qc. PIERWSZY KROK: git checkout -b analiza/s3 analiza/plan
-  (analiza/plan = main b856b9e z 21.11 + folder planu). NIE zaczynaj od lokalnego origin/main - jest nieaktualny
-  (9ba9e91 z 20.11), bo git fetch na MSI nie dziala do czasu ponownego logowania gh przez wlasciciela.
-- Kod czytasz na MSI. Na MSI zadnych testow.
-- Testy tylko na PC, w klonie <PC-katalog>\qc (ten sam commit b856b9e - niczego w nim nie zmieniaj):
-  [usunieto w kopii: opis dostepu ssh]
-- [usunieto w kopii: opis dostepu ssh]
-  <PC-katalog>\qc\Ramki\stanowisko; logi zabierz na MSI do Ramki/analiza_kodu_2026-11-23/S3/.
-- Rownolegle pracuja dwie pozostale sesje analizy (S1, S2) - na PC trzymaj sie 1 procesu python.
+- Katalog roboczy: <PC-katalog>. Klon repo: <PC-katalog>\qc (galaz main) - jego katalogu roboczego nie
+  zmieniaj i nie przelaczaj w nim galezi.
+- PIERWSZY KROK - wlasny worktree od galezi planu:
+    git -C <PC-katalog>\qc fetch origin
+    git -C <PC-katalog>\qc worktree add -b analiza/s3 <PC-katalog>\qc-wt\analiza-s3 origin/analiza/plan
+  Pracujesz w <PC-katalog>\qc-wt\analiza-s3 (analiza/plan = main b856b9e z 21.11 + folder planu).
+- Testy uruchamiasz lokalnie z katalogu <PC-katalog>\qc-wt\analiza-s3\Ramki\stanowisko:
+    <PC-katalog>\koordynator\narz\py.cmd -m pytest testy\<plik> -q -p no:cacheprovider
+  (python i py nie sa w PATH; py.cmd ustawia srodowisko). Wolny RAM: <PC-katalog>\koordynator\narz\ram.cmd.
+- Zasady PC obowiazuja takze lokalnie: piszesz tylko w <PC-katalog>, nic nie instalujesz, nie kasujesz cudzych
+  plikow; odmowa zapisu poza <PC-katalog> to zamierzona bariera, nie blad - nie obchodz jej.
+- Gdy git zglosi "dubious ownership" albo brak dostepu (sesja na innym koncie Windows niz <konto-PC>): nie
+  zmieniaj ustawien - napisz to wlascicielowi i czekaj.
+- Rownolegle pracuja dwie pozostale sesje analizy (S1, S2) - trzymaj sie 1 procesu python.
+
+NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci; po zalozeniu worktree sa w Ramki\analiza_kodu_2026-11-23\,
+kopia takze w <PC-katalog>\analiza_kodu_2026-11-23\)
+1. [usunieto w kopii: opis dostepu ssh]
+2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S3".
 
 ZAKRES
 Ramki/stanowisko/stanowisko/: statusy.py, session.py, session_rano.py, ui/*, indicate.py, ramka_protokol.py,
@@ -41,9 +45,9 @@ wkladce okraglej.
 
 ZASADY (skrot - pelna tresc w PLAN.md)
 - Piszesz TYLKO: Ramki/analiza_kodu_2026-11-23/S3_wynik_do_technika.md i podkatalog S3/ (skrypty prob, logi).
-- Testy: tylko na PC, 1 proces python, jedno polecenie do 3 min, lacznie ok. 30 min czasu PC. Bez pelnego
-  pytest, bez zrzutow ekranu, bez uruchamiania prawdziwego Excela i bez sprzetu (ramki nie ma - miejsca
-  niesprawdzalne oznacz [NIE SPRAWDZONE BEZ SPRZETU]).
+- Testy: 1 proces python, jedno polecenie do 3 min, lacznie ok. 30 min czasu PC. Bez pelnego pytest, bez
+  zrzutow ekranu, bez uruchamiania prawdziwego Excela i bez sprzetu (ramki nie ma - miejsca niesprawdzalne
+  oznacz [NIE SPRAWDZONE BEZ SPRZETU]).
 - Prace monotonne, mechaniczne i proste (uruchomienie testu i odpisanie wyniku, wyliczenia "wszystkie miejsca,
   gdzie..." w tabeli plik:linia, porownanie opisu z kodem) zlecasz subagentom Opus 5.5 xhigh; najwyzej jeden
   subagent testowy naraz. Ty czytasz kod krytyczny, oceniasz wage i sprawdzasz wyrywkowo wynik subagenta,
@@ -55,6 +59,6 @@ ZASADY (skrot - pelna tresc w PLAN.md)
   w sekcji "Pytania do wlasciciela" i idz dalej.
 
 KONIEC SESJI
-Commit raportu na galezi analiza/s3, bez scalania i bez PR. Sprobuj "git push -u origin analiza/s3"; gdy
-pada (brak logowania gh), napisz to w odpowiedzi. Odpowiedz koncowa: liczba znalezisk B / P / D, trzy
-najwazniejsze znaleziska po jednym zdaniu, sciezka raportu, czy galaz jest wypchnieta.
+Commit raportu na galezi analiza/s3 i "git push -u origin analiza/s3" (z PC dziala). Bez scalania i bez PR.
+Worktree zostaw. Odpowiedz koncowa: liczba znalezisk B / P / D, trzy najwazniejsze znaleziska po jednym
+zdaniu, sciezka raportu, czy galaz jest wypchnieta.

@@ -8,22 +8,26 @@ CEL S1
 Znajdz w lancuchu analizy skanu (plate -> match -> inspect -> krawedz -> porownaj) sciezki, ktorymi
 ukruszona praca dostaje ZIELONE. To najwazniejsze ryzyko wlasciciela. Kodu nie zmieniasz - wynikiem jest raport.
 
-NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci)
-1. JAK_PRACOWAC_MSI_PC.md - jak sie pracuje na MSI i PC, jak uruchamiac testy, limity, pulapki.
-2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S1".
-Oba pliki leza w repo w Ramki/analiza_kodu_2026-11-23/ na galezi analiza/plan (lokalna galaz repo MSI
-<MSI>\kod\qc, widoczna z kazdego worktree; nie jest wypchnieta na GitHub).
-
 [usunieto w kopii: opis dostepu ssh]
-- Dzialasz na MSI we wlasnym worktree repo qc. PIERWSZY KROK: git checkout -b analiza/s1 analiza/plan
-  (analiza/plan = main b856b9e z 21.11 + folder planu). NIE zaczynaj od lokalnego origin/main - jest nieaktualny
-  (9ba9e91 z 20.11), bo git fetch na MSI nie dziala do czasu ponownego logowania gh przez wlasciciela.
-- Kod czytasz na MSI. Na MSI zadnych testow.
-- Testy tylko na PC, w klonie <PC-katalog>\qc (ten sam commit b856b9e - niczego w nim nie zmieniaj):
-  [usunieto w kopii: opis dostepu ssh]
-- [usunieto w kopii: opis dostepu ssh]
-  <PC-katalog>\qc\Ramki\stanowisko; logi zabierz na MSI do Ramki/analiza_kodu_2026-11-23/S1/.
-- Rownolegle pracuja dwie pozostale sesje analizy (S2, S3) - na PC trzymaj sie 1 procesu python.
+- Katalog roboczy: <PC-katalog>. Klon repo: <PC-katalog>\qc (galaz main) - jego katalogu roboczego nie
+  zmieniaj i nie przelaczaj w nim galezi.
+- PIERWSZY KROK - wlasny worktree od galezi planu:
+    git -C <PC-katalog>\qc fetch origin
+    git -C <PC-katalog>\qc worktree add -b analiza/s1 <PC-katalog>\qc-wt\analiza-s1 origin/analiza/plan
+  Pracujesz w <PC-katalog>\qc-wt\analiza-s1 (analiza/plan = main b856b9e z 21.11 + folder planu).
+- Testy uruchamiasz lokalnie z katalogu <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko:
+    <PC-katalog>\koordynator\narz\py.cmd -m pytest testy\<plik> -q -p no:cacheprovider
+  (python i py nie sa w PATH; py.cmd ustawia srodowisko). Wolny RAM: <PC-katalog>\koordynator\narz\ram.cmd.
+- Zasady PC obowiazuja takze lokalnie: piszesz tylko w <PC-katalog>, nic nie instalujesz, nie kasujesz cudzych
+  plikow; odmowa zapisu poza <PC-katalog> to zamierzona bariera, nie blad - nie obchodz jej.
+- Gdy git zglosi "dubious ownership" albo brak dostepu (sesja na innym koncie Windows niz <konto-PC>): nie
+  zmieniaj ustawien - napisz to wlascicielowi i czekaj.
+- Rownolegle pracuja dwie pozostale sesje analizy (S2, S3) - trzymaj sie 1 procesu python.
+
+NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci; po zalozeniu worktree sa w Ramki\analiza_kodu_2026-11-23\,
+kopia takze w <PC-katalog>\analiza_kodu_2026-11-23\)
+1. [usunieto w kopii: opis dostepu ssh]
+2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S1".
 
 ZAKRES (Ramki/stanowisko/stanowisko/)
 uklad.py, plate.py, match.py, inspect.py, krawedz.py, porownaj.py, wspolczynniki.py, metryki.py, synth.py,
@@ -38,8 +42,8 @@ kod jest wspolny.
 
 ZASADY (skrot - pelna tresc w PLAN.md)
 - Piszesz TYLKO: Ramki/analiza_kodu_2026-11-23/S1_lancuch_analizy.md i podkatalog S1/ (skrypty prob, logi).
-- Testy: tylko na PC, 1 proces python, jedno polecenie do 3 min, lacznie ok. 30 min czasu PC. Bez pelnego
-  pytest, bez pomiarow na zestawach skanow, bez petli powtorzen.
+- Testy: 1 proces python, jedno polecenie do 3 min, lacznie ok. 30 min czasu PC. Bez pelnego pytest, bez
+  pomiarow na zestawach skanow, bez petli powtorzen.
 - Prace monotonne, mechaniczne i proste (uruchomienie testu i odpisanie wyniku, wyliczenia "wszystkie miejsca,
   gdzie..." w tabeli plik:linia, porownanie opisu z kodem, porownanie plikow uklad.json) zlecasz subagentom
   Opus 5.5 xhigh; najwyzej jeden subagent testowy naraz. Ty czytasz kod krytyczny, oceniasz wage i sprawdzasz
@@ -51,6 +55,6 @@ ZASADY (skrot - pelna tresc w PLAN.md)
   w sekcji "Pytania do wlasciciela" i idz dalej.
 
 KONIEC SESJI
-Commit raportu na galezi analiza/s1, bez scalania i bez PR. Sprobuj "git push -u origin analiza/s1"; gdy
-pada (brak logowania gh), napisz to w odpowiedzi. Odpowiedz koncowa: liczba znalezisk B / P / D, trzy
-najwazniejsze znaleziska po jednym zdaniu, sciezka raportu, czy galaz jest wypchnieta.
+Commit raportu na galezi analiza/s1 i "git push -u origin analiza/s1" (z PC dziala). Bez scalania i bez PR.
+Worktree zostaw. Odpowiedz koncowa: liczba znalezisk B / P / D, trzy najwazniejsze znaleziska po jednym
+zdaniu, sciezka raportu, czy galaz jest wypchnieta.

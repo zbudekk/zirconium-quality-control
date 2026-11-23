@@ -3,6 +3,21 @@
 Ten plik zbiera zasady, ktore dotad byly rozrzucone po `CLAUDE.md`, pamieci poprzednich sesji i skryptach na PC.
 Polecenia z sekcji 3 i 4 sprawdzone 23.11.2026 z MSI (konto PC `<konto-PC>`).
 
+## 0. Wariant obowiazujacy w rundzie analizy 23.11.2026: sesje dzialaja NA PC
+
+[usunieto w kopii: opis dostepu ssh]
+
+- Katalog roboczy `<PC-katalog>` (konto `<konto-PC>`). Zasady z sekcji 3 o zapisie ("tylko `<PC-katalog>`",
+  "nic nie instaluj, nie kasuj cudzych plikow", "nie obchodz bariery") obowiazuja takze lokalnie.
+- Repo: klon `<PC-katalog>\qc` (`main`). `git fetch` i `git push` z PC dzialaja (23.11: `gh` zalogowany).
+  Katalogu roboczego klonu nie zmieniaj; kazda sesja ma wlasny worktree `<PC-katalog>\qc-wt\analiza-s<n>` na
+  galezi `analiza/s<n>` od `origin/analiza/plan`.
+- [usunieto w kopii: opis dostepu ssh]
+  `<PC-katalog>\koordynator\narz\py.cmd -m pytest testy\<plik> -q -p no:cacheprovider`.
+- Powloka na PC to `cmd.exe` albo PowerShell 5.1 (bez `&&` w PowerShell).
+- Czesci tego pliku o MSI (sekcja 2 - klon MSI i droga przez bundle, sekcja 3 - dostep przez ssh, sekcja 7)
+  zostaja jako tlo i na wypadek pracy z MSI.
+
 ## 1. Co przeczytac i w jakiej kolejnosci
 
 | Plik | Po co |
@@ -29,8 +44,8 @@ Wlasciciel = czlowiek; pisze z telefonu, krotko - odpowiadaj krotko, wynik na po
 - 23.11 na MSI `gh auth status` = token niewazny: `git fetch` i `git push` padaja ("could not read Password for
   https://mbuas@github.com"). Naprawia to tylko wlasciciel (`gh auth login -h github.com`); do tego czasu commity
   zostaja lokalnie na galezi, a w raporcie koncowym napisz, ze galaz nie jest wypchnieta.
-- Plan i ta instrukcja sa na galezi `analiza/plan` (lokalnie w repo MSI, od `main` b856b9e) - galezie sesji
-  `analiza/s<n>` zakladaj od niej.
+- Plan i ta instrukcja sa na galezi `analiza/plan` (od `main` b856b9e; wypchnieta na GitHub z PC 23.11) -
+  galezie sesji `analiza/s<n>` zakladaj od niej.
 - Gdy `git fetch` nie dziala, aktualny `main` jest w klonie PC. Sprawdzona droga (tylko roznica od znanego commitu):
   ```
   [usunieto w kopii: opis dostepu ssh]

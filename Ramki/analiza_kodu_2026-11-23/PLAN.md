@@ -16,7 +16,7 @@ Termin, ktoremu to sluzy: pierwsze testy na sprzecie 28-29.11.2026 (`Ramki/etap3
 - Wynik: tylko raport znalezisk. Bez poprawek i bez PR z kodem.
 - Modele: sesja glowna Fable 5.2; prace monotonne, mechaniczne i proste zleca subagentom Opus 5.5.
 - [usunieto w kopii: opis dostepu ssh]
-  startowe: `PROMPT_S1.txt`, `PROMPT_S2.txt`, `PROMPT_S3.txt` w tym folderze.
+  23.11 (ostatnia). Prompty startowe: `PROMPT_S1.txt`, `PROMPT_S2.txt`, `PROMPT_S3.txt` w tym folderze.
 - Sesje prowadzi nowe konto Claude - nie ma pamieci poprzednich sesji; wszystko, czego potrzebuje, jest w tym
   folderze i w plikach wskazanych w `JAK_PRACOWAC_MSI_PC.md`.
 - Poza ta runda: zgubiony skan / decyzja jako osobny temat, nazwiska pacjentow w plikach, `dzien_skanera*`,
@@ -42,7 +42,8 @@ Zrodlo: `Ramki/00_NADZOR_STAN.md`, koniec pliku ("Lista decyzji wlasciciela" 1-2
 ## Zasady wspolne (kazda sesja)
 
 1. Sesja pisze TYLKO: swoj plik `Ramki/analiza_kodu_2026-11-23/S<n>_*.md` i podkatalog `S<n>/` (skrypty prob, logi).
-   Osobna galaz `analiza/s<n>` od `analiza/plan` (= `main` b856b9e + ten folder). Zadnych zmian w `Ramki/stanowisko`.
+   Osobna galaz `analiza/s<n>` od `origin/analiza/plan` (= `main` b856b9e + ten folder) we wlasnym worktree
+   `<PC-katalog>\qc-wt\analiza-s<n>`. Zadnych zmian w `Ramki/stanowisko`.
 2. Przed czytaniem kodu modulu przeczytaj jego opis w `Ramki/stanowisko/opisy_modulow/` - znalezisko to takze
    rozjazd miedzy opisem a kodem.
 3. Podzial pracy. Sesja glowna (Fable 5.2): czyta kod krytyczny, stawia hipotezy, ocenia wage, pisze raport.
@@ -53,9 +54,9 @@ Zrodlo: `Ramki/00_NADZOR_STAN.md`, koniec pliku ("Lista decyzji wlasciciela" 1-2
    - porownanie opisu modulu z kodem punkt po punkcie, porownanie plikow `uklad.json`.
    Zlecenie subagenta: cel, lista plikow, format wyniku, zakaz zmian w kodzie, zasady PC z `JAK_PRACOWAC_MSI_PC.md`.
    Sesja glowna sprawdza wyrywkowo wynik subagenta, zanim trafi do raportu. Oceny wagi subagent nie robi.
-4. Testy: tylko na PC. Na sesje najwyzej JEDEN subagent testowy naraz i 1 proces python; pojedyncze polecenie do
-   3 min, lacznie do ok. 30 min czasu PC na sesje. Tylko pliki testow wlasnych modulow albo wlasny maly skrypt
-   proby. Na MSI zadnych testow.
+4. Testy: lokalnie na PC we wlasnym worktree. Na sesje najwyzej JEDEN subagent testowy naraz i 1 proces python;
+   pojedyncze polecenie do 3 min, lacznie do ok. 30 min czasu PC na sesje. Tylko pliki testow wlasnych modulow
+   albo wlasny maly skrypt proby.
 5. Nie proponuj zbierania danych przed dostawa skanera (decyzja wlasciciela 15.11).
 6. Format znaleziska (tabela + opis):
    - id `S<n>-<nr>`, `plik:linia`, co jest zle (1-2 zdania), skutek na stanowisku (co zobaczy technik),
@@ -67,8 +68,8 @@ Zrodlo: `Ramki/00_NADZOR_STAN.md`, koniec pliku ("Lista decyzji wlasciciela" 1-2
    - czy da sie to sprawdzic na sprzecie 28-29.11 i jak (jedno zdanie).
 7. Raport zaczyna sie od 5-10 najwazniejszych znalezisk; na koncu lista "przeczytane w calosci / przejrzane /
    nieczytane" z liczba linii oraz lista zlecen subagentow.
-8. Koniec sesji: commit raportu na galezi `analiza/s<n>`, bez scalania. W odpowiedzi koncowej: liczba B / P / D
-   i trzy najwazniejsze znaleziska.
+8. Koniec sesji: commit raportu na galezi `analiza/s<n>` i `git push -u origin analiza/s<n>`, bez scalania
+   i bez PR. W odpowiedzi koncowej: liczba B / P / D i trzy najwazniejsze znaleziska.
 
 ## S1 - lancuch analizy skanu: skad bierze sie zielone
 
@@ -151,5 +152,5 @@ dziesiec - to skraca kampanie kilkukrotnie.
 
 ## Start sesji (tekst dla nowego konta)
 
-"Przeczytaj `Ramki/analiza_kodu_2026-11-23/JAK_PRACOWAC_MSI_PC.md` i `PLAN.md` w tym samym folderze. Wykonaj
-sesje S<n> z planu. Kodu nie zmieniaj; wynik to plik raportu sesji."
+Pierwsza wiadomosc sesji = cala tresc `PROMPT_S<n>.txt` (ten folder; kopia na PC w
+`<PC-katalog>\analiza_kodu_2026-11-23\`).
