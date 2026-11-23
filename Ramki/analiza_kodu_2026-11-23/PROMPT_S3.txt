@@ -12,18 +12,19 @@ w tej czesci moze ZAMROZIC okno. Kodu nie zmieniasz - wynikiem jest raport.
 NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci)
 1. JAK_PRACOWAC_MSI_PC.md - jak sie pracuje na MSI i PC, jak uruchamiac testy, limity, pulapki.
 2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S3".
-Oba pliki leza:
-- na PC: <PC-katalog>\analiza_kodu_2026-11-23\
-- w repo: Ramki/analiza_kodu_2026-11-23/ na galezi analiza/plan (galaz jest tylko lokalnie w repo MSI
-  <MSI>\kod\qc; nie jest wypchnieta na GitHub).
+Oba pliki leza w repo w Ramki/analiza_kodu_2026-11-23/ na galezi analiza/plan (lokalna galaz repo MSI
+<MSI>\kod\qc, widoczna z kazdego worktree; nie jest wypchnieta na GitHub).
 
-GDZIE DZIALASZ
-- [usunieto w kopii: opis dostepu ssh]
-- Na PC (konto <konto-PC>): klonu <PC-katalog>\qc nie zmieniaj. Zrob "git -C <PC-katalog>\qc fetch origin",
-  potem worktree: git -C <PC-katalog>\qc worktree add -b analiza/s3 <PC-katalog>\qc-wt\analiza-s3 origin/main
-  i skopiuj do Ramki\analiza_kodu_2026-11-23\ pliki PLAN.md i JAK_PRACOWAC_MSI_PC.md z folderu obok tego promptu.
+[usunieto w kopii: opis dostepu ssh]
+- Dzialasz na MSI we wlasnym worktree repo qc. PIERWSZY KROK: git checkout -b analiza/s3 analiza/plan
+  (analiza/plan = main b856b9e z 21.11 + folder planu). NIE zaczynaj od lokalnego origin/main - jest nieaktualny
+  (9ba9e91 z 20.11), bo git fetch na MSI nie dziala do czasu ponownego logowania gh przez wlasciciela.
+- Kod czytasz na MSI. Na MSI zadnych testow.
+- Testy tylko na PC, w klonie <PC-katalog>\qc (ten sam commit b856b9e - niczego w nim nie zmieniaj):
   [usunieto w kopii: opis dostepu ssh]
-  <worktree>\Ramki\stanowisko.
+- [usunieto w kopii: opis dostepu ssh]
+  <PC-katalog>\qc\Ramki\stanowisko; logi zabierz na MSI do Ramki/analiza_kodu_2026-11-23/S3/.
+- Rownolegle pracuja dwie pozostale sesje analizy (S1, S2) - na PC trzymaj sie 1 procesu python.
 
 ZAKRES
 Ramki/stanowisko/stanowisko/: statusy.py, session.py, session_rano.py, ui/*, indicate.py, ramka_protokol.py,

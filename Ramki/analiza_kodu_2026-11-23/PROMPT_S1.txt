@@ -11,18 +11,19 @@ ukruszona praca dostaje ZIELONE. To najwazniejsze ryzyko wlasciciela. Kodu nie z
 NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci)
 1. JAK_PRACOWAC_MSI_PC.md - jak sie pracuje na MSI i PC, jak uruchamiac testy, limity, pulapki.
 2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S1".
-Oba pliki leza:
-- na PC: <PC-katalog>\analiza_kodu_2026-11-23\
-- w repo: Ramki/analiza_kodu_2026-11-23/ na galezi analiza/plan (galaz jest tylko lokalnie w repo MSI
-  <MSI>\kod\qc; nie jest wypchnieta na GitHub).
+Oba pliki leza w repo w Ramki/analiza_kodu_2026-11-23/ na galezi analiza/plan (lokalna galaz repo MSI
+<MSI>\kod\qc, widoczna z kazdego worktree; nie jest wypchnieta na GitHub).
 
-GDZIE DZIALASZ
-- [usunieto w kopii: opis dostepu ssh]
-- Na PC (konto <konto-PC>): klonu <PC-katalog>\qc nie zmieniaj. Zrob "git -C <PC-katalog>\qc fetch origin",
-  potem worktree: git -C <PC-katalog>\qc worktree add -b analiza/s1 <PC-katalog>\qc-wt\analiza-s1 origin/main
-  i skopiuj do Ramki\analiza_kodu_2026-11-23\ pliki PLAN.md i JAK_PRACOWAC_MSI_PC.md z folderu obok tego promptu.
+[usunieto w kopii: opis dostepu ssh]
+- Dzialasz na MSI we wlasnym worktree repo qc. PIERWSZY KROK: git checkout -b analiza/s1 analiza/plan
+  (analiza/plan = main b856b9e z 21.11 + folder planu). NIE zaczynaj od lokalnego origin/main - jest nieaktualny
+  (9ba9e91 z 20.11), bo git fetch na MSI nie dziala do czasu ponownego logowania gh przez wlasciciela.
+- Kod czytasz na MSI. Na MSI zadnych testow.
+- Testy tylko na PC, w klonie <PC-katalog>\qc (ten sam commit b856b9e - niczego w nim nie zmieniaj):
   [usunieto w kopii: opis dostepu ssh]
-  <worktree>\Ramki\stanowisko.
+- [usunieto w kopii: opis dostepu ssh]
+  <PC-katalog>\qc\Ramki\stanowisko; logi zabierz na MSI do Ramki/analiza_kodu_2026-11-23/S1/.
+- Rownolegle pracuja dwie pozostale sesje analizy (S2, S3) - na PC trzymaj sie 1 procesu python.
 
 ZAKRES (Ramki/stanowisko/stanowisko/)
 uklad.py, plate.py, match.py, inspect.py, krawedz.py, porownaj.py, wspolczynniki.py, metryki.py, synth.py,

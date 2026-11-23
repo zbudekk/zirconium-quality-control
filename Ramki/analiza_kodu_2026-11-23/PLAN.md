@@ -15,6 +15,8 @@ Termin, ktoremu to sluzy: pierwsze testy na sprzecie 28-29.11.2026 (`Ramki/etap3
 - Budzet testow: czytanie kodu + proby do 3 min. Bez pelnego pytest, bez kampanii pomiarowych, bez petli powtorzen.
 - Wynik: tylko raport znalezisk. Bez poprawek i bez PR z kodem.
 - Modele: sesja glowna Fable 5.2; prace monotonne, mechaniczne i proste zleca subagentom Opus 5.5.
+- [usunieto w kopii: opis dostepu ssh]
+  startowe: `PROMPT_S1.txt`, `PROMPT_S2.txt`, `PROMPT_S3.txt` w tym folderze.
 - Sesje prowadzi nowe konto Claude - nie ma pamieci poprzednich sesji; wszystko, czego potrzebuje, jest w tym
   folderze i w plikach wskazanych w `JAK_PRACOWAC_MSI_PC.md`.
 - Poza ta runda: zgubiony skan / decyzja jako osobny temat, nazwiska pacjentow w plikach, `dzien_skanera*`,
