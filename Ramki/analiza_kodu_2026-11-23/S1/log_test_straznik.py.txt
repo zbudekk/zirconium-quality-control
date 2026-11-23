@@ -1,0 +1,920 @@
+EEEEEEEEEEEEEEEE....EEEEEEEEEE                                           [100%]
+=================================== ERRORS ====================================
+_ ERROR at setup of test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-wieczorna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-poranna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-okragla_wieczorna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-okragla_poranna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-wieczorna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-poranna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-okragla_wieczorna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-okragla_poranna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+____ ERROR at setup of test_plytka_zgodna_bez_falszywego_alarmu[wieczorna] ____
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_____ ERROR at setup of test_plytka_zgodna_bez_falszywego_alarmu[poranna] _____
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_zgodna_bez_falszywego_alarmu[okragla_wieczorna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_zgodna_bez_falszywego_alarmu[okragla_poranna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+__ ERROR at setup of test_plytka_zgodna_bez_falszywego_alarmu[wieczorna_r54] __
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+___ ERROR at setup of test_plytka_zgodna_bez_falszywego_alarmu[poranna_r54] ___
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_zgodna_bez_falszywego_alarmu[okragla_wieczorna_r54] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_plytka_zgodna_bez_falszywego_alarmu[okragla_poranna_r54] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_stozki_pasuja_ale_gniazda_inne[wieczorna-wieczorna_r54] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_stozki_pasuja_ale_gniazda_inne[wieczorna_r54-wieczorna] _
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_stozki_pasuja_ale_gniazda_inne[poranna-poranna_r54] __
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_stozki_pasuja_ale_gniazda_inne[poranna_r54-poranna] __
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_______ ERROR at setup of test_porownaj_niezgodny_uklad_zadnych_gniazd ________
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+____________ ERROR at setup of test_porownaj_zgodny_uklad_ma_flage ____________
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+___ ERROR at setup of test_cli_porownaj_niezgodny_zapisuje_wynik_bez_metryk ___
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_______ ERROR at setup of test_okno_lista_ukladow_i_komunikat_straznika _______
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_stary_plik_ustawien_podpowiada_brakujace_uklady_r54 __
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+___________ ERROR at setup of test_okno_podpowiada_brak_ukladow_r54 ___________
+
+korony = [WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a0_siekacz.stl'), WindowsPath('C:/Users/...a1_przedtrzonowy.stl'), WindowsPath('<PC>/AppData/Local/Temp/pytest-of-<uzytkownik>/pytest-5/stl0/a2_trzonowy.stl')]
+
+    @pytest.fixture(scope="module")
+    def skany(korony):
+        """Po jednym skanie z 3 atrapami dla kazdego z 8 ukladow."""
+>       return {n: _skan(n, korony, seed=41 + i) for i, n in enumerate(TYPY + tuple(t + "_r54" for t in TYPY))}
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_straznik.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+testy\test_straznik.py:34: in _skan
+    op = synth.Opcje.z_toml(plytka=nazwa, prace_na_plytce=len(projekty) if prace is None else prace, wspolczynnik=(w, w),
+stanowisko\synth.py:865: in z_toml
+    wart = _z_ustawien(UST.domyslne() if ust is None else ust, plytka)
+                       ^^^^^^^^^^^^^^
+stanowisko\ustawienia.py:372: in domyslne
+    return wczytaj_ustawienia()
+           ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+============================= slowest 5 durations =============================
+0.83s call     testy/test_straznik.py::test_zgodnosc_ukladu_na_pustych_plytkach[poranna]
+0.83s call     testy/test_straznik.py::test_zgodnosc_ukladu_na_pustych_plytkach[okragla_poranna]
+0.82s call     testy/test_straznik.py::test_zgodnosc_ukladu_na_pustych_plytkach[okragla_wieczorna]
+0.79s call     testy/test_straznik.py::test_zgodnosc_ukladu_na_pustych_plytkach[wieczorna]
+0.08s setup    testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-wieczorna]
+=========================== short test summary info ===========================
+ERROR testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-wieczorna]
+ERROR testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-poranna]
+ERROR testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-okragla_wieczorna]
+ERROR testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[stara_plytka_nowy_uklad-okragla_poranna]
+ERROR testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-wieczorna]
+ERROR testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-poranna]
+ERROR testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-okragla_wieczorna]
+ERROR testy/test_straznik.py::test_plytka_innego_ukladu_konczy_sie_niezgodny_uklad[nowa_plytka_stary_uklad-okragla_poranna]
+ERROR testy/test_straznik.py::test_plytka_zgodna_bez_falszywego_alarmu[wieczorna]
+ERROR testy/test_straznik.py::test_plytka_zgodna_bez_falszywego_alarmu[poranna]
+ERROR testy/test_straznik.py::test_plytka_zgodna_bez_falszywego_alarmu[okragla_wieczorna]
+ERROR testy/test_straznik.py::test_plytka_zgodna_bez_falszywego_alarmu[okragla_poranna]
+ERROR testy/test_straznik.py::test_plytka_zgodna_bez_falszywego_alarmu[wieczorna_r54]
+ERROR testy/test_straznik.py::test_plytka_zgodna_bez_falszywego_alarmu[poranna_r54]
+ERROR testy/test_straznik.py::test_plytka_zgodna_bez_falszywego_alarmu[okragla_wieczorna_r54]
+ERROR testy/test_straznik.py::test_plytka_zgodna_bez_falszywego_alarmu[okragla_poranna_r54]
+ERROR testy/test_straznik.py::test_stozki_pasuja_ale_gniazda_inne[wieczorna-wieczorna_r54]
+ERROR testy/test_straznik.py::test_stozki_pasuja_ale_gniazda_inne[wieczorna_r54-wieczorna]
+ERROR testy/test_straznik.py::test_stozki_pasuja_ale_gniazda_inne[poranna-poranna_r54]
+ERROR testy/test_straznik.py::test_stozki_pasuja_ale_gniazda_inne[poranna_r54-poranna]
+ERROR testy/test_straznik.py::test_porownaj_niezgodny_uklad_zadnych_gniazd - ...
+ERROR testy/test_straznik.py::test_porownaj_zgodny_uklad_ma_flage - FileNotFo...
+ERROR testy/test_straznik.py::test_cli_porownaj_niezgodny_zapisuje_wynik_bez_metryk
+ERROR testy/test_straznik.py::test_okno_lista_ukladow_i_komunikat_straznika
+ERROR testy/test_straznik.py::test_stary_plik_ustawien_podpowiada_brakujace_uklady_r54
+ERROR testy/test_straznik.py::test_okno_podpowiada_brak_ukladow_r54 - FileNot...
+4 passed, 26 errors in 4.69s

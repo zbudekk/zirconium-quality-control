@@ -1,0 +1,123 @@
+EEEEE                                                                    [100%]
+=================================== ERRORS ====================================
+__ ERROR at setup of test_blad_inspekcji_jednego_gniazda_nie_kladzie_plytki ___
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_porownaj_bledy.py:24: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_______ ERROR at setup of test_cli_zapisuje_wynik_mimo_bledu_inspekcji ________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_porownaj_bledy.py:24: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+__ ERROR at setup of test_przerwanie_i_brak_pamieci_nie_sa_lapane[wyjatek0] ___
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_porownaj_bledy.py:24: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+__ ERROR at setup of test_przerwanie_i_brak_pamieci_nie_sa_lapane[wyjatek1] ___
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_porownaj_bledy.py:24: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+__ ERROR at setup of test_przerwanie_i_brak_pamieci_nie_sa_lapane[wyjatek2] ___
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_porownaj_bledy.py:24: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+============================= slowest 5 durations =============================
+0.09s setup    testy/test_porownaj_bledy.py::test_blad_inspekcji_jednego_gniazda_nie_kladzie_plytki
+
+(4 durations < 0.005s hidden.  Use -vv to show these durations.)
+=========================== short test summary info ===========================
+ERROR testy/test_porownaj_bledy.py::test_blad_inspekcji_jednego_gniazda_nie_kladzie_plytki
+ERROR testy/test_porownaj_bledy.py::test_cli_zapisuje_wynik_mimo_bledu_inspekcji
+ERROR testy/test_porownaj_bledy.py::test_przerwanie_i_brak_pamieci_nie_sa_lapane[wyjatek0]
+ERROR testy/test_porownaj_bledy.py::test_przerwanie_i_brak_pamieci_nie_sa_lapane[wyjatek1]
+ERROR testy/test_porownaj_bledy.py::test_przerwanie_i_brak_pamieci_nie_sa_lapane[wyjatek2]
+5 errors in 0.57s

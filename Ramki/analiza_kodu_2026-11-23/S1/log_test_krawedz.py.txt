@@ -1,0 +1,8 @@
+...............                                                          [100%]
+============================= slowest 5 durations =============================
+6.14s call     testy/test_krawedz.py::test_most_ma_petle_na_kazdy_filar
+2.15s call     testy/test_krawedz.py::test_pamiec_w_module_i_na_dysku
+2.12s call     testy/test_krawedz.py::test_filar_z_niecka_bez_linii_jest_jawny
+1.26s call     testy/test_krawedz.py::test_skala_i_przesuniecie_nie_zmieniaja_linii
+1.17s setup    testy/test_krawedz.py::test_korona_ma_jedna_petle_na_brzegu
+15 passed in 14.42s

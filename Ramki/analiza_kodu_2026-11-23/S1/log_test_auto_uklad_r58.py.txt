@@ -1,0 +1,8 @@
+....................................................                     [100%]
+============================= slowest 5 durations =============================
+46.83s setup    testy/test_auto_uklad_r58.py::test_rozpoznaje_kazdy_z_dziesieciu_ukladow_bez_numeru[wieczorna]
+7.75s call     testy/test_auto_uklad_r58.py::test_male_pole_96_i_94_uklad_dobry_i_pewny[poranna-4-94.0]
+7.59s call     testy/test_auto_uklad_r58.py::test_male_pole_96_i_94_uklad_dobry_i_pewny[wieczorna-1-96.0]
+7.42s call     testy/test_auto_uklad_r58.py::test_narzedzie_maly_przebieg_zapisuje_wyniki
+7.14s call     testy/test_auto_uklad_r58.py::test_male_pole_96_i_94_uklad_dobry_i_pewny[okragla_ramkowa_poranna-5-94.0]
+52 passed in 174.46s (0:02:54)
