@@ -1,0 +1,55 @@
+kontroler: baza zajeta - stan nie zostal odswiezony
+stanowisko: blad obslugi zdarzenia (_zdarzenie_skrzynki)
+Traceback (most recent call last):
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\baza.py", line 499, in _wykonaj
+    return self.polaczenie.execute(sql, parametry)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\aplikacja.py", line 1193, in _bezpiecznie
+    return funkcja(*argumenty)
+           ^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\aplikacja.py", line 1227, in _zdarzenie_skrzynki
+    self.sesja.baza.zdarzenie("scanner", "nowy_skan", {"sha16": z.sha16, "rozmiar": z.rozmiar, "trojkaty": z.trojkaty, "zastany": z.zastany,
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\baza.py", line 556, in zdarzenie
+    return self.wstaw("zdarzenia", czas=czas or self.teraz(), zrodlo=zrodlo, typ=typ, skan_id=skan_id, dane=tekst)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\baza.py", line 547, in wstaw
+    return self._wykonaj(sql, tuple(kolumny.values())).lastrowid
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\baza.py", line 502, in _wykonaj
+    raise BladBazy(f"{self.plik.name}: baza jest zajeta przez inny program (czekano {self.czekaj_ms / 1000:g} s) - zamknij go albo "
+stanowisko.baza.BladBazy: stanowisko.sqlite: baza jest zajeta przez inny program (czekano 5 s) - zamknij go albo sprobuj ponownie za chwile; niczego nie zapisano
+kontroler: baza zajeta - stan nie zostal odswiezony
+kontroler: baza zajeta - stan nie zostal odswiezony
+kontroler: baza zajeta - stan nie zostal odswiezony
+kontroler: baza zajeta - stan nie zostal odswiezony
+stanowisko: blad obslugi zdarzenia (_zdarzenie_skrzynki)
+Traceback (most recent call last):
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\baza.py", line 499, in _wykonaj
+    return self.polaczenie.execute(sql, parametry)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: database is locked
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\aplikacja.py", line 1193, in _bezpiecznie
+    return funkcja(*argumenty)
+           ^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\aplikacja.py", line 1227, in _zdarzenie_skrzynki
+    self.sesja.baza.zdarzenie("scanner", "nowy_skan", {"sha16": z.sha16, "rozmiar": z.rozmiar, "trojkaty": z.trojkaty, "zastany": z.zastany,
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\baza.py", line 556, in zdarzenie
+    return self.wstaw("zdarzenia", czas=czas or self.teraz(), zrodlo=zrodlo, typ=typ, skan_id=skan_id, dane=tekst)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\baza.py", line 547, in wstaw
+    return self._wykonaj(sql, tuple(kolumny.values())).lastrowid
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko\stanowisko\baza.py", line 502, in _wykonaj
+    raise BladBazy(f"{self.plik.name}: baza jest zajeta przez inny program (czekano {self.czekaj_ms / 1000:g} s) - zamknij go albo "
+stanowisko.baza.BladBazy: stanowisko.sqlite: baza jest zajeta przez inny program (czekano 5 s) - zamknij go albo sprobuj ponownie za chwile; niczego nie zapisano
+{"proba": "a", "blokada": "EXCLUSIVE", "max_przetworz_s": 7.854, "dlugie_przetworz": [[8.33, 7.854]], "max_przetworz_po_zwolnieniu_s": 0.001, "zdarzen_scannera": 2, "plytek_w_stanie": 1, "skanow_w_bazie": 1, "wpisow_nowy_skan": 1, "zlecone": 0, "wstrzymane": 0, "do_zapisu": 0, "kolejka": "Kolejka(w_toku=0, czeka=0, wstrzymane=0, silnik_gotowy=True, niezapisane=0)", "komunikaty": [], "czas_proby_s": 55.4}
+{"proba": "a", "blokada": "IMMEDIATE", "max_przetworz_s": 5.522, "dlugie_przetworz": [[5.58, 5.522]], "max_przetworz_po_zwolnieniu_s": 0.0, "zdarzen_scannera": 2, "plytek_w_stanie": 1, "skanow_w_bazie": 1, "wpisow_nowy_skan": 1, "zlecone": 0, "wstrzymane": 0, "do_zapisu": 0, "kolejka": "Kolejka(w_toku=0, czeka=0, wstrzymane=0, silnik_gotowy=True, niezapisane=0)", "komunikaty": [], "czas_proby_s": 55.4}
