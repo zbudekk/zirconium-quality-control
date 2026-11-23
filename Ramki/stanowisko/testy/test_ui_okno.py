@@ -508,9 +508,9 @@ def test_lista_bledow_rozwijana_z_licznika_na_pasku_stanu(atrapa, ekrany):
     assert k.polecenia[-1] == ("ponow_zapis", ()) and e.jest("komunikat_blad_zapisu")
     atrapa.symuluj_skaner(dostepny=True)
     assert e.w("przycisk_bledy").text() == N.BLEDY_PROGRAMU.format(n=1)
-    atrapa.symuluj_blad_zapisu(0)  # dysk wrocil: ponowienie zapisuje skan - bledow nie ma, licznik i lista znikaja
-    e.klik("komunikat_ponow_zapis")
-    assert not e.jest("przycisk_bledy") and not e.jest("lista_bledow") and e.okno.miejsce_mapy() == miejsce
+    atrapa.symuluj_blad_zapisu(0)  # dysk wrocil: program zapisuje skan sam (ponowienie w tle) - bledow nie ma, licznik i lista znikaja
+    e.czekaj(lambda: not e.jest("przycisk_bledy"), 5.0, "licznik bledow znika po udanym zapisie")
+    assert not e.jest("lista_bledow") and e.okno.miejsce_mapy() == miejsce
 
 
 # ----------------------------------------------------------------------------
@@ -584,7 +584,7 @@ def test_pole_paska_stanu_skracane_ma_pelny_napis_w_podpowiedzi(atrapa, ekrany):
     pole.setGeometry(10, 60, 150, 20)
     pole.show()
     e.zdarzenia()
-    assert pole.skrocona() and pole.text() == pelny and QLabel.text(pole) != pelny and QLabel.text(pole).endswith("…")
+    assert pole.skrocona() and pole.text() == pelny and QLabel.text(pole) != pelny and QLabel.text(pole).endswith("\u2026")
     assert pelny in pole.toolTip() and "podpowiedz pola" in pole.toolTip()
     pole.setGeometry(10, 60, 900, 20)
     e.zdarzenia()
@@ -675,10 +675,35 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
         kroki = [od + 0.25 * i for i in range(int((do - od) / 0.25) + 1)]
         return {obraz.pixelColor(round(s.x() + dx / d * (promien + k)), round(s.y() + dy / d * (promien + k))).name() for k in kroki}
 
+    def wokol(obraz, nr: int, od: float, do: float) -> set:
+        """Kolory WSZYSTKICH pikseli, ktorych srodek lezy ``od`` - ``do`` px na zewnatrz obrysu gniazda ``nr`` (caly obwod).
+        Pasek o szerokosci 2 px ma na obwodzie piksele pokryte w calosci niezaleznie od ulozenia wzgledem siatki pikseli,
+        wiec jego barwa jest wsrod nich DOKLADNIE - wynik nie zalezy od rozmiaru mapy (jeden promien ``obok`` mogl trafic
+        tylko w piksele wygladzonej krawedzi)."""
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QPainterPathStroker
+
+        sciezka = e.mapa._ksztalt(nr)[0]
+
+        def otoczka(odleglosc: float):
+            kreska = QPainterPathStroker()
+            kreska.setWidth(2 * odleglosc)
+            return kreska.createStroke(sciezka)
+
+        dalsza, blizsza = otoczka(do), (otoczka(od) if od > 0 else None)
+        r = dalsza.boundingRect().toAlignedRect()
+        kolory = set()
+        for y in range(max(0, r.top()), min(obraz.height(), r.bottom() + 1)):
+            for x in range(max(0, r.left()), min(obraz.width(), r.right() + 1)):
+                p = QPointF(x + 0.5, y + 0.5)
+                if dalsza.contains(p) and not sciezka.contains(p) and (blizsza is None or not blizsza.contains(p)):
+                    kolory.add(obraz.pixelColor(x, y).name())
+        return kolory
+
     e.po_ochronie()
     obraz = e.mapa.grab().toImage()
     plytka_tlo, jasna = motyw.WGLEBIENIE.lower(), motyw.OBWODKA_UBYTKU.lower()
-    assert jasna in obok(obraz, 2, 0.5, 2.0) and jasna in obok(obraz, 9, 0.5, 2.0)  # czerwone: jasna obwodka tuz za krawedzia gniazda
+    assert jasna in wokol(obraz, 2, 0.0, 2.0) and jasna in wokol(obraz, 9, 0.0, 2.0)  # czerwone: jasna obwodka 2 px tuz za krawedzia gniazda
     assert obok(obraz, 2, 4.0, 6.0) == {plytka_tlo}  # obwodka ma 2 px - dalej juz plytka
     for nr in (1, 3, 4, 8):  # pozostale gniazda z praca: bez obwodki
         assert jasna not in obok(obraz, nr, 0.5, 6.0) and plytka_tlo in obok(obraz, nr, 1.0, 3.0), nr
@@ -686,7 +711,8 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
     e.klik_gniazdo(1)
     obraz = e.mapa.grab().toImage()
     assert e.mapa.wyglad_gniazda(1)["wybrane"]
-    assert motyw.AKCENT.lower() in obok(obraz, 1, 3.0, 5.0) and plytka_tlo in obok(obraz, 1, 0.75, 2.5)  # pierscien akcentu z przerwa w kolorze plytki
+    assert motyw.AKCENT.lower() in wokol(obraz, 1, 3.0, 5.0) and plytka_tlo in wokol(obraz, 1, 0.5, 2.5)  # pierscien akcentu z przerwa w kolorze plytki
+    assert motyw.AKCENT.lower() not in wokol(obraz, 1, 0.0, 2.0)  # przerwa: tuz przy gniezdzie nie ma barwy akcentu
     assert motyw.AKCENT.lower() not in obok(obraz, 3, 0.5, 6.0)
     e.klawisz(Qt.Key.Key_Escape)
     e.klawisz(Qt.Key.Key_Right)

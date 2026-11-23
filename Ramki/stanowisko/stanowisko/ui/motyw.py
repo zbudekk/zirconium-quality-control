@@ -106,11 +106,11 @@ class Uklad:
         return self.naglowek_listy + self.naglowek_tabeli + self.wiersze_listy * self.wiersz_tabeli + self.odstep
 
 
-UKLAD_WYSOKI = Uklad("wysoki", False, lewa=280, prawa=360, bok=20, odstep=16, strefa=148, naglowek=64,
+UKLAD_WYSOKI = Uklad("wysoki", False, lewa=280, prawa=360, bok=20, odstep=16, strefa=148, naglowek=56,
                      wiersze_listy=4, wiersz_tabeli=30, naglowek_tabeli=28, naglowek_listy=48, boczny=208, decyzja=52, przycisk=44,
                      mapa_min=(300, 280), obraz_min=110)
 UKLAD_ZWYKLY = dataclasses.replace(UKLAD_WYSOKI, nazwa="zwykly", wiersze_listy=3, obraz_min=70)
-UKLAD_ZWARTY = Uklad("zwarty", True, lewa=240, prawa=320, bok=12, odstep=12, strefa=148, naglowek=58,
+UKLAD_ZWARTY = Uklad("zwarty", True, lewa=240, prawa=320, bok=12, odstep=12, strefa=148, naglowek=54,
                      wiersze_listy=2, wiersz_tabeli=26, naglowek_tabeli=26, naglowek_listy=44, boczny=176, decyzja=48, przycisk=44,
                      mapa_min=(220, 180), obraz_min=36)
 

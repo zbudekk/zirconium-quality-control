@@ -102,15 +102,15 @@ KOLORY_SPEC = {"zielony": "#3FB46A", "czerwony": "#E5484D", "ukruszona": "#E5484
 # kolory diod ramki i napisy ze ``statusy.py`` sprzed paczki (main b856b9e) - paczka E3-U1a nie moze ich zmienic
 DIODY_I_NAPISY = {
     "zielony": ("zielony", "OK"), "czerwony": ("czerwony", "UBYTEK"), "ukruszona": ("czerwony", "UKRUSZONA"),
-    "zatwierdzona_ok": ("zielony", "OK — zatwierdzona"), "zolty": ("zolty", "sprawdź"),
-    "sprawdz_ulozenie": ("zolty", "sprawdź ułożenie"), "popraw_ulozenie": ("zolty", "popraw ułożenie"),
-    "skan_ponownie": ("zolty", "skan poruszony"), "skan_do_powtorzenia": ("zolty", "powtórz skan"), "nie_sprawdzono": ("zolty", "nie sprawdzono"),
-    "blad_inspekcji": ("zolty", "błąd kontroli"), "szary": ("bialy", "bez projektu"), "pomaranczowy": ("zolty", "poprawiana ręcznie"),
-    "dofrezowany": ("bursztyn", "ząb dofrezowany"), "nieznana_rano": ("bialy", "nieznana"), "pusty": (None, ""),
-    "podwojny": ("zolty", "dwie prace"), "poza_gniazdem": (None, "poza gniazdem"), "czeka_na_numer": (None, "podaj nr płytki"),
-    "plytka_nie_z_trybu": (None, "zablokowana"), "nieaktywny": (None, "skan nieaktualny"), "nieznany": ("zolty", "sprawdź"),
+    "zatwierdzona_ok": ("zielony", "OK \u2014 zatwierdzona"), "zolty": ("zolty", "sprawd\u017a"),
+    "sprawdz_ulozenie": ("zolty", "sprawd\u017a u\u0142o\u017cenie"), "popraw_ulozenie": ("zolty", "popraw u\u0142o\u017cenie"),
+    "skan_ponownie": ("zolty", "skan poruszony"), "skan_do_powtorzenia": ("zolty", "powt\u00f3rz skan"), "nie_sprawdzono": ("zolty", "nie sprawdzono"),
+    "blad_inspekcji": ("zolty", "b\u0142\u0105d kontroli"), "szary": ("bialy", "bez projektu"), "pomaranczowy": ("zolty", "poprawiana r\u0119cznie"),
+    "dofrezowany": ("bursztyn", "z\u0105b dofrezowany"), "nieznana_rano": ("bialy", "nieznana"), "pusty": (None, ""),
+    "podwojny": ("zolty", "dwie prace"), "poza_gniazdem": (None, "poza gniazdem"), "czeka_na_numer": (None, "podaj nr p\u0142ytki"),
+    "plytka_nie_z_trybu": (None, "zablokowana"), "nieaktywny": (None, "skan nieaktualny"), "nieznany": ("zolty", "sprawd\u017a"),
     "rano_pewna": ("zielony", "rozpoznana"), "rano_przypisana": ("zielony", "przypisana"), "rano_dwuznaczna": ("zolty", "wybierz"),
-    "rano_konflikt": ("czerwony", "konflikt"), "rano_juz_rozpoznany": ("bursztyn", "ząb już rozpoznany"),
+    "rano_konflikt": ("czerwony", "konflikt"), "rano_juz_rozpoznany": ("bursztyn", "z\u0105b ju\u017c rozpoznany"),
 }
 
 
