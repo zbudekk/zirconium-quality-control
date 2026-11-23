@@ -5,7 +5,7 @@ Kod sie nie zmienil. Dowody: `czytanie` albo `proba` (skrypt i logi w `S2/`). Sc
 `Ramki/stanowisko/stanowisko/`. Wagi: B / P / D jak w `PLAN.md` p. 6. Kazde znalezisko dotyczy KAZDEJ plytki (okragla
 ramkowa, okragla R54, kwadratowa) - sciezki procesow, bazy i kolejek nie zaleza od ukladu plytki; w tabeli kolumny "plytka" nie ma.
 
-Liczba znalezisk: B 1, P 7, D 7.
+Liczba znalezisk: B 1, P 8, D 8.
 
 ## 0. Najwazniejsze
 
@@ -29,6 +29,8 @@ Liczba znalezisk: B 1, P 7, D 7.
    Pliki OneDrive "tylko online" bylyby wtedy pobierane w trakcie analizy. [NIE SPRAWDZONE BEZ SPRZETU]
 8. **S2-08 (P, czytanie)** Krok Excela (odczyt arkusza przez COM) idzie w watku okna z zegara `przetworz` - kontroler nie ma
    limitu czasu; Excel z otwartym oknem dialogowym = okno programu stoi (szczegoly po stronie `excel_com` - sesja S3).
+9. **S2-16 (P, czytanie)** Rano "Zamknij piec" jest zablokowane ("analiza trwa"), dopoki jakikolwiek skan jest wstrzymany - takze
+   wtedy, gdy czeka na pule (S2-05, S2-06), na zapis (S2-03) albo gdy silnik nie startuje (do ponownego startu programu).
 
 ## 1. Tabela znalezisk
 
@@ -41,7 +43,7 @@ Liczba znalezisk: B 1, P 7, D 7.
 | S2-05 | aplikacja.py:671-701, 721-761, 1295-1299 | `_liczenie_puli` wraca do False tylko po odpowiedzi watku | "liczenie puli" bez konca, skany wstrzymane | P | czytanie | S (proba z funkcja liczaca, ktora nie wraca: ok. 10 min pracy) | odlaczyc siec / wstrzymac OneDrive i kliknac "Odswiez pule" |
 | S2-06 | aplikacja.py:1011-1016, 1018-1026, 1295 | po bledzie analizy `_zlec` wstrzymuje kazdy skan do konca liczenia puli | po jednym bledzie kolejne plytki czekaja na przeglad calego folderu | P | czytanie | S (proba: skan z bledem + wolne liczenie puli) | zeskanowac pusta plytke (blad analizy) i zaraz nastepna |
 | S2-07 | silnik.py:497-523 (pula w zadaniu), 1058-1060, 237-255 (`rglob` calego folderu w kazdym zadaniu) | budowa puli z folderu nie ma osobnego etapu ani pamieci na dysku | pierwsza plytka po starcie i po kazdej awarii procesu trwa tyle, co wczytanie calego folderu; ponad 600 s = "analiza trwala za dlugo" | P | czytanie | D (pomiar na prawdziwym folderze "Cyrkon") | zmierzyc pierwsza plytke po starcie przy prawdziwym folderze |
-| S2-08 | kontroler_api.py:2832-2855, 2888, 2904, 2918 | wywolania Excela w watku okna | okno stoi, gdy Excel nie odpowiada | P | czytanie | D (prawdziwy Excel) | "Zamknij piec" przy Excelu z otwartym oknem dialogowym |
+| S2-08 | kontroler_api.py:2832-2855, 2888, 2904, 2918, 3022 | wywolania Excela w watku okna (zegar i klikniecie "zatwierdz") | okno stoi, gdy Excel nie odpowiada | P | czytanie | D (prawdziwy Excel) | "Zamknij piec" przy Excelu z otwartym oknem dialogowym |
 | S2-09 | aplikacja.py:164-168, 205-211, 1257, 1281, 1417, 1497 | `Path.is_file()` na pliku skanu w watku okna | folder skanera na udziale sieciowym bez odpowiedzi: okno stoi przy kazdym wyniku (ok. 21 s wg komentarza aplikacja.py:94-95) | D | czytanie | S | nie dotyczy, gdy folder skanera jest na dysku lokalnym |
 | S2-10 | aplikacja.py:1035-1053 | `ustaw_pule` pisze do dziennika bez krotkiego czekania i poza `_polecenie` | przy zajetej bazie 5 s i wyjatek w slocie okna (kontrakt: polecenie nigdy nie rzuca) | D | czytanie | T (nie robione - 1 proba) | - |
 | S2-11 | aplikacja.py:1506-1567; scanner.py:349-360; silnik.py:1289, 1554, 1559 | zamkniecie programu sumuje czekania w watku okna | okno "nie odpowiada" do ok. 20 s (1 + 7 + 12 s) plus 5,5 s na kazdy zalegly zapis | D | czytanie | S | zamknac program w trakcie analizy, zmierzyc czas |
@@ -49,6 +51,8 @@ Liczba znalezisk: B 1, P 7, D 7.
 | S2-13 | scanner.py:544-550, 668-670, 685-686; dzien_skanera_rdzen.py:253-261 | plik trzymany stale do zapisu przez program skanera jest sprawdzany co 0,05 s bez konca otwarciem bez zgody na zapis | mozliwa odmowa otwarcia pliku po stronie programu skanera [NIE SPRAWDZONE BEZ SPRZETU] | D | czytanie | D | obserwowac folder skanera narzedziem Process Monitor w trakcie skanowania |
 | S2-14 | scanner.py:344, 391-401; aplikacja.py:541, 551, 607-617 | start programu w watku okna: przeglad calego folderu skanera, wszystkie wiersze `skany`, wszystkie wpisy `podglad` | czas do pokazania okna rosnie z historia | D | czytanie | S | zmierzyc czas od uruchomienia do okna |
 | S2-15 | silnik.py:1583, 1615, 1631, 1657 | `recv` / `send` nadzorcy bez limitu; wpis logu pod zamkiem silnika | nadzorca stojacy w `recv` nie sprawdza limitu zadania (przypadek teoretyczny) | D | czytanie | D | - |
+| S2-16 | kontroler_api.py:480, 1932-1942, 3786; aplikacja.py:1081-1083 | `Kolejka.razem` liczy skany wstrzymane, a `_zajety` blokuje nim "Zamknij piec" | pieca nie da sie zamknac, dopoki wisi pula, zapis albo silnik; opis `aplikacja.md:56` mowi tylko o analizie, kolejce i zapisie | P | czytanie | S (proba na atrapie: wstrzymany skan + `zamknij_piec`) | rano: odlaczyc folder puli, zeskanowac plytke, sprobowac "Zamknij piec" |
+| S2-17 | baza.py:334-338 | blad "baza zajeta" przy otwieraniu jest zamieniany na "plik nie jest baza SQLite albo jest uszkodzony" | start programu przy bazie trzymanej na wylacznosc: po 5 s komunikat o uszkodzonej bazie | D | czytanie | T (nie robione) | - |
 
 ## 2. Opisy
 
@@ -114,11 +118,24 @@ wywolan, nie czas jednego.
 roboczy stanal w polowie wysylania wiadomosci wiekszej niz bufor lacza, nadzorca stalby w `recv` i nie sprawdzal limitu (1584) -
 nie znalazlem zwyklej sciezki, ktora do tego prowadzi.
 
+**S2-16.** `_stan_zywy` (aplikacja.py:1081-1083) wpisuje do `Kolejka.wstrzymane` skany czekajace na pule, na sprawdzenie puli po
+bledzie i na zapis; `Kolejka.razem` (kontroler_api.py:480) je sumuje, a `_zajety` (1938-1939) przy `razem > 0` zwraca
+`analiza_trwa`, co odmawia `zamknij_piec` (3786). Przy "silnik nie startuje" skany zostaja wstrzymane do ponownego startu programu
+i wracaja po nim z pliku zadan - blokada wraca razem z nimi.
+
+**S2-17.** `_wersja` lapie `sqlite3.DatabaseError`, a "database is locked" jest jego podklasa; tekst bledu SQLite jest w nawiasie
+komunikatu, ale naglowek mowi o uszkodzeniu.
+
 ## 3. Lista "S2" z planu - odpowiedzi
 
 - **Start procesow, potoki, kolejki.** Jeden proces roboczy (`spawn`), jedno lacze `Pipe`, bez wspolnych kolejek (silnik.py:1501-1502).
   Zdarzenia do okna ida przez `queue.Queue` bez limitu rozmiaru (`Silnik.zdarzenia` 1231, `_skrzynka` aplikacja.py:481) i sa
   oprozniane zegarem okna - zakleszczenia przez pelna kolejke nie ma. Nadzorca wysyla zadanie tylko do procesu wolnego (1598-1617).
+- **Czekanie bez limitu czasu** (wyliczenie: `S2/wyliczenie_czekania.md`). Kazde `join` i `wait` w zakresie ma limit (12 z 12).
+  Bez limitu sa: `send` procesu roboczego do okna (silnik.py:1045, 1091, 1097, 1130, 1140, 1147, 1191) i `recv` na zadanie (1150) -
+  po zniknieciu okna konczy je straznik i obiekt zadania; `send` nadzorcy (1553, 1615, 1631) i `recv` po `poll` (1583) - S2-15;
+  petla budowy puli (459: limit tylko "bez postepu", lacznego nie ma); ponawianie pliku zajetego w obserwatorze (scanner.py:573,
+  zamierzone); ponowienia zapisu do bazy (aplikacja.py:1144, 1457, 1538 - S2-03).
 - **Co dziala w watku okna** (najdluzsza blokada):
 
 | operacja | plik:linia | najdluzej | co widzi technik |
@@ -139,9 +156,13 @@ nie znalazlem zwyklej sciezki, ktora do tego prowadzi.
 - **Zamki.** `Silnik._zamek` (silnik.py:1234), `ProbaStartu.zamek` (736), `_ZAMEK_OBIEKTU` (652), `_ZAMEK_WINAPI` (723), zamek
   lokalny proby startu (1440), `Scanner._zamek_watku` (scanner.py:315), `Scanner._zamek_watchdog` (310), `FiltrNazw._zamek`
   (aplikacja.py:331). Jedyne zagniezdzenie: `_zamek_watku` -> `_zamek_watchdog` (scanner.py:335 -> 461); kolejnosci odwrotnej nie ma.
-  Pod `Silnik._zamek` nie ma wywolan zwrotnych ani operacji na laczu; jest jeden wpis logu (1657). Wyliczenie: `S2/wyliczenie_zamki_watki.md`.
+  Pod `Silnik._zamek` nie ma wywolan zwrotnych ani operacji na laczu; jest jeden wpis logu (1657), czyli zagniezdzenie
+  `Silnik._zamek` -> `FiltrNazw._zamek` -> zamek uchwytu pliku logu; tak samo `_zamek_watku` / `_zamek_watchdog` -> log
+  (scanner.py:471, 500). Zadne wejscie do zamka nie ma limitu czasu; par w odwrotnej kolejnosci nie ma (6 par, 0 odwrotnych).
+  Wyliczenie: `S2/wyliczenie_zamki_watki.md` (15 zamkow, 52 uzycia, 12 watkow i zegarow, 45 pozycji pracy w watku okna).
 - **Sygnaly Qt.** Watki robocze nie emituja sygnalow - wszystko przechodzi przez kolejki oprozniane zegarem (silnik.py:1796-1817,
-  kontroler_api.py:1184-1190). Polaczen blokujacych miedzy watkami w zakresie nie znalazlem.
+  kontroler_api.py:1184-1190). `BlockingQueuedConnection`, `QueuedConnection` ani `invokeMethod` nie ma w zakresie ani w `ui/`
+  (wyliczenie subagenta: 11 sygnalow, 4 polaczenia, 11 emisji - wszystkie w watku okna).
 - **baza.** Tryb dziennika domyslny (bez `journal_mode`, baza.py:317-325), `busy_timeout` 5000 ms (45, 324), transakcje
   `BEGIN IMMEDIATE` (512), migracja w jednej transakcji z kopia pliku przed nia (366-378, 381-393). Plik `.blokada`
   (aplikacja.py:258-307): blokada systemowa bez czekania (`LK_NBLCK`), znika z procesem - nie zawiesza startu.
@@ -164,6 +185,16 @@ nie znalazlem zwyklej sciezki, ktora do tego prowadzi.
   testy `test_p14_baza_zajeta.py`). NIE obejmuje zdarzen skanera i silnika - S2-02, S2-03 - ani `ustaw_pule` (S2-10).
 - **Zimny start 48,66 s**: budowa puli w zadaniu pierwszej plytki (S2-07); przy puli wpisow - `przygotuj_pule` w tle, skany czekaja.
 - **E3-A11w**: blokada `_wmi` w `__init__.py:22-26` jest; kod wyjscia procesu przy zamykaniu nie jest nigdzie pokazywany (tabela S2-04).
+
+### Rozjazdy opis - kod (porownanie subagenta: `S2/opisy_kontra_kod.md`)
+
+194 punkty opisow o czasie i zawieszeniach: zgodne 162, rozjazd 12, brak w kodzie 2, nie da sie ustalic 18. Sprawdzone przeze mnie
+wyrywkowo i wazne dla tematu: `aplikacja.md:165` "samo zobaczenie pliku niczego nie zapisuje" - kod pisze wpis `nowy_skan` przed
+zleceniem (S2-02); `aplikacja.md:56` - blokada "Zamknij piec" (S2-16); `baza.md:10` - komunikat przy zajetej bazie (S2-17);
+`pula.md:55` "folder archiwalny nie jest czytany" - `indeks.py:215-221` listuje kazdy folder zrodla przy kazdym odswiezeniu
+(czas odswiezenia rosnie z archiwum, S2-06); `samokontrola.md:176-177` - `quick_check` do 4 s trwa dluzej niz czekanie polecen
+(0,2 s), wiec samokontrola uruchomiona obok programu moze dac "Decyzja NIE zostala zapisana"; `pamiec_puli.md:59-64` - limitu
+rozmiaru katalogu pamieci puli i usuwania wpisow ze starym odciskiem nie ma w kodzie. Pozostale rozjazdy (7) sa drobne - w pliku.
 
 ## 5. Proby
 
@@ -198,7 +229,8 @@ Przejrzane: `kontroler_api.py` (ok. 1050 z ok. 4740 linii: 1-190, 1158-1567, 204
 4062-4128), `samokontrola.py` (ok. 320 z 1432: 1-140, 286-321, 1289-1432 i wyszukiwanie czekan), `wspolczynniki.py` 273-402
 (tylko transakcje), `dzien_skanera_rdzen.py` 239-262 i 1342-1369 (funkcje uzywane przez `scanner`), testy `test_p14_baza_zajeta.py`
 1-100 i 428-460, `test_kontroler_api.py` 1-308.
-Nieczytane przeze mnie: `ustawienia.py` 379 (tylko subagent), pozostale opisy modulow (subagent), `match.py` / `synth.py` /
+Nieczytane przeze mnie w calosci: `ustawienia.py` 379 (subagent; ja tylko wartosci domyslne i walidacja `[silnik]` / `[scanner]`,
+linie 122-137, 184-191, 335-345), pozostale opisy modulow (subagent), `match.py` / `synth.py` /
 `katalog.py` (zakres S1; sprawdzone tylko wyszukiwaniem uzycia Open3D).
 
 Zlecenia subagentow (Opus 5.5, xhigh):
