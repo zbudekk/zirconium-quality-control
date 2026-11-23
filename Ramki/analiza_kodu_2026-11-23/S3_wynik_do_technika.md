@@ -68,8 +68,9 @@ ulozenie", "skan poruszony"). Czy drugi skan tej samej pracy potrafi wyjsc zielo
 ## 4. Pytania do wlasciciela
 
 1. **Push:** sesja dziala na koncie Windows `<uzytkownik>`, nie `<konto-PC>` (plan mowi o koncie `<konto-PC>`). `git fetch` konczy
-   sie "could not read Username for https://github.com" - pracowalem na lokalnym `origin/analiza/plan` 480359f. Stan push:
-   patrz odpowiedz koncowa sesji.
+   sie "could not read Username for https://github.com" - pracowalem na lokalnym `origin/analiza/plan` 480359f. `git push -u origin
+   analiza/s3` konczy sie tak samo (23.11, kod 128): galaz `analiza/s3` NIE jest wypchnieta, commity sa tylko lokalnie
+   w `<PC-katalog>\qc-wt\analiza-s3`. Ustawien nie zmienialem - push z konta z dostepem do GitHub nalezy do wlasciciela.
 2. **S3-1:** czy pytanie o ponowny skan ma wymieniac prace czerwone / zolte bez decyzji, ktore w nowym skanie sa zielone?
 3. **S3-7:** czy zielony pierscien w stanie "wynik" zostaje, gdy sa czerwone gniazda?
 4. **Plytka okragla ramkowa a czujniki:** magnesy plytki okraglej leza na promieniu 45 mm (+-31,8 mm), kwadratowej w +-42 mm.
