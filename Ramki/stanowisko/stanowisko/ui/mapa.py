@@ -1,19 +1,27 @@
-"""mapa - mapa plytki ekranu wieczornego: wszystkie gniazda ukladu w kolorach i z podpisami WYLACZNIE ze stanu.
+"""mapa - mapa plytki: wszystkie gniazda ukladu w kolorach i z podpisami WYLACZNIE ze stanu (nowe okno, paczka E3-U1a).
 
 ``MapaPlytki.ustaw(plytka, geometria, wybrane)``: ``plytka`` to ``kontroler_api.Plytka`` (kolor ``Gniazdo.rgb`` i podpis
 ``Gniazdo.podpis`` policzyl kontroler ze ``statusy``), ``geometria`` - ``uklad.UkladPlytki`` (ksztalt plytki i gniazd)
 albo None (wtedy gniazda sa rysowane jako kratka). Widzet niczego nie liczy i nie zna statusow; klikniecie gniazda =
 sygnal ``klik(nr)``. Do testow i kontroli: ``kolory()``, ``podpisy()``, ``numery()``, ``srodek_gniazda(nr)``,
-``punkt_probny(nr)``, ``teksty_rysowane()``, ``obrys_plytki()``, ``sciecie()``.
+``punkt_probny(nr)``, ``teksty_rysowane()``, ``obrys_plytki()``, ``sciecie()``, ``wyglad_gniazda(nr)``.
+
+Wyglad (``motyw``): plytka to powierzchnia wglebiona na tle okna; gniazdo z praca jest wypelnione kolorem ze stanu, napis na
+nim ma kolor ``motyw.tekst_na``. Status nie jest rozpoznawalny tylko po barwie (SPEC p. 2): gniazdo z ubytkiem (klasa koloru
+"czerwony" ze stanu) ma jasna obwodke 2 px, gniazdo bez pracy - obwodke przerywana bez wlasnego wypelnienia (kolor ze stanu
+= kolor plytki), wybrane gniazdo - pierscien w kolorze akcentu, kursor klawiatury - pierscien przerywany; podpis statusu jest
+w gniezdzie, gdy sie miesci, i zawsze w legendzie obok mapy.
 
 Orientacja plytki na mapie: przod plytki jest na dole ekranu (napis "PRZOD PLYTKI"); kwadrat ma wyciety naroznik (pole
-``notch`` ukladu), kolo - sciecie orientacyjne po stronie przod-prawo (E3-O3, decyzja 9 planu plytek okraglych): cieciwa
-liczona z pola ``flat`` ukladu (``sciecie_mm``: ``angle_deg`` i ``dist``), rysowana pogrubiona kreska, bo prawdziwe sciecie
-ma ok. 0,6 mm glebokosci i w skali mapy byloby ledwie widoczne. Gniazda i trafianie klikniec nie zaleza od obrysu.
+``notch`` ukladu), kolo - sciecie orientacyjne po stronie przod-prawo (E3-O3): cieciwa liczona z pola ``flat`` ukladu
+(``sciecie_mm``: ``angle_deg`` i ``dist``), rysowana pogrubiona kreska, bo prawdziwe sciecie ma ok. 0,6 mm glebokosci i w skali
+mapy byloby ledwie widoczne. Gniazda i trafianie klikniec nie zaleza od obrysu.
 
 Ochrona przed kliknieciem w poprzedni obraz (A-P2): ``przygas(True)`` przygasza mape i do ``przygas(False)`` mapa nie
-przyjmuje klikniec. Klawiatura (A-D): ``ustaw_kursor(nr)`` rysuje kursor gniazda (przerywany obrys), ``sasiad(nr, dx, dy)``
-- najblizsze gniazdo w kierunku strzalki.
+przyjmuje klikniec. Poprzednia plytka (S3-14): ``oznacz_poprzednia(True)`` - w czasie analizy nowego skanu mapa jest lzej
+przygaszona (napis "POPRZEDNIA PLYTKA" stoi w naglowku plytki - nie zaslania gniazd); klikniecia dzialaja (technik moze
+konczyc poprzednia plytke). Klawiatura (A-D):
+``ustaw_kursor(nr)`` rysuje kursor gniazda, ``sasiad(nr, dx, dy)`` - najblizsze gniazdo w kierunku strzalki.
 """
 from __future__ import annotations
 
@@ -26,15 +34,22 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen, QPolygonF
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
+from .. import statusy as ST
+from . import motyw
 from . import napisy as N
-from . import styl
 
 LOG = logging.getLogger(__name__)
 MARGINES_PX = 14
 MIEJSCE_NA_PODPIS_PX = 26  # pas pod plytka na napis "przod plytki"
 KOLUMN_KRATKI = 5
 ODCINKOW_LUKU = 360  # obrys plytki okraglej ze scieciem: luk jako lamana (odchylka od okregu ponizej 0,05 piksela)
-GRUBOSC_SCIECIA_PX = 5  # kreska na cieciwie sciecia orientacyjnego (obrys plytki ma 2)
+GRUBOSC_SCIECIA_PX = 4  # kreska na cieciwie sciecia orientacyjnego (obrys plytki ma 1)
+PROMIEN_NAROZNIKA_PX = 6  # zaokraglenie naroznikow plytki kwadratowej
+OBWODKA_UBYTKU_PX = 2  # jasna obwodka gniazda z ubytkiem (na zewnatrz gniazda)
+ODSTEP_PIERSCIENIA_PX = 3  # przerwa miedzy gniazdem a pierscieniem wybranego gniazda
+GRUBOSC_PIERSCIENIA_PX = 2
+ALFA_OCHRONY = 150  # przygaszenie na czas ochrony (klikniecia pomijane)
+ALFA_POPRZEDNIEJ = 105  # lzejsze przygaszenie mapy poprzedniej plytki w czasie analizy nowego skanu (klikniecia dzialaja)
 PONOW_UKLAD_S = 60.0  # A-D2: nieudane wczytanie ukladu jest ponawiane po tylu sekundach (chwilowy blad dysku nie zostaje do restartu)
 _GEOMETRIE: dict = {}
 _BLEDY_UKLADU: dict = {}
@@ -95,7 +110,7 @@ class MapaPlytki(QWidget):
     def __init__(self, rodzic=None):
         super().__init__(rodzic)
         self.setObjectName("mapa")
-        self.setMinimumSize(*styl.ZWYKLE.mapa_min)
+        self.setMinimumSize(*motyw.UKLAD_WYSOKI.mapa_min)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._plytka = None
@@ -104,6 +119,7 @@ class MapaPlytki(QWidget):
         self._wybrane: int | None = None
         self._kursor: int | None = None
         self._przygaszona = False
+        self._poprzednia = False
         self._ksztalty: dict = {}  # nr -> (QPainterPath, QPointF srodek, promien px, szerokosc px)
         self._rozmiar_ksztaltow = None
         self._obrys = None  # (ksztalt, prostokat plytki, skala px na mm, funkcja mm -> px, uklad)
@@ -138,8 +154,18 @@ class MapaPlytki(QWidget):
     def przygaszona(self) -> bool:
         return self._przygaszona
 
+    def oznacz_poprzednia(self, poprzednia: bool) -> None:
+        """S3-14: mapa pokazuje POPRZEDNIA plytke, a wynik nowego skanu nie jest jeszcze gotowy - lzejsze przygaszenie (napis
+        jest w naglowku plytki); klikniecia dzialaja (to nie jest ochrona)."""
+        if poprzednia != self._poprzednia:
+            self._poprzednia = poprzednia
+            self.update()
+
+    def poprzednia(self) -> bool:
+        return self._poprzednia
+
     def ustaw_kursor(self, nr: int | None) -> None:
-        """Kursor klawiatury (strzalki): przerywany obrys gniazda ``nr`` (None = bez kursora)."""
+        """Kursor klawiatury (strzalki): przerywany pierscien gniazda ``nr`` (None = bez kursora)."""
         if nr != self._kursor:
             self._kursor = nr
             self.update()
@@ -179,6 +205,12 @@ class MapaPlytki(QWidget):
 
     def podpisy(self) -> dict:
         return {g.nr: g.podpis for g in self._gniazda}
+
+    def wyglad_gniazda(self, nr: int) -> dict:
+        """Cechy wygladu gniazda poza barwa (SPEC p. 2): ``obwodka_ubytku`` (jasna obwodka 2 px), ``puste`` (obwodka przerywana,
+        bez wlasnego wypelnienia), ``wybrane`` (pierscien akcentu), ``kursor`` (pierscien przerywany) - do testow."""
+        g = next(x for x in self._gniazda if x.nr == nr)
+        return {"obwodka_ubytku": self._z_ubytkiem(g), "puste": not g.prace, "wybrane": nr == self._wybrane, "kursor": nr == self._kursor}
 
     def teksty_rysowane(self) -> list:
         """Wszystkie napisy rysowane przez widzet (kontrola: zadnych sciezek, nic zielonego)."""
@@ -253,7 +285,7 @@ class MapaPlytki(QWidget):
         kolo ze scieciem (``sciecie_mm``): luk od konca do konca cieciwy zamkniety cieciwa; kolo bez sciecia: elipsa."""
         obrys = QPainterPath()
         if uk.shape != "round":
-            obrys.addRoundedRect(prostokat, 6, 6)
+            obrys.addRoundedRect(prostokat, PROMIEN_NAROZNIKA_PX, PROMIEN_NAROZNIKA_PX)
             wyciecie = uk.notch or {}
             if {"x_min", "x_max", "y_min", "y_max"} <= set(wyciecie):  # wyciecie orientacyjne: narozniki plytki i ekranu sie zgadzaja
                 naroznik = QPainterPath()
@@ -285,8 +317,8 @@ class MapaPlytki(QWidget):
         for i, nr in enumerate(numery):
             srodek = QPointF(x0 + (i % KOLUMN_KRATKI + 0.5) * bok, MARGINES_PX + (i // KOLUMN_KRATKI + 0.5) * bok)
             sciezka = QPainterPath()
-            sciezka.addEllipse(srodek, bok * 0.45, bok * 0.45)
-            self._ksztalty[nr] = (sciezka, srodek, bok * 0.45, bok * 0.9)
+            sciezka.addEllipse(srodek, bok * 0.42, bok * 0.42)
+            self._ksztalty[nr] = (sciezka, srodek, bok * 0.42, bok * 0.84)
 
     def resizeEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
         self._rozmiar_ksztaltow = None
@@ -295,15 +327,12 @@ class MapaPlytki(QWidget):
     # --- rysowanie -------------------------------------------------------------------------------
     def paintEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
         p = QPainter(self)
-        p.fillRect(self.rect(), QColor(styl.TLO_PANELU))
+        p.fillRect(self.rect(), QColor(motyw.TLO))
         if self._napis:
-            f = QFont(styl.CZCIONKA)
-            f.setPixelSize(24)
-            f.setBold(True)
-            p.setFont(f)
-            p.setPen(QColor(styl.TEKST_SLABY))
+            p.setFont(motyw.czcionka(16, True))
+            p.setPen(QColor(motyw.TEKST_POMOCNICZY))
             p.drawText(self.rect().adjusted(30, 30, -30, -30), int(Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap), self._napis)
-            self._rysuj_przygaszenie(p)
+            self._rysuj_warstwy(p)
             p.end()
             return
         self._przelicz()
@@ -313,86 +342,116 @@ class MapaPlytki(QWidget):
         for g in self._gniazda:
             if g.nr in self._ksztalty:
                 self._rysuj_gniazdo(p, g)
-        if self._wybrane in self._ksztalty:  # zaznaczenie na wierzchu: bialy i ciemny obrys
-            sciezka = self._ksztalty[self._wybrane][0]
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.setPen(QPen(QColor("#ffffff"), 9))
-            p.drawPath(sciezka)
-            p.setPen(QPen(QColor("#101418"), 5))
-            p.drawPath(sciezka)
-        if self._kursor in self._ksztalty:  # kursor klawiatury: przerywany obrys w kolorze akcentu
-            sciezka = self._ksztalty[self._kursor][0]
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.setPen(QPen(QColor("#ffffff"), 7))
-            p.drawPath(sciezka)
-            pioro = QPen(QColor(styl.AKCENT), 4)
-            pioro.setStyle(Qt.PenStyle.DashLine)
-            p.setPen(pioro)
-            p.drawPath(sciezka)
-        self._rysuj_przygaszenie(p)
+        if self._wybrane in self._ksztalty:  # wybrane gniazdo: pierscien akcentu na zewnatrz gniazda, z przerwa w kolorze plytki
+            odstep, grubosc = ODSTEP_PIERSCIENIA_PX, GRUBOSC_PIERSCIENIA_PX
+            self._pierscien(p, self._wybrane, ((motyw.AKCENT, 2 * (odstep + grubosc), Qt.PenStyle.SolidLine),
+                                               (motyw.WGLEBIENIE, 2 * odstep, Qt.PenStyle.SolidLine)))
+        if self._kursor in self._ksztalty:  # kursor klawiatury: przerywany pierscien tuz przy gniezdzie
+            self._pierscien(p, self._kursor, ((motyw.WGLEBIENIE, 2 * ODSTEP_PIERSCIENIA_PX, Qt.PenStyle.SolidLine),
+                                              (motyw.AKCENT_FOKUS, 2 * ODSTEP_PIERSCIENIA_PX, Qt.PenStyle.DashLine)))
+        self._rysuj_warstwy(p)
         p.end()
 
-    def _rysuj_przygaszenie(self, p: QPainter) -> None:
+    def _pierscien(self, p: QPainter, nr: int, kreski: tuple) -> None:
+        """Kreski (kolor, grubosc, styl) wzdluz obrysu gniazda ``nr``, widoczne tylko NA ZEWNATRZ gniazda (wnetrze przyciete)."""
+        sciezka = self._ksztalty[nr][0]
+        p.save()
+        calosc = QPainterPath()
+        calosc.addRect(QRectF(self.rect()))
+        p.setClipPath(calosc.subtracted(sciezka))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        for kolor, grubosc, styl in kreski:
+            pioro = QPen(QColor(kolor), grubosc)
+            pioro.setStyle(styl)
+            p.setPen(pioro)
+            p.drawPath(sciezka)
+        p.restore()
+
+    def _rysuj_warstwy(self, p: QPainter) -> None:
+        """Warstwy nad mapa: przygaszenie mapy poprzedniej plytki (S3-14) i przygaszenie na czas ochrony (A-P2)."""
+        if self._poprzednia and self._plytka is not None:
+            kolor = QColor(motyw.TLO)
+            kolor.setAlpha(ALFA_POPRZEDNIEJ)
+            p.fillRect(self.rect(), kolor)
         if self._przygaszona:
-            kolor = QColor(styl.TLO)
-            kolor.setAlpha(150)
+            kolor = QColor(motyw.TLO)
+            kolor.setAlpha(ALFA_OCHRONY)
             p.fillRect(self.rect(), kolor)
 
     def _rysuj_plytke(self, p: QPainter) -> None:
         ksztalt, prostokat, s, px, uk = self._obrys
-        p.setPen(QPen(QColor("#5b6470"), 2))
-        p.setBrush(QBrush(QColor("#f6f7f9")))
-        if ksztalt == "round" and self._sciecie is None:  # kolo bez pola flat w ukladzie: jak przed E3-O3
+        p.setPen(QPen(QColor(motyw.OBWODKA), 1))
+        p.setBrush(QBrush(QColor(motyw.WGLEBIENIE)))
+        if ksztalt == "round" and self._sciecie is None:  # kolo bez pola flat w ukladzie
             p.drawEllipse(prostokat)
         else:
             p.drawPath(self._sciezka_plytki)
         if self._sciecie is not None:  # sciecie orientacyjne plytki okraglej: pogrubiona kreska na cieciwie (przod-prawo)
-            kreska = QPen(QColor("#5b6470"), GRUBOSC_SCIECIA_PX)
+            kreska = QPen(QColor(motyw.TEKST_PRZYGASZONY), GRUBOSC_SCIECIA_PX)
             kreska.setCapStyle(Qt.PenCapStyle.RoundCap)
             p.setPen(kreska)
             p.drawLine(self._sciecie[0], self._sciecie[1])
-        f = QFont(styl.CZCIONKA)
-        f.setPixelSize(14)
-        f.setBold(True)
+        f = motyw.czcionka(11)
+        f.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 108)
         p.setFont(f)
-        p.setPen(QColor(styl.TEKST_SLABY))
-        p.drawText(QRectF(0, prostokat.bottom() + 4, self.width(), MIEJSCE_NA_PODPIS_PX), int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop),
+        p.setPen(QColor(motyw.TEKST_PRZYGASZONY))
+        p.drawText(QRectF(0, prostokat.bottom() + 6, self.width(), MIEJSCE_NA_PODPIS_PX), int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop),
                    N.MAPA_PRZOD)
+
+    @staticmethod
+    def _z_ubytkiem(g) -> bool:
+        """Gniazdo z ubytkiem: klasa koloru "czerwony" ze stanu (UBYTEK, UKRUSZONA) - dostaje jasna obwodke."""
+        return bool(g.prace) and g.kolor == ST.KOLOR_CZERWONY
+
+    def _wypelnij_gniazdo(self, p: QPainter, g, sciezka: QPainterPath) -> None:
+        """Tlo gniazda: kolor ze stanu; z ubytkiem - jasna obwodka na zewnatrz; bez pracy - obwodka przerywana."""
+        if self._z_ubytkiem(g):
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QPen(QColor(motyw.OBWODKA_UBYTKU), 2 * OBWODKA_UBYTKU_PX))
+            p.drawPath(sciezka)  # polowa kreski lezy pod wypelnieniem - zostaje obwodka na zewnatrz gniazda
+        p.setBrush(QBrush(QColor(g.rgb)))
+        if g.prace:
+            p.setPen(Qt.PenStyle.NoPen)
+        else:
+            pioro = QPen(QColor(motyw.OBWODKA_MOCNA), 1)
+            pioro.setStyle(Qt.PenStyle.DashLine)
+            p.setPen(pioro)
+        p.drawPath(sciezka)
+
+    @staticmethod
+    def _kolor_napisu(g) -> QColor:
+        return QColor(motyw.tekst_na(g.rgb) if g.prace else motyw.tekst_pustego(g.rgb))
 
     def _rysuj_gniazdo(self, p: QPainter, g) -> None:
         sciezka, srodek, promien, szer = self._ksztalty[g.nr]
-        p.setBrush(QBrush(QColor(g.rgb)))
-        p.setPen(QPen(QColor("#3a4047"), 1.5))
-        p.drawPath(sciezka)
-        kolor_tekstu = QColor(styl.tekst_na(g.rgb)) if g.prace else QColor("#8a929c")
-        p.setPen(kolor_tekstu)
-        f = QFont(styl.CZCIONKA)
-        f.setBold(True)
+        self._wypelnij_gniazdo(p, g, sciezka)
+        p.setPen(self._kolor_napisu(g))
         podluzne = szer > 3 * promien  # rynienka: numer i podpis w jednej linii
         if podluzne:
-            f.setPixelSize(int(max(13, min(26, promien * 0.62))))
+            f = motyw.czcionka(max(12, min(22, promien * 0.62)), True)
             p.setFont(f)
             tekst = f"{g.nr}   {g.podpis}" if g.podpis else str(g.nr)
             p.drawText(QRectF(srodek.x() - szer / 2, srodek.y() - promien * 0.75, szer, promien * 1.3), int(Qt.AlignmentFlag.AlignCenter), tekst)
             return
-        f.setPixelSize(int(max(12, min(26, promien * 0.52))))
+        f = motyw.czcionka(max(12, min(24, promien * 0.5)), True)
         numer = QRectF(srodek.x() - promien, srodek.y() - promien * 0.6, 2 * promien, promien * 1.2)
         if not g.podpis:
             p.setFont(f)
             p.drawText(numer, int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
             return
-        pol_szer = max(10.0, promien * 0.95 - 5)  # 5 px zapasu na obrys zaznaczonego gniazda
+        pol_szer = max(10.0, promien * 0.95 - 3)
         pole = QRectF(srodek.x() - pol_szer, srodek.y() - promien * 0.3, 2 * pol_szer, promien * 0.9)
         flagi = int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap)
-        podpis = QFont(f)
-        for rozmiar in range(int(max(9, min(18, promien * 0.36))), 7, -1):  # najwiekszy napis, ktory miesci sie w gniezdzie
-            podpis.setPixelSize(rozmiar)
-            p.setFont(podpis)
+        podpis = None
+        for rozmiar in range(int(max(9, min(16, promien * 0.34))), 7, -1):  # najwiekszy napis, ktory miesci sie w gniezdzie
+            proba = motyw.czcionka(rozmiar, True)
+            p.setFont(proba)
             potrzebne = p.boundingRect(pole, flagi, g.podpis)
             najdluzsze = max(p.fontMetrics().horizontalAdvance(slowo) for slowo in g.podpis.split())  # slowo nie lamie sie w polowie
             if najdluzsze <= pole.width() and potrzebne.width() <= pole.width() + 1 and potrzebne.height() <= pole.height() + 1:
+                podpis = proba
                 break
-        else:  # A-D7: podpis nie miesci sie nawet najmniejsza czcionka - sam numer (kolor gniazda i legenda mowia reszte)
+        if podpis is None:  # A-D7: podpis nie miesci sie nawet najmniejsza czcionka - sam numer (legenda i widok pracy mowia reszte)
             p.setFont(f)
             p.drawText(numer, int(Qt.AlignmentFlag.AlignCenter), str(g.nr))
             return

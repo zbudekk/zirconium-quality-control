@@ -7,7 +7,7 @@ wiec robi to jeden watek pomocniczy (``QThreadPool``); do okna wraca gotowy ``QI
 Watek pomocniczy nie dotyka kontrolera ani widzetow. Sciezka pliku nigdy nie trafia na ekran.
 
 Kolory obrazu to skala odchylki (szary = zgodnie z projektem, czerwony = brakuje materialu, niebieski = nadmiar) -
-jak w oknie testowym; to nie sa kolory statusow.
+jak w oknie testowym; to nie sa kolory statusow. Tlo obrazu to powierzchnia wglebiona okna (``motyw.WGLEBIENIE``, E3-U1a).
 """
 from __future__ import annotations
 
@@ -17,7 +17,10 @@ import logging
 from PySide6.QtCore import QObject, QPointF, QRunnable, Qt, QThreadPool, Signal
 from PySide6.QtGui import QColor, QImage, QPainter, QPen
 
+from . import motyw
+
 LOG = logging.getLogger(__name__)
+TLO_RGB = tuple(int(motyw.WGLEBIENIE[i:i + 2], 16) for i in (1, 3, 5))  # tlo obrazu = tlo pola obrazu w widoku pracy
 PROG_ODCHYLKI_MM = 0.08  # od tej odchylki punkt jest kolorowany (prog wykrywania z planu; patrz POTRZEBUJE w raporcie)
 SZEROKOSC_PX, WYSOKOSC_PX = 520, 230
 PAMIEC_PLIKOW = 2  # tyle ostatnich plikow podgladu trzyma watek pomocniczy (kolejne prace tej samej plytki sa od reki)
@@ -31,7 +34,8 @@ def rysuj_odchylki(P, d, ubytki=(), szer: int = SZEROKOSC_PX, wys: int = WYSOKOS
 
     P = np.asarray(P, dtype=np.float64)
     d = np.asarray(d, dtype=np.float64)
-    tlo = np.full((wys, szer, 3), 255, dtype=np.uint8)
+    tlo = np.empty((wys, szer, 3), dtype=np.uint8)
+    tlo[:] = TLO_RGB
     if P.ndim != 2 or P.shape[0] == 0 or P.shape[1] < 3 or d.shape[0] != P.shape[0]:
         return QImage(tlo.tobytes(), szer, wys, 3 * szer, QImage.Format.Format_RGB888).copy()
     lo, hi = P[:, :2].min(0) - 0.6, P[:, :2].max(0) + 0.6
@@ -67,9 +71,9 @@ def rysuj_odchylki(P, d, ubytki=(), szer: int = SZEROKOSC_PX, wys: int = WYSOKOS
             srodek = QPointF(ox + (x - lo[0]) * skala, oy + (hi[1] - y) * skala)
             r = max(0.5, srednica / 2) * skala + 5
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.setPen(QPen(QColor("#ffffff"), 5))
+            p.setPen(QPen(QColor(motyw.TEKST), 5))
             p.drawEllipse(srodek, r, r)
-            p.setPen(QPen(QColor("#101418"), 2.5))
+            p.setPen(QPen(QColor(motyw.NA_STATUSIE), 2.5))
             p.drawEllipse(srodek, r, r)
         p.end()
     return obraz

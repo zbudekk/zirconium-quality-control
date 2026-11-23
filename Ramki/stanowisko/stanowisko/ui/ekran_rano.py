@@ -1,11 +1,13 @@
 """ekran_rano - ekran trybu "Poranek" programu "Stanowisko" (paczka E3-A7): piec z plytkami porannymi, rozstrzyganie prac
 dwuznacznych, nieznanych i konfliktow, rozkladanie kuwet wedlug ekranu, "Zamknij piec" z lista zlecen kompletnych i brakow.
 
-Ekran jest strona okna ``okno.OknoWieczor`` (ten sam pasek stanu, ta sama klawiatura i ten sam kontroler); okno pokazuje go,
-gdy ``stan.tryb == "rano"``. Zasady jak na ekranie wieczornym (kontrakt ``kontroler_api``, wersja 3):
+Ekran jest strona okna ``okno.OknoStanowiska`` (te same paski, ta sama klawiatura i ten sam kontroler); okno pokazuje go,
+gdy ``stan.tryb == "rano"``. E3-U1a: uklad ekranu porannego jest DOTYCHCZASOWY (nowy uklad - etap U1b), osadzony w nowym
+szkielecie okna i pokolorowany motywem (``styl.arkusz`` z barwami ``motyw``); lista osob jest w szkielecie okna (rozwijana pod
+paskiem gornym), wiec ekran poranny juz jej nie pokazuje. Zasady jak na ekranie wieczornym (kontrakt ``kontroler_api``, wersja 3):
 * ekran NICZEGO nie liczy - pokazuje ``stan.rano`` (``StanRano``) i wysyla polecenia przez okno (``okno._polecenie``);
   kolory i napisy statusow ze stanu i ``statusy``; bez sciezek i nazw plikow;
-* panele (wybor osoby, pytania plytek porannych, komunikaty) nad plytkami, bledy programu na wlasnym pasku; prawa kolumna
+* panele (pytania plytek porannych, komunikaty) nad plytkami, bledy programu na wlasnym pasku; prawa kolumna
   (rozkladanie kuwet i widok pracy / kompletne i braki) ma stale miejsce;
 * plytki pieca obok siebie (do 3 w wierszu), w gniezdzie kuweta, zab i miniatura (``mapa_rano.MapaRano``); gniazda biezacej
   kuwety obwiedzione (``StanRano.obwodka`` z kontrolera); po zmianie zestawu plytek mapy sa przez ``OCHRONA_MS`` przygaszone
@@ -36,7 +38,7 @@ from .. import statusy as ST
 from . import napisy as N
 from . import napisy_rano as NR
 from . import styl
-from .czesci import (ObszarPaneli, PanelOsoby, PanelUwagi, UkladPlynny, dzien, etykieta, godzina, panel_informacji, panel_komunikatu, panel_numeru,
+from .czesci import (ObszarPaneli, PanelUwagi, UkladPlynny, dzien, etykieta, godzina, panel_informacji, panel_komunikatu, panel_numeru,
                      panel_odmowy, panel_pytania, przycisk, wyczysc, znaczek)
 from .kandydaci import WidokPracyRano, nazwa_plytki
 from .mapa import geometria_ukladu
@@ -491,7 +493,7 @@ class PanelWyniku(QScrollArea):
 
 
 class EkranRano(QWidget):
-    """Strona "Poranek" okna. ``okno`` - ``OknoWieczor`` (kontroler, polecenia, panele, rozmiary)."""
+    """Strona "Poranek" okna. ``okno`` - ``OknoStanowiska`` (kontroler, polecenia, panele, rozmiary)."""
 
     def __init__(self, okno):
         super().__init__()
@@ -794,7 +796,6 @@ class EkranRano(QWidget):
                 self._legenda.addWidget(etykieta(NR.LEGENDA, "slaby"))
             for (napis, rgb), opis in pozycje.items():
                 z = znaczek(napis, rgb, rozmiar_px=self._r.znaczek)
-                z.setStyleSheet(z.styleSheet() + " border: 1px solid #3a4047;")
                 z.setToolTip(opis)
                 self._legenda.addWidget(z)
 
@@ -814,7 +815,6 @@ class EkranRano(QWidget):
                 if n:
                     w = ST.status_rano(klasa)
                     z = znaczek(NR.LICZNIK.format(napis=w.napis, n=n), w.hex, f"rano_licznik_{klasa}", rozmiar_px=self._r.znaczek)
-                    z.setStyleSheet(z.styleSheet() + " border: 1px solid #3a4047;")
                     z.setToolTip(w.opis)
                     self.liczniki.addWidget(z)
             self._liczniki_widzet.updateGeometry()
@@ -902,15 +902,9 @@ class EkranRano(QWidget):
     def _odswiez_uwagi(self, stan, rano) -> None:
         r = self._r
         okno = self.okno
-        pokaz_osobe = stan.wymaga_operatora or okno._zmiana_osoby
+        pokaz_osobe = stan.wymaga_operatora or okno._zmiana_osoby  # liste osob pokazuje szkielet okna (pod paskiem gornym)
         skany_rano = {p.skan_id for p in rano.plytki} if rano is not None else set()
         wszystkie = [k for k in stan.komunikaty if not k.ukryte]
-        if not stan.operatorzy:
-            teksty = [ST.tekst_komunikatu("pusta_lista_operatorow")[2]]
-        elif stan.wymaga_operatora:
-            teksty = [k.tekst for k in wszystkie if k.rodzaj == "nowa_zmiana"][-1:] + [ST.tekst_komunikatu("brak_operatora")[2]]
-        else:
-            teksty = []
         pytania = [q for q in stan.pytania if not q.ukryte and q.skan_id in skany_rano]
         plytkowe = [k for k in wszystkie if k.skan_id is not None and k.skan_id in skany_rano]
         ogolne = [k for k in wszystkie if k.skan_id is None or stan.plytka(k.skan_id) is None and k.skan_id not in skany_rano]
@@ -932,19 +926,13 @@ class EkranRano(QWidget):
             else:
                 self._numer_dla = None
         do_zamkniecia = self._prace_pytania_zamkniecia(rano)  # E3-P14 (N3): pytanie ekranu przed "Zamknij piec"
-        sygnatura = (pokaz_osobe, okno._zmiana_osoby, stan.operator, stan.operatorzy, tuple(teksty), okno._odmowa, okno._informacja,
+        sygnatura = (pokaz_osobe, stan.operator, stan.operatorzy, okno._odmowa, okno._informacja,
                      numer.skan_id if numer is not None else None, numer.numer if numer is not None else None, tuple(pytania), tuple(plytkowe),
                      tuple(reszta), tuple((p.skan_id, p.numer, p.typ) for p in (rano.plytki if rano is not None else ())), r.zwarty,
                      self._pytanie_zamkniecia, do_zamkniecia)
         if not self._zmienione("uwagi", sygnatura):
             return
         wyczysc(self.uwagi.uklad)
-        if pokaz_osobe:
-            panel = PanelOsoby(stan.operatorzy, stan.operator, teksty, zmiana_osoby=not stan.wymaga_operatora, r=r)
-            panel.wybrano.connect(okno._wybrano_osobe)
-            panel.bez_zmian.connect(okno._przelacz_zmiane_osoby)
-            panel.wyloguj.connect(okno._wyloguj)
-            self.uwagi.uklad.addWidget(panel)
         if do_zamkniecia:  # pierwsze i poza limitem paneli: pytanie, na ktore osoba wlasnie czeka
             self.uwagi.uklad.addWidget(self._panel_zamkniecia(do_zamkniecia))
         budowa = []
