@@ -40,7 +40,7 @@ Zrodlo: `Ramki/00_NADZOR_STAN.md`, koniec pliku ("Lista decyzji wlasciciela" 1-2
 ## Zasady wspolne (kazda sesja)
 
 1. Sesja pisze TYLKO: swoj plik `Ramki/analiza_kodu_2026-11-23/S<n>_*.md` i podkatalog `S<n>/` (skrypty prob, logi).
-   Osobna galaz `analiza/s<n>` od `origin/main`. Zadnych zmian w `Ramki/stanowisko`.
+   Osobna galaz `analiza/s<n>` od `analiza/plan` (= `main` b856b9e + ten folder). Zadnych zmian w `Ramki/stanowisko`.
 2. Przed czytaniem kodu modulu przeczytaj jego opis w `Ramki/stanowisko/opisy_modulow/` - znalezisko to takze
    rozjazd miedzy opisem a kodem.
 3. Podzial pracy. Sesja glowna (Fable 5.2): czyta kod krytyczny, stawia hipotezy, ocenia wage, pisze raport.

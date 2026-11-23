@@ -26,8 +26,12 @@ Wlasciciel = czlowiek; pisze z telefonu, krotko - odpowiadaj krotko, wynik na po
 - GitHub `mbuasm/qc` (prywatne). Glowna galaz `main`; 23.11 `origin/main` = b856b9e.
 - MSI: klon `<MSI>\kod\qc`; sesje dostaja wlasne worktree w `.claude\worktrees\`. Worktree bywa
   w tyle za `origin/main` - zawsze najpierw `git fetch origin main` i sprawdz `git log -1 origin/main`.
-- Gdy `git fetch` na MSI pyta o haslo i pada (23.11: "could not read Password for https://mbuas@github.com"):
-  aktualny `main` jest w klonie PC. Sprawdzona droga (tylko roznica od znanego commitu):
+- 23.11 na MSI `gh auth status` = token niewazny: `git fetch` i `git push` padaja ("could not read Password for
+  https://mbuas@github.com"). Naprawia to tylko wlasciciel (`gh auth login -h github.com`); do tego czasu commity
+  zostaja lokalnie na galezi, a w raporcie koncowym napisz, ze galaz nie jest wypchnieta.
+- Plan i ta instrukcja sa na galezi `analiza/plan` (lokalnie w repo MSI, od `main` b856b9e) - galezie sesji
+  `analiza/s<n>` zakladaj od niej.
+- Gdy `git fetch` nie dziala, aktualny `main` jest w klonie PC. Sprawdzona droga (tylko roznica od znanego commitu):
   ```
   [usunieto w kopii: opis dostepu ssh]
   git bundle verify main_pc.bundle
