@@ -1,0 +1,59 @@
+SESJA S3 - analiza kodu programu stanowiska (repo mbuasm/qc), runda 23.11.2026
+Model sesji: Fable 5.2. Subagenci: Opus 5.5 (narzedzie Agent, model "opus", effort "xhigh").
+
+Jestes sesja glowna analizy kodu programu "Stanowisko kontroli cyrkonii" (katalog Ramki/stanowisko).
+Nie masz pamieci poprzednich sesji - wszystko, czego potrzebujesz, jest w plikach wskazanych nizej.
+
+CEL S3
+Sprawdz droge wyniku od silnika do technika: czy wynik zly (czerwony, zolty, "nie sprawdzono", blad) moze
+zostac POKAZANY JAKO ZIELONY albo przypisany nie tej pracy - na ekranie, na ramce LED, w Excelu - oraz co
+w tej czesci moze ZAMROZIC okno. Kodu nie zmieniasz - wynikiem jest raport.
+
+NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci)
+1. JAK_PRACOWAC_MSI_PC.md - jak sie pracuje na MSI i PC, jak uruchamiac testy, limity, pulapki.
+2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S3".
+Oba pliki leza:
+- na PC: <PC-katalog>\analiza_kodu_2026-11-23\
+- w repo: Ramki/analiza_kodu_2026-11-23/ na galezi analiza/plan (galaz jest tylko lokalnie w repo MSI
+  <MSI>\kod\qc; nie jest wypchnieta na GitHub).
+
+GDZIE DZIALASZ
+- [usunieto w kopii: opis dostepu ssh]
+- Na PC (konto <konto-PC>): klonu <PC-katalog>\qc nie zmieniaj. Zrob "git -C <PC-katalog>\qc fetch origin",
+  potem worktree: git -C <PC-katalog>\qc worktree add -b analiza/s3 <PC-katalog>\qc-wt\analiza-s3 origin/main
+  i skopiuj do Ramki\analiza_kodu_2026-11-23\ pliki PLAN.md i JAK_PRACOWAC_MSI_PC.md z folderu obok tego promptu.
+  [usunieto w kopii: opis dostepu ssh]
+  <worktree>\Ramki\stanowisko.
+
+ZAKRES
+Ramki/stanowisko/stanowisko/: statusy.py, session.py, session_rano.py, ui/*, indicate.py, ramka_protokol.py,
+excel.py, excel_com.py. Ramki/stanowisko/ramka/ (program ramki na Raspberry Pi, w tym kalibracja.py).
+Testy tych modulow tylko jako dowod. Przed kodem modulu przeczytaj jego opis w Ramki/stanowisko/opisy_modulow/.
+
+OD CZEGO ZACZAC
+Zlec subagentowi dwa wyliczenia w zakresie jako tabele plik:linia: (1) kazde miejsce, gdzie status zamienia
+sie na kolor albo tekst dla technika, z wartoscia domyslna dla statusu nieznanego / pustego; (2) kazde miejsce,
+ktore rozroznia plytke kwadratowa / okragla / ramkowa / testowa po numerze albo nazwie ukladu. Sam zacznij od
+statusy.py i session.py (ponowny skan, decyzja technika, wynik poprzedniej plytki pokazany jako biezacy).
+Potem lista z sekcji "S3" planu. Plytki: najpierw okragla testowa R54 (nr 8) i okragla ramkowa n1-n6 na
+wkladce okraglej.
+
+ZASADY (skrot - pelna tresc w PLAN.md)
+- Piszesz TYLKO: Ramki/analiza_kodu_2026-11-23/S3_wynik_do_technika.md i podkatalog S3/ (skrypty prob, logi).
+- Testy: tylko na PC, 1 proces python, jedno polecenie do 3 min, lacznie ok. 30 min czasu PC. Bez pelnego
+  pytest, bez zrzutow ekranu, bez uruchamiania prawdziwego Excela i bez sprzetu (ramki nie ma - miejsca
+  niesprawdzalne oznacz [NIE SPRAWDZONE BEZ SPRZETU]).
+- Prace monotonne, mechaniczne i proste (uruchomienie testu i odpisanie wyniku, wyliczenia "wszystkie miejsca,
+  gdzie..." w tabeli plik:linia, porownanie opisu z kodem) zlecasz subagentom Opus 5.5 xhigh; najwyzej jeden
+  subagent testowy naraz. Ty czytasz kod krytyczny, oceniasz wage i sprawdzasz wyrywkowo wynik subagenta,
+  zanim trafi do raportu.
+- Spraw znanych (lista w PLAN.md: ramka wieczorna swieci wynik innej plytki o tym samym numerze, ramka ciemna
+  przy pytaniu o ponowny skan, E3-P14 i inne) nie zglaszasz ponownie - tylko nowe warianty i przyczyna w kodzie.
+- Format znaleziska i uklad raportu: PLAN.md, zasady wspolne p. 6 i 7.
+- Gdy cos w planie nie zgadza sie z tym, co zastaniesz, albo czegos brakuje: nie zgaduj - wpisz do raportu
+  w sekcji "Pytania do wlasciciela" i idz dalej.
+
+KONIEC SESJI
+Commit raportu na galezi analiza/s3, bez scalania i bez PR. Sprobuj "git push -u origin analiza/s3"; gdy
+pada (brak logowania gh), napisz to w odpowiedzi. Odpowiedz koncowa: liczba znalezisk B / P / D, trzy
+najwazniejsze znaleziska po jednym zdaniu, sciezka raportu, czy galaz jest wypchnieta.
