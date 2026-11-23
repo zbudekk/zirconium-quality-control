@@ -417,7 +417,7 @@ def test_a_prawdziwa_aplikacja_spacja_ramka_w_kolory_mapy_i_plan_ramki_p(tmp_pat
         plan_w = plan_na_ramce(ruch, rw)
         assert plan_w is not None and kolory_planu_w(plan_w, 1) == kolory_mapy_dla_ramki(plytka)
         # poranek: trzy plytki przez skaner i silnik
-        e.klik("przycisk_przelacz_tryb")
+        e.klik("przycisk_tryb_rano")  # E3-U1a: przelacznik trybu = tryb docelowy na pasku gornym
         K.indeks_rano_sztuczny(st.k.sesja.baza, st.k.sesja.teraz())
         for numer, (gniazda, projekty) in K.plan_scenariusza_rano().items():
             st.zapisz(st.opis_rano(numer, gniazda, projekty))
@@ -942,7 +942,7 @@ def test_k5_wylaczona_ramka_i_brak_excela_ostrzezenie_i_dalsza_praca(tmp_path, e
         skan = k.symuluj_skan("zwykla", numer=1)
         assert k.stan().plytka(skan) is not None
         assert isinstance(k.test_led(), K.Odpowiedz)  # bez polaczenia: polecenie nie rzuca wyjatku
-        e.klik("przycisk_przelacz_tryb")
+        e.klik("przycisk_tryb_rano")  # E3-U1a: przelacznik trybu = tryb docelowy na pasku gornym
         assert e.jest("komunikat_ramka_niedostepna") and not k.stan().rano.ramka
         skany = {4: k.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "pewna", 5: "pewna"}, projekty={1: 301, 2: 302, 3: 303, 5: 304})}
         zamknij_piec(e, pytanie=False)

@@ -646,6 +646,7 @@ def test_ui_pasek_postep_budowy_puli_i_wybor_krazka():
 
     from stanowisko import kontroler_api as K
     from stanowisko.ui import czesci as C
+    from stanowisko.ui import wieczor as W  # E3-U1a: widok pracy nowego okna jest w ``wieczor`` (pasek stanu zostal w ``czesci``)
 
     app = QApplication.instance() or QApplication([])
     assert app.platformName() == "offscreen"
@@ -658,7 +659,7 @@ def test_ui_pasek_postep_budowy_puli_i_wybor_krazka():
         pasek.ustaw(__import__("dataclasses").replace(stan, pula=pula))
         assert pasek.postep_puli.isVisibleTo(pasek) and (pasek.postep_puli.minimum(), pasek.postep_puli.maximum()) == (0, 40)
         assert pasek.postep_puli.value() == 10 and "10 z 40" in pasek.pula.text()
-        widok = C.WidokPracy()
+        widok = W.WidokPracy()
         plytka = stan.plytki[0]
         gniazdo = next(g for g in plytka.gniazda if g.prace)
         praca = __import__("dataclasses").replace(gniazdo.prace[0], dozwolone=("ukruszona", "ok", "wybierz_wpis"),

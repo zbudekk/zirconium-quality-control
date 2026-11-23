@@ -29,10 +29,12 @@ from stanowisko.ui import napisy_rano as NR
 
 ROZMIARY = ((1920, 1080), (1600, 900), (1536, 864), (1280, 720))  # 100 %, okno 1600 x 900, 125 %, 150 % ekranu 1920 x 1080
 RANO_KANDYDACI = ("kandydat_1_wybierz", "kandydat_2_wybierz", "praca_rano_bez_projektu", "praca_rano_przypisz", "praca_rano_zamknij")
+# E3-U1a: przelacznik trybu = dwa przyciski paska gornego (``przycisk_tryb_wieczor`` / ``przycisk_tryb_rano``; dawny ``przycisk_przelacz_tryb``)
+TRYBY = ("przycisk_tryb_wieczor", "przycisk_tryb_rano")
 RANO_STALE = ("rano_potwierdz_kuwete", "rano_cofnij_kuwete", "przycisk_zamknij_piec", "kolejnosc_liczba", "kolejnosc_numer",
-              "rano_strona_rozkladanie", "rano_strona_wynik", "przycisk_skanuj", "przycisk_przelacz_tryb")
+              "rano_strona_rozkladanie", "rano_strona_wynik", "przycisk_skanuj") + TRYBY
 WIECZOR_DECYZJE = ("przycisk_ukruszona", "przycisk_ok", "przycisk_cofnij", "przycisk_nastepna", "przycisk_zamknij_prace", "przycisk_skanuj",
-                   "przycisk_przelacz_tryb", "przycisk_zapisz_liste")
+                   "przycisk_zapisz_liste") + TRYBY
 WIECZOR_PYTANIE = ("odp_potwierdz_ponowny_skan", "odp_odrzuc_ponowny_skan")
 PROJEKTY_2 = {1: 15, 2: 16, 3: 17, 4: 18}
 
@@ -487,15 +489,18 @@ def test_poz8_nowy_skan_przed_odpowiedzia_nie_jest_sprawdzony_i_rozni_sie_od_pop
     e.zdarzenia()
     assert e.okno.pokazana_plytka() == s3 and e.jest("pytanie_ponowny_skan")
     plytka2 = N.PLYTKA_NR.format(numer=2)
-    assert e.w("mapa_naglowek").text() == N.MAPA_NAGLOWEK.format(plytka=plytka2, napis=N.PLYTKA_NOWY_SKAN)
+    # E3-U1a: naglowek mapy ma SAM numer plytki (``mapa_naglowek``), stan plytki jest ostatnia czescia opisu skanu (``mapa_godzina``:
+    # "skan z GG:MM", napis ze stanu i stan obejrzenia, czesci laczone ``N.KROPKA``); dawny napis ``N.MAPA_NAGLOWEK`` ("Plytka 2 - <stan>") nie istnieje
+    assert e.w("mapa_naglowek").text() == plytka2 and e.w("mapa_godzina").text().split(N.KROPKA)[-1] == N.PLYTKA_NOWY_SKAN
     nowy, stary = e.tekst_elementu(f"plytka_{s3}"), e.tekst_elementu(f"plytka_{s2}")
-    assert N.PLYTKA_SPRAWDZONA not in e.w("mapa_naglowek").text() and N.PLYTKA_SPRAWDZONA not in nowy
+    assert N.PLYTKA_SPRAWDZONA not in e.tekst_elementu("naglowek_plytki") and N.PLYTKA_SPRAWDZONA not in nowy
     assert N.PLYTKA_NOWY_SKAN in nowy and N.PLYTKA_POPRZEDNI_SKAN not in nowy
     assert N.PLYTKA_POPRZEDNI_SKAN in stary and N.PLYTKA_NOWY_SKAN not in stary
     zrzut(e, "po_p7_pytanie_przed_odpowiedzia")
     e.klik(odpowiedz)
     assert not e.jest("pytanie_ponowny_skan")
-    assert e.w("mapa_naglowek").text() == N.MAPA_NAGLOWEK.format(plytka=plytka2, napis=N.PLYTKA_SPRAWDZONA)
+    assert e.w("mapa_naglowek").text() == plytka2 and e.w("mapa_godzina").text().split(N.KROPKA)[-1] == N.PLYTKA_SPRAWDZONA
+    assert N.PLYTKA_NOWY_SKAN not in e.tekst_elementu("naglowek_plytki")
     assert N.PLYTKA_NOWY_SKAN not in e.tekst_elementu(f"plytka_{s3}") and N.PLYTKA_POPRZEDNI_SKAN not in e.tekst(tylko_widoczne=True)
     zrzut(e, "po_p7_po_odpowiedzi_" + ("nie" if "odrzuc" in odpowiedz else "tak"))
 
@@ -513,7 +518,9 @@ def test_poz6_przycisk_skanu_mowi_co_robi_i_nie_wyglada_jak_start_skanu(swiat):
     b = e.w("przycisk_skanuj")
     tekst = b.text()
     assert tekst == N.SKANUJ_ATRAPA and not tekst.lower().startswith("skanuj"), tekst
-    assert "na plik skanu" in tekst and "programie skanera" in tekst and "Spacja" in tekst
+    # E3-U1a: napis na pasku gornym ma jeden wiersz ("Czekam na plik skanu  [Spacja]"); to, ze skan uruchamia sie w programie
+    # skanera, mowi podpowiedz przycisku (dawny drugi wiersz napisu)
+    assert "na plik skanu" in tekst and "Spacja" in tekst and "programie skanera" in b.toolTip()
     assert b.property("rola") != "glowny" and b.toolTip() == N.SKANUJ_ATRAPA_OPIS
     zrzut(e, "po_poz6_pasek_stanu")
     e.klawisz(Qt.Key.Key_Space)

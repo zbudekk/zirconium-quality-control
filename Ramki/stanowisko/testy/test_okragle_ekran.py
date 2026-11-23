@@ -3,11 +3,16 @@
 Kryteria paczki (zlecenie 2 z 21.11.2026, plan ``Ramki/etap3/plan_plytki_okragle_n1-n6_2026-11-21.md`` sekcja 4 "E3-O3"):
   (1) mapa plytki okraglej (wieczor ``MapaPlytki`` i rano ``MapaRano``, uklad testowy i ramkowy) ma sciecie orientacyjne po
       stronie przod-prawo, z geometrii pola ``flat`` ukladu (``uklad.json``), nie z liczb wpisanych w kod; klik w 19 z 19
-      (wieczorna) i 24 z 24 (poranna) gniazd trafia w dobre gniazdo; kwadrat: 0 zmian (obraz i obrys przed = po),
+      (wieczorna) i 24 z 24 (poranna) gniazd trafia w dobre gniazdo; kwadrat: obrys bez zmian (zaokraglony prostokat
+      z wycietym naroznikiem, bez sciecia),
   (2) ``porownaj.opis_ukladu`` odroznia plytke okragla ramkowa od testowej; napis miesci sie w oknie proby przy 1536 x 864.
 
-"Przed" w tescie kwadratu to ``StaryObrys`` - doslowna kopia rysowania plytki sprzed paczki (commit 8001b55): obraz mapy
-kwadratowej musi byc bajt w bajt rowny obrazowi z tamtego kodu, a obraz mapy okraglej musi sie od niego roznic.
+Od paczki E3-U1a (nowe okno, ``motyw``) mapa ma nowy wyglad: plytka = ``motyw.WGLEBIENIE`` na tle ``motyw.TLO``, obwodka 1 px,
+naroznik kwadratu zaokraglony ``mapa.PROMIEN_NAROZNIKA_PX``, sciecie kola rysowane kreska ``mapa.GRUBOSC_SCIECIA_PX``. Dawny
+wzorzec "obraz kwadratu bajt w bajt jak rysunek sprzed E3-O3" (``StaryObrys``, kolor plytki ``#f6f7f9``) stracil sens; zamiast
+niego: obrys kwadratu = zaokraglony prostokat minus naroznik ``notch`` (rownosc sciezek jak dotad), piksel w wycietym narozniku
+i miedzy cieciwa a dawnym lukiem ma kolor tla okna, piksel tuz wewnatrz plytki - kolor plytki; mapa ramkowa i testowa tej samej
+plytki daja ten sam obraz; mapa okragla rozni sie od kola bez sciecia (rysunek sprzed E3-O3) i od kwadratu obrysem.
 Zrzuty calego okna: zmienna ``E3_ZRZUTY`` = katalog na PNG (jak w ``test_ui_rozdzielczosc``). Plik jest ASCII.
 """
 from __future__ import annotations
@@ -64,62 +69,22 @@ def plytka(uk):
     return K.Plytka(skan_id=1, status="przyjety", aktywna=True, napis="proba", uklad=uk.nazwa, gniazda=gniazda)
 
 
-def _stary_obrys(mapa, p) -> None:
-    """Rysowanie plytki SPRZED paczki E3-O3 (``mapa.MapaPlytki._rysuj_plytke`` z commita 8001b55, bez zmian)."""
-    from PySide6.QtCore import QRectF, Qt
-    from PySide6.QtGui import QBrush, QColor, QFont, QPainterPath, QPen
-
-    from stanowisko.ui import mapa as M
-    from stanowisko.ui import napisy as N
-    from stanowisko.ui import styl
-
-    ksztalt, prostokat, s, px, uk = mapa._obrys
-    p.setPen(QPen(QColor("#5b6470"), 2))
-    p.setBrush(QBrush(QColor("#f6f7f9")))
-    if ksztalt == "round":
-        p.drawEllipse(prostokat)
-    else:
-        obrys = QPainterPath()
-        obrys.addRoundedRect(prostokat, 6, 6)
-        wyciecie = uk.notch or {}
-        if {"x_min", "x_max", "y_min", "y_max"} <= set(wyciecie):
-            naroznik = QPainterPath()
-            naroznik.addRect(QRectF(px(wyciecie["x_min"], wyciecie["y_max"]), px(wyciecie["x_max"] + 2, wyciecie["y_min"] - 2)))
-            obrys = obrys.subtracted(naroznik)
-        p.drawPath(obrys)
-    f = QFont(styl.CZCIONKA)
-    f.setPixelSize(14)
-    f.setBold(True)
-    p.setFont(f)
-    p.setPen(QColor(styl.TEKST_SLABY))
-    p.drawText(QRectF(0, prostokat.bottom() + 4, mapa.width(), M.MIEJSCE_NA_PODPIS_PX), int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop),
-               N.MAPA_PRZOD)
-
-
-def klasa_mapy(rodzaj: str, stara: bool = False):
+def klasa_mapy(rodzaj: str):
     from stanowisko.ui.mapa import MapaPlytki
     from stanowisko.ui.mapa_rano import MapaRano
 
-    baza = MapaPlytki if rodzaj == "wieczor" else MapaRano
-    if not stara:
-        return baza
-
-    class StaryObrys(baza):
-        def _rysuj_plytke(self, p) -> None:
-            _stary_obrys(self, p)
-
-    return StaryObrys
+    return MapaPlytki if rodzaj == "wieczor" else MapaRano
 
 
 @pytest.fixture
 def mapy():
-    """Funkcja ``nowa(rodzaj, uk, rozmiar, stara=False)`` -> pokazany widzet mapy z plytka ``plytka(uk)``; zamykane po tescie."""
+    """Funkcja ``nowa(rodzaj, uk, rozmiar, wybrane=2)`` -> pokazany widzet mapy z plytka ``plytka(uk)``; zamykane po tescie."""
     from PySide6.QtTest import QTest
 
     otwarte = []
 
-    def nowa(rodzaj: str, uk, rozmiar: tuple, stara: bool = False, wybrane: int | None = 2):
-        klasa = klasa_mapy(rodzaj, stara)
+    def nowa(rodzaj: str, uk, rozmiar: tuple, wybrane: int | None = 2):
+        klasa = klasa_mapy(rodzaj)
         m = klasa() if rodzaj == "wieczor" else klasa(1)
         m.resize(*rozmiar)
         if rodzaj == "wieczor":
@@ -221,22 +186,51 @@ def test_mapa_okragla_ma_sciecie_po_stronie_przod_prawo(mapy, rodzaj, nazwa, roz
         assert obrys.contains(QPointF(cx + kx * za_cieciwa * w, cy + ky * za_cieciwa * w))
 
 
+def kolor(obraz, punkt) -> str:
+    return obraz.pixelColor(round(punkt.x()), round(punkt.y())).name().upper()
+
+
+def wolny_punkt(m, punkt) -> bool:
+    """Punkt mapy, w ktorym nic nie jest narysowane poza plytka / tlem: z dala od gniazd (``gniazdo_w_punkcie`` ma 8 px
+    zapasu - obejmuje obwodki i pierscienie gniazd) i co najmniej 4 px od obrysu plytki (obwodka 1 px z wygladzaniem)."""
+    from PySide6.QtCore import QPointF
+
+    if m.gniazdo_w_punkcie(punkt) is not None:
+        return False
+    obrys = m.obrys_plytki()
+    w_srodku = obrys.contains(punkt)
+    return all(obrys.contains(QPointF(punkt.x() + dx, punkt.y() + dy)) == w_srodku for dx in (-4, 0, 4) for dy in (-4, 0, 4))
+
+
 @pytest.mark.parametrize("nazwa", ["okragla_wieczorna", "okragla_ramkowa_poranna"])
 @pytest.mark.parametrize("rodzaj", ["wieczor", "rano"])
 def test_sciecie_widac_na_obrazie(mapy, rodzaj, nazwa):
-    """Piksel miedzy cieciwa a dawnym lukiem ma kolor tla panelu (plytki tam nie ma), a w rysunku sprzed paczki - kolor plytki."""
-    from stanowisko.ui import styl
+    """Piksel miedzy cieciwa a dawnym lukiem ma kolor tla okna (plytki tam nie ma), a piksel tuz przed cieciwa (od strony
+    srodka, poza kreska sciecia) - kolor plytki. (Przed E3-U1a: tlo panelu ``styl.TLO_PANELU`` i porownanie z rysunkiem sprzed
+    E3-O3, w ktorym w tym miejscu byla plytka - ``#f6f7f9``; to, ze bez sciecia byla tam plytka, sprawdza teraz geometria kola.)"""
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QPainterPath
+
+    from stanowisko.ui import mapa as M
+    from stanowisko.ui import motyw
 
     uk = uklad(nazwa)
     rozmiar = (2000, 1900)  # duza mapa: sciecie 0,64 mm ma tu ok. 12 pikseli glebokosci
-    nowa, stara = mapy(rodzaj, uk, rozmiar), mapy(rodzaj, uk, rozmiar, stara=True)
+    nowa = mapy(rodzaj, uk, rozmiar, wybrane=None)
+    obraz = nowa.grab().toImage()
     cx, cy, r = kolo_na_ekranie(nowa)
     odl = uk.flat["dist"] * 2 * r / uk.d
     assert r - odl > 10
-    w = math.sqrt(0.5) * (odl + r) / 2
-    x, y = round(cx + w), round(cy + w)
-    assert nowa.grab().toImage().pixelColor(x, y).name() == styl.TLO_PANELU.lower()
-    assert stara.grab().toImage().pixelColor(x, y).name() == "#f6f7f9"
+    w = math.sqrt(0.5)
+    za_cieciwa = QPointF(cx + w * (odl + r) / 2, cy + w * (odl + r) / 2)
+    assert kolor(obraz, za_cieciwa) == motyw.TLO.upper()
+    kolo = QPainterPath()  # plytka narysowana jak przed E3-O3 (kolo bez sciecia): ten punkt bylby na plytce
+    kolo.addEllipse(nowa._obrys[1])
+    assert kolo.contains(za_cieciwa) and not nowa.obrys_plytki().contains(za_cieciwa)
+    przed = [QPointF(cx + w * (odl - d), cy + w * (odl - d)) for d in range(M.GRUBOSC_SCIECIA_PX + 4, 80)]
+    przed = [p for p in przed if wolny_punkt(nowa, p)]
+    assert przed, "brak punktu plytki przed cieciwa z dala od gniazd"
+    assert kolor(obraz, przed[0]) == motyw.WGLEBIENIE.upper(), (przed[0], kolor(obraz, przed[0]))
 
 
 # ----------------------------------------------------------------------------
@@ -283,27 +277,69 @@ def test_klik_w_kazde_gniazdo_trafia_w_dobre_gniazdo(mapy, rodzaj, nazwa, rozmia
 @pytest.mark.parametrize("rozmiar", ROZMIARY_MAPY)
 @pytest.mark.parametrize("nazwa", KWADRATY)
 @pytest.mark.parametrize("rodzaj", ["wieczor", "rano"])
-def test_mapa_kwadratowa_bez_zmian(mapy, rodzaj, nazwa, rozmiar):
-    from PySide6.QtCore import QRectF
+def test_mapa_kwadratowa_obrys_z_wycieciem_naroznika_i_kolory_motywu(mapy, rodzaj, nazwa, rozmiar):
+    """(Dawniej ``test_mapa_kwadratowa_bez_zmian``: obraz bajt w bajt jak rysunek sprzed E3-O3 - nowy wyglad E3-U1a zmienil
+    barwy.) Kwadrat nie ma sciecia; obrys = zaokraglony prostokat (``mapa.PROMIEN_NAROZNIKA_PX``) minus naroznik ``notch``
+    ukladu - ten sam wzor co dotad; piksel w wycietym narozniku ma kolor tla okna, piksel tuz wewnatrz plytki - kolor plytki."""
+    from PySide6.QtCore import QPointF, QRectF
     from PySide6.QtGui import QPainterPath
 
+    from stanowisko.ui import mapa as M
+    from stanowisko.ui import motyw
+
     uk = uklad(nazwa)
-    nowa, stara = mapy(rodzaj, uk, rozmiar), mapy(rodzaj, uk, rozmiar, stara=True)
+    nowa = mapy(rodzaj, uk, rozmiar, wybrane=None)
     assert nowa.sciecie() is None
-    assert nowa.grab().toImage() == stara.grab().toImage()  # obraz przed = obraz po, piksel w piksel
     _, prostokat, _, px, _ = nowa._obrys
-    wzor = QPainterPath()  # obrys kwadratu liczony wzorem sprzed paczki
-    wzor.addRoundedRect(prostokat, 6, 6)
+    wzor = QPainterPath()  # obrys kwadratu liczony wzorem (jak przed paczka E3-O3)
+    wzor.addRoundedRect(prostokat, M.PROMIEN_NAROZNIKA_PX, M.PROMIEN_NAROZNIKA_PX)
+    wyciecie = QRectF(px(uk.notch["x_min"], uk.notch["y_max"]), px(uk.notch["x_max"] + 2, uk.notch["y_min"] - 2))
     naroznik = QPainterPath()
-    naroznik.addRect(QRectF(px(uk.notch["x_min"], uk.notch["y_max"]), px(uk.notch["x_max"] + 2, uk.notch["y_min"] - 2)))
-    assert nowa.obrys_plytki() == wzor.subtracted(naroznik)
+    naroznik.addRect(wyciecie)
+    obrys = nowa.obrys_plytki()
+    assert obrys == wzor.subtracted(naroznik)
+    obraz = nowa.grab().toImage()
+    # wyciety naroznik: srodek czesci wspolnej wyciecia i prostokata plytki - plytki tam nie ma, widac tlo okna
+    w_narozniku = wyciecie.intersected(prostokat).center()
+    assert prostokat.contains(w_narozniku) and not obrys.contains(w_narozniku) and wolny_punkt(nowa, w_narozniku)
+    assert kolor(obraz, w_narozniku) == motyw.TLO.upper(), (w_narozniku, kolor(obraz, w_narozniku))
+    # tuz wewnatrz plytki: punkty 6 px od krawedzi prostokata plytki (wzdluz czterech bokow), z dala od gniazd i od wyciecia
+    kraniec = []
+    for i in range(1, 20):
+        t = i / 20
+        x, y = prostokat.left() + t * prostokat.width(), prostokat.top() + t * prostokat.height()
+        kraniec += [QPointF(x, prostokat.top() + 6), QPointF(x, prostokat.bottom() - 6), QPointF(prostokat.left() + 6, y),
+                    QPointF(prostokat.right() - 6, y)]
+    wewnatrz = [p for p in kraniec if obrys.contains(p) and wolny_punkt(nowa, p)]
+    assert len(wewnatrz) >= 8, f"za malo punktow plytki przy krawedzi z dala od gniazd: {len(wewnatrz)}"
+    zle = [(p.x(), p.y(), kolor(obraz, p)) for p in wewnatrz if kolor(obraz, p) != motyw.WGLEBIENIE.upper()]
+    assert not zle, f"piksele plytki przy krawedzi w innym kolorze niz {motyw.WGLEBIENIE}: {zle[:5]}"
 
 
 @pytest.mark.parametrize("nazwa", OKRAGLE)
 def test_mapa_okragla_rozni_sie_od_rysunku_sprzed_paczki(mapy, nazwa):
+    """Przed E3-O3 plytka okragla byla rysowana jako pelne kolo (``drawEllipse`` prostokata plytki): obrys mapy okraglej
+    jest od kola rozny (sciecie odcina czesc kola, reszta kola zostaje), a mapa okragla rozni sie od mapy kwadratowej tego
+    samego typu plytki obrysem i obrazem."""
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QPainterPath
+
     uk = uklad(nazwa)
-    nowa, stara = mapy("wieczor", uk, ROZMIARY_MAPY[0]), mapy("wieczor", uk, ROZMIARY_MAPY[0], stara=True)
-    assert nowa.grab().toImage() != stara.grab().toImage()
+    nowa = mapy("wieczor", uk, ROZMIARY_MAPY[0])
+    kolo = QPainterPath()
+    kolo.addEllipse(nowa._obrys[1])
+    obrys = nowa.obrys_plytki()
+    assert obrys != kolo
+    cx, cy, r = kolo_na_ekranie(nowa)
+    odl = uk.flat["dist"] * 2 * r / uk.d
+    w = math.sqrt(0.5) * (odl + r) / 2  # miedzy cieciwa a lukiem: przed E3-O3 plytka, teraz nie
+    assert kolo.contains(QPointF(cx + w, cy + w)) and not obrys.contains(QPointF(cx + w, cy + w))
+    for kx, ky in ((1, -1), (-1, -1), (-1, 1)):  # w pozostalych kierunkach ukosnych kolo i obrys sie zgadzaja
+        assert kolo.contains(QPointF(cx + kx * w, cy + ky * w)) and obrys.contains(QPointF(cx + kx * w, cy + ky * w))
+    typ = "poranna" if "poranna" in nazwa else "wieczorna"
+    kwadrat = mapy("wieczor", uklad(typ + ("_r54" if nazwa.endswith("_r54") else "")), ROZMIARY_MAPY[0])
+    assert kwadrat.obrys_plytki() != obrys and kwadrat.sciecie() is None and nowa.sciecie() is not None
+    assert nowa.grab().toImage() != kwadrat.grab().toImage()
 
 
 def test_mapa_ramkowa_i_testowa_maja_te_sama_geometrie(mapy):
