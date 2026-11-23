@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Stanowisko - poranek</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+body{margin:0;background:#191919}
+*{box-sizing:border-box}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid #6FB0F5;outline-offset:2px}
+table{border-collapse:collapse}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-direction: column; background: #191919; color: #F2F2F2; font-family: 'Segoe UI Variable Text', 'Segoe UI', Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.4; font-variant-numeric: tabular-nums">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; min-height: 52px; padding: 8px 20px; background: #303030; border-bottom: 1px solid #3F3F3F">
+<div style="font-size: 15px; font-weight: 600; letter-spacing: 0.01em">Stanowisko</div>
+<div role="group" aria-label="Tryb pracy" style="display: flex; border: 1px solid #4A4A4A; border-radius: 4px; overflow: hidden">
+<button type="button" aria-pressed="false" style="min-height: 34px; padding: 0 16px; border: 0; background: #303030; color: #B8B8B8">Wieczór</button>
+<button type="button" aria-pressed="true" style="min-height: 34px; padding: 0 16px; border: 0; background: #338CED; color: #0F1720; font-weight: 600">Poranek</button>
+</div>
+<div style="color: #B8B8B8">24.11.2026 · zmiana 1 (6–14)</div>
+<div style="flex: 1 1 0"></div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="color: #B8B8B8">Osoba</span>
+<button type="button" style="min-height: 34px; padding: 0 12px; border: 1px solid #4A4A4A; border-radius: 4px; background: #242424; color: #F2F2F2">Technik 2 · zmień</button>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<section aria-label="Piec" style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid #2B2B2B">
+<div style="padding: 16px 16px 12px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 600">Piec 12</h2>
+<div style="margin-top: 2px; font-size: 13px; color: #B8B8B8">otwarty od 06:10 · 2 płytki · 14 prac</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 0 12px">
+<sc-for list="{{plates}}" as="p" hint-placeholder-count="2">
+<button type="button" style="display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid {{p.border}}; border-radius: 4px; background: {{p.bg}}; color: #F2F2F2">
+<span style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+<span style="font-size: 15px; font-weight: 600">Płytka {{p.nr}}</span>
+<span style="font-size: 12px; color: #9E9E9E">{{p.time}}</span>
+</span>
+<span style="font-size: 13px; color: #B8B8B8">{{p.state}}</span>
+</button>
+</sc-for>
+</div>
+<div style="margin-top: auto; padding: 16px; border-top: 1px solid #2B2B2B; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; color: #B8B8B8">Do zamknięcia pieca brakuje:</div>
+<ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #F2F2F2; display: flex; flex-direction: column; gap: 4px">
+<li>1 praca czeka na wybór projektu</li>
+<li>2 kuwety nierozłożone</li>
+</ul>
+<button type="button" disabled style="min-height: 44px; padding: 0 16px; border: 1px solid #4A4A4A; border-radius: 4px; background: #242424; color: #9E9E9E; font-weight: 600; cursor: default">Zamknij piec</button>
+</div>
+</section>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<nav aria-label="Widoki poranka" style="display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 20px 0; border-bottom: 1px solid #2B2B2B">
+<button type="button" aria-current="page" style="min-height: 40px; padding: 0 14px; border: 0; border-bottom: 2px solid #338CED; background: transparent; color: #F2F2F2; font-weight: 600">Rozkładanie kuwet</button>
+<button type="button" style="min-height: 40px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #B8B8B8">Kompletne i braki</button>
+<button type="button" style="min-height: 40px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #B8B8B8">Ostatni zamknięty piec</button>
+<button type="button" style="min-height: 40px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #B8B8B8">Excel</button>
+</nav>
+
+<div style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 20px; padding: 20px">
+<div style="flex: 1 1 300px; min-width: 0; padding: 20px; border: 1px solid #3F3F3F; border-radius: 4px; background: #242424; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 13px; color: #B8B8B8">Teraz rozkładasz</div>
+<div style="display: flex; align-items: baseline; gap: 12px">
+<span style="font-size: 64px; line-height: 1; font-weight: 600">14</span>
+<span style="font-size: 16px; color: #B8B8B8">kuweta · 3 prace</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; font-size: 15px">
+<div>Płytka 4 — gniazda 2 i 9</div>
+<div>Płytka 5 — gniazdo 11</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" style="flex: 1 1 150px; display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 14px; border: 0; border-radius: 4px; background: #338CED; color: #0F1720; font-size: 15px; font-weight: 600">Rozłożona<span aria-hidden="true" style="padding: 1px 7px; border: 1px solid #0F1720; border-radius: 3px; font-size: 12px">Enter</span></button>
+<button type="button" style="flex: 1 1 150px; min-height: 52px; padding: 0 14px; border: 1px solid #4A4A4A; border-radius: 4px; background: transparent; color: #F2F2F2">Cofnij poprzednią</button>
+</div>
+</div>
+<div style="flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<label for="nr-kuwety" style="font-size: 13px; color: #B8B8B8">Inna kuweta — wpisz numer i naciśnij Enter</label>
+<input id="nr-kuwety" type="text" inputmode="numeric" value="" placeholder="np. 17" style="min-height: 52px; padding: 0 14px; border: 1px solid #4A4A4A; border-radius: 4px; background: #242424; color: #F2F2F2; font-size: 20px">
+<div style="font-size: 13px; color: #B8B8B8">Na ramce porannej świecą gniazda bieżącej kuwety.</div>
+</div>
+</div>
+
+<section aria-label="Kuwety" style="padding: 0 20px 20px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-bottom: 10px">
+<h2 style="margin: 0; font-size: 14px; font-weight: 600">Kuwety w tym piecu <span style="color: #B8B8B8; font-weight: 400">· 5</span></h2>
+<div role="group" aria-label="Kolejność" style="display: flex; border: 1px solid #4A4A4A; border-radius: 4px; overflow: hidden">
+<button type="button" aria-pressed="true" style="min-height: 30px; padding: 0 12px; border: 0; background: #3A3A3A; color: #F2F2F2">Od najliczniejszej</button>
+<button type="button" aria-pressed="false" style="min-height: 30px; padding: 0 12px; border: 0; background: transparent; color: #B8B8B8">Według numeru</button>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 480px; font-size: 13px">
+<thead>
+<tr style="color: #9E9E9E; text-align: left">
+<th scope="col" style="padding: 6px 12px 6px 0; font-weight: 500; border-bottom: 1px solid #3F3F3F">Kuweta</th>
+<th scope="col" style="padding: 6px 12px; font-weight: 500; border-bottom: 1px solid #3F3F3F">Prac</th>
+<th scope="col" style="padding: 6px 12px; font-weight: 500; border-bottom: 1px solid #3F3F3F">Płytki</th>
+<th scope="col" style="padding: 6px 0 6px 12px; font-weight: 500; border-bottom: 1px solid #3F3F3F">Stan</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{kuwety}}" as="k" hint-placeholder-count="5">
+<tr style="background: {{k.bg}}">
+<td style="padding: 9px 12px 9px 8px; border-bottom: 1px solid #2B2B2B; font-weight: 600">{{k.nr}}</td>
+<td style="padding: 9px 12px; border-bottom: 1px solid #2B2B2B">{{k.prac}}</td>
+<td style="padding: 9px 12px; border-bottom: 1px solid #2B2B2B">{{k.plytki}}</td>
+<td style="padding: 9px 8px 9px 12px; border-bottom: 1px solid #2B2B2B; color: {{k.fg}}">{{k.stan}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+
+<aside aria-label="Praca do rozstrzygnięcia" style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; background: #303030; border-left: 1px solid #3F3F3F">
+<div style="padding: 16px 20px 14px; border-bottom: 1px solid #3F3F3F">
+<div style="font-size: 13px; color: #B8B8B8">Płytka 5 · gniazdo 11</div>
+<div style="display: flex; align-items: center; gap: 10px; margin-top: 8px">
+<span style="display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: 3px; background: #E2B93B; color: #111111; font-weight: 600; letter-spacing: 0.02em">WYBIERZ</span>
+<span style="font-size: 13px; color: #B8B8B8">program widzi dwa pasujące projekty</span>
+</div>
+</div>
+<div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 14px; font-weight: 600">Który to projekt?</h2>
+<sc-for list="{{kandydaci}}" as="c" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid #4A4A4A; border-radius: 4px; background: #242424">
+<div style="display: flex; gap: 12px">
+<div style="flex: 0 0 72px; height: 72px; display: flex; align-items: center; justify-content: center; border: 1px dashed #5A5A5A; border-radius: 4px; color: #B8B8B8; font-size: 11px; text-align: center">miniatura projektu</div>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<div style="font-weight: 600">Kuweta {{c.kuweta}} · ząb {{c.zab}}</div>
+<div style="font-size: 13px; color: #B8B8B8">{{c.typ}}</div>
+<div style="font-size: 13px; color: #B8B8B8">pasuje w {{c.proc}} %</div>
+</div>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 14px; border: 1px solid #338CED; border-radius: 4px; background: transparent; color: #9CC9F9; font-weight: 600">To ten projekt</button>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: auto; padding: 16px 20px 20px; border-top: 1px solid #3F3F3F; display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" style="flex: 1 1 130px; min-height: 44px; padding: 0 12px; border: 1px solid #4A4A4A; border-radius: 4px; background: transparent; color: #F2F2F2">Przypisz ręcznie</button>
+<button type="button" style="flex: 1 1 130px; min-height: 44px; padding: 0 12px; border: 1px solid #4A4A4A; border-radius: 4px; background: transparent; color: #F2F2F2">Bez projektu</button>
+</div>
+</aside>
+</div>
+
+<footer style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 28px; min-height: 32px; padding: 6px 20px; background: #242424; border-top: 1px solid #3F3F3F; font-size: 12px; color: #B8B8B8">
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #338CED"></span>Skaner: czekam na plik skanu</span>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #B8B8B8"></span>Analiza: nic nie czeka</span>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #338CED"></span>Projekty: 412 plików</span>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #338CED"></span>Ramki: W gotowa · P gotowa (płytka 4)</span>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E2B93B"></span>Excel: niedostępny</span>
+<span style="flex: 1 1 0"></span>
+<span>wersja 0.3.4</span>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const plates = [
+      { nr: '4', time: '06:12', state: '8 prac · wszystkie rozpoznane', on: true },
+      { nr: '5', time: '06:15', state: '6 prac · 1 do wyboru' }
+    ].map((p) => ({ ...p, border: p.on ? '#338CED' : '#3F3F3F', bg: p.on ? '#1D2733' : '#242424' }));
+    const kuwety = [
+      { nr: '14', prac: '3', plytki: '4, 5', stan: 'teraz', now: true },
+      { nr: '9', prac: '3', plytki: '4', stan: 'czeka' },
+      { nr: '21', prac: '4', plytki: '4, 5', stan: 'rozłożona' },
+      { nr: '17', prac: '2', plytki: '5', stan: 'rozłożona' },
+      { nr: '12', prac: '2', plytki: '4', stan: 'brakuje 1 pracy' }
+    ].map((k) => ({ ...k, bg: k.now ? '#1D2733' : 'transparent', fg: k.now ? '#9CC9F9' : '#B8B8B8' }));
+    const kandydaci = [
+      { kuweta: '14', zab: '26', typ: 'korona', proc: '91' },
+      { kuweta: '9', zab: '26', typ: 'korona', proc: '88' }
+    ];
+    return { plates: plates, kuwety: kuwety, kandydaci: kandydaci };
+  }
+}
+</script>
+</body>
+</html>
