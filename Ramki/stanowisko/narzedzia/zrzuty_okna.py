@@ -56,13 +56,18 @@ def _wieczor(katalog: Path, *, osoba: bool = True):
     return k, zegar, (pierwsza, druga)
 
 
-def scena_praca_czerwona(katalog: Path, rozmiar: tuple):
+def _otworz_prace(e, gniazdo: int) -> None:
+    """Klik w gniazdo i czekanie, az kolumna "Praca" pokaze obraz odchylek (obraz wczytuje watek pomocniczy)."""
     from stanowisko.ui import napisy as N
 
+    e.klik_gniazdo(gniazdo)
+    e.czekaj(lambda: e.jest("widok_pracy") and N.OBRAZ_WCZYTYWANIE not in e.teksty(), 10.0, "widok pracy z obrazem odchylek")
+
+
+def scena_praca_czerwona(katalog: Path, rozmiar: tuple):
     k, _, _ = _wieczor(katalog)
     e = Z.Ekran(k, rozmiar)
-    e.klik_gniazdo(7)
-    e.czekaj(lambda: e.jest("widok_pracy") and N.OBRAZ_WCZYTYWANIE not in e.teksty(), 10.0, "widok pracy z obrazem odchylek")
+    _otworz_prace(e, 7)
     return e, k
 
 
@@ -84,8 +89,7 @@ def scena_bez_osoby(katalog: Path, rozmiar: tuple):
     k, _, _ = _wieczor(katalog, osoba=False)
     e = Z.Ekran(k, rozmiar)
     e.czekaj(lambda: e.jest("panel_osoba"), 5.0, "lista osob")
-    e.klik_gniazdo(3)
-    e.czekaj(lambda: e.jest("widok_pracy"), 5.0, "widok pracy bez osoby")
+    _otworz_prace(e, 3)
     return e, k
 
 
@@ -101,7 +105,7 @@ def scena_analiza_nowego_skanu(katalog: Path, rozmiar: tuple):
 def scena_bledy_programu(katalog: Path, rozmiar: tuple):
     k, _, _ = _wieczor(katalog)
     e = Z.Ekran(k, rozmiar)
-    e.klik_gniazdo(7)
+    _otworz_prace(e, 7)
     k.symuluj_blad_zapisu(1)
     k.symuluj_skaner(dostepny=False)
     e.czekaj(lambda: e.jest("lista_bledow"), 5.0, "lista bledow programu")
