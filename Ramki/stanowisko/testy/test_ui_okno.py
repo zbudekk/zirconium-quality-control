@@ -880,3 +880,88 @@ def test_kolor_statusu_poza_mapa_ze_stanu_znacznik_legenda_kafelek_i_napis_decyz
         pole = next(p for p in pola if p.findChildren(QLabel)[0].text() == N.LICZNIK.format(napis=wiersz.napis, n=n))
         kropka = pole.findChildren(Kropka)[0]
         assert kropka.kolor().lower() == wiersz.hex.lower() and _kolor_kropki(kropka) == wiersz.hex.lower(), klasa
+
+
+# ----------------------------------------------------------------------------
+# recenzja PR #62, D6: luki w testach (wstrzykniecia O17, O19, O21) i D4 (pasek stanu z ramkami)
+# ----------------------------------------------------------------------------
+def test_nowa_plytka_nie_zabiera_otwartej_pracy_na_plytce_bez_prac_do_obejrzenia(atrapa, ekrany, zegar):
+    """D6 (O17): pokazana plytka nie ma nic do obejrzenia (same zielone), technik ma otwarta prace - nowy wynik nie zabiera ekranu
+    (sama otwarta praca wstrzymuje przelaczenie); po zamknieciu pracy kolejny wynik zajmuje ekran sam."""
+    from PySide6.QtCore import Qt
+
+    atrapa.wybierz_operatora("Technik A")
+    a = atrapa.symuluj_skan("czysta", numer=1, projekty={n: 10 + n for n in range(1, 5)})
+    e = ekrany(atrapa)
+    e.klik_gniazdo(1)
+    praca = e.okno._praca_widoku
+    zegar.przesun(2)
+    b = atrapa.symuluj_skan("czysta", numer=2, projekty={n: 20 + n for n in range(1, 5)})
+    assert e.okno.pokazana_plytka() == a and e.jest("widok_pracy") and e.okno._praca_widoku == praca and e.jest("przycisk_nowa_plytka")
+    e.klawisz(Qt.Key.Key_Escape)
+    zegar.przesun(2)
+    c = atrapa.symuluj_skan("czysta", numer=3, projekty={n: 30 + n for n in range(1, 5)})
+    assert e.okno.pokazana_plytka() == c and b in e.plytki()
+
+
+def test_s3_3_tytul_pytania_plytki_z_numerem_ma_numer_i_godzine_skanu(atrapa, ekrany):
+    """D6 (O19): pytanie plytki Z numerem (tu: plytka nie z trybu, numer 4) - tytul pozycji strefy nazywa skan: numer plytki i godzina."""
+    from stanowisko.ui import napisy as N
+    from stanowisko.ui.czesci import godzina, nazwa_plytki
+
+    atrapa.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("nie_z_trybu", numer=4)
+    e = ekrany(atrapa)
+    assert pokazana(e) == ["pytanie_plytka_nie_z_trybu"]
+    plytka = atrapa.stan().plytka(skan)
+    oczekiwany = N.PLYTKA_ZE_SKANEM.format(plytka=nazwa_plytki(4), godzina=godzina(plytka.czas))
+    assert godzina(plytka.czas) and any(oczekiwany in t for t in e.tekst_elementu("pytanie_plytka_nie_z_trybu").split("\n")), oczekiwany
+
+
+def test_klik_pracy_poza_gniazdem_pod_ochrona_jest_pomijany(atrapa, ekrany, zegar):
+    """D6 (O21): tuz po zmianie mapy (technik przelaczyl plytke - ochrona 800 ms) klikniecie pracy poza gniazdami nie otwiera jej;
+    po ochronie otwiera."""
+    atrapa.wybierz_operatora("Technik A")
+    a = atrapa.symuluj_skan("zwykla", numer=1, poza_gniazdem=1)
+    zegar.przesun(2)
+    b = atrapa.symuluj_skan("czysta", numer=2, projekty={n: 10 + n for n in range(1, 5)})
+    e = ekrany(atrapa)
+    assert e.okno.pokazana_plytka() == b
+    poza = atrapa.stan().plytka(a).poza_gniazdem[0].praca_id
+    e.okno._ochrona.setInterval(3000)  # klikniecie trafia w ochrone takze na obciazonym PC
+    e.klik(f"plytka_{a}")
+    assert e.okno.pokazana_plytka() == a and e.okno.ochrona_aktywna()
+    e.okno._klik_poza(poza)  # sygnal panelu "Poza gniazdami" (jak klikniecie technika)
+    assert e.okno.ochrona_aktywna(), "proba za wolna"
+    e.odczekaj(10)
+    assert e.okno._poza is None and not e.jest("widok_pracy")
+    e.po_ochronie()
+    e.okno._klik_poza(poza)
+    e.odczekaj(10)
+    assert e.okno._poza == poza and e.jest("widok_pracy") and e.okno.widok.praca_id == poza
+
+
+@pytest.mark.parametrize("rozmiar", ROZMIARY)
+def test_pasek_stanu_z_ramkami_bez_skrotow_w_zwyklej_pracy(atrapa, ekrany, rozmiar):
+    """D4 (czesc bez decyzji wlasciciela): stanowisko ma ramki W i P - pasek stanu z polem ramek w zwyklej pracy (ramki gotowe, analiza
+    z jednym skanem w kolejce, ramka P bez polaczenia, folder skanera niedostepny) bez skrotow przy 1920 x 1080, 1536 x 864
+    i 1280 x 720. Scena "Spacja + analiza + kolejka" przy 1280 x 720 skraca pola - do decyzji wlasciciela (raport, Runda 2)."""
+    from stanowisko import kontroler_api as K
+
+    atrapa.wybierz_operatora("Technik A")
+    atrapa.symuluj_skan("zwykla")
+    e = ekrany(atrapa, rozmiar)
+
+    def ramki(**p):
+        atrapa._stan_ramek = K.StanRamek(wieczorna=K.StanRamki("W", polaczona=True, plytka=1), poranna=K.StanRamki("P", **p))
+        atrapa._odswiez_zywe()
+
+    kroki = (("ramki gotowe", lambda: ramki(polaczona=True)), ("analiza + kolejka 1", lambda: atrapa.symuluj_postep(udzial=0.4, czeka=1)),
+             ("ramka P bez polaczenia", lambda: ramki(polaczona=False)), ("koniec analizy", lambda: atrapa.symuluj_postep(udzial=None)),
+             ("skaner niedostepny", lambda: atrapa.symuluj_skaner(dostepny=False)))
+    for opis, krok in kroki:
+        krok()
+        e.zdarzenia()
+        assert e.w("napis_ramki").isVisibleTo(e.okno) and e.w("napis_ramki").text(), opis
+        usterki = UW.sprawdz_uklad(e, rozmiar)
+        assert not usterki, f"{rozmiar} {opis}:\n" + "\n".join(usterki)
