@@ -7,7 +7,10 @@ Tylko biblioteka standardowa (okno startuje z Pythona paczki, ZANIM powstanie sr
 3. ``polecenie_instalacji`` - wiersz polecen ``instalator.py zainstaluj`` (ta sama droga co ``zainstaluj.cmd``: kody wyjscia,
    dziennik, wersje, powrot - bez zmian); ``uruchom_instalacje`` uruchamia go z ukryta konsola i podaje wiersze wyjscia;
    ``Postep`` czyta z nich krok ``[n/9]``, ``BLAD:`` / ``CO ZROBIC:``, ikony (``SKROT ...``) i wiersz koncowy;
-4. ``zdanie_kodu`` - kod wyjscia instalatora jako zdanie; ``uruchom_program`` - start programu bez konsoli (starter ikon).
+   ``instalacja_trwa`` - czy inny instalator trzyma blokade katalogu (drugie okno), zanim okno uruchomi swoj;
+4. ``zdanie_kodu`` - kod wyjscia instalatora jako zdanie; ``rada_dla_okna`` - rada instalatora (``CO ZROBIC``) bez odeslan
+   do wiersza polecen (``zainstaluj.cmd /katalog ...``, "uruchom polecenie ponownie"); ``uruchom_program`` - start programu
+   bez konsoli (starter ikon).
 
 Tryb bez okna: ``okno_instalatora.py --bez-okna --folder-skanow X [--folder-projektow Y] [--katalog K] --osoba A [--osoba B]``.
 """
@@ -52,12 +55,14 @@ def tekst_mb(mb: int | None) -> str:
 
 
 def informacje_paczki(paczka: Path) -> dict:
-    """{wersja, potrzebne_mb (nowa wersja + Python), python_w_paczce, blad}. Bez liczenia sum (to robi instalator w kroku 1)."""
-    info = {"wersja": "?", "potrzebne_mb": None, "python_w_paczce": (paczka / I.KATALOG_PYTHONA / "python.exe").is_file(), "blad": None}
+    """{wersja, potrzebne_mb (nowa wersja + Python), najdluzsza (najdluzsza sciezka pliku pakietu wzgledem katalogu venv -
+    jak w kroku 3 instalatora), python_w_paczce, blad}. Bez liczenia sum (to robi instalator w kroku 1)."""
+    info = {"wersja": "?", "potrzebne_mb": None, "najdluzsza": None,
+            "python_w_paczce": (paczka / I.KATALOG_PYTHONA / "python.exe").is_file(), "blad": None}
     try:
         info["wersja"] = json.loads((paczka / I.PLIK_WYDANIA).read_text(encoding="utf-8"))["wersja"]
         sumy = I.wczytaj_sumy(paczka / I.PLIK_SUM_PACZKI)
-        bajty_kol, _ = I.rozmiary_kol(sorted((paczka / "kola").glob("*.whl")))
+        bajty_kol, info["najdluzsza"] = I.rozmiary_kol(sorted((paczka / "kola").glob("*.whl")))
         info["potrzebne_mb"] = I.potrzebne_miejsce_mb(paczka, sumy, bajty_kol) + I.bajty_pythona(paczka, sumy) // 2**20
     except (OSError, ValueError, KeyError, TypeError, I.BladInstalacji) as e:
         info["blad"] = f"{type(e).__name__}: {e}"
@@ -99,8 +104,18 @@ def domyslny_folder_projektow(katalog: str | Path) -> Path:
     return Path(katalog) / I.FOLDER_PROJEKTOW_DOMYSLNY
 
 
-def sprawdz_foldery(wybor: Wybor, potrzebne: int | None) -> tuple[list[str], list[str]]:
+def najdluzszy_katalog(wersja: str, najdluzsza: int) -> int:
+    """Najwieksza dlugosc sciezki miejsca instalacji, przy ktorej pliki pakietow zmieszcza sie w ``I.LIMIT_SCIEZKI`` - ta sama
+    rachuba co krok 3 instalatora (``<katalog>\\wersje\\<wersja>\\venv\\`` + najdluzsza sciezka pakietu)."""
+    dopisek = len(str(I.katalog_wersji(Path("X:/k"), wersja) / "venv")) - len(str(Path("X:/k")))
+    return I.LIMIT_SCIEZKI - 1 - najdluzsza - dopisek
+
+
+def sprawdz_foldery(wybor: Wybor, potrzebne: int | None, wersja: str | None = None,
+                    najdluzsza: int | None = None) -> tuple[list[str], list[str]]:
     """Krok 1: (bledy, uwagi). Bledy zatrzymuja przejscie dalej; uwagi (np. brak folderu projektow) tylko informuja.
+    ``wersja`` i ``najdluzsza`` (z ``informacje_paczki``) - kontrola dlugosci sciezki jak w kroku 3 instalatora (Windows), zeby
+    za dluga sciezka nie wychodzila dopiero kodem 6 w trakcie instalacji.
     Przy aktualizacji (w miejscu instalacji jest juz plik ustawien) foldery nie sa sprawdzane - zostaja z ustawien."""
     bledy, uwagi = [], []
     katalog = wybor.katalog.strip()
@@ -118,6 +133,8 @@ def sprawdz_foldery(wybor: Wybor, potrzebne: int | None) -> tuple[list[str], lis
             bledy.append(N.CEL_SREDNIK)
         elif I.katalog_synchronizowany(k):
             bledy.append(N.CEL_SYNCHRONIZOWANY)
+        elif os.name == "nt" and wersja and najdluzsza is not None and len(str(k.resolve())) > najdluzszy_katalog(wersja, najdluzsza):
+            bledy.append(N.CEL_ZA_DLUGI.format(n=len(str(k.resolve())), limit=najdluzszy_katalog(wersja, najdluzsza)))
         else:
             wolne = wolne_mb(k)
             if potrzebne is not None and wolne is not None and wolne < potrzebne:
@@ -197,19 +214,66 @@ def srodowisko_instalatora() -> dict:
     return env
 
 
-def uruchom_instalacje(polecenie: list[str], na_wiersz, przerwij=None) -> int:
+def uruchom_instalacje(polecenie: list[str], na_wiersz) -> int:
     """Uruchamia instalator (ukryta konsola) i podaje kazdy wiersz wyjscia do ``na_wiersz``; zwraca kod wyjscia.
-    ``przerwij`` (funkcja bez argumentow -> bool) sprawdzana po kazdym wierszu: True = zakoncz proces instalatora (jak
-    zamkniete okno konsoli: instalator sprzata przy nastepnym uruchomieniu, wersja biezaca bez zmian)."""
+    Bez przerywania (E3-I1 runda 2, P1): okna nie da sie zamknac w trakcie instalacji - instalator zawsze konczy sam
+    (kod wyjscia, wersja biezaca bez zmian przy bledzie), wiec nie zostaje porzucony proces z blokada katalogu."""
     proces = subprocess.Popen(polecenie, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=srodowisko_instalatora(),
                               creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0, text=True, encoding="utf-8", errors="replace")
     assert proces.stdout is not None
     for wiersz in proces.stdout:
         na_wiersz(wiersz.rstrip("\r\n"))
-        if przerwij is not None and przerwij():
-            proces.kill()
-            break
     return proces.wait()
+
+
+def instalacja_trwa(katalog: str | Path) -> bool:
+    """True, gdy w ``katalog`` dziala inny instalator albo powrot (trzyma ``instalator.blokada`` - drugie okno instalatora,
+    ``zainstaluj.cmd``). Sprawdzenie bez zakladania czegokolwiek: brak katalogu albo pliku blokady = False."""
+    plik = Path(katalog) / I.PLIK_BLOKADY_INSTALATORA
+    if not plik.is_file():
+        return False
+    try:
+        fd = os.open(plik, os.O_RDWR)
+    except OSError:
+        return False
+    try:
+        try:
+            I._blokuj(fd, True)
+        except OSError:
+            return True
+        I._blokuj(fd, False)
+        return False
+    finally:
+        os.close(fd)
+
+
+BLAD_DRUGIEGO_OKNA = "juz trwa w tym katalogu"  # fragment wiersza BLAD: instalatora, gdy blokade trzyma inny instalator
+
+# Rada instalatora (wiersz ``CO ZROBIC:``) pisana dla wiersza polecen -> zdanie dla okna. Zdanie, w ktorym po zamianach zostaje
+# odeslanie do polecenia (opcje /python, /testy, Wersje.cmd ...), jest pomijane; nic nie zostaje = ``N.RADA_OGOLNA``.
+_ZAMIANY_RAD = (
+    (r",? np\.:? zainstaluj\.cmd /katalog ", ", np. "),
+    (r": zainstaluj\.cmd /katalog <KATALOG>", ""),
+    (r"\s*\((albo wybierz inny katalog instalacji: )?/katalog\)", ""),
+    (r"uruchom (zainstaluj\.cmd|polecenie)( z paczki tej wersji)? (ponownie|JESZCZE RAZ)", N.RADA_SPROBUJ),
+    (r"uruchom zainstaluj\.cmd z rozpakowanego katalogu", N.RADA_INSTALUJ_CMD),
+)
+_ODESLANIE_DO_POLECENIA = re.compile(r"zainstaluj\.cmd|Wersje\.cmd|Wroc_do_poprzedniej\.cmd|polecen|STANOWISKO_PYTHON|--wersja|(^|\s)/[a-z]",
+                                     re.IGNORECASE)
+
+
+def _zamiana_z_wielka(zamiana: str):
+    return lambda m: zamiana[:1].upper() + zamiana[1:] if m.group(0)[:1].isupper() else zamiana
+
+
+def rada_dla_okna(rada: str) -> str:
+    """Rada ``CO ZROBIC`` instalatora bez odeslan do wiersza polecen (wlasciciel nie uzywa terminala; w oknie jest przycisk
+    "Sprobuj ponownie")."""
+    tekst = rada.strip()
+    for wzor, zamiana in _ZAMIANY_RAD:
+        tekst = re.sub(wzor, _zamiana_z_wielka(zamiana), tekst, flags=re.IGNORECASE)
+    zdania = [z for z in re.split(r"(?<=[.;])\s+", tekst) if z and not _ODESLANIE_DO_POLECENIA.search(z)]
+    return " ".join(zdania).rstrip(";") or N.RADA_OGOLNA
 
 
 class Postep:
