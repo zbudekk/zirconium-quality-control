@@ -38,6 +38,9 @@ POZA_GNIAZDAMI = "Poza gniazdami: {n}"
 MAPA_BEZ_GNIAZD = "Płytka {napis}."
 ZMIEN_NUMER = "Zmień numer"
 LEGENDA_NAGLOWEK = "Na płytkach"  # E3-U1b: naglowek legendy w lewej kolumnie
+# runda 2 (P3): objasnienie oznaczen gniazd w legendzie "Na plytkach" (wzor obok napisu - ``mapa_rano.WzorOznaczenia``)
+LEGENDA_OBWODKA_KUWETY = "Biała obwódka — gniazda bieżącej kuwety"
+LEGENDA_WYBRANE_GNIAZDO = "Niebieski pierścień — gniazdo wybrane kliknięciem"
 ZAB_KROTKO = "z. {zab}"
 
 # --- prawa kolumna: przelacznik stron ---------------------------------------------------------------

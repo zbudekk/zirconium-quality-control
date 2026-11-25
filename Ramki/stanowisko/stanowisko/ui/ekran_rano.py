@@ -52,7 +52,7 @@ from . import napisy_rano as NR
 from .czesci import Kropka, UkladPlynny, dzien, etykieta, godzina, guzik, przycisk_skrotu, wyczysc, znaczek
 from .kandydaci import WidokPracyRano, nazwa_plytki
 from .mapa import geometria_ukladu
-from .mapa_rano import MapaRano
+from .mapa_rano import MapaRano, WzorOznaczenia
 from .okno_excela import PanelExcela
 
 OCHRONA_MS = 800  # po zmianie zestawu plytek / wejsciu w tryb klikniecia map sa pomijane (jak A-P2 wieczorem)
@@ -278,6 +278,15 @@ class PanelPieca(QFrame):
         self._pozycje = QVBoxLayout()
         self._pozycje.setSpacing(4)
         lu.addLayout(self._pozycje)
+        for rodzaj, napis, nazwa in (("kuweta", NR.LEGENDA_OBWODKA_KUWETY, "rano_legenda_obwodka_kuwety"),
+                                     ("wybrane", NR.LEGENDA_WYBRANE_GNIAZDO, "rano_legenda_wybrane_gniazdo")):
+            pole = QWidget()  # runda 2 (P3): oznaczenia gniazd na mapach - obwodka biezacej kuwety i pierscien wybranego gniazda
+            pu = QHBoxLayout(pole)
+            pu.setContentsMargins(0, 0, 0, 0)
+            pu.setSpacing(6)
+            pu.addWidget(WzorOznaczenia(rodzaj), 0, Qt.AlignmentFlag.AlignVCenter)
+            pu.addWidget(etykieta(napis, "tresc", nazwa, zawijaj=True), 1)
+            lu.addWidget(pole)
         self.legenda.setVisible(False)
         wu.addWidget(self.legenda)
         wu.addStretch(1)

@@ -535,3 +535,59 @@ def test_excel_wskaz_wiersz_z_zakladki_kompletne_przy_otwartym_oknie_excela(tmp_
     finally:
         k0.zamknij()
 
+
+def kolory_zmiany(mapa, wybrane, obwodka) -> list:
+    """Kolory pikseli mapy, ktore zmienia samo oznaczenie (``wybrane`` gniazdo albo ``obwodka`` gniazd kuwety) wobec mapy bez
+    oznaczen - to, czym oznaczenie wyglada na ekranie (odczyt z obrazu widzetu)."""
+    plytka, geometria, obrazy = mapa._plytka, mapa._geometria, mapa._obrazy
+    mapa.ustaw_rano(plytka, geometria, None, frozenset(), obrazy)
+    bez = mapa.grab().toImage()
+    mapa.ustaw_rano(plytka, geometria, wybrane, frozenset(obwodka), obrazy)
+    z = mapa.grab().toImage()
+    kolory = []
+    for x in range(bez.width()):
+        for y in range(bez.height()):
+            if bez.pixel(x, y) != z.pixel(x, y):
+                kolory.append(z.pixelColor(x, y))
+    return kolory
+
+
+def blisko(kolor, hex_: str, tolerancja: int = 40) -> bool:
+    from PySide6.QtGui import QColor
+
+    w = QColor(hex_)
+    return abs(kolor.red() - w.red()) + abs(kolor.green() - w.green()) + abs(kolor.blue() - w.blue()) <= tolerancja
+
+
+def test_mapa_rano_obwodka_kuwety_inna_niz_pierscien_wybranego_gniazda_i_objasnienie(atrapa, ekrany):
+    """Runda 2, P3: gniazdo wybrane kliknieciem (pierscien akcentu - SPEC p. 2) i gniazda biezacej kuwety (obwodka) sa na mapie
+    porannej rozroznialne: w obwodce kuwety nie ma barwy akcentu, w pierscieniu wybranego jest. Legenda "Na plytkach" objasnia
+    oba oznaczenia (napis "Gniazda biezacej kuwety sa obwiedzione" zniknal z ekranu w U1b)."""
+    from stanowisko.ui import mapa_rano as MR
+    from stanowisko.ui import motyw
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    e.po_ochronie_rano()
+    rano = atrapa.stan().rano
+    p4 = skany[4]
+    obwodka = rano.obwodka(p4)
+    assert obwodka, "biezaca kuweta nie ma gniazd na plytce 4"
+    mapa = e.mapy()[p4]
+    inne = next(nr for nr in mapa.numery() if nr not in obwodka)
+    kuweta = kolory_zmiany(mapa, None, obwodka)
+    wybrane = kolory_zmiany(mapa, inne, ())
+    assert kuweta and wybrane
+    akcent_w_kuwecie = sum(blisko(c, motyw.AKCENT) for c in kuweta)
+    akcent_w_wybranym = sum(blisko(c, motyw.AKCENT) for c in wybrane)
+    assert akcent_w_kuwecie == 0, f"obwodka kuwety ma {akcent_w_kuwecie} z {len(kuweta)} pikseli w barwie akcentu (jak pierscien wybranego)"
+    assert akcent_w_wybranym > len(wybrane) // 3  # pierscien wybranego gniazda w barwie akcentu (SPEC)
+    assert sum(blisko(c, MR.KOLOR_BIEZACEJ) for c in kuweta) > len(kuweta) // 3
+    assert sum(blisko(c, MR.KOLOR_BIEZACEJ) for c in wybrane) == 0
+    # objasnienie na ekranie (legenda lewej kolumny)
+    for nazwa, napis in (("rano_legenda_obwodka_kuwety", NR.LEGENDA_OBWODKA_KUWETY), ("rano_legenda_wybrane_gniazdo", NR.LEGENDA_WYBRANE_GNIAZDO)):
+        assert e.jest(nazwa) and e.w(nazwa).text() == napis
+    # kontrast obu oznaczen na plytce (WGLEBIENIE) - pary w ``motyw.PARY_KONTRASTU`` (sprawdza ``test_ui_motyw``)
+    pary = {(a, b) for _, a, b in motyw.PARY_KONTRASTU}
+    assert (MR.KOLOR_BIEZACEJ, motyw.WGLEBIENIE) in pary and (motyw.AKCENT, motyw.WGLEBIENIE) in pary
+

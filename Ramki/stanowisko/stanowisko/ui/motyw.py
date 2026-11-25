@@ -184,6 +184,8 @@ PARY_KONTRASTU = (
     ("akcent jako tekst na tle okna", AKCENT_TEKST, TLO),
     ("kolor fokusu jako tekst na powierzchni", AKCENT_FOKUS, POWIERZCHNIA),
     ("napis pomocniczy w ramce miniatury", TEKST_POMOCNICZY, TLO_MINIATURY),
+    ("obwodka gniazd biezacej kuwety na plytce (mapa poranna)", TEKST, WGLEBIENIE),
+    ("pierscien wybranego gniazda na plytce", AKCENT, WGLEBIENIE),
 ) + tuple((f"tekst glowny na tle komunikatu ({poziom})", TEKST, tlo) for poziom, (tlo, _) in POZIOMY.items()) + tuple(
     (f"tekst pomocniczy na tle komunikatu ({poziom})", TEKST_POMOCNICZY, tlo) for poziom, (tlo, _) in POZIOMY.items())
 
