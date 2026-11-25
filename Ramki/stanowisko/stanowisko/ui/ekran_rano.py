@@ -775,7 +775,7 @@ class PanelWyniku(QScrollArea):
         """E3-A12: okno "Excel: wskaz wiersz" dla pokazanego zamknietego pieca."""
         rano = (self._stan.rano.ostatni_zamkniety if self._ostatni_piec else self._stan.rano) if self._stan is not None and self._stan.rano else None
         if rano is not None and rano.sesja_pieca_id is not None and self.ekran is not None:
-            self.ekran._polecenie("excel_pokaz", rano.sesja_pieca_id)
+            self.ekran.pokaz_excel(rano.sesja_pieca_id)
 
     def _cofnij(self) -> None:
         if self._ostatnie is None or self.ekran is None:
@@ -855,7 +855,7 @@ class PanelWyniku(QScrollArea):
             self._zalegle.addWidget(etykieta(NR.EXCEL_ZALEGLE, "tresc"))
             for sid, nr, d, ile in zalegle:
                 b = guzik(NR.EXCEL_ZALEGLY.format(nr=nr or "?", doba=dzien(d) if d else "?", ile=ile), f"{self._prefiks}_{sid}", "lacze",
-                          lambda sid=sid: self.ekran._polecenie("excel_pokaz", sid) if self.ekran is not None else None)
+                          lambda sid=sid: self.ekran.pokaz_excel(sid) if self.ekran is not None else None)
                 b.setEnabled(stan.operator is not None)
                 self._zalegle.addWidget(b)
         self.zalegle.setVisible(bool(zalegle))
@@ -1451,6 +1451,17 @@ class EkranRano(QWidget):
     def numer_podany(self) -> None:
         """Wybor numeru plytki zamkniety (numer podany albo "Bez zmian")."""
         self._numer_dla = None
+
+    def pokaz_excel(self, sesja_pieca_id: int):
+        """"Excel: wskaz wiersz" (wynik pieca, zalegly piec): polecenie ``excel_pokaz``; po udanym - zakladka "Excel" TAKZE wtedy,
+        gdy okno Excela bylo juz otwarte dla tego pieca, a osoba przeszla na inna zakladke (runda 2, P2; ``pokaz`` przelacza
+        zakladke sam tylko przy nowym oknie Excela albo innym piecu)."""
+        odpowiedz = self._polecenie("excel_pokaz", sesja_pieca_id)
+        if odpowiedz is not None and odpowiedz.ok and self._excel_widoczne and self._strona != "excel":
+            self._strona_przed_excelem = self._strona
+            self._strona = "excel"
+            self._odswiez()
+        return odpowiedz
 
     def _pokaz_strone(self, strona: str) -> None:
         if strona == "excel" and not self._excel_widoczne:

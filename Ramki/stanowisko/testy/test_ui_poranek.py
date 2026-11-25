@@ -509,3 +509,29 @@ def test_s3_16_lista_kuwet_przewinieta_w_tle_wstrzymuje_klikniecia(atrapa, ekran
         assert len(k.wyslane("wybierz_kuwete")) == wyslane, f"krok {krok}: klikniecie w przesunieta liste wybralo kuwete"
     assert zmian > 0 and bez_ochrony == [], f"zmian pod kursorem {zmian}, bez ochrony {len(bez_ochrony)}: {bez_ochrony[:3]}"
 
+
+def test_excel_wskaz_wiersz_z_zakladki_kompletne_przy_otwartym_oknie_excela(tmp_path, ekrany):
+    """Runda 2, P2: okno Excela juz otwarte dla pieca (zakladka "Excel" pokazala sie sama), osoba przeszla na "Kompletne i braki"
+    i klika "Excel: wskaz wiersz" - zakladka "Excel" pokazuje sie (wczesniej przycisk nic nie robil)."""
+    import test_aplikacja_rano as TA
+    from stanowisko import kontroler_api as K
+
+    k0 = K.AtrapaKontrolera(tmp_path / "k", zegar=TR.ZegarRano())
+    k = UW.Szpieg(k0)
+    try:
+        k0.przelacz_tryb("rano")
+        k0.wybierz_operatora("Technik A")
+        e = ekrany(k)
+        TA._excel_pytaj(k0, tmp_path)
+        k0.symuluj_skan_rano(4, TA.PLYTKA_4[0], projekty=TA.PLYTKA_4[1])
+        TR.zamknij_piec(e, pytanie=False)
+        e.czekaj(lambda: e.jest("excel_panel") and k0.stan().excel.w_toku == 0, 10.0, "okno Excela")
+        e.klik("rano_strona_wynik")
+        assert e.rano.strona() == "wynik" and not e.jest("excel_panel") and k0.stan().excel.widoczne
+        assert e.aktywny("przycisk_excel")
+        e.klik("przycisk_excel")
+        e.odczekaj(20)
+        assert k.wyslane("excel_pokaz") and e.rano.strona() == "excel" and e.jest("excel_panel") and e.w("rano_strona_excel").isChecked()
+    finally:
+        k0.zamknij()
+
