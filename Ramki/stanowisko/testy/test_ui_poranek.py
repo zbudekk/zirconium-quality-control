@@ -592,6 +592,30 @@ def test_mapa_rano_obwodka_kuwety_inna_niz_pierscien_wybranego_gniazda_i_objasni
     assert (MR.KOLOR_BIEZACEJ, motyw.WGLEBIENIE) in pary and (motyw.AKCENT, motyw.WGLEBIENIE) in pary
 
 
+@pytest.mark.parametrize("dodatkowe", (0, 3))
+@pytest.mark.parametrize("rozmiar", ROZMIARY)
+def test_objasnienie_obwodek_widoczne_bez_przewijania(atrapa, ekrany, rozmiar, dodatkowe):
+    """Runda 3, P9: objasnienie oznaczen na mapach (biala obwodka - gniazda biezacej kuwety, niebieski pierscien - gniazdo wybrane)
+    widac w calosci bez przewijania w 6 rozmiarach okna (w tym 1536 x 784 i 1280 x 642 - okno zmaksymalizowane przy 125 / 150 %),
+    w piecu z 3 plytkami (scenariusz) i z 6 plytkami. W rundzie 2 objasnienie stalo na dole przewijanej lewej kolumny - przy 125 / 150 %
+    widac bylo z niego 0 px. Sprawdza polozenie w widocznym obszarze okna (przyciete przez rodzicow), nie samo ``isVisible``."""
+    from stanowisko.ui import mapa_rano as MR
+
+    skany = atrapa.scenariusz_poranny()
+    for nr in (1, 2, 3)[:dodatkowe]:
+        atrapa.symuluj_skan_rano(nr, {1: "pewna", 2: "pewna", 3: "pewna"})
+    e = ekrany(atrapa, rozmiar)
+    e.po_ochronie_rano()
+    assert len(e.mapy()) == 3 + dodatkowe and atrapa.stan().rano.obwodka(skany[4])
+    for nazwa, napis in (("rano_legenda_obwodka_kuwety", NR.LEGENDA_OBWODKA_KUWETY), ("rano_legenda_wybrane_gniazdo", NR.LEGENDA_WYBRANE_GNIAZDO)):
+        w = e.w(nazwa)
+        assert w.isVisibleTo(e.okno) and w.text() == napis, nazwa
+        for czesc in (w, *w.parentWidget().findChildren(MR.WzorOznaczenia)):
+            cala = UW._w_oknie(e.okno, czesc)
+            assert not cala.isEmpty() and UW._widoczny_wycinek(e.okno, czesc) == cala, (rozmiar, nazwa, cala, UW._widoczny_wycinek(e.okno, czesc))
+        assert not UW._w_obszarze_przewijanym(e.okno, w), nazwa  # nie zalezy od tego, jak daleko przewinieto liste plytek
+
+
 def liczby(tekst: str) -> list:
     import re
 
