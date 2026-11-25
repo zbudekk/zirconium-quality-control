@@ -562,7 +562,8 @@ class PoleMap(QWidget):
 # ----------------------------------------------------------------------------
 class PanelKuwet(QFrame):
     """"Kuwety w tym piecu": kolejnosc (od najliczniejszej / wedlug numeru) i lista kuwet pieca (klikniecie = wybor kuwety PO
-    NUMERZE zapisanym w wierszu - S3-16; po zmianie kolejnosci listy w tle klikniecia sa przez ``OCHRONA_MS`` pomijane)."""
+    NUMERZE zapisanym w wierszu - S3-16; gdy zmiana z tla przestawila to, co widac pod punktami listy - kolejnosc, przewiniecie
+    do nowej biezacej kuwety, wysokosc wierszy - klikniecia sa przez ``OCHRONA_MS`` pomijane, runda 2 P1)."""
 
     def __init__(self, ekran: "EkranRano"):
         super().__init__()
@@ -622,8 +623,8 @@ class PanelKuwet(QFrame):
             return
         self._sygnatura = sygnatura
         kolejnosc = tuple(x.kuweta for x in kuwety)
-        if z_tla and self._kolejnosc_widziana and kolejnosc != self._kolejnosc_widziana:
-            self._ochrona.start()  # S3-16: pod kursorem moze stac juz inna kuweta - klikniecie wycelowane w poprzednia nie trafia
+        widok_przed = self.widok()
+        zmiana_kolejnosci = bool(self._kolejnosc_widziana) and kolejnosc != self._kolejnosc_widziana
         self._kolejnosc_widziana = kolejnosc
         self.tytul.setText(NR.KUWETY_TYTUL.format(n=len(kuwety)))
         for k, b in self.przyciski_kolejnosci.items():
@@ -638,6 +639,22 @@ class PanelKuwet(QFrame):
         if indeks is not None:
             self.tabela.selectRow(indeks)
             self.tabela.scrollToItem(self.tabela.item(indeks, 0), QAbstractItemView.ScrollHint.EnsureVisible)
+        # S3-16 (runda 2, P1): pod kursorem moze stac juz inna kuweta - po zmianie kolejnosci ALBO gdy lista przewinela sie do nowej
+        # biezacej kuwety ("Rozlozona" z ramki / drugiego stanowiska) czy zmienila wysokosc wierszy; klikniecie wycelowane w poprzednia
+        # kuwete nie trafia przez ``OCHRONA_MS``
+        if z_tla and (zmiana_kolejnosci or (widok_przed and self.widok() != widok_przed)):
+            self._ochrona.start()
+
+    def widok(self) -> tuple:
+        """Widoczne wiersze listy: (polozenie w polu, wysokosc, numer kuwety) - to, co osoba widzi pod kazdym punktem listy."""
+        t = self.tabela
+        wys = t.viewport().height()
+        pierwszy = t.rowAt(0)
+        if wys <= 0 or pierwszy < 0:
+            return ()
+        ostatni = t.rowAt(wys - 1)
+        ostatni = t.rowCount() - 1 if ostatni < 0 else ostatni
+        return tuple((t.rowViewportPosition(w), t.rowHeight(w), self.kuweta_w_wierszu(w)) for w in range(pierwszy, ostatni + 1))
 
     def kuweta_w_wierszu(self, wiersz: int) -> str | None:
         """Numer kuwety zapisany w wierszu listy (S3-16) albo None."""

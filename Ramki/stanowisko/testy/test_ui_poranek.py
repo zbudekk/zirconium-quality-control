@@ -450,3 +450,62 @@ def test_bledy_programu_rano_na_liscie_okna_nie_w_strefie(atrapa, ekrany):
     assert "komunikat_folder_skanera_niedostepny" not in e.strefa_rano()
     e.klik("przycisk_bledy")
     assert not e.jest("lista_bledow") and e.jest("przycisk_bledy")
+
+
+
+# ----------------------------------------------------------------------------
+# runda 2 (recenzja PR #64): P1 - P4
+# ----------------------------------------------------------------------------
+ROZMIARY_LISTY = ((1920, 1001), (1536, 784), (1280, 642))  # okno zmaksymalizowane przy 100 / 125 / 150 %
+
+
+def kuwety_pod_punktami(t, punkty: list) -> list:
+    """Numer kuwety w wierszu pod kazdym punktem pola listy (y w ``viewport``) - to, co widzi i w co celuje osoba."""
+    wynik = []
+    for y in punkty:
+        w = t.rowAt(y)
+        wynik.append(t.item(w, 0).text() if w >= 0 and t.item(w, 0) is not None else None)
+    return wynik
+
+
+@pytest.mark.parametrize("rozmiar", ROZMIARY_LISTY)
+def test_s3_16_lista_kuwet_przewinieta_w_tle_wstrzymuje_klikniecia(atrapa, ekrany, rozmiar):
+    """Runda 2, P1: "Rozlozona" z tla (ramka poranna / drugie stanowisko) zmienia biezaca kuwete i lista przewija sie do niej -
+    pod nieruchomym kursorem staje inna kuweta, chociaz kolejnosc listy sie nie zmienila. Za KAZDYM razem, gdy w ktoryms punkcie
+    pola listy stoi po zmianie inna kuweta, ochrona ``OCHRONA_MS`` jest aktywna i klikniecie w ten punkt nic nie wysyla
+    (pomiar recenzenta: 8 / 13 / 19 zmian bez ochrony na 33 kroki)."""
+    from PySide6.QtCore import QPoint, Qt
+    from PySide6.QtTest import QTest
+
+    k = UW.Szpieg(atrapa)
+    atrapa.scenariusz_poranny()
+    e = ekrany(k, rozmiar)
+    e.po_ochronie_rano()
+    t = e.w("tabela_kuwet")
+    panel = e.rano.kuwety
+    assert t.verticalScrollBar().maximum() > 0, "lista kuwet miesci sie w polu - proba bez sensu"
+    wys = t.viewport().height()
+    punkty = [wys * i // 8 for i in range(1, 8)]
+    zmian, bez_ochrony = 0, []
+    for krok in range(t.rowCount() + 2):
+        rano = atrapa.stan().rano
+        if rano.kuweta_biezaca is None:
+            break
+        przed = kuwety_pod_punktami(t, punkty)
+        assert atrapa.potwierdz_kuwete(rano.kuweta_biezaca).ok  # w tle - nie przez okno
+        e.zdarzenia()
+        e.odczekaj(20)
+        po = kuwety_pod_punktami(t, punkty)
+        if po == przed:
+            continue
+        zmian += 1
+        if not panel.ochrona_aktywna():
+            bez_ochrony.append((krok, przed, po))
+            continue
+        y = next(y for y, a, b in zip(punkty, przed, po) if a != b)
+        wyslane = len(k.wyslane("wybierz_kuwete"))
+        QTest.mouseClick(t.viewport(), Qt.MouseButton.LeftButton, pos=QPoint(20, y))
+        e.odczekaj(5)
+        assert len(k.wyslane("wybierz_kuwete")) == wyslane, f"krok {krok}: klikniecie w przesunieta liste wybralo kuwete"
+    assert zmian > 0 and bez_ochrony == [], f"zmian pod kursorem {zmian}, bez ochrony {len(bez_ochrony)}: {bez_ochrony[:3]}"
+
