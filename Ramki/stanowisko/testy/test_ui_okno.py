@@ -247,6 +247,47 @@ def test_s3_14_mapa_poprzedniej_plytki_w_czasie_analizy_nowego_skanu(atrapa, ekr
     assert not e.mapa.poprzednia() and e.okno.miejsce_mapy() == miejsce
 
 
+@pytest.mark.parametrize("numer_nowej", [2, 1], ids=["inny_numer", "ten_sam_numer"])
+def test_s3_14_znak_poprzedniej_zostaje_gdy_wynik_przyszedl_a_ekran_zostal(atrapa, ekrany, zegar, numer_nowej):
+    """Recenzja PR #62, P1: plytka A ma prace do obejrzenia (A-P2: ekran nie przelacza sie sam). Trwa analiza nowego skanu - znak.
+    Wynik przychodzi, ekran zostaje na A: znak i przygaszenie ZOSTAJA (inny napis: nowy wynik czeka) - takze przy ponownym skanie
+    plytki o tym samym numerze (naglowek wtedy sie nie zmienia). Klikniecia dzialaja. Znika dopiero, gdy ekran pokaze nowy wynik;
+    technik wracajacy sam do starszej plytki (nowy wynik juz obejrzany) znaku nie dostaje."""
+    from stanowisko.ui import napisy as N
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    a = atrapa.symuluj_skan("zwykla", numer=1)
+    e = ekrany(k)
+    plytka_a = atrapa.stan().plytka(a)
+    miejsce = e.okno.miejsce_mapy()
+    atrapa.symuluj_postep(udzial=0.6)
+    assert e.jest("mapa_poprzednia") and e.w("mapa_poprzednia").text() == N.MAPA_POPRZEDNIA
+    zegar.przesun(2)
+    b = atrapa.symuluj_skan("czysta", numer=numer_nowej, projekty={n: 10 + n for n in range(1, 5)})
+    assert atrapa.stan().analiza is None and atrapa.stan().kolejka.razem == 0  # nic juz nie jest "w drodze"
+    assert e.okno.pokazana_plytka() == a and e.jest("przycisk_nowa_plytka")
+    assert e.mapa.poprzednia() and e.jest("mapa_poprzednia") and e.w("mapa_poprzednia").text() == N.MAPA_POPRZEDNIA_NOWY_WYNIK
+    assert N.MAPA_POPRZEDNIA_NOWY_WYNIK.startswith("POPRZEDNIA") and N.NOWY_WYNIK_POKAZ in N.MAPA_POPRZEDNIA_NOWY_WYNIK
+    e.zdarzenia()
+    assert e.okno.miejsce_mapy() == miejsce and not UW.sprawdz_uklad(e, UW.ROZMIAR_OKNA)
+    obraz = e.mapa.grab().toImage()
+    for g in plytka_a.gniazda:  # mapa A dalej przygaszona
+        if g.prace:
+            assert obraz.pixelColor(e.mapa.punkt_probny(g.nr).toPoint()).name() != g.rgb, g.nr
+    assert not e.okno.ochrona_aktywna()
+    e.klik_gniazdo(2)
+    e.klik("przycisk_ukruszona")  # decyzje dla poprzedniej plytki dzialaja, znak zostaje
+    assert atrapa.stan().plytka(a).gniazdo(2).praca.decyzja == "ukruszona" and e.jest("mapa_poprzednia")
+    e.klik("przycisk_nowa_plytka")
+    assert e.okno.pokazana_plytka() == b
+    assert not e.mapa.poprzednia() and not e.jest("mapa_poprzednia")
+    e.po_ochronie()
+    assert e.kolory_pikseli()[1] == atrapa.stan().plytka(b).gniazdo(1).rgb
+    e.klik(f"plytka_{a}")  # technik sam wraca do starszej plytki - nowy wynik obejrzany: bez znaku
+    assert e.okno.pokazana_plytka() == a and not e.mapa.poprzednia() and not e.jest("mapa_poprzednia")
+
+
 def test_s3_14_bez_plytki_nie_ma_znaku_poprzedniej(atrapa, ekrany):
     e = ekrany(atrapa)
     atrapa.symuluj_postep(udzial=0.5)
