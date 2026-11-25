@@ -173,6 +173,20 @@ def teksty_widzetu(w) -> list:
     return wynik
 
 
+def obraz_logiczny(widzet):
+    """Obraz widzetu narysowany we wspolrzednych logicznych (``devicePixelRatio`` 1): piksel (x, y) = punkt (x, y) widzetu takze
+    przy ``QT_SCALE_FACTOR`` 1,25 / 1,5 (``grab()`` daje wtedy obraz 1,25 / 1,5 raza wiekszy - recenzja PR #62, D7). Przy skali 1
+    taki sam jak ``grab().toImage()``."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QPixmap
+
+    obraz = QPixmap(widzet.size())
+    obraz.setDevicePixelRatio(1.0)
+    obraz.fill(Qt.GlobalColor.transparent)  # jak ``grab()`` dla widzetu nieprzezroczystego tylko w czesci
+    widzet.render(obraz)
+    return obraz.toImage()
+
+
 class Ekran:
     """Okno na kontrolerze ``k``: pokazane (offscreen) w rozmiarze 1600 x 900 (albo ``rozmiar``) i sterowane myszka
     i klawiatura. Po zmianie zawartosci mapy okno przez chwile pomija klikniecia mapy i skroty decyzji (A-P2) - technik widzi
@@ -312,7 +326,7 @@ class Ekran:
         """Numer gniazda -> kolor piksela mapy wewnatrz gniazda (z obrazu widzetu, nie z danych)."""
         self.zdarzenia()
         self.po_ochronie()
-        obraz = self.mapa.grab().toImage()
+        obraz = obraz_logiczny(self.mapa)
         return {nr: obraz.pixelColor(self.mapa.punkt_probny(nr).toPoint()).name() for nr in self.mapa.numery()}
 
     def lista(self) -> list:
@@ -1316,6 +1330,11 @@ def test_5_restart_programu_odtwarza_plytki_i_decyzje_na_ekranie(stanowiska, ekr
                               ekran.tekst_elementu(f"plytka_{skan_id}"))
         return wynik
 
+    # E3-U1a runda 2 (recenzja PR #62, P1): plytka 2 jeszcze nieobejrzana - mapa plytki 1 oznaczona "POPRZEDNIA PLYTKA" i przygaszona.
+    # To stan ekranu sprzed restartu (jak znaczek "NOWA"), ktorego restart nie odtwarza - nowy wynik ogladamy przed porownaniem.
+    assert e.okno.pokazana_plytka() == pierwsza and e.mapa.poprzednia() and e.jest("mapa_poprzednia")
+    e.klik("przycisk_nowa_plytka")
+    assert e.okno.pokazana_plytka() == druga and not e.mapa.poprzednia()
     przed = obraz_ekranu(e)
     assert len(przed["lista"]) == 1 and przed["plytki"] == [pierwsza, druga]
     e.zamknij()
@@ -2146,7 +2165,7 @@ def test_ap2_klawisz_U_tuz_po_wyniku_plytki_B_nie_zapisuje_decyzji_na_B(atrapa, 
     QTest.keyClick(e.okno, Qt.Key.Key_U)
     QTest.keyClick(e.okno, Qt.Key.Key_Return)
     assert e.okno.ochrona_aktywna(), "proba za wolna - klikniecia po czasie ochrony"
-    obraz = e.mapa.grab().toImage()
+    obraz = obraz_logiczny(e.mapa)
     assert obraz.pixelColor(e.mapa.punkt_probny(2).toPoint()).name() != atrapa.stan().plytka(b).gniazdo(2).rgb  # mapa przygaszona
     e.odczekaj(10)
     assert k.polecenia == przed and not e.jest("widok_pracy")

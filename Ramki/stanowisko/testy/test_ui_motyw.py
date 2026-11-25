@@ -144,6 +144,20 @@ def test_statusy_zmienione_tylko_rgb_ekranu():
     assert ST.STATUSY_ZIELONE == ("zielony",) and ST.status("cos_nowego").klucz == "nieznany"
 
 
+
+def test_statusy_opisy_jak_przed_paczka():
+    """Recenzja PR #62, D6 (S4): pole ``opis`` wierszy ``statusy`` (podpowiedzi i opisy statusu na ekranie) - jak na ``main`` b856b9e.
+    Skrot sha256 wszystkich opisow (klucz, tabulator, opis; wiersze wg klucza); swiadoma zmiana opisu = nowy skrot w tym tescie."""
+    import hashlib
+
+    from stanowisko import statusy as ST
+
+    wiersze = {**ST.STATUSY, **ST.STATUSY_RANO_WIERSZE}
+    tekst = "\n".join(f"{k}\t{wiersze[k].opis}" for k in sorted(wiersze))
+    assert len(wiersze) == 27
+    assert hashlib.sha256(tekst.encode("utf-8")).hexdigest() == "9b1668f73d5a2368fb1da8830b9cd415c33c661564e387ed2d9d1c1482ec1e2f"
+
+
 # ----------------------------------------------------------------------------
 # (4) uklady okna
 # ----------------------------------------------------------------------------

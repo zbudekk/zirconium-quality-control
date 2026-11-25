@@ -231,7 +231,7 @@ def test_s3_14_mapa_poprzedniej_plytki_w_czasie_analizy_nowego_skanu(atrapa, ekr
     assert N.MAPA_POPRZEDNIA.startswith("POPRZEDNIA") and e.okno.naglowek_pole.isAncestorOf(e.w("mapa_poprzednia"))
     e.zdarzenia()
     assert e.okno.miejsce_mapy() == miejsce and not UW.sprawdz_uklad(e, UW.ROZMIAR_OKNA)
-    obraz = e.mapa.grab().toImage()
+    obraz = UW.obraz_logiczny(e.mapa)
     for g in plytka.gniazda:  # mapa przygaszona: zaden piksel gniazda nie ma juz pelnego koloru statusu
         if g.prace:
             assert obraz.pixelColor(e.mapa.punkt_probny(g.nr).toPoint()).name() != g.rgb, g.nr
@@ -245,6 +245,47 @@ def test_s3_14_mapa_poprzedniej_plytki_w_czasie_analizy_nowego_skanu(atrapa, ekr
     assert e.mapa.poprzednia() and e.jest("mapa_poprzednia")
     atrapa.symuluj_kolejke()
     assert not e.mapa.poprzednia() and e.okno.miejsce_mapy() == miejsce
+
+
+@pytest.mark.parametrize("numer_nowej", [2, 1], ids=["inny_numer", "ten_sam_numer"])
+def test_s3_14_znak_poprzedniej_zostaje_gdy_wynik_przyszedl_a_ekran_zostal(atrapa, ekrany, zegar, numer_nowej):
+    """Recenzja PR #62, P1: plytka A ma prace do obejrzenia (A-P2: ekran nie przelacza sie sam). Trwa analiza nowego skanu - znak.
+    Wynik przychodzi, ekran zostaje na A: znak i przygaszenie ZOSTAJA (inny napis: nowy wynik czeka) - takze przy ponownym skanie
+    plytki o tym samym numerze (naglowek wtedy sie nie zmienia). Klikniecia dzialaja. Znika dopiero, gdy ekran pokaze nowy wynik;
+    technik wracajacy sam do starszej plytki (nowy wynik juz obejrzany) znaku nie dostaje."""
+    from stanowisko.ui import napisy as N
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    a = atrapa.symuluj_skan("zwykla", numer=1)
+    e = ekrany(k)
+    plytka_a = atrapa.stan().plytka(a)
+    miejsce = e.okno.miejsce_mapy()
+    atrapa.symuluj_postep(udzial=0.6)
+    assert e.jest("mapa_poprzednia") and e.w("mapa_poprzednia").text() == N.MAPA_POPRZEDNIA
+    zegar.przesun(2)
+    b = atrapa.symuluj_skan("czysta", numer=numer_nowej, projekty={n: 10 + n for n in range(1, 5)})
+    assert atrapa.stan().analiza is None and atrapa.stan().kolejka.razem == 0  # nic juz nie jest "w drodze"
+    assert e.okno.pokazana_plytka() == a and e.jest("przycisk_nowa_plytka")
+    assert e.mapa.poprzednia() and e.jest("mapa_poprzednia") and e.w("mapa_poprzednia").text() == N.MAPA_POPRZEDNIA_NOWY_WYNIK
+    assert N.MAPA_POPRZEDNIA_NOWY_WYNIK.startswith("POPRZEDNIA") and N.NOWY_WYNIK_POKAZ in N.MAPA_POPRZEDNIA_NOWY_WYNIK
+    e.zdarzenia()
+    assert e.okno.miejsce_mapy() == miejsce and not UW.sprawdz_uklad(e, UW.ROZMIAR_OKNA)
+    obraz = UW.obraz_logiczny(e.mapa)
+    for g in plytka_a.gniazda:  # mapa A dalej przygaszona
+        if g.prace:
+            assert obraz.pixelColor(e.mapa.punkt_probny(g.nr).toPoint()).name() != g.rgb, g.nr
+    assert not e.okno.ochrona_aktywna()
+    e.klik_gniazdo(2)
+    e.klik("przycisk_ukruszona")  # decyzje dla poprzedniej plytki dzialaja, znak zostaje
+    assert atrapa.stan().plytka(a).gniazdo(2).praca.decyzja == "ukruszona" and e.jest("mapa_poprzednia")
+    e.klik("przycisk_nowa_plytka")
+    assert e.okno.pokazana_plytka() == b
+    assert not e.mapa.poprzednia() and not e.jest("mapa_poprzednia")
+    e.po_ochronie()
+    assert e.kolory_pikseli()[1] == atrapa.stan().plytka(b).gniazdo(1).rgb
+    e.klik(f"plytka_{a}")  # technik sam wraca do starszej plytki - nowy wynik obejrzany: bez znaku
+    assert e.okno.pokazana_plytka() == a and not e.mapa.poprzednia() and not e.jest("mapa_poprzednia")
 
 
 def test_s3_14_bez_plytki_nie_ma_znaku_poprzedniej(atrapa, ekrany):
@@ -284,6 +325,37 @@ def test_s3_15_powrot_z_trybu_rano_zeruje_kursor_i_wlacza_ochrone(atrapa, ekrany
     e.po_ochronie()
     e.klawisz(Qt.Key.Key_N)
     assert e.jest("widok_pracy") and e.okno._gniazdo == 2
+
+
+def test_s3_15_skroty_decyzji_u_o_c_pod_ochrona_po_powrocie_z_trybu_rano(atrapa, ekrany):
+    """Recenzja PR #62, P2 (wraca asercja starego ``test_p15_ochrona_po_komunikacie_ogolnym_..._pomija_skroty_decyzji``): technik ma
+    otwarta prace, przechodzi do "Poranka" i wraca - mapa pod ochrona 800 ms; skroty decyzji U, O, C nacisniete wtedy nie wysylaja
+    zadnego polecenia; po ochronie "U" zapisuje decyzje na pracy z widoku pracy."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("zwykla")
+    e = ekrany(k)
+    e.klik_gniazdo(2)
+    praca = e.okno._praca_widoku
+    assert praca is not None and atrapa.stan().praca(praca).decyzja is None
+    e.okno._ochrona.setInterval(3000)  # dluzsza ochrona: klawisze trafiaja w nia takze na obciazonym PC (po_ochronie czeka do 5 s)
+    e.klik("przycisk_tryb_rano")
+    e.klik("przycisk_tryb_wieczor")
+    assert not e.okno.rano() and e.jest("widok_pracy") and e.okno._praca_widoku == praca
+    assert e.okno.ochrona_aktywna() and e.mapa.przygaszona()
+    przed = list(k.polecenia)
+    for klawisz in (Qt.Key.Key_U, Qt.Key.Key_O, Qt.Key.Key_C):
+        QTest.keyClick(e.okno, klawisz)
+    assert e.okno.ochrona_aktywna(), "proba za wolna - klawisze po czasie ochrony"
+    e.odczekaj(10)
+    decyzje = [p for p in k.polecenia[len(przed):] if p[0] in ("ukruszona", "ok", "cofnij")]
+    assert decyzje == [] and atrapa.stan().praca(praca).decyzja is None
+    e.po_ochronie()
+    e.klawisz(Qt.Key.Key_U)
+    assert k.polecenia[-1] == ("ukruszona", (praca,)) and atrapa.stan().plytka(skan).gniazdo(2).praca.decyzja == "ukruszona"
 
 
 def test_s3_15_klawisz_n_pod_ochrona_i_pozycja_listy_otwiera_dokladnie_te_prace(atrapa, ekrany, zegar):
@@ -634,7 +706,7 @@ def test_przyciski_ze_skrotem_klawiszowym_w_ramce(atrapa, ekrany):
         assert b.width() >= b.sizeHint().width() - 1 and b.height() >= b.sizeHint().height() - 1  # napis i ramka skrotu sie mieszcza
     # ramka skrotu jest narysowana po prawej stronie przycisku: ciemna ramka na czerwonym "Ukruszona", napis zaczyna sie z lewej
     b = e.w("przycisk_ukruszona")
-    obraz = b.grab().toImage()
+    obraz = UW.obraz_logiczny(b)
     tlo = ST.STATUSY["ukruszona"].hex
     assert obraz.pixelColor(b.width() // 2, 4).name() == tlo  # wypelnienie czerwonym statusu ze ``statusy``
     kolumny = sorted({x for x in range(b.width()) for y in range(4, b.height() - 4) if obraz.pixelColor(x, y).name() == motyw.NA_STATUSIE})
@@ -701,7 +773,7 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
         return kolory
 
     e.po_ochronie()
-    obraz = e.mapa.grab().toImage()
+    obraz = UW.obraz_logiczny(e.mapa)
     plytka_tlo, jasna = motyw.WGLEBIENIE.lower(), motyw.OBWODKA_UBYTKU.lower()
     assert jasna in wokol(obraz, 2, 0.0, 2.0) and jasna in wokol(obraz, 9, 0.0, 2.0)  # czerwone: jasna obwodka 2 px tuz za krawedzia gniazda
     assert obok(obraz, 2, 4.0, 6.0) == {plytka_tlo}  # obwodka ma 2 px - dalej juz plytka
@@ -709,7 +781,7 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
         assert jasna not in obok(obraz, nr, 0.5, 6.0) and plytka_tlo in obok(obraz, nr, 1.0, 3.0), nr
     assert e.kolory_pikseli()[12] == ST.STATUSY["pusty"].hex == plytka_tlo  # puste gniazdo: bez wlasnego wypelnienia (kolor plytki)
     e.klik_gniazdo(1)
-    obraz = e.mapa.grab().toImage()
+    obraz = UW.obraz_logiczny(e.mapa)
     assert e.mapa.wyglad_gniazda(1)["wybrane"]
     assert motyw.AKCENT.lower() in wokol(obraz, 1, 3.0, 5.0) and plytka_tlo in wokol(obraz, 1, 0.5, 2.5)  # pierscien akcentu z przerwa w kolorze plytki
     assert motyw.AKCENT.lower() not in wokol(obraz, 1, 0.0, 2.0)  # przerwa: tuz przy gniezdzie nie ma barwy akcentu
@@ -726,3 +798,170 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
     # kafelek plytki: licznik = kropka + napis statusu + liczba
     napisy = [w.text() for w in e.w(f"plytka_{skan}").findChildren(QLabel)]
     assert N.LICZNIK.format(napis=ST.STATUSY["czerwony"].napis, n=2) in napisy and N.LICZNIK.format(napis=ST.STATUSY["zielony"].napis, n=2) in napisy
+
+
+def _kolor_kropki(kropka) -> str:
+    """Kolor wypelnienia narysowanej kropki (piksel w jej srodku)."""
+    obraz = UW.obraz_logiczny(kropka)
+    return obraz.pixelColor(obraz.width() // 2, obraz.height() // 2).name()
+
+
+def test_kolor_statusu_poza_mapa_ze_stanu_znacznik_legenda_kafelek_i_napis_decyzji(atrapa, ekrany):
+    """Recenzja PR #62, P3 (SPEC p. 1: kolory i napisy statusow wylacznie ze stanu): (a) znacznik statusu w kolumnie "Praca" ma tlo
+    w kolorze pracy ze stanu - dla pracy czerwonej, zoltej, pomaranczowej, szarej, zielonej i po decyzji; (b) kropka kazdej pozycji
+    legendy ma kolor gniazd tej pozycji; (c) kropka kazdego licznika kafelka plytki ma kolor statusu swojej klasy; (d) napis
+    zapisanej decyzji nazywa decyzje ("Ukruszona" / "OK"), osobe i godzine."""
+    from PySide6.QtWidgets import QLabel, QWidget
+
+    from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
+    from stanowisko.ui.czesci import Kropka, godzina
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("zwykla")  # 1 zielone, 2 i 9 czerwone, 3 zolte, 4 szare, 5 pomaranczowe, 6-7 zolte, 8 zielone
+    e = ekrany(k)
+    e.po_ochronie()
+
+    def tlo_znacznika() -> str:
+        z = e.w("praca_status")
+        obraz = UW.obraz_logiczny(z)
+        return obraz.pixelColor(5, obraz.height() // 2).name()
+
+    plytka = atrapa.stan().plytka(skan)
+    kolory = {plytka.gniazdo(nr).praca.rgb for nr in (1, 2, 3, 4, 5)}
+    assert len(kolory) == 5  # piec roznych kolorow - znacznik "zawsze jeden kolor" nie przejdzie
+    for nr in (2, 3, 4, 5, 1):
+        e.klik_gniazdo(nr)
+        praca = atrapa.stan().plytka(skan).gniazdo(nr).praca
+        assert tlo_znacznika() == praca.rgb.lower() and e.w("praca_status").text() == praca.podpis, nr
+        assert e.w("praca_decyzja").text() == N.BRAK_DECYZJI
+    # (d) decyzje: napis zapisanej decyzji i znacznik po decyzji (kolor pracy ze stanu zmienia sie na kolor decyzji)
+    e.klik_gniazdo(9)
+    e.klik("przycisk_ukruszona")
+    praca = atrapa.stan().plytka(skan).gniazdo(9).praca
+    assert praca.decyzja == "ukruszona" and praca.operator == "Technik A"
+    tekst = e.w("praca_decyzja").text()
+    assert tekst == N.DECYZJA_ZAPISANA.format(decyzja=ST.PRZYCISKI["ukruszona"], osoba="Technik A", godzina=godzina(praca.czas_decyzji))
+    assert ST.PRZYCISKI["ukruszona"] in tekst and ST.PRZYCISKI["ok"] not in tekst and godzina(praca.czas_decyzji) in tekst
+    assert tlo_znacznika() == praca.rgb.lower() == ST.STATUSY["ukruszona"].hex.lower()
+    e.klik_gniazdo(3)
+    e.klik("przycisk_ok")
+    praca = atrapa.stan().plytka(skan).gniazdo(3).praca
+    tekst = e.w("praca_decyzja").text()
+    assert praca.decyzja == "ok" and ST.PRZYCISKI["ok"] in tekst and ST.PRZYCISKI["ukruszona"] not in tekst and "Technik A" in tekst
+    assert tlo_znacznika() == praca.rgb.lower()
+    # (b) legenda: kropka kazdej pozycji = kolor gniazd z tym napisem (ze stanu); pusta pozycja - kropka bez wypelnienia
+    plytka = atrapa.stan().plytka(skan)
+    wg_napisu = {}
+    for g in plytka.gniazda:
+        if g.prace:
+            wg_napisu.setdefault(g.podpis, set()).add(g.rgb.lower())
+    assert all(len(v) == 1 for v in wg_napisu.values())
+    e.zdarzenia()
+    sprawdzone = 0
+    for wiersz in e.okno.legenda.findChildren(QWidget, "legenda_pozycja"):
+        kropka = wiersz.findChildren(Kropka)[0]
+        napis = wiersz.findChildren(QLabel)[0].text()
+        if napis == N.LEGENDA_PUSTE:
+            assert kropka.kolor() is None
+            continue
+        oczekiwany = wg_napisu[napis].pop()
+        assert kropka.kolor().lower() == oczekiwany and _kolor_kropki(kropka) == oczekiwany, napis
+        sprawdzone += 1
+    assert sprawdzone == len(wg_napisu) >= 5
+    # (c) kafelek: kropka licznika = kolor statusu klasy koloru ze ``statusy``
+    kafelek = e.w(f"plytka_{skan}")
+    liczniki = kafelek.liczniki()
+    pola = kafelek.findChildren(QWidget, "plytka_licznik")
+    assert len(pola) == len(liczniki) >= 4
+    for klasa, n in liczniki.items():
+        wiersz = ST.status(ST.STATUS_WG_KOLORU[klasa])
+        pole = next(p for p in pola if p.findChildren(QLabel)[0].text() == N.LICZNIK.format(napis=wiersz.napis, n=n))
+        kropka = pole.findChildren(Kropka)[0]
+        assert kropka.kolor().lower() == wiersz.hex.lower() and _kolor_kropki(kropka) == wiersz.hex.lower(), klasa
+
+
+# ----------------------------------------------------------------------------
+# recenzja PR #62, D6: luki w testach (wstrzykniecia O17, O19, O21) i D4 (pasek stanu z ramkami)
+# ----------------------------------------------------------------------------
+def test_nowa_plytka_nie_zabiera_otwartej_pracy_na_plytce_bez_prac_do_obejrzenia(atrapa, ekrany, zegar):
+    """D6 (O17): pokazana plytka nie ma nic do obejrzenia (same zielone), technik ma otwarta prace - nowy wynik nie zabiera ekranu
+    (sama otwarta praca wstrzymuje przelaczenie); po zamknieciu pracy kolejny wynik zajmuje ekran sam."""
+    from PySide6.QtCore import Qt
+
+    atrapa.wybierz_operatora("Technik A")
+    a = atrapa.symuluj_skan("czysta", numer=1, projekty={n: 10 + n for n in range(1, 5)})
+    e = ekrany(atrapa)
+    e.klik_gniazdo(1)
+    praca = e.okno._praca_widoku
+    zegar.przesun(2)
+    b = atrapa.symuluj_skan("czysta", numer=2, projekty={n: 20 + n for n in range(1, 5)})
+    assert e.okno.pokazana_plytka() == a and e.jest("widok_pracy") and e.okno._praca_widoku == praca and e.jest("przycisk_nowa_plytka")
+    e.klawisz(Qt.Key.Key_Escape)
+    zegar.przesun(2)
+    c = atrapa.symuluj_skan("czysta", numer=3, projekty={n: 30 + n for n in range(1, 5)})
+    assert e.okno.pokazana_plytka() == c and b in e.plytki()
+
+
+def test_s3_3_tytul_pytania_plytki_z_numerem_ma_numer_i_godzine_skanu(atrapa, ekrany):
+    """D6 (O19): pytanie plytki Z numerem (tu: plytka nie z trybu, numer 4) - tytul pozycji strefy nazywa skan: numer plytki i godzina."""
+    from stanowisko.ui import napisy as N
+    from stanowisko.ui.czesci import godzina, nazwa_plytki
+
+    atrapa.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("nie_z_trybu", numer=4)
+    e = ekrany(atrapa)
+    assert pokazana(e) == ["pytanie_plytka_nie_z_trybu"]
+    plytka = atrapa.stan().plytka(skan)
+    oczekiwany = N.PLYTKA_ZE_SKANEM.format(plytka=nazwa_plytki(4), godzina=godzina(plytka.czas))
+    assert godzina(plytka.czas) and any(oczekiwany in t for t in e.tekst_elementu("pytanie_plytka_nie_z_trybu").split("\n")), oczekiwany
+
+
+def test_klik_pracy_poza_gniazdem_pod_ochrona_jest_pomijany(atrapa, ekrany, zegar):
+    """D6 (O21): tuz po zmianie mapy (technik przelaczyl plytke - ochrona 800 ms) klikniecie pracy poza gniazdami nie otwiera jej;
+    po ochronie otwiera."""
+    atrapa.wybierz_operatora("Technik A")
+    a = atrapa.symuluj_skan("zwykla", numer=1, poza_gniazdem=1)
+    zegar.przesun(2)
+    b = atrapa.symuluj_skan("czysta", numer=2, projekty={n: 10 + n for n in range(1, 5)})
+    e = ekrany(atrapa)
+    assert e.okno.pokazana_plytka() == b
+    poza = atrapa.stan().plytka(a).poza_gniazdem[0].praca_id
+    e.okno._ochrona.setInterval(3000)  # klikniecie trafia w ochrone takze na obciazonym PC
+    e.klik(f"plytka_{a}")
+    assert e.okno.pokazana_plytka() == a and e.okno.ochrona_aktywna()
+    e.okno._klik_poza(poza)  # sygnal panelu "Poza gniazdami" (jak klikniecie technika)
+    assert e.okno.ochrona_aktywna(), "proba za wolna"
+    e.odczekaj(10)
+    assert e.okno._poza is None and not e.jest("widok_pracy")
+    e.po_ochronie()
+    e.okno._klik_poza(poza)
+    e.odczekaj(10)
+    assert e.okno._poza == poza and e.jest("widok_pracy") and e.okno.widok.praca_id == poza
+
+
+@pytest.mark.parametrize("rozmiar", ROZMIARY)
+def test_pasek_stanu_z_ramkami_bez_skrotow_w_zwyklej_pracy(atrapa, ekrany, rozmiar):
+    """D4 (czesc bez decyzji wlasciciela): stanowisko ma ramki W i P - pasek stanu z polem ramek w zwyklej pracy (ramki gotowe, analiza
+    z jednym skanem w kolejce, ramka P bez polaczenia, folder skanera niedostepny) bez skrotow przy 1920 x 1080, 1536 x 864
+    i 1280 x 720. Scena "Spacja + analiza + kolejka" przy 1280 x 720 skraca pola - do decyzji wlasciciela (raport, Runda 2)."""
+    from stanowisko import kontroler_api as K
+
+    atrapa.wybierz_operatora("Technik A")
+    atrapa.symuluj_skan("zwykla")
+    e = ekrany(atrapa, rozmiar)
+
+    def ramki(**p):
+        atrapa._stan_ramek = K.StanRamek(wieczorna=K.StanRamki("W", polaczona=True, plytka=1), poranna=K.StanRamki("P", **p))
+        atrapa._odswiez_zywe()
+
+    kroki = (("ramki gotowe", lambda: ramki(polaczona=True)), ("analiza + kolejka 1", lambda: atrapa.symuluj_postep(udzial=0.4, czeka=1)),
+             ("ramka P bez polaczenia", lambda: ramki(polaczona=False)), ("koniec analizy", lambda: atrapa.symuluj_postep(udzial=None)),
+             ("skaner niedostepny", lambda: atrapa.symuluj_skaner(dostepny=False)))
+    for opis, krok in kroki:
+        krok()
+        e.zdarzenia()
+        assert e.w("napis_ramki").isVisibleTo(e.okno) and e.w("napis_ramki").text(), opis
+        usterki = UW.sprawdz_uklad(e, rozmiar)
+        assert not usterki, f"{rozmiar} {opis}:\n" + "\n".join(usterki)
