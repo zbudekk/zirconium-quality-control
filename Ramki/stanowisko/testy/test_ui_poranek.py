@@ -591,3 +591,77 @@ def test_mapa_rano_obwodka_kuwety_inna_niz_pierscien_wybranego_gniazda_i_objasni
     pary = {(a, b) for _, a, b in motyw.PARY_KONTRASTU}
     assert (MR.KOLOR_BIEZACEJ, motyw.WGLEBIENIE) in pary and (motyw.AKCENT, motyw.WGLEBIENIE) in pary
 
+
+def liczby(tekst: str) -> list:
+    import re
+
+    return [int(x) for x in re.findall(r"\d+", tekst)]
+
+
+@pytest.mark.parametrize("rozmiar", ((1920, 1001), (1280, 642)))
+def test_napis_gniazd_biezacej_kuwety_wszystkie_gniazda_wszystkich_plytek(atrapa, ekrany, rozmiar):
+    """Runda 2, P4 (a): napis "Plytka 4 - gniazda 2 i 9; Plytka 5 - gniazdo 1" wymienia KAZDE gniazdo biezacej kuwety z
+    ``KuwetaRano.gniazda`` (kazda kuweta scenariusza po kolei biezaca; uklad wysoki - ``rano_kuweta_miejsca``, zwarty -
+    ``rano_kuweta_miejsca_krotko``, pelny tekst)."""
+    atrapa.scenariusz_poranny()
+    e = ekrany(atrapa, rozmiar)
+    zwarty = rozmiar[1] < 700
+    nazwa = "rano_kuweta_miejsca_krotko" if zwarty else "rano_kuweta_miejsca"
+    odstep = NR.NIEROZSTRZYGNIETE_ODSTEP if zwarty else "\n"
+    sprawdzone = wiele_gniazd = wiele_plytek = 0
+    for x in atrapa.stan().rano.kuwety:
+        assert atrapa.wybierz_kuwete(x.kuweta).ok
+        e.zdarzenia()
+        e.odczekaj(5)
+        rano = atrapa.stan().rano
+        biezaca = next(y for y in rano.kuwety if y.biezaca)
+        assert biezaca.kuweta == x.kuweta and e.w("rano_kuweta_biezaca").text() == x.kuweta
+        oczekiwane: dict = {}
+        for skan_id, nr in biezaca.gniazda:
+            oczekiwane.setdefault(rano.plytka(skan_id).numer, set()).add(nr)
+        if not oczekiwane:
+            continue
+        assert e.jest(nazwa)
+        wiersze = e.w(nazwa).text().split(odstep)
+        widziane = {liczby(w)[0]: set(liczby(w)[1:]) for w in wiersze}
+        assert len(wiersze) == len(oczekiwane) and widziane == oczekiwane, f"kuweta {x.kuweta}: {e.w(nazwa).text()!r} != {oczekiwane}"
+        sprawdzone += 1
+        wiele_gniazd += any(len(v) > 1 for v in oczekiwane.values())
+        wiele_plytek += len(oczekiwane) > 1
+    assert sprawdzone >= 8 and wiele_gniazd >= 1 and wiele_plytek >= 1, (sprawdzone, wiele_gniazd, wiele_plytek)
+
+
+def test_to_ten_projekt_drugiego_kandydata_zapisuje_drugiego(atrapa, ekrany):
+    """Runda 2, P4 (b): "To ten projekt" na karcie DRUGIEGO kandydata wysyla ``wybierz_kandydata(praca_id, sha16 drugiego)`` i praca
+    dostaje projekt drugiego kandydata (testy klikaly tylko pierwszego)."""
+    k = UW.Szpieg(atrapa)
+    skany = atrapa.scenariusz_poranny()
+    atrapa.wybierz_operatora("Technik A")
+    e = ekrany(k)
+    p4 = skany[4]
+    praca = atrapa.stan().rano.plytka(p4).gniazdo(9).praca
+    assert praca.klasa == "dwuznaczna" and len(praca.kandydaci) >= 2
+    pierwszy, drugi = praca.kandydaci[0], praca.kandydaci[1]
+    assert drugi.projekt_id is not None and drugi.projekt_id != pierwszy.projekt_id and drugi.sha16 != pierwszy.sha16
+    e.klik_rano(p4, 9)
+    assert e.aktywny("kandydat_2_wybierz")
+    e.klik("kandydat_2_wybierz")
+    assert k.wyslane("wybierz_kandydata") == [("wybierz_kandydata", (praca.praca_id, drugi.sha16))]
+    assert atrapa.stan().rano.plytka(p4).gniazdo(9).praca.projekt_id == drugi.projekt_id
+
+
+def test_rozlozona_i_cofnij_nieaktywne_bez_osoby(atrapa, ekrany):
+    """Runda 2, P4 (c): bez wybranej osoby "Rozlozona [Enter]" i "Cofnij [Backspace]" sa nieaktywne (z osoba - aktywne)."""
+    atrapa.scenariusz_poranny()
+    atrapa.wybierz_operatora("Technik A")
+    rano = atrapa.stan().rano
+    assert atrapa.potwierdz_kuwete(rano.kuweta_biezaca).ok  # jest co cofnac
+    e = ekrany(atrapa)
+    assert e.aktywny("rano_potwierdz_kuwete") and e.aktywny("rano_cofnij_kuwete")
+    assert atrapa.wybierz_operatora(None).ok
+    e.zdarzenia()
+    e.odczekaj(20)
+    rano = atrapa.stan().rano
+    assert rano.kuweta_biezaca is not None and rano.kuweta_do_cofniecia is not None and atrapa.stan().operator is None
+    assert e.jest("rano_potwierdz_kuwete") and not e.aktywny("rano_potwierdz_kuwete")
+    assert e.jest("rano_cofnij_kuwete") and not e.aktywny("rano_cofnij_kuwete")
