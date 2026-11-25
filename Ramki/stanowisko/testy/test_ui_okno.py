@@ -798,3 +798,85 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
     # kafelek plytki: licznik = kropka + napis statusu + liczba
     napisy = [w.text() for w in e.w(f"plytka_{skan}").findChildren(QLabel)]
     assert N.LICZNIK.format(napis=ST.STATUSY["czerwony"].napis, n=2) in napisy and N.LICZNIK.format(napis=ST.STATUSY["zielony"].napis, n=2) in napisy
+
+
+def _kolor_kropki(kropka) -> str:
+    """Kolor wypelnienia narysowanej kropki (piksel w jej srodku)."""
+    obraz = kropka.grab().toImage()
+    return obraz.pixelColor(obraz.width() // 2, obraz.height() // 2).name()
+
+
+def test_kolor_statusu_poza_mapa_ze_stanu_znacznik_legenda_kafelek_i_napis_decyzji(atrapa, ekrany):
+    """Recenzja PR #62, P3 (SPEC p. 1: kolory i napisy statusow wylacznie ze stanu): (a) znacznik statusu w kolumnie "Praca" ma tlo
+    w kolorze pracy ze stanu - dla pracy czerwonej, zoltej, pomaranczowej, szarej, zielonej i po decyzji; (b) kropka kazdej pozycji
+    legendy ma kolor gniazd tej pozycji; (c) kropka kazdego licznika kafelka plytki ma kolor statusu swojej klasy; (d) napis
+    zapisanej decyzji nazywa decyzje ("Ukruszona" / "OK"), osobe i godzine."""
+    from PySide6.QtWidgets import QLabel, QWidget
+
+    from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
+    from stanowisko.ui.czesci import Kropka, godzina
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("zwykla")  # 1 zielone, 2 i 9 czerwone, 3 zolte, 4 szare, 5 pomaranczowe, 6-7 zolte, 8 zielone
+    e = ekrany(k)
+    e.po_ochronie()
+
+    def tlo_znacznika() -> str:
+        z = e.w("praca_status")
+        obraz = z.grab().toImage()
+        return obraz.pixelColor(5, obraz.height() // 2).name()
+
+    plytka = atrapa.stan().plytka(skan)
+    kolory = {plytka.gniazdo(nr).praca.rgb for nr in (1, 2, 3, 4, 5)}
+    assert len(kolory) == 5  # piec roznych kolorow - znacznik "zawsze jeden kolor" nie przejdzie
+    for nr in (2, 3, 4, 5, 1):
+        e.klik_gniazdo(nr)
+        praca = atrapa.stan().plytka(skan).gniazdo(nr).praca
+        assert tlo_znacznika() == praca.rgb.lower() and e.w("praca_status").text() == praca.podpis, nr
+        assert e.w("praca_decyzja").text() == N.BRAK_DECYZJI
+    # (d) decyzje: napis zapisanej decyzji i znacznik po decyzji (kolor pracy ze stanu zmienia sie na kolor decyzji)
+    e.klik_gniazdo(9)
+    e.klik("przycisk_ukruszona")
+    praca = atrapa.stan().plytka(skan).gniazdo(9).praca
+    assert praca.decyzja == "ukruszona" and praca.operator == "Technik A"
+    tekst = e.w("praca_decyzja").text()
+    assert tekst == N.DECYZJA_ZAPISANA.format(decyzja=ST.PRZYCISKI["ukruszona"], osoba="Technik A", godzina=godzina(praca.czas_decyzji))
+    assert ST.PRZYCISKI["ukruszona"] in tekst and ST.PRZYCISKI["ok"] not in tekst and godzina(praca.czas_decyzji) in tekst
+    assert tlo_znacznika() == praca.rgb.lower() == ST.STATUSY["ukruszona"].hex.lower()
+    e.klik_gniazdo(3)
+    e.klik("przycisk_ok")
+    praca = atrapa.stan().plytka(skan).gniazdo(3).praca
+    tekst = e.w("praca_decyzja").text()
+    assert praca.decyzja == "ok" and ST.PRZYCISKI["ok"] in tekst and ST.PRZYCISKI["ukruszona"] not in tekst and "Technik A" in tekst
+    assert tlo_znacznika() == praca.rgb.lower()
+    # (b) legenda: kropka kazdej pozycji = kolor gniazd z tym napisem (ze stanu); pusta pozycja - kropka bez wypelnienia
+    plytka = atrapa.stan().plytka(skan)
+    wg_napisu = {}
+    for g in plytka.gniazda:
+        if g.prace:
+            wg_napisu.setdefault(g.podpis, set()).add(g.rgb.lower())
+    assert all(len(v) == 1 for v in wg_napisu.values())
+    e.zdarzenia()
+    sprawdzone = 0
+    for wiersz in e.okno.legenda.findChildren(QWidget, "legenda_pozycja"):
+        kropka = wiersz.findChildren(Kropka)[0]
+        napis = wiersz.findChildren(QLabel)[0].text()
+        if napis == N.LEGENDA_PUSTE:
+            assert kropka.kolor() is None
+            continue
+        oczekiwany = wg_napisu[napis].pop()
+        assert kropka.kolor().lower() == oczekiwany and _kolor_kropki(kropka) == oczekiwany, napis
+        sprawdzone += 1
+    assert sprawdzone == len(wg_napisu) >= 5
+    # (c) kafelek: kropka licznika = kolor statusu klasy koloru ze ``statusy``
+    kafelek = e.w(f"plytka_{skan}")
+    liczniki = kafelek.liczniki()
+    pola = kafelek.findChildren(QWidget, "plytka_licznik")
+    assert len(pola) == len(liczniki) >= 4
+    for klasa, n in liczniki.items():
+        wiersz = ST.status(ST.STATUS_WG_KOLORU[klasa])
+        pole = next(p for p in pola if p.findChildren(QLabel)[0].text() == N.LICZNIK.format(napis=wiersz.napis, n=n))
+        kropka = pole.findChildren(Kropka)[0]
+        assert kropka.kolor().lower() == wiersz.hex.lower() and _kolor_kropki(kropka) == wiersz.hex.lower(), klasa
