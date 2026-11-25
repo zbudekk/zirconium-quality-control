@@ -16,11 +16,17 @@ Paczki bez katalogu `python` (wydania do 0.3.3) wymagaja Pythona 3.12 w systemie
    `C:\Stanowisko\dane\projekty`; dopoki nie ma w nim projektow STL albo nie wpiszesz wlasciwego folderu w ustawieniach, program
    nie rozpozna prac - skany czekaja na projekty),
    miejsce instalacji (domyslnie `C:\Stanowisko`). Pod miejscem instalacji widac, ile miejsca potrzeba i ile jest wolnego.
-   Bledy (brak folderu, za malo miejsca, folder w OneDrive) okno pokazuje na czerwono i nie idzie dalej.
+   Bledy (brak folderu, za malo miejsca, folder w OneDrive, za dluga sciezka miejsca instalacji - okno podaje, ile znakow
+   wolno) okno pokazuje na czerwono i nie idzie dalej.
 4. Krok **Osoby**: wpisz imiona technikow (przycisk "Dodaj" albo Enter; "Usun" usuwa zaznaczona osobe). Co najmniej jedna osoba.
-5. Krok **Instalacja**: przycisk "Instaluj". Okno pokazuje 9 krokow instalatora (pakiety programu - kilka minut). Nie zamykaj
-   okna. Gdy cos sie nie uda, okno pokazuje zdanie, co sie stalo, i "Co zrobic"; "Szczegoly" pokazuja caly zapis instalacji,
-   "Sprobuj ponownie" wraca do kroku 1. Poprzednia wersja programu (przy aktualizacji) dziala dalej bez zmian.
+5. Krok **Instalacja**: przycisk "Instaluj". Okno pokazuje 9 krokow instalatora; przy kroku "Program i pakiety" (kilka minut,
+   z pendrive'a i przy antywirusie dluzej) pasek sie przesuwa, a przy kroku rosnie czas ("trwa... 2:15"). W tym kroku okna NIE da
+   sie zamknac (krzyzyk, Alt+F4, Esc) - pokazuje "Instalacja trwa - poczekaj do konca"; po koncu albo po bledzie zamyka sie
+   zwyczajnie. Drugi start instalacji w to samo miejsce (drugie okno) - zdanie "Instalacja juz trwa w tym folderze", nic sie nie
+   zmienia. Gdy cos sie nie uda, okno pokazuje zdanie, co sie stalo, i "Co zrobic" (bez polecen do wpisywania);
+   "Szczegoly" pokazuja caly zapis instalacji, "Sprobuj ponownie" wraca do kroku 1. Poprzednia wersja programu (przy
+   aktualizacji) dziala dalej bez zmian. Instalacja nie zapisuje niczego w rozpakowanej paczce (te sama paczke mozna
+   zainstalowac na kolejnym komputerze).
 6. Krok **Gotowe**: na pulpicie sa ikony **Stanowisko** i **Dzien skanera** (program startuje bez czarnego okna konsoli).
    "Uruchom program" otwiera program od razu. Gdy ikony nie da sie zalozyc (zasady komputera), okno mowi to wprost i podaje plik do
    klikniecia w `C:\Stanowisko` (`Stanowisko.cmd` albo `Dzien_skanera.cmd` - otwieraja tez male okno konsoli, nie zamykaj go).
