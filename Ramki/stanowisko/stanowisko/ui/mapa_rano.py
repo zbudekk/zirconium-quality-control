@@ -15,19 +15,16 @@ from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
 
 from . import motyw
 from . import napisy_rano as NR
-from . import styl
 from .mapa import MapaPlytki
 
 PROG_MINIATURY_PX = 25.0  # promien gniazda (px), od ktorego w gniezdzie jest miniatura i numer gniazda
 PROG_ZEBA_PX = 16.0  # od tego promienia - kuweta i zab
-KOLOR_BIEZACEJ = styl.AKCENT  # obwodka gniazd biezacej kuwety
+KOLOR_BIEZACEJ = motyw.AKCENT  # obwodka gniazd biezacej kuwety
 
 
 def _czcionka(px: float, pogrubiona: bool = True) -> QFont:
-    f = QFont(styl.CZCIONKA)
-    f.setPixelSize(max(7, int(px)))
-    f.setBold(pogrubiona)
-    return f
+    """Czcionka napisow gniazda z ``motyw`` (rodziny z zapasem, cyfry tabelaryczne)."""
+    return motyw.czcionka(px, pogrubiona)
 
 
 class MapaRano(MapaPlytki):
@@ -39,7 +36,7 @@ class MapaRano(MapaPlytki):
         super().__init__(rodzic)
         self.skan_id = skan_id
         self.setObjectName(f"mapa_rano_{skan_id}")
-        self.setMinimumSize(150, 140)
+        self.setMinimumSize(*motyw.UKLAD_WYSOKI.mapa_rano_min)  # ekran ustawia minimum wg ukladu okna (``Uklad.mapa_rano_min``)
         self._obwodka: frozenset = frozenset()
         self._obrazy: dict = {}
 

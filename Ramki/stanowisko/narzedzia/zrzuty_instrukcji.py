@@ -70,9 +70,9 @@ def przygotuj_qt():
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance() or QApplication(sys.argv[:1])
-    from stanowisko.ui import styl
+    from stanowisko.ui import motyw
 
-    if styl.CZCIONKA not in QFontDatabase.families() and FONTY_WINDOWS.is_dir():
+    if motyw.CZCIONKI[-1] not in QFontDatabase.families() and FONTY_WINDOWS.is_dir():
         for wzor in ("segoeui*.ttf", "seguisb*.ttf", "seguisym*.ttf"):
             for plik in sorted(FONTY_WINDOWS.glob(wzor)):
                 QFontDatabase.addApplicationFont(str(plik))

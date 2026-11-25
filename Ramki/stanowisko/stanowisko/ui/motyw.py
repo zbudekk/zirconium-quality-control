@@ -36,6 +36,7 @@ TEKST_POMOCNICZY = "#B8B8B8"
 TEKST_PRZYGASZONY = "#9E9E9E"  # tylko na TLO i WGLEBIENIE
 NA_STATUSIE = "#111111"  # napis na kolorze statusu - zawsze ten sam
 OBWODKA_UBYTKU = "#F2F2F2"  # jasna obwodka 2 px gniazda z ubytkiem (status nie tylko barwa)
+TLO_MINIATURY = "#000000"  # E3-U1b: tlo miniatury projektu (obraz z indeksu ma czarne tlo - ramka w tym samym kolorze)
 
 # poziom komunikatu -> (tlo, obwodka); napis zawsze TEKST / TEKST_POMOCNICZY. Bez paskow z lewej strony, bez zieleni:
 # zielone na ekranie znaczy wylacznie "praca sprawdzona, cala" i pochodzi ze stanu
@@ -60,12 +61,17 @@ PX_TYTUL_PRACY = 18
 PX_WARTOSC = 18
 PX_NAGLOWEK_PLYTKI = 20
 PX_KUWETA = 64  # numer biezacej kuwety (poranek, U1b)
+PX_KUWETA_ZWARTY = 48  # E3-U1b: numer biezacej kuwety w ukladzie zwartym (okno 1280 x 720 - miejsce na mapy plytek)
+PX_POLE_KUWETY = 20  # E3-U1b: wpisywany numer kuwety (pole "Inna kuweta")
+PX_MINIATURY = 11  # E3-U1b: napis "brak miniatury" w ramce miniatury
+MINIATURA_KANDYDATA = 72  # E3-U1b: bok miniatury kandydata w kolumnie "Praca" (makieta 72 px; uklad zwarty 56)
+MINIATURA_KANDYDATA_ZWARTY = 56
 PROMIEN = 4
 PROMIEN_ZNACZNIKA = 3
 SIATKA = (4, 8, 12, 16, 20)  # odstepy
 CEL_KLIKNIECIA = 44  # najmniejsza wysokosc przycisku akcji (przyciski paska stanu sa mniejsze - makieta)
 # wysokosc przycisku wg roli (piksele): akcje 44 (SPEC), przyciski pomocnicze nizsze - jak na makiecie (pasek stanu 22-24, przelaczniki 30-34)
-WYSOKOSCI = {"lacze": 30, "stan": 22, "stan_blad": 22, "cyfra": 40, "osoba": 40, "segment_lewy": 34, "segment_prawy": 34, "zakres_lewy": 28,
+WYSOKOSCI = {"zakladka": 40, "lacze": 30, "stan": 22, "stan_blad": 22, "cyfra": 40, "osoba": 40, "segment_lewy": 34, "segment_prawy": 34, "zakres_lewy": 28,
              "zakres_prawy": 28, "czekanie": 34}
 WYSOKOSC_PRZYCISKU = 36  # przycisk bez wlasnej roli w ``WYSOKOSCI``, ktoremu wolajacy nie podal wysokosci
 SZEROKOSC_CYFRY = 44
@@ -99,6 +105,10 @@ class Uklad:
     przycisk: int  # wysokosc pozostalych przyciskow akcji
     mapa_min: tuple
     obraz_min: int
+    # E3-U1b (tryb poranny): stale wysokosci nad mapami plytek - pasek zakladek i wiersz "Teraz rozkladasz"
+    zakladki: int = 50
+    kuweta: int = 128
+    mapa_rano_min: tuple = (150, 140)
 
     @property
     def lista(self) -> int:
@@ -112,7 +122,7 @@ UKLAD_WYSOKI = Uklad("wysoki", False, lewa=280, prawa=360, bok=20, odstep=16, st
 UKLAD_ZWYKLY = dataclasses.replace(UKLAD_WYSOKI, nazwa="zwykly", wiersze_listy=3, obraz_min=70)
 UKLAD_ZWARTY = Uklad("zwarty", True, lewa=240, prawa=320, bok=12, odstep=12, strefa=148, naglowek=54,
                      wiersze_listy=2, wiersz_tabeli=26, naglowek_tabeli=26, naglowek_listy=44, boczny=176, decyzja=48, przycisk=44,
-                     mapa_min=(220, 180), obraz_min=36)
+                     mapa_min=(220, 180), obraz_min=36, zakladki=44, kuweta=104, mapa_rano_min=(120, 110))
 
 
 def uklad_dla(szerokosc: int, wysokosc: int) -> Uklad:
@@ -171,6 +181,7 @@ PARY_KONTRASTU = (
     ("akcent jako tekst na wglebieniu", AKCENT_TEKST, WGLEBIENIE),
     ("akcent jako tekst na tle okna", AKCENT_TEKST, TLO),
     ("kolor fokusu jako tekst na powierzchni", AKCENT_FOKUS, POWIERZCHNIA),
+    ("napis pomocniczy w ramce miniatury", TEKST_POMOCNICZY, TLO_MINIATURY),
 ) + tuple((f"tekst glowny na tle komunikatu ({poziom})", TEKST, tlo) for poziom, (tlo, _) in POZIOMY.items()) + tuple(
     (f"tekst pomocniczy na tle komunikatu ({poziom})", TEKST_POMOCNICZY, tlo) for poziom, (tlo, _) in POZIOMY.items())
 
@@ -221,6 +232,12 @@ def styl_znaczka_poziomu(poziom: str, px: int = PX_POMOCNICZY) -> str:
             f"font-size: {px}px; font-weight: 600;")
 
 
+def styl_miniatury(px: int = PX_MINIATURY) -> str:
+    """E3-U1b: arkusz ramki miniatury projektu (poranek): czarne tlo obrazu z indeksu, obwodka pola, napis "brak miniatury"."""
+    return (f"background: {TLO_MINIATURY}; border: 1px solid {OBWODKA}; border-radius: {PROMIEN}px; color: {TEKST_POMOCNICZY}; "
+            f"font-size: {px}px;")
+
+
 def styl_przycisku_statusu(hex_: str) -> str:
     """Arkusz przycisku wypelnionego kolorem statusu ``hex_`` ze ``statusy`` ("Ukruszona" = czerwony statusu)."""
     return (f"QPushButton {{ background: {hex_}; color: {tekst_na(hex_)}; border: 1px solid {hex_}; border-radius: {PROMIEN}px; "
@@ -266,18 +283,30 @@ QLabel[rola="znaczek_nowa"] {{ background: {AKCENT}; color: {NA_AKCENCIE}; borde
 QLabel[rola="znaczek_uwaga"] {{ color: {TEKST}; background: {POZIOMY["ostrzezenie"][0]}; border: 1px solid {POZIOMY["ostrzezenie"][1]};
                                 border-radius: {PROMIEN_ZNACZNIKA}px; padding: 1px 6px; font-size: {PX_POMOCNICZY}px; font-weight: 600; }}
 
+QLabel[rola="kuweta_numer"] {{ font-size: {PX_KUWETA_ZWARTY if u.zwarty else PX_KUWETA}px; font-weight: 600; }}
+QLabel[rola="kuweta_opis"] {{ color: {TEKST_POMOCNICZY}; font-size: {PX_PODSTAWOWY if u.zwarty else 16}px; }}
+QLabel[rola="pole"] {{ background: {WGLEBIENIE}; color: {TEKST}; border: 1px solid {OBWODKA}; border-radius: {PROMIEN}px; padding: 0px 14px;
+                      font-size: {PX_POLE_KUWETY}px; }}
+QLabel[rola="pole_puste"] {{ background: {WGLEBIENIE}; color: {TEKST_PRZYGASZONY}; border: 1px solid {OBWODKA}; border-radius: {PROMIEN}px;
+                            padding: 0px 14px; font-size: {PX_POLE_KUWETY}px; }}
+
 QFrame#pasek_gorny {{ background: {POWIERZCHNIA}; border: none; border-bottom: 1px solid {LINIA}; }}
 QFrame#pasek_gorny[blysk="true"] {{ border-bottom: 2px solid {AKCENT}; }}
 QFrame#pasek_stanu {{ background: {WGLEBIENIE}; border: none; border-top: 1px solid {LINIA}; }}
 QFrame#lista_plytek {{ background: {TLO}; border: none; border-right: 1px solid {LINIA_TLA}; }}
 QFrame#ramka_pracy {{ background: {POWIERZCHNIA}; border: none; border-left: 1px solid {LINIA}; }}
-QFrame#strefa_komunikatow {{ background: {TLO}; border: none; border-bottom: 1px solid {LINIA_TLA}; }}
+QFrame#rano_piec {{ background: {TLO}; border: none; border-right: 1px solid {LINIA_TLA}; }}
+QFrame#rano_prawa_kolumna {{ background: {POWIERZCHNIA}; border: none; border-left: 1px solid {LINIA}; }}
+QFrame#rano_zakladki {{ background: {TLO}; border: none; border-bottom: 1px solid {LINIA_TLA}; }}
+QFrame#strefa_komunikatow, QFrame#rano_strefa_komunikatow {{ background: {TLO}; border: none; border-bottom: 1px solid {LINIA_TLA}; }}
 QFrame#lista_dofrezowania {{ background: {TLO}; border: none; border-top: 1px solid {LINIA_TLA}; }}
 QFrame[rola="przegroda"] {{ background: {LINIA}; border: none; max-height: 1px; min-height: 1px; }}
 QFrame[rola="nakladka"] {{ background: {POWIERZCHNIA}; border: 1px solid {OBWODKA}; border-radius: {PROMIEN}px; }}
 QFrame[rola="kafelek"] {{ background: {WGLEBIENIE}; border: 1px solid {LINIA}; border-radius: {PROMIEN}px; }}
 QFrame[rola="kafelek"][wybrany="true"] {{ background: {WYBOR_TLO}; border: 1px solid {AKCENT}; }}
 QFrame[rola="kafelek"]:focus {{ border: 2px solid {AKCENT_FOKUS}; }}
+QFrame[rola="karta_mapy"] {{ background: transparent; border: 1px solid transparent; border-radius: {PROMIEN}px; }}
+QFrame[rola="karta_mapy"][wybrany="true"] {{ border: 1px solid {AKCENT}; }}
 QFrame[rola="kafelek_niezapisany"] {{ background: {POZIOMY["blad"][0]}; border: 1px dashed {POZIOMY["blad"][1]}; border-radius: {PROMIEN}px; }}
 QFrame[rola="uwaga_panel"] {{ border-radius: {PROMIEN}px; }}
 QFrame[rola="uwaga_panel"][poziom="pytanie"] {{ background: {POZIOMY["pytanie"][0]}; border: 1px solid {POZIOMY["pytanie"][1]}; }}
@@ -336,6 +365,12 @@ QPushButton[rola="segment_prawy"] {{ border-top-left-radius: 0px; border-bottom-
 QPushButton[rola="segment_lewy"]:checked, QPushButton[rola="segment_prawy"]:checked {{ background: {AKCENT}; color: {NA_AKCENCIE};
                            border-color: {AKCENT}; font-weight: 600; }}
 QPushButton[rola="segment_lewy"]:focus, QPushButton[rola="segment_prawy"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 3px 15px; }}
+QPushButton[rola="zakladka"] {{ background: transparent; color: {TEKST_POMOCNICZY}; border: none; border-bottom: 2px solid transparent;
+                              border-radius: 0px; padding: 0px 14px; }}
+QPushButton[rola="zakladka"]:hover {{ color: {TEKST}; background: transparent; }}
+QPushButton[rola="zakladka"]:checked {{ color: {TEKST}; border-bottom: 2px solid {AKCENT}; font-weight: 600; }}
+QPushButton[rola="zakladka"]:focus {{ border: 2px solid {AKCENT_FOKUS}; padding: 0px 12px; }}
+QPushButton[rola="zakladka"]:disabled {{ color: {TEKST_PRZYGASZONY}; background: transparent; border: none; border-bottom: 2px solid transparent; }}
 QPushButton[rola="zakres_lewy"], QPushButton[rola="zakres_prawy"] {{ background: transparent; color: {TEKST_POMOCNICZY};
                            border: 1px solid {OBWODKA}; font-size: {PX_TRESC}px; padding: 2px 12px; }}
 QPushButton[rola="zakres_lewy"] {{ border-top-right-radius: 0px; border-bottom-right-radius: 0px; }}

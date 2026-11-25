@@ -2,8 +2,9 @@
 arkusza zlecen proponowane przez ``excel`` (A9) do odhaczenia (kolor pola B).
 
 Zasady (kontrakt ``kontroler_api`` w wersji 4):
-* okno to PANEL w lewej kolumnie ekranu porannego (zamiast plytek pieca) - nie osobne okno modalne; pokazane, gdy
-  ``stan.excel.widoczne`` (po "Zamknij piec" w trybie "pytaj", przycisk "Excel: wskaz wiersz");
+* okno to PANEL - zakladka "Excel" srodka ekranu porannego (E3-U1b; wczesniej w miejscu plytek pieca) - nie osobne okno
+  modalne; pokazane, gdy ``stan.excel.widoczne`` (po "Zamknij piec" w trybie "pytaj", przycisk "Excel: wskaz wiersz");
+  wyglad wylacznie z ``motyw`` (tabele i przyciski jak w calym oknie);
 * niczego nie liczy i nie zapisuje samo: lista pozycji ze ``stan.excel.pozycje``, kandydaci (kolumna H - DANE OSOBOWE, tylko
   na ekran laptopa) z zapytania ``kontroler.excel_szczegoly(piec, zlecenie)``; zapis koloru WYLACZNIE po kliknieciu "Zatwierdz"
   (``excel_zatwierdz``), "Pomin" = ``excel_pomin``, "Pozniej" = ``excel_zamknij``, "Odswiez z Excela" = ``excel_odswiez``;
@@ -21,40 +22,34 @@ import logging
 import weakref
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QAbstractItemView, QFrame, QHeaderView, QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QSizePolicy, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 
+from . import czesci as C
+from . import motyw
 from . import napisy_rano as NR
-from . import styl
-from .czesci import UkladPlynny, dzien, etykieta, przycisk, wyczysc
+from .czesci import UkladPlynny, dzien, etykieta, guzik, wyczysc
 
 LOG = logging.getLogger(__name__)
 KLASA_WSKAZ = "wskaz_wiersz"
 
 
 def _tabela(nazwa: str, kolumny: tuple) -> QTableWidget:
-    t = QTableWidget(0, len(kolumny))
-    t.setObjectName(nazwa)
-    t.setHorizontalHeaderLabels(list(kolumny))
-    t.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-    t.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-    t.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-    t.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-    t.verticalHeader().setVisible(False)
-    t.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-    t.horizontalHeader().setSectionsClickable(False)
-    t.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    """Tabela panelu - ta sama co w calym oknie (``czesci.tabela``), rozciagana w pionie."""
+    t = C.tabela(nazwa, kolumny, motyw.UKLAD_WYSOKI.wiersz_tabeli, motyw.UKLAD_WYSOKI.naglowek_tabeli)
     t.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     return t
 
 
-def _wypelnij(t: QTableWidget, wiersze: list, r: styl.Rozmiary) -> None:
+def _wypelnij(t: QTableWidget, wiersze: list, u: motyw.Uklad) -> None:
     t.setRowCount(len(wiersze))
     for i, komorki in enumerate(wiersze):
         for k, tekst in enumerate(komorki):
             pole = QTableWidgetItem(tekst)
-            pole.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            pole.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             t.setItem(i, k, pole)
-    t.verticalHeader().setDefaultSectionSize(r.wiersz_tabeli)
+    t.verticalHeader().setDefaultSectionSize(u.wiersz_tabeli)
+    t.verticalHeader().setMinimumSectionSize(u.wiersz_tabeli)
+    t.horizontalHeader().setFixedHeight(u.naglowek_tabeli)
 
 
 def klucz_pozycji(p) -> tuple:
@@ -75,8 +70,7 @@ class PanelExcela(QFrame):
         self._ekran = weakref.ref(ekran)
         self._zalogowane: set = set()  # ostrzezenia Excela zapisane juz w logu w pelnym brzmieniu (E3-P14, poz. 1)
         self.setObjectName("excel_panel")
-        self.setProperty("rola", "panel")
-        self._r = styl.ZWYKLE
+        self._uklad = motyw.UKLAD_WYSOKI
         self._klucz: tuple | None = None  # pokazana pozycja (piec, zlecenie)
         self._wybrana = False  # pozycja wybrana kliknieciem osoby - tylko wtedy "Zatwierdz" / "Pomin" sa aktywne (B1)
         self._wiersz: int | None = None  # wiersz kandydata wskazany przez osobe
@@ -86,9 +80,9 @@ class PanelExcela(QFrame):
         self._u = u = QVBoxLayout(self)
         u.setContentsMargins(12, 8, 12, 8)
         u.setSpacing(6)
-        self.tytul = etykieta("", "naglowek", "excel_tytul", zawijaj=True)
+        self.tytul = etykieta("", "tytul_pracy", "excel_tytul", zawijaj=True)
         u.addWidget(self.tytul)
-        self.ostrzezenia = etykieta("", "slaby", "excel_ostrzezenia", zawijaj=True)
+        self.ostrzezenia = etykieta("", "tresc", "excel_ostrzezenia", zawijaj=True)
         u.addWidget(self.ostrzezenia)
         self.blad = etykieta("", "uwaga", "excel_blad", zawijaj=True)
         self.blad.setVisible(False)
@@ -103,9 +97,9 @@ class PanelExcela(QFrame):
         u.addWidget(self.tabela, 2)
         self.wybierz = etykieta(NR.EXCEL_WYBIERZ, "informacja", "excel_wybierz", zawijaj=True)
         u.addWidget(self.wybierz)
-        self.folder = etykieta("", "duzy", "excel_folder", zawijaj=True)
+        self.folder = etykieta("", "wyrozniony", "excel_folder", zawijaj=True)
         u.addWidget(self.folder)
-        self.powod = etykieta("", "slaby", "excel_powod", zawijaj=True)
+        self.powod = etykieta("", "tresc", "excel_powod", zawijaj=True)
         u.addWidget(self.powod)
         self.sprawdz = etykieta(NR.EXCEL_SPRAWDZ, "uwaga", "excel_sprawdz", zawijaj=True)
         self.sprawdz.setVisible(False)
@@ -113,7 +107,7 @@ class PanelExcela(QFrame):
         self.poprzedni = etykieta("", "uwaga", "excel_poprzedni", zawijaj=True)
         self.poprzedni.setVisible(False)
         u.addWidget(self.poprzedni)
-        u.addWidget(etykieta(NR.EXCEL_KANDYDACI_TYTUL, "slaby", "excel_kandydaci_tytul", zawijaj=True))
+        u.addWidget(etykieta(NR.EXCEL_KANDYDACI_TYTUL, "naglowek_sekcji", "excel_kandydaci_tytul", zawijaj=True))
         self.kandydaci = _tabela("excel_kandydaci", NR.EXCEL_KANDYDACI_KOLUMNY)
         self.kandydaci.cellClicked.connect(self._klik_kandydata)
         u.addWidget(self.kandydaci, 2)
@@ -122,11 +116,11 @@ class PanelExcela(QFrame):
         u.addWidget(self.bez_osoby)
         przyciski = QWidget()
         przyciski.setObjectName("excel_przyciski")
-        self._przyciski = UkladPlynny(przyciski, odstep_poziomy=8, odstep_pionowy=4)
-        self.zatwierdz = przycisk(NR.EXCEL_ZATWIERDZ_WYBIERZ, "excel_zatwierdz", "glowny", self._zatwierdz)
-        self.pomin = przycisk(NR.EXCEL_POMIN, "excel_pomin", None, self._pomin)
-        self.odswiez = przycisk(NR.EXCEL_ODSWIEZ, "excel_odswiez", "lacze", lambda: self._polecenie("excel_odswiez"))
-        self.pozniej = przycisk(NR.EXCEL_POZNIEJ, "excel_pozniej", "lacze", lambda: self._polecenie("excel_zamknij"))
+        self._przyciski = UkladPlynny(przyciski, odstep_poziomy=8, odstep_pionowy=6)
+        self.zatwierdz = guzik(NR.EXCEL_ZATWIERDZ_WYBIERZ, "excel_zatwierdz", "glowny", self._zatwierdz, motyw.CEL_KLIKNIECIA)
+        self.pomin = guzik(NR.EXCEL_POMIN, "excel_pomin", None, self._pomin, motyw.CEL_KLIKNIECIA)
+        self.odswiez = guzik(NR.EXCEL_ODSWIEZ, "excel_odswiez", None, lambda: self._polecenie("excel_odswiez"), motyw.CEL_KLIKNIECIA)
+        self.pozniej = guzik(NR.EXCEL_POZNIEJ, "excel_pozniej", None, lambda: self._polecenie("excel_zamknij"), motyw.CEL_KLIKNIECIA)
         for b in (self.zatwierdz, self.pomin, self.odswiez, self.pozniej):
             self._przyciski.addWidget(b)
         u.addWidget(przyciski)
@@ -147,12 +141,10 @@ class PanelExcela(QFrame):
         """Czy pokazana pozycja jest wybrana kliknieciem (przyciski zapisu moga byc aktywne - B1)."""
         return self._wybrana
 
-    def ustaw_tryb(self, r: styl.Rozmiary) -> None:
-        self._r = r
-        self._u.setContentsMargins(*((8, 4, 8, 4) if r.zwarty else (12, 8, 12, 8)))
-        self._u.setSpacing(3 if r.zwarty else 6)
-        self.zatwierdz.setMinimumHeight(r.wysokosc_przycisku)
-        self.pomin.setMinimumHeight(r.wysokosc_przycisku)
+    def ustaw_uklad(self, u: motyw.Uklad) -> None:
+        self._uklad = u
+        self._u.setContentsMargins(u.bok, 12 if u.zwarty else 16, u.bok, 12 if u.zwarty else 16)
+        self._u.setSpacing(6 if u.zwarty else 8)
         self._sygnatura = None
 
     # --- klikniecia -------------------------------------------------------------------------------
@@ -222,11 +214,11 @@ class PanelExcela(QFrame):
                 self._klucz, self._wiersz, self._wybrana = klucz, None, False
         elif teraz.zalatwiona:
             self._wybrana, self._wiersz = False, None
-        sygnatura = (ex, stan.operator, self._klucz, self._wiersz, self._wybrana, self._r.zwarty)
+        sygnatura = (ex, stan.operator, self._klucz, self._wiersz, self._wybrana, self._uklad)
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
-        r = self._r
+        u = self._uklad
         data = ex.data or ""
         self.tytul.setText(NR.EXCEL_TYTUL.format(nr=ex.nr_w_dniu or "?", doba=dzien(data) if data else "?"))
         teksty = ([NR.EXCEL_W_TOKU.format(n=ex.w_toku)] if ex.w_toku else []) + [NR.EXCEL_TRYB.get(ex.tryb, ""),
@@ -240,9 +232,9 @@ class PanelExcela(QFrame):
         self.blad.setVisible(bool(ex.blad))
         wyczysc(self._zalegle)
         if ex.zalegle:
-            self._zalegle.addWidget(etykieta(NR.EXCEL_ZALEGLE, "slaby"))
+            self._zalegle.addWidget(etykieta(NR.EXCEL_ZALEGLE, "tresc"))
             for sid, nr, d, ile in ex.zalegle:
-                self._zalegle.addWidget(przycisk(NR.EXCEL_ZALEGLY.format(nr=nr or "?", doba=dzien(d) if d else "?", ile=ile), f"excel_zalegly_{sid}",
+                self._zalegle.addWidget(guzik(NR.EXCEL_ZALEGLY.format(nr=nr or "?", doba=dzien(d) if d else "?", ile=ile), f"excel_zalegly_{sid}",
                                                  "lacze", lambda sid=sid: self._polecenie("excel_pokaz", sid)))
         self.zalegle.setVisible(bool(ex.zalegle))
         wiersze = []
@@ -251,7 +243,7 @@ class PanelExcela(QFrame):
             uwagi = " ".join(x for x in (NR.EXCEL_UWAGA_SPRAWDZ if p.do_sprawdzenia else "", NR.EXCEL_UWAGA_BLAD if p.poprzedni_blad else "") if x)
             wiersze.append([p.kuweta or NR.LISTA_PUSTA, propozycja, uwagi,
                             NR.EXCEL_STANY.get(p.wynik, p.wynik or "") if p.zalatwiona or p.wynik else NR.EXCEL_STANY[None]])
-        _wypelnij(self.tabela, wiersze, r)
+        _wypelnij(self.tabela, wiersze, u)
         indeks = next((i for i, p in enumerate(pozycje) if klucz_pozycji(p) == self._klucz), None)
         if indeks is not None and self._wybrana:
             self.tabela.selectRow(indeks)
@@ -278,7 +270,7 @@ class PanelExcela(QFrame):
             pole = NR.EXCEL_POLE_ZIELONE if x.zielone else (NR.EXCEL_POLE_INNE if x.kolor_b else "")
             kand.append([f"{x.wiersz}{NR.EXCEL_PROPONOWANY if p is not None and x.wiersz == p.wiersz else ''}", dzien(x.data) if x.data else "",
                          x.numer_b, x.kuweta, x.nazwa, pole])
-        _wypelnij(self.kandydaci, kand, r)
+        _wypelnij(self.kandydaci, kand, u)
         wybrany = next((i for i, x in enumerate(self._kandydaci) if x.wiersz == self._wiersz), None)
         if wybrany is not None:
             self.kandydaci.selectRow(wybrany)
