@@ -1619,3 +1619,49 @@ def test_wyjscie_bez_nazw_zlecen_takze_przy_bledach(kat, capsys):
     for json_ in ((), ("--json",)):
         kod, wyjscie = uruchom_main(capsys, "--ustawienia", kat.plik, "--bez-sieci", *json_)
         assert kod == 0 and NAZWISKO not in wyjscie
+
+
+# ----------------------------------------------------------------------------- E3-R1: [ramki] wlaczone = false
+
+@pytest.fixture
+def proby_ramek(monkeypatch):
+    """Licznik prob polaczenia samokontroli z ramka (kazde ``GET /stan``); proba = ramka nieobecna (jak brak sieci)."""
+    proby = []
+
+    def zapytaj(host, port, klucz, limit_s):
+        proby.append(host)
+        raise ConnectionRefusedError("atrapa: nikt nie slucha")
+
+    monkeypatch.setattr(S, "_zapytaj_ramke", zapytaj)
+    return proby
+
+
+def test_r1_ramki_wylaczone_wiersz_neutralny_bez_proby_polaczenia(kat, proby_ramek, capsys):
+    kat.zapisz(wlaczone="false")
+    for bez_sieci in (False, True):
+        wynik = kat.wykonaj(bez_sieci=bez_sieci)
+        for kod in ("ramka_wieczorna", "ramka_poranna"):
+            s = wynik.sprawdzenie(kod)
+            assert s.poziom == S.OK and "wylaczone w ustawieniach" in s.opis and s.rada == "", s
+            assert "nieobecna" not in s.opis and "pominieto" not in s.opis
+        assert wynik.kod_wyjscia == 0
+    assert proby_ramek == []
+    kod, wyjscie = uruchom_main(capsys, "--ustawienia", kat.plik)
+    wiersze = [w for w in wyjscie.splitlines() if " ramka_" in w]
+    assert kod == 0 and len(wiersze) == 2 and all(w.startswith("OK ramka_") and "wylaczone w ustawieniach" in w for w in wiersze), wiersze
+    assert proby_ramek == [] and ZIELONA.fullmatch(wyjscie.splitlines()[-1])
+
+
+@pytest.mark.parametrize("wlaczone", ["true", None], ids=["true", "brak_klucza"])
+def test_r1_ramki_wlaczone_albo_brak_klucza_proba_jak_dotad(kat, proby_ramek, wlaczone):
+    if wlaczone is None:
+        kat.tekst = re.sub(r"(?m)^wlaczone\s*=.*\n", "", kat.tekst)
+        kat.zapisz()
+        assert "wlaczone" not in kat.plik.read_text(encoding="utf-8").split("[ramki]", 1)[1].split("\n[", 1)[0]
+    else:
+        kat.zapisz(wlaczone=wlaczone)
+    wynik = kat.wykonaj(bez_sieci=False)
+    assert sorted(proby_ramek) == ["127.0.0.1", "127.0.0.2"]
+    for kod in ("ramka_wieczorna", "ramka_poranna"):
+        s = wynik.sprawdzenie(kod)
+        assert s.poziom == S.OSTRZEZENIE and "nieobecna" in s.opis, s
