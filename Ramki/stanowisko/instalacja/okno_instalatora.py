@@ -563,7 +563,7 @@ if QtWidgets is not None:
             self.opis_gotowe.setText(N.GOTOWE_OPIS.format(wersja=self.info["wersja"], katalog=katalog))
             zalozone = [n for n, (ok, _) in self.postep.skroty.items() if ok]
             braki = [N.IKONA_BRAK.format(nazwa=n, plik=Path(p).name) for n, (ok, p) in self.postep.skroty.items() if not ok]
-            tekst = ([N.IKONY_SA.format(ikony=", ".join(f"„{n}”" for n in zalozone))] if zalozone else []) + braki
+            tekst = ([N.IKONY_SA.format(ikony=", ".join(f"\u201e{n}\u201d" for n in zalozone))] if zalozone else []) + braki
             self._ustaw_komunikat(self.komunikat_ikon, "\n".join(tekst), "ostrzezenie" if braki else "info")
             self._ustaw_komunikat(self.komunikat_ramek, N.RAMKI_WYLACZONE if self.postep.ramki_wylaczone else "", "info")
             self._pokaz(3)
@@ -643,7 +643,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.bez_okna:
         for strumien in (sys.stdout, sys.stderr):
             if strumien is not None and hasattr(strumien, "reconfigure"):
-                strumien.reconfigure(errors="replace")
+                strumien.reconfigure(errors="replace", **({} if strumien.isatty() else {"encoding": "utf-8"}))
         return K.main_bez_okna(paczka, K.Wybor(a.folder_skanow, a.folder_projektow, a.katalog, a.osoba), a.python,
                                skrot_katalog=a.skrot_katalog)
     if QtWidgets is None:

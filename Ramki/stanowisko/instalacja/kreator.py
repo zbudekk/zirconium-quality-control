@@ -83,7 +83,7 @@ def istniejaca_instalacja(katalog: str | Path) -> dict | None:
     plik = k / I.PLIK_USTAWIEN
     if not k.is_absolute() or not plik.is_file():
         return None
-    wynik = {"wersja": I.czytaj_wskaznik(k, I.PLIK_BIEZACEJ) or "niedokończona", "folder_skanow": "", "folder_projektow": "", "osoby": [],
+    wynik = {"wersja": I.czytaj_wskaznik(k, I.PLIK_BIEZACEJ) or "niedoko\u0144czona", "folder_skanow": "", "folder_projektow": "", "osoby": [],
              "blad": None}
     try:
         ust = tomllib.loads(plik.read_text(encoding="utf-8"))
@@ -178,7 +178,7 @@ def polecenie_instalacji(paczka: Path, wybor: Wybor, aktualizacja: bool, python:
     polaczenia z ramkami (ramki wylaczone), bez pauzy. Przy aktualizacji foldery i osoby nie sa podawane (ustawienia zostaja)."""
     z_paczki = (paczka / I.KATALOG_PYTHONA / "python.exe").is_file()
     interpreter = paczka / I.KATALOG_PYTHONA / "python.exe" if z_paczki else python_konsolowy(Path(python or sys.executable))
-    polecenie = [str(interpreter), "-I", "-B", str(paczka / "program" / "instalacja" / "instalator.py"), "zainstaluj",
+    polecenie = [str(interpreter), "-I", "-B", "-X", "utf8", str(paczka / "program" / "instalacja" / "instalator.py"), "zainstaluj",
                  "--paczka", str(paczka), "--katalog", wybor.katalog.strip()]
     polecenie += ["--python-z-paczki"] if z_paczki else ["--python", str(interpreter)]
     polecenie += ["--skrot", "--bez-sieci", "--bez-pauzy"] + (["--skrot-katalog", str(skrot_katalog)] if skrot_katalog else [])

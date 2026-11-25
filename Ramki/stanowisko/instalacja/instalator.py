@@ -99,7 +99,7 @@ KATALOG_PYTHONA = "python"
 # czyta wersja_biezaca.txt i startuje program tak samo jak Stanowisko.cmd / Dzien_skanera.cmd (konsola ukryta).
 WZOR_STARTU = "start_bez_konsoli.pyw"
 # Ikony na pulpicie (opcja /skrot): (nazwa skrotu, cel startera, skrypt .cmd do klikniecia, gdy skrotu nie da sie zalozyc)
-SKROTY = (("Stanowisko", "stanowisko", "Stanowisko.cmd"), ("Dzień skanera", "dzien_skanera", "Dzien_skanera.cmd"))
+SKROTY = (("Stanowisko", "stanowisko", "Stanowisko.cmd"), ("Dzie\u0144 skanera", "dzien_skanera", "Dzien_skanera.cmd"))
 
 _WIERSZ_SUM = re.compile(r"([0-9a-f]{64}) [ *](.+)")
 _OPCJE_UKOSNIK = ("katalog", "python", "paczka", "testy", "skrot", "skrot-katalog", "bez-sieci", "bez-pauzy", "przywroc-kopie",
@@ -615,7 +615,7 @@ def _wartosci_z_okna(python: Path, paczka: Path, katalog: Path, folder_skanow: s
             domyslny = katalog / FOLDER_PROJEKTOW_DOMYSLNY
             domyslny.mkdir(parents=True, exist_ok=True)
             wartosci[("sciezki", "folder_cyrkon")] = domyslny.as_posix()
-            uwagi.append(f"folder projektow nie wybrany - pusty {domyslny.as_posix()} (prace beda szare 'bez projektu')")
+            uwagi.append(f"folder projektow nie wybrany - pusty {domyslny.as_posix()} (bez projektow STL skany czekaja na projekty)")
     if osoby:
         wartosci[("sesja", "operatorzy")] = [o.strip() for o in osoby if o.strip()]
     if ramki_wylaczone:

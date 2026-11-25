@@ -51,8 +51,9 @@ OSOBY_AKTUALIZACJA = "Osoby z dotychczasowych ustawień (zostają bez zmian):"
 BRAK_SKANOW = "Wskaż folder ze skanami."
 SKANY_NIE_ISTNIEJE = "Folder ze skanami nie istnieje: {sciezka}. Wybierz istniejący folder przyciskiem „Wybierz…”."
 PROJEKTY_NIE_ISTNIEJE = "Folder z projektami nie istnieje: {sciezka}. Wybierz istniejący folder albo zostaw pole puste."
-PROJEKTY_PUSTE = ("Nie wybrano folderu z projektami — instalator założy pusty folder {sciezka}. Prace będą szare („bez projektu”), "
-                  "dopóki nie wskażesz właściwego folderu w ustawieniach.")
+PROJEKTY_PUSTE = ("Nie wybrano folderu z projektami — instalator założy pusty folder {sciezka}. Dopóki nie będzie w nim projektów STL "
+                  "(albo nie wskażesz właściwego folderu w ustawieniach), program nie rozpozna prac: skany będą czekać na projekty. "
+                  "Kliknij „Dalej”, aby kontynuować.")
 BRAK_CELU = "Wskaż miejsce instalacji."
 CEL_WZGLEDNY = "Podaj pełną ścieżkę miejsca instalacji, np. C:\\Stanowisko."
 CEL_SYNCHRONIZOWANY = "Miejsce instalacji leży w folderze synchronizowanym (OneDrive / SharePoint). Wybierz folder poza nim, np. C:\\Stanowisko."

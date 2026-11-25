@@ -1,10 +1,13 @@
-# instalacja - paczka wydania, instalacja, aktualizacja, powrot (E3-A11i, 20.11.2026; wariant B dystrybucji)
+# instalacja - paczka wydania, instalacja, aktualizacja, powrot (E3-A11i, 20.11.2026; wariant B dystrybucji; E3-I1, 25.11.2026: Python w paczce i okno instalatora)
 
 **Co robi.** Jedna paczka `Stanowisko_<wersja>.zip` (program + kola pip + instalator) instaluje program bez internetu do
 katalogu wersji z wlasnym srodowiskiem wirtualnym; ustawienia i dane leza poza katalogiem wersji; aktualizacja i powrot
 do poprzedniej wersji to jedno polecenie. Pliki: `narzedzia/zbuduj_wydanie.py` (budowa), `instalacja/instalator.py`
 (logika, tylko biblioteka standardowa), `instalacja/zainstaluj.cmd`, `instalacja/wzory/*.cmd` (skrypty uruchamiajace),
 `instalacja/zamrozone.txt` i `zamrozone_testy.txt` (wersje pakietow), `WERSJA` (numer wersji, jeden wiersz).
+E3-I1: `instalacja/Instaluj.cmd` (dwuklik - okno), `instalacja/okno_instalatora.py` (okno Qt), `instalacja/kreator.py` (logika okna
+i trybu bez okna, tylko biblioteka standardowa), `instalacja/napisy_instalatora.py` (teksty ekranu, UTF-8 ze znakami diakrytycznymi),
+`instalacja/wzory/start_bez_konsoli.pyw` (starter ikon) - sekcja "Python w paczce i okno instalatora (E3-I1)".
 Instrukcja dla osoby instalujacej: `instrukcje/instalacja_i_aktualizacja.md`.
 
 **Zasada nadrzedna.** W zadnej sciezce instalator ani powrot nie zostawia stanowiska bez bazy, z baza uszkodzona albo
@@ -15,17 +18,24 @@ tylko katalogi, ktore sam oznaczyl.
 
 ```
 python narzedzia/zbuduj_wydanie.py --wyjscie <PC-katalog>\wydania [--wersja X] [--kola KATALOG] [--rewizja COMMIT]
-python narzedzia/zbuduj_wydanie.py --pobierz-kola --kola KATALOG [--python python.exe]      (jedyny krok z internetem)
+python narzedzia/zbuduj_wydanie.py --pobierz-kola --kola KATALOG [--python python.exe]      (krok z internetem)
+python narzedzia/zbuduj_wydanie.py --pobierz-pythona --python-nuget KATALOG                 (krok z internetem, E3-I1)
 ```
+
+E3-I1: budowa domyslnie bierze pakiet Pythona z `<wyjscie>/python_nuget/python.3.12.10.nupkg` (`--python-nuget` - inny plik albo
+katalog); bez niego odmawia (`--bez-pythona` - paczka jak dotad, bez Pythona i okna, tylko do prob).
 
 | W paczce | Co |
 |---|---|
-| `zainstaluj.cmd`, `CZYTAJ.txt` | start instalacji, trzy zdania dla czlowieka |
+| `Instaluj.cmd` | E3-I1: dwuklik = okno instalatora (`start "" python\pythonw.exe -I -B program\instalacja\okno_instalatora.py`; konsola znika) |
+| `zainstaluj.cmd`, `CZYTAJ.txt` | start instalacji z wiersza polecen, kilka zdan dla czlowieka |
+| `python/` | E3-I1: pelny Python 3.12.10 64 bit = katalog `tools/` pakietu `python` z nuget.org (oryginalne pliki: `python.exe`, `pythonw.exe`, `python312.dll`, `*.pyd` podpisane przez PSF; jest `venv` i `ensurepip` z kolem pip 25.0.1); suma pakietu przypieta w `zbuduj_wydanie.PYTHON_NUGET_SHA256`, zapisana obok pakietu przy pobraniu i sprawdzana przy budowie (1322 pliki) |
+| `okno/` | E3-I1: biblioteka okna instalatora - wycinek kol `shiboken6` i `pyside6_essentials` z `kola/` (`WYCINEK_OKNA`: QtCore, QtGui, QtWidgets, wtyczki `qwindows` / `qoffscreen`, styl, biblioteki VC; 37 plikow, ok. 45 MB) - okno startuje z Pythona paczki, zanim powstanie srodowisko wersji |
 | `program/` | `stanowisko/`, `modele_plytek/`, `narzedzia/` (bez `zbuduj_wydanie.*`), `ramka/` (importuje ja `stanowisko/ramka_protokol.py`), CALY katalog `instrukcje/` (kazdy plik: `.md`, `.html`, podkatalogi - takze te, ktore dojda), `instalacja/`, `ustawienia.przyklad.toml`, `requirements.txt` (samokontrola porownuje z nim wersje pakietow), `WERSJA`; bez `testy/`, `raporty/`, `opisy_modulow/`, danych i `__pycache__` |
 | `program/SUMY_PROGRAMU.sha256` | suma KAZDEGO pliku katalogu programu (takze `ramka/`, `requirements.txt` i pliki katalogu glownego), format `sha256sum` (umowa samokontroli A11s: `--sumy`; samokontrola liczy tez pliki nadmiarowe - instalator kopiuje do katalogu programu wylacznie pliki z listy) |
 | `kola/` | kola binarne (Windows x64, Python 3.12) wszystkich pakietow z `zamrozone.txt`, takze zaleznosci posrednich |
 | `kola_testy/` | pytest i jego zaleznosci (`zamrozone_testy.txt`) - instalowane tylko przez `zainstaluj.cmd /testy` |
-| `wydanie.json` | wersja, commit, data commita, wersja Pythona (`python` = 3.12, `python_sprawdzony` = 3.12.10), lista kol z sumami i rozmiarami |
+| `wydanie.json` | wersja, commit, data commita, wersja Pythona (`python` = 3.12, `python_sprawdzony` = 3.12.10), lista kol z sumami i rozmiarami; E3-I1: `python_w_paczce` (wersja, zrodlo, plik, sha256 pakietu, liczba plikow) i `okno_instalatora` (kola, liczba plikow) - tylko w paczce z Pythonem (paczka bez niego zostaje bajt w bajt taka jak przed E3-I1) |
 | `SHA256SUMS` | suma kazdego pliku paczki; instalator sprawdza ja jako pierwszy krok |
 
 - **Zrodlo plikow programu:** commit `HEAD` (tresc obiektow gita - zmiany niezacommitowane i pliki spoza gita nie wchodza,
@@ -52,6 +62,10 @@ python narzedzia/zbuduj_wydanie.py --pobierz-kola --kola KATALOG [--python pytho
 ```
 <KATALOG>\                      domyslnie C:\Stanowisko (opcja /katalog); nie w OneDrive / SharePoint
   Stanowisko.cmd  Samokontrola.cmd  Wroc_do_poprzedniej.cmd  Wersje.cmd  Polecenie.cmd  Dzien_skanera.cmd
+  start_bez_konsoli.pyw         E3-I1: starter ikon pulpitu (wzor jak skrypty; wersje sprzed E3-I1 go nie maja i nie usuwaja)
+  python\<wersja Pythona>\      E3-I1: kopia Pythona z paczki (np. python\3.12.10\) - interpreter bazowy srodowisk wersji
+                                instalowanych z paczki (pyvenv.cfg: home = ten katalog); instalator go nie usuwa
+  dane\ostatni_start_<cel>.txt  E3-I1: wyjscie programu uruchomionego ikona (starter; nadpisywany przy kazdym starcie)
   ustawienia.toml               przy pierwszej instalacji ze wzoru, potem nietykany (bajt w bajt)
   dane\                         baza, wyniki, logi, dane\kopie\ (kopie bazy) - poza katalogiem wersji
   wersja_biezaca.txt            wskaznik = plik tekstowy z numerem wersji (nie dowiazanie), zapis atomowy
@@ -80,9 +94,18 @@ Pauza na koncu: `zainstaluj.cmd`, `Wroc_do_poprzedniej.cmd` i `Wersje.cmd` czeka
 
 ## zainstaluj.cmd [/katalog K] [/python P] [/skrot] [/testy] [/bez-sieci] [/bez-pauzy]
 
-`zainstaluj.cmd` czysci `PYTHONHOME` / `PYTHONPATH`, szuka Pythona 3.12 (opcja `/python`, zmienna `STANOWISKO_PYTHON`,
-`py -3.12`, typowe katalogi `Python312`, `python` z PATH; proby z `-I`; wskazany wprost musi byc 3.12, inaczej stop)
-i uruchamia `instalator.py zainstaluj`:
+`zainstaluj.cmd` czysci `PYTHONHOME` / `PYTHONPATH`, wybiera Pythona 3.12: opcja `/python`, zmienna `STANOWISKO_PYTHON`, E3-I1:
+Python z paczki (`python\python.exe` - wtedy `instalator.py zainstaluj --python-z-paczki`), a w paczce bez niego szuka w systemie
+(`py -3.12`, typowe katalogi `Python312`, `python` z PATH; proby z `-I`; wskazany wprost musi byc 3.12, inaczej stop)
+i uruchamia `instalator.py zainstaluj`. E3-I1: opcje z okna (dzialaja tez z wiersza polecen) `--folder-skanow`, `--folder-projektow`
+(pusty = `<KATALOG>/dane/projekty`, zakladany), `--osoba` (powtarzalna), `--ramki-wylaczone` sa wpisywane WYLACZNIE do nowego
+pliku ustawien (`ustawienia_ze_wzoru(..., wartosci)`: wartosc wiersza zastapiona, komentarz zostaje; klucza nieobecnego we wzorze
+- nowy wiersz pod naglowkiem sekcji); istniejacy plik zostaje bajt w bajt, a na ekranie jest wiersz "foldery i osoby podane w oknie
+NIE zostaly wpisane". `--ramki-wylaczone` wpisuje `[ramki] wlaczone = false` tylko, gdy kod programu z paczki zna ten klucz
+(zapytanie programu: `klucze_ramek`) - program odrzuca klucze nieznane; wersja 0.3.9-i1 go nie zna (POTRZEBUJE w raporcie E3-I1).
+Krok 2 z `--python-z-paczki` sprawdza Pythona paczki, a na poczatku kroku 5 instalator kopiuje katalog `python/` paczki do
+`<KATALOG>\python\<wersja>\` (`przygotuj_pythona`: pliki zgodne z sumami zostaja, brakujace i zmienione przez plik tymczasowy,
+na koniec kontrola sum calej kopii; blad zapisu = kod 6) - od tej chwili srodowisko wersji powstaje z KOPII (nie z pendrive'a):
 
 1. sumy `SHA256SUMS` kazdego pliku paczki; niezgodnosc, brak `wydanie.json` albo modulu samokontroli, zly numer wersji
    = stop (kod 3),
@@ -123,7 +146,12 @@ i uruchamia `instalator.py zainstaluj`:
    przerwy, kazde z wierszem `UWAGA samokontrola: ...` na ekranie i w dzienniku; trzeci taki wynik z rzedu = kod 2
    instalatora ("zakonczyla sie awaryjnie" / "nie podala wyniku") z rada "to nie blad ustawien, uruchom ponownie",
 8. zapis skryptow ze wzorow i przelaczenie wskaznika (pod blokada programu); poprzednia wersja zapamietana,
-9. skrot na pulpicie tylko z `/skrot` (PowerShell `WScript.Shell`; niepowodzenie = ostrzezenie).
+9. ikony na pulpicie tylko z `/skrot` (E3-I1: "Stanowisko" i "Dzien skanera" - `pythonw.exe` interpretera bazowego wersji biezacej
+   (`home` z `pyvenv.cfg`) + `<KATALOG>\start_bez_konsoli.pyw stanowisko|dzien_skanera`, bez okna konsoli; wersja bez startera:
+   skrot do `.cmd`). Skrot zaklada PowerShell (`WScript.Shell`, wyjscie UTF-8); gdy sie nie uda - instalator sam zapisuje plik
+   `.lnk` (`zapisz_lnk`, format MS-SHLLINK: lista ID powloki z `ILCreateFromPathW`, LinkInfo, napisy UTF-16). Wiersze
+   `SKROT ZALOZONY: <nazwa> | <plik>` / `SKROT NIEUDANY: <nazwa> | <plik .cmd do klikniecia>` czyta okno; niepowodzenie nie
+   zatrzymuje instalacji (ostrzezenie).
 
 Wiersz koncowy: `INSTALACJA: GOTOWA - wersja biezaca X ...`; przy bledzie `BLAD: ...`, `CO ZROBIC: ...`,
 `INSTALACJA: NIEUDANA (kod N) - wersja biezaca bez zmian: X` (gdy katalog wersji biezacej jest niekompletny po zamknieciu
@@ -176,6 +204,39 @@ kazde nieznane sprawdzenie) - takze przy pierwszej instalacji - to kod 1: `Bledy
   OBCY KATALOG); `/usun WERSJA` usuwa katalog wersji zalozony przez instalator, ktora nie jest ani biezaca, ani
   poprzednia. Ustawien i danych nie dotyka.
 
+## Python w paczce i okno instalatora (E3-I1)
+
+Cel (decyzja wlasciciela 23.11 nr 6 i 25.11): laptop bez Pythona, osoba bez wiersza polecen - rozpakowana paczka, dwuklik
+`Instaluj.cmd`, okno, ikony, program dziala; bez internetu, bez okna konsoli z pytaniami.
+
+- **Droga Pythona: pakiet `python` 3.12.10 z nuget.org** (pelny, przenosny Python z PSF: `venv`, `ensurepip`, oryginalne podpisane
+  pliki; bez instalatora MSI i bez zmian w systemie). Odrzucone: dystrybucja "embeddable" (nie ma `venv` - caly mechanizm wersji,
+  powrotu i kol pip trzeba by przepisac), PyInstaller i inne pakowacze (niepodpisany `.exe` - antywirus / WDAC), instalator python.org
+  (instaluje w systemie). Mechanizm wersji (venv + kola pip z paczki, powrot, kody) zostaje bez zmian.
+- **Okno:** PySide6 z kol paczki - nuget nie ma `tkinter` (proba 25.11: brak `_tkinter.pyd` i `tcl`). Budowa wycina z kol
+  `shiboken6` i `pyside6_essentials` (te same wersje co program) 37 plikow do `okno/`; okno startuje `pythonw.exe -I -B` Pythona
+  paczki z `okno/` na `sys.path` (proba: platforma `windows`, styl `windows11`). Brak biblioteki = komunikat systemowy
+  (`MessageBoxW`) z rada "zainstaluj.cmd", kod 4.
+- **Kroki okna** (makieta `etap3/nowy_interfejs/makieta/Instalator.dc.html`): (1) Foldery - skany (wymagany, istniejacy), projekty
+  (opcjonalny; pusty = `<KATALOG>/dane/projekty`), miejsce instalacji (domyslnie `C:\Stanowisko`; bledy: brak, sciezka wzgledna,
+  brak dysku, plik zamiast folderu, srednik, OneDrive / SharePoint, za malo miejsca = pliki kol x 1,3 + program + 300 MB + Python);
+  (2) Osoby - co najmniej 1, bez powtorzen (wielkosc liter), do 40 znakow, bez znakow sterujacych; (3) Instalacja - proces
+  `instalator.py zainstaluj` (Python paczki, `-I -B -X utf8`, ukryta konsola `CREATE_NO_WINDOW` - venv, pip i samokontrola nie
+  otwieraja okien), 9 krokow z wierszy `[n/9]`, blad = zdanie dla kodu (`napisy_instalatora.ZDANIA_KODOW`, kazdy kod 0-11) +
+  `BLAD:` + `CO ZROBIC:` + plik dziennika, "Sprobuj ponownie"; (4) Gotowe - ikony (albo plik do klikniecia), "Uruchom program" /
+  "Otworz Dzien skanera" (starter z kopii Pythona w katalogu instalacji, proces odlaczony - okno i pendrive mozna zamknac).
+  Opcje instalatora z okna: `--python-z-paczki --skrot --bez-sieci --bez-pauzy` + foldery, osoby i `--ramki-wylaczone`.
+- **Aktualizacja w oknie:** w miejscu instalacji jest `ustawienia.toml` = foldery i osoby pokazane z pliku, pola zablokowane,
+  instalator dostaje tylko `--katalog` (ustawienia zostaja bajt w bajt). Instalacja 0.3.3 (Python systemu) aktualizuje sie tak samo:
+  nowa wersja ma srodowisko z kopii Pythona paczki, stara zostaje przy swoim (powrot bez zmian).
+- **Tryb bez okna** (testy; ta sama logika - `kreator.main_bez_okna`): `python\python.exe -I -B program\instalacja\okno_instalatora.py
+  --bez-okna --folder-skanow X [--folder-projektow Y] [--katalog K] --osoba A [--osoba B] [--skrot-katalog D]`; kod = kod
+  instalatora, blad wyboru = kod 12 (zdanie na ekranie, nic nie zmieniono). Zrzuty 4 krokow: `--zrzuty KATALOG`.
+- **Starter ikon** `start_bez_konsoli.pyw <cel> [opcje]`: robi to, co `Stanowisko.cmd` / `Dzien_skanera.cmd` (wersja biezaca, jej
+  venv, katalog programu, te same zmienne), program przez `python.exe` srodowiska z ukryta konsola, wyjscie do
+  `dane\ostatni_start_<cel>.txt`; brak wersji (kod 4) albo blad programu (kod inny niz 0, a dla "stanowisko" takze inny niz 3) =
+  okienko z komunikatem (`STANOWISKO_START_BEZ_OKIENEK=1` - na stderr, proby). Kod wyjscia = kod programu.
+
 ## Srodowisko wersji bez zapytan WMI (latka E3-A11w)
 
 Przyczyna (raport `raporty/E3-A11w_2026-11-20.md`): modul `platform` Pythona 3.12 pyta WMI w osobnym watku systemowym; gdy
@@ -213,13 +274,18 @@ zapisem, przerwane przywrocenie kopii, drugi powrot, cudze katalogi, pisownia nu
 instalacji i powrotu; jeden test z prawdziwym `python -m venv` i skryptami `.cmd` przy wrogim `PYTHONPATH` / `PYTHONHOME`,
 ktory sprawdza tez `_wmi = None`, `platform.machine()` i `pip --version` w interpreterze wersji).
 Proby na PC z pelna paczka i liczby: `raporty/E3-A11i_2026-11-20.md`.
+E3-I1: `testy/test_instalacja_i1.py` (paczka z Pythonem i oknem, przypieta suma pakietu, ustawienia z okna, kopia Pythona,
+starter, ikony przez PowerShell i zapis wlasny - z uruchomieniem skrotu) i `testy/test_okno_instalatora.py` (okno bez ekranu:
+4 kroki, walidacje, zdanie dla kazdego kodu, aktualizacja, zrzuty; tryb bez okna z prawdziwa instalacja malej paczki).
+Proby z pelna paczka (K1-K5): `raporty/E3-I1_2026-11-25.md`.
 
 ## Zalozenia i granice
 
-- Python 3.12 instaluje sie raz recznie (sprawdzona wersja 3.12.10); instalator niczego nie instaluje w systemie i nie
-  uzywa sieci.
-- Srodowisko wersji wskazuje interpreter bazowy (`pyvenv.cfg`): odinstalowanie albo przeniesienie Pythona 3.12 psuje
-  wszystkie wersje - naprawa: ponowne `zainstaluj.cmd`. Katalogu instalacji nie przenosic (skrypty srodowiska maja
+- E3-I1: Python jest w paczce i trafia do `<KATALOG>\python\<wersja>`; paczka bez katalogu `python` (do 0.3.3)
+  wymaga Pythona 3.12 w systemie (sprawdzona wersja 3.12.10). Instalator niczego nie instaluje w systemie i nie uzywa sieci.
+- Srodowisko wersji wskazuje interpreter bazowy (`pyvenv.cfg`): wersje z paczki z Pythonem - kopie w katalogu instalacji (nie
+  usuwac katalogu `python`); wersje zainstalowane Pythonem systemu - ten Python (odinstalowanie albo przeniesienie psuje te
+  wersje - naprawa: ponowne `zainstaluj.cmd`). Katalogu instalacji nie przenosic (skrypty srodowiska maja
   wpisana sciezke).
 - **Znane ograniczenie (a) - dane w katalogu wersji (do wydania 0.3.1 wlacznie).** `stanowisko/ui_test.py`
   (`dane/decyzje.csv`) i `stanowisko/dzien_skanera_rdzen.py` (sesje `dane/dzien_skanera/`) pisaly do
@@ -247,7 +313,11 @@ Proby na PC z pelna paczka i liczby: `raporty/E3-A11i_2026-11-20.md`.
   z ta sama wersja: `Wroc_do_poprzedniej.cmd` odpowiada "nie ma poprzedniej wersji" (kod 9), ponowne `zainstaluj.cmd` naprawia.
 - Starsza wersja programu odrzuca nieznane klucze ustawien: po recznym dopisaniu klucza nowej wersji powrot wymaga
   jego usuniecia (instalator to wykrywa przed przelaczeniem).
-- Skrot na pulpicie zalezy od polityki komputera (PowerShell w trybie ograniczonym nie zalozy skrotu) - wtedy dwuklik
-  `Stanowisko.cmd`.
+- Ikony na pulpicie zaleza od polityki komputera: PowerShell w trybie ograniczonym ma zapas (wlasny zapis `.lnk`); polityka, ktora
+  zabrania zapisu na pulpicie albo uruchamiania programow z katalogu instalacji, zostaje - wtedy dwuklik `Stanowisko.cmd` (z konsola).
+- E3-I1, ramki: instalator nie wylacza ramek w programie 0.3.9-i1 (program nie ma klucza `[ramki] wlaczone`; zmiana `ustawienia.py`,
+  `indicate.py`, `samokontrola.py` i okna poza ta paczka). Samokontrola z okna idzie z `--bez-sieci` (bez proby polaczenia).
+- E3-I1, nie sprawdzone bez laptopa (lista: `instrukcje/instalacja_i_aktualizacja.md` punkt 8): antywirus, znacznik pochodzenia pliku
+  z sieci / SmartScreen, ikony przy ograniczonej polityce, WDAC / AppLocker dla Pythona z pendrive'a, skalowanie ekranu.
 - `kola/` zawiera caly zestaw zaleznosci Open3D i PySide6 (m.in. PySide6 WebEngine 132 MB, plotly 10 MB, dash 9 MB - razem co najmniej ok. 160 MB), ktorych
   program nie importuje, ale ktorych wymaga pip przy instalacji przypietych wersji (decyzja: paczki nie odchudzamy).

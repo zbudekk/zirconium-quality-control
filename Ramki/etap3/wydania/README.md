@@ -10,8 +10,15 @@ i kroki instalacji: `../../stanowisko/opisy_modulow/instalacja.md`; instrukcja d
 ```
 cd Ramki\stanowisko
 python narzedzia\zbuduj_wydanie.py --pobierz-kola --kola <PC-katalog>\wydania\kola      (raz, z internetem; takze po zmianie requirements.txt)
+python narzedzia\zbuduj_wydanie.py --pobierz-pythona --python-nuget <PC-katalog>\wydania\python_nuget   (raz, z internetem; E3-I1)
 python narzedzia\zbuduj_wydanie.py --wyjscie <PC-katalog>\wydania --kola <PC-katalog>\wydania\kola [--wersja X] [--rewizja COMMIT]
 ```
+
+- E3-I1 (25.11.2026): paczka zawiera Pythona 3.12.10 (pakiet `python` z nuget.org, suma przypieta w `zbuduj_wydanie.PYTHON_NUGET_SHA256`
+  i zapisana obok pakietu: `python.3.12.10.nupkg.sha256`) i okno instalatora (`Instaluj.cmd`, biblioteka `okno/` wycieta z kol PySide6).
+  Budowa bierze pakiet z `<wyjscie>\python_nuget\` i bez niego odmawia; `--bez-pythona` - paczka jak przed E3-I1 (tylko proby).
+  Rozmiar paczki z Pythonem: ok. 457 MB (ok. 1590 plikow). Odtworzenie wydania sprzed E3-I1 (np. 0.3.3): budowa narzedziem z TEGO
+  commita (worktree na `--rewizja`), bo nowe narzedzie dodaje Pythona i okno.
 
 - Paczka powstaje z commita (domyslnie `HEAD`), nie z katalogu roboczego, i jest powtarzalna bajtowo: ten sam commit
   + te same kola + ten sam interpreter budujacy = ten sam SHA-256. Obok ZIP powstaje plik `<nazwa>.zip.sha256`.

@@ -105,7 +105,7 @@ def test_walidacja_folderow(tmp_path, foldery, monkeypatch):
     wolne = K.wolne_mb(foldery["katalog"])  # katalog jeszcze nie istnieje: dysk najblizszego istniejacego katalogu
     assert wolne is not None and wolne > 0
     bledy, _ = K.sprawdz_foldery(dobry, wolne + 10_000)
-    assert len(bledy) == 1 and bledy[0].startswith("Za mało miejsca na dysku: potrzeba ") and "GB" in bledy[0]
+    assert len(bledy) == 1 and bledy[0].startswith("Za ma\u0142o miejsca na dysku: potrzeba ") and "GB" in bledy[0]
 
 
 def test_walidacja_osob():
@@ -132,7 +132,7 @@ def test_polecenie_instalacji(tmp_path, foldery):
     (paczka / "program" / "instalacja").mkdir(parents=True)
     wybor = K.Wybor(foldery["skany"], "", foldery["katalog"], ["Anna", " ", "Piotr"])
     p = K.polecenie_instalacji(paczka, wybor, False, Path(sys.executable))
-    assert p[1:5] == ["-I", "-B", str(paczka / "program" / "instalacja" / "instalator.py"), "zainstaluj"]
+    assert p[1:7] == ["-I", "-B", "-X", "utf8", str(paczka / "program" / "instalacja" / "instalator.py"), "zainstaluj"]
     assert p[p.index("--python") + 1] == str(K.python_konsolowy(Path(sys.executable))) and "--python-z-paczki" not in p
     assert p[p.index("--folder-skanow") + 1] == foldery["skany"] and p[p.index("--folder-projektow") + 1] == ""
     assert [p[i + 1] for i, a in enumerate(p) if a == "--osoba"] == ["Anna", "Piotr"]
@@ -183,7 +183,7 @@ def test_okno_cztery_kroki(tmp_path, app, foldery):
     assert polecenie[polecenie.index("--skrot-katalog") + 1] == str(tmp_path / "pulpit")
     # krok 4: opis, ikony (zalozona i nieudana - wtedy plik do klikniecia), ramki wylaczone, start programu
     assert okno.opis_gotowe.text() == N.GOTOWE_OPIS.format(wersja="1.0", katalog=Path(foldery["katalog"]))
-    assert N.IKONY_SA.format(ikony="„Stanowisko”") in okno.komunikat_ikon.text()
+    assert N.IKONY_SA.format(ikony="\u201eStanowisko\u201d") in okno.komunikat_ikon.text()
     assert N.IKONA_BRAK.format(nazwa="Dzie\u0144 skanera", plik="Dzien_skanera.cmd") in okno.komunikat_ikon.text()
     assert okno.komunikat_ramek.text() == N.RAMKI_WYLACZONE
     assert okno.szczegoly.toPlainText().splitlines() == WIERSZE_UDANE
@@ -204,7 +204,7 @@ def test_okno_walidacje(tmp_path, app, foldery):
     okno.pole_skanow.setText(foldery["skany"])
     okno.info["potrzebne_mb"] = K.wolne_mb(foldery["katalog"]) + 50_000
     okno.dalej()
-    assert okno.krok == 0 and okno.komunikat_folderow.text().startswith("Za mało miejsca na dysku")
+    assert okno.krok == 0 and okno.komunikat_folderow.text().startswith("Za ma\u0142o miejsca na dysku")
     okno.info["potrzebne_mb"] = 1
     # folder projektow niewybrany: najpierw uwaga (zolta), drugie "Dalej" przechodzi
     okno.dalej()
@@ -236,7 +236,7 @@ def test_okno_blad_instalatora_po_polsku_i_ponowna_proba(tmp_path, app, foldery)
     czekaj_na_koniec(app, okno)
     assert okno.kod == 6 and okno.krok == 2
     tekst = okno.komunikat_instalacji.text()
-    assert tekst.startswith(N.ZDANIA_KODOW[6]) and "za malo miejsca na dysku" in tekst and "Co zrobić: Zwolnij miejsce" in tekst
+    assert tekst.startswith(N.ZDANIA_KODOW[6]) and "za malo miejsca na dysku" in tekst and "Co zrobi\u0107: Zwolnij miejsce" in tekst
     assert N.DZIENNIK.format(plik=Path(foldery["katalog"]) / I.PLIK_DZIENNIKA) in tekst
     assert okno.tytul_instalacji.text() == N.INSTALACJA_BLAD_TYTUL and okno._stany_krokow[4][1].text() == N.STAN_BLAD
     assert okno.przycisk_wstecz.text() == N.SPROBUJ_PONOWNIE and okno.przycisk_dalej.isEnabled()
