@@ -135,15 +135,20 @@ def lista_gniazd(numery: list) -> str:
     return NR.KUWETA_GNIAZDA.format(lista=", ".join(napisy[:-1]) + NR.KUWETA_GNIAZDA_I + napisy[-1])
 
 
-def miejsca_kuwety(rano, kuweta) -> list:
-    """Gniazda biezacej kuwety na plytkach (z ``KuwetaRano.gniazda`` - kontroler): ["Plytka 4 - gniazda 2 i 9", ...]."""
+def miejsca_kuwety(rano, kuweta, krotko: bool = False) -> list:
+    """Gniazda biezacej kuwety na plytkach (z ``KuwetaRano.gniazda`` - kontroler): ["Plytka 4 - gniazda 2 i 9", ...];
+    ``krotko`` (uklad zwarty, jeden wiersz - runda 2 D5): ["Plytka 4: gn. 2, 9", ...]."""
     po_plytce: dict = {}
     for skan_id, nr in kuweta.gniazda:
         po_plytce.setdefault(skan_id, []).append(nr)
     wynik = []
     for skan_id, numery in po_plytce.items():
         p = rano.plytka(skan_id)
-        wynik.append(NR.KUWETA_MIEJSCE.format(plytka=nazwa_plytki(p.numer if p is not None else None), gniazda=lista_gniazd(sorted(numery))))
+        plytka = nazwa_plytki(p.numer if p is not None else None)
+        if krotko:
+            wynik.append(NR.KUWETA_MIEJSCE_KROTKO.format(plytka=plytka, gniazda=", ".join(str(n) for n in sorted(numery))))
+        else:
+            wynik.append(NR.KUWETA_MIEJSCE.format(plytka=plytka, gniazda=lista_gniazd(sorted(numery))))
     return wynik
 
 
@@ -436,6 +441,7 @@ class WierszKuwety(QFrame):
         kuwety = rano.kuwety if rano is not None else ()
         biezaca = next((x for x in kuwety if x.biezaca), None)
         miejsca: list = []
+        miejsca_krotko: list = []
         if rano is None or rano.sesja_pieca_id is None or (not kuwety and rano.otwarty):
             numer, opis = NR.KUWETA_BRAK_NUMERU, NR.KUWETA_BRAK_PIECA
         elif biezaca is None and not rano.otwarty:
@@ -446,7 +452,10 @@ class WierszKuwety(QFrame):
         else:
             numer = biezaca.kuweta
             opis = NR.KUWETA_OPIS.format(prac=ST.odmiana(biezaca.prac, *NR.KUWETA_PRACE).format(n=biezaca.prac))
+            if biezaca.potwierdzona:  # D8: wybrana ponownie kuweta juz rozlozona
+                opis += NR.KUWETA_JUZ_ROZLOZONA
             miejsca = miejsca_kuwety(rano, biezaca)
+            miejsca_krotko = miejsca_kuwety(rano, biezaca, krotko=True)
         self.biezaca.setText(numer)
         # pelny opis ("Kuweta 3228" - tak numer nazywaja instrukcje) dla czytnika ekranu i w podpowiedzi
         opis_numeru = NR.KUWETA_BIEZACA.format(kuweta=numer) if biezaca is not None else ""
@@ -455,7 +464,7 @@ class WierszKuwety(QFrame):
         self.opis.setText(opis)
         self.miejsca.setText("\n".join(miejsca))
         self.miejsca.setVisible(bool(miejsca) and not self._zwarty)
-        self.miejsca_krotko.setText(NR.NIEROZSTRZYGNIETE_ODSTEP.join(miejsca))
+        self.miejsca_krotko.setText(NR.NIEROZSTRZYGNIETE_ODSTEP.join(miejsca_krotko))
         self.miejsca_krotko.setToolTip("\n".join(miejsca))
         self.miejsca_krotko.setVisible(bool(miejsca) and self._zwarty)
         jest_osoba = stan.operator is not None
@@ -642,7 +651,8 @@ class PanelKuwet(QFrame):
             b.setChecked(rano is not None and rano.kolejnosc == k)
         wiersze = []
         for x in kuwety:
-            stan_k = (NR.KUWETA_STAN_BIEZACA if x.biezaca else NR.KUWETA_STAN_ROZLOZONA if x.potwierdzona else
+            stan_k = ((NR.KUWETA_STAN_BIEZACA_ROZLOZONA if x.potwierdzona else NR.KUWETA_STAN_BIEZACA) if x.biezaca else
+                      NR.KUWETA_STAN_ROZLOZONA if x.potwierdzona else
                       NR.KUWETA_STAN_BRAKI if x.braki else NR.KUWETA_STAN_CZEKA)
             wiersze.append([x.kuweta, str(x.prac), ", ".join(map(str, x.plytki)), stan_k])
         wypelnij(self.tabela, wiersze, self._u_ukladu, widocznych=None, dane=list(kolejnosc))

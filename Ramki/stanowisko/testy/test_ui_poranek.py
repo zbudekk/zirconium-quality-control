@@ -716,3 +716,44 @@ def test_d6_wysokosc_wierszy_tabel_panelu_excela_w_ukladzie_zwartym(tmp_path, ek
         assert {w for _, w in wysokosci} == {u.wiersz_tabeli}, f"{rozmiar}: {sorted(wysokosci)}"
     finally:
         k0.zamknij()
+
+
+def test_d8_kuweta_juz_rozlozona_wybrana_ponownie_widac_na_liscie_i_w_wierszu(atrapa, ekrany):
+    """Runda 2, D8: kuweta juz rozlozona i wybrana ponownie numerem jest biezaca - lista pokazuje "teraz, juz rozlozona", a wiersz
+    "Teraz rozkladasz" dopisek "juz rozlozona" (bylo: "teraz", jak kuweta jeszcze nierozlozona)."""
+    atrapa.scenariusz_poranny()
+    atrapa.wybierz_operatora("Technik A")
+    e = ekrany(atrapa)
+    kuweta = atrapa.stan().rano.kuweta_biezaca
+    assert NR.KUWETA_JUZ_ROZLOZONA not in e.w("rano_kuweta_opis").text()
+    assert atrapa.potwierdz_kuwete(kuweta).ok and atrapa.wybierz_kuwete(kuweta).ok
+    e.zdarzenia()
+    e.odczekaj(20)
+    x = next(y for y in atrapa.stan().rano.kuwety if y.kuweta == kuweta)
+    assert x.biezaca and x.potwierdzona
+    wiersz = next(w for w in e.tabela("tabela_kuwet") if w[0] == kuweta)
+    assert wiersz[3] == NR.KUWETA_STAN_BIEZACA_ROZLOZONA
+    assert e.w("rano_kuweta_biezaca").text() == kuweta and NR.KUWETA_JUZ_ROZLOZONA in e.w("rano_kuweta_opis").text()
+    inne = [w for w in e.tabela("tabela_kuwet") if w[0] != kuweta]
+    assert all(w[3] != NR.KUWETA_STAN_BIEZACA_ROZLOZONA for w in inne)
+
+
+@pytest.mark.parametrize("rozmiar", ((1536, 784), (1280, 642)))
+def test_d5_gniazda_biezacej_kuwety_w_ukladzie_zwartym_bez_wielokropka(atrapa, ekrany, rozmiar):
+    """Runda 2, D5: w ukladzie zwartym gniazda biezacej kuwety (jeden wiersz, zapis krotszy: "Plytka 4: gn. 2, 9") nie sa skracane
+    wielokropkiem dla zadnej kuwety scenariusza (bylo: 2 z 33 przy 1280 x 642 - numer gniazda na drugiej plytce nieczytelny)."""
+    atrapa.scenariusz_poranny()
+    e = ekrany(atrapa, rozmiar)
+    pole = e.w("rano_kuweta_miejsca_krotko")
+    skrocone, sprawdzone = [], 0
+    for x in atrapa.stan().rano.kuwety:
+        assert atrapa.wybierz_kuwete(x.kuweta).ok
+        e.zdarzenia()
+        e.odczekaj(5)
+        if not x.gniazda:
+            continue
+        assert e.jest("rano_kuweta_miejsca_krotko")
+        sprawdzone += 1
+        if pole.skrocona():
+            skrocone.append((x.kuweta, pole.text()))
+    assert sprawdzone >= 8 and skrocone == [], skrocone
