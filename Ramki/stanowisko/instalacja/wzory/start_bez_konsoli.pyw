@@ -6,17 +6,19 @@ Plik zapisany przez instalator (wzor: program\\instalacja\\wzory) - nie zmieniaj
 Robi to samo co Stanowisko.cmd / Dzien_skanera.cmd: wersja z wersja_biezaca.txt, jej srodowisko wirtualne, katalog programu
 jako biezacy, PYTHONUTF8 / PYTHONDONTWRITEBYTECODE / PYTHONNOUSERSITE, bez PYTHONPATH / PYTHONHOME, --ustawienia tego katalogu
 (Dzien skanera: takze --dane <KATALOG>\\dane\\dzien_skanera). Program startuje przez python.exe srodowiska z UKRYTA konsola
-(procesy potomne, np. pip albo proces roboczy silnika, nie otwieraja okien). Wyjscie programu trafia do
-<KATALOG>\\dane\\ostatni_start_<cel>.txt. Brak gotowej wersji albo blad programu (kod inny niz 0, a dla "stanowisko" takze
+(procesy potomne, np. pip albo proces roboczy silnika, nie otwieraja okien). Wyjscie programu jest DOPISYWANE (z naglowkiem
+startu) do <KATALOG>\\dane\\ostatni_start_<cel>.txt; powyzej 1 MB starsze starty ida do ostatni_start_<cel>.poprzednie.txt. Brak gotowej wersji albo blad programu (kod inny niz 0, a dla "stanowisko" takze
 inny niz 3 = program juz dziala) = okienko z komunikatem; zmienna STANOWISKO_START_BEZ_OKIENEK=1 (proby) - komunikat na stderr.
 Kod wyjscia = kod programu; brak wersji = 4, nieznany cel = 2.
 """
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
-CELE = {"stanowisko": ("stanowisko.aplikacja", "Stanowisko", (0, 3)), "dzien_skanera": ("stanowisko.dzien_skanera", "Dzien skanera", (0,))}
+ROZMIAR_WYJSCIA = 1_000_000
+CELE ={"stanowisko": ("stanowisko.aplikacja", "Stanowisko", (0, 3)), "dzien_skanera": ("stanowisko.dzien_skanera", "Dzien skanera", (0,))}
 
 
 def komunikat(tekst):
@@ -55,7 +57,15 @@ def main(argv):
     plik_wyjscia = katalog / "dane" / ("ostatni_start_%s.txt" % argv[0])
     try:
         plik_wyjscia.parent.mkdir(parents=True, exist_ok=True)
-        wyjscie = open(plik_wyjscia, "wb")
+        try:  # plik rosnie: powyzej 1 MB poprzednie starty ida do .poprzednie.txt (nie da sie, gdy program jeszcze pisze - dopisz)
+            if plik_wyjscia.stat().st_size > ROZMIAR_WYJSCIA:
+                os.replace(plik_wyjscia, plik_wyjscia.with_suffix(".poprzednie.txt"))
+        except OSError:
+            pass
+        # dopisywanie: drugi dwuklik (program juz dziala, kod 3) nie obcina wyjscia dzialajacego programu
+        wyjscie = open(plik_wyjscia, "ab")
+        wyjscie.write(("\r\n==== start %s, pid %d: %s\r\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), os.getpid(), " ".join(argv))).encode("utf-8"))
+        wyjscie.flush()
     except OSError:
         plik_wyjscia, wyjscie = None, subprocess.DEVNULL
     try:

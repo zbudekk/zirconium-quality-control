@@ -356,6 +356,11 @@ def test_starter_bez_konsoli_uruchamia_wersje_biezaca(tmp_path):
     assert wynik.returncode == 5 and "zakonczyl sie bledem (kod 5)" in wynik.stderr and "ostatni_start_stanowisko.txt" in wynik.stderr
     wynik = _starter(katalog, "stanowisko", ATRAPA_KOD="3")
     assert wynik.returncode == 3 and wynik.stderr == ""
+    # D3 recenzji PR #63: kolejny start (np. drugi dwuklik, gdy program juz dziala - kod 3) DOPISUJE do pliku wyjscia,
+    # nie obcina wyjscia wczesniejszego startu; kazdy start ma naglowek
+    log = (katalog / "dane" / "ostatni_start_stanowisko.txt").read_text(encoding="utf-8")
+    assert log.count("==== start ") == 3 and "'--atrapa', '--zamknij-po', '1']" in log and "zakonczyl" not in log
+    assert log.index("'--zamknij-po', '1']") < log.rindex("==== start ")
     assert _starter(katalog, "inny").returncode == 2
     (kw / "NIEDOKONCZONA.txt").write_text("x", encoding="ascii")
     wynik = _starter(katalog, "stanowisko")
@@ -376,7 +381,8 @@ def _cel_skrotu(lnk: Path) -> tuple[str, str, str]:
 @pytest.mark.parametrize("bez_powershell", [False, True], ids=["powershell", "zapis_wlasny"])
 def test_ikony_na_pulpicie_przez_starter(tmp_path, monkeypatch, bez_powershell, capsys):
     """Dwie ikony: pythonw.exe interpretera bazowego wersji + starter. Droga zapasowa (polityka blokuje PowerShell / COM):
-    plik .lnk zapisany przez instalator - Windows czyta z niego ten sam cel (sprawdzenie: WScript.Shell i uruchomienie skrotu)."""
+    plik .lnk zapisany przez instalator - Windows czyta z niego ten sam cel (sprawdzenie: WScript.Shell, podsystem celu,
+    uruchomienie wiersza polecen skrotu jako procesu potomnego). Start przez powloke (dwuklik) - proba reczna, instrukcja pkt 8."""
     if bez_powershell:
         monkeypatch.setenv("STANOWISKO_SKROT_BEZ_POWERSHELL", "1")
     katalog = tmp_path / "Stanowisko"
@@ -393,14 +399,57 @@ def test_ikony_na_pulpicie_przez_starter(tmp_path, monkeypatch, bez_powershell, 
         assert Path(program) == home / "pythonw.exe", (program, argumenty, roboczy)
         assert argumenty == f'-I -B "{katalog / I.WZOR_STARTU}" {cel}'
         assert Path(roboczy) == katalog
-    # skrot naprawde uruchamia program (bez okna konsoli): plik wyjscia startera powstaje
-    os.startfile(str(skroty["Stanowisko"]))  # noqa: S606
-    log = katalog / "dane" / "ostatni_start_stanowisko.txt"
-    for _ in range(300):
-        if log.is_file() and "CWD" in log.read_text(encoding="utf-8", errors="replace"):
-            break
-        time.sleep(0.1)
-    assert "START ['--ustawienia'" in log.read_text(encoding="utf-8")
+    # bez okna konsoli: cel skrotu to program okienkowy (podsystem PE "Windows GUI" = 2), nie konsolowy python.exe
+    assert _podsystem_pe(Path(_cel_skrotu(skroty["Stanowisko"])[0])) == 2
+    # skrot naprawde uruchamia program: wiersz polecen skrotu (cel + argumenty, katalog roboczy - to samo, co sklada powloka
+    # przy dwukliku) uruchomiony WPROST jako proces potomny z limitem czasu - bez os.startfile / ShellExecute w procesie testu
+    # (recenzja PR #63, P3: w sesji ssh recenzenta 3 z 3 przebiegow z os.startfile skonczylo sie smiercia calej sesji)
+    for nazwa, cel, _ in I.SKROTY:
+        program, argumenty, roboczy = _cel_skrotu(skroty[nazwa])
+        env = {k: v for k, v in os.environ.items() if not k.upper().startswith("PYTHON")}
+        wynik = subprocess.run(f'"{program}" {argumenty}', cwd=roboczy, env=dict(env, STANOWISKO_START_BEZ_OKIENEK="1"),
+                               stdin=subprocess.DEVNULL, capture_output=True, timeout=120)
+        assert wynik.returncode == 0, (nazwa, wynik.returncode, wynik.stderr[-800:])
+        log = katalog / "dane" / f"ostatni_start_{cel}.txt"
+        assert "START ['--ustawienia'" in log.read_text(encoding="utf-8"), nazwa
+
+
+def _podsystem_pe(plik: Path) -> int:
+    """Pole Subsystem naglowka PE (2 = Windows GUI - bez okna konsoli, 3 = konsola)."""
+    dane = plik.read_bytes()[:4096]
+    pe = int.from_bytes(dane[0x3C:0x40], "little")
+    assert dane[pe:pe + 4] == b"PE\0\0"
+    return int.from_bytes(dane[pe + 24 + 68:pe + 24 + 70], "little")
+
+
+def test_starter_obraca_duzy_plik_wyjscia(tmp_path):
+    """Plik wyjscia startera nie rosnie bez konca: powyzej 1 MB poprzednie starty ida do .poprzednie.txt."""
+    if os.name != "nt":
+        pytest.skip("starter i srodowisko wersji: Windows")
+    katalog = tmp_path / "Stanowisko"
+    _prawdziwa_wersja(katalog, "1.0", ATRAPA_PROGRAMU)
+    (katalog / "dane").mkdir()
+    (katalog / "dane" / "ostatni_start_stanowisko.txt").write_bytes(b"x" * 1_000_001)
+    assert _starter(katalog, "stanowisko").returncode == 0
+    assert (katalog / "dane" / "ostatni_start_stanowisko.poprzednie.txt").stat().st_size == 1_000_001
+    assert (katalog / "dane" / "ostatni_start_stanowisko.txt").read_text(encoding="utf-8").count("==== start ") == 1
+
+
+def test_sprawdzenie_pythona_bez_plikow_pyc(tmp_path, monkeypatch):
+    """D5 recenzji PR #63: kontrola Pythona (krok 2) uruchamia Pythona PACZKI - z -B, zeby nie dopisywal __pycache__ do
+    rozpakowanej paczki; zainstaluj.cmd uruchamia instalator tez z -B."""
+    wywolania = []
+
+    def uruchom(polecenie, **_):
+        wywolania.append([str(c) for c in polecenie])
+        return subprocess.CompletedProcess(polecenie, 0, "3.12.10 64\n", "")
+
+    monkeypatch.setattr(I, "uruchom", uruchom)
+    assert I.sprawdz_pythona(Path(sys.executable)) == "3.12.10"
+    assert wywolania[0][1:4] == ["-I", "-B", "-c"]
+    zainstaluj = (STANOWISKO / "instalacja" / "zainstaluj.cmd").read_text(encoding="ascii")
+    wiersze = [w for w in zainstaluj.splitlines() if 'instalator.py" zainstaluj' in w]
+    assert len(wiersze) == 2 and all(" -I -B " in w for w in wiersze)
 
 
 def test_ikona_nieudana_nie_zatrzymuje_i_wskazuje_plik(tmp_path, monkeypatch, capsys):

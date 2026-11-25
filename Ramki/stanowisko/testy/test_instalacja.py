@@ -1484,7 +1484,7 @@ def test_p6_kazdy_skrypt_cmd_czysci_zmienne_pythona_a_instalator_startuje_z_opcj
             if "instalator.py" in polecenia[i] or "okno_instalatora.py" in polecenia[i] or " -c " in polecenia[i]:
                 assert " -I " in polecenia[i], f"{skrypt.name}: {polecenia[i][:60]}"
     zainstaluj = (STANOWISKO / "instalacja" / "zainstaluj.cmd").read_text(encoding="ascii")
-    assert '"%PACZKA%python\\python.exe" -I "%PACZKA%program\\instalacja\\instalator.py" zainstaluj --paczka "%PACZKA%." --python-z-paczki %*' \
+    assert '"%PACZKA%python\\python.exe" -I -B "%PACZKA%program\\instalacja\\instalator.py" zainstaluj --paczka "%PACZKA%." --python-z-paczki %*' \
         in zainstaluj
     # kolejnosc: /python i STANOWISKO_PYTHON maja pierwszenstwo przed Pythonem z paczki, ten - przed szukaniem w systemie
     assert zainstaluj.index("goto :wskazany") < zainstaluj.index("goto :z_paczki") < zainstaluj.index("py -3.12")

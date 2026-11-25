@@ -58,13 +58,13 @@ goto :blad_pythona
 
 :instaluj
 set "PYTHONUTF8=1"
-"%PY%" -I "%PACZKA%program\instalacja\instalator.py" zainstaluj --paczka "%PACZKA%." --python "%PY%" %*
+"%PY%" -I -B "%PACZKA%program\instalacja\instalator.py" zainstaluj --paczka "%PACZKA%." --python "%PY%" %*
 set "KOD=%errorlevel%"
 goto :koniec
 
 :z_paczki
 set "PYTHONUTF8=1"
-"%PACZKA%python\python.exe" -I "%PACZKA%program\instalacja\instalator.py" zainstaluj --paczka "%PACZKA%." --python-z-paczki %*
+"%PACZKA%python\python.exe" -I -B "%PACZKA%program\instalacja\instalator.py" zainstaluj --paczka "%PACZKA%." --python-z-paczki %*
 set "KOD=%errorlevel%"
 goto :koniec
 
