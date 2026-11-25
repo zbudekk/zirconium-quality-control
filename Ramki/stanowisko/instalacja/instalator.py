@@ -1136,7 +1136,8 @@ def zapisz_lnk(plik: Path, cel: Path, argumenty: str = "", katalog_roboczy: Path
     (takze w UTF-16), napisy (opis, katalog roboczy, argumenty). Zapas na komputer, na ktorym polityka blokuje ``WScript.Shell``."""
     import struct  # noqa: PLC0415
 
-    flagi = 0x02 | 0x80 | (0x04 if opis else 0) | (0x10 if katalog_roboczy else 0) | (0x20 if argumenty else 0)
+    lista_id = _lista_id_powloki(cel)  # LinkTargetIDList (bez niej WScript.Shell / Eksplorator nie pokazuja celu skrotu)
+    flagi = (0x01 if lista_id else 0) | 0x02 | 0x80 | (0x04 if opis else 0) | (0x10 if katalog_roboczy else 0) | (0x20 if argumenty else 0)
     naglowek = struct.pack("<I16sII8s8s8sIiIHHII", 0x4C, bytes.fromhex("0114020000000000c000000000000046"), flagi, 0x20,
                            b"\0" * 8, b"\0" * 8, b"\0" * 8, 0, 0, 1, 0, 0, 0, 0)
     sciezka = str(cel)
@@ -1156,7 +1157,33 @@ def zapisz_lnk(plik: Path, cel: Path, argumenty: str = "", katalog_roboczy: Path
     for tekst in (opis, str(katalog_roboczy) if katalog_roboczy else "", argumenty):
         if tekst:
             napisy += struct.pack("<H", len(tekst.encode("utf-16-le")) // 2) + tekst.encode("utf-16-le")
-    zapisz_atomowo(plik, naglowek + info + napisy + b"\0\0\0\0")
+    blok_id = struct.pack("<H", len(lista_id)) + lista_id if lista_id else b""
+    zapisz_atomowo(plik, naglowek + blok_id + info + napisy + b"\0\0\0\0")
+
+
+def _lista_id_powloki(cel: Path) -> bytes:
+    """Lista identyfikatorow powloki Windows dla pliku ``cel`` (``ILCreateFromPathW``, z koncowym zerem); b"" poza Windows
+    albo gdy sie nie da (plik skrotu ma wtedy sam LinkInfo)."""
+    if os.name != "nt":
+        return b""
+    try:
+        import ctypes  # noqa: PLC0415
+
+        shell32 = ctypes.windll.shell32
+        shell32.ILCreateFromPathW.restype = ctypes.c_void_p
+        shell32.ILCreateFromPathW.argtypes = [ctypes.c_wchar_p]
+        shell32.ILGetSize.restype = ctypes.c_uint
+        shell32.ILGetSize.argtypes = [ctypes.c_void_p]
+        shell32.ILFree.argtypes = [ctypes.c_void_p]
+        pidl = shell32.ILCreateFromPathW(str(cel))
+        if not pidl:
+            return b""
+        try:
+            return ctypes.string_at(pidl, shell32.ILGetSize(pidl))
+        finally:
+            shell32.ILFree(pidl)
+    except (OSError, AttributeError):
+        return b""
 
 
 def utworz_skrot(katalog: Path, gdzie: Path | None, nazwa: str = "Stanowisko", cel: Path | None = None, argumenty: str = "",
@@ -1166,7 +1193,8 @@ def utworz_skrot(katalog: Path, gdzie: Path | None, nazwa: str = "Stanowisko", c
     Najpierw PowerShell (``WScript.Shell``); gdy polityka komputera na to nie pozwala (np. tryb ograniczony PowerShell), plik
     skrotu zapisuje sam instalator (``zapisz_lnk``). Wynik sprawdzany: plik skrotu musi istniec."""
     cel = cel or katalog / "Stanowisko.cmd"
-    skrypt = ("$k = $env:STANOWISKO_SKROT_KATALOG; if (-not $k) { $k = [Environment]::GetFolderPath('Desktop') }; "
+    skrypt = ("[Console]::OutputEncoding = [Text.Encoding]::UTF8; "  # sciezka skrotu z polskimi znakami (Dzien skanera) wraca cala
+              "$k = $env:STANOWISKO_SKROT_KATALOG; if (-not $k) { $k = [Environment]::GetFolderPath('Desktop') }; "
               "$p = Join-Path $k ($env:STANOWISKO_SKROT_NAZWA + '.lnk'); $s = (New-Object -ComObject WScript.Shell).CreateShortcut($p); "
               "$s.TargetPath = $env:STANOWISKO_SKROT_CEL; $s.Arguments = $env:STANOWISKO_SKROT_ARGUMENTY; "
               "$s.WorkingDirectory = $env:STANOWISKO_SKROT_ROBOCZY; $s.Description = $env:STANOWISKO_SKROT_OPIS; $s.Save(); Write-Output $p")

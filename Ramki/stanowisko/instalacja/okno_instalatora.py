@@ -488,10 +488,8 @@ if QtWidgets is not None:
                 self.close()
 
         def polecenie(self) -> list[str]:
-            polecenie = K.polecenie_instalacji(self.paczka, self.biezacy_wybor(), self.aktualizacja is not None, self._python)
-            if self._skrot_katalog is not None:
-                polecenie += ["--skrot-katalog", str(self._skrot_katalog)]
-            return polecenie
+            return K.polecenie_instalacji(self.paczka, self.biezacy_wybor(), self.aktualizacja is not None, self._python,
+                                          self._skrot_katalog)
 
         def instaluj(self) -> None:
             """Krok 3: instalator w osobnym watku (proces potomny); wiersze wracaja sygnalem do watku okna."""
@@ -639,13 +637,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--osoba", action="append", default=[])
     p.add_argument("--python", type=Path, default=None, help="(proby) Python instalatora, gdy paczka nie ma katalogu python")
     p.add_argument("--zrzuty", type=Path, default=None, help="zapisz zrzuty 4 krokow do katalogu (bez instalacji)")
+    p.add_argument("--skrot-katalog", type=Path, default=None, help="(proby) katalog ikon zamiast pulpitu")
     a = p.parse_args(argv)
     paczka = a.paczka.resolve()
     if a.bez_okna:
         for strumien in (sys.stdout, sys.stderr):
             if strumien is not None and hasattr(strumien, "reconfigure"):
                 strumien.reconfigure(errors="replace")
-        return K.main_bez_okna(paczka, K.Wybor(a.folder_skanow, a.folder_projektow, a.katalog, a.osoba), a.python)
+        return K.main_bez_okna(paczka, K.Wybor(a.folder_skanow, a.folder_projektow, a.katalog, a.osoba), a.python,
+                               skrot_katalog=a.skrot_katalog)
     if QtWidgets is None:
         _okienko_systemowe(f"Nie mozna otworzyc okna instalatora ({type(_BLAD_QT).__name__}: {_BLAD_QT}).\n\n"
                            "Rozpakuj CALA paczke jeszcze raz albo zainstaluj z wiersza polecen: zainstaluj.cmd")
@@ -654,7 +654,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\n".join(str(p) for p in zrzuty(paczka, a.zrzuty)))
         return 0
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
-    okno = OknoInstalatora(paczka, katalog=a.katalog, python=a.python)
+    okno = OknoInstalatora(paczka, katalog=a.katalog, python=a.python, skrot_katalog=a.skrot_katalog)
     okno.show()
     app.exec()
     return okno.kod if okno.kod is not None else 0

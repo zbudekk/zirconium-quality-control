@@ -171,7 +171,8 @@ def python_konsolowy(python: Path) -> Path:
     return python
 
 
-def polecenie_instalacji(paczka: Path, wybor: Wybor, aktualizacja: bool, python: Path | None = None) -> list[str]:
+def polecenie_instalacji(paczka: Path, wybor: Wybor, aktualizacja: bool, python: Path | None = None,
+                         skrot_katalog: Path | None = None) -> list[str]:
     """Wiersz polecen instalatora dla wyboru z okna. Paczka z Pythonem: ``--python-z-paczki`` (instalator kopiuje Pythona do
     katalogu instalacji); bez niego (proby) - ``--python`` = ``python``. Zawsze: ikony na pulpicie, samokontrola bez proby
     polaczenia z ramkami (ramki wylaczone), bez pauzy. Przy aktualizacji foldery i osoby nie sa podawane (ustawienia zostaja)."""
@@ -180,7 +181,7 @@ def polecenie_instalacji(paczka: Path, wybor: Wybor, aktualizacja: bool, python:
     polecenie = [str(interpreter), "-I", "-B", str(paczka / "program" / "instalacja" / "instalator.py"), "zainstaluj",
                  "--paczka", str(paczka), "--katalog", wybor.katalog.strip()]
     polecenie += ["--python-z-paczki"] if z_paczki else ["--python", str(interpreter)]
-    polecenie += ["--skrot", "--bez-sieci", "--bez-pauzy"]
+    polecenie += ["--skrot", "--bez-sieci", "--bez-pauzy"] + (["--skrot-katalog", str(skrot_katalog)] if skrot_katalog else [])
     if not aktualizacja:
         polecenie += ["--folder-skanow", wybor.folder_skanow.strip(), "--folder-projektow", wybor.folder_projektow.strip(),
                       "--ramki-wylaczone"]
@@ -271,7 +272,7 @@ def uruchom_program(katalog: Path, cel: str = "stanowisko") -> bool:
     return True
 
 
-def main_bez_okna(paczka: Path, wybor: Wybor, python: Path | None = None, wypisz=print) -> int:
+def main_bez_okna(paczka: Path, wybor: Wybor, python: Path | None = None, wypisz=print, skrot_katalog: Path | None = None) -> int:
     """Tryb bez okna (testy): te same kontrole i to samo polecenie, co okno; zdania na ekranie. Kod = kod instalatora albo 12."""
     info = informacje_paczki(paczka)
     aktualizacja = istniejaca_instalacja(wybor.katalog) is not None
@@ -291,7 +292,7 @@ def main_bez_okna(paczka: Path, wybor: Wybor, python: Path | None = None, wypisz
         postep.wiersz(tekst)
         wypisz(tekst)
 
-    kod = uruchom_instalacje(polecenie_instalacji(paczka, wybor, aktualizacja, python), na_wiersz)
+    kod = uruchom_instalacje(polecenie_instalacji(paczka, wybor, aktualizacja, python, skrot_katalog), na_wiersz)
     wypisz("WYNIK: " + zdanie_kodu(kod))
     for nazwa, (zalozony, plik) in postep.skroty.items():
         if not zalozony:
