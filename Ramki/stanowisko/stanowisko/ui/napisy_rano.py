@@ -9,17 +9,12 @@ from __future__ import annotations
 import re
 
 # --- przelacznik trybu (pasek stanu) ----------------------------------------------------------------
-PRZELACZ_NA = "→ {tryb}"
 PRZELACZ_OPIS = "Przełącz program na tryb „{tryb}” — nowe skany trafią do tego trybu."
 
 # --- naglowek pieca --------------------------------------------------------------------------------
-PIEC_OTWARTY = "Piec {nr} · doba {doba} · otwarty od {godzina}"
-PIEC_ZAMKNIETY = "Piec {nr} · doba {doba} · zamknięty o {godzina} ({osoba})"
 PIEC_BRAK = "Jeszcze nie ma pieca — zeskanuj pierwszą płytkę poranną (piec otworzy się sam)."
 PIEC_Z_WCZORAJ = "Ten piec jest otwarty od poprzedniej doby — zamknij go, jeśli już rozłożony."
 PIEC_ZAMKNIETY_INFO = "Piec zamknięty — następny skan płytki porannej otworzy nowy piec."
-BLOKADY_TYTUL = "„Zamknij piec” teraz niemożliwe:"
-ZAMKNIJ_PIEC_SKROT = "Zamknij piec"
 LICZNIK = "{napis}: {n}"
 # E3-U1b (nowy uklad poranka, makieta ``Rano.dc.html``): lewa kolumna "Piec n"
 PIEC_TYTUL = "Piec {nr}"
@@ -42,7 +37,6 @@ PLYTKA_NIEAKTYWNA = "{plytka} ({godzina}) — {napis}"
 POZA_GNIAZDAMI = "Poza gniazdami: {n}"
 MAPA_BEZ_GNIAZD = "Płytka {napis}."
 ZMIEN_NUMER = "Zmień numer"
-LEGENDA = "Na płytkach:"
 LEGENDA_NAGLOWEK = "Na płytkach"  # E3-U1b: naglowek legendy w lewej kolumnie
 ZAB_KROTKO = "z. {zab}"
 
@@ -69,14 +63,9 @@ NA_RAMCE = "Na ramce porannej świecą gniazda bieżącej kuwety."
 # S3-16: "mozesz zamknac piec" tylko bez blokad; z blokadami - co jeszcze trzyma piec
 KUWETA_BRAK_BLOKADY = "Wszystkie kuwety rozłożone — zamknięcie pieca czeka jeszcze na: {lista}"
 KLIKNIJ_GNIAZDO = "Kliknij gniazdo na płytce, żeby zobaczyć pracę i rozstrzygnąć projekt."
-KUWETA_BIEZACA = "Kuweta {kuweta}"
-KUWETA_BIEZACA_OPIS = "{prac} · {plytki}"
-KUWETA_PRAC = "prac: {n}"
-KUWETA_PLYTKI = "płytki: {lista}"
 KUWETA_BRAK = "Wszystkie kuwety rozłożone — możesz zamknąć piec."
 KUWETA_BRAK_PIECA = "Kuwety pojawią się po skanach płytek pieca."
 BUFOR = "Wpisany numer kuwety: {bufor}▁  (Enter = wybierz, Backspace = popraw, Esc = wyczyść)"
-KUWETY_PODPOWIEDZ = "Cyfry i Enter = wybór kuwety po numerze. Gniazda bieżącej kuwety są obwiedzione na płytkach."
 POTWIERDZ_SKROT = "Rozłożona  [Enter]"
 COFNIJ_SKROT = "Cofnij poprzednią  [Backspace]"  # E3-U1b: bylo "Cofnij  [Backspace]" (makieta)
 KOLUMNY_KUWET = ("Kuweta", "Prac", "Płytki", "Stan")

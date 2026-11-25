@@ -1518,6 +1518,7 @@ def test_pn3_zalegly_piec_osiagalny_z_ekranu_gdy_ostatni_zalatwiony(tmp_path, ek
         assert e.jest("excel_panel") and e.jest(f"excel_zalegly_{piec1}")
         e.klik("excel_odswiez")  # r4 D-R3-2: odswiezenie nie zamyka okna otwartego dla zaleglych
         assert e.jest("excel_panel") and e.jest(f"excel_zalegly_{piec1}")
+        e.klik("rano_strona_wynik")  # E3-U1b: okno Excela i "Kompletne i braki" to dwie zakladki srodka
         e.klik(f"wynik_excel_zalegly_{piec1}")
         assert e.jest("excel_panel") and k.stan().excel.sesja_pieca_id == piec1 and [p.kuweta for p in k.stan().excel.pozycje] == ["3200", "3207"]
     finally:

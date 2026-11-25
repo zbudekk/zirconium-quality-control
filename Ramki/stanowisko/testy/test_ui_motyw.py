@@ -22,7 +22,9 @@ import pytest
 
 STANOWISKO = Path(__file__).resolve().parent.parent
 UI = STANOWISKO / "stanowisko" / "ui"
-NOWE_PLIKI = ("czesci.py", "wieczor.py", "mapa.py", "okno.py", "obraz.py", "styl.py", "__init__.py")  # nowe okno; barwy tylko w motyw.py
+# nowe okno; barwy tylko w motyw.py. E3-U1b: pliki trybu porannego i panelu Excela (``styl.py`` usuniety)
+NOWE_PLIKI = ("czesci.py", "wieczor.py", "mapa.py", "okno.py", "obraz.py", "__init__.py", "ekran_rano.py", "kandydaci.py", "mapa_rano.py",
+              "okno_excela.py")
 HEX = re.compile(r"#[0-9a-fA-F]{6}\b")
 
 
@@ -209,19 +211,20 @@ def test_arkusz_nie_ustawia_wysokosci_przyciskow():
 
 @pytest.mark.parametrize("plik", NOWE_PLIKI)
 def test_barwy_sa_tylko_w_motywie(plik):
-    """Zaden plik nowego okna poza ``motyw.py`` nie wpisuje wlasnej barwy ``#rrggbb`` (pliki ekranu porannego - etap U1b)."""
+    """Zaden plik nowego okna poza ``motyw.py`` nie wpisuje wlasnej barwy ``#rrggbb`` (takze pliki trybu porannego - E3-U1b)."""
     tekst = (UI / plik).read_text(encoding="utf-8")
     assert not HEX.findall(tekst), f"{plik}: barwy poza motywem: {sorted(set(HEX.findall(tekst)))}"
 
 
 def test_bez_okien_modalnych_cieni_i_emoji_w_plikach_okna():
     """Wymagania techniczne SPEC: zadnych okien modalnych, cieni, gradientow, emoji - w kodzie i w napisach nowego okna."""
-    for plik in ("czesci.py", "wieczor.py", "mapa.py", "okno.py", "motyw.py"):
+    for plik in ("czesci.py", "wieczor.py", "mapa.py", "okno.py", "motyw.py", "ekran_rano.py", "kandydaci.py", "mapa_rano.py", "okno_excela.py"):
         tekst = (UI / plik).read_text(encoding="utf-8")
         for zakazane in ("QDialog", "QMessageBox", "QInputDialog", ".exec(", "QMenu", "setModal", "ApplicationModal", "WindowModal",
                          "QGraphicsDropShadowEffect", "QLinearGradient", "QRadialGradient", "QConicalGradient", "qlineargradient"):
             assert zakazane not in tekst, (plik, zakazane)
-    for plik in ("napisy.py", "motyw.py", "czesci.py", "wieczor.py", "okno.py", "mapa.py"):
+    for plik in ("napisy.py", "motyw.py", "czesci.py", "wieczor.py", "okno.py", "mapa.py", "napisy_rano.py", "ekran_rano.py", "kandydaci.py",
+                 "mapa_rano.py", "okno_excela.py"):
         tekst = (UI / plik).read_text(encoding="utf-8")
         emoji = [z for z in tekst if ord(z) >= 0x1F000 or 0x2600 <= ord(z) <= 0x27BF or 0x2190 <= ord(z) <= 0x21FF]
         assert not emoji, (plik, sorted(set(emoji)))
@@ -230,6 +233,14 @@ def test_bez_okien_modalnych_cieni_i_emoji_w_plikach_okna():
 # ----------------------------------------------------------------------------
 # (6) modul bez Qt; czcionka do rysowania
 # ----------------------------------------------------------------------------
+def test_styl_usuniety_i_nigdzie_nie_importowany():
+    """E3-U1b: czesc przejsciowa starego ukladu porannego (``ui/styl.py``) usunieta; zaden plik programu ani narzedzie jej nie uzywa."""
+    assert not (UI / "styl.py").exists()
+    wzor = re.compile(r"from \.+ import [^\n]*\bstyl\b|from stanowisko\.ui import styl\b|ui\.styl\b|import styl\b")
+    for plik in sorted(STANOWISKO.glob("stanowisko/**/*.py")) + sorted(STANOWISKO.glob("narzedzia/*.py")):
+        assert not wzor.search(plik.read_text(encoding="utf-8")), plik.name
+
+
 def test_motyw_bez_qt_na_poziomie_modulu():
     kod = ("import sys; import stanowisko.ui.motyw as M; M.arkusz(M.UKLAD_ZWARTY); M.pary_statusow(); "
            "print(any(m.startswith('PySide6') for m in sys.modules))")

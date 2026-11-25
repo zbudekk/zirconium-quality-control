@@ -109,6 +109,8 @@ class Uklad:
     zakladki: int = 50
     kuweta: int = 128
     mapa_rano_min: tuple = (150, 140)
+    prawa_rano: int = 340  # kolumna "Praca" rano (SPEC: 340-360 px) - wiecej miejsca na trzy mapy plytek pieca obok siebie
+    bok_rano: int = 12  # odstep map i wiersza kuwety od krawedzi srodka
 
     @property
     def lista(self) -> int:
@@ -122,7 +124,7 @@ UKLAD_WYSOKI = Uklad("wysoki", False, lewa=280, prawa=360, bok=20, odstep=16, st
 UKLAD_ZWYKLY = dataclasses.replace(UKLAD_WYSOKI, nazwa="zwykly", wiersze_listy=3, obraz_min=70)
 UKLAD_ZWARTY = Uklad("zwarty", True, lewa=240, prawa=320, bok=12, odstep=12, strefa=148, naglowek=54,
                      wiersze_listy=2, wiersz_tabeli=26, naglowek_tabeli=26, naglowek_listy=44, boczny=176, decyzja=48, przycisk=44,
-                     mapa_min=(220, 180), obraz_min=36, zakladki=44, kuweta=104, mapa_rano_min=(120, 110))
+                     mapa_min=(220, 180), obraz_min=36, zakladki=36, kuweta=84, mapa_rano_min=(120, 110), prawa_rano=320)
 
 
 def uklad_dla(szerokosc: int, wysokosc: int) -> Uklad:

@@ -40,7 +40,7 @@ import weakref
 
 from PySide6.QtCore import QPoint, QRect, Qt, QTimer, Signal
 from PySide6.QtGui import QFontMetrics, QImage
-from PySide6.QtWidgets import (QAbstractItemView, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QScrollArea, QSizePolicy, QStackedLayout,
+from PySide6.QtWidgets import (QAbstractItemView, QBoxLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QScrollArea, QSizePolicy, QStackedLayout,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from .. import kontroler_api as K
@@ -345,6 +345,8 @@ class WierszKuwety(QFrame):
         ou.addWidget(self.opis)
         self.miejsca = etykieta("", "tresc_glowna", "rano_kuweta_miejsca", zawijaj=True)
         ou.addWidget(self.miejsca)
+        self.miejsca_krotko = C.EtykietaSkracana("tresc_glowna", "rano_kuweta_miejsca_krotko")  # uklad zwarty: jeden wiersz
+        ou.addWidget(self.miejsca_krotko)
         self.na_ramce = etykieta(NR.NA_RAMCE, "pomocniczy", "rano_kuwety_podpowiedz", zawijaj=True)
         ou.addWidget(self.na_ramce)
         ou.addStretch(1)
@@ -361,7 +363,7 @@ class WierszKuwety(QFrame):
         pu.addStretch(1)
         self._opis_stos.addWidget(pole_male)
         u.addLayout(self._opis_stos, 1)
-        przyciski = QVBoxLayout()
+        self._przyciski = przyciski = QBoxLayout(QBoxLayout.Direction.TopToBottom)
         przyciski.setSpacing(8)
         self.potwierdz = przycisk_skrotu(NR.POTWIERDZ_SKROT, "rano_potwierdz_kuwete", "glowny", lambda: self._wyslij("potwierdz_kuwete"),
                                          motyw.UKLAD_WYSOKI.decyzja, px=motyw.PX_PRZYCISK_DECYZJI, pogrubiony=True)
@@ -400,13 +402,15 @@ class WierszKuwety(QFrame):
     def ustaw_uklad(self, u: motyw.Uklad) -> None:
         self._zwarty = u.zwarty
         self.setFixedHeight(u.kuweta)
-        self._u.setContentsMargins(u.bok, 8 if u.zwarty else 12, u.bok, 0)
+        self._u.setContentsMargins(u.bok_rano, 8 if u.zwarty else 12, u.bok_rano, 0)
         self._u.setSpacing(12 if u.zwarty else 16)
         wys = motyw.CEL_KLIKNIECIA if u.zwarty else u.decyzja
         for b in (self.potwierdz, self.cofnij):
             b.setFixedHeight(wys)
         self.pole_blok.setVisible(not u.zwarty)
         self.na_ramce.setVisible(not u.zwarty)
+        # uklad zwarty: "Rozlozona" i "Cofnij poprzednia" obok siebie (wiersz nizszy - wiecej miejsca na mapy plytek)
+        self._przyciski.setDirection(QBoxLayout.Direction.LeftToRight if u.zwarty else QBoxLayout.Direction.TopToBottom)
         self._sygnatura = None
 
     def ustaw(self, stan, bufor: str) -> None:
@@ -435,7 +439,10 @@ class WierszKuwety(QFrame):
         self.biezaca.setText(numer)
         self.opis.setText(opis)
         self.miejsca.setText("\n".join(miejsca))
-        self.miejsca.setVisible(bool(miejsca))
+        self.miejsca.setVisible(bool(miejsca) and not self._zwarty)
+        self.miejsca_krotko.setText(NR.NIEROZSTRZYGNIETE_ODSTEP.join(miejsca))
+        self.miejsca_krotko.setToolTip("\n".join(miejsca))
+        self.miejsca_krotko.setVisible(bool(miejsca) and self._zwarty)
         jest_osoba = stan.operator is not None
         otwarty = rano is not None and rano.otwarty
         self.potwierdz.setEnabled(otwarty and biezaca is not None and jest_osoba)
@@ -463,7 +470,7 @@ class KartaMapy(QFrame):
         self.setProperty("rola", "karta_mapy")
         self.setProperty("wybrany", "false")
         u = QVBoxLayout(self)
-        u.setContentsMargins(6, 4, 6, 6)
+        u.setContentsMargins(1, 2, 1, 2)  # obwodka wybranej plytki 1 px; reszta szerokosci dla mapy
         u.setSpacing(2)
         wiersz = QHBoxLayout()
         wiersz.setSpacing(8)
@@ -887,6 +894,7 @@ class EkranRano(QWidget):
         self._pytanie_zamkniecia: int | None = None  # E3-P14 (N3): piec, o ktorego zamkniecie mimo prac bez rozstrzygniecia pyta ekran
         self._piec_widziany: tuple | None = None
         self._excel_widoczne = False
+        self._excel_piec: int | None = None
         self._strona_przed_excelem = "wynik"
         self._obrazy: dict = {}
         self._karty: dict[int, KartaMapy] = {}
@@ -994,13 +1002,15 @@ class EkranRano(QWidget):
         self.piec.ustaw_uklad(u)
         self.strefa.ustaw_uklad(u)
         self.zakladki.setFixedHeight(u.zakladki)
-        self._zakladki_uklad.setContentsMargins(u.bok, 0, u.bok, 0)
+        for b in self.przyciski_stron.values():
+            b.setFixedHeight(u.zakladki - 4)
+        self._zakladki_uklad.setContentsMargins(u.bok_rano, 0, u.bok_rano, 0)
         self.wiersz_kuwety.ustaw_uklad(u)
-        self._mapy_uklad.setContentsMargins(u.bok, 8 if u.zwarty else 12, u.bok, 8 if u.zwarty else 12)
-        self.plytki.ustaw_odstep(u.odstep)
+        self._mapy_uklad.setContentsMargins(u.bok_rano, 8 if u.zwarty else 12, u.bok_rano, 8 if u.zwarty else 12)
+        self.plytki.ustaw_odstep(8)
         for karta in self._karty.values():
             karta.mapa.setMinimumSize(*u.mapa_rano_min)
-        self.prawa.setFixedWidth(u.prawa)
+        self.prawa.setFixedWidth(u.prawa_rano)
         self.kuwety.ustaw_uklad(u)
         self.widok.ustaw_uklad(u)
         self.wynik.ustaw_uklad(u)
@@ -1036,12 +1046,13 @@ class EkranRano(QWidget):
                     self._strona = "rozkladanie"
             self._piec_widziany = piec
         widoczne = stan.excel is not None and stan.excel.widoczne  # E3-A12: okno Excela pokazuje sie samo, "Pozniej" je zamyka
-        if widoczne and not self._excel_widoczne:
+        piec_excela = stan.excel.sesja_pieca_id if widoczne else None
+        if widoczne and (not self._excel_widoczne or piec_excela != self._excel_piec):  # nowe okno Excela albo okno innego pieca
             self._strona_przed_excelem = self._strona if self._strona != "excel" else "wynik"
             self._strona = "excel"
         elif not widoczne and self._strona == "excel":
             self._strona = self._strona_przed_excelem
-        self._excel_widoczne = widoczne
+        self._excel_widoczne, self._excel_piec = widoczne, piec_excela
         self._odswiez()
 
     def _obraz(self, sha16: str | None, dane: bytes | None):

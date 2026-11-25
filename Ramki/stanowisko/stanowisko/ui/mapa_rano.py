@@ -32,6 +32,8 @@ class MapaRano(MapaPlytki):
     biezacej kuwety z kontrolera (``StanRano.obwodka(skan_id)`` - mapa niczego nie liczy), ``obrazy`` - ``sha16`` -> ``QImage``
     miniatury (zdekodowane przez ekran raz)."""
 
+    MARGINES = 4  # E3-U1b: trzy plytki pieca obok siebie - plytka prawie do krawedzi widzetu (wieczorem 14 px)
+
     def __init__(self, skan_id: int, rodzic=None):
         super().__init__(rodzic)
         self.skan_id = skan_id
