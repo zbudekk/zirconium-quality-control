@@ -20,6 +20,8 @@ oknu stan oraz polecenia opisane w ``kontroler_api`` (kontrakt dla ekranu - pacz
 * ramki i Excel (E3-A12): ``Aplikacja(ust, ramki=True, excel=True)`` (``main``) - klienci ramek z ``[ramki]`` (``utworz_ramki``) i Excel
   z ``[excel]`` (``utworz_excel``, polaczenie COM leniwe) przy starcie; brak ramki albo Excela = komunikat, praca dalej. Ramka W:
   Spacja, skan bez Spacji (``znacznik``), start analizy raz na skan, wynik = kolory mapy; zamkniecie: zgaszenie, zatrzymanie, rozlaczenie.
+  E3-R1: ``[ramki] wlaczone = false`` - bez klientow ramek i bez proby polaczenia (``KontrolerSesji.wylacz_ramki``: pasek stanu
+  "Ramki: wylaczone", bez komunikatow o ramkach); ``main --atrapa`` czyta ten klucz z pliku ustawien, jesli plik jest.
 
 Runda 2 recenzji PR #20: jeden egzemplarz programu na plik bazy (``BlokadaStanowiska``, B1) i twarde odsiewanie wyniku
 o ``sha16`` juz przyjetym w tej samej transakcji co zapis; wynik / blad, ktorego nie da sie zapisac (baza zajeta, dysk),
@@ -404,6 +406,15 @@ def katalog_z_ustawien(ust: dict, klucz: str) -> Path:
     return B.sciezka_z_ustawien(ust, klucz)
 
 
+def ramki_wylaczone_w_pliku(plik: str | Path | None) -> bool:
+    """E3-R1 (``main --atrapa``): czy plik ustawien (None = ``ustawienia.toml`` programu) ma ``[ramki] wlaczone = false``. Brak
+    pliku albo blad pliku = False (atrapa ustawien nie wymaga - pokazuje ramki jak dotad)."""
+    try:
+        return not UST.ramki_wlaczone(UST.wczytaj_ustawienia(plik))
+    except Exception:  # noqa: BLE001 - atrapa dziala bez pliku ustawien
+        return False
+
+
 def utworz_ramki(ust: dict, katalog_danych: str | Path) -> tuple:
     """E3-A12: klienci ramek z ``[ramki]`` (``indicate.Indicate.z_ustawien``; identyfikator laptopa w ``katalog_danych`` - folder
     bazy, nie katalog programu). Zwraca (Indicate albo None, ostrzezenia); zle ustawienia ramek = None + ostrzezenie (program
@@ -573,7 +584,11 @@ class Aplikacja(K.KontrolerSesji):
         """E3-A12: ramki i Excel wg parametrow konstruktora. Blad = ostrzezenie (log + komunikat), program dziala dalej."""
         ramki, excel = self._ramki_param, self._excel_param
         try:
-            if ramki is True:
+            if ramki is True and not UST.ramki_wlaczone(self.ust):  # E3-R1: zadnego klienta ramki, zadnej proby polaczenia
+                LOG.info("stanowisko: ramki wylaczone w ustawieniach ([ramki] wlaczone = false) - program bez ramek")
+                self.wylacz_ramki()
+                ramki = None
+            elif ramki is True:
                 ramki, ostrzezenia = utworz_ramki(self.ust, self.katalog_danych)
                 for o in ostrzezenia:
                     LOG.warning("stanowisko: ramki - %s", o)
@@ -1678,6 +1693,8 @@ def main(argv: list[str] | None = None) -> int:
             kontroler.scenariusz_poranny()
         else:
             kontroler.scenariusz_pokazowy()
+        if ramki_wylaczone_w_pliku(args.ustawienia):  # E3-R1: proba startu na instalacji bez ramek - pasek "Ramki: wylaczone"
+            kontroler.wylacz_ramki()
     else:
         try:
             ust = UST.wczytaj_ustawienia(args.ustawienia)

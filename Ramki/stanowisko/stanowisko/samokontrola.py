@@ -16,7 +16,8 @@ Umowa wywolania (styk z instalatorem A11i i instrukcjami A11d - nie zmieniac bez
 * jako funkcja: ``wykonaj(ust, ...) -> Wynik`` (``Wynik.sprawdzenia``: lista ``Sprawdzenie`` z polami kod, poziom, opis, rada).
 
 Samokontrola niczego nie naprawia i nie zmienia: baze otwiera tylko do odczytu (nie zaklada, nie migruje), nie tworzy
-folderow, do ramek wysyla wylacznie ``GET /stan`` bez identyfikatora laptopa (ramka nie zapisuje kontaktu), do Excela
+folderow, do ramek wysyla wylacznie ``GET /stan`` bez identyfikatora laptopa (ramka nie zapisuje kontaktu; przy ``[ramki]
+wlaczone = false`` - nic, wiersze ramek OK "wylaczone w ustawieniach", E3-R1), do Excela
 podlacza sie tak jak ``excel_com`` (Excel juz uruchomiony) i nie otwiera arkusza. Jedyny zapis: plik probny w ISTNIEJACYM
 folderze danych, usuwany od razu po probie. Bazy w trybie WAL nie otwiera (powstalyby pliki ``-shm`` / ``-wal``).
 
@@ -1063,6 +1064,10 @@ def _zapytaj_ramke(host: str, port: int, klucz: str, limit_s: float) -> tuple:
 
 def _ramki(k: _Kontekst) -> list:
     r = k.ust["ramki"]
+    if not UST.ramki_wlaczone(k.ust):  # E3-R1: wiersz neutralny (OK), zadnej proby polaczenia - takze bez --bez-sieci
+        return [_ok(kod, f"ramka {nazwa}: ramki wylaczone w ustawieniach ([ramki] wlaczone = false) - bez proby polaczenia, program "
+                         "pracuje bez ramek (rozkladanie wedlug podpisow na ekranie), aby wlaczyc ramki: wlaczone = true")
+                for kod, _, _, nazwa in RAMKI]
     port, klucz, limit = r["port"], r.get("klucz", ""), k.limit_ramki_s
     bez_ramek = "bez ramek program dziala - rozkladanie wedlug podpisow na ekranie"
     if k.bez_sieci:

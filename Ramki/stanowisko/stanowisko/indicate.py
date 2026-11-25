@@ -1267,20 +1267,26 @@ def _zapisany_identyfikator(katalog, lid: str) -> bool:
 
 
 class Indicate:
-    """Obie ramki stanowiska: `wieczorna` (W) i `poranna` (P) - klienci `KlientRamki`."""
+    """Obie ramki stanowiska: `wieczorna` (W) i `poranna` (P) - klienci `KlientRamki`. `wylaczone` (E3-R1) - ramki wylaczone
+    w ustawieniach (`[ramki] wlaczone = false`): bez klientow, bez watkow i bez zadnej proby polaczenia."""
 
-    def __init__(self, wieczorna: KlientRamki | None = None, poranna: KlientRamki | None = None):
+    def __init__(self, wieczorna: KlientRamki | None = None, poranna: KlientRamki | None = None, *, wylaczone: bool = False):
         self.wieczorna = wieczorna
         self.poranna = poranna
+        self.wylaczone = wylaczone
 
     @classmethod
     def z_ustawien(cls, ust: dict, *, korzen=None, katalog_danych=None, na_zdarzenie=None, dziennik_ruchu=None,
                    **kw) -> "Indicate":
         """Klienci z ustawien: `[ramki] port, wieczorna_host, poranna_host, klucz, odpytywanie_s`, `[sciezki]
         kalibracja_ramek` (wzgledna od katalogu programu). Identyfikator laptopa w `katalog_danych` (domyslnie `dane/`
-        programu - niezaleznie od pliku kalibracji, D9). Nie uruchamia watkow (`uruchom()`)."""
+        programu - niezaleznie od pliku kalibracji, D9). Nie uruchamia watkow (`uruchom()`).
+        E3-R1: `[ramki] wlaczone = false` - `Indicate(wylaczone=True)` bez klientow (bez kalibracji i identyfikatora laptopa);
+        brak klucza = ramki wlaczone (jak dotad)."""
+        from . import ustawienia
+        if not ustawienia.ramki_wlaczone(ust):
+            return cls(wylaczone=True)
         if korzen is None:
-            from . import ustawienia
             korzen = ustawienia.KORZEN
         korzen = Path(korzen)
         r, s = ust["ramki"], ust["sciezki"]

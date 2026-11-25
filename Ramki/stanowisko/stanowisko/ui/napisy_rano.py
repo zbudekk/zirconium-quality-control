@@ -169,6 +169,10 @@ RAMKA_STANY = {"gotowa": "gotowa", "brak_polaczenia": "brak połączenia", "inny
                "blad_sprzetu": "awaria", "test": "test diod", "inny": "błąd"}
 RAMKA_PLYTKA = " (płytka {n})"
 RAMKI_ODSTEP = " · "
+# E3-R1: [ramki] wlaczone = false - napis neutralny (zwykly kolor tekstu) i podpowiedz, jak wlaczyc ramki
+RAMKI_WYLACZONE = "wyłączone"
+RAMKI_WYLACZONE_OPIS = ("Ramki są wyłączone w ustawieniach — program pracuje bez nich (rozkładanie według podpisów na ekranie). "
+                        "Aby włączyć ramki: w pliku ustawienia.toml w sekcji [ramki] wpisz wlaczone = true i uruchom program ponownie.")
 TEST_LED = "Test LED"
 EXCEL_PASEK = "Excel"  # E3-U1b: pole Excela na pasku stanu (tryb Poranek)
 EXCEL_PASEK_STANY = {"brak": "niedostępny", "blad": "błąd — sprawdź", "w_toku": "przygotowuję…", "do_zatwierdzenia": "do zatwierdzenia: {n}",
