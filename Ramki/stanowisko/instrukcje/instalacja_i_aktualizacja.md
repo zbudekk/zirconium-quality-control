@@ -33,9 +33,10 @@ Paczki bez katalogu `python` (wydania do 0.3.3) wymagaja Pythona 3.12 w systemie
 7. Po instalacji paczka (pendrive) nie jest potrzebna: program uzywa kopii Pythona w `C:\Stanowisko\python\3.12.10`.
 8. Ustawienia z krokow 1-2 trafiaja do `C:\Stanowisko\ustawienia.toml` (sekcje `[sciezki]` i `[sesja] operatorzy`); zmiana
    pozniej - w tym pliku (Notatnik, zapis "UTF-8") i `Samokontrola.cmd`.
-9. Ramki: instalacja z okna sprawdza program bez proby polaczenia z ramkami. Instalator wpisuje `[ramki] wlaczone = false`, gdy
-   wersja programu zna ten przelacznik; wersja 0.3.9-i1 go NIE zna (zmiana w programie poza ta paczka - raport E3-I1, POTRZEBUJE) -
-   program sam sprobuje polaczyc sie z ramkami i bez nich pokaze ostrzezenie "ramka nieobecna"; praca bez ramek jest mozliwa.
+9. Ramki: instalacja z okna sprawdza program bez proby polaczenia z ramkami i przy NOWEJ instalacji wpisuje `[ramki] wlaczone =
+   false` (E3-R1) - program pracuje bez ramek (pasek stanu "Ramki: wylaczone", samokontrola: wiersze ramek OK "wylaczone w
+   ustawieniach"); aktualizacja tego wiersza nie zmienia. Aby wlaczyc ramki, wpisz w `C:\Stanowisko\ustawienia.toml` w sekcji `[ramki]`
+   `wlaczone = true` (Notatnik, zapis "UTF-8") i uruchom program ponownie.
 
 **Aktualizacja w oknie:** to samo z nowej paczki i to samo miejsce instalacji. Okno rozpozna istniejacy program (napis "W tym
 folderze jest juz program..."): foldery i osoby pokazuje z dotychczasowych ustawien i ich nie zmienia; dane i baza zostaja.

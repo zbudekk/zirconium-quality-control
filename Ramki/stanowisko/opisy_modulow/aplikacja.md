@@ -72,6 +72,11 @@ Domyslnie (`ramki=False`, `excel=False`) - bez ramek i Excela (testy, atrapa). T
 (`ArkuszWPamieci`). Wspolna czesc obu kontrolerow: `KontrolerSesji.podlacz_ramki(indicate)` / `podlacz_excel(excel)` - plan pieca
 idzie do klienta PRZED pierwszym kontaktem z ramka (potwierdzenia kuwet z bazy, gdy ramka planu juz nie ma), potem `uruchom()`.
 Zle ustawienia ramek / brak Excela = ostrzezenie (log, komunikat), program dziala dalej (kryterium 5).
+E3-R1 (26.11.2026): `[ramki] wlaczone = false` (`ustawienia.ramki_wlaczone`) - `start()` nie tworzy klientow (`utworz_ramki` nie jest
+wolane), tylko `KontrolerSesji.wylacz_ramki()`: `ramki` = None, `stan.ramki` = `StanRamek(wylaczone=True)` (okno: neutralne "Ramki:
+wylaczone"), bez komunikatow `ramka_niedostepna` (rano) i `ramka_wieczorna_niedostepna`, bez ostrzezen w logu (jeden wpis INFO);
+`StanRano.ramka` = False - rozkladanie wedlug ekranu. Brak klucza = true (jak dotad). `main --atrapa` czyta ten klucz z pliku
+ustawien, jesli plik jest (`ramki_wylaczone_w_pliku`; brak / zly plik = atrapa jak dotad). Ponowne `podlacz_ramki` znosi stan.
 
 **Stan.** `stan.ramki` (`StanRamek`: `wieczorna` / `poranna` = `StanRamki` - `polaczona`, `blad`, `komunikat`, `plytka`, `tryb_ramki`,
 `plan_przyjety`, `wstrzymane`, `potwierdzone`, `ostrzezenia`; `test_led`) - czytany z klientow co `OKRES_STANU_RAMEK_S` (0,25 s)
