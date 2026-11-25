@@ -408,6 +408,10 @@ if QtWidgets is not None:
             self.przycisk_anuluj.setVisible(krok in (0, 1))
             self.przycisk_dalej.setText({0: N.DALEJ, 1: N.INSTALUJ, 2: N.ZAMKNIJ, 3: N.ZAMKNIJ}[krok])
             self.przycisk_dalej.setEnabled(krok != 2)
+            # krok Gotowe: glowna akcja to "Uruchom program" na stronie - "Zamknij" na pasku zwykly (jeden przycisk glowny)
+            self.przycisk_dalej.setProperty("rola", "" if krok == 3 else "glowny")
+            self.przycisk_dalej.style().unpolish(self.przycisk_dalej)
+            self.przycisk_dalej.style().polish(self.przycisk_dalej)
             if krok == 1:
                 self._pokaz_osoby()
             if krok == 3:
@@ -595,34 +599,46 @@ def zrzuty(paczka: Path, katalog_zrzutow: Path) -> list[Path]:
     katalog_zrzutow.mkdir(parents=True, exist_ok=True)
     wiersze = ["[1/9] Sumy SHA-256 paczki...", "[2/9] Python 3.12 z paczki...", "[3/9] Katalog instalacji C:\\Stanowisko...",
                "[4/9] Ustawienia...", "[5/9] Katalog wersji...", "      instalacja 73 pakietow z kol paczki (bez sieci) - to trwa kilka minut..."]
-    okno = OknoInstalatora(paczka, katalog="C:\\Stanowisko", uruchom=lambda *_: 0, start_programu=lambda *_: True)
-    okno.aktualizacja = None
-    okno.pole_skanow.setText("C:\\Skany")
-    okno.pole_projektow.setText("")
-    okno._oznacz_puste()
-    okno.show()
-    pliki = []
+    istniejaca = K.istniejaca_instalacja
+    K.istniejaca_instalacja = lambda katalog: None  # zrzut pierwszej instalacji takze na komputerze z programem w C:\Stanowisko
+    try:
+        okno = OknoInstalatora(paczka, katalog="C:\\Stanowisko", uruchom=lambda *_: 0, start_programu=lambda *_: True)
+        okno.pole_skanow.setText("C:\\Skany")
+        okno.pole_projektow.setText("")
+        okno._oznacz_puste()
+        okno.show()
+        pliki = []
 
-    def zrzut(nazwa: str) -> None:
-        app.processEvents()
-        plik = katalog_zrzutow / nazwa
-        okno.grab().save(str(plik))
-        pliki.append(plik)
+        def zrzut(nazwa: str) -> None:
+            app.processEvents()
+            plik = katalog_zrzutow / nazwa
+            okno.grab().save(str(plik))
+            pliki.append(plik)
 
-    zrzut("instalator_1_foldery.png")
-    okno.lista_osob.addItems(["Anna Kowalska", "Piotr W."])
-    okno._pokaz(1)
-    zrzut("instalator_2_osoby.png")
-    okno._pokaz(2)
-    for w in wiersze:
-        okno._wiersz(w)
-    zrzut("instalator_3_instalacja.png")
-    for w in ["SKROT ZALOZONY: Stanowisko | C:\\Users\\Public\\Desktop\\Stanowisko.lnk",
-              "SKROT ZALOZONY: Dzie\u0144 skanera | C:\\Users\\Public\\Desktop\\Dzie\u0144 skanera.lnk"]:
-        okno._wiersz(w)
-    okno._koniec(0)
-    zrzut("instalator_4_gotowe.png")
-    okno.close()
+        zrzut("instalator_1_foldery.png")
+        okno.lista_osob.addItems(["Anna Kowalska", "Piotr W."])
+        okno._pokaz(1)
+        zrzut("instalator_2_osoby.png")
+        okno._pokaz(2)
+        for w in wiersze:
+            okno._wiersz(w)
+        zrzut("instalator_3_instalacja.png")
+        for w in ["SKROT ZALOZONY: Stanowisko | C:\\Users\\Public\\Desktop\\Stanowisko.lnk",
+                  "SKROT ZALOZONY: Dzie\u0144 skanera | C:\\Users\\Public\\Desktop\\Dzie\u0144 skanera.lnk"]:
+            okno._wiersz(w)
+        okno._koniec(0)
+        zrzut("instalator_4_gotowe.png")
+        # dodatkowo: blad instalatora (kod 5 - program uruchomiony) tak, jak widzi go osoba instalujaca
+        okno.postep = K.Postep()
+        okno._pokaz(2)
+        for w in wiersze[:5] + ['BLAD: program "Stanowisko" jest uruchomiony',
+                                "CO ZROBIC: Zamknij program i uruchom polecenie ponownie. Wersja biezaca bez zmian."]:
+            okno._wiersz(w)
+        okno._koniec(I.KOD_PROGRAM_DZIALA)
+        zrzut("instalator_5_blad.png")
+        okno.close()
+    finally:
+        K.istniejaca_instalacja = istniejaca
     return pliki
 
 

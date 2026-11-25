@@ -175,7 +175,7 @@ def test_okno_cztery_kroki(tmp_path, app, foldery):
     okno.dalej()  # Instaluj
     assert okno.krok == 2 and not okno.przycisk_dalej.isEnabled()
     czekaj_na_koniec(app, okno)
-    assert okno.kod == 0 and okno.krok == 3
+    assert okno.kod == 0 and okno.krok == 3 and okno.przycisk_dalej.property("rola") == ""  # jeden przycisk glowny: Uruchom program
     polecenie = atrapa.polecenia[0]
     assert polecenie[polecenie.index("--folder-skanow") + 1] == foldery["skany"]
     assert polecenie[polecenie.index("--katalog") + 1] == foldery["katalog"]
@@ -270,7 +270,7 @@ def test_okno_aktualizacja_zostawia_ustawienia(tmp_path, app, foldery):
 def test_zrzuty_czterech_krokow(tmp_path, app):
     pliki = O.zrzuty(zbuduj_paczke(tmp_path, "1.0"), tmp_path / "zrzuty")
     assert [p.name for p in pliki] == ["instalator_1_foldery.png", "instalator_2_osoby.png", "instalator_3_instalacja.png",
-                                       "instalator_4_gotowe.png"]
+                                       "instalator_4_gotowe.png", "instalator_5_blad.png"]
     from PySide6.QtGui import QImage
 
     for p in pliki:
