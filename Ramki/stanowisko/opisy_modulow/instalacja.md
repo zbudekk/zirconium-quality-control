@@ -330,5 +330,8 @@ Proby z pelna paczka (K1-K5): `raporty/E3-I1_2026-11-25.md`.
   `indicate.py`, `samokontrola.py` i okna poza ta paczka). Samokontrola z okna idzie z `--bez-sieci` (bez proby polaczenia).
 - E3-I1, nie sprawdzone bez laptopa (lista: `instrukcje/instalacja_i_aktualizacja.md` punkt 8): antywirus, znacznik pochodzenia pliku
   z sieci / SmartScreen, ikony przy ograniczonej polityce, WDAC / AppLocker dla Pythona z pendrive'a, skalowanie ekranu.
+- E3-I1 runda 2: program ochronny (na PC probnym Bitdefender, "Advanced Threat Defense") zamknal cale drzewo procesow sesji
+  probnej i wzial jej pliki do kwarantanny 3 s po starcie programu przez skrot - na laptopie [NIE SPRAWDZONE BEZ SPRZETU];
+  co zrobic: instrukcja punkt 8. Testy nie uruchamiaja niczego przez powloke (`test_zaden_test_nie_uruchamia_niczego_przez_powloke`).
 - `kola/` zawiera caly zestaw zaleznosci Open3D i PySide6 (m.in. PySide6 WebEngine 132 MB, plotly 10 MB, dash 9 MB - razem co najmniej ok. 160 MB), ktorych
   program nie importuje, ale ktorych wymaga pip przy instalacji przypietych wersji (decyzja: paczki nie odchudzamy).
