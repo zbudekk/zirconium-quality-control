@@ -231,7 +231,7 @@ def test_s3_14_mapa_poprzedniej_plytki_w_czasie_analizy_nowego_skanu(atrapa, ekr
     assert N.MAPA_POPRZEDNIA.startswith("POPRZEDNIA") and e.okno.naglowek_pole.isAncestorOf(e.w("mapa_poprzednia"))
     e.zdarzenia()
     assert e.okno.miejsce_mapy() == miejsce and not UW.sprawdz_uklad(e, UW.ROZMIAR_OKNA)
-    obraz = e.mapa.grab().toImage()
+    obraz = UW.obraz_logiczny(e.mapa)
     for g in plytka.gniazda:  # mapa przygaszona: zaden piksel gniazda nie ma juz pelnego koloru statusu
         if g.prace:
             assert obraz.pixelColor(e.mapa.punkt_probny(g.nr).toPoint()).name() != g.rgb, g.nr
@@ -271,7 +271,7 @@ def test_s3_14_znak_poprzedniej_zostaje_gdy_wynik_przyszedl_a_ekran_zostal(atrap
     assert N.MAPA_POPRZEDNIA_NOWY_WYNIK.startswith("POPRZEDNIA") and N.NOWY_WYNIK_POKAZ in N.MAPA_POPRZEDNIA_NOWY_WYNIK
     e.zdarzenia()
     assert e.okno.miejsce_mapy() == miejsce and not UW.sprawdz_uklad(e, UW.ROZMIAR_OKNA)
-    obraz = e.mapa.grab().toImage()
+    obraz = UW.obraz_logiczny(e.mapa)
     for g in plytka_a.gniazda:  # mapa A dalej przygaszona
         if g.prace:
             assert obraz.pixelColor(e.mapa.punkt_probny(g.nr).toPoint()).name() != g.rgb, g.nr
@@ -706,7 +706,7 @@ def test_przyciski_ze_skrotem_klawiszowym_w_ramce(atrapa, ekrany):
         assert b.width() >= b.sizeHint().width() - 1 and b.height() >= b.sizeHint().height() - 1  # napis i ramka skrotu sie mieszcza
     # ramka skrotu jest narysowana po prawej stronie przycisku: ciemna ramka na czerwonym "Ukruszona", napis zaczyna sie z lewej
     b = e.w("przycisk_ukruszona")
-    obraz = b.grab().toImage()
+    obraz = UW.obraz_logiczny(b)
     tlo = ST.STATUSY["ukruszona"].hex
     assert obraz.pixelColor(b.width() // 2, 4).name() == tlo  # wypelnienie czerwonym statusu ze ``statusy``
     kolumny = sorted({x for x in range(b.width()) for y in range(4, b.height() - 4) if obraz.pixelColor(x, y).name() == motyw.NA_STATUSIE})
@@ -773,7 +773,7 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
         return kolory
 
     e.po_ochronie()
-    obraz = e.mapa.grab().toImage()
+    obraz = UW.obraz_logiczny(e.mapa)
     plytka_tlo, jasna = motyw.WGLEBIENIE.lower(), motyw.OBWODKA_UBYTKU.lower()
     assert jasna in wokol(obraz, 2, 0.0, 2.0) and jasna in wokol(obraz, 9, 0.0, 2.0)  # czerwone: jasna obwodka 2 px tuz za krawedzia gniazda
     assert obok(obraz, 2, 4.0, 6.0) == {plytka_tlo}  # obwodka ma 2 px - dalej juz plytka
@@ -781,7 +781,7 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
         assert jasna not in obok(obraz, nr, 0.5, 6.0) and plytka_tlo in obok(obraz, nr, 1.0, 3.0), nr
     assert e.kolory_pikseli()[12] == ST.STATUSY["pusty"].hex == plytka_tlo  # puste gniazdo: bez wlasnego wypelnienia (kolor plytki)
     e.klik_gniazdo(1)
-    obraz = e.mapa.grab().toImage()
+    obraz = UW.obraz_logiczny(e.mapa)
     assert e.mapa.wyglad_gniazda(1)["wybrane"]
     assert motyw.AKCENT.lower() in wokol(obraz, 1, 3.0, 5.0) and plytka_tlo in wokol(obraz, 1, 0.5, 2.5)  # pierscien akcentu z przerwa w kolorze plytki
     assert motyw.AKCENT.lower() not in wokol(obraz, 1, 0.0, 2.0)  # przerwa: tuz przy gniezdzie nie ma barwy akcentu
@@ -802,7 +802,7 @@ def test_status_na_mapie_w_legendzie_i_na_kafelku_nie_tylko_barwa(atrapa, ekrany
 
 def _kolor_kropki(kropka) -> str:
     """Kolor wypelnienia narysowanej kropki (piksel w jej srodku)."""
-    obraz = kropka.grab().toImage()
+    obraz = UW.obraz_logiczny(kropka)
     return obraz.pixelColor(obraz.width() // 2, obraz.height() // 2).name()
 
 
@@ -825,7 +825,7 @@ def test_kolor_statusu_poza_mapa_ze_stanu_znacznik_legenda_kafelek_i_napis_decyz
 
     def tlo_znacznika() -> str:
         z = e.w("praca_status")
-        obraz = z.grab().toImage()
+        obraz = UW.obraz_logiczny(z)
         return obraz.pixelColor(5, obraz.height() // 2).name()
 
     plytka = atrapa.stan().plytka(skan)
