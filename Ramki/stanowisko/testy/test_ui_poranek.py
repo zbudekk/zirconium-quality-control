@@ -665,3 +665,54 @@ def test_rozlozona_i_cofnij_nieaktywne_bez_osoby(atrapa, ekrany):
     assert rano.kuweta_biezaca is not None and rano.kuweta_do_cofniecia is not None and atrapa.stan().operator is None
     assert e.jest("rano_potwierdz_kuwete") and not e.aktywny("rano_potwierdz_kuwete")
     assert e.jest("rano_cofnij_kuwete") and not e.aktywny("rano_cofnij_kuwete")
+
+
+
+# ----------------------------------------------------------------------------
+# runda 2 (recenzja PR #64): uwagi D
+# ----------------------------------------------------------------------------
+@pytest.mark.parametrize("rozmiar", ROZMIARY_LISTY)
+def test_d6_wysokosc_wierszy_listy_kuwet_od_otwarcia_okna(atrapa, ekrany, rozmiar):
+    """Runda 2, D6: wiersze listy kuwet maja wysokosc z ukladu okna (``Uklad.wiersz_tabeli``: 30 / 26 px) od razu po otwarciu
+    okna, a nie dopiero po pierwszej zmianie stanu - wiersze nie przeskakuja pod kursorem (bylo: zwarty 30 -> 26 px)."""
+    from stanowisko.ui import motyw
+
+    atrapa.scenariusz_poranny()
+    e = ekrany(atrapa, rozmiar)
+    e.zdarzenia()
+    u = motyw.uklad_dla(*rozmiar)
+    t = e.w("tabela_kuwet")
+    przed = {t.rowHeight(i) for i in range(t.rowCount())}
+    assert przed == {u.wiersz_tabeli}, f"{rozmiar}: wiersze {przed}, uklad {u.nazwa} {u.wiersz_tabeli}"
+    assert atrapa.potwierdz_kuwete(atrapa.stan().rano.kuweta_biezaca).ok
+    e.zdarzenia()
+    e.odczekaj(20)
+    assert {t.rowHeight(i) for i in range(t.rowCount())} == {u.wiersz_tabeli}
+
+
+
+@pytest.mark.parametrize("rozmiar", ((1536, 784), (1280, 642)))
+def test_d6_wysokosc_wierszy_tabel_panelu_excela_w_ukladzie_zwartym(tmp_path, ekrany, rozmiar):
+    """Runda 2, D6 (panel Excela): wiersze tabel panelu Excela w ukladzie zwartym maja ``Uklad.wiersz_tabeli`` od pierwszego
+    pokazania (ta sama kolejnosc minimum / domyslna co w liscie kuwet)."""
+    import test_aplikacja_rano as TA
+    from PySide6.QtWidgets import QTableWidget
+    from stanowisko import kontroler_api as K
+    from stanowisko.ui import motyw
+
+    k0 = K.AtrapaKontrolera(tmp_path / "k", zegar=TR.ZegarRano())
+    try:
+        k0.przelacz_tryb("rano")
+        k0.wybierz_operatora("Technik A")
+        e = ekrany(k0, rozmiar)
+        TA._excel_pytaj(k0, tmp_path)
+        k0.symuluj_skan_rano(4, TA.PLYTKA_4[0], projekty=TA.PLYTKA_4[1])
+        TR.zamknij_piec(e, pytanie=False)
+        e.czekaj(lambda: e.jest("excel_panel") and k0.stan().excel.w_toku == 0, 10.0, "okno Excela")
+        u = motyw.uklad_dla(*rozmiar)
+        tabele = [t for t in e.w("excel_panel").findChildren(QTableWidget) if t.isVisible() and t.rowCount()]
+        assert tabele
+        wysokosci = {(t.objectName(), t.rowHeight(i)) for t in tabele for i in range(t.rowCount())}
+        assert {w for _, w in wysokosci} == {u.wiersz_tabeli}, f"{rozmiar}: {sorted(wysokosci)}"
+    finally:
+        k0.zamknij()

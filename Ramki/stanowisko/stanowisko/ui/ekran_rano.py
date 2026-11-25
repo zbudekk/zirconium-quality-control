@@ -99,8 +99,10 @@ def wypelnij(t: QTableWidget, wiersze: list, u: motyw.Uklad, widocznych: int | N
             if k == 0 and dane is not None:
                 pole.setData(Qt.ItemDataRole.UserRole, dane[i])
             t.setItem(i, k, pole)
-    t.verticalHeader().setDefaultSectionSize(u.wiersz_tabeli)
+    # najpierw minimum, potem domyslna: Qt przycina domyslna do minimum, a minimum moglo zostac z ukladu wysokiego (30 px) -
+    # wiersze ukladu zwartego mialy 30 px do pierwszej zmiany stanu, potem przeskakiwaly na 26 (runda 2, D6)
     t.verticalHeader().setMinimumSectionSize(u.wiersz_tabeli)
+    t.verticalHeader().setDefaultSectionSize(u.wiersz_tabeli)
     t.horizontalHeader().setFixedHeight(u.naglowek_tabeli)
     if widocznych is not None:
         t.setFixedHeight(u.naglowek_tabeli + max(1, min(widocznych, len(wiersze))) * u.wiersz_tabeli + 4)
