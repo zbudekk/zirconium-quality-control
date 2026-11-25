@@ -327,6 +327,37 @@ def test_s3_15_powrot_z_trybu_rano_zeruje_kursor_i_wlacza_ochrone(atrapa, ekrany
     assert e.jest("widok_pracy") and e.okno._gniazdo == 2
 
 
+def test_s3_15_skroty_decyzji_u_o_c_pod_ochrona_po_powrocie_z_trybu_rano(atrapa, ekrany):
+    """Recenzja PR #62, P2 (wraca asercja starego ``test_p15_ochrona_po_komunikacie_ogolnym_..._pomija_skroty_decyzji``): technik ma
+    otwarta prace, przechodzi do "Poranka" i wraca - mapa pod ochrona 800 ms; skroty decyzji U, O, C nacisniete wtedy nie wysylaja
+    zadnego polecenia; po ochronie "U" zapisuje decyzje na pracy z widoku pracy."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    k = Szpieg(atrapa)
+    k.wybierz_operatora("Technik A")
+    skan = atrapa.symuluj_skan("zwykla")
+    e = ekrany(k)
+    e.klik_gniazdo(2)
+    praca = e.okno._praca_widoku
+    assert praca is not None and atrapa.stan().praca(praca).decyzja is None
+    e.okno._ochrona.setInterval(3000)  # dluzsza ochrona: klawisze trafiaja w nia takze na obciazonym PC (po_ochronie czeka do 5 s)
+    e.klik("przycisk_tryb_rano")
+    e.klik("przycisk_tryb_wieczor")
+    assert not e.okno.rano() and e.jest("widok_pracy") and e.okno._praca_widoku == praca
+    assert e.okno.ochrona_aktywna() and e.mapa.przygaszona()
+    przed = list(k.polecenia)
+    for klawisz in (Qt.Key.Key_U, Qt.Key.Key_O, Qt.Key.Key_C):
+        QTest.keyClick(e.okno, klawisz)
+    assert e.okno.ochrona_aktywna(), "proba za wolna - klawisze po czasie ochrony"
+    e.odczekaj(10)
+    decyzje = [p for p in k.polecenia[len(przed):] if p[0] in ("ukruszona", "ok", "cofnij")]
+    assert decyzje == [] and atrapa.stan().praca(praca).decyzja is None
+    e.po_ochronie()
+    e.klawisz(Qt.Key.Key_U)
+    assert k.polecenia[-1] == ("ukruszona", (praca,)) and atrapa.stan().plytka(skan).gniazdo(2).praca.decyzja == "ukruszona"
+
+
 def test_s3_15_klawisz_n_pod_ochrona_i_pozycja_listy_otwiera_dokladnie_te_prace(atrapa, ekrany, zegar):
     """Klawisz N tuz po zmianie mapy (technik przelaczyl plytke) jest pomijany. Pozycja listy "do dofrezowania" otwiera prace o swoim
     ``praca_id`` - w gniezdzie z dwiema pracami druga, nie pierwsza."""
