@@ -331,10 +331,12 @@ def test_n3_zamknij_piec_pyta_o_prace_nierozstrzygniete_i_nazywa_je_po_zamknieci
     assert k.stan().rano.otwarty and e.jest("pytanie_zamknij_mimo"), e.tekst()
     tekst = e.tekst_elementu("pytanie_zamknij_mimo")
     assert N.PLYTKA_NR.format(numer=4) in tekst and "gniazdo 3" in tekst and "1 " in tekst and "NIE" in tekst
-    przyciski = [b.objectName() for b in e.w("pytanie_zamknij_mimo").findChildren(type(e.w("zamknij_mimo_wroc")))]
-    # domyslna (wyrozniona) odpowiedz: powrot do rozstrzygania; runda 2 (P2): stoi po prawej - pod miejscem "Zamknij piec"
+    # E3-U1b: pytanie w strefie pytan nad mapami (przycisk "i jeszcze n" strefy nie jest odpowiedzia); odpowiedzi jedna pod druga
+    przyciski = [b.objectName() for b in e.w("pytanie_zamknij_mimo").findChildren(type(e.w("zamknij_mimo_wroc"))) if b.objectName() != "uwagi_jeszcze"]
     assert przyciski == ["zamknij_mimo_tak", "zamknij_mimo_wroc"]
-    assert _w_oknie(e, "zamknij_mimo_tak").right() < _w_oknie(e, "zamknij_mimo_wroc").left()
+    # runda 2 (P2): drugie klikniecie w miejsce "Zamknij piec" nie trafia w "Zamknij piec mimo to" (strefa jest daleko od przycisku -
+    # pelna proba dwukliku: ``test_n3_r2_*``); bylo: "Wroc" po prawej, pod miejscem przycisku w starym ukladzie
+    assert not _w_oknie(e, "przycisk_zamknij_piec").intersects(_w_oknie(e, "zamknij_mimo_tak"))
     assert e.w("zamknij_mimo_wroc").property("rola") == "glowny" and e.w("zamknij_mimo_tak").property("rola") != "glowny"
     assert not niewidoczne_w_calosci(e, ("zamknij_mimo_wroc", "zamknij_mimo_tak"))
     zrzut(e, "po_n3_pytanie_przed_zamknieciem")
