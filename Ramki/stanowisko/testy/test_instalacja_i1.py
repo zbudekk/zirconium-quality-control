@@ -422,6 +422,21 @@ def _podsystem_pe(plik: Path) -> int:
     return int.from_bytes(dane[pe + 24 + 68:pe + 24 + 70], "little")
 
 
+def test_zaden_test_nie_uruchamia_niczego_przez_powloke():
+    """P3 recenzji PR #63 (runda 2): zaden test nie uruchamia pliku przez powloke Windows (os.startfile / ShellExecute).
+    25.11 20:58 jedno uruchomienie skrotu .lnk przez powloke w sesji ssh -> Bitdefender (Advanced Threat Control, "Atc4.Detection")
+    zakonczyl CALE drzewo procesow sesji i wzial do kwarantanny pliki tego drzewa (takze plik .cmd, ktory sesje uruchomil,
+    i pliki testow) - raport E3-I1, Runda 2. Start skrotu sprawdza test_ikony_na_pulpicie_przez_starter bez powloki."""
+    zakazane = ("os." + "startfile(", "Shell" + "Execute")
+    znalezione = []
+    for plik in sorted((STANOWISKO / "testy").rglob("*.py")):
+        for nr, wiersz in enumerate(plik.read_text(encoding="utf-8").splitlines(), 1):
+            kod = wiersz.split("#", 1)[0]
+            if any(z in kod for z in zakazane):
+                znalezione.append(f"{plik.name}:{nr}: {wiersz.strip()}")
+    assert znalezione == []
+
+
 def test_starter_obraca_duzy_plik_wyjscia(tmp_path):
     """Plik wyjscia startera nie rosnie bez konca: powyzej 1 MB poprzednie starty ida do .poprzednie.txt."""
     if os.name != "nt":
