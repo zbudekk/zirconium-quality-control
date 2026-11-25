@@ -259,9 +259,8 @@ def test_k2_klik_w_zolte_dwaj_kandydaci_wybor_zapisuje_decyzje_i_zmienia_kolor(a
     assert e.jest("kandydat_1") and e.jest("kandydat_2") and not e.jest("kandydat_3")
     kuwety = kuweta_projektu()
     for i, projekt in ((1, dobry), (2, zly)):
-        # E3-U1b (makieta): "Kuweta 3242 . zab 43" w jednym wierszu karty kandydata
-        assert e.w(f"kandydat_{i}_kuweta").text().startswith(f"Kuweta {kuwety[projekt]}")
-        assert K.zab_sztuczny(projekt) in e.w(f"kandydat_{i}_kuweta").text()
+        assert e.w(f"kandydat_{i}_kuweta").text() == f"Kuweta {kuwety[projekt]}"
+        assert K.zab_sztuczny(projekt) in e.w(f"kandydat_{i}_zab").text()
         assert e.w(f"kandydat_{i}_miniatura").sha16 == K.projekt_sztuczny(projekt)  # miniatura kandydata ze stanu
         assert e.aktywny(f"kandydat_{i}_wybierz")
     praca_id = e.rano.pokazana_praca().praca_id

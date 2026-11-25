@@ -437,6 +437,10 @@ class WierszKuwety(QFrame):
             opis = NR.KUWETA_OPIS.format(prac=ST.odmiana(biezaca.prac, *NR.KUWETA_PRACE).format(n=biezaca.prac))
             miejsca = miejsca_kuwety(rano, biezaca)
         self.biezaca.setText(numer)
+        # pelny opis ("Kuweta 3228" - tak numer nazywaja instrukcje) dla czytnika ekranu i w podpowiedzi
+        opis_numeru = NR.KUWETA_BIEZACA.format(kuweta=numer) if biezaca is not None else ""
+        self.biezaca.setAccessibleName(opis_numeru)
+        self.biezaca.setToolTip(opis_numeru)
         self.opis.setText(opis)
         self.miejsca.setText("\n".join(miejsca))
         self.miejsca.setVisible(bool(miejsca) and not self._zwarty)
@@ -447,7 +451,7 @@ class WierszKuwety(QFrame):
         otwarty = rano is not None and rano.otwarty
         self.potwierdz.setEnabled(otwarty and biezaca is not None and jest_osoba)
         self.cofnij.setEnabled(otwarty and rano.kuweta_do_cofniecia is not None and jest_osoba)
-        tekst_pola = f"{bufor}▁" if bufor else NR.POLE_KUWETY_PUSTE
+        tekst_pola = f"{bufor}\u2581" if bufor else NR.POLE_KUWETY_PUSTE  # kursor jak w napisie ``NR.BUFOR``
         rola = "pole" if bufor else "pole_puste"
         for pole in (self.pole, self.pole_male):
             pole.setText(tekst_pola)
@@ -935,6 +939,7 @@ class EkranRano(QWidget):
         su.setSpacing(0)
         self.strefa = C.StrefaKomunikatow()
         self.strefa.setObjectName("rano_strefa_komunikatow")
+        self.strefa._pusta.setObjectName("rano_strefa_pusta")  # nazwy obiektow strefy wieczornej zostaja jednoznaczne
         self.strefa.polecenie.connect(slaba(self._polecenie_strefy))
         self.strefa.nastepna.connect(slaba(self._nastepna_uwaga))
         su.addWidget(self.strefa)

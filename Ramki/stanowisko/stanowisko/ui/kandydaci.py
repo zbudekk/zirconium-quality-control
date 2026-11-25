@@ -67,7 +67,7 @@ class Miniatura(QLabel):
 
 
 class KartaKandydata(QFrame):
-    """Jeden kandydat pracy dwuznacznej (makieta): miniatura, "Kuweta n · zab", typ, "pasuje w x %", przycisk "To ten projekt"
+    """Jeden kandydat pracy dwuznacznej (makieta): miniatura, "Kuweta n", "Zab n . typ", "pasuje w x %", przycisk "To ten projekt"
     (albo znacznik "wybrany", albo powod, dla ktorego nie da sie go wybrac)."""
 
     wybrano = Signal(str)
@@ -88,11 +88,10 @@ class KartaKandydata(QFrame):
         uklad.addWidget(self.miniatura, 0, Qt.AlignmentFlag.AlignTop)
         kolumna = QVBoxLayout()
         kolumna.setSpacing(2)
-        naglowek = NR.KUWETA + " " + (kandydat.kuweta or NR.BRAK_DANYCH)
-        if kandydat.zeby:
-            naglowek += NR.KROPKA + f"{NR.ZAB.lower()} {kandydat.zeby}"
-        kolumna.addWidget(etykieta(naglowek, "wyrozniony", f"kandydat_{nr}_kuweta", zawijaj=True))
-        kolumna.addWidget(etykieta(kandydat.typ or NR.BRAK_DANYCH, "tresc", f"kandydat_{nr}_zab", zawijaj=True))
+        # "Kuweta n" (ostatnie slowo = numer kuwety - narzedzia odbioru T3 / T14 tak je czytaja), pod spodem "Zab n . typ"
+        kolumna.addWidget(etykieta(f"{NR.KUWETA} {kandydat.kuweta or NR.BRAK_DANYCH}", "wyrozniony", f"kandydat_{nr}_kuweta", zawijaj=True))
+        opis_zeba = NR.KROPKA.join(x for x in (f"{NR.ZAB} {kandydat.zeby}" if kandydat.zeby else "", kandydat.typ or "") if x)
+        kolumna.addWidget(etykieta(opis_zeba or NR.BRAK_DANYCH, "tresc", f"kandydat_{nr}_zab", zawijaj=True))
         opis = NR.KANDYDAT_NR.format(nr=nr)
         if kandydat.pokrycie is not None:
             opis += NR.KROPKA + NR.KANDYDAT_POKRYCIE.format(procent=round(100 * kandydat.pokrycie))

@@ -50,6 +50,7 @@ STRONA_EXCEL_OPIS = "Okno „Excel: wskaż wiersz” — otwiera się po „Zamk
 # --- rozkladanie kuwet -----------------------------------------------------------------------------
 KUWETY_TYTUL = "Kuwety w tym piecu · {n}"  # E3-U1b: bylo "Kuwety do rozlozenia: {n}"
 TERAZ_ROZKLADASZ = "Teraz rozkładasz"  # E3-U1b
+KUWETA_BIEZACA = "Kuweta {kuweta}"  # opis duzego numeru biezacej kuwety (czytnik ekranu, podpowiedz; cytowany w instrukcjach)
 KUWETA_OPIS = "kuweta · {prac}"  # E3-U1b: obok duzego numeru biezacej kuwety
 KUWETA_PRACE = ("{n} praca", "{n} prace", "{n} prac")
 KUWETA_MIEJSCE = "{plytka} — {gniazda}"  # E3-U1b: gniazda biezacej kuwety na plytce (z ``KuwetaRano.gniazda``)
@@ -67,7 +68,7 @@ KUWETA_BRAK = "Wszystkie kuwety rozłożone — możesz zamknąć piec."
 KUWETA_BRAK_PIECA = "Kuwety pojawią się po skanach płytek pieca."
 BUFOR = "Wpisany numer kuwety: {bufor}▁  (Enter = wybierz, Backspace = popraw, Esc = wyczyść)"
 POTWIERDZ_SKROT = "Rozłożona  [Enter]"
-COFNIJ_SKROT = "Cofnij poprzednią  [Backspace]"  # E3-U1b: bylo "Cofnij  [Backspace]" (makieta)
+COFNIJ_SKROT = "Cofnij  [Backspace]"  # napis cytowany w instrukcjach (makieta: "Cofnij poprzednia")
 KOLUMNY_KUWET = ("Kuweta", "Prac", "Płytki", "Stan")
 KUWETA_STAN_ROZLOZONA = "rozłożona"
 KUWETA_STAN_BIEZACA = "teraz"
