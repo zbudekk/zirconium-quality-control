@@ -1,11 +1,16 @@
 """zbuduj_wydanie - paczka wydania programu "Stanowisko" (E3-A11i, wariant B): jeden ZIP + suma SHA-256.
 
     python narzedzia/zbuduj_wydanie.py --wyjscie <PC-katalog>\\wydania [--wersja X] [--kola KATALOG]
-    python narzedzia/zbuduj_wydanie.py --pobierz-kola --kola KATALOG [--python python.exe]     (jedyny krok z internetem)
+    python narzedzia/zbuduj_wydanie.py --pobierz-kola --kola KATALOG [--python python.exe]     (krok z internetem)
+    python narzedzia/zbuduj_wydanie.py --pobierz-pythona --python-nuget KATALOG                 (krok z internetem, E3-I1)
 
-Zawartosc ``Stanowisko_<wersja>.zip`` (rozpakowac w calosci, potem ``zainstaluj.cmd``)::
+Zawartosc ``Stanowisko_<wersja>.zip`` (rozpakowac w calosci, potem dwuklik ``Instaluj.cmd`` albo ``zainstaluj.cmd``)::
 
-    zainstaluj.cmd, CZYTAJ.txt, wydanie.json, SHA256SUMS (kazdy plik paczki)
+    Instaluj.cmd (okno instalatora), zainstaluj.cmd, CZYTAJ.txt, wydanie.json, SHA256SUMS (kazdy plik paczki)
+    python/       E3-I1: pelny Python 3.12.10 (64 bit) - katalog tools/ pakietu "python" z nuget.org (oryginalne pliki PSF,
+                  suma pakietu przypieta w PYTHON_NUGET_SHA256); instalator kopiuje go do katalogu instalacji
+    okno/         E3-I1: biblioteka okna instalatora - wycinek kol shiboken6 i pyside6_essentials z kola/ (QtCore, QtGui,
+                  QtWidgets, wtyczki okien): okno startuje, zanim powstanie srodowisko wersji
     program/      stanowisko/, modele_plytek/, narzedzia/, ramka/, instrukcje/, instalacja/, ustawienia.przyklad.toml,
                   requirements.txt, WERSJA, SUMY_PROGRAMU.sha256 (umowa samokontroli A11s); bez testy/, raporty/, danych
     kola/         kola pip (Windows x64, Python 3.12) wszystkich pakietow z instalacja/zamrozone.txt
@@ -26,6 +31,7 @@ import json
 import re
 import subprocess
 import sys
+import urllib.request
 import zipfile
 from pathlib import Path
 
@@ -37,6 +43,22 @@ WYMAGANE = ("stanowisko/aplikacja.py", "stanowisko/ustawienia.py", "stanowisko/b
             "instalacja/instalator.py", "instalacja/zainstaluj.cmd", "instalacja/zamrozone.txt", "instalacja/zamrozone_testy.txt",
             "instalacja/wzory/Stanowisko.cmd", "instalacja/wzory/Samokontrola.cmd", "instalacja/wzory/Wroc_do_poprzedniej.cmd",
             "instalacja/wzory/Wersje.cmd", "instalacja/wzory/Polecenie.cmd", "instalacja/wzory/Dzien_skanera.cmd")
+# E3-I1: okno instalatora i Python w paczce (wymagane, gdy paczka ma Pythona)
+WYMAGANE_OKNA = ("instalacja/Instaluj.cmd", "instalacja/okno_instalatora.py", "instalacja/kreator.py", "instalacja/napisy_instalatora.py",
+                 "instalacja/wzory/start_bez_konsoli.pyw")
+PYTHON_NUGET_WERSJA = "3.12.10"
+PYTHON_NUGET_PLIK = f"python.{PYTHON_NUGET_WERSJA}.nupkg"
+PYTHON_NUGET_URL = f"https://api.nuget.org/v3-flatcontainer/python/{PYTHON_NUGET_WERSJA}/{PYTHON_NUGET_PLIK}"
+# suma SHA-256 pakietu pobranego 25.11.2026 z nuget.org (python.exe, pythonw.exe, python312.dll i biblioteki .pyd podpisane
+# przez Python Software Foundation - Get-AuthenticodeSignature: Valid); inna suma = budowa odmawia
+PYTHON_NUGET_SHA256 = "0eb85c2dfccccf1b17352de4c397f69194035b7d37149eacc16f1147d93de3b8"
+# Wycinek kol Qt dla okna instalatora: pakiet shiboken6 (bez naglowkow C++, .lib i .pyi) i z PySide6 tylko to, czego potrzebuje
+# okno z QtWidgets na Windows (proba 25.11: python z nuget -I + ten wycinek -> platforma windows, styl windows11)
+KOLA_OKNA = ("shiboken6", "pyside6-essentials")
+WYCINEK_OKNA = re.compile(r"shiboken6/(?!include/)[^/]+(?<!\.lib)(?<!\.pyi)|PySide6/(?:__init__|_config|_git_pyside_version)\.py|"
+                          r"PySide6/(?:pyside6\.abi3|Qt6Core|Qt6Gui|Qt6Widgets|msvcp140[^/]*|vcruntime140[^/]*|concrt140)\.dll|"
+                          r"PySide6/Qt(?:Core|Gui|Widgets)\.pyd|PySide6/plugins/(?:platforms/q(?:windows|offscreen)|styles/qmodernwindowsstyle|"
+                          r"imageformats/qico)\.dll")
 MODUL_SAMOKONTROLI = "stanowisko/samokontrola.py"
 LISTA_PROGRAMU, LISTA_TESTOW = "instalacja/zamrozone.txt", "instalacja/zamrozone_testy.txt"
 # Numer wersji = nazwa katalogu wersji w Windows (te same reguly co instalacja/instalator.py): zaczyna sie i konczy litera
@@ -169,10 +191,65 @@ def dobierz_kola(katalog: Path, pakiety: dict[str, str], opis: str) -> list[Path
     return [dostepne[(n, w)] for n, w in sorted(pakiety.items())]
 
 
+def sha256_pliku(plik: Path) -> str:
+    h = hashlib.sha256()
+    with open(plik, "rb") as f:
+        for kawalek in iter(lambda: f.read(1 << 20), b""):
+            h.update(kawalek)
+    return h.hexdigest()
+
+
+def pliki_pythona(nupkg: Path, sha_oczekiwana: str = PYTHON_NUGET_SHA256) -> dict[str, bytes]:
+    """E3-I1: katalog ``tools/`` pakietu nuget "python" jako ``python/<plik>`` paczki. Suma pakietu musi byc rowna przypietej
+    (``PYTHON_NUGET_SHA256``) i zapisanej obok pakietu przy pobraniu (``<pakiet>.sha256``, gdy jest); inaczej budowa odmawia."""
+    if not nupkg.is_file():
+        raise BladBudowy(f"brak pakietu Pythona {nupkg} - pobierz go: --pobierz-pythona --python-nuget {nupkg.parent} "
+                         "(albo buduj bez Pythona: --bez-pythona, tylko proby)")
+    suma = sha256_pliku(nupkg)
+    if suma != sha_oczekiwana:
+        raise BladBudowy(f"suma SHA-256 pakietu Pythona {nupkg.name} ({suma[:16]}...) inna niz przypieta ({sha_oczekiwana[:16]}...) - "
+                         "pakiet zmieniony albo inny; pobierz go ponownie (--pobierz-pythona)")
+    zapisana = nupkg.with_name(nupkg.name + ".sha256")
+    if zapisana.is_file() and zapisana.read_text(encoding="ascii").split()[:1] != [suma]:
+        raise BladBudowy(f"suma w {zapisana.name} niezgodna z pakietem {nupkg.name} - pobierz pakiet ponownie (--pobierz-pythona)")
+    pliki = {}
+    with zipfile.ZipFile(nupkg) as z:
+        for wpis in z.infolist():
+            if wpis.filename.startswith("tools/") and not wpis.is_dir():
+                pliki["python/" + wpis.filename[len("tools/"):]] = z.read(wpis)
+    for wymagany in ("python/python.exe", "python/pythonw.exe", "python/Lib/venv/__init__.py", "python/Lib/ensurepip/__init__.py"):
+        if wymagany not in pliki:
+            raise BladBudowy(f"pakiet Pythona {nupkg.name} nie zawiera {wymagany}")
+    return pliki
+
+
+def pliki_okna(kola_programu: list[Path]) -> tuple[dict[str, bytes], list[str]]:
+    """E3-I1: biblioteka okna instalatora ``okno/<plik>`` - wycinek (``WYCINEK_OKNA``) kol ``KOLA_OKNA`` z listy kol programu
+    (te same wersje, co w srodowisku programu). Zwraca (pliki, nazwy kol)."""
+    pliki, uzyte = {}, []
+    for pakiet in KOLA_OKNA:
+        kolo = next((p for p in kola_programu if (kolo_zgodne(p.name) or ("",))[0] == pakiet), None)
+        if kolo is None:
+            raise BladBudowy(f"okno instalatora: brak kola {pakiet} na liscie kol programu (instalacja/zamrozone.txt)")
+        uzyte.append(kolo.name)
+        with zipfile.ZipFile(kolo) as z:
+            for wpis in z.infolist():
+                if WYCINEK_OKNA.fullmatch(wpis.filename):
+                    pliki["okno/" + wpis.filename] = z.read(wpis)
+    for wymagany in ("okno/PySide6/__init__.py", "okno/PySide6/QtWidgets.pyd", "okno/PySide6/plugins/platforms/qwindows.dll",
+                     "okno/shiboken6/__init__.py"):
+        if wymagany not in pliki:
+            raise BladBudowy(f"okno instalatora: w kolach {', '.join(uzyte)} nie ma {wymagany[len('okno/'):]}")
+    return pliki, uzyte
+
+
 def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path | None = None, commit: str | None = None,
            data: dt.datetime | None = None, bez_samokontroli: bool = False, stanowisko: Path = STANOWISKO, rewizja: str = "HEAD",
-           lista_wydan: Path | None = None) -> dict:
+           lista_wydan: Path | None = None, python_nuget: Path | None = None, python_sha256: str = PYTHON_NUGET_SHA256) -> dict:
     """Buduje ``Stanowisko_<wersja>.zip`` i plik ``.sha256`` obok. Zwraca {plik, sha256, rozmiar, wersja, commit, ...}.
+
+    ``python_nuget`` (E3-I1): pakiet nuget "python" - paczka dostaje ``python/``, ``okno/`` i ``Instaluj.cmd`` (start
+    dwuklikiem, bez Pythona w systemie). Bez niego (proby, testy) paczka wymaga Pythona 3.12 w systemie, jak dotad.
 
     ``lista_wydan``: plik sum opublikowanych budow (domyslnie ``Ramki/etap3/wydania/SHA256SUMS_wydania.txt``) - budowa pod
     numerem, ktory juz tam jest, a o innej sumie, daje OSTRZEZENIE: kazda opublikowana budowa dostaje nowy numer."""
@@ -186,7 +263,7 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
         tryb = "git"
         if not czyste and rewizja == "HEAD":
             ostrzezenia.append("w katalogu roboczym sa zmiany niezacommitowane - paczka zawiera stan commita HEAD, bez tych zmian")
-    brak = [n for n in WYMAGANE if n not in pliki]
+    brak = [n for n in WYMAGANE + (WYMAGANE_OKNA if python_nuget is not None else ()) if n not in pliki]
     if brak:
         raise BladBudowy("w zrodle brakuje plikow programu: " + ", ".join(brak))
     samokontrola = MODUL_SAMOKONTROLI in pliki
@@ -214,6 +291,16 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
     paczka: dict[str, bytes] = {f"program/{n}": d for n, d in pliki.items()}
     paczka["program/SUMY_PROGRAMU.sha256"] = "".join(f"{sha256(d)}  {n}\n" for n, d in sorted(pliki.items())).encode("utf-8")
     paczka["zainstaluj.cmd"] = pliki["instalacja/zainstaluj.cmd"]
+    opis_pythona, opis_okna = None, None
+    if python_nuget is not None:
+        python = pliki_pythona(python_nuget, python_sha256)
+        okno, kola_okna = pliki_okna(kola_programu)
+        paczka.update(python)
+        paczka.update(okno)
+        paczka["Instaluj.cmd"] = pliki["instalacja/Instaluj.cmd"]
+        opis_pythona = {"wersja": PYTHON_NUGET_WERSJA, "zrodlo": f"nuget.org pakiet python {PYTHON_NUGET_WERSJA} (katalog tools)",
+                        "plik": python_nuget.name, "sha256": python_sha256, "pliki": len(python)}
+        opis_okna = {"kola": kola_okna, "pliki": len(okno)}
     opis_kol = {}
     for katalog, lista in (("kola", kola_programu), ("kola_testy", kola_testow)):
         opis_kol[katalog] = []
@@ -226,13 +313,24 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
                "zrodlo": tryb, "python": PYTHON, "python_sprawdzony": PYTHON_SPRAWDZONY, "platforma": PLATFORMA,
                "samokontrola": samokontrola, "pliki_programu": len(pliki) + 1,
                "kola": opis_kol["kola"], "kola_testy": opis_kol["kola_testy"]}
+    if opis_pythona is not None:  # E3-I1 (klucze tylko w paczce z Pythonem - paczka bez niego zostaje bajt w bajt jak dotad)
+        wydanie["python_w_paczce"], wydanie["okno_instalatora"] = opis_pythona, opis_okna
     paczka["wydanie.json"] = (json.dumps(wydanie, indent=1, sort_keys=True, ensure_ascii=True) + "\n").encode("ascii")
-    paczka["CZYTAJ.txt"] = "\r\n".join([
-        f'Program "Stanowisko" - paczka wydania {wersja} (commit {commit[:12]}, {data:%Y-%m-%d}).', "",
-        f"1. Raz, recznie: Python {PYTHON} (64-bit) z python.org - sprawdzona wersja to {PYTHON_SPRAWDZONY}.",
-        "2. Rozpakuj CALA paczke do dowolnego katalogu i uruchom zainstaluj.cmd (bez internetu).",
-        "3. Instrukcja (instalacja, aktualizacja, powrot, komunikaty bledow): program\\instrukcje\\instalacja_i_aktualizacja.md", "",
-        "Sprawdzenie paczki: zainstaluj.cmd sam liczy sumy z pliku SHA256SUMS; niezgodnosc zatrzymuje instalacje.", ""]).encode("ascii")
+    if opis_pythona is not None:
+        czytaj = [f'Program "Stanowisko" - paczka wydania {wersja} (commit {commit[:12]}, {data:%Y-%m-%d}).', "",
+                  "1. Rozpakuj CALA paczke (prawy klawisz - Wyodrebnij wszystkie) do dowolnego folderu.",
+                  "2. Dwuklik Instaluj.cmd - otworzy sie okno instalatora (foldery, osoby, instalacja). Python jest w paczce,",
+                  "   internet nie jest potrzebny. Po instalacji na pulpicie sa ikony Stanowisko i Dzien skanera.",
+                  "3. Aktualizacja: to samo z nowej paczki (ustawienia i dane zostaja). Wiersz polecen i opcje: zainstaluj.cmd.",
+                  "4. Instrukcja: program\\instrukcje\\instalacja_i_aktualizacja.md", "",
+                  "Sprawdzenie paczki: instalator sam liczy sumy z pliku SHA256SUMS; niezgodnosc zatrzymuje instalacje.", ""]
+    else:
+        czytaj = [f'Program "Stanowisko" - paczka wydania {wersja} (commit {commit[:12]}, {data:%Y-%m-%d}).', "",
+                  f"1. Raz, recznie: Python {PYTHON} (64-bit) z python.org - sprawdzona wersja to {PYTHON_SPRAWDZONY}.",
+                  "2. Rozpakuj CALA paczke do dowolnego katalogu i uruchom zainstaluj.cmd (bez internetu).",
+                  "3. Instrukcja (instalacja, aktualizacja, powrot, komunikaty bledow): program\\instrukcje\\instalacja_i_aktualizacja.md", "",
+                  "Sprawdzenie paczki: zainstaluj.cmd sam liczy sumy z pliku SHA256SUMS; niezgodnosc zatrzymuje instalacje.", ""]
+    paczka["CZYTAJ.txt"] = "\r\n".join(czytaj).encode("ascii")
     paczka["SHA256SUMS"] = "".join(f"{sha256(d)}  {n}\n" for n, d in sorted(paczka.items())).encode("utf-8")
 
     wyjscie.mkdir(parents=True, exist_ok=True)
@@ -266,6 +364,7 @@ def zbuduj(wyjscie: Path, kola: Path, *, wersja: str | None = None, zrodlo: Path
                            "dostaje nowy numer (plik WERSJA albo --wersja); instalator nie zastapi ta paczka uzywanej wersji o tym numerze")
     return {"plik": plik, "sha256": h.hexdigest(), "rozmiar": plik.stat().st_size, "wersja": wersja, "commit": commit, "pliki": len(paczka) - 1,
             "pliki_programu": len(pliki) + 1, "kola": len(kola_programu), "kola_testy": len(kola_testow), "samokontrola": samokontrola,
+            "pliki_pythona": opis_pythona["pliki"] if opis_pythona else 0, "pliki_okna": opis_okna["pliki"] if opis_okna else 0,
             "ostrzezenia": ostrzezenia}
 
 
@@ -327,6 +426,23 @@ def pobierz_kola(python: Path, kola: Path, stanowisko: Path = STANOWISKO) -> tup
     return len(zestawy["program"]), len(zestawy["testy"])
 
 
+def pobierz_pythona(katalog: Path, url: str = PYTHON_NUGET_URL, sha_oczekiwana: str = PYTHON_NUGET_SHA256) -> Path:
+    """E3-I1: pobiera pakiet nuget "python" (``PYTHON_NUGET_URL``) do ``katalog`` (plik czesciowy, potem zmiana nazwy), sprawdza
+    sume z przypieta i zapisuje ja obok (``<pakiet>.sha256``) - budowa sprawdza ja ponownie. Jedyny krok z siecia dla Pythona."""
+    katalog.mkdir(parents=True, exist_ok=True)
+    plik = katalog / PYTHON_NUGET_PLIK
+    czesc = plik.with_name(plik.name + ".czesc")
+    with urllib.request.urlopen(url, timeout=120) as odpowiedz:  # noqa: S310 - adres staly (https, nuget.org)
+        czesc.write_bytes(odpowiedz.read())
+    suma = sha256_pliku(czesc)
+    if suma != sha_oczekiwana:
+        czesc.unlink()
+        raise BladBudowy(f"pobrany pakiet Pythona ma inna sume SHA-256 ({suma}) niz przypieta ({sha_oczekiwana}) - nie zapisano go")
+    czesc.replace(plik)
+    plik.with_name(plik.name + ".sha256").write_bytes(f"{suma}  {plik.name}\n".encode("ascii"))
+    return plik
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="zbuduj_wydanie", description='Paczka wydania programu "Stanowisko" (ZIP z kolami pip).')
     parser.add_argument("--wyjscie", type=Path, help="katalog na Stanowisko_<wersja>.zip (poza repozytorium)")
@@ -339,8 +455,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--bez-samokontroli", action="store_true", help="pozwol zbudowac paczke bez modulu samokontroli (tylko proby)")
     parser.add_argument("--pobierz-kola", action="store_true", help="pobierz kola z PyPI do --kola i zapisz listy zamrozone (wymaga sieci)")
     parser.add_argument("--python", type=Path, default=Path(sys.executable), help="z --pobierz-kola: interpreter, z ktorego pochodza wersje")
+    parser.add_argument("--python-nuget", type=Path, default=None,
+                        help=f"pakiet {PYTHON_NUGET_PLIK} albo jego katalog (domyslnie <wyjscie>/python_nuget) - Python w paczce (E3-I1)")
+    parser.add_argument("--bez-pythona", action="store_true",
+                        help="paczka bez Pythona i okna instalatora (tylko proby; wymaga Pythona 3.12 w systemie)")
+    parser.add_argument("--pobierz-pythona", action="store_true", help="pobierz pakiet Pythona z nuget.org do --python-nuget (wymaga sieci)")
     args = parser.parse_args(argv)
     try:
+        if args.pobierz_pythona:
+            if args.python_nuget is None:
+                parser.error("--pobierz-pythona wymaga --python-nuget KATALOG")
+            plik = pobierz_pythona(args.python_nuget)
+            print(f"{plik}: SHA-256 {PYTHON_NUGET_SHA256} (zgodna z przypieta)")
+            return 0
         if args.pobierz_kola:
             if args.kola is None:
                 parser.error("--pobierz-kola wymaga --kola KATALOG")
@@ -350,15 +477,20 @@ def main(argv: list[str] | None = None) -> int:
         if args.wyjscie is None:
             parser.error("podaj --wyjscie KATALOG")
         data = dt.datetime.strptime(args.data, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=dt.timezone.utc) if args.data else None
+        python_nuget = None
+        if not args.bez_pythona:
+            python_nuget = args.python_nuget or args.wyjscie / "python_nuget"
+            python_nuget = python_nuget / PYTHON_NUGET_PLIK if python_nuget.suffix.lower() != ".nupkg" else python_nuget
         wynik = zbuduj(args.wyjscie, args.kola or args.wyjscie / "kola", wersja=args.wersja, zrodlo=args.zrodlo, commit=args.commit, data=data,
-                       bez_samokontroli=args.bez_samokontroli, rewizja=args.rewizja)
-    except (BladBudowy, subprocess.CalledProcessError, ValueError) as e:
+                       bez_samokontroli=args.bez_samokontroli, rewizja=args.rewizja, python_nuget=python_nuget)
+    except (BladBudowy, subprocess.CalledProcessError, ValueError, OSError) as e:
         print(f"BLAD: {e}", file=sys.stderr)
         return 1
     for ostrzezenie in wynik["ostrzezenia"]:
         print(f"OSTRZEZENIE: {ostrzezenie}")
     print(f"{wynik['plik']}: wersja {wynik['wersja']}, commit {wynik['commit'][:12]}, {wynik['pliki']} plikow + SHA256SUMS "
-          f"(program {wynik['pliki_programu']}, kola {wynik['kola']}, kola testowe {wynik['kola_testy']}), "
+          f"(program {wynik['pliki_programu']}, kola {wynik['kola']}, kola testowe {wynik['kola_testy']}, Python {wynik['pliki_pythona']}, "
+          f"okno {wynik['pliki_okna']}), "
           f"{wynik['rozmiar']} bajtow ({wynik['rozmiar'] / 2**20:.1f} MB), kontrola wlasna sum: zgodne")
     print(f"SHA-256 {wynik['sha256']}")
     return 0

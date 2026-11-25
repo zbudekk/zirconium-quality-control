@@ -91,10 +91,19 @@ PAKIETY_SRODOWISKA = ("pip",)      # zaklada je instalator przez ``ensurepip`` (
 # E3-A11w). Chroni wszystko, co startuje ze srodowiska wersji: program, proces roboczy silnika, samokontrole, pip, pytest, narzedzia.
 PLIK_BEZ_WMI = "stanowisko_bez_wmi.pth"
 TRESC_BEZ_WMI = "import sys; sys.modules['_wmi'] = None\n"
+# E3-I1: pelny Python z paczki (nuget.org, pakiet "python" - oryginalne pliki podpisane przez PSF). W paczce: python/; instalator
+# kopiuje go do <KATALOG>/python/<wersja>/ i z tej kopii zaklada srodowisko wersji (pyvenv.cfg wskazuje katalog instalacji,
+# nie pendrive i nie Pythona w systemie). Katalogu Pythona instalator nigdy nie usuwa (moga go uzywac starsze wersje).
+KATALOG_PYTHONA = "python"
+# E3-I1: starter bez okna konsoli (ikony na pulpicie): uruchamiany przez pythonw.exe interpretera bazowego wersji biezacej,
+# czyta wersja_biezaca.txt i startuje program tak samo jak Stanowisko.cmd / Dzien_skanera.cmd (konsola ukryta).
+WZOR_STARTU = "start_bez_konsoli.pyw"
+# Ikony na pulpicie (opcja /skrot): (nazwa skrotu, cel startera, skrypt .cmd do klikniecia, gdy skrotu nie da sie zalozyc)
+SKROTY = (("Stanowisko", "stanowisko", "Stanowisko.cmd"), ("Dzie\u0144 skanera", "dzien_skanera", "Dzien_skanera.cmd"))
 
 _WIERSZ_SUM = re.compile(r"([0-9a-f]{64}) [ *](.+)")
 _OPCJE_UKOSNIK = ("katalog", "python", "paczka", "testy", "skrot", "skrot-katalog", "bez-sieci", "bez-pauzy", "przywroc-kopie",
-                  "min-wolne-mb", "usun", "tak")
+                  "min-wolne-mb", "usun", "tak", "python-z-paczki", "folder-skanow", "folder-projektow", "osoba", "ramki-wylaczone")
 
 
 class BladInstalacji(Exception):
@@ -288,7 +297,7 @@ def sprawdz_pythona(python: Path, wymagana: str = "3.12") -> str:
             "(albo zmienna STANOWISKO_PYTHON). Niczego nie zmieniono.")
     kod = "import sys, struct, venv, ensurepip; print('%d.%d.%d %d' % (sys.version_info[:3] + (struct.calcsize('P') * 8,)))"
     try:
-        wynik = uruchom([python, "-I", "-c", kod], limit_s=60)
+        wynik = uruchom([python, "-I", "-B", "-c", kod], limit_s=60)  # -B: bez __pycache__ w paczce (Python z paczki)
     except (OSError, subprocess.TimeoutExpired) as e:
         raise BladInstalacji(KOD_PYTHON, f"nie mozna uruchomic Pythona: {python} ({type(e).__name__})", rada) from e
     m = re.fullmatch(r"(\d+\.\d+)\.(\d+) (\d+)", wynik.stdout.strip())
@@ -329,6 +338,67 @@ def rozmiary_kol(kola: list[Path]) -> tuple[int, int]:
                 dlugosc = len(wzgledna) + (len("__pycache__/") + len(".cpython-312.pyc") - 3 if wzgledna.endswith(".py") else 0)
                 najdluzsza = max(najdluzsza, dlugosc)
     return bajty, najdluzsza
+
+
+def potrzebne_miejsce_mb(paczka: Path, sumy: dict[str, str], bajty_kol: int) -> int:
+    """Miejsce na nowa wersje: pliki kol po rozpakowaniu x ``ZAPAS_PYC`` + pliki programu + ``ZAPAS_MB`` (w MB). Python z paczki
+    (ok. 45 MB, raz na katalog instalacji) miesci sie w zapasie - okno instalatora doliczam go osobno (``bajty_pythona``)."""
+    program = sum((paczka / n).stat().st_size for n in sumy if n.startswith("program/"))
+    return int(bajty_kol * ZAPAS_PYC + program) // 2**20 + ZAPAS_MB
+
+
+def bajty_pythona(paczka: Path, sumy: dict[str, str]) -> int:
+    return sum((paczka / n).stat().st_size for n in sumy if n.startswith(KATALOG_PYTHONA + "/"))
+
+
+def python_bazowy_wersji(katalog: Path, wersja: str | None) -> Path | None:
+    """Katalog interpretera bazowego srodowiska wersji (``home`` z ``venv/pyvenv.cfg``); None, gdy nie da sie go odczytac."""
+    if not wersja:
+        return None
+    try:
+        for wiersz in (katalog_wersji(katalog, wersja) / "venv" / "pyvenv.cfg").read_text(encoding="utf-8").splitlines():
+            klucz, _, wartosc = wiersz.partition("=")
+            if klucz.strip().lower() == "home" and wartosc.strip():
+                return Path(wartosc.strip())
+    except OSError:
+        pass
+    return None
+
+
+def przygotuj_pythona(paczka: Path, sumy: dict[str, str], katalog: Path, wersja_pythona: str, dziennik: "Dziennik") -> Path:
+    """E3-I1: kopia Pythona z paczki (``python/``) w ``<KATALOG>/python/<wersja>/``; zwraca jej ``python.exe``.
+
+    Pliki juz obecne i zgodne z sumami paczki zostaja (ponowna instalacja, aktualizacja z tym samym Pythonem - kopia moze byc
+    w uzyciu przez dzialajacy program); brakujace i zmienione sa kopiowane przez plik tymczasowy. Na koniec kontrola sum calej
+    kopii. Niczego nie usuwa. Blad zapisu = kod 6, niezgodne sumy po kopiowaniu = kod 6."""
+    prefiks = KATALOG_PYTHONA + "/"
+    pliki = {n[len(prefiks):]: s for n, s in sumy.items() if n.startswith(prefiks)}
+    if "python.exe" not in pliki:
+        raise BladInstalacji(KOD_PACZKA, "paczka nie zawiera Pythona (brak python/python.exe)",
+                             "Uruchom zainstaluj.cmd z opcja /python <sciezka>\\python.exe albo pobierz pelna paczke wydania.")
+    cel = katalog / KATALOG_PYTHONA / wersja_pythona
+    skopiowane = 0
+    try:
+        for nazwa, suma in sorted(pliki.items()):
+            plik = cel / nazwa
+            if plik.is_file() and sha256_pliku(plik) == suma:
+                continue
+            plik.parent.mkdir(parents=True, exist_ok=True)
+            tymczasowy = plik.with_name(plik.name + ".nowy")
+            shutil.copyfile(paczka / prefiks / nazwa, tymczasowy)
+            os.replace(tymczasowy, plik)
+            skopiowane += 1
+    except OSError as e:
+        raise BladInstalacji(KOD_INSTALACJA, f"nie mozna skopiowac Pythona z paczki do {cel} ({type(e).__name__}: {e.strerror or e})",
+                             "Zamknij program \"Stanowisko\" i okna, ktore uzywaja plikow z tego katalogu, sprawdz miejsce na dysku i uruchom "
+                             "instalacje ponownie. Wersja biezaca bez zmian.") from e
+    roznice = sprawdz_sumy(cel, pliki)
+    if roznice:
+        raise BladInstalacji(KOD_INSTALACJA, f"kopia Pythona w {cel} niezgodna z paczka: " + "; ".join(roznice[:5]),
+                             "Sprawdz dysk i uruchom instalacje ponownie. Wersja biezaca bez zmian.")
+    dziennik.krok(f"      Python {wersja_pythona} z paczki w katalogu instalacji: {cel} (skopiowano plikow: {skopiowane}, "
+                  f"sumy zgodne {len(pliki)} z {len(pliki)})")
+    return cel / "python.exe"
 
 
 # ------------------------------------------------------------------------------------- srodowisko wirtualne wersji
@@ -438,6 +508,7 @@ wynik = {}
 try:
     from stanowisko import baza, ustawienia
     wynik["schemat"] = int(max(baza.MIGRACJE))
+    wynik["klucze_ramek"] = sorted(getattr(ustawienia, "SCHEMAT", {}).get("ramki", {}))
     if len(sys.argv) > 2:
         try:
             ust = ustawienia.wczytaj_ustawienia(sys.argv[2])
@@ -471,21 +542,89 @@ def _wzgledna(wartosc: str) -> bool:
     return not (re.match(r"[A-Za-z]:[\\/]", wartosc) or wartosc.startswith(("/", "\\")))
 
 
-def ustawienia_ze_wzoru(wzor: bytes, katalog: Path) -> bytes:
+def wartosc_toml(wartosc: object) -> str:
+    """Wartosc TOML: napis (cudzyslow, ``\\`` i znaki sterujace zakodowane), liczba, prawda / falsz, lista napisow."""
+    if isinstance(wartosc, bool):
+        return "true" if wartosc else "false"
+    if isinstance(wartosc, (int, float)):
+        return repr(wartosc)
+    if isinstance(wartosc, (list, tuple)):
+        return "[" + ", ".join(wartosc_toml(w) for w in wartosc) + "]"
+    tekst = str(wartosc).replace("\\", "\\\\").replace('"', '\\"')
+    return '"' + re.sub(r"[\x00-\x1f\x7f]", lambda m: f"\\u{ord(m.group()):04x}", tekst) + '"'
+
+
+_WIERSZ_KLUCZA = re.compile(r'(\s*([A-Za-z0-9_]+)\s*=\s*)("[^"\\]*(?:\\.[^"\\]*)*"|\[[^\]]*\]|[^#\s]+)(.*)', flags=re.DOTALL)
+
+
+def ustawienia_ze_wzoru(wzor: bytes, katalog: Path, wartosci: dict | None = None) -> bytes:
     """Wzor ``ustawienia.przyklad.toml`` z kazda WZGLEDNA sciezka sekcji ``[sciezki]`` (``dane/...``) zamieniona na
-    bezwzgledna w katalogu instalacji - dane leza wtedy poza katalogiem wersji. Reszta pliku bez zmian (komentarze tez)."""
+    bezwzgledna w katalogu instalacji - dane leza wtedy poza katalogiem wersji. Reszta pliku bez zmian (komentarze tez).
+
+    E3-I1: ``wartosci`` = {(sekcja, klucz): wartosc} z okna instalatora (foldery, osoby, ramki) - wartosc wiersza tego klucza
+    jest zastapiona (komentarz na koncu wiersza zostaje); klucza, ktorego we wzorze nie ma, dopisywany jest wiersz zaraz pod
+    naglowkiem sekcji (sekcji, ktorej nie ma, nie zaklada - wolajacy podaje tylko klucze znane programowi)."""
     korzen = katalog.resolve().as_posix().rstrip("/")
-    wiersze, w_sciezkach = [], False
-    for wiersz in wzor.decode("utf-8").splitlines(keepends=True):
+    wartosci = dict(wartosci or {})
+    tekst = wzor.decode("utf-8").splitlines(keepends=True)
+    obecne, sekcja_teraz = set(), None  # (sekcja, klucz) wierszy wzoru
+    for wiersz in tekst:
+        sekcja = re.match(r"\s*\[([^\]]+)\]", wiersz)
+        m = None if sekcja else _WIERSZ_KLUCZA.match(wiersz)
+        sekcja_teraz = sekcja.group(1).strip() if sekcja else sekcja_teraz
+        if m:
+            obecne.add((sekcja_teraz, m.group(2)))
+    wiersze, sekcja_teraz = [], None
+    for wiersz in tekst:
         sekcja = re.match(r"\s*\[([^\]]+)\]", wiersz)
         if sekcja:
-            w_sciezkach = sekcja.group(1).strip() == "sciezki"
-        elif w_sciezkach:
+            sekcja_teraz = sekcja.group(1).strip()
+            wiersze.append(wiersz)
+            koniec = "\r\n" if wiersz.endswith("\r\n") else "\n"
+            for (s, klucz) in [k for k in wartosci if k[0] == sekcja_teraz and k not in obecne]:
+                wiersze.append(f"{klucz} = {wartosc_toml(wartosci.pop((s, klucz)))}{koniec}")
+            continue
+        m = _WIERSZ_KLUCZA.match(wiersz)
+        if m and (sekcja_teraz, m.group(2)) in wartosci:
+            wiersz = f"{m.group(1)}{wartosc_toml(wartosci.pop((sekcja_teraz, m.group(2))))}{m.group(4)}"
+        elif sekcja_teraz == "sciezki":
             m = re.match(r'(\s*[A-Za-z0-9_]+\s*=\s*")([^"]*)(".*)', wiersz, flags=re.DOTALL)
             if m and m.group(2) and _wzgledna(m.group(2)):
                 wiersz = f"{m.group(1)}{korzen}/{m.group(2)}{m.group(3)}"
         wiersze.append(wiersz)
     return "".join(wiersze).encode("utf-8")
+
+
+FOLDER_PROJEKTOW_DOMYSLNY = "dane/projekty"  # E3-I1: folder projektow, gdy w oknie instalatora go nie wybrano (pusty - prace szare)
+
+
+def _wartosci_z_okna(python: Path, paczka: Path, katalog: Path, folder_skanow: str | None, folder_projektow: str | None,
+                     osoby: list[str] | None, ramki_wylaczone: bool) -> tuple[dict, list[str]]:
+    """Wartosci nowego pliku ustawien z okna instalatora: {(sekcja, klucz): wartosc} i uwagi do dziennika.
+
+    Folder projektow pusty (nie wybrano) = ``<KATALOG>/dane/projekty`` (zakladany pusty: program dziala, prace sa szare "bez
+    projektu"). Ramki wylaczone - tylko gdy program tej wersji zna klucz ``[ramki] wlaczone`` (pyta go instalator); inaczej uwaga
+    (klucza nieznanego program nie przyjmie: plik ustawien bylby bledny)."""
+    wartosci, uwagi = {}, []
+    if folder_skanow:
+        wartosci[("sciezki", "folder_eksportu_skanera")] = Path(folder_skanow).as_posix()
+    if folder_projektow is not None:
+        if folder_projektow.strip():
+            wartosci[("sciezki", "folder_cyrkon")] = Path(folder_projektow).as_posix()
+        else:
+            domyslny = katalog / FOLDER_PROJEKTOW_DOMYSLNY
+            domyslny.mkdir(parents=True, exist_ok=True)
+            wartosci[("sciezki", "folder_cyrkon")] = domyslny.as_posix()
+            uwagi.append(f"folder projektow nie wybrany - pusty {domyslny.as_posix()} (bez projektow STL skany czekaja na projekty)")
+    if osoby:
+        wartosci[("sesja", "operatorzy")] = [o.strip() for o in osoby if o.strip()]
+    if ramki_wylaczone:
+        if "wlaczone" in zapytaj_program(python, paczka / "program").get("klucze_ramek", []):
+            wartosci[("ramki", "wlaczone")] = False
+            uwagi.append("ramki wylaczone ([ramki] wlaczone = false)")
+        else:
+            uwagi.append("ta wersja programu nie ma przelacznika ramek ([ramki] wlaczone) - program sprobuje polaczyc sie z ramkami")
+    return wartosci, uwagi
 
 
 def sprawdz_sciezki(dane: dict, katalog: Path) -> Path:
@@ -965,10 +1104,14 @@ def przelacz(katalog: Path, nowa: str) -> str | None:
 
 
 def zapisz_skrypty(program: Path, katalog: Path) -> int:
-    """Kopiuje wzory skryptow uruchamiajacych z ``program/instalacja/wzory`` do katalogu instalacji; zwraca liczbe zmienionych."""
+    """Kopiuje wzory skryptow uruchamiajacych z ``program/instalacja/wzory`` do katalogu instalacji; zwraca liczbe zmienionych.
+    E3-I1: takze starter ikon ``WZOR_STARTU`` (gdy wersja go ma - wersje starsze niz E3-I1 go nie maja i go nie usuwaja)."""
     zmienione = 0
-    for nazwa in WZORY_SKRYPTOW:
-        tresc = (program / "instalacja" / "wzory" / nazwa).read_bytes()
+    for nazwa in WZORY_SKRYPTOW + (WZOR_STARTU,):
+        wzor = program / "instalacja" / "wzory" / nazwa
+        if nazwa == WZOR_STARTU and not wzor.is_file():
+            continue
+        tresc = wzor.read_bytes()
         cel = katalog / nazwa
         if not cel.is_file() or cel.read_bytes() != tresc:
             zapisz_atomowo(cel, tresc)
@@ -976,20 +1119,125 @@ def zapisz_skrypty(program: Path, katalog: Path) -> int:
     return zmienione
 
 
-def utworz_skrot(katalog: Path, gdzie: Path | None) -> Path | None:
-    """Skrot ``Stanowisko.lnk`` do ``<KATALOG>/Stanowisko.cmd`` na pulpicie (albo w ``gdzie``); None, gdy sie nie udalo."""
-    skrypt = ("$k = $env:STANOWISKO_SKROT_KATALOG; if (-not $k) { $k = [Environment]::GetFolderPath('Desktop') }; "
-              "$p = Join-Path $k 'Stanowisko.lnk'; $s = (New-Object -ComObject WScript.Shell).CreateShortcut($p); "
-              "$s.TargetPath = $env:STANOWISKO_SKROT_CEL; $s.WorkingDirectory = $env:STANOWISKO_SKROT_ROBOCZY; "
-              "$s.Description = 'Stanowisko kontroli cyrkonii'; $s.Save(); Write-Output $p")
-    env = dict(os.environ, STANOWISKO_SKROT_KATALOG=str(gdzie) if gdzie else "", STANOWISKO_SKROT_CEL=str(katalog / "Stanowisko.cmd"),
-               STANOWISKO_SKROT_ROBOCZY=str(katalog))
-    try:
-        wynik = uruchom(["powershell", "-NoProfile", "-NonInteractive", "-Command", skrypt], env=env, limit_s=120)
-    except (OSError, subprocess.TimeoutExpired):
+def katalog_pulpitu() -> Path | None:
+    """Pulpit biezacego konta (Windows: ``SHGetFolderPathW`` CSIDL_DESKTOPDIRECTORY - takze pulpit przekierowany); None poza Windows."""
+    if os.name != "nt":
         return None
-    sciezka = Path(wynik.stdout.strip().splitlines()[-1]) if wynik.returncode == 0 and wynik.stdout.strip() else None
-    return sciezka if sciezka is not None and sciezka.is_file() else None
+    import ctypes  # noqa: PLC0415
+
+    bufor = ctypes.create_unicode_buffer(1024)
+    if ctypes.windll.shell32.SHGetFolderPathW(None, 0x10, None, 0, bufor) != 0 or not bufor.value:
+        return None
+    return Path(bufor.value)
+
+
+def zapisz_lnk(plik: Path, cel: Path, argumenty: str = "", katalog_roboczy: Path | None = None, opis: str = "") -> None:
+    """Plik skrotu Windows (.lnk, format MS-SHLLINK) bez COM i bez PowerShell: naglowek, LinkInfo ze sciezka lokalna celu
+    (takze w UTF-16), napisy (opis, katalog roboczy, argumenty). Zapas na komputer, na ktorym polityka blokuje ``WScript.Shell``."""
+    import struct  # noqa: PLC0415
+
+    lista_id = _lista_id_powloki(cel)  # LinkTargetIDList (bez niej WScript.Shell / Eksplorator nie pokazuja celu skrotu)
+    flagi = (0x01 if lista_id else 0) | 0x02 | 0x80 | (0x04 if opis else 0) | (0x10 if katalog_roboczy else 0) | (0x20 if argumenty else 0)
+    naglowek = struct.pack("<I16sII8s8s8sIiIHHII", 0x4C, bytes.fromhex("0114020000000000c000000000000046"), flagi, 0x20,
+                           b"\0" * 8, b"\0" * 8, b"\0" * 8, 0, 0, 1, 0, 0, 0, 0)
+    sciezka = str(cel)
+    wolumin = struct.pack("<IIII", 17, 3, 0, 0x10) + b"\0"
+    ansi = sciezka.encode("mbcs" if os.name == "nt" else "latin-1", "replace") + b"\0"
+    unicode = sciezka.encode("utf-16-le") + b"\0\0"
+    rozmiar_naglowka = 0x24
+    o_wolumin = rozmiar_naglowka
+    o_sciezka = o_wolumin + len(wolumin)
+    o_przyrostek = o_sciezka + len(ansi)
+    o_sciezka_u = o_przyrostek + 1
+    o_przyrostek_u = o_sciezka_u + len(unicode)
+    rozmiar = o_przyrostek_u + 2
+    info = struct.pack("<IIIIIIIII", rozmiar, rozmiar_naglowka, 0x1, o_wolumin, o_sciezka, 0, o_przyrostek, o_sciezka_u, o_przyrostek_u)
+    info += wolumin + ansi + b"\0" + unicode + b"\0\0"
+    napisy = b""
+    for tekst in (opis, str(katalog_roboczy) if katalog_roboczy else "", argumenty):
+        if tekst:
+            napisy += struct.pack("<H", len(tekst.encode("utf-16-le")) // 2) + tekst.encode("utf-16-le")
+    blok_id = struct.pack("<H", len(lista_id)) + lista_id if lista_id else b""
+    zapisz_atomowo(plik, naglowek + blok_id + info + napisy + b"\0\0\0\0")
+
+
+def _lista_id_powloki(cel: Path) -> bytes:
+    """Lista identyfikatorow powloki Windows dla pliku ``cel`` (``ILCreateFromPathW``, z koncowym zerem); b"" poza Windows
+    albo gdy sie nie da (plik skrotu ma wtedy sam LinkInfo)."""
+    if os.name != "nt":
+        return b""
+    try:
+        import ctypes  # noqa: PLC0415
+
+        shell32 = ctypes.windll.shell32
+        shell32.ILCreateFromPathW.restype = ctypes.c_void_p
+        shell32.ILCreateFromPathW.argtypes = [ctypes.c_wchar_p]
+        shell32.ILGetSize.restype = ctypes.c_uint
+        shell32.ILGetSize.argtypes = [ctypes.c_void_p]
+        shell32.ILFree.argtypes = [ctypes.c_void_p]
+        pidl = shell32.ILCreateFromPathW(str(cel))
+        if not pidl:
+            return b""
+        try:
+            return ctypes.string_at(pidl, shell32.ILGetSize(pidl))
+        finally:
+            shell32.ILFree(pidl)
+    except (OSError, AttributeError):
+        return b""
+
+
+def utworz_skrot(katalog: Path, gdzie: Path | None, nazwa: str = "Stanowisko", cel: Path | None = None, argumenty: str = "",
+                 opis: str = "Stanowisko kontroli cyrkonii") -> Path | None:
+    """Skrot ``<nazwa>.lnk`` na pulpicie (albo w ``gdzie``): domyslnie do ``<KATALOG>/Stanowisko.cmd``; None, gdy sie nie udalo.
+
+    Najpierw PowerShell (``WScript.Shell``); gdy polityka komputera na to nie pozwala (np. tryb ograniczony PowerShell), plik
+    skrotu zapisuje sam instalator (``zapisz_lnk``). Wynik sprawdzany: plik skrotu musi istniec."""
+    cel = cel or katalog / "Stanowisko.cmd"
+    skrypt = ("[Console]::OutputEncoding = [Text.Encoding]::UTF8; "  # sciezka skrotu z polskimi znakami (Dzien skanera) wraca cala
+              "$k = $env:STANOWISKO_SKROT_KATALOG; if (-not $k) { $k = [Environment]::GetFolderPath('Desktop') }; "
+              "$p = Join-Path $k ($env:STANOWISKO_SKROT_NAZWA + '.lnk'); $s = (New-Object -ComObject WScript.Shell).CreateShortcut($p); "
+              "$s.TargetPath = $env:STANOWISKO_SKROT_CEL; $s.Arguments = $env:STANOWISKO_SKROT_ARGUMENTY; "
+              "$s.WorkingDirectory = $env:STANOWISKO_SKROT_ROBOCZY; $s.Description = $env:STANOWISKO_SKROT_OPIS; $s.Save(); Write-Output $p")
+    env = dict(os.environ, STANOWISKO_SKROT_KATALOG=str(gdzie) if gdzie else "", STANOWISKO_SKROT_CEL=str(cel), STANOWISKO_SKROT_NAZWA=nazwa,
+               STANOWISKO_SKROT_ARGUMENTY=argumenty, STANOWISKO_SKROT_ROBOCZY=str(katalog), STANOWISKO_SKROT_OPIS=opis)
+    sciezka = None
+    if os.environ.get("STANOWISKO_SKROT_BEZ_POWERSHELL") != "1":  # proby: droga zapasowa jak przy zablokowanym PowerShell
+        try:
+            wynik = uruchom(["powershell", "-NoProfile", "-NonInteractive", "-Command", skrypt], env=env, limit_s=120)
+            sciezka = Path(wynik.stdout.strip().splitlines()[-1]) if wynik.returncode == 0 and wynik.stdout.strip() else None
+        except (OSError, subprocess.TimeoutExpired):
+            sciezka = None
+    if sciezka is not None and sciezka.is_file():
+        return sciezka
+    folder = gdzie or katalog_pulpitu()
+    if folder is None or not folder.is_dir():
+        return None
+    try:
+        zapisz_lnk(folder / f"{nazwa}.lnk", cel, argumenty, katalog, opis)
+    except OSError:
+        return None
+    return folder / f"{nazwa}.lnk" if (folder / f"{nazwa}.lnk").is_file() else None
+
+
+def utworz_skroty(katalog: Path, gdzie: Path | None, dziennik: "Dziennik") -> dict[str, Path | None]:
+    """E3-I1: ikony "Stanowisko" i "Dzien skanera" - start bez okna konsoli: ``pythonw.exe`` interpretera bazowego wersji biezacej
+    + starter ``<KATALOG>/start_bez_konsoli.pyw <cel>``. Bez startera albo bez ``pythonw.exe`` (wersja starsza niz E3-I1) - skrot
+    do skryptu ``.cmd``. Wiersze ``SKROT ZALOZONY: <nazwa> | <plik>`` / ``SKROT NIEUDANY: <nazwa> | <plik do klikniecia>``
+    czyta okno instalatora. Nieudany skrot nie zatrzymuje instalacji."""
+    wyniki = {}
+    home = python_bazowy_wersji(katalog, czytaj_wskaznik(katalog, PLIK_BIEZACEJ))
+    pythonw = home / "pythonw.exe" if home else None
+    for nazwa, cel_startu, skrypt in SKROTY:
+        if pythonw is not None and pythonw.is_file() and (katalog / WZOR_STARTU).is_file():
+            plik = utworz_skrot(katalog, gdzie, nazwa, pythonw, f'-I -B "{katalog / WZOR_STARTU}" {cel_startu}', f"{nazwa} - bez okna konsoli")
+        else:
+            plik = utworz_skrot(katalog, gdzie, nazwa, katalog / skrypt, "", nazwa)
+        wyniki[nazwa] = plik
+        if plik is not None:
+            dziennik.krok(f"SKROT ZALOZONY: {nazwa} | {plik}")
+        else:
+            dziennik.krok(f"SKROT NIEUDANY: {nazwa} | {katalog / skrypt}")
+    return wyniki
 
 
 WIERSZE_KONCOWE = {0: "SAMOKONTROLA: ZIELONA", 1: "SAMOKONTROLA: CZERWONA"}  # umowa A11s: kod wyjscia -> poczatek OSTATNIEGO wiersza
@@ -1221,11 +1469,18 @@ def _wymien_wersje(paczka: Path, sumy: dict[str, str], wydanie: dict, katalog: P
 
 def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False, skrot: bool = False, skrot_katalog: Path | None = None,
                bez_sieci: bool = False, min_wolne_mb: int | None = None, srodowisko: Srodowisko | None = None,
-               zegar=dt.datetime.now) -> int:
+               zegar=dt.datetime.now, python_z_paczki: bool = False, folder_skanow: str | None = None,
+               folder_projektow: str | None = None, osoby: list[str] | None = None, ramki_wylaczone: bool = False) -> int:
     """Instalacja albo aktualizacja z rozpakowanej paczki. Zwraca kod wyjscia (0 = wersja z paczki jest wersja biezaca;
-    10 = pierwsza instalacja wstrzymana do uzupelnienia ustawien)."""
+    10 = pierwsza instalacja wstrzymana do uzupelnienia ustawien).
+
+    E3-I1: ``python_z_paczki`` - Python z katalogu ``python/`` paczki (``python`` jest wtedy pomijany), kopiowany do
+    ``<KATALOG>/python/<wersja>/``; srodowisko wersji powstaje z tej kopii. ``folder_skanow``, ``folder_projektow``, ``osoby``,
+    ``ramki_wylaczone`` (okno instalatora) - wpisywane TYLKO do nowego pliku ustawien (istniejacy zostaje bajt w bajt)."""
     srodowisko = srodowisko or Srodowisko()
     paczka, katalog = paczka.resolve(), katalog.resolve()
+    if python_z_paczki:
+        python = paczka / KATALOG_PYTHONA / "python.exe"
     dziennik = Dziennik(katalog, "zainstaluj", zegar)  # wpisy trafiaja do pliku dopiero, gdy katalog instalacji istnieje
     blokada = BlokadaInstalatora(katalog)
     try:
@@ -1235,7 +1490,11 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
         dziennik.operacja = f"zainstaluj {wersja}"
         print(f"      zgodne {len(sumy)} z {len(sumy)}; wersja {wersja}, commit {str(wydanie.get('commit'))[:12]}", flush=True)
 
-        print(f"[2/9] Python {wydanie['python']}...", flush=True)
+        print(f"[2/9] Python {wydanie['python']}" + (" z paczki" if python_z_paczki else "") + "...", flush=True)
+        if python_z_paczki and KATALOG_PYTHONA + "/python.exe" not in sumy:
+            raise BladInstalacji(KOD_PACZKA, "paczka nie zawiera Pythona (brak python/python.exe w SHA256SUMS)",
+                                 "Uruchom zainstaluj.cmd z opcja /python <sciezka>\\python.exe albo pobierz pelna paczke wydania. "
+                                 "Niczego nie zmieniono.")
         wersja_pythona = sprawdz_pythona(python, str(wydanie["python"]))
         print(f"      {python}: {wersja_pythona}", flush=True)
         sprawdzony = str(wydanie.get("python_sprawdzony") or "")
@@ -1280,15 +1539,23 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
 
         print("[4/9] Ustawienia...", flush=True)
         plik_ustawien = katalog / PLIK_USTAWIEN
+        z_okna = folder_skanow is not None or folder_projektow is not None or bool(osoby) or ramki_wylaczone
         if not plik_ustawien.exists():
-            zapisz_atomowo(plik_ustawien, ustawienia_ze_wzoru((paczka / "program" / "ustawienia.przyklad.toml").read_bytes(), katalog))
+            wartosci, uwagi = _wartosci_z_okna(python, paczka, katalog, folder_skanow, folder_projektow, osoby, ramki_wylaczone)
+            zapisz_atomowo(plik_ustawien, ustawienia_ze_wzoru((paczka / "program" / "ustawienia.przyklad.toml").read_bytes(), katalog,
+                                                              wartosci))
             (katalog / "dane").mkdir(exist_ok=True)
-            dziennik.krok(f"      zalozono {plik_ustawien.name} ze wzoru (sciezki danych: {katalog.as_posix()}/dane/...) - UZUPELNIJ foldery "
-                          "pracy w [sciezki] i osoby w [sesja] operatorzy")
+            if z_okna:
+                dziennik.krok(f"      zalozono {plik_ustawien.name} ze wzoru z wyborem z okna instalatora: foldery pracy, osoby: "
+                              f"{len(osoby or [])}" + "".join(f"; {u}" for u in uwagi))
+            else:
+                dziennik.krok(f"      zalozono {plik_ustawien.name} ze wzoru (sciezki danych: {katalog.as_posix()}/dane/...) - UZUPELNIJ "
+                              "foldery pracy w [sciezki] i osoby w [sesja] operatorzy")
             suma_ustawien = None
         else:
             suma_ustawien = sha256_pliku(plik_ustawien)
-            dziennik.krok(f"      istniejacy {plik_ustawien.name} zostaje bez zmian (SHA-256 {suma_ustawien[:16]}...)")
+            dziennik.krok(f"      istniejacy {plik_ustawien.name} zostaje bez zmian (SHA-256 {suma_ustawien[:16]}...)"
+                          + (" - foldery i osoby podane w oknie NIE zostaly wpisane (zmien je w pliku ustawien)" if z_okna else ""))
             if plik_ustawien.read_bytes()[:3] == b"\xef\xbb\xbf":
                 raise BladInstalacji(KOD_USTAWIENIA, f"{plik_ustawien.name} zaczyna sie znakiem BOM (zapisany jako \"UTF-8 z BOM\") - program "
                                      "takiego pliku nie wczyta",
@@ -1312,6 +1579,15 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
                                  "i zainstaluj ja jako aktualizacje. Wersja biezaca bez zmian.")
         stan = stan_wersji(katalog, wersja)
         uzywana = ta_sama_wersja(wersja, biezaca) or ta_sama_wersja(wersja, poprzednia)
+        if python_z_paczki:
+            # E3-I1: kopia Pythona z paczki w katalogu instalacji PRZED kontrola wersji juz zainstalowanej (pip list srodowiska
+            # wymaga interpretera bazowego) i przed zalozeniem srodowiska; od tej chwili ``python`` = kopia w katalogu instalacji
+            wolne = shutil.disk_usage(katalog).free // 2**20
+            potrzeba_pythona = bajty_pythona(paczka, sumy) // 2**20 + 50
+            if wolne < potrzeba_pythona:
+                raise BladInstalacji(KOD_INSTALACJA, f"za malo miejsca na dysku: potrzeba ok. {potrzeba_pythona} MB na Pythona, wolne {wolne} MB",
+                                     "Zwolnij miejsce albo wybierz inny dysk i uruchom instalacje ponownie. Wersja biezaca bez zmian.")
+            python = przygotuj_pythona(paczka, sumy, katalog, wersja_pythona, dziennik)
         if stan == "obcy":
             raise BladInstalacji(KOD_INSTALACJA, f"katalog {katalog_wersji(katalog, wersja)} istnieje, ale nie zalozyl go instalator (nie ma w nim "
                                  "zapisu instalacji) - nie usuwam go",
@@ -1342,7 +1618,7 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
                 dziennik.krok(f"      wersja {wersja} jest zainstalowana, ale: {powod} - naprawa (instalacja od nowa)")
                 stan = "do_naprawy"
         if stan != "zainstalowana":
-            potrzeba = int(bajty_kol * ZAPAS_PYC + sum((paczka / n).stat().st_size for n in sumy if n.startswith("program/"))) // 2**20 + ZAPAS_MB
+            potrzeba = potrzebne_miejsce_mb(paczka, sumy, bajty_kol)
             potrzeba = potrzeba if min_wolne_mb is None else min_wolne_mb
             wolne = shutil.disk_usage(katalog).free // 2**20
             if wolne < potrzeba:
@@ -1437,13 +1713,14 @@ def zainstaluj(paczka: Path, katalog: Path, python: Path, *, testy: bool = False
             poprzednia = przelacz(katalog, wersja)
         dziennik.krok(f"      wersja biezaca: {wersja}; poprzednia: {poprzednia or 'brak'}")
 
-        print("[9/9] Skrot na pulpicie...", flush=True)
+        print("[9/9] Ikony na pulpicie...", flush=True)
         if skrot:
-            plik_skrotu = utworz_skrot(katalog, skrot_katalog)
-            dziennik.krok("      skrot Stanowisko.lnk zalozony" if plik_skrotu else
-                          "      OSTRZEZENIE: skrotu nie udalo sie zalozyc - uruchamiaj Stanowisko.cmd z katalogu instalacji")
+            skroty = utworz_skroty(katalog, skrot_katalog, dziennik)
+            if not all(skroty.values()):
+                dziennik.krok("      OSTRZEZENIE: nie kazda ikona powstala (polityka komputera?) - uruchamiaj program plikami z wierszy "
+                              "SKROT NIEUDANY powyzej (katalog instalacji)")
         else:
-            print("      pominiety (opcja /skrot zaklada skrot Stanowisko na pulpicie)", flush=True)
+            print('      pominiete (opcja /skrot zaklada ikony "Stanowisko" i "Dzien skanera" na pulpicie)', flush=True)
         dziennik.krok(f"INSTALACJA: GOTOWA - wersja biezaca {wersja} (poprzednia: {poprzednia or 'brak'}). Uruchamianie: {katalog / 'Stanowisko.cmd'}")
         return KOD_OK
     except BladInstalacji as e:
@@ -1634,8 +1911,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--paczka", type=Path, default=Path(__file__).resolve().parent.parent.parent, help="katalog rozpakowanej paczki")
     p.add_argument("--katalog", type=Path, default=Path(KATALOG_DOMYSLNY), help=f"katalog instalacji (domyslnie {KATALOG_DOMYSLNY})")
     p.add_argument("--python", type=Path, default=Path(sys.executable), help="python.exe 3.12, z ktorego powstaje srodowisko wersji")
+    p.add_argument("--python-z-paczki", action="store_true",
+                   help="Python z katalogu python/ paczki (kopiowany do <KATALOG>/python/<wersja>; --python jest pomijany)")
+    p.add_argument("--folder-skanow", default=None, help="(nowy plik ustawien) [sciezki] folder_eksportu_skanera")
+    p.add_argument("--folder-projektow", default=None, help="(nowy plik ustawien) [sciezki] folder_cyrkon; pusty = <KATALOG>/dane/projekty")
+    p.add_argument("--osoba", action="append", default=None, help="(nowy plik ustawien) osoba do [sesja] operatorzy; opcja powtarzalna")
+    p.add_argument("--ramki-wylaczone", action="store_true", help="(nowy plik ustawien) [ramki] wlaczone = false, gdy program zna ten klucz")
     p.add_argument("--testy", action="store_true", help="doinstaluj zestaw testowy (pytest) - tylko odbior koncowy")
-    p.add_argument("--skrot", action="store_true", help="zaloz skrot Stanowisko na pulpicie")
+    p.add_argument("--skrot", action="store_true", help='zaloz ikony "Stanowisko" i "Dzien skanera" na pulpicie (start bez okna konsoli)')
     p.add_argument("--skrot-katalog", type=Path, default=None, help="katalog skrotu zamiast pulpitu")
     p.add_argument("--bez-sieci", action="store_true", help="samokontrola bez proby polaczenia z ramkami")
     p.add_argument("--min-wolne-mb", type=int, default=None, help="wymagane wolne miejsce w MB (domyslnie liczone z paczki)")
@@ -1652,7 +1935,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(_normalizuj_argumenty(list(sys.argv[1:] if argv is None else argv)))
     if args.polecenie == "zainstaluj":
         return zainstaluj(args.paczka, args.katalog, args.python, testy=args.testy, skrot=args.skrot, skrot_katalog=args.skrot_katalog,
-                          bez_sieci=args.bez_sieci, min_wolne_mb=args.min_wolne_mb)
+                          bez_sieci=args.bez_sieci, min_wolne_mb=args.min_wolne_mb, python_z_paczki=args.python_z_paczki,
+                          folder_skanow=args.folder_skanow, folder_projektow=args.folder_projektow, osoby=args.osoba,
+                          ramki_wylaczone=args.ramki_wylaczone)
     if args.polecenie == "wroc":
         # bez opcji: pytanie T / N (dwuklik lezy obok Stanowisko.cmd); /tak i /przywroc-kopie to jawna zgoda z wiersza polecen
         return wroc(args.katalog, przywroc=args.przywroc_kopie, potwierdz=None if args.tak or args.przywroc_kopie else zapytaj_konsole)

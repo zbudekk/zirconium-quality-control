@@ -1,7 +1,9 @@
 @echo off
 rem Instalacja albo aktualizacja programu "Stanowisko" z rozpakowanej paczki wydania (E3-A11i, wariant B).
 rem   zainstaluj.cmd [/katalog KATALOG] [/python SCIEZKA\python.exe] [/skrot] [/testy] [/bez-sieci] [/bez-pauzy]
-rem Bez opcji: katalog C:\Stanowisko, Python 3.12 szukany sam. Na koncu okno czeka na klawisz - chyba ze podano /bez-pauzy.
+rem Bez opcji: katalog C:\Stanowisko; Python: /python, zmienna STANOWISKO_PYTHON, Python z paczki (katalog python - E3-I1),
+rem a w paczce bez niego Python 3.12 szukany w systemie. Na koncu okno czeka na klawisz - chyba ze podano /bez-pauzy.
+rem Instalacja w oknie (bez wiersza polecen): Instaluj.cmd.
 rem Opis krokow i komunikatow: program\instrukcje\instalacja_i_aktualizacja.md
 setlocal
 set "PACZKA=%~dp0"
@@ -28,6 +30,8 @@ if not "%PY%"=="" goto :wskazany
 set "SKAD=zmienna STANOWISKO_PYTHON"
 set "PY=%STANOWISKO_PYTHON%"
 if not "%PY%"=="" goto :wskazany
+rem E3-I1: Python z paczki (pelny Python 3.12 z nuget.org) - instalator kopiuje go do katalogu instalacji.
+if exist "%PACZKA%python\python.exe" goto :z_paczki
 rem Kolejnosc szukania: py -3.12, typowe miejsca instalacji z python.org, python z PATH (kazdy kandydat musi byc 3.12).
 for /f "delims=" %%P in ('py -3.12 -I -c "import sys; print(sys.executable)" 2^>nul') do call :kandydat "%%P"
 call :kandydat "%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
@@ -54,7 +58,13 @@ goto :blad_pythona
 
 :instaluj
 set "PYTHONUTF8=1"
-"%PY%" -I "%PACZKA%program\instalacja\instalator.py" zainstaluj --paczka "%PACZKA%." --python "%PY%" %*
+"%PY%" -I -B "%PACZKA%program\instalacja\instalator.py" zainstaluj --paczka "%PACZKA%." --python "%PY%" %*
+set "KOD=%errorlevel%"
+goto :koniec
+
+:z_paczki
+set "PYTHONUTF8=1"
+"%PACZKA%python\python.exe" -I -B "%PACZKA%program\instalacja\instalator.py" zainstaluj --paczka "%PACZKA%." --python-z-paczki %*
 set "KOD=%errorlevel%"
 goto :koniec
 

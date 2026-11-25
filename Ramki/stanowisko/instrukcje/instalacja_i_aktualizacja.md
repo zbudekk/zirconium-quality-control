@@ -1,19 +1,56 @@
 # Instalacja i aktualizacja programu "Stanowisko" - jedna strona dla osoby instalujacej
 
-Paczka wydania to jeden plik `Stanowisko_<wersja>.zip` (ok. 445 MB). Internet nie jest potrzebny. Instalacja niczego nie
-zmienia w systemie: wszystko lezy w jednym katalogu (domyslnie `C:\Stanowisko`), poza folderami OneDrive / SharePoint.
+Paczka wydania to jeden plik `Stanowisko_<wersja>.zip` (ok. 460 MB). Internet nie jest potrzebny. **Python jest w paczce**
+(od wydania z oknem instalatora, E3-I1) - nie trzeba go instalowac. Instalacja niczego nie zmienia w systemie: wszystko lezy
+w jednym katalogu (domyslnie `C:\Stanowisko`, razem z kopia Pythona w `C:\Stanowisko\python\`), poza folderami OneDrive / SharePoint.
+Paczki bez katalogu `python` (wydania do 0.3.3) wymagaja Pythona 3.12 w systemie - punkt 2.
 
-## 1. Raz, recznie: Python 3.12
+## 1. Instalacja w oknie (bez wiersza polecen)
 
-Zainstaluj Pythona 3.12 (64-bit) z python.org - opcje domyslne wystarcza. Sprawdzona wersja to **3.12.10**; inna 3.12.x tez
-zostanie przyjeta (instalator wypisze `OSTRZEZENIE: Python ...`). Inne wersje Pythona (3.11, 3.13) nie przeszkadzaja, ale nie zastapia 3.12.
+1. Rozpakuj CALA paczke (prawy klawisz na pliku ZIP -> "Wyodrebnij wszystkie") do dowolnego folderu, np. na pulpit albo
+   na pendrive. Paczke skopiowana z internetu albo z Dysku Google najpierw odblokuj: prawy klawisz na ZIP -> Wlasciwosci ->
+   zaznacz "Odblokuj" -> OK, dopiero potem rozpakuj [NIE SPRAWDZONE BEZ SPRZETU - punkt 8].
+2. Dwuklik `Instaluj.cmd` w rozpakowanym folderze. Na chwile mignie czarne okno i samo zniknie - otworzy sie okno instalatora.
+3. Krok **Foldery**: folder ze skanami (tu program skanera zapisuje pliki STL; folder musi istniec - przycisk "Wybierz..."
+   pozwala tez zalozyc nowy), folder z projektami exocad (mozna zostawic pusty - instalator zalozy pusty folder
+   `C:\Stanowisko\dane\projekty`; dopoki nie ma w nim projektow STL albo nie wpiszesz wlasciwego folderu w ustawieniach, program
+   nie rozpozna prac - skany czekaja na projekty),
+   miejsce instalacji (domyslnie `C:\Stanowisko`). Pod miejscem instalacji widac, ile miejsca potrzeba i ile jest wolnego.
+   Bledy (brak folderu, za malo miejsca, folder w OneDrive, za dluga sciezka miejsca instalacji - okno podaje, ile znakow
+   wolno) okno pokazuje na czerwono i nie idzie dalej.
+4. Krok **Osoby**: wpisz imiona technikow (przycisk "Dodaj" albo Enter; "Usun" usuwa zaznaczona osobe). Co najmniej jedna osoba.
+5. Krok **Instalacja**: przycisk "Instaluj". Okno pokazuje 9 krokow instalatora; przy kroku "Program i pakiety" (kilka minut,
+   z pendrive'a i przy antywirusie dluzej) pasek sie przesuwa, a przy kroku rosnie czas ("trwa... 2:15"). W tym kroku okna NIE da
+   sie zamknac (krzyzyk, Alt+F4, Esc) - pokazuje "Instalacja trwa - poczekaj do konca"; po koncu albo po bledzie zamyka sie
+   zwyczajnie. Drugi start instalacji w to samo miejsce (drugie okno) - zdanie "Instalacja juz trwa w tym folderze", nic sie nie
+   zmienia. Gdy cos sie nie uda, okno pokazuje zdanie, co sie stalo, i "Co zrobic" (bez polecen do wpisywania);
+   "Szczegoly" pokazuja caly zapis instalacji, "Sprobuj ponownie" wraca do kroku 1. Poprzednia wersja programu (przy
+   aktualizacji) dziala dalej bez zmian. Instalacja nie zapisuje niczego w rozpakowanej paczce (te sama paczke mozna
+   zainstalowac na kolejnym komputerze).
+6. Krok **Gotowe**: na pulpicie sa ikony **Stanowisko** i **Dzien skanera** (program startuje bez czarnego okna konsoli).
+   "Uruchom program" otwiera program od razu. Gdy ikony nie da sie zalozyc (zasady komputera), okno mowi to wprost i podaje plik do
+   klikniecia w `C:\Stanowisko` (`Stanowisko.cmd` albo `Dzien_skanera.cmd` - otwieraja tez male okno konsoli, nie zamykaj go).
+7. Po instalacji paczka (pendrive) nie jest potrzebna: program uzywa kopii Pythona w `C:\Stanowisko\python\3.12.10`.
+8. Ustawienia z krokow 1-2 trafiaja do `C:\Stanowisko\ustawienia.toml` (sekcje `[sciezki]` i `[sesja] operatorzy`); zmiana
+   pozniej - w tym pliku (Notatnik, zapis "UTF-8") i `Samokontrola.cmd`.
+9. Ramki: instalacja z okna sprawdza program bez proby polaczenia z ramkami. Instalator wpisuje `[ramki] wlaczone = false`, gdy
+   wersja programu zna ten przelacznik; wersja 0.3.9-i1 go NIE zna (zmiana w programie poza ta paczka - raport E3-I1, POTRZEBUJE) -
+   program sam sprobuje polaczyc sie z ramkami i bez nich pokaze ostrzezenie "ramka nieobecna"; praca bez ramek jest mozliwa.
 
-## 2. Instalacja
+**Aktualizacja w oknie:** to samo z nowej paczki i to samo miejsce instalacji. Okno rozpozna istniejacy program (napis "W tym
+folderze jest juz program..."): foldery i osoby pokazuje z dotychczasowych ustawien i ich nie zmienia; dane i baza zostaja.
+
+## 2. Instalacja z wiersza polecen (zainstaluj.cmd)
+
+Do prob, testow i aktualizacji z opcjami. Python: paczka z katalogiem `python` uzywa wlasnego Pythona (kopiowanego do katalogu
+instalacji), chyba ze podano `/python <sciezka>\python.exe` albo zmienna `STANOWISKO_PYTHON`. Paczka bez katalogu `python`
+szuka Pythona 3.12 w systemie (`py -3.12`, typowe katalogi `Python312`, `python` z PATH) - zainstaluj go wtedy z python.org
+(64-bit; sprawdzona wersja **3.12.10**; inna 3.12.x jest przyjmowana z wierszem `OSTRZEZENIE: Python ...`).
 
 1. Rozpakuj CALA paczke (prawy klawisz -> "Wyodrebnij wszystkie") do dowolnego katalogu, np. `C:\Paczki\Stanowisko_0.3.1`.
 2. Uruchom w rozpakowanym katalogu `zainstaluj.cmd` (dwuklik). Opcje, gdy trzeba - w wierszu polecen:
    `zainstaluj.cmd /katalog D:\Stanowisko` (inny katalog), `/python C:\...\python.exe` (wskazany Python 3.12),
-   `/skrot` (skrot "Stanowisko" na pulpicie), `/bez-sieci` (samokontrola bez proby polaczenia z ramkami).
+   `/skrot` (ikony "Stanowisko" i "Dzien skanera" na pulpicie), `/bez-sieci` (samokontrola bez proby polaczenia z ramkami).
    Na koncu okno czeka na klawisz (`/bez-pauzy` - nie czeka).
 3. Instalator liczy 9 krokow (wiersze od `[1/9]` do `[9/9]`): sumy paczki, Python, katalog, ustawienia, katalog wersji
    (pakiety - kilka minut), kopia bazy, samokontrola, przelaczenie wersji, skrot. PIERWSZA instalacja zatrzymuje sie
@@ -44,9 +81,12 @@ zostanie przyjeta (instalator wypisze `OSTRZEZENIE: Python ...`). Inne wersje Py
 
 ## 3. Aktualizacja
 
-Zamknij program. Rozpakuj nowa paczke i uruchom JEJ `zainstaluj.cmd` (z tym samym `/katalog`, jesli byl inny niz domyslny).
+Zamknij program. Rozpakuj nowa paczke i uruchom JEJ `Instaluj.cmd` (okno - punkt 1, to samo miejsce instalacji) albo
+`zainstaluj.cmd` (z tym samym `/katalog`, jesli byl inny niz domyslny).
 Instalator sam: zostawia `ustawienia.toml` i `dane\` bez zmian, robi i sprawdza kopie bazy w `dane\kopie\`, zaklada nowa
 wersje obok starej, sprawdza ja samokontrola i dopiero wtedy przelacza. Gdy cos sie nie uda, dziala dalej stara wersja.
+Instalacje zrobiona wczesniej z Pythonem systemu (np. 0.3.3) nowa paczka aktualizuje tak samo: nowa wersja dostaje Pythona
+z paczki (`C:\Stanowisko\python\3.12.10`), stara zostaje przy swoim - powrot do niej dziala jak dotad.
 
 ## 4. Powrot do poprzedniej wersji
 
@@ -77,7 +117,7 @@ albo starsza, przeczytaj ostatni akapit punktu 7 (sesje "Dnia skanera" w katalog
 | 1 | samokontrola ... zglosila bledy (aktualizacja; pierwsza instalacja - gdy choc jeden blad nie dotyczy ustawien) | pod `Bledy samokontroli` stoja wiersze `BLAD <sprawdzenie>: opis; rada` - zrob to, co mowi rada kazdego wiersza. `folder_...` i `operatorzy` poprawia sie w `ustawienia.toml`; `baza`, `moduly`, `pakiety`, `sumy` i inne (wymienia je `CO ZROBIC`) - NIE: gdy rada nie wystarcza, zglos wiersze `BLAD` z plikiem `dziennik_instalacji.txt`. Potem `zainstaluj.cmd` ponownie |
 | 2 | samokontroli ... nie dalo sie wykonac / samokontrola ... zakonczyla sie awaryjnie / samokontrola ... nie podala wyniku | "nie dalo sie wykonac": popraw przyczyne podana nad komunikatem (zwykle plik `ustawienia.toml`) i uruchom ponownie; "awaryjnie" i "nie podala wyniku": to nie blad ustawien - po prostu uruchom ponownie, a gdy wraca, zglos komunikat z plikiem `dziennik_instalacji.txt` |
 | 3 | sumy SHA-256 paczki niezgodne / w paczce brakuje ... / blad wydania / wersja juz zainstalowana z INNEJ budowy / numer zapisany inaczej | paczka uszkodzona albo niepelna: pobierz i rozpakuj ja ponownie w calosci; "blad wydania", "inna budowa" i "numer zapisany inaczej" zglos budujacemu paczke (potrzebna paczka z nowym numerem wersji) |
-| 4 | `zainstaluj.cmd`: nie znaleziono Pythona 3.12 / zla wersja Pythona / brak Pythona (wiersz koncowy: `... - niczego nie zmieniono.`) | zainstaluj Pythona 3.12 (64-bit) albo wskaz go: `zainstaluj.cmd /python <sciezka>\python.exe` |
+| 4 | `zainstaluj.cmd`: nie znaleziono Pythona 3.12 / zla wersja Pythona / brak Pythona (wiersz koncowy: `... - niczego nie zmieniono.`) | paczka z katalogiem `python`: rozpakuj ja jeszcze raz w calosci; paczka bez niego: zainstaluj Pythona 3.12 (64-bit) albo wskaz go: `zainstaluj.cmd /python <sciezka>\python.exe` |
 | 4 | `Stanowisko.cmd`, `Samokontrola.cmd`, `Wroc_do_poprzedniej.cmd`, `Wersje.cmd`, `Dzien_skanera.cmd`, `Polecenie.cmd`: w tym katalogu nie ma gotowej wersji biezacej programu | instalacja nie doszla do konca albo zostala przerwana w trakcie naprawy: uruchom `zainstaluj.cmd` z rozpakowanej paczki wydania |
 | 5 | program "Stanowisko" jest uruchomiony / baza jest zajeta przez inny program (takze: pliku bazy nie da sie zamienic, obok bazy lezy plik `-journal`) | zamknij program (i inne programy z otwarta baza, np. przegladarke bazy), uruchom polecenie ponownie |
 | 6 | za malo miejsca / pip zakonczyl sie bledem / instalacja przerwana / katalog synchronizowany / sciezka za dluga albo ze srednikiem / nie mozna pisac / nie mozna usunac albo odlozyc katalogu / srodowisko nie startuje / nie udalo sie zalozyc pip / nie mozna zapisac pliku stanowisko_bez_wmi.pth / srodowisko nie blokuje modulu _wmi / pakiety niezgodne / pliku bazy nie da sie odczytac / nie ma pliku bazy / inna instalacja juz trwa / nieoczekiwany blad | zrob to, co mowi wiersz `CO ZROBIC` na ekranie (kazdy z tych komunikatow ma wlasny), i uruchom ponownie - niedokonczona wersja sprzata sie sama |
@@ -121,3 +161,43 @@ Wyjatek: `UWAGA: wersja biezaca X jest niekompletna` (okno zamkniete w trakcie n
 - **Sesje zapisane wersja 0.3.1** (uruchamiana wtedy przez `Polecenie.cmd -m stanowisko.dzien_skanera`) leza w
   `C:\Stanowisko\wersje\0.3.1\program\dane\dzien_skanera\`. Program ich sam nie przenosi. Zanim usuniesz wersje 0.3.1,
   skopiuj ten folder (cale podfoldery sesji) do `C:\Stanowisko\dane\dzien_skanera\`.
+
+## 8. Czego nie da sie sprawdzic bez prawdziwego laptopa
+
+Proby E3-I1 (raport `raporty/E3-I1_2026-11-25.md`) zrobiono na PC z Windows 11 Pro: instalacja z rozpakowanej paczki bez
+Pythona w `PATH`, okno instalatora na Pythonie z paczki, ikony w folderze probnym. Na laptopie firmowym moze byc inaczej:
+
+- **Antywirus** [NIE SPRAWDZONE BEZ SPRZETU]: skanuje ok. 19 tys. plikow srodowiska wersji (instalacja trwa wtedy dluzej) i moze
+  na chwile blokowac pliki przy zmianie nazwy katalogu (naprawa wersji: kod 6 "nie mozna odlozyc katalogu" - uruchom ponownie).
+  Pliki Pythona (`python.exe`, `pythonw.exe`, `python312.dll`) sa oryginalne, podpisane przez Python Software Foundation; biblioteki
+  okna - przez The Qt Company. Niepodpisanego pliku `.exe` paczka nie ma.
+- **Program ochronny zamyka program i zabiera pliki** [NIE SPRAWDZONE BEZ SPRZETU]: na PC probnym (Bitdefender, modul
+  "Advanced Threat Defense", wykrycie `Atc4.Detection`) uruchomienie ikony z pulpitu w dlugiej sesji probnej (wiele
+  instalacji, srodowisk i skrotow zalozonych przez te same procesy) skonczylo sie tak: 3 s po starcie programu Bitdefender
+  zamknal wszystkie procesy tej sesji i wzial do kwarantanny pliki przez nie zapisane (skroty, `start_bez_konsoli.pyw`,
+  pliki programu, plik `.cmd`, z ktorego sesje uruchomiono). Paczka niczego nie konczy ani nie kasuje poza katalogiem
+  instalacji - to reakcja programu ochronnego na zachowanie (raport `raporty/E3-I1_2026-11-25.md`, Runda 2). Czy ten sam
+  program ochronny zareaguje na laptopie przy zwyklym dwukliku ikony, tego na PC nie sprawdzono. Objawy: program nie
+  startuje albo znika zaraz po starcie, ikona przestaje dzialac, komunikat programu ochronnego o "zagrozeniu" /
+  "podejrzanym zachowaniu", brak plikow w `C:\Stanowisko`. Co wtedy zrobic:
+  1. Uruchom program z folderu instalacji: `C:\Stanowisko\Stanowisko.cmd` (dwuklik; otwiera tez male okno konsoli, nie
+     zamykaj go) - to inna droga startu niz ikona.
+  2. W programie ochronnym przywroc pliki z kwarantanny i dodaj wyjatek na folder instalacji (w Bitdefenderze: Ochrona ->
+     Advanced Threat Defense -> Ustawienia -> Wyjatki -> dodaj `C:\Stanowisko`; przy innym programie - podobnie, "wyjatek"
+     albo "wykluczenie"). Na laptopie firmowym moze to wymagac administratora.
+  3. Gdy po przywroceniu brakuje plikow programu, uruchom ponownie `Instaluj.cmd` z rozpakowanej paczki (ten sam folder
+     instalacji - instalacja naprawi wersje; ustawienia i baza zostaja).
+  Przy pokazie: zainstaluj i uruchom program raz dzien wczesniej, zeby ewentualna reakcja programu ochronnego wyszla
+  przed pokazem.
+- **Ostrzezenie Windows przy pliku z sieci** [NIE SPRAWDZONE BEZ SPRZETU]: paczka pobrana z internetu albo z Dysku Google ma znacznik
+  pochodzenia; dwuklik `Instaluj.cmd` moze pokazac "System Windows ochronil ten komputer" albo "Czy chcesz uruchomic ten plik?".
+  Zapobiega temu "Odblokuj" na pliku ZIP przed rozpakowaniem (punkt 1.1); w okienku SmartScreen: "Wiecej informacji" -> "Uruchom mimo to".
+  Paczka skopiowana z pendrive'a (bez pobierania z sieci) znacznika zwykle nie ma.
+- **Ikony na pulpicie przy ograniczonej polityce** [NIE SPRAWDZONE BEZ SPRZETU]: instalator zaklada skrot przez PowerShell, a gdy to
+  zablokowane (tryb ograniczony) - sam zapisuje plik skrotu (obie drogi sprawdzone na PC). Nie sprawdzono pulpitu przekierowanego do
+  OneDrive ani polityki, ktora zabrania uruchamiania programow z `C:\Stanowisko` (AppLocker / WDAC) - wtedy nie wystartuje tez
+  `Stanowisko.cmd`; trzeba zgody administratora komputera. Gdy ikony brak, okno instalatora podaje plik do klikniecia.
+- **WDAC / AppLocker przy `Instaluj.cmd`** [NIE SPRAWDZONE BEZ SPRZETU]: okno instalatora startuje z Pythona w rozpakowanej paczce
+  (pulpit albo pendrive); polityka moze zabraniac uruchamiania programow z pendrive'a - wtedy skopiuj rozpakowana paczke na dysk C:.
+- **Skalowanie ekranu 125-150 %** [NIE SPRAWDZONE BEZ SPRZETU]: okno ma 900 x 600 punktow (zrzuty: `Ramki/etap3/nowy_interfejs/zrzuty/`).
+- **Prawdziwy brak miejsca na dysku** [NIE SPRAWDZONE BEZ SPRZETU]: kontrola miejsca sprawdzona tylko symulacja.
