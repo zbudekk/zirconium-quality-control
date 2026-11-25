@@ -1330,6 +1330,11 @@ def test_5_restart_programu_odtwarza_plytki_i_decyzje_na_ekranie(stanowiska, ekr
                               ekran.tekst_elementu(f"plytka_{skan_id}"))
         return wynik
 
+    # E3-U1a runda 2 (recenzja PR #62, P1): plytka 2 jeszcze nieobejrzana - mapa plytki 1 oznaczona "POPRZEDNIA PLYTKA" i przygaszona.
+    # To stan ekranu sprzed restartu (jak znaczek "NOWA"), ktorego restart nie odtwarza - nowy wynik ogladamy przed porownaniem.
+    assert e.okno.pokazana_plytka() == pierwsza and e.mapa.poprzednia() and e.jest("mapa_poprzednia")
+    e.klik("przycisk_nowa_plytka")
+    assert e.okno.pokazana_plytka() == druga and not e.mapa.poprzednia()
     przed = obraz_ekranu(e)
     assert len(przed["lista"]) == 1 and przed["plytki"] == [pierwsza, druga]
     e.zamknij()
