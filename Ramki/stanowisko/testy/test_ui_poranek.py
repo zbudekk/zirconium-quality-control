@@ -536,6 +536,54 @@ def test_excel_wskaz_wiersz_z_zakladki_kompletne_przy_otwartym_oknie_excela(tmp_
         k0.zamknij()
 
 
+def test_przycisk_zaleglego_pieca_przez_pokaz_excel_pokazuje_zakladke_excel(tmp_path, ekrany):
+    """Runda 3, D10 (do P2): przycisk zaleglego pieca ("Piec n (doba) - ile") na zakladce "Kompletne i braki" idzie przez
+    ``EkranRano.pokaz_excel`` - te sama funkcje co "Excel: wskaz wiersz" (przelaczenie na zakladke "Excel" takze przy oknie Excela
+    juz otwartym), nie przez gole polecenie ``excel_pokaz``. Okno Excela pieca 2 otwarte, piec 1 odlozony ("Pozniej") - osoba na
+    "Kompletne i braki" klika przycisk pieca 1: polecenie ``excel_pokaz`` z piecem 1, zakladka "Excel" z oknem pieca 1. Kontroler
+    nie podaje pieca okna wsrod zaleglych (``kontroler_api``: ``zalegle`` bez ``sid`` okna), wiec przy dzisiejszym kontrolerze
+    zakladke przelacza tez samo pokazanie okna innego pieca - dlatego test pilnuje rowniez drogi przez ``pokaz_excel``."""
+    import test_aplikacja_rano as TA
+    from stanowisko import kontroler_api as K
+
+    k0 = K.AtrapaKontrolera(tmp_path / "k", zegar=TR.ZegarRano())
+    k = UW.Szpieg(k0)
+    try:
+        k0.przelacz_tryb("rano")
+        k0.wybierz_operatora("Technik A")
+        e = ekrany(k)
+        TA._excel_pytaj(k0, tmp_path)
+        k0.symuluj_skan_rano(4, TA.PLYTKA_4[0], projekty=TA.PLYTKA_4[1])
+        TR.zamknij_piec(e, pytanie=False)
+        e.czekaj(lambda: e.jest("excel_panel") and k0.stan().excel.w_toku == 0, 10.0, "okno Excela pieca 1")
+        piec1 = k0.stan().excel.sesja_pieca_id
+        e.klik("excel_pozniej")
+        assert not e.jest("excel_panel")
+        k0.symuluj_skan_rano(5, {1: "pewna", 2: "pewna"}, projekty={1: 305, 2: 306})
+        TR.zamknij_piec(e, pytanie=False)
+        e.czekaj(lambda: e.jest("excel_panel") and k0.stan().excel.sesja_pieca_id != piec1, 10.0, "okno Excela pieca 2")
+        e.klik("rano_strona_wynik")
+        assert e.rano.strona() == "wynik" and k0.stan().excel.widoczne and [z[0] for z in k0.stan().excel.zalegle] == [piec1]
+        wywolania = []
+        oryginal = e.rano.pokaz_excel
+
+        def szpieg_pokaz_excel(sid):
+            wywolania.append(sid)
+            return oryginal(sid)
+
+        e.rano.pokaz_excel = szpieg_pokaz_excel
+        przycisk = f"wynik_excel_zalegly_{piec1}"
+        assert e.aktywny(przycisk)
+        e.klik(przycisk)
+        e.odczekaj(20)
+        assert wywolania == [piec1], f"przycisk zaleglego pieca ominal EkranRano.pokaz_excel: {wywolania}"
+        assert k.wyslane("excel_pokaz")[-1] == ("excel_pokaz", (piec1,))
+        assert e.rano.strona() == "excel" and e.jest("excel_panel") and e.w("rano_strona_excel").isChecked()
+        assert k0.stan().excel.sesja_pieca_id == piec1 and [p.kuweta for p in k0.stan().excel.pozycje] == ["3200", "3207"]
+    finally:
+        k0.zamknij()
+
+
 def kolory_zmiany(mapa, wybrane, obwodka) -> list:
     """Kolory pikseli mapy, ktore zmienia samo oznaczenie (``wybrane`` gniazdo albo ``obwodka`` gniazd kuwety) wobec mapy bez
     oznaczen - to, czym oznaczenie wyglada na ekranie (odczyt z obrazu widzetu)."""
