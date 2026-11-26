@@ -1,0 +1,60 @@
+SESJA S1 - analiza kodu programu stanowiska (repo mbuasm/qc), runda 23.11.2026
+Model sesji: Fable 5.2. Subagenci: Opus 5.5 (narzedzie Agent, model "opus", effort "xhigh").
+
+Jestes sesja glowna analizy kodu programu "Stanowisko kontroli cyrkonii" (katalog Ramki/stanowisko).
+Nie masz pamieci poprzednich sesji - wszystko, czego potrzebujesz, jest w plikach wskazanych nizej.
+
+CEL S1
+Znajdz w lancuchu analizy skanu (plate -> match -> inspect -> krawedz -> porownaj) sciezki, ktorymi
+ukruszona praca dostaje ZIELONE. To najwazniejsze ryzyko wlasciciela. Kodu nie zmieniasz - wynikiem jest raport.
+
+[usunieto w kopii: opis dostepu ssh]
+- Katalog roboczy: <PC-katalog>. Klon repo: <PC-katalog>\qc (galaz main) - jego katalogu roboczego nie
+  zmieniaj i nie przelaczaj w nim galezi.
+- PIERWSZY KROK - wlasny worktree od galezi planu:
+    git -C <PC-katalog>\qc fetch origin
+    git -C <PC-katalog>\qc worktree add -b analiza/s1 <PC-katalog>\qc-wt\analiza-s1 origin/analiza/plan
+  Pracujesz w <PC-katalog>\qc-wt\analiza-s1 (analiza/plan = main b856b9e z 21.11 + folder planu).
+- Testy uruchamiasz lokalnie z katalogu <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko:
+    <PC-katalog>\koordynator\narz\py.cmd -m pytest testy\<plik> -q -p no:cacheprovider
+  (python i py nie sa w PATH; py.cmd ustawia srodowisko). Wolny RAM: <PC-katalog>\koordynator\narz\ram.cmd.
+- Zasady PC obowiazuja takze lokalnie: piszesz tylko w <PC-katalog>, nic nie instalujesz, nie kasujesz cudzych
+  plikow; odmowa zapisu poza <PC-katalog> to zamierzona bariera, nie blad - nie obchodz jej.
+- Gdy git zglosi "dubious ownership" albo brak dostepu (sesja na innym koncie Windows niz <konto-PC>): nie
+  zmieniaj ustawien - napisz to wlascicielowi i czekaj.
+- Rownolegle pracuja dwie pozostale sesje analizy (S2, S3) - trzymaj sie 1 procesu python.
+
+NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci; po zalozeniu worktree sa w Ramki\analiza_kodu_2026-11-23\,
+kopia takze w <PC-katalog>\analiza_kodu_2026-11-23\)
+1. [usunieto w kopii: opis dostepu ssh]
+2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S1".
+
+ZAKRES (Ramki/stanowisko/stanowisko/)
+uklad.py, plate.py, match.py, inspect.py, krawedz.py, porownaj.py, wspolczynniki.py, metryki.py, synth.py,
+katalog.py, modele_plytek/okragla_*; testy tych modulow tylko jako dowod. Przed kodem modulu przeczytaj jego
+opis w Ramki/stanowisko/opisy_modulow/.
+
+OD CZEGO ZACZAC
+Znane falszywe zielone: T2 (e) "pozycja 8" (Ramki/etap3/odbior_koncowy/RAPORT.md, Ramki/00_NADZOR_STAN.md koniec
+pliku). Znajdz sciezke w kodzie, ktora daje to zielone, i inne przypadki tej samej klasy. Potem lista z sekcji
+"S1" planu. Plytki: najpierw okragla testowa R54 (nr 8) i okragla ramkowa n1-n6; kwadratowe tylko tam, gdzie
+kod jest wspolny.
+
+ZASADY (skrot - pelna tresc w PLAN.md)
+- Piszesz TYLKO: Ramki/analiza_kodu_2026-11-23/S1_lancuch_analizy.md i podkatalog S1/ (skrypty prob, logi).
+- Testy: 1 proces python, jedno polecenie do 3 min, lacznie ok. 30 min czasu PC. Bez pelnego pytest, bez
+  pomiarow na zestawach skanow, bez petli powtorzen.
+- Prace monotonne, mechaniczne i proste (uruchomienie testu i odpisanie wyniku, wyliczenia "wszystkie miejsca,
+  gdzie..." w tabeli plik:linia, porownanie opisu z kodem, porownanie plikow uklad.json) zlecasz subagentom
+  Opus 5.5 xhigh; najwyzej jeden subagent testowy naraz. Ty czytasz kod krytyczny, oceniasz wage i sprawdzasz
+  wyrywkowo wynik subagenta, zanim trafi do raportu.
+- Spraw znanych (lista w PLAN.md) nie zglaszasz ponownie - najwyzej dopisujesz przyczyne w kodzie.
+- Nie proponuj zbierania danych przed dostawa skanera.
+- Format znaleziska i uklad raportu: PLAN.md, zasady wspolne p. 6 i 7.
+- Gdy cos w planie nie zgadza sie z tym, co zastaniesz, albo czegos brakuje: nie zgaduj - wpisz do raportu
+  w sekcji "Pytania do wlasciciela" i idz dalej.
+
+KONIEC SESJI
+Commit raportu na galezi analiza/s1 i "git push -u origin analiza/s1" (z PC dziala). Bez scalania i bez PR.
+Worktree zostaw. Odpowiedz koncowa: liczba znalezisk B / P / D, trzy najwazniejsze znaleziska po jednym
+zdaniu, sciezka raportu, czy galaz jest wypchnieta.

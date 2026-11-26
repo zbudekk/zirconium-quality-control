@@ -1,0 +1,104 @@
+
+====================================================================================================
+P1 statusy.status_pracy / kolor_pracy / kolor_ramki - pelna tabela decyzyjna
+====================================================================================================
+kombinacji: 90720, wyjatkow: 0
+
+status='plytka_nie_z_trybu' kolor_pracy='zatwierdzona_ok' ramka=None: 1440 kombinacji
+   kolor z sesji    : ['zatwierdzona_ok']
+   status_skanu     : ['plytka_nie_z_trybu']
+   status_inspekcji : ['', None, 'nie_sprawdzono', 'ok', 'pominieto', 'popraw_ulozenie', 'poprawka', 'skan_ponownie', 'sprawdz', 'sprawdz_ulozenie', 'ubytek', 'xyz']
+   decyzja          : [None, 'ok', 'ukruszona', 'ukruszona_niewykryta', 'xyz']
+   status_match     : [None, 'brak', 'szary', 'xyz', 'zielony', 'zolty']
+   numer_znany      : [False, True]
+   blad_inspekcji   : [False, True]
+
+status='ukruszona' kolor_pracy='zatwierdzona_ok' ramka='czerwony': 3456 kombinacji
+   kolor z sesji    : ['zatwierdzona_ok']
+   status_skanu     : ['blad', 'do_powtorzenia', 'niezgodny_uklad', 'przyjety', 'xyz', 'zastapiony']
+   status_inspekcji : ['', None, 'nie_sprawdzono', 'ok', 'pominieto', 'popraw_ulozenie', 'poprawka', 'skan_ponownie', 'sprawdz', 'sprawdz_ulozenie', 'ubytek', 'xyz']
+   decyzja          : ['ukruszona', 'ukruszona_niewykryta']
+   status_match     : [None, 'brak', 'szary', 'xyz', 'zielony', 'zolty']
+   numer_znany      : [False, True]
+   blad_inspekcji   : [False, True]
+
+status='zatwierdzona_ok' kolor_pracy='zatwierdzona_ok' ramka='zielony': 5184 kombinacji
+   kolor z sesji    : ['zatwierdzona_ok']
+   status_skanu     : ['blad', 'do_powtorzenia', 'niezgodny_uklad', 'przyjety', 'xyz', 'zastapiony']
+   status_inspekcji : ['', None, 'nie_sprawdzono', 'ok', 'pominieto', 'popraw_ulozenie', 'poprawka', 'skan_ponownie', 'sprawdz', 'sprawdz_ulozenie', 'ubytek', 'xyz']
+   decyzja          : [None, 'ok', 'xyz']
+   status_match     : [None, 'brak', 'szary', 'xyz', 'zielony', 'zolty']
+   numer_znany      : [False, True]
+   blad_inspekcji   : [False, True]
+
+status='zielony' kolor_pracy='zielony' ramka='zielony': 108 kombinacji
+   kolor z sesji    : ['zielony']
+   status_skanu     : ['blad', 'do_powtorzenia', 'niezgodny_uklad', 'przyjety', 'xyz', 'zastapiony']
+   status_inspekcji : ['ok']
+   decyzja          : [None, 'ok', 'xyz']
+   status_match     : [None, 'zielony', 'zolty']
+   numer_znany      : [True]
+   blad_inspekcji   : [False, True]
+
+Statusy, ktorych kolumna 'ramka' = zielony (wszystkie wiersze tabeli, takze poranne):
+   zielony            kolor='zielony'            rgb=#3cb44b napis='OK'
+   zatwierdzona_ok    kolor='zatwierdzona_ok'    rgb=#009688 napis='OK — zatwierdzona'
+   rano_pewna         kolor='zielony'            rgb=#3cb44b napis='rozpoznana'
+   rano_przypisana    kolor='zielony'            rgb=#3cb44b napis='przypisana'
+
+status(None / '' / nieznany) -> nieznany nieznany nieznany | ramka: zolty zolty
+status_rano(None / nieznana) -> nieznany nieznany
+kolory ramki ze statusow spoza protokolu ramki: []
+
+====================================================================================================
+P2 session: ponowny skan a praca czerwona BEZ decyzji; 'OK' na czerwonej -> kolor ramki
+====================================================================================================
+skan A (pierwszy), gniazdo -> (kolor, decyzja): {1: ('zielony', None), 2: ('czerwony', None), 3: ('czerwony', None), 5: ('zolty', None), 7: ('szary', None)}
+skan B (ponowny),  gniazdo -> (kolor, decyzja): {1: ('zielony', None), 2: ('zielony', None), 3: ('czerwony', None), 5: ('zielony', None), 7: ('zielony', None)}
+do_potwierdzenia: [{'skan_id': 2, 'poprzedni_id': 1, 'numer_plytki': 1, 'podstawa': 'te_same_prace', 'liczba_decyzji': 0, 'liczba_ukruszonych': 0}]
+pola wpisu do_potwierdzenia: ['decyzje', 'liczba_decyzji', 'liczba_ukruszonych', 'numer_plytki', 'podstawa', 'poprzedni_id', 'skan_id']
+tekst pytania dla technika: P?ytka nr 1 by?a skanowana 0 min temu. Czy to ponowny skan tych samych prac? Poprzedni skan nie ma jeszcze ?adnych decyzji.
+czerwone bez decyzji w A: [2, 3] | z nich zielone w B: [2]
+po 'Tak, to ponowny skan': status A = zastapiony | kolory A: {1: (None, None), 2: (None, None), 3: (None, None), 5: (None, None), 7: (None, None)} | kolory B: {1: ('zielony', None), 2: ('zielony', None), 3: ('czerwony', None), 5: ('zielony', None), 7: ('zielony', None)} | liczniki doby: {'zielony': 4, 'czerwony': 1}
+dziennik zdarzen obu skanow (typy): ['skan_przyjety', 'skan_przyjety', 'konflikt_projektu']
+gniazdo 3 po 'OK' na czerwonym: kolor sesji='zatwierdzona_ok', status='zatwierdzona_ok', napis='OK ? zatwierdzona', rgb ekranu=#009688, kolor diod ramki='zielony' (zwykly zielony: rgb #3cb44b, ramka 'zielony')
+
+====================================================================================================
+P3 kalibracja ramek z geometrii (ramka.kalibracja.domyslna) - uklady, bloki, odstepy
+====================================================================================================
+ramka W: uklad okragla_ramkowa_wieczorna    gniazd 19 zrodlo geometria
+ramka W: uklad wieczorna                    gniazd 19 zrodlo geometria
+ramka W: uklad wieczorna_r54                gniazd 20 zrodlo geometria
+ramka P: uklad okragla_ramkowa_poranna      gniazd 24 zrodlo geometria
+ramka P: uklad poranna                      gniazd 24 zrodlo geometria
+ramka P: uklad poranna_r54                  gniazd 33 zrodlo geometria
+uklady BEZ kalibracji (ramka ciemna): ['okragla_poranna', 'okragla_poranna_r54', 'okragla_wieczorna', 'okragla_wieczorna_r54']
+okragla_ramkowa_wieczorna == wieczorna (bloki): True (19 z 19)
+okragla_ramkowa_poranna == poranna (bloki): True (24 z 24)
+okragla_ramkowa_wieczorna: d=100.0 mm, flat=-45.0 st., srodek bloku a srodek gniazda - maks. 1.60 mm; bloki z rogiem poza kolem plytki: []; pary gniazd o blokach stykajacych sie (0 px przerwy): []
+okragla_ramkowa_poranna: d=100.0 mm, flat=-45.0 st., srodek bloku a srodek gniazda - maks. 1.48 mm; bloki z rogiem poza kolem plytki: []; pary gniazd o blokach stykajacych sie (0 px przerwy): []
+
+====================================================================================================
+P4 logika ramki: pierscien stanu przy czerwonych gniazdach, plan bez gniazd, waznosc planu bez laptopa
+====================================================================================================
+
+[W: plytka 2, gniazda 1 i 5 czerwone, 7 zielone] plan: przyjety, wazny_s=30.0
+   t=   1.5 s (ostatni kontakt laptopa t=1.0): tryb=wynik    pierscien(0,0)=(0, 255, 0) lacznosc=True piksele gniazd={'zielony': 9, 'czerwony': 57}
+   t=  29.0 s (ostatni kontakt laptopa t=1.0): tryb=wynik    pierscien(0,0)=(0, 255, 0) lacznosc=True piksele gniazd={'zielony': 9, 'czerwony': 57}
+   t=  30.9 s (ostatni kontakt laptopa t=1.0): tryb=wynik    pierscien(0,0)=(0, 255, 0) lacznosc=True piksele gniazd={'zielony': 9, 'czerwony': 57}
+   t=  31.5 s (ostatni kontakt laptopa t=1.0): tryb=gotowa   pierscien(0,0)=(0, 0, 0) lacznosc=False piksele gniazd=-
+
+plan wieczorny, w ktorym zadne gniazdo nie ma koloru: {"2": {"gniazda": []}}
+
+[W: plytka 2, plan bez swiecacych gniazd] plan: przyjety, wazny_s=30.0
+   t=   1.5 s (ostatni kontakt laptopa t=1.0): tryb=wynik    pierscien(0,0)=(0, 255, 0) lacznosc=True piksele gniazd=-
+
+plan poranny pominiete: {'zla_plytka': [], 'brak_kalibracji': [], 'kuweta_odrzucona': 0, 'zly_kolor': 0, 'zle_gniazdo': 0}
+
+[P: plytka 4, gniazdo 1 zielone (kuweta 3263), gniazdo 2 'sprawdz'] plan: przyjety, wazny_s=600.0
+   t=   1.5 s (ostatni kontakt laptopa t=1.0): tryb=wynik    pierscien(0,0)=(0, 255, 0) lacznosc=True piksele gniazd={'czerwony': 9, 'zielony': 42}
+   t= 300.0 s (ostatni kontakt laptopa t=1.0): tryb=wynik    pierscien(0,0)=(255, 0, 0) lacznosc=False piksele gniazd={'czerwony': 9, 'zielony': 42}
+   t= 600.5 s (ostatni kontakt laptopa t=1.0): tryb=wynik    pierscien(0,0)=(0, 0, 0) lacznosc=False piksele gniazd={'czerwony': 9, 'zielony': 42}
+   t= 601.5 s (ostatni kontakt laptopa t=1.0): tryb=gotowa   pierscien(0,0)=(0, 0, 0) lacznosc=False piksele gniazd=-
+
+KONIEC PROB

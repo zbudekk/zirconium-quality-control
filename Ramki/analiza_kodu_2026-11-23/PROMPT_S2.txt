@@ -1,0 +1,64 @@
+SESJA S2 - analiza kodu programu stanowiska (repo mbuasm/qc), runda 23.11.2026
+Model sesji: Fable 5.2. Subagenci: Opus 5.5 (narzedzie Agent, model "opus", effort "xhigh").
+
+Jestes sesja glowna analizy kodu programu "Stanowisko kontroli cyrkonii" (katalog Ramki/stanowisko).
+Nie masz pamieci poprzednich sesji - wszystko, czego potrzebujesz, jest w plikach wskazanych nizej.
+
+CEL S2
+Znajdz miejsca, w ktorych program albo jego okno moze STANAC w trakcie pracy: procesy analizy, kolejki,
+baza, folder skanera, pula projektow, samokontrola. To drugie najwazniejsze ryzyko wlasciciela.
+Kodu nie zmieniasz - wynikiem jest raport.
+
+[usunieto w kopii: opis dostepu ssh]
+- Katalog roboczy: <PC-katalog>. Klon repo: <PC-katalog>\qc (galaz main) - jego katalogu roboczego nie
+  zmieniaj i nie przelaczaj w nim galezi.
+- PIERWSZY KROK - wlasny worktree od galezi planu:
+    git -C <PC-katalog>\qc fetch origin
+    git -C <PC-katalog>\qc worktree add -b analiza/s2 <PC-katalog>\qc-wt\analiza-s2 origin/analiza/plan
+  Pracujesz w <PC-katalog>\qc-wt\analiza-s2 (analiza/plan = main b856b9e z 21.11 + folder planu).
+- Testy uruchamiasz lokalnie z katalogu <PC-katalog>\qc-wt\analiza-s2\Ramki\stanowisko:
+    <PC-katalog>\koordynator\narz\py.cmd -m pytest testy\<plik> -q -p no:cacheprovider
+  (python i py nie sa w PATH; py.cmd ustawia srodowisko). Wolny RAM: <PC-katalog>\koordynator\narz\ram.cmd.
+- Zasady PC obowiazuja takze lokalnie: piszesz tylko w <PC-katalog>, nic nie instalujesz, nie kasujesz cudzych
+  plikow; odmowa zapisu poza <PC-katalog> to zamierzona bariera, nie blad - nie obchodz jej.
+- Gdy git zglosi "dubious ownership" albo brak dostepu (sesja na innym koncie Windows niz <konto-PC>): nie
+  zmieniaj ustawien - napisz to wlascicielowi i czekaj.
+- Rownolegle pracuja dwie pozostale sesje analizy (S1, S3) - trzymaj sie 1 procesu python.
+
+NAJPIERW PRZECZYTAJ W CALOSCI (w tej kolejnosci; po zalozeniu worktree sa w Ramki\analiza_kodu_2026-11-23\,
+kopia takze w <PC-katalog>\analiza_kodu_2026-11-23\)
+1. [usunieto w kopii: opis dostepu ssh]
+2. PLAN.md - uzgodnienia z wlascicielem, sprawy znane, zasady wspolne, sekcja "S2".
+
+ZAKRES (Ramki/stanowisko/stanowisko/)
+silnik.py, aplikacja.py, kontroler_api.py, scanner.py, baza.py, pula.py, pamiec_puli.py, indeks.py,
+ustawienia.py, samokontrola.py, __init__.py; testy tych modulow tylko jako dowod. Przed kodem modulu przeczytaj
+jego opis w Ramki/stanowisko/opisy_modulow/.
+
+OD CZEGO ZACZAC
+Zlec subagentowi wyliczenie wszystkich miejsc czekania bez limitu czasu w zakresie (join, get, recv, wait,
+petle "while" z sleep, wywolania sqlite bez timeoutu) jako tabele plik:linia. Sam zacznij od silnik.py
+(start procesow, potoki, smierc i restart procesu; znane kody 0xC0000005 / 0xC0000409 - co wtedy widzi technik)
+i od tego, co kontroler wykonuje w watku okna. Potem lista z sekcji "S2" planu. Dla kazdej blokady podaj
+najdluzszy mozliwy czas i to, co widzi technik.
+
+ZASADY (skrot - pelna tresc w PLAN.md)
+- Piszesz TYLKO: Ramki/analiza_kodu_2026-11-23/S2_zawieszenia.md i podkatalog S2/ (skrypty prob, logi).
+- Testy: 1 proces python, jedno polecenie do 3 min, lacznie ok. 30 min czasu PC. Bez pelnego pytest, bez
+  petli powtorzen (bledy rzadkie opisz z kosztem potwierdzenia "D" i poleceniem, ktore trzeba by powtarzac),
+  bez prob na duzej puli projektow.
+- Prace monotonne, mechaniczne i proste (uruchomienie testu i odpisanie wyniku, wyliczenia "wszystkie miejsca,
+  gdzie..." w tabeli plik:linia, porownanie opisu z kodem) zlecasz subagentom Opus 5.5 xhigh; najwyzej jeden
+  subagent testowy naraz. Ty czytasz kod krytyczny, oceniasz wage i sprawdzasz wyrywkowo wynik subagenta,
+  zanim trafi do raportu.
+- Spraw znanych (lista w PLAN.md: E3-A11w, E3-P14, zimny start 48 s i inne) nie zglaszasz ponownie - najwyzej
+  dopisujesz przyczyne w kodzie.
+- Zgubiony skan albo decyzja: tylko gdy wynika z tej samej sciezki co zawieszenie.
+- Format znaleziska i uklad raportu: PLAN.md, zasady wspolne p. 6 i 7.
+- Gdy cos w planie nie zgadza sie z tym, co zastaniesz, albo czegos brakuje: nie zgaduj - wpisz do raportu
+  w sekcji "Pytania do wlasciciela" i idz dalej.
+
+KONIEC SESJI
+Commit raportu na galezi analiza/s2 i "git push -u origin analiza/s2" (z PC dziala). Bez scalania i bez PR.
+Worktree zostaw. Odpowiedz koncowa: liczba znalezisk B / P / D, trzy najwazniejsze znaleziska po jednym
+zdaniu, sciezka raportu, czy galaz jest wypchnieta.

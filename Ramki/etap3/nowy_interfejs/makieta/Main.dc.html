@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Stanowisko - wieczor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+body{margin:0;background:#191919}
+*{box-sizing:border-box}
+button{font:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid #6FB0F5;outline-offset:2px}
+a{color:#6FB0F5}a:hover{color:#9CC9F9}
+table{border-collapse:collapse}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-direction: column; background: #191919; color: #F2F2F2; font-family: 'Segoe UI Variable Text', 'Segoe UI', Inter, system-ui, sans-serif; font-size: 14px; line-height: 1.4; font-variant-numeric: tabular-nums">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; min-height: 52px; padding: 8px 20px; background: #303030; border-bottom: 1px solid #3F3F3F">
+<div style="font-size: 15px; font-weight: 600; letter-spacing: 0.01em">Stanowisko</div>
+<div role="group" aria-label="Tryb pracy" style="display: flex; border: 1px solid #4A4A4A; border-radius: 4px; overflow: hidden">
+<button type="button" aria-pressed="true" style="min-height: 34px; padding: 0 16px; border: 0; background: #338CED; color: #0F1720; font-weight: 600">Wieczór</button>
+<button type="button" aria-pressed="false" style="min-height: 34px; padding: 0 16px; border: 0; background: #303030; color: #B8B8B8">Poranek</button>
+</div>
+<div style="color: #B8B8B8">23.11.2026 · zmiana 2 (14–22)</div>
+<div style="flex: 1 1 0"></div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="color: #B8B8B8">Osoba</span>
+<button type="button" style="min-height: 34px; padding: 0 12px; border: 1px solid #4A4A4A; border-radius: 4px; background: #242424; color: #F2F2F2">Technik 1 · zmień</button>
+</div>
+</header>
+
+<div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<section aria-label="Płytki" style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid #2B2B2B">
+<div style="display: flex; align-items: baseline; justify-content: space-between; padding: 16px 16px 10px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #B8B8B8">Płytki tej zmiany</h2>
+<span style="font-size: 12px; color: #9E9E9E">3</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 0 12px">
+<sc-for list="{{plates}}" as="p" hint-placeholder-count="3">
+<button type="button" style="display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 10px 12px; text-align: left; border: 1px solid {{p.border}}; border-radius: 4px; background: {{p.bg}}; color: #F2F2F2">
+<span style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+<span style="font-size: 15px; font-weight: 600">Płytka {{p.nr}}</span>
+<span style="font-size: 12px; color: #9E9E9E">{{p.time}}</span>
+</span>
+<span style="font-size: 13px; color: #B8B8B8">{{p.state}}</span>
+<span style="display: flex; gap: 12px; font-size: 12px; color: #B8B8B8">
+<span style="display: flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 50%; background: #E5484D; box-shadow: 0 0 0 1.5px #F2F2F2"></span>ubytek {{p.red}}</span>
+<span style="display: flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 50%; background: #E2B93B"></span>sprawdź {{p.yellow}}</span>
+<span style="display: flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 50%; background: #3FB46A"></span>OK {{p.green}}</span>
+</span>
+</button>
+</sc-for>
+</div>
+<div style="padding: 14px 16px">
+<button type="button" style="min-height: 34px; padding: 0 12px; border: 1px solid #3F3F3F; border-radius: 4px; background: transparent; color: #B8B8B8">Wcześniejsze zmiany (4)</button>
+</div>
+</section>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<div style="min-height: 76px; padding: 12px 20px; border-bottom: 1px solid #2B2B2B">
+<div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 14px; border: 1px solid #338CED; border-radius: 4px; background: #1D2733">
+<div style="flex: 1 1 320px; min-width: 0">
+<div style="font-weight: 600">Ponowny skan płytki 2?</div>
+<div style="font-size: 13px; color: #B8B8B8">Gniazdo 7 było czerwone bez decyzji. Zostanie czerwone, dopóki go nie ocenisz.</div>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 4px; background: #338CED; color: #0F1720; font-weight: 600">Tak, to ponowny skan</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #4A4A4A; border-radius: 4px; background: #242424; color: #F2F2F2">Nie, nowy wsad</button>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding: 16px 20px 0">
+<h1 style="margin: 0; font-size: 20px; font-weight: 600">Płytka 2</h1>
+<span style="color: #B8B8B8">skan z 21:14 · okrągła wieczorna · do obejrzenia: 3</span>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px 40px; padding: 16px 20px 20px">
+<div style="max-width: 100%; overflow-x: auto">
+<div style="position: relative; width: 440px; height: 440px">
+<div aria-hidden="true" style="position: absolute; left: 10px; top: 10px; width: 420px; height: 420px; border-radius: 50%; background: #242424; border: 1px solid #4A4A4A"></div>
+<div aria-hidden="true" style="position: absolute; left: 338px; top: 338px; width: 120px; height: 60px; background: #191919; transform: rotate(-45deg); transform-origin: center"></div>
+<sc-for list="{{sockets}}" as="s" hint-placeholder-count="19">
+<button type="button" aria-label="{{s.aria}}" onClick="{{s.pick}}" style="position: absolute; left: {{s.left}}px; top: {{s.top}}px; width: {{s.w}}px; height: {{s.h}}px; padding: 0; border-radius: {{s.radius}}; border: {{s.border}}; background: {{s.bg}}; color: {{s.fg}}; font-size: 13px; font-weight: 600; box-shadow: {{s.ring}}">{{s.n}}</button>
+</sc-for>
+<div style="position: absolute; left: 0; right: 0; bottom: -2px; text-align: center; font-size: 11px; letter-spacing: 0.08em; color: #9E9E9E">PRZÓD PŁYTKI</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; min-width: 180px">
+<div style="font-size: 13px; font-weight: 600; color: #B8B8B8">Na tej płytce</div>
+<sc-for list="{{legend}}" as="l" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 10px">
+<span aria-hidden="true" style="width: 14px; height: 14px; border-radius: 50%; background: {{l.bg}}; border: {{l.border}}; box-shadow: {{l.ring}}"></span>
+<span style="flex: 1 1 auto">{{l.name}}</span>
+<span style="color: #B8B8B8">{{l.count}}</span>
+</div>
+</sc-for>
+<div style="margin-top: 6px; font-size: 13px; color: #9E9E9E">Poza gniazdami: 0</div>
+</div>
+</div>
+
+<section aria-label="Do dofrezowania" style="margin-top: auto; border-top: 1px solid #2B2B2B">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 20px">
+<h2 style="margin: 0; font-size: 14px; font-weight: 600">Do dofrezowania <span style="color: #B8B8B8; font-weight: 400">· 3</span></h2>
+<div role="group" aria-label="Zakres listy" style="display: flex; border: 1px solid #4A4A4A; border-radius: 4px; overflow: hidden">
+<button type="button" aria-pressed="true" style="min-height: 30px; padding: 0 12px; border: 0; background: #3A3A3A; color: #F2F2F2">Ta doba</button>
+<button type="button" aria-pressed="false" style="min-height: 30px; padding: 0 12px; border: 0; background: transparent; color: #B8B8B8">Wszystkie otwarte</button>
+</div>
+<div style="flex: 1 1 0"></div>
+<span style="font-size: 12px; color: #9E9E9E">Zapisano do pliku o 21:15</span>
+</div>
+<div style="overflow-x: auto; padding: 0 20px 16px">
+<table style="width: 100%; min-width: 520px; font-size: 13px">
+<thead>
+<tr style="color: #9E9E9E; text-align: left">
+<th scope="col" style="padding: 6px 12px 6px 0; font-weight: 500; border-bottom: 1px solid #3F3F3F">Kuweta</th>
+<th scope="col" style="padding: 6px 12px; font-weight: 500; border-bottom: 1px solid #3F3F3F">Ząb</th>
+<th scope="col" style="padding: 6px 12px; font-weight: 500; border-bottom: 1px solid #3F3F3F">Krążek</th>
+<th scope="col" style="padding: 6px 12px; font-weight: 500; border-bottom: 1px solid #3F3F3F">Płytka</th>
+<th scope="col" style="padding: 6px 12px; font-weight: 500; border-bottom: 1px solid #3F3F3F">Gniazdo</th>
+<th scope="col" style="padding: 6px 0 6px 12px; font-weight: 500; border-bottom: 1px solid #3F3F3F">Zmiana</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+<tr>
+<td style="padding: 8px 12px 8px 0; border-bottom: 1px solid #2B2B2B">{{r.kuweta}}</td>
+<td style="padding: 8px 12px; border-bottom: 1px solid #2B2B2B">{{r.zab}}</td>
+<td style="padding: 8px 12px; border-bottom: 1px solid #2B2B2B">{{r.krazek}}</td>
+<td style="padding: 8px 12px; border-bottom: 1px solid #2B2B2B">{{r.plytka}}</td>
+<td style="padding: 8px 12px; border-bottom: 1px solid #2B2B2B">{{r.gniazdo}}</td>
+<td style="padding: 8px 0 8px 12px; border-bottom: 1px solid #2B2B2B; color: #B8B8B8">{{r.zmiana}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+
+<aside aria-label="Praca" style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; background: #303030; border-left: 1px solid #3F3F3F">
+<div style="padding: 16px 20px 14px; border-bottom: 1px solid #3F3F3F">
+<div style="font-size: 13px; color: #B8B8B8">Płytka 2 · gniazdo {{sel.n}}</div>
+<div style="display: flex; align-items: center; gap: 10px; margin-top: 8px">
+<span style="display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: 3px; background: {{sel.bg}}; color: #111111; font-weight: 600; letter-spacing: 0.02em">{{sel.label}}</span>
+<span style="font-size: 13px; color: #B8B8B8">{{sel.opis}}</span>
+</div>
+</div>
+<dl style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 16px 20px; border-bottom: 1px solid #3F3F3F">
+<div><dt style="font-size: 12px; color: #B8B8B8">Kuweta</dt><dd style="margin: 2px 0 0; font-size: 18px; font-weight: 600">{{sel.kuweta}}</dd></div>
+<div><dt style="font-size: 12px; color: #B8B8B8">Ząb</dt><dd style="margin: 2px 0 0; font-size: 18px; font-weight: 600">{{sel.zab}}</dd></div>
+<div><dt style="font-size: 12px; color: #B8B8B8">Krążek</dt><dd style="margin: 2px 0 0; font-size: 18px; font-weight: 600">{{sel.krazek}}</dd></div>
+</dl>
+<div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; gap: 12px"><span style="color: #B8B8B8">Największy ubytek</span><span style="font-weight: 600">{{sel.ubytek}}</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px"><span style="color: #B8B8B8">Liczba ubytków</span><span style="font-weight: 600">{{sel.ile}}</span></div>
+<div style="display: flex; align-items: center; justify-content: center; height: 190px; border: 1px dashed #5A5A5A; border-radius: 4px; background: #242424; color: #B8B8B8; font-size: 13px">Obraz odchyłek pracy</div>
+<div style="font-size: 12px; color: #B8B8B8">Czerwone: materiału brakuje · niebieskie: materiału za dużo · kółko: miejsce ubytku</div>
+</div>
+<div style="margin-top: auto; padding: 16px 20px 20px; border-top: 1px solid #3F3F3F; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; color: #B8B8B8">{{sel.decyzja}}</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button type="button" onClick="{{markU}}" style="display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 14px; border: 0; border-radius: 4px; background: #E5484D; color: #111111; font-size: 15px; font-weight: 600">Ukruszona<span aria-hidden="true" style="padding: 1px 7px; border: 1px solid #111111; border-radius: 3px; font-size: 12px">U</span></button>
+<button type="button" onClick="{{markOk}}" style="display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 14px; border: 1px solid #6A6A6A; border-radius: 4px; background: #242424; color: #F2F2F2; font-size: 15px; font-weight: 600">OK<span aria-hidden="true" style="padding: 1px 7px; border: 1px solid #8A8A8A; border-radius: 3px; font-size: 12px">O</span></button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" onClick="{{undo}}" style="flex: 1 1 130px; min-height: 44px; padding: 0 12px; border: 1px solid #4A4A4A; border-radius: 4px; background: transparent; color: #F2F2F2">Cofnij decyzję · C</button>
+<button type="button" onClick="{{next}}" style="flex: 1 1 130px; min-height: 44px; padding: 0 12px; border: 1px solid #338CED; border-radius: 4px; background: transparent; color: #9CC9F9">Następna · N</button>
+</div>
+</div>
+</aside>
+</div>
+
+<footer style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 28px; min-height: 32px; padding: 6px 20px; background: #242424; border-top: 1px solid #3F3F3F; font-size: 12px; color: #B8B8B8">
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #338CED"></span>Skaner: czekam na plik skanu</span>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #B8B8B8"></span>Analiza: nic nie czeka</span>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #338CED"></span>Projekty: 412 plików</span>
+<button type="button" style="min-height: 24px; padding: 0 8px; border: 1px solid #4A4A4A; border-radius: 3px; background: transparent; color: #B8B8B8; font-size: 12px">Odśwież</button>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E2B93B"></span>Ramki: W gotowa · P brak połączenia</span>
+<span style="flex: 1 1 0"></span>
+<span>wersja 0.3.4</span>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 7, dec: {} };
+  }
+  renderVals() {
+    const C = {
+      zielony: ['#3FB46A', 'OK', 'praca rozpoznana, program nie widzi ubytku'],
+      czerwony: ['#E5484D', 'UBYTEK', 'program wskazał ubytek przy brzegu'],
+      zolty: ['#E2B93B', 'SPRAWDŹ', 'jedna metoda wskazała to miejsce'],
+      szary: ['#8C8C8C', 'BEZ PROJEKTU', 'nie znaleziono projektu tej pracy'],
+      pusty: ['transparent', 'PUSTE', 'w gnieździe nie ma pracy'],
+      ukruszona: ['#E5484D', 'UKRUSZONA', 'decyzja technika'],
+      ok: ['#2BA89A', 'OK — ZATWIERDZONA', 'decyzja technika']
+    };
+    const st = { 3: 'czerwony', 7: 'czerwony', 11: 'zolty', 15: 'szary', 18: 'pusty' };
+    const mm = 4.2, c = 220;
+    const geo = [];
+    for (let i = 0; i < 12; i++) {
+      const a = (i * 30 + 15) * Math.PI / 180;
+      geo.push({ x: 38 * Math.cos(a), y: 38 * Math.sin(a), w: 15, h: 15, r: '50%' });
+    }
+    [-15, 0, 15].forEach((x) => geo.push({ x: x, y: -18.5, w: 12, h: 12, r: '50%' }));
+    [-15, 0, 15].forEach((x) => geo.push({ x: x, y: 18.5, w: 12, h: 12, r: '50%' }));
+    geo.push({ x: 0, y: 0, w: 56, h: 14, r: '6px' });
+    const sel = this.state.sel, dec = this.state.dec;
+    const sockets = geo.map((g, i) => {
+      const n = i + 1;
+      const key = dec[n] || st[n] || 'zielony';
+      const col = C[key];
+      const empty = key === 'pusty';
+      const red = key === 'czerwony' || key === 'ukruszona';
+      let ring = 'none';
+      if (n === sel) ring = '0 0 0 3px #191919, 0 0 0 5px #338CED';
+      else if (red) ring = '0 0 0 2px #F2F2F2';
+      return {
+        n: n, key: key, aria: 'Gniazdo ' + n + ': ' + col[1],
+        left: Math.round(c + g.x * mm - g.w * mm / 2), top: Math.round(c + g.y * mm - g.h * mm / 2),
+        w: Math.round(g.w * mm), h: Math.round(g.h * mm), radius: g.r,
+        bg: col[0], fg: empty ? '#B8B8B8' : '#111111',
+        border: empty ? '1px dashed #6A6A6A' : '0', ring: ring,
+        pick: () => this.setState({ sel: n })
+      };
+    });
+    const cur = sockets[sel - 1];
+    const col = C[cur.key];
+    const red = cur.key === 'czerwony' || cur.key === 'ukruszona';
+    const has = cur.key !== 'pusty' && cur.key !== 'szary';
+    const d = dec[sel];
+    const selv = {
+      n: sel, bg: col[0] === 'transparent' ? '#8C8C8C' : col[0], label: col[1], opis: col[2],
+      kuweta: has ? String(10 + (sel % 7)) : '—', zab: has ? String(11 + (sel * 3) % 37) : '—', krazek: has ? 'K' + (40 + sel % 4) : '—',
+      ubytek: red ? '0,42 mm' : '—', ile: red ? '2' : (has ? '0' : '—'),
+      decyzja: d ? (d === 'ukruszona' ? 'Decyzja: Ukruszona — Technik 1, 21:16' : 'Decyzja: OK — Technik 1, 21:16') : 'Brak decyzji dla tej pracy'
+    };
+    const count = (k) => sockets.filter((s) => s.key === k).length;
+    const legend = [
+      { name: 'Ubytek', bg: '#E5484D', border: '0', ring: '0 0 0 1.5px #F2F2F2', count: count('czerwony') + count('ukruszona') },
+      { name: 'Sprawdź', bg: '#E2B93B', border: '0', ring: 'none', count: count('zolty') },
+      { name: 'OK', bg: '#3FB46A', border: '0', ring: 'none', count: count('zielony') },
+      { name: 'OK — zatwierdzona', bg: '#2BA89A', border: '0', ring: 'none', count: count('ok') },
+      { name: 'Bez projektu', bg: '#8C8C8C', border: '0', ring: 'none', count: count('szary') },
+      { name: 'Puste gniazdo', bg: 'transparent', border: '1px dashed #6A6A6A', ring: 'none', count: count('pusty') }
+    ];
+    const plates = [
+      { nr: '3', time: '21:32', state: 'nowy wynik — czeka na obejrzenie', red: 1, yellow: 0, green: 17 },
+      { nr: '2', time: '21:14', state: 'do obejrzenia: 3', red: 2, yellow: 1, green: 14, on: true },
+      { nr: '1', time: '20:51', state: 'sprawdzona', red: 0, yellow: 0, green: 18 }
+    ].map((p) => ({ ...p, border: p.on ? '#338CED' : '#3F3F3F', bg: p.on ? '#1D2733' : '#242424' }));
+    const rows = [
+      { kuweta: '14', zab: '26', krazek: 'K41', plytka: '1', gniazdo: '9', zmiana: '2' },
+      { kuweta: '12', zab: '36', krazek: 'K41', plytka: '2', gniazdo: '3', zmiana: '2' },
+      { kuweta: '17', zab: '11', krazek: 'K43', plytka: '2', gniazdo: '12', zmiana: '1' }
+    ];
+    const mark = (v) => () => { const n = { ...this.state.dec }; n[this.state.sel] = v; this.setState({ dec: n }); };
+    return {
+      sockets: sockets, sel: selv, legend: legend, plates: plates, rows: rows,
+      markU: mark('ukruszona'), markOk: mark('ok'),
+      undo: () => { const n = { ...this.state.dec }; delete n[this.state.sel]; this.setState({ dec: n }); },
+      next: () => {
+        const order = sockets.filter((s) => (s.key === 'czerwony' || s.key === 'zolty') && s.n !== this.state.sel);
+        if (order.length) this.setState({ sel: order[0].n });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

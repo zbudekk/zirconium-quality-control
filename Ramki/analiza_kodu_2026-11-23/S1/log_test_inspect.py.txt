@@ -1,0 +1,493 @@
+EEEEEEEEEEE..EEEEEEEEEE...                                               [100%]
+=================================== ERRORS ====================================
+_____________ ERROR at setup of test_ubytki_z_prawdy_sa_wykrywane _____________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+________ ERROR at setup of test_ubytek_w_ukladzie_plytki_blisko_prawdy ________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+________________ ERROR at setup of test_praca_cala_bez_alarmu _________________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_____________ ERROR at setup of test_drgniecie_daje_skan_ponownie _____________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+__________ ERROR at setup of test_niskie_pokrycie_to_popraw_ulozenie __________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_poprawka_reczna_bez_ostrej_krawedzi_to_pomaranczowe __
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+________ ERROR at setup of test_brak_danych_w_skanie_nie_jest_ubytkiem ________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_____________ ERROR at setup of test_praca_bokiem_nigdy_czerwona ______________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+__________ ERROR at setup of test_progi_z_ustawien_steruja_wynikiem ___________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+______ ERROR at setup of test_wykryj_drgniecie_na_sztucznych_odchylkach _______
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+________________ ERROR at setup of test_plamy_ostra_vs_lagodna ________________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+________________ ERROR at setup of test_json_wyniku_bez_tablic ________________
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+___ ERROR at setup of test_pas_od_linii_obejmuje_brzeg_ponizej_plaszczyzny ____
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+__ ERROR at setup of test_tryb_sumy_pasow_obejmuje_brzeg_gleboki_i_stary_pas __
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_____ ERROR at setup of test_praca_cala_z_glebokim_brzegiem_jest_zielona ______
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+___ ERROR at setup of test_brak_danych_przy_linii_brzegu_to_nie_sprawdzono ____
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_brak_danych_i_ukruszenie_obok_nigdy_czerwone_z_braku_danych _
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_linia_projektu_niepewna_albo_brak_linii_to_nie_sprawdzono _
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_projekt_bez_linii_z_wcieciem_w_trybie_sumy_dziala_jak_przed_p2 _
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_____ ERROR at setup of test_filar_z_niecka_bez_linii_nie_znika_po_cichu ______
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+_ ERROR at setup of test_prace_bokiem_i_czesciowe_nie_sa_zielone_bez_sprawdzonego_brzegu _
+
+    @pytest.fixture(scope="module")
+    def ust():
+>       return UST.wczytaj_ustawienia()
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+
+testy\test_inspect.py:19: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+plik = WindowsPath('<PC-katalog>/qc-wt/analiza-s1/Ramki/stanowisko/ustawienia.toml')
+
+    def wczytaj_ustawienia(plik: Path | None = None) -> dict:
+        """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
+        plik = Path(plik) if plik is not None else PLIK_USTAWIEN
+        if not plik.exists():
+>           raise FileNotFoundError(
+                f"brak pliku ustawień: {plik} — skopiuj {PLIK_PRZYKLADU.name} jako {PLIK_USTAWIEN.name} i uzupełnij ścieżki"
+            )
+E           FileNotFoundError: brak pliku ustawień: <PC-katalog>\qc-wt\analiza-s1\Ramki\stanowisko\ustawienia.toml — skopiuj ustawienia.przyklad.toml jako ustawienia.toml i uzupełnij ścieżki
+
+stanowisko\ustawienia.py:352: FileNotFoundError
+============================= slowest 5 durations =============================
+1.02s call     testy/test_inspect.py::test_polozenie_ubytku_starej_prawdy_z_linii_projektu
+0.81s setup    testy/test_inspect.py::test_pas_od_linii_obejmuje_brzeg_ponizej_plaszczyzny
+0.43s setup    testy/test_inspect.py::test_ubytki_z_prawdy_sa_wykrywane
+
+(2 durations < 0.005s hidden.  Use -vv to show these durations.)
+=========================== short test summary info ===========================
+ERROR testy/test_inspect.py::test_ubytki_z_prawdy_sa_wykrywane - FileNotFound...
+ERROR testy/test_inspect.py::test_ubytek_w_ukladzie_plytki_blisko_prawdy - Fi...
+ERROR testy/test_inspect.py::test_praca_cala_bez_alarmu - FileNotFoundError: ...
+ERROR testy/test_inspect.py::test_drgniecie_daje_skan_ponownie - FileNotFound...
+ERROR testy/test_inspect.py::test_niskie_pokrycie_to_popraw_ulozenie - FileNo...
+ERROR testy/test_inspect.py::test_poprawka_reczna_bez_ostrej_krawedzi_to_pomaranczowe
+ERROR testy/test_inspect.py::test_brak_danych_w_skanie_nie_jest_ubytkiem - Fi...
+ERROR testy/test_inspect.py::test_praca_bokiem_nigdy_czerwona - FileNotFoundE...
+ERROR testy/test_inspect.py::test_progi_z_ustawien_steruja_wynikiem - FileNot...
+ERROR testy/test_inspect.py::test_wykryj_drgniecie_na_sztucznych_odchylkach
+ERROR testy/test_inspect.py::test_plamy_ostra_vs_lagodna - FileNotFoundError:...
+ERROR testy/test_inspect.py::test_json_wyniku_bez_tablic - FileNotFoundError:...
+ERROR testy/test_inspect.py::test_pas_od_linii_obejmuje_brzeg_ponizej_plaszczyzny
+ERROR testy/test_inspect.py::test_tryb_sumy_pasow_obejmuje_brzeg_gleboki_i_stary_pas
+ERROR testy/test_inspect.py::test_praca_cala_z_glebokim_brzegiem_jest_zielona
+ERROR testy/test_inspect.py::test_brak_danych_przy_linii_brzegu_to_nie_sprawdzono
+ERROR testy/test_inspect.py::test_brak_danych_i_ukruszenie_obok_nigdy_czerwone_z_braku_danych
+ERROR testy/test_inspect.py::test_linia_projektu_niepewna_albo_brak_linii_to_nie_sprawdzono
+ERROR testy/test_inspect.py::test_projekt_bez_linii_z_wcieciem_w_trybie_sumy_dziala_jak_przed_p2
+ERROR testy/test_inspect.py::test_filar_z_niecka_bez_linii_nie_znika_po_cichu
+ERROR testy/test_inspect.py::test_prace_bokiem_i_czesciowe_nie_sa_zielone_bez_sprawdzonego_brzegu
+5 passed, 21 errors in 3.14s
