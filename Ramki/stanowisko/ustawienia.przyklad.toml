@@ -94,7 +94,7 @@ odswiez_co_min = 5.0                # co ile minut program czyta kolumny A-I ark
 maks_wiek_dni = 60                  # wiersz wybrany regulami starszy niz tyle dni (albo bez daty w A) = "Excel: wskaz wiersz"; 0 = bez limitu; liczba do potwierdzenia na kopii pliku (D2)
 
 [ramki]
-wlaczone = true                     # opcjonalny (E3-R1): false = program pracuje bez ramek (nie laczy sie z nimi, pasek stanu: "Ramki: wylaczone"); instalator wpisuje false przy NOWEJ instalacji; aby wlaczyc ramki: wpisz true (albo usun ten wiersz) i uruchom program ponownie
+wlaczone = true                     # opcjonalny (E3-R1): false = program pracuje bez ramek (nie laczy sie z nimi, pasek stanu: "Ramki: wylaczone"); instalator wpisuje false przy NOWEJ instalacji; aby wlaczyc ramki: zmien false na true w tym wierszu (albo usun ten wiersz; nie dopisuj drugiego) i uruchom program ponownie
 port = 8765
 wieczorna_host = "ramka-w.local"
 poranna_host = "ramka-p.local"

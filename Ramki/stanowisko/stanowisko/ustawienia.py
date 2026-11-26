@@ -353,6 +353,26 @@ def _waliduj(d: dict, plik: Path) -> dict:
     return d
 
 
+def _blad_dubla(plik: Path, e: tomllib.TOMLDecodeError) -> str | None:
+    """E3-R1 runda 2: ten sam klucz wpisany w sekcji drugi raz (np. dopisany ``wlaczone = true`` pod ``wlaczone = false``; TOML:
+    "Cannot overwrite a value") - zdanie po polsku z plikiem, sekcją, kluczem i wierszem. None = inny błąd (komunikat jak dotąd)."""
+    m = re.match(r"Cannot overwrite a value \(at line (\d+), column \d+\)", str(e))
+    if m is None:
+        return None
+    nr = int(m.group(1))
+    try:
+        wiersze = plik.read_text(encoding="utf-8-sig").split("\n")  # numer wiersza jak w tomllib (tylko "\n" kończy wiersz)
+    except (OSError, UnicodeError):
+        return None
+    if not 1 <= nr <= len(wiersze) or "=" not in wiersze[nr - 1]:
+        return None
+    klucz = wiersze[nr - 1].split("=", 1)[0].strip()
+    sekcja = next((s.group(1).strip() for w in reversed(wiersze[:nr - 1]) if (s := re.match(r"\s*\[([^\[\]]+)\]", w))), None)
+    nazwa = f"[{sekcja}] {klucz}" if sekcja else klucz
+    return (f"{plik.name}: {nazwa}: klucz wpisany drugi raz (wiersz {nr}) — w sekcji może być tylko jeden wiersz {klucz} = ...; "
+            f"usuń wiersz {nr} i zmień wartość w pierwszym wierszu {klucz}")
+
+
 def wczytaj_ustawienia(plik: Path | None = None) -> dict:
     """Wczytuje i sprawdza plik ustawień (domyślnie ``ustawienia.toml`` w katalogu programu)."""
     plik = Path(plik) if plik is not None else PLIK_USTAWIEN
@@ -364,7 +384,7 @@ def wczytaj_ustawienia(plik: Path | None = None) -> dict:
         with open(plik, "rb") as f:
             d = tomllib.load(f)
     except tomllib.TOMLDecodeError as e:
-        raise BladUstawien(f"{plik.name}: błąd składni TOML: {e}") from e
+        raise BladUstawien(_blad_dubla(plik, e) or f"{plik.name}: błąd składni TOML: {e}") from e
     uzupelnij_domyslne(d)
     osoby = d.get("sesja", {}).get("operatorzy") if isinstance(d.get("sesja"), dict) else None
     if isinstance(osoby, list):  # nazwy osób bez białych znaków na końcach (inaczej osoby z listy nie da się wybrać)

@@ -35,8 +35,9 @@ Paczki bez katalogu `python` (wydania do 0.3.3) wymagaja Pythona 3.12 w systemie
    pozniej - w tym pliku (Notatnik, zapis "UTF-8") i `Samokontrola.cmd`.
 9. Ramki: instalacja z okna sprawdza program bez proby polaczenia z ramkami i przy NOWEJ instalacji wpisuje `[ramki] wlaczone =
    false` (E3-R1) - program pracuje bez ramek (pasek stanu "Ramki: wylaczone", samokontrola: wiersze ramek OK "wylaczone w
-   ustawieniach"); aktualizacja tego wiersza nie zmienia. Aby wlaczyc ramki, wpisz w `C:\Stanowisko\ustawienia.toml` w sekcji `[ramki]`
-   `wlaczone = true` (Notatnik, zapis "UTF-8") i uruchom program ponownie.
+   ustawieniach"); aktualizacja tego wiersza nie zmienia. Aby wlaczyc ramki, w `C:\Stanowisko\ustawienia.toml` w sekcji `[ramki]`
+   zmien `wlaczone = false` na `wlaczone = true` (Notatnik, zapis "UTF-8"; nie dopisuj drugiego wiersza `wlaczone` - z dwoma
+   program nie wystartuje) i uruchom program ponownie.
 
 **Aktualizacja w oknie:** to samo z nowej paczki i to samo miejsce instalacji. Okno rozpozna istniejacy program (napis "W tym
 folderze jest juz program..."): foldery i osoby pokazuje z dotychczasowych ustawien i ich nie zmienia; dane i baza zostaja.
