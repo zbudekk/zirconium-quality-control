@@ -7,6 +7,9 @@ i zrzuty sa gotowe i zacommitowane; zostaly: odczyt / rozstrzygniecie pelnego py
 i PR (p. (c)). Dane w testach i na zrzutach wylacznie sztuczne (`AtrapaKontrolera`). Okna NIE uruchomiono na prawdziwym
 ekranie - testy i zrzuty: Qt bez ekranu (`offscreen`) na PC.
 
+**Stan w chwili przekazania (23.11, 21:38): wynik pelnego pytest jest NIEZNANY - PC przestal odpowiadac w trakcie biegu
+(szczegoly w p. (b)); PC musi wlaczyc czlowiek, potem trzeba odczytac log albo powtorzyc bieg.**
+
 Galaz: `e3/u1-okno` od `main` `b856b9e`. Istnieje TYLKO lokalnie w repozytorium MSI (`<MSI>\kod\qc`,
 worktree `<MSI>\kod\qc\.claude\worktrees\agent-a222ba7b8e58dddaa`); NIE jest wypchnieta, PR nie ma.
 
@@ -92,9 +95,9 @@ jeden proces python naraz). Kopia robocza `<PC-katalog>\e3\u1\`: drzewo commita 
 MSI = PC); kopia nie jest repozytorium git. **`ustawienia.toml` w tej kopii = kopia `ustawienia.przyklad.toml`** (pliku nie
 ma w repozytorium).
 
-**Pelny pytest (`testy`, raz na koncu): NIE ZAKONCZONY w chwili zapisu tego pliku.** Odniesienie `main`: 2506 passed / 9 skipped.
+**Pelny pytest (`testy`, raz na koncu): WYNIK NIEZNANY - bieg nie zostal odczytany, bo PC przestal odpowiadac.** Odniesienie `main`: 2506 passed / 9 skipped.
 
-Bieg ruszyl 23.11 o 20:06 na pelnej kopii (drzewo commita `8e2a20d`); o 20:15 mial 19 % i zadnego wiersza z "F" ani "E" w logu. Log na PC: `<PC-katalog>\e3\u1\log_pelny.txt` (ostatni wiersz = wynik). Biegu nie wolno przerywac ani uruchamiac drugiego procesu python obok niego.
+[usunieto w kopii: opis dostepu ssh]
 
 Biegi plikow w trakcie pracy (ostatni bieg kazdego pliku):
 
@@ -124,7 +127,7 @@ Higiena (T13, `Ramki/etap3/odbior_koncowy/narzedzia/t13_higiena.py --od b856b9e 
 
 ## (c) NIEZROBIONE z zakresu U1a - w kolejnosci wykonania
 
-1. **Pelny pytest - wynik koncowy.** Bieg trwa (p. (b)). Po zakonczeniu odczytac koniec logu `<PC-katalog>\e3\u1\log_pelny.txt` (polecenie w p. (f) 4). Wymagane 0 failed; odniesienie `main`: 2506 passed / 9 skipped - na galezi testow jest wiecej (doszly `test_ui_okno.py` 36 i `test_ui_motyw.py` 21, `test_ui_wieczor.py` ma 91). Gdy cos padnie: najpierw powtorzyc sam plik na spokojnym PC (testy silnika i pomiaru czasu padaja pod obciazeniem - `JAK_PRACOWAC_MSI_PC.md` p. 4), dopiero potem szukac bledu.
+1. **Pelny pytest - wynik koncowy.** Wynik nieznany - PC przestal odpowiadac w trakcie biegu (p. (b)). Po wlaczeniu PC przez czlowieka: odczytac koniec logu `<PC-katalog>\e3\u1\log_pelny.txt` (polecenie w p. (f) 4); gdy nie ma w nim wiersza podsumowania - powtorzyc pelny bieg. Wymagane 0 failed; odniesienie `main`: 2506 passed / 9 skipped - na galezi testow jest wiecej (doszly `test_ui_okno.py` 36 i `test_ui_motyw.py` 21, `test_ui_wieczor.py` ma 91). Gdy cos padnie: najpierw powtorzyc sam plik na spokojnym PC (testy silnika i pomiaru czasu padaja pod obciazeniem - `JAK_PRACOWAC_MSI_PC.md` p. 4), dopiero potem szukac bledu.
 2. **Raport koncowy** `Ramki/stanowisko/raporty/E3-U1a_2026-11-<dzien>.md` (zlecenie, "Zakonczenie" p. 2): co powstalo, obie
    tabele, wyniki testow (liczby), lista zrzutow, braki kontraktu, lista zmienionych tekstow ekranu, co zostalo na U1b.
    Caly material jest w tym pliku (p. (a), (b), (e), (g) i "Pozostaly material") - wystarczy go przeniesc i dopisac
@@ -161,7 +164,7 @@ Bledow w dzialaniu nowego okna nie znam (wszystkie biegi plikow testow: 0 failed
    skalowanie Windows 125 % / 150 % na prawdziwym monitorze (sprawdzone tylko rozmiarem okna w punktach i `QT_SCALE_FACTOR`
    1,25 / 1,5), wysokosc paska zadan i belki tytulu okna zmaksymalizowanego (przyjete jak dotad), czytelnosc barw na
    monitorze stanowiska.
-2. **Pelny pytest**: w chwili zapisu nie zakonczony (stan w p. (b)); wszystkie pliki testow okna i pliki z nim zwiazane przeszly osobno (0 failed), ale wynik calosci nie jest jeszcze znany.
+2. **Pelny pytest**: wynik nieznany (PC przestal odpowiadac w trakcie biegu - p. (b)); wszystkie pliki testow okna i pliki z nim zwiazane przeszly osobno (0 failed), ale calosc NIE jest potwierdzona. Paczki nie wolno uznac za sprawdzona pelnym pytest.
 3. **Kopia robocza na PC nie jest repozytorium git** (drzewo commita bazowego + pliki zmienione). Gdyby jakis test korzystal
    z `git`, moze sie w niej zachowac inaczej niz w klonie; pokaze to pelny pytest (odniesienie `main`: 2506 passed / 9 skipped).
 4. **Narzedzia odbioru koncowego nie sa dostosowane i nie byly uruchomione** (poza zakresem paczki, nie da sie ich sprawdzic bez

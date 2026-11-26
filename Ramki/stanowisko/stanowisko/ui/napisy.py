@@ -92,6 +92,8 @@ MAPA_GODZINA = "skan z {godzina}"
 KROPKA = " · "  # E3-U1a: odstep czesci opisu skanu pod numerem plytki ("skan z 19:05 · przeanalizowana · do obejrzenia: 3")
 # E3-U1a (S3-14): w czasie analizy nowego skanu mapa na ekranie jest mapa POPRZEDNIEJ plytki - oznaczona i przygaszona
 MAPA_POPRZEDNIA = "POPRZEDNIA PŁYTKA — wynik nowego skanu nie jest jeszcze gotowy"
+# recenzja PR #62 (P1): wynik nowego skanu juz jest, a ekran zostal na poprzedniej plytce (A-P2 / S3-3) - znak zostaje
+MAPA_POPRZEDNIA_NOWY_WYNIK = "POPRZEDNIA PŁYTKA — nowy wynik czeka: „Pokaż nowy wynik”"
 MAPA_PRZOD = "PRZÓD PŁYTKI"
 MAPA_BEZ_GNIAZD = "Płytka {napis}."
 LEGENDA = "Na tej płytce"

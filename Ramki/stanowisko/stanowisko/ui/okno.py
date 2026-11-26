@@ -412,11 +412,22 @@ class OknoStanowiska(QWidget):
         """S3-14: program ma skan, ktorego wyniku jeszcze nie pokazal (analiza trwa albo skan czeka w kolejce)."""
         return stan.analiza is not None or stan.kolejka.razem > 0
 
+    def _nowszy_wynik_czeka(self, stan, plytka) -> bool:
+        """Recenzja PR #62 (P1): wsrod plytek, na ktore ekran sie nie przelaczyl, jest skan nowszy niz pokazany (kolejnosc
+        ``stan.plytki`` = kolejnosc skanow) - takze ponowny skan plytki o tym samym numerze."""
+        numery = [p.skan_id for p in stan.plytki]
+        if plytka.skan_id not in numery:
+            return False
+        return any(n in self._nieobejrzane for n in numery[numery.index(plytka.skan_id) + 1:])
+
     def _oznacz_poprzednia(self, stan, plytka) -> None:
         """S3-14: gdy wynik nowego skanu nie jest jeszcze gotowy, mapa na ekranie jest mapa POPRZEDNIEJ plytki - znak w naglowku
-        plytki i przygaszona mapa (klikniecia dzialaja: technik moze konczyc poprzednia plytke)."""
-        poprzednia = plytka is not None and self._nowy_skan_w_drodze(stan)
+        plytki i przygaszona mapa (klikniecia dzialaja: technik moze konczyc poprzednia plytke). Recenzja PR #62 (P1): znak
+        zostaje takze po przyjsciu wyniku, gdy ekran zostal na poprzedniej plytce - do pokazania nowego wyniku."""
+        czeka = plytka is not None and self._nowszy_wynik_czeka(stan, plytka)
+        poprzednia = plytka is not None and (czeka or self._nowy_skan_w_drodze(stan))
         self.mapa.oznacz_poprzednia(poprzednia)
+        self.znak_poprzedniej.setText(N.MAPA_POPRZEDNIA_NOWY_WYNIK if czeka else N.MAPA_POPRZEDNIA)
         self.znak_poprzedniej.setVisible(poprzednia)
 
     def ochrona_nakladek_aktywna(self) -> bool:
