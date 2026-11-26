@@ -1,7 +1,7 @@
 # Dzien testu 28.11.2026 - laptop i skaner (program 0.3.9-rc2)
 
 Dla wlasciciela, do wydruku razem z arkuszem `ARKUSZ_LAPTOP_I_SKANER.md` (numery A1-D2 sa te same). Na ten dzien
-zastepuje dokument "Pierwsze testy na prawdziwym sprzecie"; numery w nawiasach, np. (2.3), to kroki tamtego dokumentu.
+zastepuje dokument `PIERWSZE_TESTY_NA_SPRZECIE.md` (stary dokument); numery w nawiasach, np. (2.3), to kroki tamtego dokumentu.
 
 - W cudzyslowie "..." stoja napisy naszego programu, slowo w slowo (na ekranie sa z polskimi literami). Kursywa to
   napisy Windows albo programu skanera. Kazdy napis sprawdzono 26.11 na instalacji z paczki `Stanowisko_0.3.9-rc2.zip`.
@@ -77,8 +77,9 @@ plytki nr 8 na ksztalt (2.5a) - tylko gdy zostanie czas. Potem zamknij okno "Dzi
 
 **B4 (2.7 i proba f). Program "Stanowisko" na prawdziwych skanach** (30 minut). W `C:\Skany_test` leza juz skany z B2-B3.
 Ikona "Stanowisko", osoba `Tester`. Program sam bierze kazdy skan, ktorego jeszcze nie liczyl - takze te sprzed
-startu (proba f): komunikat "Program wznowil prace" i "Po ponownym uruchomieniu program dokancza zalegle skany: ...";
-na pasku "Analiza:". Pytania "Przelicz / Pomin" w tej wersji jeszcze nie ma - zapisz tylko, ile minut liczyl.
+startu (proba f): po lewej kafelek na kazdy skan, na pasku "Analiza:"; wsrod komunikatow "Program wznowil prace" -
+"Po ponownym uruchomieniu program dokancza zalegle skany: ..." (komunikaty sa pokazywane po jednym; nastepny pokazuje
+przycisk "i jeszcze ..."). Pytania, czy przeliczyc stare skany, w tej wersji jeszcze nie ma - zapisz, ile minut liczyl.
 Potem nowa plytka nr 8 z pracami: zapisz skan i wlacz stoper. Dobrze: po lewej kafelek "Plytka 8", w srodku mapa
 (zatrzymaj stoper). Nie odczytal numeru: pytanie "Podaj numer plytki" - kliknij 8. Kolory prac porownaj z kartka:
 "OK" zielone, "UBYTEK" czerwone, "sprawdz" zolte, "bez projektu" szare (brak STL tej pracy w folderze projektow).
@@ -86,7 +87,7 @@ Potem nowa plytka nr 8 z pracami: zapisz skan i wlacz stoper. Dobrze: po lewej k
 
 | Widzisz | Zrob |
 |---|---|
-| "Analiza skanu nie powiodla sie" | przepisz tekst w nawiasie, np. "w skanie widac 1 z 3 znacznikow plytki ..."; przy "0 z 3" najpierw sprawdz stolik w skanie (B2) |
+| "Analiza skanu nie powiodla sie" | przepisz tekst w nawiasie, np. "w skanie widac 0 z 3 znacznikow plytki ..." (przy 0 z 3 najpierw sprawdz stolik w skanie, B2) |
 | "Plytka nie pasuje do ukladu" | zdjecie, arkusz; plytke ustaw na srodku pola |
 | "Ponowny skan tej samej plytki?" | to ta sama plytka bez zmian: "Tak, to ponowny skan"; inne prace: "Nie, to nowy wsad" |
 | "Nowy wynik czeka: ..." | ekran zostal na poprzedniej plytce - kliknij "Pokaz nowy wynik" |
@@ -130,13 +131,13 @@ Nie wychodzi: niczego nie kasuj, skopiuj caly folder sesji z data i godzina na p
 Czego prototyp jeszcze nie robi (do powiedzenia wprost): Ramki z diodami sa w programie wylaczone, bo ich elektroniki
 jeszcze nie ma - dzis prace rozklada sie wedlug ekranu. Program pierwszy raz widzi prawdziwy skaner, wiec rozpoznanie
 plytki i kolory prac moga sie jeszcze mylic, a rano bez folderow zlecen i bez Excela nie podpowie numerow kuwet - po
-to jest ten dzien. Po starcie program sam przelicza wszystkie wczesniejsze skany z folderu (pytanie "przeliczyc czy
-pominac" bedzie w nastepnej wersji), a jeden komunikat o numerze plytki wspomina jeszcze ramke, choc ramki sa wylaczone.
+to jest ten dzien. Po starcie program sam przelicza wszystkie wczesniejsze skany z folderu (pytanie, czy przeliczac
+stare skany, bedzie w nastepnej wersji), a jeden komunikat o numerze plytki wspomina jeszcze ramke, choc ramki sa wylaczone.
 
 ## D. Co zapisac i co przywiezc
 
 **D1. Na kartce / w arkuszu:** godziny skanow, numer plytki, ktore gniazdo i jaki ubytek (B3, B5), co pokazal ekran
-(kolor, napis), czasy ze stopera, zdjecia ekranu telefonem przy kazdym "inaczej niz w dokumencie". Bez nazwisk pacjentow.
+(kolor, napis), czasy ze stopera, zdjecia ekranu telefonem przy kazdym kroku, ktory poszedl inaczej niz w dokumencie. Bez nazwisk pacjentow.
 
 **D2. Na pendrive:** plik ZIP z "Zakoncz i spakuj" (folder `paczka\` sesji z B6); caly folder `C:\Skany_test`;
 folder `C:\Sprzet_testy\wyniki` (gdy byly kroki 2.4 / 2.5a); zdjecia telefonu; wypelniony arkusz (zdjecie kazdej

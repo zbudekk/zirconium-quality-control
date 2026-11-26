@@ -1,7 +1,7 @@
 # Arkusz - dzien testu 28.11.2026, laptop i skaner (program 0.3.9-rc2)
 
 Wydrukuj i wypelniaj dlugopisem. Numery jak w dokumencie `DZIEN_TESTU_LAPTOP_I_SKANER.md`. Bez nazwisk pacjentow.
-Puste pole = "nie robilem". Cos poszlo inaczej niz w dokumencie - zapisz JAK (to najcenniejsze).
+Puste pole = nie robilem. Cos poszlo inaczej niz w dokumencie - zapisz JAK (to najcenniejsze).
 
 Data: ...........  Kto: ......................  Laptop (Windows 10 / 11): ................  Skaner: ..............
 
