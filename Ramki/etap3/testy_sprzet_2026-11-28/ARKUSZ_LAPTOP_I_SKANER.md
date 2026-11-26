@@ -60,6 +60,7 @@ Data: ...........  Kto: ......................  Laptop (Windows 10 / 11): ......
 ## D. Przywiezione
 
   [ ] ZIP z "Zakoncz i spakuj"  [ ] caly `C:\Skany_test`  [ ] `C:\Sprzet_testy\wyniki`  [ ] zdjecia  [ ] ten arkusz
+  [ ] `C:\Stanowisko\dane` (tylko nazwy STL bez nazwisk)  [ ] dane zostaly na laptopie, bo: ..............................
 
 ## Uwagi / co poszlo inaczej
 

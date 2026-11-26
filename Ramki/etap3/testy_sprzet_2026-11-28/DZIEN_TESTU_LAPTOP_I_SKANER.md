@@ -13,7 +13,8 @@ zastepuje dokument `PIERWSZE_TESTY_NA_SPRZECIE.md` (stary dokument); numery w na
 
 **A1. Dwa foldery na laptopie.** Zaloz pusty `C:\Skany_test` (tu program skanera bedzie zapisywal skany) i
 `C:\Projekty_STL` (skopiuj tu pliki STL z exocad prac, ktore jutro zeskanujesz - wszystkie w tym jednym folderze).
-Nazwa folderu projektow bez cyfr: program czyta liczbe z nazwy folderu jako numer kuwety.
+Nazwa folderu projektow bez cyfr: program czyta liczbe z nazwy folderu jako numer kuwety. Plik z nazwiskiem pacjenta
+w nazwie: zmien nazwisko na TEST1, TEST2... (koncowke, np. `-11-crown_cad.stl`, zostaw - program czyta z niej zab i typ).
 
 **A2. Pendrive:** rozpakowana paczka (folder z plikiem `Instaluj.cmd`) i folder `testy_sprzet_2026-11-28`.
 Skopiuj ten drugi na laptop jako `C:\Sprzet_testy` (narzedzie `pole_skanu.cmd` do krokow 2.4 i 2.5a).
@@ -140,6 +141,7 @@ stare skany, bedzie w nastepnej wersji), a jeden komunikat o numerze plytki wspo
 (kolor, napis), czasy ze stopera, zdjecia ekranu telefonem przy kazdym kroku, ktory poszedl inaczej niz w dokumencie. Bez nazwisk pacjentow.
 
 **D2. Na pendrive:** plik ZIP z "Zakoncz i spakuj" (folder `paczka\` sesji z B6); caly folder `C:\Skany_test`;
-folder `C:\Sprzet_testy\wyniki` (gdy byly kroki 2.4 / 2.5a); zdjecia telefonu; wypelniony arkusz (zdjecie kazdej
-strony). Liczby z wnetrza programu (odstep punktow skanu, pierscien brzegu i podobne) odczyta potem sesja z tych plikow -
+folder `C:\Sprzet_testy\wyniki` (gdy byly kroki 2.4 / 2.5a); folder wynikow programu `C:\Stanowisko\dane` - tylko gdy
+nazwy plikow w `C:\Projekty_STL` sa bez nazwisk (baza zapisuje nazwy plikow projektow); zdjecia telefonu; wypelniony
+arkusz (zdjecie kazdej strony). Liczby z wnetrza programu (odstep punktow skanu, pierscien brzegu i podobne) odczyta potem sesja z tych plikow -
 na miejscu wystarczy kartka.
