@@ -297,7 +297,7 @@ def sprawdz_pythona(python: Path, wymagana: str = "3.12") -> str:
             "(albo zmienna STANOWISKO_PYTHON). Niczego nie zmieniono.")
     kod = "import sys, struct, venv, ensurepip; print('%d.%d.%d %d' % (sys.version_info[:3] + (struct.calcsize('P') * 8,)))"
     try:
-        wynik = uruchom([python, "-I", "-c", kod], limit_s=60)
+        wynik = uruchom([python, "-I", "-B", "-c", kod], limit_s=60)  # -B: bez __pycache__ w paczce (Python z paczki)
     except (OSError, subprocess.TimeoutExpired) as e:
         raise BladInstalacji(KOD_PYTHON, f"nie mozna uruchomic Pythona: {python} ({type(e).__name__})", rada) from e
     m = re.fullmatch(r"(\d+\.\d+)\.(\d+) (\d+)", wynik.stdout.strip())

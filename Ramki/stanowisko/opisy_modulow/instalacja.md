@@ -65,7 +65,8 @@ katalog); bez niego odmawia (`--bez-pythona` - paczka jak dotad, bez Pythona i o
   start_bez_konsoli.pyw         E3-I1: starter ikon pulpitu (wzor jak skrypty; wersje sprzed E3-I1 go nie maja i nie usuwaja)
   python\<wersja Pythona>\      E3-I1: kopia Pythona z paczki (np. python\3.12.10\) - interpreter bazowy srodowisk wersji
                                 instalowanych z paczki (pyvenv.cfg: home = ten katalog); instalator go nie usuwa
-  dane\ostatni_start_<cel>.txt  E3-I1: wyjscie programu uruchomionego ikona (starter; nadpisywany przy kazdym starcie)
+  dane\ostatni_start_<cel>.txt  E3-I1: wyjscie programu uruchomionego ikona (starter dopisuje z naglowkiem startu;
+                                powyzej 1 MB starsze starty -> ostatni_start_<cel>.poprzednie.txt)
   ustawienia.toml               przy pierwszej instalacji ze wzoru, potem nietykany (bajt w bajt)
   dane\                         baza, wyniki, logi, dane\kopie\ (kopie bazy) - poza katalogiem wersji
   wersja_biezaca.txt            wskaznik = plik tekstowy z numerem wersji (nie dowiazanie), zapis atomowy
@@ -223,7 +224,12 @@ Cel (decyzja wlasciciela 23.11 nr 6 i 25.11): laptop bez Pythona, osoba bez wier
   (2) Osoby - co najmniej 1, bez powtorzen (wielkosc liter), do 40 znakow, bez znakow sterujacych; (3) Instalacja - proces
   `instalator.py zainstaluj` (Python paczki, `-I -B -X utf8`, ukryta konsola `CREATE_NO_WINDOW` - venv, pip i samokontrola nie
   otwieraja okien), 9 krokow z wierszy `[n/9]`, blad = zdanie dla kodu (`napisy_instalatora.ZDANIA_KODOW`, kazdy kod 0-11) +
-  `BLAD:` + `CO ZROBIC:` + plik dziennika, "Sprobuj ponownie"; (4) Gotowe - ikony (albo plik do klikniecia), "Uruchom program" /
+  `BLAD:` + `CO ZROBIC:` (rada bez odeslan do wiersza polecen - `kreator.rada_dla_okna`) + plik dziennika, "Sprobuj ponownie";
+  w kroku 3 okna nie da sie zamknac (krzyzyk, Alt+F4, Esc: zdanie "poczekaj do konca" - instalator konczy zawsze sam, bez
+  porzuconego procesu z blokada katalogu), krok 5 z paskiem "zajety" i czasem kroku; przed startem kontrola blokady
+  `instalator.blokada` (drugie okno / `zainstaluj.cmd` w tym samym katalogu = zdanie "instalacja juz trwa", tak samo kod 6
+  "juz trwa" instalatora); dlugosc sciezki miejsca instalacji sprawdzana juz w kroku 1 (ta sama rachuba co krok 3
+  instalatora); (4) Gotowe - ikony (albo plik do klikniecia), "Uruchom program" /
   "Otworz Dzien skanera" (starter z kopii Pythona w katalogu instalacji, proces odlaczony - okno i pendrive mozna zamknac).
   Opcje instalatora z okna: `--python-z-paczki --skrot --bez-sieci --bez-pauzy` + foldery, osoby i `--ramki-wylaczone`.
 - **Aktualizacja w oknie:** w miejscu instalacji jest `ustawienia.toml` = foldery i osoby pokazane z pliku, pola zablokowane,
@@ -232,9 +238,14 @@ Cel (decyzja wlasciciela 23.11 nr 6 i 25.11): laptop bez Pythona, osoba bez wier
 - **Tryb bez okna** (testy; ta sama logika - `kreator.main_bez_okna`): `python\python.exe -I -B program\instalacja\okno_instalatora.py
   --bez-okna --folder-skanow X [--folder-projektow Y] [--katalog K] --osoba A [--osoba B] [--skrot-katalog D]`; kod = kod
   instalatora, blad wyboru = kod 12 (zdanie na ekranie, nic nie zmieniono). Zrzuty 4 krokow: `--zrzuty KATALOG`.
+- **Koniec procesu okna:** okno ma cykle odwolan (polaczenia sygnalow z funkcjami okna) - `okno_instalatora.usun_okno` zwalnia je,
+  poki zyje `QApplication` (w `main`, `--zrzuty` i testach). Bez tego zwalnial je odsmiecacz przy wyjsciu z Pythona, po
+  `QApplication`, i proces konczyl sie kodem 0xC0000005 (recenzja PR #63, P2).
+- **Python paczki bez `__pycache__`:** okno (`Instaluj.cmd`), instalator (`zainstaluj.cmd`, okno) i kontrola Pythona w kroku 2
+  uruchamiaja Pythona z `-B` - instalacja nie dopisuje plikow do rozpakowanej paczki.
 - **Starter ikon** `start_bez_konsoli.pyw <cel> [opcje]`: robi to, co `Stanowisko.cmd` / `Dzien_skanera.cmd` (wersja biezaca, jej
   venv, katalog programu, te same zmienne), program przez `python.exe` srodowiska z ukryta konsola, wyjscie do
-  `dane\ostatni_start_<cel>.txt`; brak wersji (kod 4) albo blad programu (kod inny niz 0, a dla "stanowisko" takze inny niz 3) =
+  `dane\ostatni_start_<cel>.txt` (dopisywane - drugi dwuklik nie obcina wyjscia dzialajacego programu); brak wersji (kod 4) albo blad programu (kod inny niz 0, a dla "stanowisko" takze inny niz 3) =
   okienko z komunikatem (`STANOWISKO_START_BEZ_OKIENEK=1` - na stderr, proby). Kod wyjscia = kod programu.
 
 ## Srodowisko wersji bez zapytan WMI (latka E3-A11w)
@@ -319,5 +330,8 @@ Proby z pelna paczka (K1-K5): `raporty/E3-I1_2026-11-25.md`.
   `indicate.py`, `samokontrola.py` i okna poza ta paczka). Samokontrola z okna idzie z `--bez-sieci` (bez proby polaczenia).
 - E3-I1, nie sprawdzone bez laptopa (lista: `instrukcje/instalacja_i_aktualizacja.md` punkt 8): antywirus, znacznik pochodzenia pliku
   z sieci / SmartScreen, ikony przy ograniczonej polityce, WDAC / AppLocker dla Pythona z pendrive'a, skalowanie ekranu.
+- E3-I1 runda 2: program ochronny (na PC probnym Bitdefender, "Advanced Threat Defense") zamknal cale drzewo procesow sesji
+  probnej i wzial jej pliki do kwarantanny 3 s po starcie programu przez skrot - na laptopie [NIE SPRAWDZONE BEZ SPRZETU];
+  co zrobic: instrukcja punkt 8. Testy nie uruchamiaja niczego przez powloke (`test_zaden_test_nie_uruchamia_niczego_przez_powloke`).
 - `kola/` zawiera caly zestaw zaleznosci Open3D i PySide6 (m.in. PySide6 WebEngine 132 MB, plotly 10 MB, dash 9 MB - razem co najmniej ok. 160 MB), ktorych
   program nie importuje, ale ktorych wymaga pip przy instalacji przypietych wersji (decyzja: paczki nie odchudzamy).

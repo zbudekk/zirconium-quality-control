@@ -7,8 +7,12 @@ zdanie dla KAZDEGO kodu instalatora, polecenie instalatora, tryb bez okna na pra
 """
 from __future__ import annotations
 
+import ast
 import os
+import re
+import subprocess
 import sys
+import threading
 import time
 import tomllib
 from pathlib import Path
@@ -28,6 +32,16 @@ def app():
     from PySide6.QtWidgets import QApplication
 
     return QApplication.instance() or QApplication([])
+
+
+_OKNA: list = []  # okna z testu - zwalniane po tescie, poki zyje QApplication (P2 recenzji PR #63)
+
+
+@pytest.fixture(autouse=True)
+def zwolnij_okna():
+    yield
+    while _OKNA:
+        O.usun_okno(_OKNA.pop())
 
 
 @pytest.fixture
@@ -51,9 +65,27 @@ class AtrapaInstalatora:
     def __init__(self, wiersze: list[str], kod: int):
         self.wiersze, self.kod, self.polecenia = wiersze, kod, []
 
-    def __call__(self, polecenie, na_wiersz, przerwij):
+    def __call__(self, polecenie, na_wiersz):
         self.polecenia.append(polecenie)
         for w in self.wiersze:
+            na_wiersz(w)
+        return self.kod
+
+
+class AtrapaCzekajaca(AtrapaInstalatora):
+    """Instalator, ktory po wierszach do kroku 5 milczy (jak pip przez minuty), dopoki test nie zwolni ``puszczaj``."""
+
+    def __init__(self, wiersze: list[str], kod: int, reszta: list[str]):
+        super().__init__(wiersze, kod)
+        self.reszta = reszta
+        self.puszczaj = threading.Event()
+
+    def __call__(self, polecenie, na_wiersz):
+        self.polecenia.append(polecenie)
+        for w in self.wiersze:
+            na_wiersz(w)
+        assert self.puszczaj.wait(60), "test nie zwolnil atrapy"
+        for w in self.reszta:
             na_wiersz(w)
         return self.kod
 
@@ -70,7 +102,17 @@ def czekaj_na_koniec(app, okno, limit_s: float = 30) -> None:
 def okno_z_paczka(tmp_path, app, atrapa, **opcje):
     paczka = zbuduj_paczke(tmp_path, "1.0")
     okno = O.OknoInstalatora(paczka, uruchom=atrapa, start_programu=opcje.pop("start", lambda katalog, cel: True), **opcje)
+    _OKNA.append(okno)
     return okno, paczka
+
+
+def czekaj_az(app, warunek, limit_s: float = 30) -> None:
+    koniec = time.monotonic() + limit_s
+    while not warunek() and time.monotonic() < koniec:
+        app.processEvents()
+        time.sleep(0.01)
+    app.processEvents()
+    assert warunek()
 
 
 # ----------------------------------------------------------------------------------------------------------- kreator
@@ -276,6 +318,196 @@ def test_zrzuty_czterech_krokow(tmp_path, app):
     for p in pliki:
         obraz = QImage(str(p))
         assert obraz.width() >= O.SZEROKOSC and obraz.height() >= O.WYSOKOSC, p.name
+
+
+# ------------------------------------------------------------------------------- runda 2 recenzji PR #63 (P1, P2, D1-D4)
+
+def test_okno_nie_zamyka_sie_w_trakcie_instalacji(tmp_path, app, foldery, monkeypatch):
+    """P1: w kroku Instalacja krzyzyk / Alt+F4 / Anuluj (close) i Esc nie zamykaja okna - zdanie "poczekaj do konca"; drugie
+    "Instaluj" nie rusza drugiego instalatora (zdanie, nie kod 6). D1: zadnego pytania z przyciskami Yes / No. D4: w kroku 5
+    pasek w trybie "zajety" i licznik czasu przy kroku. Po koncu instalacji okno zamyka sie zwyczajnie."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QMessageBox
+
+    for nazwa in ("question", "warning", "information", "critical"):
+        monkeypatch.setattr(QMessageBox, nazwa, lambda *a, **k: pytest.fail("okno pyta QMessageBox (przyciski po angielsku)"))
+    atrapa = AtrapaCzekajaca(WIERSZE_UDANE[:7], 0, WIERSZE_UDANE[7:])
+    okno, _ = okno_z_paczka(tmp_path, app, atrapa, katalog=foldery["katalog"])
+    okno.ustaw_wybor(K.Wybor(foldery["skany"], foldery["projekty"], foldery["katalog"], ["Anna"]))
+    okno.show()
+    okno.dalej()
+    okno.dalej()  # Instaluj
+    czekaj_az(app, lambda: okno.postep.krok == 5)
+    assert okno.instalacja_trwa() and okno.krok == 2
+    # D4: krok 5 milczy przez minuty - pasek "zajety" (zakres 0..0) i czas kroku
+    assert (okno.pasek_postepu.minimum(), okno.pasek_postepu.maximum()) == (0, 0)
+    okno._start_kroku -= 65
+    okno._tik()
+    assert okno._stany_krokow[4][1].text() == N.STAN_TRWA_CZAS.format(czas="1:05") == "trwa\u2026 1:05"
+    # P1: zamkniecie odmowione
+    assert okno.close() is False and okno.isVisible()
+    assert okno.komunikat_instalacji.text() == N.ZAMKNIECIE_W_TRAKCIE and okno.komunikat_instalacji.isVisibleTo(okno)
+    okno._ustaw_komunikat(okno.komunikat_instalacji, "")
+    QTest.keyClick(okno, Qt.Key.Key_Escape)
+    app.processEvents()
+    assert okno.isVisible() and okno.komunikat_instalacji.text() == N.ZAMKNIECIE_W_TRAKCIE
+    QTest.keyClick(okno, Qt.Key.Key_F4, Qt.KeyboardModifier.AltModifier)
+    app.processEvents()
+    assert okno.isVisible()
+    assert not okno.przycisk_anuluj.isVisible() and not okno.przycisk_dalej.isEnabled()
+    # ponowne "Instaluj" przy dzialajacej instalacji: zdanie po polsku, drugi instalator nie rusza
+    assert okno.instaluj() is False and len(atrapa.polecenia) == 1
+    assert okno.komunikat_instalacji.text() == N.INSTALACJA_JUZ_TRWA and "6" not in N.INSTALACJA_JUZ_TRWA
+    atrapa.puszczaj.set()
+    czekaj_na_koniec(app, okno)
+    assert okno.kod == 0 and okno.krok == 3 and (okno.pasek_postepu.maximum(), okno.pasek_postepu.value()) == (9, 9)
+    assert okno.close() is True and not okno.isVisible()
+
+
+def test_okno_po_bledzie_zamyka_sie(tmp_path, app, foldery):
+    atrapa = AtrapaCzekajaca(WIERSZE_UDANE[:7], I.KOD_INSTALACJA, ["BLAD: cos", "INSTALACJA: NIEUDANA (kod 6)"])
+    okno, _ = okno_z_paczka(tmp_path, app, atrapa, katalog=foldery["katalog"])
+    okno.ustaw_wybor(K.Wybor(foldery["skany"], foldery["projekty"], foldery["katalog"], ["Anna"]))
+    okno.show()
+    okno.dalej()
+    okno.dalej()
+    czekaj_az(app, lambda: okno.postep.krok == 5)
+    assert okno.close() is False
+    atrapa.puszczaj.set()
+    czekaj_na_koniec(app, okno)
+    assert okno.kod == 6 and okno.close() is True and not okno.isVisible()
+
+
+def test_okno_instalacja_juz_trwa_w_innym_oknie(tmp_path, app, foldery):
+    """P1: drugie okno (albo zainstaluj.cmd) trzyma blokade katalogu - "Instaluj" pokazuje zdanie i nie uruchamia instalatora;
+    gdy blokada zniknie, instalacja rusza. Wyscig (blokada zalozona miedzy kontrola a startem): kod 6 instalatora = to samo zdanie."""
+    katalog = Path(foldery["katalog"])
+    katalog.mkdir()
+    assert K.instalacja_trwa(katalog) is False  # brak pliku blokady
+    atrapa = AtrapaInstalatora(WIERSZE_UDANE, 0)
+    okno, _ = okno_z_paczka(tmp_path, app, atrapa, katalog=str(katalog))
+    okno.ustaw_wybor(K.Wybor(foldery["skany"], foldery["projekty"], str(katalog), ["Anna"]))
+    okno.dalej()
+    with I.BlokadaInstalatora(katalog):
+        assert K.instalacja_trwa(katalog) is True
+        okno.dalej()
+        assert okno.krok == 1 and okno.komunikat_osob.text() == N.INSTALACJA_JUZ_TRWA and atrapa.polecenia == []
+    assert K.instalacja_trwa(katalog) is False  # plik blokady zostaje, blokada zwolniona
+    okno.dalej()
+    czekaj_na_koniec(app, okno)
+    assert okno.kod == 0 and len(atrapa.polecenia) == 1
+    # wyscig: instalator sam zglasza blokade (kod 6) - zdanie po polsku zamiast zdania kodu 6 i rady "uruchom polecenie"
+    wiersze = WIERSZE_UDANE[:5] + ["BLAD: inna instalacja albo powrot juz trwa w tym katalogu (drugie okno)",
+                                   "CO ZROBIC: Poczekaj, az tamto okno skonczy, i dopiero wtedy uruchom polecenie ponownie. Niczego nie zmieniono.",
+                                   "INSTALACJA: NIEUDANA (kod 6) - wersja biezaca bez zmian: brak"]
+    okno2, _ = okno_z_paczka(tmp_path / "2", app, AtrapaInstalatora(wiersze, I.KOD_INSTALACJA), katalog=str(tmp_path / "inny"))
+    okno2.ustaw_wybor(K.Wybor(foldery["skany"], foldery["projekty"], str(tmp_path / "inny"), ["Anna"]))
+    okno2.dalej()
+    okno2.dalej()
+    czekaj_na_koniec(app, okno2)
+    assert okno2.kod == 6 and okno2.komunikat_instalacji.text() == N.INSTALACJA_JUZ_TRWA
+    assert N.ZDANIA_KODOW[6] not in okno2.komunikat_instalacji.text() and "polecen" not in okno2.komunikat_instalacji.text()
+
+
+def test_okno_usun_okno_zwalnia_obiekt_qt(tmp_path, app):
+    """P2: okno ma cykle odwolan (lambdy w polaczeniach sygnalow) - ``del`` go nie zwalnia, a odsmiecacz przy wyjsciu z Pythona
+    (po QApplication) konczyl proces kodem 0xC0000005. ``usun_okno`` zwalnia obiekt Qt od razu."""
+    import gc
+    import weakref
+
+    import shiboken6
+
+    okno = O.OknoInstalatora(zbuduj_paczke(tmp_path, "1.0"), katalog=str(tmp_path / "k"))
+    slaby = weakref.ref(okno)
+    gc.disable()
+    try:
+        del okno
+        assert slaby() is not None  # cykl: samo del nie zwalnia okna
+    finally:
+        gc.enable()
+    okno = slaby()
+    O.usun_okno(okno)
+    assert not shiboken6.isValid(okno)
+
+
+def test_okno_proces_konczy_sie_kodem_0(tmp_path):
+    """P2: proces z oknem (droga ``main`` - tu ``--zrzuty``, ta sama budowa okna) konczy sie kodem 0, nie 0xC0000005 przy wyjsciu.
+    Przed poprawka: awaria w okolo polowie uruchomien - 3 uruchomienia."""
+    paczka = zbuduj_paczke(tmp_path, "1.0")
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen", PYTHONPATH=os.pathsep.join([str(STANOWISKO), os.environ.get("PYTHONPATH", "")]))
+    kody = []
+    for i in range(3):
+        wynik = subprocess.run([sys.executable, "-B", str(STANOWISKO / "instalacja" / "okno_instalatora.py"), "--paczka", str(paczka),
+                                "--zrzuty", str(tmp_path / f"z{i}")], capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL,
+                               timeout=120)
+        kody.append(wynik.returncode)
+        assert (tmp_path / f"z{i}" / "instalator_5_blad.png").is_file(), wynik.stderr[-800:]
+    assert kody == [0, 0, 0]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="limit dlugosci sciezki: Windows")
+def test_dlugosc_sciezki_juz_w_kroku_1(tmp_path, app, foldery):
+    """D2a: za dluga sciezka miejsca instalacji zatrzymuje krok 1 (ta sama rachuba co krok 3 instalatora), a nie kod 6 potem.
+    Katalogi probne pod C:\\ - nie powstaja (kontrola tylko liczy znaki)."""
+    wersja, najdluzsza = "0.3.9-i1", 169  # limit 68 znakow - jak w probie A recenzenta (paczka 0.3.9-i1)
+    limit = K.najdluzszy_katalog(wersja, najdluzsza)
+    assert limit == I.LIMIT_SCIEZKI - 1 - najdluzsza - len("\\wersje\\0.3.9-i1\\venv") == 68
+    for dlugosc in (limit, limit + 1):
+        katalog = Path("C:\\" + "s" * (dlugosc - 3))
+        assert len(str(katalog.resolve())) == dlugosc and not katalog.exists()
+        bledy, _ = K.sprawdz_foldery(K.Wybor(foldery["skany"], foldery["projekty"], str(katalog)), 1, wersja, najdluzsza)
+        # instalator (krok 3) przy tej samej dlugosci: za dluga <=> len(venv) + 1 + najdluzsza > LIMIT
+        za_dluga = len(str(I.katalog_wersji(katalog.resolve(), wersja) / "venv")) + 1 + najdluzsza > I.LIMIT_SCIEZKI
+        assert bool(bledy) == za_dluga == (dlugosc > limit), (dlugosc, bledy)
+        if bledy:
+            assert bledy == [N.CEL_ZA_DLUGI.format(n=dlugosc, limit=limit)]
+    # okno: krok 1 nie przechodzi dalej
+    okno, _ = okno_z_paczka(tmp_path / "o", app, AtrapaInstalatora(WIERSZE_UDANE, 0), katalog=str(katalog))
+    assert isinstance(okno.info["najdluzsza"], int) and okno.info["najdluzsza"] > 0
+    okno.info["wersja"], okno.info["najdluzsza"] = wersja, najdluzsza
+    okno.pole_skanow.setText(foldery["skany"])
+    okno.pole_projektow.setText(foldery["projekty"])
+    okno.dalej()
+    assert okno.krok == 0 and okno.komunikat_folderow.text() == N.CEL_ZA_DLUGI.format(n=limit + 1, limit=limit)
+
+
+def _rady_instalatora() -> list[str]:
+    """Wszystkie rady (``CO ZROBIC``) z kodu instalatora: 3. argument ``BladInstalacji`` i wiersze ``CO ZROBIC:`` dziennika."""
+    def tekst(w) -> str:
+        if isinstance(w, ast.Constant) and isinstance(w.value, str):
+            return w.value
+        if isinstance(w, ast.JoinedStr):
+            return "".join(v.value if isinstance(v, ast.Constant) else "X" for v in w.values)
+        if isinstance(w, ast.BinOp):
+            return tekst(w.left) + tekst(w.right)
+        return "X"
+
+    rady = []
+    for w in ast.walk(ast.parse((STANOWISKO / "instalacja" / "instalator.py").read_text(encoding="utf-8"))):
+        if isinstance(w, ast.Call) and getattr(w.func, "id", "") == "BladInstalacji" and len(w.args) >= 3:
+            rady.append(tekst(w.args[2]))
+        elif isinstance(w, ast.Call) and getattr(w.func, "attr", "") == "krok" and w.args and tekst(w.args[0]).startswith("CO ZROBIC:"):
+            rady.append(tekst(w.args[0])[len("CO ZROBIC:"):].strip())
+    return rady
+
+
+def test_rady_w_oknie_bez_odeslan_do_wiersza_polecen():
+    """D2b: wlasciciel nie uzywa terminala - zadna rada instalatora pokazana w oknie nie odsyla do zainstaluj.cmd / opcji /katalog,
+    /python / "uruchom polecenie"; zostaje sens rady (np. przyklad katalogu) i przycisk "Sprobuj ponownie"."""
+    rady = _rady_instalatora()
+    assert len(rady) >= 30 and sum("zainstaluj.cmd" in r for r in rady) >= 20
+    zakazane = re.compile(r"zainstaluj\.cmd|Wersje\.cmd|Wroc_do_poprzedniej\.cmd|polecen|STANOWISKO_PYTHON|(^|\s)/[a-z]", re.IGNORECASE)
+    for rada in rady:
+        w_oknie = K.rada_dla_okna(rada)
+        assert w_oknie and not zakazane.search(w_oknie), (rada, w_oknie)
+    assert K.rada_dla_okna("Wybierz krotszy katalog, np. zainstaluj.cmd /katalog C:\\Stanowisko.") == "Wybierz krotszy katalog, np. C:\\Stanowisko."
+    assert K.rada_dla_okna("Zamknij program i uruchom polecenie ponownie. Wersja biezaca bez zmian.") == \
+        f"Zamknij program i {N.RADA_SPROBUJ}. Wersja biezaca bez zmian."
+    assert K.rada_dla_okna("Uruchom zainstaluj.cmd ponownie.") == N.RADA_SPROBUJ[:1].upper() + N.RADA_SPROBUJ[1:] + "."
+    assert K.rada_dla_okna("Zwolnij miejsce albo wybierz inny dysk (/katalog) i uruchom zainstaluj.cmd ponownie. Wersja biezaca bez zmian.") == \
+        f"Zwolnij miejsce albo wybierz inny dysk i {N.RADA_SPROBUJ}. Wersja biezaca bez zmian."
+    assert K.rada_dla_okna("Uruchom zainstaluj.cmd z opcja /python <sciezka>\\python.exe albo pobierz pelna paczke wydania.") == N.RADA_OGOLNA
 
 
 # -------------------------------------------------------------------------------------------- tryb bez okna (prawdziwy)

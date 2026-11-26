@@ -9,7 +9,7 @@ from __future__ import annotations
 TYTUL_OKNA = "Stanowisko — instalacja"
 NAZWA = "Stanowisko"
 PODTYTUL = "Instalacja · wersja {wersja}"
-STOPKA_KROKOW = "Bez internetu. Niczego nie zmienia poza folderem instalacji."
+STOPKA_KROKOW = "Bez internetu. Niczego nie zmienia poza folderem instalacji i ikonami na pulpicie."
 KROKI = ("Foldery", "Osoby", "Instalacja", "Gotowe")
 
 # --- przyciski --------------------------------------------------------------------------------------------------------
@@ -60,6 +60,8 @@ CEL_SYNCHRONIZOWANY = "Miejsce instalacji leży w folderze synchronizowanym (One
 CEL_SREDNIK = "Ścieżka miejsca instalacji nie może zawierać średnika (;). Wybierz inną, np. C:\\Stanowisko."
 CEL_PLIK = "W miejscu instalacji jest plik, a nie folder: {sciezka}. Wybierz inny folder."
 CEL_DYSK = "Nie ma takiego dysku: {sciezka}."
+CEL_ZA_DLUGI = ("Ścieżka miejsca instalacji jest za długa ({n} znaków; dla tej paczki najwyżej {limit}). "
+                "Wybierz krótszą, np. C:\\Stanowisko.")
 ZA_MALO_MIEJSCA = "Za mało miejsca na dysku: potrzeba {potrzeba}, wolne {wolne}. Zwolnij miejsce albo wybierz inny dysk."
 BRAK_OSOB = "Dodaj co najmniej jedną osobę."
 OSOBA_PUSTA = "Wpisz imię osoby."
@@ -77,11 +79,20 @@ KROKI_INSTALATORA = ("Sprawdzenie paczki", "Python", "Folder instalacji", "Ustaw
                      "Kopia bazy", "Samokontrola", "Przełączenie wersji", "Ikony na pulpicie")
 STAN_GOTOWE = "gotowe"
 STAN_TRWA = "trwa…"
+STAN_TRWA_CZAS = "trwa… {czas}"
 STAN_BLAD = "błąd"
 CO_ZROBIC = "Co zrobić: {rada}"
 DZIENNIK = "Zapis instalacji: {plik}"
 NIE_URUCHOMIONO = "Nie udało się uruchomić instalatora ({blad}). Sprawdź, czy rozpakowano całą paczkę, i spróbuj ponownie."
-PRZERWANIE_PYTANIE = "Instalacja trwa. Przerwanie zostawi poprzednią wersję bez zmian. Przerwać?"
+ZAMKNIECIE_W_TRAKCIE = "Instalacja trwa — poczekaj do końca. Okno da się zamknąć, gdy instalacja się skończy."
+INSTALACJA_JUZ_TRWA = ("Instalacja już trwa w tym folderze (w innym oknie instalatora). Poczekaj, aż się skończy, "
+                       "i dopiero wtedy spróbuj ponownie. Niczego nie zmieniono.")
+# rady instalatora (CO ZROBIC) w oknie - bez odeslan do wiersza polecen (kreator.rada_dla_okna)
+RADA_SPROBUJ = "kliknij „Spróbuj ponownie”"
+RADA_INSTALUJ_CMD = "kliknij dwukrotnie Instaluj.cmd w rozpakowanym folderze"
+RADA_OGOLNA = "Kliknij „Spróbuj ponownie”. Gdy błąd wraca, przekaż plik dziennik_instalacji.txt z folderu instalacji."
+BRAK_BIBLIOTEKI_OKNA = ("Nie można otworzyć okna instalatora ({blad}).\n\n"
+                        "Rozpakuj całą paczkę jeszcze raz (prawy klawisz – „Wyodrębnij wszystkie”) i kliknij dwukrotnie Instaluj.cmd.")
 
 # Kod wyjscia instalatora -> zdanie dla czlowieka (kody: instalator.KOD_*; opisy_modulow/instalacja.md, tabela kodow)
 ZDANIA_KODOW = {

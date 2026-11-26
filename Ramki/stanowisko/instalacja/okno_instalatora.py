@@ -16,8 +16,10 @@ Wyglad wg makiety ``etap3/nowy_interfejs/makieta/Instalator.dc.html`` (kolory ja
 from __future__ import annotations
 
 import argparse
+import gc
 import sys
 import threading
+import time
 from pathlib import Path
 
 
@@ -111,7 +113,10 @@ if QtWidgets is not None:
         koniec = QtCore.Signal(int)
 
     class OknoInstalatora(QtWidgets.QWidget):
-        """Kreator 4 krokow. ``uruchom`` = funkcja (polecenie, na_wiersz, przerwij) -> kod (testy podstawiaja atrape)."""
+        """Kreator 4 krokow. ``uruchom`` = funkcja (polecenie, na_wiersz) -> kod (testy podstawiaja atrape).
+
+        W kroku Instalacja okna nie da sie zamknac (krzyzyk, Alt+F4, Esc) - zdanie "poczekaj do konca"; instalator konczy
+        zawsze sam. Po uzyciu: ``usun_okno`` (okno zwolnione, poki zyje QApplication - inaczej proces ginie przy wyjsciu)."""
 
         def __init__(self, paczka: Path, *, katalog: str = I.KATALOG_DOMYSLNY, uruchom=None, python: Path | None = None,
                      skrot_katalog: Path | None = None, start_programu=None):
@@ -123,15 +128,19 @@ if QtWidgets is not None:
             self._python = python
             self._skrot_katalog = skrot_katalog
             self._start = start_programu or K.uruchom_program
-            self._przerwij = False
             self._watek: threading.Thread | None = None
             self.postep = K.Postep()
             self.kod: int | None = None
             self.krok = 0
             self.aktualizacja: dict | None = None
-            self._sygnaly = _Sygnaly()
+            self._sygnaly = _Sygnaly(self)  # dziecko okna: zwalniane razem z nim
             self._sygnaly.wiersz.connect(self._wiersz)
             self._sygnaly.koniec.connect(self._koniec)
+            # licznik czasu biezacego kroku instalatora (krok 5 "Program i pakiety" milczy przez minuty - okno nie stoi)
+            self._start_kroku = time.monotonic()
+            self._zegar = QtCore.QTimer(self)
+            self._zegar.setInterval(1000)
+            self._zegar.timeout.connect(self._tik)
             self.setWindowTitle(N.TYTUL_OKNA)
             self.setStyleSheet(ARKUSZ)
             self.resize(SZEROKOSC, WYSOKOSC)
@@ -468,7 +477,8 @@ if QtWidgets is not None:
         def dalej(self) -> None:
             if self.krok == 0:
                 self._odswiez_cel()
-                bledy, uwagi = K.sprawdz_foldery(self.biezacy_wybor(), self.info["potrzebne_mb"])
+                bledy, uwagi = K.sprawdz_foldery(self.biezacy_wybor(), self.info["potrzebne_mb"], self.info["wersja"],
+                                                 self.info.get("najdluzsza"))
                 if bledy:
                     self._ustaw_komunikat(self.komunikat_folderow, "\n".join(bledy), "blad")
                     return
@@ -484,6 +494,9 @@ if QtWidgets is not None:
                 if bledy:
                     self._ustaw_komunikat(self.komunikat_osob, "\n".join(bledy), "blad")
                     return
+                if K.instalacja_trwa(self.biezacy_wybor().katalog):  # drugie okno / zainstaluj.cmd w tym samym folderze
+                    self._ustaw_komunikat(self.komunikat_osob, N.INSTALACJA_JUZ_TRWA, "ostrzezenie")
+                    return
                 self._pokaz(2)
                 self.instaluj()
             elif self.krok == 2 and self.kod not in (None, 0):
@@ -495,10 +508,18 @@ if QtWidgets is not None:
             return K.polecenie_instalacji(self.paczka, self.biezacy_wybor(), self.aktualizacja is not None, self._python,
                                           self._skrot_katalog)
 
-        def instaluj(self) -> None:
-            """Krok 3: instalator w osobnym watku (proces potomny); wiersze wracaja sygnalem do watku okna."""
-            self.kod, self.postep, self._przerwij = None, K.Postep(), False
+        def instalacja_trwa(self) -> bool:
+            return self._watek is not None and self._watek.is_alive()
+
+        def instaluj(self) -> bool:
+            """Krok 3: instalator w osobnym watku (proces potomny); wiersze wracaja sygnalem do watku okna.
+            False = instalacja z tego okna juz trwa (drugi start nie rusza drugiego instalatora)."""
+            if self.instalacja_trwa():
+                self._ustaw_komunikat(self.komunikat_instalacji, N.INSTALACJA_JUZ_TRWA, "ostrzezenie")
+                return False
+            self.kod, self.postep = None, K.Postep()
             self.szczegoly.clear()
+            self.pasek_postepu.setRange(0, 9)
             self.pasek_postepu.setValue(0)
             self.tytul_instalacji.setText(N.INSTALACJA_TYTUL)
             self.opis_instalacji.setText(N.INSTALACJA_TRWA)
@@ -509,29 +530,49 @@ if QtWidgets is not None:
                 s.setText("")
             polecenie = self.polecenie()
 
+            sygnaly = self._sygnaly
+
             def praca():
                 try:
-                    kod = self._uruchom(polecenie, self._sygnaly.wiersz.emit, lambda: self._przerwij)
+                    kod = self._uruchom(polecenie, sygnaly.wiersz.emit)
                 except OSError as e:
-                    self._sygnaly.wiersz.emit("BLAD: " + N.NIE_URUCHOMIONO.format(blad=type(e).__name__))
+                    sygnaly.wiersz.emit("BLAD: " + N.NIE_URUCHOMIONO.format(blad=type(e).__name__))
                     kod = I.KOD_PACZKA
-                self._sygnaly.koniec.emit(int(kod))
+                sygnaly.koniec.emit(int(kod))
 
+            self._start_kroku = time.monotonic()
+            self._zegar.start()
             self._watek = threading.Thread(target=praca, name="instalator", daemon=True)
             self._watek.start()
+            return True
 
         def _wiersz(self, tekst: str) -> None:
             poprzedni = self.postep.krok
             self.postep.wiersz(tekst)
             self.szczegoly.appendPlainText(tekst)
             if self.postep.krok != poprzedni:
+                self._start_kroku = time.monotonic()
                 for i, (_, s) in enumerate(self._stany_krokow):
                     s.setText(N.STAN_GOTOWE if i + 1 < self.postep.krok else (N.STAN_TRWA if i + 1 == self.postep.krok else ""))
-                self.pasek_postepu.setValue(self.postep.krok - 1)
+                # krok 5 (pakiety) bez wierszy przez minuty: pasek w trybie "zajety" (ruch), potem znow kroki 0..9
+                if self.postep.krok == 5:
+                    self.pasek_postepu.setRange(0, 0)
+                else:
+                    self.pasek_postepu.setRange(0, 9)
+                    self.pasek_postepu.setValue(self.postep.krok - 1)
+
+        def _tik(self) -> None:
+            """Co sekunde: czas biezacego kroku przy jego nazwie ("trwa… 1:05")."""
+            if self.kod is not None or not 1 <= self.postep.krok <= len(self._stany_krokow):
+                return
+            sekundy = int(time.monotonic() - self._start_kroku)
+            self._stany_krokow[self.postep.krok - 1][1].setText(N.STAN_TRWA_CZAS.format(czas=f"{sekundy // 60}:{sekundy % 60:02d}"))
 
         def _koniec(self, kod: int) -> None:
             self.kod = kod
             self._watek = None
+            self._zegar.stop()
+            self.pasek_postepu.setRange(0, 9)
             if kod == 0:
                 for _, s in self._stany_krokow:
                     s.setText(N.STAN_GOTOWE)
@@ -542,9 +583,14 @@ if QtWidgets is not None:
                 self._stany_krokow[self.postep.krok - 1][1].setText(N.STAN_BLAD)
             self.tytul_instalacji.setText(N.INSTALACJA_BLAD_TYTUL)
             self.opis_instalacji.setText("")
-            tekst = [K.zdanie_kodu(kod)] + self.postep.bledy[-2:] + [N.CO_ZROBIC.format(rada=r) for r in self.postep.rady[-1:]]
-            tekst.append(N.DZIENNIK.format(plik=Path(self.pole_celu.text().strip()) / I.PLIK_DZIENNIKA))
-            self._ustaw_komunikat(self.komunikat_instalacji, "\n".join(tekst), "ostrzezenie" if kod == I.KOD_WSTRZYMANA else "blad")
+            if kod == I.KOD_INSTALACJA and any(K.BLAD_DRUGIEGO_OKNA in b for b in self.postep.bledy):
+                # blokade katalogu trzyma inny instalator (drugie okno uruchomione miedzy kontrola a startem): zdanie, nie kod 6
+                self._ustaw_komunikat(self.komunikat_instalacji, N.INSTALACJA_JUZ_TRWA, "ostrzezenie")
+            else:
+                tekst = ([K.zdanie_kodu(kod)] + self.postep.bledy[-2:]
+                         + [N.CO_ZROBIC.format(rada=K.rada_dla_okna(r)) for r in self.postep.rady[-1:]])
+                tekst.append(N.DZIENNIK.format(plik=Path(self.pole_celu.text().strip()) / I.PLIK_DZIENNIKA))
+                self._ustaw_komunikat(self.komunikat_instalacji, "\n".join(tekst), "ostrzezenie" if kod == I.KOD_WSTRZYMANA else "blad")
             self.przycisk_wstecz.setVisible(True)
             self.przycisk_wstecz.setText(N.SPROBUJ_PONOWNIE)
             try:
@@ -584,13 +630,37 @@ if QtWidgets is not None:
             return ok
 
         def closeEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
-            if self._watek is not None and self._watek.is_alive():
-                odp = QtWidgets.QMessageBox.question(self, N.TYTUL_OKNA, N.PRZERWANIE_PYTANIE)
-                if odp != QtWidgets.QMessageBox.StandardButton.Yes:
-                    zdarzenie.ignore()
-                    return
-                self._przerwij = True
+            """Krzyzyk / Alt+F4 / Anuluj: w trakcie instalacji okno zostaje (zdanie "poczekaj do konca") - porzucony instalator
+            dzialalby dalej w tle i trzymal blokade katalogu (recenzja PR #63, P1). Po bledzie albo koncu zamyka sie zwyczajnie."""
+            if self.instalacja_trwa():
+                self._ustaw_komunikat(self.komunikat_instalacji, N.ZAMKNIECIE_W_TRAKCIE, "ostrzezenie")
+                zdarzenie.ignore()
+                return
             zdarzenie.accept()
+
+        def keyPressEvent(self, zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+            # Esc okna nie zamyka (jak dotad); w trakcie instalacji pokazuje to samo zdanie co krzyzyk
+            if zdarzenie.key() == QtCore.Qt.Key.Key_Escape and self.instalacja_trwa():
+                self._ustaw_komunikat(self.komunikat_instalacji, N.ZAMKNIECIE_W_TRAKCIE, "ostrzezenie")
+                return
+            super().keyPressEvent(zdarzenie)
+
+    def usun_okno(okno) -> None:
+        """Zamyka i zwalnia okno, poki zyje QApplication. Okno ma cykle odwolan (polaczenia sygnalow z funkcjami okna), wiec
+        samo ``del`` go nie zwalnia - zwolnilby je dopiero odsmiecacz przy wyjsciu z Pythona, po zniszczeniu QApplication,
+        a to konczy proces kodem 0xC0000005 (recenzja PR #63, P2)."""
+        app = QtWidgets.QApplication.instance()
+        watek = okno._watek
+        if watek is not None:  # instalator konczy zawsze sam; watek okna nie moze emitowac do zwolnionego obiektu
+            watek.join()
+        if app is not None:
+            app.processEvents()  # ostatnie sygnaly watku (koniec) - zanim okno zniknie
+        okno.close()
+        okno.deleteLater()
+        if app is not None:
+            app.sendPostedEvents(None, QtCore.QEvent.Type.DeferredDelete)
+            app.processEvents()
+        gc.collect()
 
 
 def zrzuty(paczka: Path, katalog_zrzutow: Path) -> list[Path]:
@@ -636,7 +706,7 @@ def zrzuty(paczka: Path, katalog_zrzutow: Path) -> list[Path]:
             okno._wiersz(w)
         okno._koniec(I.KOD_PROGRAM_DZIALA)
         zrzut("instalator_5_blad.png")
-        okno.close()
+        usun_okno(okno)
     finally:
         K.istniejaca_instalacja = istniejaca
     return pliki
@@ -663,8 +733,7 @@ def main(argv: list[str] | None = None) -> int:
         return K.main_bez_okna(paczka, K.Wybor(a.folder_skanow, a.folder_projektow, a.katalog, a.osoba), a.python,
                                skrot_katalog=a.skrot_katalog)
     if QtWidgets is None:
-        _okienko_systemowe(f"Nie mozna otworzyc okna instalatora ({type(_BLAD_QT).__name__}: {_BLAD_QT}).\n\n"
-                           "Rozpakuj CALA paczke jeszcze raz albo zainstaluj z wiersza polecen: zainstaluj.cmd")
+        _okienko_systemowe(N.BRAK_BIBLIOTEKI_OKNA.format(blad=f"{type(_BLAD_QT).__name__}: {_BLAD_QT}"))
         return I.KOD_PYTHON
     if a.zrzuty is not None:
         print("\n".join(str(p) for p in zrzuty(paczka, a.zrzuty)))
@@ -673,7 +742,9 @@ def main(argv: list[str] | None = None) -> int:
     okno = OknoInstalatora(paczka, katalog=a.katalog, python=a.python, skrot_katalog=a.skrot_katalog)
     okno.show()
     app.exec()
-    return okno.kod if okno.kod is not None else 0
+    kod = okno.kod if okno.kod is not None else 0
+    usun_okno(okno)  # okno zwolnione przed QApplication (P2 recenzji PR #63: inaczej proces moze zginac przy wyjsciu)
+    return kod
 
 
 if __name__ == "__main__":

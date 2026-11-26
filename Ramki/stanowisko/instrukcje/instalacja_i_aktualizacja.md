@@ -16,11 +16,17 @@ Paczki bez katalogu `python` (wydania do 0.3.3) wymagaja Pythona 3.12 w systemie
    `C:\Stanowisko\dane\projekty`; dopoki nie ma w nim projektow STL albo nie wpiszesz wlasciwego folderu w ustawieniach, program
    nie rozpozna prac - skany czekaja na projekty),
    miejsce instalacji (domyslnie `C:\Stanowisko`). Pod miejscem instalacji widac, ile miejsca potrzeba i ile jest wolnego.
-   Bledy (brak folderu, za malo miejsca, folder w OneDrive) okno pokazuje na czerwono i nie idzie dalej.
+   Bledy (brak folderu, za malo miejsca, folder w OneDrive, za dluga sciezka miejsca instalacji - okno podaje, ile znakow
+   wolno) okno pokazuje na czerwono i nie idzie dalej.
 4. Krok **Osoby**: wpisz imiona technikow (przycisk "Dodaj" albo Enter; "Usun" usuwa zaznaczona osobe). Co najmniej jedna osoba.
-5. Krok **Instalacja**: przycisk "Instaluj". Okno pokazuje 9 krokow instalatora (pakiety programu - kilka minut). Nie zamykaj
-   okna. Gdy cos sie nie uda, okno pokazuje zdanie, co sie stalo, i "Co zrobic"; "Szczegoly" pokazuja caly zapis instalacji,
-   "Sprobuj ponownie" wraca do kroku 1. Poprzednia wersja programu (przy aktualizacji) dziala dalej bez zmian.
+5. Krok **Instalacja**: przycisk "Instaluj". Okno pokazuje 9 krokow instalatora; przy kroku "Program i pakiety" (kilka minut,
+   z pendrive'a i przy antywirusie dluzej) pasek sie przesuwa, a przy kroku rosnie czas ("trwa... 2:15"). W tym kroku okna NIE da
+   sie zamknac (krzyzyk, Alt+F4, Esc) - pokazuje "Instalacja trwa - poczekaj do konca"; po koncu albo po bledzie zamyka sie
+   zwyczajnie. Drugi start instalacji w to samo miejsce (drugie okno) - zdanie "Instalacja juz trwa w tym folderze", nic sie nie
+   zmienia. Gdy cos sie nie uda, okno pokazuje zdanie, co sie stalo, i "Co zrobic" (bez polecen do wpisywania);
+   "Szczegoly" pokazuja caly zapis instalacji, "Sprobuj ponownie" wraca do kroku 1. Poprzednia wersja programu (przy
+   aktualizacji) dziala dalej bez zmian. Instalacja nie zapisuje niczego w rozpakowanej paczce (te sama paczke mozna
+   zainstalowac na kolejnym komputerze).
 6. Krok **Gotowe**: na pulpicie sa ikony **Stanowisko** i **Dzien skanera** (program startuje bez czarnego okna konsoli).
    "Uruchom program" otwiera program od razu. Gdy ikony nie da sie zalozyc (zasady komputera), okno mowi to wprost i podaje plik do
    klikniecia w `C:\Stanowisko` (`Stanowisko.cmd` albo `Dzien_skanera.cmd` - otwieraja tez male okno konsoli, nie zamykaj go).
@@ -165,6 +171,24 @@ Pythona w `PATH`, okno instalatora na Pythonie z paczki, ikony w folderze probny
   na chwile blokowac pliki przy zmianie nazwy katalogu (naprawa wersji: kod 6 "nie mozna odlozyc katalogu" - uruchom ponownie).
   Pliki Pythona (`python.exe`, `pythonw.exe`, `python312.dll`) sa oryginalne, podpisane przez Python Software Foundation; biblioteki
   okna - przez The Qt Company. Niepodpisanego pliku `.exe` paczka nie ma.
+- **Program ochronny zamyka program i zabiera pliki** [NIE SPRAWDZONE BEZ SPRZETU]: na PC probnym (Bitdefender, modul
+  "Advanced Threat Defense", wykrycie `Atc4.Detection`) uruchomienie ikony z pulpitu w dlugiej sesji probnej (wiele
+  instalacji, srodowisk i skrotow zalozonych przez te same procesy) skonczylo sie tak: 3 s po starcie programu Bitdefender
+  zamknal wszystkie procesy tej sesji i wzial do kwarantanny pliki przez nie zapisane (skroty, `start_bez_konsoli.pyw`,
+  pliki programu, plik `.cmd`, z ktorego sesje uruchomiono). Paczka niczego nie konczy ani nie kasuje poza katalogiem
+  instalacji - to reakcja programu ochronnego na zachowanie (raport `raporty/E3-I1_2026-11-25.md`, Runda 2). Czy ten sam
+  program ochronny zareaguje na laptopie przy zwyklym dwukliku ikony, tego na PC nie sprawdzono. Objawy: program nie
+  startuje albo znika zaraz po starcie, ikona przestaje dzialac, komunikat programu ochronnego o "zagrozeniu" /
+  "podejrzanym zachowaniu", brak plikow w `C:\Stanowisko`. Co wtedy zrobic:
+  1. Uruchom program z folderu instalacji: `C:\Stanowisko\Stanowisko.cmd` (dwuklik; otwiera tez male okno konsoli, nie
+     zamykaj go) - to inna droga startu niz ikona.
+  2. W programie ochronnym przywroc pliki z kwarantanny i dodaj wyjatek na folder instalacji (w Bitdefenderze: Ochrona ->
+     Advanced Threat Defense -> Ustawienia -> Wyjatki -> dodaj `C:\Stanowisko`; przy innym programie - podobnie, "wyjatek"
+     albo "wykluczenie"). Na laptopie firmowym moze to wymagac administratora.
+  3. Gdy po przywroceniu brakuje plikow programu, uruchom ponownie `Instaluj.cmd` z rozpakowanej paczki (ten sam folder
+     instalacji - instalacja naprawi wersje; ustawienia i baza zostaja).
+  Przy pokazie: zainstaluj i uruchom program raz dzien wczesniej, zeby ewentualna reakcja programu ochronnego wyszla
+  przed pokazem.
 - **Ostrzezenie Windows przy pliku z sieci** [NIE SPRAWDZONE BEZ SPRZETU]: paczka pobrana z internetu albo z Dysku Google ma znacznik
   pochodzenia; dwuklik `Instaluj.cmd` moze pokazac "System Windows ochronil ten komputer" albo "Czy chcesz uruchomic ten plik?".
   Zapobiega temu "Odblokuj" na pliku ZIP przed rozpakowaniem (punkt 1.1); w okienku SmartScreen: "Wiecej informacji" -> "Uruchom mimo to".
