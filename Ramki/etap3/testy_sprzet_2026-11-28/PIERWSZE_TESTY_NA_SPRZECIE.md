@@ -1,3 +1,5 @@
+**Na 28.11.2026 obowiazuje `DZIEN_TESTU_LAPTOP_I_SKANER.md` (wariant laptop i skaner, program 0.3.9-rc2) - ten plik zostaje bez zmian jako tlo.**
+
 # Pierwsze testy na prawdziwym sprzecie - 28-29.11.2026
 
 Dokument dla wlasciciela. Wydrukuj go razem z arkuszem obserwacji. Stan: 21.11.2026 wieczor; przeszedl krok
