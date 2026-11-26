@@ -85,6 +85,9 @@ przeniesienia. Zrzuty: zmienna `E3_ZRZUTY`.
 - Klawisz "Zamknij piec" na ramce porannej zamyka piec w kontrolerze - ekran pokazuje to samo, co po przycisku (komunikat
   `ramka_piec_zamkniety`); "Zamknij piec" z historii ramki / innego pieca - komunikat, piec otwarty.
 - Komunikat `ramka_niedostepna` znika, gdy ramka poranna odpowiada (`StanRano.ramka`); pasek stanu - jak wieczorem (`ui_wieczor.md`).
+- E3-R1 runda 2: staly napis "Na ramce porannej swieca gniazda biezacej kuwety." (`rano_kuwety_podpowiedz`, `napisy_rano.NA_RAMCE`)
+  tylko przy ramkach wlaczonych (`stan.ramki` jest i nie `wylaczone`); przy `[ramki] wlaczone = false` i w programie bez ramek
+  (`stan.ramki` None) ukryty - wiersz "Teraz rozkladasz" ma stala wysokosc, nic sie nie przesuwa.
 
 ## Zalozenia i granice
 
