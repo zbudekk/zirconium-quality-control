@@ -355,7 +355,8 @@ def test_bledy_wejscia(tmp_path):
 
 def test_main_buduje_i_podaje_sume(tmp_path, capsys):
     zrodlo, kola = drzewo_programu(tmp_path / "zrodlo"), kola_testowe(tmp_path / "kola")
-    kod = ZW.main(["--wyjscie", str(tmp_path / "wy"), "--kola", str(kola), "--zrodlo", str(zrodlo), "--data", "2026-11-20T12:00:00", "--wersja", "7"])
+    kod = ZW.main(["--wyjscie", str(tmp_path / "wy"), "--kola", str(kola), "--zrodlo", str(zrodlo), "--data", "2026-11-20T12:00:00", "--wersja", "7",
+                   "--bez-pythona"])
     wyjscie = capsys.readouterr().out
     assert kod == 0 and f"SHA-256 {sha(tmp_path / 'wy' / 'Stanowisko_7.zip')}" in wyjscie and "bajtow" in wyjscie
     assert ZW.sprawdz_zip(tmp_path / "wy" / "Stanowisko_7.zip") == []

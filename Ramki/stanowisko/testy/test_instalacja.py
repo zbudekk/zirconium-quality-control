@@ -1465,18 +1465,26 @@ def test_p6_kazdy_skrypt_cmd_czysci_zmienne_pythona_a_instalator_startuje_z_opcj
 
     Test z prawdziwym srodowiskiem (wyzej) wykrywa brak OBU warstw naraz. Brak jednej nie zmienia zachowania, dopoki dziala
     druga (``-I`` kaze Pythonowi pominac wszystkie zmienne ``PYTHON*``), wiec kazdej z osobna pilnuje ten test - po tresci."""
-    skrypty = [STANOWISKO / "instalacja" / "zainstaluj.cmd"] + sorted((STANOWISKO / "instalacja" / "wzory").glob("*.cmd"))
-    assert [s.name for s in skrypty] == ["zainstaluj.cmd", "Dzien_skanera.cmd", "Polecenie.cmd", "Samokontrola.cmd", "Stanowisko.cmd",
-                                         "Wersje.cmd", "Wroc_do_poprzedniej.cmd"]
+    skrypty = [STANOWISKO / "instalacja" / "zainstaluj.cmd", STANOWISKO / "instalacja" / "Instaluj.cmd"] + \
+        sorted((STANOWISKO / "instalacja" / "wzory").glob("*.cmd"))
+    assert [s.name for s in skrypty] == ["zainstaluj.cmd", "Instaluj.cmd", "Dzien_skanera.cmd", "Polecenie.cmd", "Samokontrola.cmd",
+                                         "Stanowisko.cmd", "Wersje.cmd", "Wroc_do_poprzedniej.cmd"]
     for skrypt in skrypty:
         polecenia = [w.strip() for w in skrypt.read_text(encoding="ascii").splitlines()]
         polecenia = [w for w in polecenia if w and not w.lower().startswith(("rem ", "echo "))]
-        # uruchomienie Pythona: wiersz zaczynajacy sie od programu w cudzyslowie albo petla for /f z poleceniem py / python
+        # uruchomienie Pythona: wiersz zaczynajacy sie od programu w cudzyslowie albo petla for /f z poleceniem py / python;
+        # E3-I1: Python z paczki ("%PACZKA%python\python.exe", w Instaluj.cmd przez start "" "...pythonw.exe")
         starty = [i for i, w in enumerate(polecenia)
-                  if re.match(r'"(%PY%|%~1|%W%\\venv\\Scripts\\python\.exe)" ', w) or re.match(r"for /f .*\('(py|python) ", w)]
+                  if re.match(r'(start "" )?"(%PY%|%~1|%W%\\venv\\Scripts\\python\.exe|%PACZKA%python\\pythonw?\.exe)" ', w)
+                  or re.match(r"for /f .*\('(py|python) ", w)]
         assert starty, skrypt.name
         for zmienna in ("PYTHONHOME", "PYTHONPATH"):
             assert f'set "{zmienna}="' in polecenia[:starty[0]], f"{skrypt.name}: {zmienna} nie jest czyszczona przed startem Pythona"
         for i in starty:
-            if "instalator.py" in polecenia[i] or " -c " in polecenia[i]:
+            if "instalator.py" in polecenia[i] or "okno_instalatora.py" in polecenia[i] or " -c " in polecenia[i]:
                 assert " -I " in polecenia[i], f"{skrypt.name}: {polecenia[i][:60]}"
+    zainstaluj = (STANOWISKO / "instalacja" / "zainstaluj.cmd").read_text(encoding="ascii")
+    assert '"%PACZKA%python\\python.exe" -I "%PACZKA%program\\instalacja\\instalator.py" zainstaluj --paczka "%PACZKA%." --python-z-paczki %*' \
+        in zainstaluj
+    # kolejnosc: /python i STANOWISKO_PYTHON maja pierwszenstwo przed Pythonem z paczki, ten - przed szukaniem w systemie
+    assert zainstaluj.index("goto :wskazany") < zainstaluj.index("goto :z_paczki") < zainstaluj.index("py -3.12")
