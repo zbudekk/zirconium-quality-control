@@ -1,7 +1,14 @@
-"""ui (E3-A3b): ekran wieczorny - okno ``stanowisko.ui.utworz_okno(kontroler, lacznik)`` sterowane z testu jak przez technika
-(klikniecia mysza i klawisze), tryb offscreen, dane sztuczne.
+"""ui: tryb wieczorny NOWEGO okna (E3-U1a; ``etap3/nowy_interfejs/SPEC.md``) - okno ``stanowisko.ui.utworz_okno(kontroler, lacznik)``
+sterowane z testu jak przez technika (klikniecia mysza i klawisze), tryb offscreen, dane sztuczne.
 
-Kryteria paczki (raport ``raporty/E3-A3b_2026-11-17.md``):
+Testy sa rownowaznikami testow starego okna wieczornego (E3-A3b, runda 2 po recenzji PR #21): te same kryteria i te same
+nazwy testow, sprawdzane na nowym ukladzie (tabela "stary test -> nowy test": raport ``raporty/E3-U1a_2026-11-23.md``).
+Roznice ukladu, ktore zmienily tresc testow: pytania i komunikaty sa w strefie o stalej wysokosci (jedna pozycja naraz,
+reszta w liczniku "i jeszcze n"), bledy programu na liscie rozwijanej z paska stanu, lista osob pod paskiem gornym, lista
+"do dofrezowania" pod mapa; mapa nie zmienia miejsca przy zmianie stanu. Nowe zachowania (S3-3, S3-4, S3-14, S3-15, strefa,
+nakladki, motyw): ``test_ui_okno.py`` i ``test_ui_motyw.py``.
+
+Kryteria (raport ``raporty/E3-A3b_2026-11-17.md``):
   (1) mapa ma kolory rowne stanowi w 100 % gniazd dla kazdego scenariusza atrapy (i na prawdziwym kontrolerze),
   (2) klik w czerwone gniazdo -> widok pracy z rozmiarem ubytku; "Ukruszona" / "OK" / "Cofnij" wysyla wlasciwe polecenie,
       ekran odswieza liste "do dofrezowania",
@@ -167,9 +174,11 @@ def teksty_widzetu(w) -> list:
 
 
 class Ekran:
-    """Okno wieczorne na kontrolerze ``k``: pokazane (offscreen) w rozmiarze 1600 x 900 (albo ``rozmiar``) i sterowane myszka
+    """Okno na kontrolerze ``k``: pokazane (offscreen) w rozmiarze 1600 x 900 (albo ``rozmiar``) i sterowane myszka
     i klawiatura. Po zmianie zawartosci mapy okno przez chwile pomija klikniecia mapy i skroty decyzji (A-P2) - technik widzi
-    przygaszona mape i czeka; tak samo czekaja ``klik_gniazdo``, klawisze decyzji, odczyt pikseli i obraz okna."""
+    przygaszona mape i czeka; tak samo czekaja ``klik_gniazdo``, klawisze decyzji i N, odczyt pikseli i obraz okna. Strefa
+    pytan i lista bledow, ktorych zawartosc zmienila sie w tle, tez sa przez chwile przygaszone (S3-3) - ``klik`` w ich
+    przycisk czeka na koniec przygaszenia jak technik."""
 
     def __init__(self, kontroler, rozmiar: tuple = ROZMIAR_OKNA):
         from PySide6.QtTest import QTest
@@ -188,6 +197,10 @@ class Ekran:
     def po_ochronie(self) -> None:
         """Czeka, az mapa przestanie byc przygaszona po zmianie zawartosci (A-P2, ``okno.OCHRONA_MS``)."""
         self.czekaj(lambda: not self.okno.ochrona_aktywna(), 5.0, "koniec przygaszenia mapy")
+
+    def po_ochronie_nakladek(self) -> None:
+        """Czeka, az strefa pytan i lista bledow przestana byc przygaszone po zmianie w tle (S3-3)."""
+        self.czekaj(lambda: not self.okno.ochrona_nakladek_aktywna(), 5.0, "koniec przygaszenia strefy pytan / listy bledow")
 
     @contextlib.contextmanager
     def bez_zegara(self):
@@ -247,6 +260,9 @@ class Ekran:
         if nazwa.startswith("poza_"):  # przyciski prac poza gniazdem sa czescia mapy
             self.po_ochronie()
         w = self.w(nazwa)
+        if self.okno.strefa.isAncestorOf(w) or self.okno.bledy.isAncestorOf(w):
+            self.po_ochronie_nakladek()
+            w = self.w(nazwa)
         assert w.isVisibleTo(self.okno), f"element {nazwa!r} nie jest widoczny\n{self.tekst()}"
         assert w.isEnabled(), f"element {nazwa!r} jest nieaktywny"
         QTest.mouseClick(w, Qt.MouseButton.LeftButton)
@@ -265,7 +281,7 @@ class Ekran:
         from PySide6.QtCore import Qt
         from PySide6.QtTest import QTest
 
-        if klawisz in (Qt.Key.Key_U, Qt.Key.Key_O, Qt.Key.Key_C, Qt.Key.Key_Return, Qt.Key.Key_Enter):
+        if klawisz in (Qt.Key.Key_U, Qt.Key.Key_O, Qt.Key.Key_C, Qt.Key.Key_N, Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.zdarzenia()
             self.po_ochronie()
         QTest.keyClick(self.okno, klawisz)
@@ -315,7 +331,22 @@ class Ekran:
     def obraz(self):
         self.zdarzenia()
         self.po_ochronie()
+        self.po_ochronie_nakladek()
         return self.okno.grab().toImage()
+
+    def strefa(self) -> list:
+        """Nazwy obiektow WSZYSTKICH pozycji strefy pytan w kolejnosci pokazywania (strefa pokazuje jedna naraz) - z okna."""
+        pozycje, _ = self.okno.pozycje_strefy(self.okno._stan, self.okno._plytka())
+        return [u.nazwa for u in pozycje]
+
+    def przejdz_strefe(self) -> list:
+        """Przechodzi licznikiem "i jeszcze n" po wszystkich pozycjach strefy i wraca do pierwszej; zwraca teksty kolejnych pozycji."""
+        teksty = []
+        for _ in range(len(self.strefa())):
+            teksty.append(self.tekst_elementu("strefa_komunikatow"))
+            if self.jest("uwagi_jeszcze"):
+                self.klik("uwagi_jeszcze")
+        return teksty
 
     def zamknij(self) -> None:
         self.okno.close()
@@ -476,15 +507,18 @@ def test_2_czerwone_gniazdo_widok_pracy_decyzje_i_lista(atrapa, ekrany):
     e = ekrany(k)
     praca = atrapa.stan().plytka(skan_id).gniazdo(2).praca
     assert not e.jest("widok_pracy") and e.lista() == []
+    for nazwa in ("przycisk_ukruszona", "przycisk_ok", "przycisk_cofnij"):  # decyzje stoja na stalym miejscu takze bez otwartej pracy - nieaktywne
+        assert e.jest(nazwa) and not e.aktywny(nazwa)
     e.klik_gniazdo(2)
     assert e.jest("widok_pracy")
     widok = e.tekst_elementu("widok_pracy")
     assert "0,62" in widok and ST.STATUSY["czerwony"].napis in widok and ST.STATUSY["czerwony"].opis in widok  # rozmiar najwiekszego ubytku
     assert N.LICZBA_UBYTKOW.format(n=1) in widok and "9002" in widok and "K-1" in widok  # liczba ubytkow, kuweta, krazek
     e.czekaj(lambda: e.w("praca_obraz").pixmap() is not None and not e.w("praca_obraz").pixmap().isNull(), co="obraz odchylek")
-    assert e.w("praca_obraz").pixmap().width() >= 300
+    assert e.w("praca_obraz").pixmap().width() >= 250
     for nazwa in ("przycisk_ukruszona", "przycisk_ok", "przycisk_cofnij"):
-        assert e.jest(nazwa) and e.w(nazwa).height() >= 56  # duze przyciski
+        assert e.jest(nazwa) and e.w(nazwa).height() >= 44  # cel klikniecia co najmniej 44 px (SPEC p. 2)
+    assert e.w("przycisk_ukruszona").height() >= 52 and e.w("przycisk_ok").height() >= 52  # przyciski decyzji
     assert e.aktywny("przycisk_ukruszona") and e.aktywny("przycisk_ok") and not e.aktywny("przycisk_cofnij")
     assert ST.PRZYCISKI["ukruszona"] in e.w("przycisk_ukruszona").text() and ST.PRZYCISKI["ok"] in e.w("przycisk_ok").text()
 
@@ -890,6 +924,7 @@ def test_4_dwie_prace_w_gniezdzie_i_praca_poza_gniazdem(atrapa, ekrany):
 
 def test_4_pusta_pula_blad_analizy_i_inne_komunikaty(atrapa, ekrany):
     from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
 
     k = Szpieg(atrapa)
     k.wybierz_operatora("Technik A")
@@ -910,8 +945,11 @@ def test_4_pusta_pula_blad_analizy_i_inne_komunikaty(atrapa, ekrany):
     nic_zielonego(e)
     for rodzaj in ("plik_zajety", "plik_niedostepny", "silnik_nie_startuje", "folder_skanera_niedostepny", "pula_brak_folderu"):
         kom = atrapa.symuluj_komunikat(rodzaj)
-        assert kom.tytul in e.tekst(tylko_widoczne=False) and kom.tekst in e.tekst(tylko_widoczne=False), rodzaj
-    assert e.jest("komunikat_pula_brak_folderu")  # najnowszy komunikat jest widoczny
+        # blad programu: na liscie bledow; inny komunikat: w strefie pytan (jedna pozycja naraz - reszta pod licznikiem "i jeszcze n")
+        tekst = e.tekst_elementu("lista_bledow") + "\n".join(e.przejdz_strefe())
+        assert kom.tytul in tekst and kom.tekst in tekst, rodzaj
+    assert e.jest("komunikat_pula_brak_folderu") and e.okno.bledy.isAncestorOf(e.w("komunikat_pula_brak_folderu"))  # najnowszy blad na liscie bledow
+    assert e.w("przycisk_bledy").text() == N.BLEDY_PROGRAMU.format(n=4)  # licznik na pasku stanu
 
 
 def test_4_odmowa_polecenia_to_komunikat_nie_wyjatek(atrapa, ekrany, zegar):
@@ -945,11 +983,16 @@ def test_4_postep_analizy_i_kolejka_na_pasku(atrapa, ekrany):
 
 
 def test_4_pasek_tryb_doba_zmiana(atrapa, ekrany):
+    """Pasek gorny: przelacznik trybu (wybrana czesc = tryb ze stanu, napisy ze ``statusy``), doba robocza i zmiana, nazwa programu."""
     from stanowisko import statusy as ST
+    from stanowisko.ui import napisy as N
 
     e = ekrany(atrapa)
-    assert ST.NAZWY_TRYBOW["wieczor"] in e.w("napis_tryb").text()
+    wieczor, rano = e.w("przycisk_tryb_wieczor"), e.w("przycisk_tryb_rano")
+    assert (wieczor.text(), rano.text()) == (ST.NAZWY_TRYBOW["wieczor"], ST.NAZWY_TRYBOW["rano"])
+    assert wieczor.isChecked() and not rano.isChecked()
     assert "17.11.2026" in e.w("napis_doba").text() and "2" in e.w("napis_doba").text()
+    assert e.w("napis_program").text() == N.NAZWA_PROGRAMU and e.okno.pasek_gorny.isAncestorOf(e.w("napis_doba"))
 
 
 def test_4_pula_liczenie_i_skany_wstrzymane_czekaja(atrapa, ekrany):
@@ -1205,7 +1248,7 @@ def test_4_komunikat_i_status_nieznane_tej_wersji_ekranu(atrapa, ekrany):
     nowa = dataclasses.replace(plytka, gniazda=gniazda, napis="nie zapisano - blad zapisu", liczniki={**plytka.liczniki, "klasa_z_przyszlosci": 1})
     e.okno.pokaz_stan(dataclasses.replace(stan, wersja=stan.wersja + 1, plytki=(nowa,)))
     assert e.mapa.kolory()[1] == nieznany.hex == e.kolory_pikseli()[1] and e.mapa.podpisy()[1] == "do sprawdzenia"
-    assert "nie zapisano - blad zapisu" in e.w("mapa_naglowek").text() and "nie zapisano - blad zapisu" in e.tekst_elementu(f"plytka_{skan_id}")
+    assert "nie zapisano - blad zapisu" in e.w("mapa_godzina").text() and "nie zapisano - blad zapisu" in e.tekst_elementu(f"plytka_{skan_id}")
     assert e.w(f"plytka_{skan_id}").liczniki()["klasa_z_przyszlosci"] == 1
     e.klik_gniazdo(1)
     widok = e.tekst_elementu("widok_pracy")
@@ -1643,7 +1686,7 @@ def test_pakiet_ui_bez_qt_na_poziomie_modulu_i_okno_z_aplikacji(atrapa):
     lacznik = K.lacznik_qt(atrapa)
     okno = AP.utworz_okno(atrapa, lacznik)
     try:
-        assert type(okno).__module__.startswith("stanowisko.ui") and okno.objectName() == "okno_wieczor"
+        assert type(okno).__module__.startswith("stanowisko.ui") and okno.objectName() == "okno_stanowiska"
         assert not okno.isVisible() and callable(ui.utworz_okno)
     finally:
         okno.close()
@@ -1755,7 +1798,7 @@ def test_nawigacja_lista_nastepna_poza_gniazdem_dwie_prace_i_wczesniejsze_zmiany
 # ----------------------------------------------------------------------------
 # runda 2 recenzji PR #21 (raport ``recenzja/raport_recenzenta_PR21_PR20r2.md``): A-P1 ... A-P5 i uwagi D
 # ----------------------------------------------------------------------------
-ROZMIARY_PROBY = ((1280, 720), (1366, 768), (1600, 900))
+ROZMIARY_PROBY = ((1280, 720), (1366, 768), (1536, 864), (1600, 900), (1920, 1080))
 PELNA = {1: "zielony", 2: "czerwony", 3: "zielony", 4: "zolty", 5: "zielony", 6: "zielony", 7: "szary", 8: "zielony", 9: "czerwony", 10: "zielony",
          11: "zielony", 12: "pomaranczowy", 13: "zielony", 14: "zielony", 15: "nie_sprawdzono", 16: "zielony", 17: "zielony", 18: "zielony"}
 DLUGI_TEKST = "Bardzo dlugi tekst komunikatu, ktory ma sprawdzic zawijanie i wysokosc panelu. " * 8
@@ -1910,14 +1953,24 @@ def _w_obszarze_przewijanym(okno, w) -> bool:
     return False
 
 
-def sprawdz_uklad(e: Ekran, rozmiar: tuple) -> list:
+def nakladki(okno) -> list:
+    """Widoczne nakladki okna: lista osob pod paskiem gornym i lista bledow nad paskiem stanu (leza NAD ukladem okna)."""
+    return [w for w in (okno.panel_osoby, okno.bledy) if w.isVisibleTo(okno)]
+
+
+POLA_SKRACANE = ("napis_kolejka", "napis_pula", "napis_ramki")  # dlugie pola paska stanu: przy braku miejsca wielokropek + podpowiedz
+
+
+def sprawdz_uklad(e: Ekran, rozmiar: tuple, skracane: bool = False) -> list:
     """A-P1: okno w rozmiarze ``rozmiar``; zwraca liste usterek: przycisk albo napis poza oknem / poza rodzicem, napis przycisku
-    albo etykiety uciety (``sizeHint`` / ``heightForWidth`` wieksze niz rozmiar), dwa klikalne elementy na sobie, mapa poza oknem
-    albo mniejsza niz jej minimum, uklad potrzebujacy wiecej miejsca niz okno."""
+    albo etykiety uciety (``sizeHint`` / ``heightForWidth`` wieksze niz rozmiar) albo skrocony z wielokropkiem (``skracane`` True:
+    dlugie pola paska stanu ``POLA_SKRACANE`` moga byc skrocone, o ile pelny napis jest w podpowiedzi), dwa klikalne
+    elementy na sobie, mapa poza oknem albo mniejsza niz jej minimum, uklad potrzebujacy wiecej miejsca niz okno, nakladka
+    (lista osob, lista bledow) poza oknem albo na mapie / przyciskach decyzji."""
     from PySide6.QtWidgets import QLabel, QPushButton, QTableWidget, QWidget
 
-    from stanowisko.ui.czesci import KafelekPlytki
     from stanowisko.ui.mapa import MapaPlytki
+    from stanowisko.ui.wieczor import KafelekPlytki
 
     okno = e.okno
     okno.resize(*rozmiar)
@@ -1930,6 +1983,11 @@ def sprawdz_uklad(e: Ekran, rozmiar: tuple) -> list:
     minimum = okno.layout().minimumSize()
     if minimum.width() > okno.width() or minimum.height() > okno.height():
         usterki.append(f"uklad potrzebuje {minimum.width()}x{minimum.height()}")
+    nad = nakladki(okno)
+
+    def w_nakladce(w):
+        return next((n for n in nad if n is w or n.isAncestorOf(w)), None)
+
     klikalne = []
     for w in okno.findChildren(QWidget):
         if not w.isVisibleTo(okno):
@@ -1946,6 +2004,11 @@ def sprawdz_uklad(e: Ekran, rozmiar: tuple) -> list:
                 hint = w.sizeHint()
                 if hint.width() > w.width() + 1 or hint.height() > w.height() + 1:
                     usterki.append(f"uciety przycisk {nazwa}: {w.width()}x{w.height()}, potrzebne {hint.width()}x{hint.height()}")
+            elif hasattr(w, "skrocona"):  # napis paska stanu / naglowka plytki, ktory przy braku miejsca jest skracany z wielokropkiem
+                if w.skrocona() and (not skracane or w.objectName() not in POLA_SKRACANE):
+                    usterki.append(f"skrocony napis {nazwa}: {w.width()}, potrzebne {w.sizeHint().width()}")
+                elif w.skrocona() and w.text() not in w.toolTip():
+                    usterki.append(f"skrocony napis bez pelnego tekstu w podpowiedzi {nazwa}")
             elif w.wordWrap():
                 if w.heightForWidth(w.width()) > w.height() + 1:
                     usterki.append(f"ucieta etykieta (wysokosc) {nazwa}: {w.height()}, potrzebne {w.heightForWidth(w.width())}")
@@ -1957,6 +2020,8 @@ def sprawdz_uklad(e: Ekran, rozmiar: tuple) -> list:
                 klikalne.append((w, wycinek, nazwa))
     for i, (a, ra, na) in enumerate(klikalne):
         for b, rb, nb in klikalne[i + 1:]:
+            if w_nakladce(a) is not w_nakladce(b):
+                continue  # nakladka lezy NAD ukladem okna: to, co pod nia, jest zasloniete (osobna kontrola nakladek nizej)
             if not (a.isAncestorOf(b) or b.isAncestorOf(a)) and ra.intersects(rb):
                 usterki.append(f"na sobie: {na} {ra} i {nb} {rb}")
     from PySide6.QtCore import Qt
@@ -1966,46 +2031,66 @@ def sprawdz_uklad(e: Ekran, rozmiar: tuple) -> list:
         if (obszar.isVisibleTo(okno) and obszar.widget() is not None and obszar.horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
                 and obszar.widget().width() > obszar.viewport().width() + 1):
             usterki.append(f"za szeroka zawartosc {obszar.objectName() or type(obszar).__name__}: {obszar.widget().width()} > {obszar.viewport().width()}")
-    mapa = okno.mapa
-    if not okno.rect().contains(_w_oknie(okno, mapa)):
-        usterki.append(f"mapa poza oknem: {_w_oknie(okno, mapa)}")
-    if mapa.height() < mapa.minimumHeight() or mapa.width() < mapa.minimumWidth():
-        usterki.append(f"mapa {mapa.width()}x{mapa.height()} mniejsza niz minimum {mapa.minimumWidth()}x{mapa.minimumHeight()}")
+    if not okno.rano():
+        mapa = okno.mapa
+        if not okno.rect().contains(_w_oknie(okno, mapa)):
+            usterki.append(f"mapa poza oknem: {_w_oknie(okno, mapa)}")
+        if mapa.height() < mapa.minimumHeight() or mapa.width() < mapa.minimumWidth():
+            usterki.append(f"mapa {mapa.width()}x{mapa.height()} mniejsza niz minimum {mapa.minimumWidth()}x{mapa.minimumHeight()}")
+        for n in nad:  # nakladki: w oknie; nie na przyciskach decyzji; lista bledow takze nie na mapie ani na strefie pytan
+            r = _w_oknie(okno, n)
+            if not okno.rect().contains(r):
+                usterki.append(f"nakladka poza oknem: {n.objectName()} {r}")
+            zakazane = [okno.widok.decyzje] + ([okno.mapa, okno.strefa, okno.widok] if n is okno.bledy else [])
+            for z in zakazane:
+                if r.intersects(_w_oknie(okno, z)):
+                    usterki.append(f"nakladka {n.objectName()} {r} zaslania {z.objectName()} {_w_oknie(okno, z)}")
     return usterki
 
 
 @pytest.mark.parametrize("scena", SCENY)
 def test_ap1_uklad_miesci_sie_przy_1280x720_1366x768_1600x900_i_minimum(atrapa, ekrany, zegar, scena):
     """A-P1: dla kazdego stanu z zrzutow i prob recenzenta - przy 1280 x 720 (laptop 1920 x 1080, skalowanie 150 %), 1366 x 768,
-    1600 x 900 i przy najmniejszym oknie - kazdy widoczny przycisk i napis miesci sie w oknie i w rodzicu, nie jest uciety,
-    klikalne elementy nie leza na sobie, mapa jest w oknie. Okno otwarte od razu male, potem zmieniane (przelaczanie ukladu)."""
-    from stanowisko.ui import styl
+    1536 x 864 (125 %), 1600 x 900, 1920 x 1080 i przy najmniejszym oknie - kazdy widoczny przycisk i napis miesci sie w oknie
+    i w rodzicu, nie jest uciety ani skrocony, klikalne elementy nie leza na sobie, mapa jest w oknie, nakladki nie zaslaniaja
+    mapy ani przyciskow decyzji. Okno otwarte od razu male, potem zmieniane (przelaczanie ukladu)."""
+    from stanowisko.ui import motyw
 
-    assert styl.MINIMUM_OKNA[0] <= 1280 and styl.MINIMUM_OKNA[1] <= 720
+    assert motyw.MINIMUM_OKNA[0] <= 1280 and motyw.MINIMUM_OKNA[1] <= 720
     e = zbuduj_scene(atrapa, zegar, ekrany, scena, ROZMIARY_PROBY[0])
-    assert (e.okno.minimumWidth(), e.okno.minimumHeight()) == styl.MINIMUM_OKNA
-    for rozmiar in ROZMIARY_PROBY + (styl.MINIMUM_OKNA, ROZMIARY_PROBY[0]):
-        usterki = sprawdz_uklad(e, rozmiar)
+    assert (e.okno.minimumWidth(), e.okno.minimumHeight()) == motyw.MINIMUM_OKNA
+    for rozmiar in ROZMIARY_PROBY + (motyw.MINIMUM_OKNA, ROZMIARY_PROBY[0]):
+        usterki = sprawdz_uklad(e, rozmiar, skracane=True)  # sceny przeciazone: dlugie pola paska stanu moga byc skrocone
         assert not usterki, f"{scena} {rozmiar}:\n" + "\n".join(usterki)
-        assert e.okno.zwarty() == (rozmiar[0] < styl.PROG_ZWARTEGO[0] or rozmiar[1] < styl.PROG_ZWARTEGO[1])
+        assert e.okno.zwarty() == (rozmiar[0] < motyw.PROG_ZWARTEGO[0] or rozmiar[1] < motyw.PROG_ZWARTEGO[1])
+        assert e.okno.uklad() is motyw.uklad_dla(*rozmiar)
 
 
-def test_ap1_wyglad_przy_1600x900_bez_zmian(atrapa, ekrany, zegar):
-    """Przy 1600 x 900 uklad zwykly jak w rundzie 1: duze przyciski decyzji (68 px), kolumny 250 / 540 px, mapa co najmniej
-    380 x 300 px; przy 1280 x 720 uklad zwarty z mniejszymi przyciskami, ale nadal duzymi do klikniecia (co najmniej 34 px)."""
-    from stanowisko.ui import styl
+def test_ap1_rozmiary_szkieletu_wg_motywu(atrapa, ekrany, zegar):
+    """Szkielet okna (SPEC p. 3): pasek gorny 52 px, pasek stanu 32 px, lewa kolumna 280 px, prawa 360 px (uklad zwarty: 240 / 320),
+    strefa pytan i lista "do dofrezowania" o stalych wysokosciach z ``motyw``; przyciski decyzji 52 px (zwarty: 48), pozostale
+    przyciski akcji co najmniej 44 px - takze w ukladzie zwartym. (Stary test: ``test_ap1_wyglad_przy_1600x900_bez_zmian``.)"""
+    from stanowisko.ui import motyw
 
     pelna_baza(atrapa)
     atrapa.wybierz_operatora("Technik A")
     wieczor_pokazowy(atrapa, zegar)
-    e = ekrany(atrapa)
+    e = ekrany(atrapa, (1920, 1080))
     e.klik_gniazdo(5)
-    assert not e.okno.zwarty()
-    assert e.w("przycisk_ukruszona").height() >= styl.ZWYKLE.wysokosc_decyzji and e.w("lista_plytek").width() == 250
-    assert e.w("prawa_kolumna").width() == 540 and e.mapa.width() >= 380 and e.mapa.height() >= 300
-    assert not sprawdz_uklad(e, (1280, 720))
-    assert e.okno.zwarty() and e.w("przycisk_ukruszona").height() >= styl.ZWARTE.wysokosc_decyzji >= 34
-    assert all(e.w(n).height() >= 34 for n in ("przycisk_ok", "przycisk_cofnij", "przycisk_nastepna", "przycisk_zamknij_prace"))
+    for rozmiar in ((1920, 1080), (1536, 864), (1280, 720)):
+        assert not sprawdz_uklad(e, rozmiar)
+        u = motyw.uklad_dla(*rozmiar)
+        assert e.okno.uklad() is u and u.zwarty == (rozmiar != (1920, 1080) and rozmiar != (1536, 864))
+        assert (e.w("pasek_gorny").height(), e.w("pasek_stanu").height()) == (motyw.WYSOKOSC_PASKA_GORNEGO, motyw.WYSOKOSC_PASKA_STANU) == (52, 32)
+        assert (e.w("lista_plytek").width(), e.w("ramka_pracy").width()) == (u.lewa, u.prawa) == ((240, 320) if u.zwarty else (280, 360))
+        assert e.w("strefa_komunikatow").height() == u.strefa and e.w("lista_dofrezowania").height() == u.lista
+        assert e.w("przycisk_ukruszona").height() >= u.decyzja >= 48 and e.w("przycisk_ok").height() >= u.decyzja
+        assert all(e.w(n).height() >= motyw.CEL_KLIKNIECIA == 44 for n in ("przycisk_cofnij", "przycisk_nastepna"))
+        assert e.mapa.width() >= u.mapa_min[0] and e.mapa.height() >= u.mapa_min[1]
+        # kolejnosc szkieletu od lewej: plytki, srodek z mapa, praca; od gory: pasek gorny, strefa pytan, mapa, lista, pasek stanu
+        x = [_w_oknie(e.okno, e.w(n)).x() for n in ("lista_plytek", "srodek", "ramka_pracy")]
+        y = [_w_oknie(e.okno, e.w(n)).y() for n in ("pasek_gorny", "strefa_komunikatow", "mapa", "lista_dofrezowania", "pasek_stanu")]
+        assert x == sorted(x) and y == sorted(y), (rozmiar, x, y)
 
 
 def test_ap2_nowy_wynik_nie_podmienia_mapy_z_pracami_do_obejrzenia(atrapa, ekrany, zegar):
@@ -2097,7 +2182,7 @@ def test_ap2_widok_pracy_naglowek_i_decyzja_tylko_dla_pokazanej_pracy(atrapa, ek
     e = ekrany(k)
     e.klik_gniazdo(2)
     assert e.w("praca_tytul").text() == N.PRACA_TYTUL.format(plytka=N.PLYTKA_NR.format(numer=3), gniazdo=2)
-    assert e.w("praca_tytul").property("rola") == "tytul"  # najwieksza czcionka widoku
+    assert e.w("praca_tytul").property("rola") == "tytul_pracy"  # najwieksza czcionka kolumny "Praca"
     stan = atrapa.stan()
     plytka = stan.plytka(skan_id)
     praca_2, praca_9 = plytka.gniazdo(2).praca, plytka.gniazdo(9).praca
@@ -2122,9 +2207,11 @@ def test_ap2_widok_pracy_naglowek_i_decyzja_tylko_dla_pokazanej_pracy(atrapa, ek
 
 
 def test_ap3_bledy_programu_na_wlasnym_pasku_poza_limitem_paneli(atrapa, ekrany, zegar):
-    """Proba recenzenta: pokazana plytka ma 3 wlasne panele (pytanie o ponowny skan, "Praca niesprawdzona", "Skan do powtorzenia"),
-    przychodzi blad zapisu i znika folder skanera. Oba bledy programu sa na pasku bledow nad calym ekranem, w calosci widoczne
-    (1600 x 900 i 1280 x 720), nie licza sie do "i jeszcze n"; inne komunikaty ogolne zostaja w panelach pod limitem."""
+    """Proba recenzenta w nowym ukladzie: pokazana plytka ma 3 wlasne pozycje (pytanie o ponowny skan, "Praca niesprawdzona", "Skan
+    do powtorzenia"), przychodzi blad zapisu i znika folder skanera. Oba bledy programu sa na LISCIE BLEDOW (rozwijanej z licznika
+    na pasku stanu) - sama sie rozwija, pierwszy blad w calosci widoczny, licznik pokazuje 2; bledy nie licza sie do "i jeszcze n"
+    strefy pytan. Strefa pokazuje jedna pozycje (pytanie pierwsze) i licznik pozostalych; lista bledow nie zaslania mapy, strefy
+    ani kolumny "Praca" (1600 x 900 i 1280 x 720)."""
     from stanowisko.ui import napisy as N
 
     k = Szpieg(atrapa)
@@ -2136,21 +2223,31 @@ def test_ap3_bledy_programu_na_wlasnym_pasku_poza_limitem_paneli(atrapa, ekrany,
                                 projekty={n: 60 + n for n in range(1, 10)})
     e = ekrany(k)
     assert e.okno.pokazana_plytka() == drugi
-    assert {p.objectName() for p in e.okno.uwagi.panele()} == {"pytanie_ponowny_skan", "komunikat_blad_inspekcji", "komunikat_skan_do_powtorzenia"}
+    # kolejnosc strefy: pytanie pokazanej plytki, potem komunikaty wg poziomu, w poziomie od najnowszego
+    assert e.strefa() == ["pytanie_ponowny_skan", "komunikat_skan_do_powtorzenia", "komunikat_blad_inspekcji"]
+    assert [p.objectName() for p in e.okno.strefa.panele()] == ["pytanie_ponowny_skan"]  # jedna pozycja naraz: pytanie pierwsze
+    assert e.w("uwagi_jeszcze").text() == N.JESZCZE_KROTKO.format(n=2) and not e.jest("lista_bledow") and not e.jest("przycisk_bledy")
     atrapa.symuluj_blad_zapisu(1)
     atrapa.symuluj_skaner(dostepny=False)
     for _ in range(4):
-        atrapa.symuluj_komunikat("plik_zmieniony")  # komunikat informacyjny - zostaje w panelach (czwarty panel -> "i jeszcze 1")
+        atrapa.symuluj_komunikat("plik_zmieniony")  # komunikat informacyjny - zostaje w strefie (czwarta pozycja)
     for rozmiar in ((1600, 900), (1280, 720)):
         assert not sprawdz_uklad(e, rozmiar)
+        assert e.jest("lista_bledow") and e.w("przycisk_bledy").text() == N.BLEDY_PROGRAMU.format(n=2)
+        assert {p.objectName() for p in e.okno.bledy.panele()} == {"komunikat_blad_zapisu", "komunikat_folder_skanera_niedostepny"}
         for nazwa in ("komunikat_blad_zapisu", "komunikat_folder_skanera_niedostepny"):
             w = e.w(nazwa)
-            assert e.jest(nazwa) and e.okno.bledy.isAncestorOf(w) and not e.okno.uwagi.isAncestorOf(w), (rozmiar, nazwa)
-            assert _widoczny_wycinek(e.okno, w) == _w_oknie(e.okno, w), (rozmiar, nazwa, "blad programu nie jest widoczny w calosci")
-        assert e.w("uwagi_jeszcze").text() == N.JESZCZE.format(n=1) and e.w("uwagi_jeszcze").property("rola") == "uwaga"
-        assert len([p for p in e.okno.uwagi.panele() if p.objectName() != "uwagi_jeszcze"]) == 3
-    e.klik("komunikat_ponow_zapis")  # przyciski bledu dzialaja z paska bledow
+            assert e.jest(nazwa) and e.okno.bledy.isAncestorOf(w) and not e.okno.strefa.isAncestorOf(w), (rozmiar, nazwa)
+        pierwszy = e.okno.bledy.panele()[0]
+        assert _widoczny_wycinek(e.okno, pierwszy) == _w_oknie(e.okno, pierwszy), (rozmiar, "pierwszy blad programu nie jest widoczny w calosci")
+        assert e.w("uwagi_jeszcze").text() == N.JESZCZE_KROTKO.format(n=3) and len(e.strefa()) == 4
+        assert [p.objectName() for p in e.okno.strefa.panele()] == ["pytanie_ponowny_skan"]
+    e.klik("komunikat_ponow_zapis")  # przyciski bledu dzialaja z listy bledow
     assert k.polecenia[-1] == ("ponow_zapis", ())
+    e.klik("przycisk_bledy")  # technik zwija liste licznikiem; licznik zostaje
+    assert not e.jest("lista_bledow") and e.jest("przycisk_bledy")
+    e.klik("przycisk_bledy")
+    assert e.jest("lista_bledow")
 
 
 def test_ap5_napisy_po_recenzji(atrapa, ekrany, zegar):
@@ -2170,23 +2267,23 @@ def test_ap5_napisy_po_recenzji(atrapa, ekrany, zegar):
     e = ekrany(k)
     przeanalizowana = ST.STATUSY_PLYTKI["przyjety"]
     assert przeanalizowana != N.PLYTKA_SPRAWDZONA
-    assert e.w("mapa_naglowek").text() == N.MAPA_NAGLOWEK.format(plytka=N.PLYTKA_NR.format(numer=1), napis=N.PLYTKA_DO_OBEJRZENIA.format(n=2))
+    assert e.w("mapa_naglowek").text() == N.PLYTKA_NR.format(numer=1) and e.w("mapa_godzina").text().endswith(N.PLYTKA_DO_OBEJRZENIA.format(n=2))
     assert przeanalizowana in e.w("mapa_godzina").text() and N.PLYTKA_DO_OBEJRZENIA.format(n=2) in e.tekst_elementu(f"plytka_{s}")
     assert N.PLYTKA_SPRAWDZONA not in e.tekst()
     assert e.w("plytka_podaj_numer_plytki").text() == N.ZMIEN_NUMER  # plytka ma numer
     e.klik_gniazdo(2)
     e.klik("przycisk_ukruszona")
-    assert e.w("mapa_naglowek").text().endswith(N.PLYTKA_DO_OBEJRZENIA.format(n=1))
+    assert e.w("mapa_godzina").text().endswith(N.PLYTKA_DO_OBEJRZENIA.format(n=1))
     e.klik_gniazdo(3)
     e.klik("przycisk_ok")
-    assert e.w("mapa_naglowek").text() == N.MAPA_NAGLOWEK.format(plytka=N.PLYTKA_NR.format(numer=1), napis=N.PLYTKA_SPRAWDZONA)
+    assert e.w("mapa_naglowek").text() == N.PLYTKA_NR.format(numer=1) and e.w("mapa_godzina").text().endswith(N.PLYTKA_SPRAWDZONA)
     assert N.PLYTKA_SPRAWDZONA in e.tekst_elementu(f"plytka_{s}")
     e.klawisz(Qt.Key.Key_Escape)
     # plytka bez numeru: "Plytka bez numeru", panel pytania z tytulem bez przedrostka, przycisk "Podaj numer plytki" po "Pozniej"
     zegar.przesun(5)
     b = atrapa.symuluj_skan("bez_numeru")
     assert e.okno.pokazana_plytka() == b  # plytka 1 obejrzana w calosci: ekran przechodzi na nowa plytke sam
-    assert e.w("mapa_naglowek").text().startswith(N.PLYTKA_BEZ_NUMERU) and "?" not in e.w("mapa_naglowek").text()
+    assert e.w("mapa_naglowek").text() == N.PLYTKA_BEZ_NUMERU and "?" not in e.w("mapa_naglowek").text()
     assert ST.PYTANIA["brak_numeru_plytki"].tytul in e.tekst_elementu("pytanie_brak_numeru_plytki")
     assert C.tytul_plytki(N.PLYTKA_BEZ_NUMERU, ST.PYTANIA["brak_numeru_plytki"].tytul) not in e.tekst_elementu("pytanie_brak_numeru_plytki")
     e.klik("odp_zamknij_pytanie")
@@ -2210,7 +2307,7 @@ def test_ap5_napisy_po_recenzji(atrapa, ekrany, zegar):
 
 def test_klawiatura_strzalki_enter_tab(atrapa, ekrany):
     """Z klawiatury (A-D): strzalki przesuwaja kursor gniazda po mapie, Enter otwiera prace pod kursorem; Tab idzie po przyciskach
-    i kafelkach w kolejnosci ekranu (pasek, panele, plytki, mapa, widok pracy, lista), Enter klika przycisk z fokusem, a Spacja
+    i kafelkach w kolejnosci ekranu (pasek gorny, strefa pytan, plytki, polecenia plytki, praca, lista, pasek stanu), Enter klika przycisk z fokusem, a Spacja
     zostaje startem skanu takze przy fokusie na przycisku. Klikniecie mysza oddaje fokus oknu."""
     from PySide6.QtCore import Qt
     from PySide6.QtTest import QTest
@@ -2243,8 +2340,9 @@ def test_klawiatura_strzalki_enter_tab(atrapa, ekrany):
             lancuch.append(w.objectName())
         w = w.nextInFocusChain()
     poz = {nazwa: i for i, nazwa in reversed(list(enumerate(lancuch)))}
-    kolejnosc = ["przycisk_zmien_osobe", "przycisk_skanuj", "zamknij_komunikat", f"plytka_{s}", "plytka_podaj_numer_plytki", "przycisk_ukruszona",
-                 "przycisk_ok", "przycisk_zamknij_prace", "lista_ta_doba", "przycisk_zapisz_liste"]
+    kolejnosc = ["przycisk_tryb_rano", "przycisk_skanuj", "przycisk_zmien_osobe", "zamknij_komunikat", f"plytka_{s}", "plytka_podaj_numer_plytki",
+                 "przycisk_zamknij_prace", "przycisk_ukruszona", "przycisk_ok", "przycisk_nastepna", "lista_ta_doba", "przycisk_zapisz_liste",
+                 "przycisk_odswiez_pule"]
     pozycje = [poz.get(n, -1) for n in kolejnosc]
     assert -1 not in pozycje and pozycje == sorted(pozycje), lancuch
     # Spacja przy fokusie na przycisku = start skanu (nie "Ukruszona"); Enter = klikniecie przycisku z fokusem
@@ -2272,8 +2370,8 @@ def test_d_pasek_kafelki_lista_i_kolory_napisow(atrapa, ekrany, zegar, monkeypat
 
     from stanowisko import statusy as ST
     from stanowisko.ui import czesci as C
+    from stanowisko.ui import motyw
     from stanowisko.ui import napisy as N
-    from stanowisko.ui import styl
 
     monkeypatch.setattr(C, "LIMIT_LICZENIA_PULI_S", 0.3)
     atrapa.wybierz_operatora("Technik A")
@@ -2287,7 +2385,8 @@ def test_d_pasek_kafelki_lista_i_kolory_napisow(atrapa, ekrany, zegar, monkeypat
     e = ekrany(atrapa)
     assert e.okno.pokazana_plytka() == b
     assert N.PLYTKA_KOMUNIKAT in e.tekst_elementu(f"plytka_{a}") and N.PLYTKA_KOMUNIKAT not in e.tekst_elementu(f"plytka_{b}")
-    licznik = next(w for w in e.w(f"plytka_{a}").findChildren(QLabel) if w.text() == "2" and w.toolTip())
+    # licznik na kafelku: kropka w kolorze statusu, NAPIS statusu i liczba (status nie tylko barwa); podpowiedz z pelnym opisem
+    licznik = next(w for w in e.w(f"plytka_{a}").findChildren(QLabel) if w.text() == N.LICZNIK.format(napis=ST.STATUSY["czerwony"].napis, n=2))
     assert licznik.toolTip() == N.LICZNIK_OPIS.format(napis=ST.STATUSY["czerwony"].napis, n=2)
     # A-D9: pozycja listy z poprzedniej doby
     e.klik("lista_wszystkie")
@@ -2302,9 +2401,11 @@ def test_d_pasek_kafelki_lista_i_kolory_napisow(atrapa, ekrany, zegar, monkeypat
         assert not e.aktywny("przycisk_odswiez_pule")
         e.czekaj(lambda: e.aktywny("przycisk_odswiez_pule"), 3.0, "Odswiez pule aktywne po limicie liczenia")
     # A-D4: grupa jednakowych komunikatow zamykana jednym kliknieciem, ekran odswiezany raz
+    e.klik("zamknij_informacje")  # strefa pokazuje jedna pozycje naraz: informacja ekranu stala przed komunikatami
     for _ in range(6):
         atrapa.symuluj_komunikat("plik_zmieniony")
-    assert e.jest("komunikat_plik_zmieniony")
+    assert e.jest("komunikat_plik_zmieniony") and N.KILKA_RAZY.format(tytul=ST.KOMUNIKATY["plik_zmieniony"].tytul, n=6) in e.tekst()
+    e.po_ochronie_nakladek()
     przycisk = next(w for w in e.w("komunikat_plik_zmieniony").findChildren(C.QPushButton) if w.objectName() == "zamknij_komunikat")
     odswiezen = []
     prawdziwe = e.okno._odswiez
@@ -2312,19 +2413,19 @@ def test_d_pasek_kafelki_lista_i_kolory_napisow(atrapa, ekrany, zegar, monkeypat
     QTest.mouseClick(przycisk, Qt.MouseButton.LeftButton)
     e.okno._odswiez = prawdziwe
     assert not e.jest("komunikat_plik_zmieniony") and len(odswiezen) == 1
-    # A-D7: kolor napisu na tle statusu
-    assert styl.tekst_na(ST.STATUSY["zielony"].hex) == "#111111" and styl.tekst_na(ST.STATUSY["czerwony"].hex) == "#ffffff"
-    assert styl.kontrast(ST.STATUSY["zielony"].hex, styl.tekst_na(ST.STATUSY["zielony"].hex)) >= 4.5
+    # A-D7 / SPEC p. 2: napis na kolorze statusu zawsze #111111, z kontrastem co najmniej 4,5 : 1 (wszystkie statusy: test_ui_motyw)
+    assert motyw.tekst_na(ST.STATUSY["zielony"].hex) == motyw.tekst_na(ST.STATUSY["czerwony"].hex) == motyw.NA_STATUSIE == "#111111"
+    assert motyw.kontrast(ST.STATUSY["zielony"].hex, motyw.NA_STATUSIE) >= 4.5 and motyw.kontrast(ST.STATUSY["czerwony"].hex, motyw.NA_STATUSIE) >= 4.5
 
 
 def test_d_konflikt_projektu_z_gniazdami_i_tlo_zaznaczonej_osoby(atrapa, ekrany, zegar):
     """(A-P5 poz. 10) Panel konfliktu projektu wypisuje gniazda ze ``stan.konflikty`` (z godzina skanu - dwa skany jednej plytki
-    maja ten sam numer); konflikt jest trwaly, wiec stoi na pasku bledow programu. Zaznaczona osoba w panelu zmiany osoby ma
-    tlo w kolorze akcentu (arkusz obszaru paneli nie zdejmuje tla przyciskom)."""
+    maja ten sam numer); konflikt jest trwaly, wiec stoi na liscie bledow programu. Zaznaczona osoba na liscie osob ma
+    tlo w kolorze akcentu."""
     from PySide6.QtCore import QPoint
 
+    from stanowisko.ui import motyw
     from stanowisko.ui import napisy as N
-    from stanowisko.ui import styl
 
     atrapa.wybierz_operatora("Technik A")
     atrapa.symuluj_skan("zwykla", numer=1)
@@ -2341,31 +2442,38 @@ def test_d_konflikt_projektu_z_gniazdami_i_tlo_zaznaczonej_osoby(atrapa, ekrany,
     assert b.isChecked()
     p = b.mapTo(e.okno, QPoint(0, 0))
     obraz = e.obraz().copy(p.x(), p.y(), b.width(), b.height())
-    assert obraz.pixelColor(8, b.height() // 2).name() == styl.AKCENT
+    assert obraz.pixelColor(8, b.height() // 2).name() == motyw.AKCENT.lower()
 
 
-@pytest.mark.parametrize("rozmiar", [(1600, 900), (1280, 720)])
+@pytest.mark.parametrize("rozmiar", [(1920, 1080), (1600, 900), (1536, 864), (1280, 720)])
 def test_ap1_pasek_stalej_wysokosci_i_prawa_kolumna_w_miejscu(atrapa, ekrany, rozmiar):
-    """Pasek stanu ma stala wysokosc (dwa stale wiersze), a przyciski decyzji stoja w miejscu, gdy zmienia sie stan: osoba
-    wylogowana, pula pusta / liczona, folder skanera niedostepny, analiza z kolejka, blad zapisu i komunikaty (bledy programu
-    i panele stoja nad lista plytek i mapa, nie nad prawa kolumna)."""
+    """Paski maja stala wysokosc (gorny 52 px, stanu 32 px), a przyciski decyzji i MAPA stoja w miejscu, gdy zmienia sie stan:
+    osoba wylogowana (lista osob), pula pusta / liczona, folder skanera niedostepny, analiza z kolejka, blad zapisu (lista bledow),
+    komunikaty i pytania w strefie, pozycja na liscie "do dofrezowania". Mapa nie zmienia ani polozenia, ani rozmiaru (SPEC p. 3:
+    "mapa nigdy sie nie przesuwa") - stary uklad przesuwal ja o 55-174 px (E3-P15)."""
     from PySide6.QtCore import QPoint
 
     atrapa.wybierz_operatora("Technik A")
-    atrapa.symuluj_skan("zwykla", numer=1)
+    skan_id = atrapa.symuluj_skan("zwykla", numer=1)
     e = ekrany(atrapa, rozmiar)
     e.klik_gniazdo(2)
 
     def polozenie():
         e.zdarzenia()
         e.odczekaj(20)
-        return e.w("pasek_stanu").height(), e.w("przycisk_ukruszona").mapTo(e.okno, QPoint(0, 0)), e.w("przycisk_cofnij").mapTo(e.okno, QPoint(0, 0))
+        return (e.w("pasek_gorny").height(), e.w("pasek_stanu").height(), e.w("przycisk_ukruszona").mapTo(e.okno, QPoint(0, 0)),
+                e.w("przycisk_cofnij").mapTo(e.okno, QPoint(0, 0)), e.okno.miejsce_mapy(), e.w("strefa_komunikatow").height())
 
     poczatek = polozenie()
+    assert poczatek[:2] == (52, 32)
     for krok in (lambda: atrapa.symuluj_pule("pusta"), lambda: atrapa.symuluj_kolejke(czeka=2, wstrzymane=3),
                  lambda: atrapa.symuluj_postep(udzial=0.4, czeka=2), lambda: atrapa.symuluj_skaner(dostepny=False),
                  lambda: atrapa.symuluj_blad_zapisu(1), lambda: atrapa.symuluj_komunikat("plik_zmieniony"),
-                 lambda: atrapa.symuluj_pule("liczenie"), lambda: atrapa.wybierz_operatora(None)):
+                 lambda: atrapa.symuluj_komunikat("odmowa", powod=DLUGI_TEKST), lambda: atrapa.symuluj_pule("liczenie"),
+                 lambda: atrapa.ukruszona(atrapa.stan().plytka(skan_id).gniazdo(2).praca.praca_id),
+                 lambda: atrapa.symuluj_skan("bez_numeru"), lambda: atrapa.wybierz_operatora(None)):
         krok()
         assert polozenie() == poczatek, (rozmiar, polozenie(), poczatek)
-    assert not sprawdz_uklad(e, rozmiar)
+    assert not sprawdz_uklad(e, rozmiar, skracane=True)  # stan przeciazony (kolejka z trzema czesciami): dlugie pola paska moga byc skrocone
+
+

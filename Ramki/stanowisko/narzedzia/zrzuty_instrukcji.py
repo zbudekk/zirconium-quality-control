@@ -32,7 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 KATALOG_DOMYSLNY = STANOWISKO / "instrukcje" / "obrazki"
 FONTY_WINDOWS = Path(r"C:\Windows\Fonts")
-OKNO = (1600, 900)  # uklad zwykly (opisy_modulow/ui_wieczor.md)
+OKNO = (1600, 900)  # uklad zwykly okna (ui/motyw.py: od 1500 x 860 punktow)
 OKNO_RANO = (1920, 1080)  # ekran laptopa stanowiska (opisy_modulow/ui_rano.md)
 OKNO_EXCEL = (1280, 720)  # panel Excela w malym oknie: na wydruku (ok. 83 mm) napisy i przycisk "Zatwierdz wiersz" sa czytelne
 WIECZOR = dt.datetime(2026, 11, 17, 19, 0, 0)  # wtorek, zmiana 2
@@ -136,11 +136,17 @@ class Ekran:
         else:
             self.czekaj(lambda: not self.okno.ochrona_aktywna(), 5.0, "koniec przygaszenia mapy")
 
+    def po_ochronie_nakladek(self) -> None:
+        """Nowe okno (E3-U1a): strefa pytan i lista bledow, ktorych zawartosc zmienila sie w tle, sa przez chwile przygaszone
+        i nie przyjmuja klikniec (S3-3) - czeka jak technik."""
+        self.czekaj(lambda: not self.okno.ochrona_nakladek_aktywna(), 5.0, "koniec przygaszenia strefy pytan / listy bledow")
+
     def klik(self, nazwa: str) -> None:
         from PySide6.QtCore import Qt
         from PySide6.QtTest import QTest
 
         self.zdarzenia()
+        self.po_ochronie_nakladek()
         w = self.w(nazwa)
         if not (w.isVisibleTo(self.okno) and w.isEnabled()):
             raise RuntimeError(f"element {nazwa!r} jest niewidoczny albo nieaktywny")
@@ -193,6 +199,7 @@ class Ekran:
 
         self.zdarzenia()
         self.po_ochronie()
+        self.po_ochronie_nakladek()
         self.odczekaj(60)
         obraz = (self.w(element) if element else self.okno).grab().toImage()
         if szerokosc and obraz.width() > szerokosc:

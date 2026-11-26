@@ -1,17 +1,20 @@
-"""napisy - teksty ekranu wieczornego, ktorych nie ma w ``statusy`` (etykiety pol, naglowki, podpowiedzi).
+"""napisy - teksty okna (paski, tryb wieczorny), ktorych nie ma w ``statusy`` (etykiety pol, naglowki, podpowiedzi).
 
 Statusy prac i plytek, komunikaty, pytania i napisy przyciskow polecen sa WYLACZNIE w ``statusy`` - tutaj ich nie ma.
 Wyjatek: napis stanu obejrzenia plytki ("do obejrzenia: n" / "sprawdzona"), ktory ekran wylicza z decyzji w stanie
 (``czesci.stan_obejrzenia``) - to nie jest status skanu. Teksty sa po polsku ze znakami diakrytycznymi (czyta je technik);
 plik UTF-8, bez Qt. Wszystkie do zatwierdzenia przez wlasciciela na pokazie G1 (lista w raporcie paczki).
+E3-U1a (nowe okno): napisy, ktore technik znal ze starego okna, zostaja bez zmian wszedzie tam, gdzie zostala funkcja
+(instrukcje i dokumenty dnia sprzetu je cytuja); nowe czesci okna maja nowe stale oznaczone "E3-U1a".
 """
 from __future__ import annotations
 
 TYTUL_OKNA = "Stanowisko — kontrola prac przed piecem"
 
-# --- pasek stanu ---------------------------------------------------------------------------------
-TRYB = "Tryb"
-DOBA = "Doba robocza"
+# --- pasek gorny i pasek stanu --------------------------------------------------------------------
+NAZWA_PROGRAMU = "Stanowisko"  # E3-U1a: nazwa programu na pasku gornym
+TRYB_GRUPA = "Tryb pracy"  # E3-U1a: opis przelacznika Wieczor / Poranek dla czytnikow ekranu
+WERSJA = "wersja {wersja}"  # E3-U1a: wersja programu na pasku stanu
 DOBA_I_ZMIANA = "{doba} · zmiana {zmiana}"
 OSOBA = "Osoba"
 OSOBA_BRAK = "nie wybrano"
@@ -35,7 +38,8 @@ WSTRZYMANE_ZAPIS = "czekają na zapis: {n}"
 ODSTEP_KOLEJKI = " · "
 # start skanu jest atrapa do dnia skanera (B2): skan uruchamia technik w programie skanera, program czeka na plik.
 # E3-P14 (poz. 6): przycisk nie zaczyna sie od "Skanuj" i nie jest przyciskiem glownym - mowi, co robi Spacja (program czeka na plik)
-SKANUJ_ATRAPA = "Czekam na plik skanu  [Spacja]\nSkanujesz w programie skanera"  # nie szerszy niz poprzedni (okno 1240 x 640)
+# E3-U1a: jeden wiersz na pasku gornym (skrot w ramce); "skanujesz w programie skanera" mowi podpowiedz SKANUJ_ATRAPA_OPIS
+SKANUJ_ATRAPA = "Czekam na plik skanu  [Spacja]"
 SKANUJ_ATRAPA_OPIS = "Program sam nie uruchamia skanera. Uruchom skan w programie skanera — program przyjmie plik skanu sam."
 NOWA_PLYTKA = "Pokaż nowy wynik:\n{plytka}"
 NOWE_PLYTKI = "Pokaż nowe wyniki ({n}):\n{plytka}"
@@ -50,6 +54,10 @@ NOWY_WYNIK_POKAZ = "Pokaż nowy wynik"
 
 # --- pasek bledow programu (A-P3) ----------------------------------------------------------------
 BLEDY_PROGRAMU = "Błędy programu: {n}"
+# E3-U1a: licznik bledow jest przyciskiem na pasku stanu - rozwija liste bledow nad paskiem
+BLEDY_OPIS = "Pokaż albo ukryj listę błędów programu"
+BLEDY_ROZWINIETE = "lista błędów jest rozwinięta"
+BLEDY_ZWINIETE = "lista błędów jest zwinięta"
 
 # --- wybor osoby -----------------------------------------------------------------------------------
 KTO_PRACUJE = "Kto teraz pracuje?"
@@ -72,6 +80,7 @@ PLYTKA_NOWY_SKAN = "nowy skan, czeka na odpowiedź"
 PLYTKA_POPRZEDNI_SKAN = "poprzedni skan"  # krotko: kafelek w ukladzie zwartym ma 180 punktow szerokosci
 PLYTKA_DOPUSZCZONA = "{jaka} — dopuszczona świadomie"
 PRAC = "prac: {n}"
+LICZNIK = "{napis} {n}"  # E3-U1a: licznik prac na kafelku plytki - kropka w kolorze statusu, napis statusu i liczba
 WCZESNIEJSZE_POKAZ = "Pokaż wcześniejsze zmiany ({n})"
 WCZESNIEJSZE_UKRYJ = "Ukryj wcześniejsze zmiany"
 ZMIANA_NR = "zmiana {zmiana}"
@@ -79,15 +88,22 @@ LICZNIK_OPIS = "{napis}: {n}"
 
 # --- mapa ------------------------------------------------------------------------------------------
 MAPA_BRAK_PLYTKI = "Tu pojawi się mapa płytki po pierwszym skanie."
-MAPA_NAGLOWEK = "{plytka} — {napis}"
 MAPA_GODZINA = "skan z {godzina}"
-MAPA_NAPIS_I_GODZINA = "{napis} · skan z {godzina}"
+KROPKA = " · "  # E3-U1a: odstep czesci opisu skanu pod numerem plytki ("skan z 19:05 · przeanalizowana · do obejrzenia: 3")
+# E3-U1a (S3-14): w czasie analizy nowego skanu mapa na ekranie jest mapa POPRZEDNIEJ plytki - oznaczona i przygaszona
+MAPA_POPRZEDNIA = "POPRZEDNIA PŁYTKA — wynik nowego skanu nie jest jeszcze gotowy"
 MAPA_PRZOD = "PRZÓD PŁYTKI"
 MAPA_BEZ_GNIAZD = "Płytka {napis}."
-LEGENDA = "Na tej płytce:"
-ODSTEP = "   ·   "
+LEGENDA = "Na tej płytce"
+LEGENDA_PUSTE = "Puste gniazdo"  # E3-U1a: pozycja legendy z obwodka przerywana
 POZA_GNIAZDEM = "Poza gniazdami: {n}"
-JESZCZE = "… i jeszcze {n} — zamknij powyższe, żeby je zobaczyć"
+JESZCZE = "… i jeszcze {n} — zamknij powyższe, żeby je zobaczyć"  # ekran poranny (stary uklad do etapu U1b)
+# E3-U1a: strefa pytan i komunikatow o stalej wysokosci - jedna pozycja naraz, reszta w liczniku
+JESZCZE_KROTKO = "i jeszcze {n}"
+JESZCZE_OPIS = "Pokaż następne pytanie albo komunikat"
+STREFA_PUSTA = "Brak pytań i komunikatów."
+TYTUL_ZE_SKANEM = "{tytul} — skan z {godzina}"  # S3-3: tytul panelu plytki bez numeru wskazuje skan godzina
+PLYTKA_ZE_SKANEM = "{plytka}, skan z {godzina}"  # S3-3: plytka w tytule pytania / komunikatu - numer i godzina skanu
 UWAGA_PLYTKI = "{plytka}: {tytul}"
 KILKA_RAZY = "{tytul}  ({n} razy)"
 NUMER_PLYTKI_TEKST = "Wybierz numer wybity na płytce."
@@ -116,7 +132,9 @@ KRAZEK_COFNIJ = "Cofnij wybor krazka"
 BRAK_DANYCH = "—"
 NAJWIEKSZY_UBYTEK = "Największy ubytek: {mm} mm"
 LICZBA_UBYTKOW = "Liczba ubytków: {n}"
-BEZ_UBYTKOW = "Program nie wskazał ubytku."
+BEZ_UBYTKOW = "Program nie wskazał ubytku."  # E3-U1a (S3-4): tylko gdy kontrola pracy byla i dala wynik "ok"
+NIE_SPRAWDZIL = "Tej pracy program nie sprawdził."  # E3-U1a (S3-4): "nie sprawdzono", "błąd kontroli", "bez projektu"
+BRAK_DECYZJI = "Brak decyzji dla tej pracy"  # E3-U1a: nad przyciskami decyzji, gdy praca nie ma decyzji
 OBRAZ_WCZYTYWANIE = "Wczytuję obraz pracy…"
 OBRAZ_BRAK = "Brak obrazu tej pracy."
 OBRAZ_OPIS = "Widok z góry: czerwone = brakuje materiału, niebieskie = nadmiar, kółko = ubytek."

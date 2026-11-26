@@ -52,43 +52,46 @@ def _s(klucz: str, kolor: str | None, rgb: tuple[int, int, int], ramka: str | No
     return Status(klucz, kolor, rgb, ramka, napis, opis)
 
 
-# Kolory zielony / zolty / szary / czerwony / pomaranczowy / pusty / podwojny / poza gniazdem = porownaj.KOLORY (okno testowe
-# i mapa PNG z wiersza polecen); zgodnosc pilnuje test_aplikacja.
+# Kolory EKRANU (trojka ``rgb``): E3-U1a, decyzja wlasciciela 23.11.2026 (``etap3/nowy_interfejs/SPEC.md`` p. 2) - okno ma
+# ciemne tlo, wiec kolory statusow sa jasniejsze niz w ``porownaj.KOLORY`` (okno testowe i mapa PNG z wiersza polecen zostaja
+# przy swoich); napis na kazdym z nich to ``#111111`` z kontrastem co najmniej 4,5 : 1 (test ``test_ui_motyw``). Status "pusty"
+# ma kolor powierzchni plytki na mapie - puste gniazdo nie ma wypelnienia, tylko obwodke przerywana. Kolory DIOD ramki
+# (pole ``ramka``) i napisy - bez zmian.
 _WIERSZE = (
-    _s("zielony", KOLOR_ZIELONY, (60, 180, 75), "zielony", "OK", "Praca rozpoznana, program nie widzi ubytku."),
-    _s("czerwony", KOLOR_CZERWONY, (220, 50, 50), "czerwony", "UBYTEK",
+    _s("zielony", KOLOR_ZIELONY, (63, 180, 106), "zielony", "OK", "Praca rozpoznana, program nie widzi ubytku."),
+    _s("czerwony", KOLOR_CZERWONY, (229, 72, 77), "czerwony", "UBYTEK",
        "Program widzi ubytek. Weź pracę do ręki, obejrzyj wskazane miejsce i wybierz „Ukruszona” albo „OK”."),
-    _s("ukruszona", KOLOR_CZERWONY, (220, 50, 50), "czerwony", "UKRUSZONA", "Oznaczona jako ukruszona — jest na liście „do dofrezowania”."),
-    _s("zatwierdzona_ok", KOLOR_ZATWIERDZONA_OK, (0, 150, 136), "zielony", "OK — zatwierdzona",
+    _s("ukruszona", KOLOR_CZERWONY, (229, 72, 77), "czerwony", "UKRUSZONA", "Oznaczona jako ukruszona — jest na liście „do dofrezowania”."),
+    _s("zatwierdzona_ok", KOLOR_ZATWIERDZONA_OK, (43, 168, 154), "zielony", "OK — zatwierdzona",
        "Technik obejrzał pracę i uznał ją za całą (fałszywy alarm programu)."),
-    _s("zolty", KOLOR_ZOLTY, (240, 200, 40), "zolty", "sprawdź", "Program nie jest pewny. Obejrzyj pracę i wybierz „Ukruszona” albo „OK”."),
-    _s("sprawdz_ulozenie", KOLOR_ZOLTY, (240, 200, 40), "zolty", "sprawdź ułożenie", "Praca może leżeć krzywo w gnieździe — obejrzyj ją."),
-    _s("popraw_ulozenie", KOLOR_ZOLTY, (240, 200, 40), "zolty", "popraw ułożenie", "Popraw ułożenie pracy w gnieździe i zeskanuj płytkę ponownie."),
-    _s("skan_ponownie", KOLOR_ZOLTY, (240, 200, 40), "zolty", "skan poruszony", "Skan tej pracy jest poruszony — zeskanuj płytkę ponownie."),
-    _s("skan_do_powtorzenia", KOLOR_ZOLTY, (240, 200, 40), "zolty", "powtórz skan",
+    _s("zolty", KOLOR_ZOLTY, (226, 185, 59), "zolty", "sprawdź", "Program nie jest pewny. Obejrzyj pracę i wybierz „Ukruszona” albo „OK”."),
+    _s("sprawdz_ulozenie", KOLOR_ZOLTY, (226, 185, 59), "zolty", "sprawdź ułożenie", "Praca może leżeć krzywo w gnieździe — obejrzyj ją."),
+    _s("popraw_ulozenie", KOLOR_ZOLTY, (226, 185, 59), "zolty", "popraw ułożenie", "Popraw ułożenie pracy w gnieździe i zeskanuj płytkę ponownie."),
+    _s("skan_ponownie", KOLOR_ZOLTY, (226, 185, 59), "zolty", "skan poruszony", "Skan tej pracy jest poruszony — zeskanuj płytkę ponownie."),
+    _s("skan_do_powtorzenia", KOLOR_ZOLTY, (226, 185, 59), "zolty", "powtórz skan",
        "Ten skan trzeba powtórzyć — do tego czasu żadna praca na płytce nie jest potwierdzona."),
-    _s("nie_sprawdzono", KOLOR_ZOLTY, (240, 200, 40), "zolty", "nie sprawdzono",
+    _s("nie_sprawdzono", KOLOR_ZOLTY, (226, 185, 59), "zolty", "nie sprawdzono",
        "Program nie mógł sprawdzić brzegu tej pracy (brak danych na skanie) — obejrzyj ją sam."),
-    _s("blad_inspekcji", KOLOR_ZOLTY, (214, 160, 0), "zolty", "błąd kontroli",
+    _s("blad_inspekcji", KOLOR_ZOLTY, (207, 161, 43), "zolty", "błąd kontroli",
        "Kontrola tej pracy zakończyła się błędem programu — pracy nie sprawdzono, obejrzyj ją sam."),
-    _s("szary", KOLOR_SZARY, (170, 170, 170), "bialy", "bez projektu", "Program nie znalazł projektu tej pracy w puli — sprawdź ręcznie."),
+    _s("szary", KOLOR_SZARY, (140, 140, 140), "bialy", "bez projektu", "Program nie znalazł projektu tej pracy w puli — sprawdź ręcznie."),
     # Z9: dwa znaczenia slowa "poprawka" - dwa rozne napisy
-    _s("pomaranczowy", KOLOR_POMARANCZOWY, (245, 140, 30), "zolty", "poprawiana ręcznie",
+    _s("pomaranczowy", KOLOR_POMARANCZOWY, (232, 131, 58), "zolty", "poprawiana ręcznie",
        "Kształt pracy różni się gładko od projektu (ręczna poprawka) — obejrzyj ją."),
-    _s("dofrezowany", KOLOR_BURSZTYNOWY, (255, 191, 0), "bursztyn", "ząb dofrezowany",
+    _s("dofrezowany", KOLOR_BURSZTYNOWY, (240, 180, 41), "bursztyn", "ząb dofrezowany",
        "Ząb dofrezowany do zlecenia, które było już odhaczone."),
     # rano (E3-A7, uwaga A6; klucz wg koordynatora): praca nieznana - na ekranie i na ramce biala
-    _s("nieznana_rano", KOLOR_BIALY, (250, 250, 250), "bialy", "nieznana",
+    _s("nieznana_rano", KOLOR_BIALY, (237, 237, 237), "bialy", "nieznana",
        "Program nie rozpoznał tej pracy — przymierz ją na modelach albo przypisz ręcznie do projektu."),
     # gniazda bez koloru pracy
-    _s("pusty", None, (235, 235, 235), None, "", "Puste gniazdo."),
-    _s("podwojny", None, (170, 80, 200), "zolty", "dwie prace", "W gnieździe leżą dwie prace — rozłóż je i zeskanuj płytkę ponownie."),
-    _s("poza_gniazdem", None, (160, 0, 0), None, "poza gniazdem", "Praca leży poza gniazdem — włóż ją do gniazda i zeskanuj płytkę ponownie."),
-    _s("czeka_na_numer", None, (176, 196, 222), None, "podaj nr płytki",
+    _s("pusty", None, (36, 36, 36), None, "", "Puste gniazdo."),
+    _s("podwojny", None, (166, 120, 217), "zolty", "dwie prace", "W gnieździe leżą dwie prace — rozłóż je i zeskanuj płytkę ponownie."),
+    _s("poza_gniazdem", None, (224, 108, 159), None, "poza gniazdem", "Praca leży poza gniazdem — włóż ją do gniazda i zeskanuj płytkę ponownie."),
+    _s("czeka_na_numer", None, (143, 179, 217), None, "podaj nr płytki",
        "Program nie zna numeru tej płytki — podaj go, wtedy praca zostanie pokazana jako sprawdzona."),
-    _s("plytka_nie_z_trybu", None, (120, 120, 140), None, "zablokowana", "Płytka nie z tego trybu — skan jest zablokowany."),
-    _s("nieaktywny", None, (205, 205, 205), None, "skan nieaktualny", "Ten skan nie jest już liczony (zastąpiony albo odrzucony)."),
-    _s("nieznany", KOLOR_ZOLTY, (240, 200, 40), "zolty", "sprawdź", "Nieznany status z analizy — obejrzyj pracę."),
+    _s("plytka_nie_z_trybu", None, (154, 154, 184), None, "zablokowana", "Płytka nie z tego trybu — skan jest zablokowany."),
+    _s("nieaktywny", None, (126, 132, 140), None, "skan nieaktualny", "Ten skan nie jest już liczony (zastąpiony albo odrzucony)."),
+    _s("nieznany", KOLOR_ZOLTY, (226, 185, 59), "zolty", "sprawdź", "Nieznany status z analizy — obejrzyj pracę."),
 )
 STATUSY: dict[str, Status] = {w.klucz: w for w in _WIERSZE}
 
@@ -99,15 +102,15 @@ STATUSY: dict[str, Status] = {w.klucz: w for w in _WIERSZE}
 # poprawka = ``dofrezowany`` (Z9) albo - gdy zlecenie wciaz ma braki (A6 runda 2, D2) - ``rano_juz_rozpoznany`` (ten sam bursztyn,
 # inny napis), skan do powtorzenia = ``skan_do_powtorzenia``.
 _WIERSZE_RANO = (
-    _s("rano_pewna", KOLOR_ZIELONY, (60, 180, 75), "zielony", "rozpoznana", "Praca rozpoznana — pod gniazdem jej kuweta i ząb."),
-    _s("rano_przypisana", KOLOR_ZIELONY, (60, 180, 75), "zielony", "przypisana",
+    _s("rano_pewna", KOLOR_ZIELONY, (63, 180, 106), "zielony", "rozpoznana", "Praca rozpoznana — pod gniazdem jej kuweta i ząb."),
+    _s("rano_przypisana", KOLOR_ZIELONY, (63, 180, 106), "zielony", "przypisana",
        "Praca przypisana decyzją osoby (wybór kandydata albo przypisanie ręczne)."),
-    _s("rano_dwuznaczna", KOLOR_ZOLTY, (240, 200, 40), "zolty", "wybierz",
+    _s("rano_dwuznaczna", KOLOR_ZOLTY, (226, 185, 59), "zolty", "wybierz",
        "Program waha się między dwoma projektami — kliknij gniazdo i wybierz właściwy projekt."),
-    _s("rano_konflikt", KOLOR_CZERWONY, (220, 50, 50), "czerwony", "konflikt",
+    _s("rano_konflikt", KOLOR_CZERWONY, (229, 72, 77), "czerwony", "konflikt",
        "Ten sam projekt pasuje do dwóch prac — dla jednej z nich wybierz inny projekt albo „bez projektu”. "
        "Do tego czasu „Zamknij piec” jest zablokowane."),
-    _s("rano_juz_rozpoznany", KOLOR_BURSZTYNOWY, (255, 191, 0), "bursztyn", "ząb już rozpoznany",
+    _s("rano_juz_rozpoznany", KOLOR_BURSZTYNOWY, (240, 180, 41), "bursztyn", "ząb już rozpoznany",
        "Ten ząb wyszedł już z wcześniejszego pieca, a zlecenie wciąż ma braki — sprawdź, czy to nie pomyłka (tylko wpis w logu)."),
 )
 STATUSY_RANO_WIERSZE: dict[str, Status] = {w.klucz: w for w in _WIERSZE_RANO}

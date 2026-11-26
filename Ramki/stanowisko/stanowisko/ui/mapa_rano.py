@@ -11,8 +11,9 @@ Widzet niczego nie liczy i nie zna statusow.
 from __future__ import annotations
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QBrush, QColor, QFont, QFontMetricsF, QPainter, QPen
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
 
+from . import motyw
 from . import napisy_rano as NR
 from . import styl
 from .mapa import MapaPlytki
@@ -137,10 +138,8 @@ class MapaRano(MapaPlytki):
     # --- rysowanie -----------------------------------------------------------------------------------------------------
     def _rysuj_gniazdo(self, p: QPainter, g) -> None:
         sciezka, srodek, promien, szer = self._ksztalty[g.nr]
-        p.setBrush(QBrush(QColor(g.rgb)))
-        p.setPen(QPen(QColor("#3a4047"), 1.5))
-        p.drawPath(sciezka)
-        kolor_tekstu = QColor(styl.tekst_na(g.rgb)) if g.prace else QColor("#8a929c")
+        self._wypelnij_gniazdo(p, g, sciezka)  # jak wieczorem: kolor ze stanu, jasna obwodka klasy czerwonej, przerywana - pustego
+        kolor_tekstu = self._kolor_napisu(g)
         for rodzaj, prostokat, wartosc, czcionka in self._plan(g):
             if rodzaj == "miniatura":
                 p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Screen)  # tlo miniatury (czarne) nie zmienia koloru gniazda
@@ -152,7 +151,7 @@ class MapaRano(MapaPlytki):
             p.drawText(prostokat, int(Qt.AlignmentFlag.AlignCenter), wartosc)
         if self._biezacej(g):
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.setPen(QPen(QColor("#ffffff"), 7))
+            p.setPen(QPen(QColor(motyw.TEKST), 7))
             p.drawPath(sciezka)
             p.setPen(QPen(QColor(KOLOR_BIEZACEJ), 4))
             p.drawPath(sciezka)

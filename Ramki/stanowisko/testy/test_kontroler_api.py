@@ -1156,9 +1156,19 @@ def test_statusy_jedna_tabela_kolorow_i_napisow():
         assert w.kolor is None or w.kolor in ST.KOLORY_PRACY + (ST.KOLOR_BURSZTYNOWY,)
     for kolor in ST.KOLORY_PRACY:  # kazda klasa koloru z session ma swoj status podstawowy
         assert ST.STATUSY[ST.STATUS_WG_KOLORU[kolor]].kolor == kolor
-    for klucz, nazwa in (("zielony", "zielony"), ("czerwony", "czerwony"), ("zolty", "zolty"), ("szary", "szary"), ("pomaranczowy", "pomaranczowy"),
-                         ("pusty", "pusty"), ("podwojny", "podwojny"), ("poza_gniazdem", "poza")):
-        assert ST.STATUSY[klucz].rgb == tuple(PO.KOLORY[nazwa]), klucz  # te same kolory, co okno testowe i mapa PNG
+    # Kolory EKRANU wg specyfikacji nowego okna (E3-U1a, decyzja wlasciciela 23.11.2026, ``etap3/nowy_interfejs/SPEC.md`` p. 2):
+    # okno ma ciemne tlo, wiec kolory statusow na ekranie sa INNE niz ``porownaj.KOLORY`` (okno testowe i mapa PNG z wiersza
+    # polecen zostaja przy swoich). Dawna asercja "``ST.STATUSY[klucz].rgb == porownaj.KOLORY[nazwa]``" stracila sens; zamiast
+    # niej - wartosci ze specyfikacji (jedno zrodlo: ``test_ui_motyw.KOLORY_SPEC``) i puste gniazdo w kolorze plytki na mapie.
+    # Klasy kolorow okna testowego dalej istnieja (mapa PNG ich uzywa).
+    import test_ui_motyw as UM
+
+    from stanowisko.ui import motyw
+
+    for klucz, kolor in UM.KOLORY_SPEC.items():
+        assert ST.STATUSY[klucz].hex.upper() == kolor, klucz
+    assert ST.STATUSY["pusty"].hex.upper() == motyw.WGLEBIENIE  # puste gniazdo = kolor plytki (obwodka przerywana, bez wypelnienia)
+    assert {"zielony", "czerwony", "zolty", "szary", "pomaranczowy", "pusty", "podwojny", "poza"} <= set(PO.KOLORY)
     assert ST.STATUSY_ZIELONE == ("zielony",)
     assert ST.STATUSY["zatwierdzona_ok"].rgb != ST.STATUSY["zielony"].rgb  # "zatwierdzona OK" odroznialna od zwyklego zielonego
     assert ST.STATUSY["pomaranczowy"].napis != ST.STATUSY["dofrezowany"].napis and ST.STATUSY["pomaranczowy"].rgb != ST.STATUSY["dofrezowany"].rgb  # Z9

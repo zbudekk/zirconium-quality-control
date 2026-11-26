@@ -1,10 +1,17 @@
 """E3-P15 p. 1: komunikat ogolny, ktory przychodzi w trakcie ogladania plytki, nie moze podstawic innego gniazda pod kursor.
 
-Komunikat ogolny (bez ``skan_id``, np. "Ten sam projekt w dwoch gniazdach") staje NAD lista plytek i mapa - mapa ogladanej
-plytki przesuwa sie i maleje (99 / 75 px). Wariant paczki: geometria moze sie zmienic, ale wtedy dziala ta sama ochrona
-klikniec co po zmianie zawartosci mapy (A-P2, ``okno.OCHRONA_MS``): mapa przygaszona, klikniecia mapy i skroty decyzji
-pomijane - klikniecie w stary srodek gniazda nie otwiera innego gniazda. Okno offscreen na ``AtrapaKontrolera``.
-Zrzuty do raportu: zmienna ``P15_ZRZUTY`` = katalog (poza repo).
+Stare okno (paczka E3-P15): komunikat ogolny (bez ``skan_id``, np. "Ten sam projekt w dwoch gniazdach") stawal NAD lista
+plytek i mapa - mapa ogladanej plytki przesuwala sie i malala, wiec po kazdym takim ruchu wlaczala sie ochrona klikniec A-P2
+(``okno.OCHRONA_MS``). Nowe okno (E3-U1a, ``etap3/nowy_interfejs/SPEC.md``): MAPA NIGDY SIE NIE PRZESUWA - strefa pytan,
+naglowek plytki i lista "do dofrezowania" maja stale wysokosci, a lista bledow programu jest nakladka. Kryterium jest wiec
+mocniejsze niz w E3-P15: po kazdym komunikacie (z tla i jako skutek polecenia technika) prostokat mapy w oknie
+(``okno.miejsce_mapy()``) i srodki 19 gniazd sa te same, ochrona mapy NIE wlacza sie (mapa nie jest przygaszona, klikniecia
+i skroty decyzji dzialaja od razu), a 19 z 19 klikniec w stare srodki gniazd otwiera TO SAMO gniazdo. Ochrona po zmianie
+ZAWARTOSCI mapy (A-P2: inna plytka, nowy stan pokazanej plytki z tla) zostaje bez zmian - ``test_ui_wieczor`` / ``test_ui_okno``.
+
+Strefa pytan pokazuje jedna pozycje naraz (reszta pod licznikiem "i jeszcze n"): komunikat, ktory nie jest pierwszy, technik
+wybiera licznikiem (``pokaz_w_strefie``); komunikaty trwale (np. konflikt projektu) sa na liscie bledow programu.
+Okno offscreen na ``AtrapaKontrolera``. Zrzuty do raportu: zmienna ``P15_ZRZUTY`` = katalog (poza repo).
 """
 from __future__ import annotations
 
@@ -18,7 +25,7 @@ from stanowisko.ui import okno as OKNO
 
 _qt = P14._qt  # ta sama aplikacja Qt offscreen i czcionka ekranu
 swiat = P14.swiat
-DLUGO_MS = 600_000  # ochrona nie konczy sie sama w trakcie serii klikniec testu (test nie zalezy od obciazenia PC)
+DLUGO_MS = 600_000  # gdyby ochrona mapy jednak sie wlaczyla - trwa do konca testu, wiec asercje ja wykryja (bez zaleznosci od obciazenia PC)
 
 
 def zrzut(e, nazwa: str) -> None:
@@ -29,58 +36,77 @@ def zrzut(e, nazwa: str) -> None:
         e.okno.grab().toImage().save(str(Path(katalog) / f"{nazwa}.png"), "PNG")
 
 
-def koniec_ochrony(e) -> None:
-    """Ochrona konczy sie teraz (jak po ``OCHRONA_MS``); nastepna znowu trwa ``DLUGO_MS``."""
-    if e.okno.ochrona_aktywna():
-        e.okno._ochrona.start(1)
-        e.po_ochronie()
-    e.okno._ochrona.setInterval(DLUGO_MS)
-    assert not e.mapa.przygaszona()
-
-
 def ogolne(k) -> list:
     return [x for x in k.stan().komunikaty if x.skan_id is None and not x.ukryte]
 
 
+def geometria(e) -> tuple:
+    """(prostokat mapy w oknie, {gniazdo: srodek w oknie}) - to, w co celuje reka technika; prostokat = ``okno.miejsce_mapy()``."""
+    g = P14._geometria_mapy(e)
+    assert g[0] == e.okno.miejsce_mapy()
+    return g
+
+
+def bez_ochrony_mapy(e, co: str) -> None:
+    assert not e.okno.ochrona_aktywna() and not e.mapa.przygaszona(), f"{co}: ochrona mapy wlaczona, choc mapa stoi w miejscu"
+
+
+def pokaz_w_strefie(e, nazwa: str) -> None:
+    """Strefa pytan pokazuje jedna pozycje naraz: technik przechodzi licznikiem "i jeszcze n" do pozycji ``nazwa``."""
+    assert nazwa in e.strefa(), (nazwa, e.strefa())
+    for _ in range(len(e.strefa())):
+        if e.jest(nazwa):
+            return
+        e.klik("uwagi_jeszcze")
+    assert e.jest(nazwa), (nazwa, e.strefa())
+
+
+def zamknij_w_strefie(e, nazwa: str) -> None:
+    """Technik zamyka komunikat ``nazwa`` ze strefy pytan wlasnym kliknieciem w punkt okna (przycisk "Zamknij" panelu)."""
+    from PySide6.QtWidgets import QPushButton
+
+    pokaz_w_strefie(e, nazwa)
+    e.po_ochronie_nakladek()  # pozycja strefy zmieniona w tle jest przez chwile przygaszona (S3-3) - technik czeka jak przy kazdym kliknieciu
+    przycisk = e.w(nazwa).findChild(QPushButton, "zamknij_komunikat")
+    assert przycisk is not None and przycisk.isVisibleTo(e.okno), nazwa
+    P14._klik_w_punkt(e, przycisk.mapTo(e.okno, przycisk.rect().center()))
+
+
 def kliki_w_stare_srodki(e, stare: dict) -> list:
-    """Klikniecie w stary srodek kazdego z 19 gniazd (punkt okna): lista (gniazdo celowane, gniazdo otwarte) dla INNYCH gniazd."""
-    inne = []
+    """Klikniecie w stary srodek kazdego z 19 gniazd (punkt okna): lista (gniazdo celowane, gniazdo otwarte, trafiony element)
+    tam, gdzie klikniecie NIE otworzylo celowanego gniazda (inne gniazdo albo nic)."""
+    zle = []
     for nr, punkt in stare.items():
-        P14._klik_w_punkt(e, punkt)
+        trafione = P14._klik_w_punkt(e, punkt)
         otwarte = e.okno._gniazdo
-        if otwarte is not None and otwarte != nr:
-            inne.append((nr, otwarte))
+        if otwarte != nr:
+            zle.append((nr, otwarte, trafione))
         if otwarte is not None:
             e.okno._zamknij_prace()
             e.zdarzenia()
-    return inne
+    return zle
 
 
-def sprawdz_krok(e, przed: tuple, co: str, zrzut_ochrony: str = "") -> tuple:
-    """Po zmianie komunikatow ogolnych w tle: geometria bez zmian ALBO ochrona klikniec; 0 z 19 klikniec w stare srodki
-    otwiera inne gniazdo. Zwraca nowa geometrie (po koncu ochrony)."""
+def sprawdz_krok(e, przed: tuple, co: str) -> tuple:
+    """Po zmianie komunikatow: mapa i srodki 19 gniazd w tym samym miejscu, ochrona mapy nieaktywna, 19 z 19 klikniec w stare
+    srodki otwiera to samo gniazdo. Zwraca geometrie (te sama)."""
     e.odczekaj(60)
-    ochrona = e.okno.ochrona_aktywna()
-    po = P14._geometria_mapy(e)
+    bez_ochrony_mapy(e, co)
+    po = geometria(e)
     ruszone = [nr for nr in przed[1] if po[1][nr] != przed[1][nr]]
-    if ruszone or po[0] != przed[0]:
-        assert ochrona and e.mapa.przygaszona(), (f"{co}: mapa {przed[0]} -> {po[0]}, srodek zmienia {len(ruszone)} z 19 gniazd, "
-                                                  "a ochrona klikniec jest nieaktywna")
-    inne = kliki_w_stare_srodki(e, przed[1])
-    assert not inne, f"{co}: klikniecie w stary srodek otwiera INNE gniazdo {len(inne)} z 19: {inne}"
-    assert not e.jest("widok_pracy") or not ruszone
-    if zrzut_ochrony:
-        zrzut(e, zrzut_ochrony)  # mapa przygaszona: tak wyglada ekran przez ``OCHRONA_MS`` po dojsciu komunikatu
-    koniec_ochrony(e)
-    return P14._geometria_mapy(e)
+    assert po[0] == przed[0] and not ruszone, f"{co}: mapa {przed[0]} -> {po[0]}, srodek zmienia {len(ruszone)} z 19 gniazd"
+    zle = kliki_w_stare_srodki(e, przed[1])
+    assert not zle, f"{co}: klikniecie w stary srodek nie otwiera celowanego gniazda w {len(zle)} z 19: {zle}"
+    bez_ochrony_mapy(e, co)
+    return po
 
 
 @pytest.mark.parametrize("rozmiar", P14.ROZMIARY, ids=lambda r: f"{r[0]}x{r[1]}")
 def test_p15_komunikat_ogolny_w_tle_nie_podstawia_innego_gniazda_pod_kursor(swiat, rozmiar):
-    """Technik oglada plytke 1 i siega po gniazdo. W tle: dochodzi komunikat ogolny (konflikt projektu z nowej plytki),
-    dochodzi drugi (plik zajety), oba znikaja. Za kazdym razem: mapa stoi w miejscu albo ochrona klikniec jest aktywna i
-    zadne z 19 klikniec w stare srodki gniazd nie otwiera innego gniazda; komunikat widac w calosci; po koncu ochrony
-    klikniecie gniazda dziala."""
+    """Technik oglada plytke 1 i siega po gniazdo. W tle: dochodzi komunikat ogolny (konflikt projektu z nowej plytki - trwaly,
+    na liscie bledow programu), dochodzi drugi (plik zajety - w strefie pytan), oba znikaja. Za kazdym razem: mapa stoi
+    w miejscu, ochrona mapy sie nie wlacza, 19 z 19 klikniec w stare srodki gniazd otwiera to samo gniazdo; komunikat widac
+    w calosci (w strefie - po wybraniu licznikiem "i jeszcze n"); klikniecie gniazda dziala od razu."""
     k, zegar = swiat.wieczor()
     s1 = k.symuluj_skan("zwykla", numer=1)
     e = swiat.ekran(k, rozmiar)
@@ -88,22 +114,26 @@ def test_p15_komunikat_ogolny_w_tle_nie_podstawia_innego_gniazda_pod_kursor(swia
     assert e.okno._ochrona.interval() == OKNO.OCHRONA_MS == 800
     e.okno._ochrona.setInterval(DLUGO_MS)
     r = f"{rozmiar[0]}x{rozmiar[1]}"
-    g = P14._geometria_mapy(e)
+    g = geometria(e)
+    poczatek = g
     assert len(g[1]) == 19 and not ogolne(k)
     zrzut(e, f"p15_bez_komunikatu_{r}")
 
     zegar.przesun(2)
     k.symuluj_skan("do_powtorzenia", numer=5, projekty={1: 41, 2: 42})
     assert [x.rodzaj for x in ogolne(k)] == ["konflikt_projektu"]
-    g = sprawdz_krok(e, g, "doszedl 1. komunikat ogolny", f"p15_ochrona_{r}")
-    assert e.okno.pokazana_plytka() == s1 and not P14.niewidoczne_w_calosci(e, ("komunikat_konflikt_projektu",))
+    g = sprawdz_krok(e, g, "doszedl 1. komunikat ogolny")
+    assert e.okno.pokazana_plytka() == s1 and e.okno.bledy.isAncestorOf(e.w("komunikat_konflikt_projektu"))
+    assert not P14.niewidoczne_w_calosci(e, ("komunikat_konflikt_projektu",))
     zrzut(e, f"p15_po_1_komunikacie_{r}")
 
     zegar.przesun(2)
     k.symuluj_komunikat("plik_zajety")
     assert sorted(x.rodzaj for x in ogolne(k)) == ["konflikt_projektu", "plik_zajety"]
     g = sprawdz_krok(e, g, "doszedl 2. komunikat ogolny")
+    pokaz_w_strefie(e, "komunikat_plik_zajety")
     assert not P14.niewidoczne_w_calosci(e, ("komunikat_konflikt_projektu", "komunikat_plik_zajety"))
+    assert geometria(e) == poczatek  # przejscie po strefie pytan tez nie rusza mapy
     zrzut(e, f"p15_po_2_komunikacie_{r}")
 
     for kom in ogolne(k):  # znikaja w tle (kontroler), nie kliknieciem technika
@@ -113,13 +143,16 @@ def test_p15_komunikat_ogolny_w_tle_nie_podstawia_innego_gniazda_pod_kursor(swia
     assert not e.jest("komunikat_konflikt_projektu") and not e.jest("komunikat_plik_zajety")
     zrzut(e, f"p15_po_zniknieciu_{r}")
 
-    P14._klik_w_punkt(e, g[1][9])  # po koncu ochrony mapa przyjmuje klikniecia: nowy srodek gniazda 9 otwiera gniazdo 9
+    assert g == poczatek
+    P14._klik_w_punkt(e, g[1][9])  # mapa przyjmuje klikniecia od razu: srodek gniazda 9 otwiera gniazdo 9
     assert e.okno._gniazdo == 9 and e.jest("widok_pracy") and e.okno.pokazana_plytka() == s1
 
 
-def test_p15_ochrona_po_komunikacie_ogolnym_konczy_sie_sama_i_pomija_skroty_decyzji(swiat):
-    """Ochrona po dojsciu komunikatu ogolnego to ta sama ochrona A-P2: przy otwartej pracy skrot decyzji ("U") nacisniety tuz
-    po przesunieciu mapy nic nie wysyla; po ``OCHRONA_MS`` ochrona konczy sie sama i decyzja dziala."""
+def test_p15_komunikat_ogolny_przy_otwartej_pracy_nie_wlacza_ochrony_skrot_decyzji_dziala(swiat):
+    """(Dawniej ``test_p15_ochrona_po_komunikacie_ogolnym_konczy_sie_sama_i_pomija_skroty_decyzji``: komunikat przesuwal mape,
+    wiec skrot tuz po nim byl pomijany do konca ochrony.) Przy otwartej pracy dochodzi komunikat ogolny: mapa i widok pracy
+    zostaja, ochrona mapy sie nie wlacza, a skrot decyzji ("U") nacisniety TUZ po komunikacie zapisuje decyzje na pracy
+    z widoku pracy."""
     from PySide6.QtCore import Qt
     from PySide6.QtTest import QTest
 
@@ -128,46 +161,53 @@ def test_p15_ochrona_po_komunikacie_ogolnym_konczy_sie_sama_i_pomija_skroty_decy
     e = swiat.ekran(k, (1536, 864))
     e.klik_gniazdo(9)
     praca = e.okno._praca_widoku
-    assert praca is not None
-    przed = [(g.nr, g.status) for g in k.stan().plytka(s1).gniazda]
+    assert praca is not None and k.stan().praca(praca).decyzja is None and k.stan().praca(praca).gniazdo == 9
+    e.okno._ochrona.setInterval(DLUGO_MS)
+    przed = geometria(e)
     k.symuluj_komunikat("plik_zajety")
     e.odczekaj(40)
-    assert e.okno.ochrona_aktywna() and e.mapa.przygaszona()
-    QTest.keyClick(e.okno, Qt.Key.Key_U)
+    assert "komunikat_plik_zajety" in e.strefa()
+    bez_ochrony_mapy(e, "komunikat przy otwartej pracy")
+    assert geometria(e) == przed and e.okno._praca_widoku == praca and e.okno._gniazdo == 9 and e.okno.pokazana_plytka() == s1
+    QTest.keyClick(e.okno, Qt.Key.Key_U)  # bez czekania na koniec jakiejkolwiek ochrony
     e.zdarzenia()
-    assert [(g.nr, g.status) for g in k.stan().plytka(s1).gniazda] == przed  # skrot pominiety
-    e.po_ochronie()  # konczy sie sama (800 ms)
-    assert not e.mapa.przygaszona() and e.okno._praca_widoku == praca and e.okno._gniazdo == 9
+    assert k.stan().praca(praca).decyzja == "ukruszona"  # skrot zadzialal od razu, na pracy pokazanej w widoku pracy
+    assert e.okno._praca_widoku == praca and geometria(e) == przed
 
 
 def test_p15_zmiana_samego_tekstu_i_wlasne_zamkniecie_komunikatu_nie_przygaszaja_mapy(swiat):
-    """Ochrona wlacza sie tylko, gdy panele nad mapa zmieniaja wysokosc w tle. Komunikat "plik zajety (od 12 s)" odswiezany co
-    sekunde (ten sam panel, inny tekst) NIE przygasza mapy - inaczej mapa bylaby nieczynna przez caly czas skanowania.
-    Komunikat zamkniety przez technika (jego wlasne klikniecie) tez nie - jak dotad."""
+    """Komunikat "plik zajety (od 12 s)" dochodzi w tle, potem jest odswiezany co sekunde (ten sam komunikat, inny tekst), na
+    koniec technik zamyka go sam. Mapa za kazdym razem stoi w miejscu i nie jest przygaszona (stare okno: pierwsze dojscie
+    zsuwalo mape i wlaczalo ochrone, zamkniecie przesuwalo ja z powrotem); zmiana samego tekstu nie przygasza tez strefy pytan -
+    inaczej byla by nieczynna przez caly czas skanowania."""
     k, zegar = swiat.wieczor()
     k.symuluj_skan("zwykla", numer=1)
     e = swiat.ekran(k, (1600, 900))
+    e.po_ochronie()
+    e.okno._ochrona.setInterval(DLUGO_MS)
+    g = geometria(e)
+
     def plik_zajety(od_s: int) -> None:  # jak ``Aplikacja``: ten sam identyfikator komunikatu, tekst z nowa liczba sekund
         k._komunikat("plik_zajety", id_="plik_zajety:skaner", od_s=od_s)
         k._odswiez()
 
     plik_zajety(12)
     e.odczekaj(40)
-    assert e.okno.ochrona_aktywna()
-    e.po_ochronie()
-    g = P14._geometria_mapy(e)
+    bez_ochrony_mapy(e, "doszedl komunikat")
+    assert geometria(e) == g
+    pokaz_w_strefie(e, "komunikat_plik_zajety")
     tekst = e.tekst_elementu("komunikat_plik_zajety")
     for od_s in (13, 14, 15):
         plik_zajety(od_s)
         e.odczekaj(40)
         assert len(ogolne(k)) == 1 and not e.okno.ochrona_aktywna() and not e.mapa.przygaszona()
+        assert not e.okno.ochrona_strefy_aktywna() and e.jest("komunikat_plik_zajety")  # ta sama pozycja strefy, nowy tekst
     assert e.tekst_elementu("komunikat_plik_zajety") != tekst and "15" in e.tekst_elementu("komunikat_plik_zajety")
-    assert P14._geometria_mapy(e) == g
-    przycisk = e.w("komunikat_plik_zajety").findChild(type(e.w("przycisk_skanuj")), "zamknij_komunikat")
-    P14._klik_w_punkt(e, przycisk.mapTo(e.okno, przycisk.rect().center()))
+    assert geometria(e) == g
+    zamknij_w_strefie(e, "komunikat_plik_zajety")
     e.odczekaj(40)
-    assert not ogolne(k) and not e.jest("komunikat_plik_zajety") and not e.okno.ochrona_aktywna()
-    assert P14._geometria_mapy(e) != g  # mapa wrocila na miejsce po decyzji technika - bez przygaszenia
+    assert not ogolne(k) and "komunikat_plik_zajety" not in e.strefa() and not e.okno.ochrona_aktywna()
+    assert geometria(e) == g  # po decyzji technika mapa tez w tym samym miejscu (stare okno: wracala w gore)
 
 
 def test_p15_komunikat_ogolny_bez_gniazd_na_mapie_nie_wlacza_ochrony(swiat):
@@ -181,7 +221,7 @@ def test_p15_komunikat_ogolny_bez_gniazd_na_mapie_nie_wlacza_ochrony(swiat):
     assert e.jest("komunikat_plik_zajety") and not e.okno.ochrona_aktywna() and not e.mapa.przygaszona()
 
 
-# --- runda 2 (recenzja PR #45): ochrona od RUCHU mapy (P1), takze po komunikacie bedacym skutkiem polecenia (P2) ----------
+# --- runda 2 (recenzja PR #45): zdarzenia z tla (P1) i komunikat bedacy skutkiem polecenia (P2) - mapa stoi w miejscu ----------
 DLUGI_POWOD = "bardzo dlugi powod proby recenzenta " * 14
 
 
@@ -232,38 +272,38 @@ def zdarzenia_z_tla(k, zegar) -> list:
 
 @pytest.mark.parametrize("rozmiar", P14.ROZMIARY, ids=lambda r: f"{r[0]}x{r[1]}")
 def test_p15_r2_p1_ochrona_wlacza_sie_tylko_gdy_mapa_zmienia_miejsce(swiat, rozmiar):
-    """P1: ochrona klikniec idzie za RUCHEM mapy, nie za zmiana wysokosci paneli. Zdarzenie z tla, po ktorym prostokat mapy
-    i srodki 19 gniazd zostaja w miejscu (obszar uwag juz ograniczony i przewijany; zmiana dlugosci tekstu przy 3 panelach),
-    NIE przygasza mapy i klikniecie gniazda 9 otwiera gniazdo 9; zdarzenie, ktore mape rusza, ochrone wlacza."""
+    """P1: ochrona klikniec idzie za RUCHEM mapy, nie za zmiana paneli. W nowym oknie mapa nie rusza sie przy ZADNYM z 7 zdarzen
+    z tla (dochodza 3 komunikaty, tekst sie wydluza i skraca, znikaja): prostokat mapy i srodki 19 gniazd zostaja w miejscu,
+    ochrona mapy sie nie wlacza, a klikniecie w stary srodek gniazda 9 od razu otwiera gniazdo 9 (stare okno: przy 1 - 2
+    zdarzeniach mapa sie ruszala i wtedy ochrona sie wlaczala)."""
     k, zegar, e, ids = swiat_3_plytek(swiat, rozmiar)
     e.okno._ochrona.setInterval(DLUGO_MS)
-    bez_ruchu, z_ruchem, zle = 0, 0, []
+    poczatek = geometria(e)
+    zle = []
     for nazwa, zdarzenie in zdarzenia_z_tla(k, zegar):
-        przed = P14._geometria_mapy(e)
+        przed = geometria(e)
         zdarzenie()
         e.odczekaj(60)
         ochrona, przygaszona = e.okno.ochrona_aktywna(), e.mapa.przygaszona()
-        po = P14._geometria_mapy(e)
-        ruch = po != przed
-        z_ruchem += ruch
-        bez_ruchu += not ruch
-        if ochrona != ruch or przygaszona != ruch:
-            zle.append(f"{nazwa}: mapa {przed[0]} -> {po[0]}, ruch={ruch}, ochrona={ochrona}, przygaszona={przygaszona}")
-        elif not ruch:  # mapa stoi i nie jest chroniona: prawowite klikniecie gniazda dziala od razu
-            P14._klik_w_punkt(e, po[1][9])
-            assert e.okno._gniazdo == 9 and e.jest("widok_pracy"), f"{nazwa}: klikniecie gniazda 9 pominiete, choc mapa stoi"
-            e.okno._zamknij_prace()
-            e.zdarzenia()
-        koniec_ochrony(e)
-    assert not zle, f"ochrona niezgodna z ruchem mapy w {len(zle)} z 7 zdarzen: {zle}"
-    assert z_ruchem >= 1 and bez_ruchu >= 2, (z_ruchem, bez_ruchu)  # test widzi oba rodzaje zdarzen w kazdym rozmiarze okna
+        po = geometria(e)
+        if po != przed or ochrona or przygaszona:
+            zle.append(f"{nazwa}: mapa {przed[0]} -> {po[0]}, ruch={po != przed}, ochrona={ochrona}, przygaszona={przygaszona}")
+            continue
+        P14._klik_w_punkt(e, przed[1][9])  # mapa stoi i nie jest chroniona: prawowite klikniecie gniazda dziala od razu
+        if e.okno._gniazdo != 9 or not e.jest("widok_pracy"):
+            zle.append(f"{nazwa}: klikniecie w srodek gniazda 9 otworzylo {e.okno._gniazdo}")
+        e.okno._zamknij_prace()
+        e.zdarzenia()
+    assert not zle, f"mapa ruszona albo chroniona w {len(zle)} z 7 zdarzen: {zle}"
+    assert geometria(e) == poczatek and e.okno.pokazana_plytka() == ids[0]
 
 
 @pytest.mark.parametrize("rozmiar", P14.ROZMIARY, ids=lambda r: f"{r[0]}x{r[1]}")
-def test_p15_r2_p2_komunikat_po_poleceniu_technika_ktory_zsuwa_mape_wlacza_ochrone(swiat, rozmiar):
-    """P2: technik klika "Ukruszona", zapis samoczynny listy sie nie udaje - komunikat ogolny dochodzi jako skutek JEGO
-    polecenia i zsuwa mape. Ochrona wlacza sie tak jak po komunikacie z tla: zadne z 19 klikniec w stare srodki gniazd nie
-    otwiera innego gniazda; po koncu ochrony klikniecie gniazda dziala."""
+def test_p15_r2_p2_komunikat_po_poleceniu_technika_nie_zsuwa_mapy_i_nie_wlacza_ochrony(swiat, rozmiar):
+    """(Dawniej ``test_p15_r2_p2_komunikat_po_poleceniu_technika_ktory_zsuwa_mape_wlacza_ochrone``.) P2: technik klika
+    "Ukruszona", zapis samoczynny listy sie nie udaje - komunikat ogolny dochodzi jako skutek JEGO polecenia. Mapa zostaje
+    w miejscu (stare okno: zsuwala sie i wlaczala ochrone), ochrona sie nie wlacza, 19 z 19 klikniec w stare srodki gniazd
+    otwiera to samo gniazdo; klikniecie gniazda 9 dziala od razu."""
     from stanowisko.ui.czesci import do_obejrzenia
 
     k, zegar, e, ids = swiat_3_plytek(swiat, rozmiar)
@@ -277,46 +317,32 @@ def test_p15_r2_p2_komunikat_po_poleceniu_technika_ktory_zsuwa_mape_wlacza_ochro
     nr = [g.nr for g in plytka.gniazda if any(p.praca_id in do for p in g.prace)][0]
     e.klik_gniazdo(nr)
     e.okno._ochrona.setInterval(DLUGO_MS)
-    przed = P14._geometria_mapy(e)
+    przed = geometria(e)
     e.klik("przycisk_ukruszona")
     e.odczekaj(60)
-    assert [x.rodzaj for x in ogolne(k)] == ["lista_nie_zapisana"]
-    po = P14._geometria_mapy(e)
-    assert po[0].y() > przed[0].y(), "scenariusz: komunikat po poleceniu ma zsunac mape"
-    assert e.okno.ochrona_aktywna() and e.mapa.przygaszona(), f"mapa {przed[0]} -> {po[0]} po poleceniu technika, ochrona nieaktywna"
-    otwarte = e.okno._gniazdo
-    inne = []
-    for cel, punkt in przed[1].items():
-        P14._klik_w_punkt(e, punkt)
-        if e.okno._gniazdo not in (otwarte, cel):
-            inne.append((cel, e.okno._gniazdo))
-            e.okno._gniazdo, e.okno._praca_widoku = otwarte, None
-            e.okno._odswiez()
-            e.zdarzenia()
-    assert not inne, f"klikniecie w stary srodek po poleceniu otwiera INNE gniazdo {len(inne)} z 19: {inne}"
-    koniec_ochrony(e)
-    e.okno._zamknij_prace()
-    e.zdarzenia()
-    P14._klik_w_punkt(e, P14._geometria_mapy(e)[1][9])
+    assert [x.rodzaj for x in ogolne(k)] == ["lista_nie_zapisana"] and "komunikat_lista_nie_zapisana" in e.strefa()
+    assert k.stan().plytka(ids[0]).gniazdo(nr).praca.decyzja == "ukruszona"
+    sprawdz_krok(e, przed, "komunikat po poleceniu technika")
+    P14._klik_w_punkt(e, przed[1][9])
     assert e.okno._gniazdo == 9 and e.jest("widok_pracy")
 
 
 def test_p15_r2_p2_decyzja_bez_komunikatu_i_wlasne_zamkniecie_komunikatu_nie_przygaszaja_mapy(swiat):
-    """Granica P2: polecenie technika, po ktorym mapa NIE zjezdza w dol (zwykla decyzja z udanym zapisem listy; komunikat
-    zamkniety jego kliknieciem - mapa idzie w gore), zostaje bez przygaszenia - jak dotad (A-P2)."""
+    """Granica P2: zwykla decyzja z udanym zapisem listy, komunikat z tla i komunikat zamkniety kliknieciem technika - mapa za
+    kazdym razem stoi w miejscu i nie jest przygaszona (stare okno: komunikat z tla zsuwal mape, zamkniecie ja podnosilo)."""
     k, zegar, e, ids = swiat_3_plytek(swiat, (1536, 864))
+    e.okno._ochrona.setInterval(DLUGO_MS)
     e.klik_gniazdo(9)
-    przed = P14._geometria_mapy(e)
+    przed = geometria(e)
     e.klik("przycisk_ukruszona")
     e.odczekaj(60)
-    assert not ogolne(k) and P14._geometria_mapy(e)[0] == przed[0]
-    assert not e.okno.ochrona_aktywna() and not e.mapa.przygaszona()
+    assert not ogolne(k) and geometria(e) == przed
+    bez_ochrony_mapy(e, "decyzja bez komunikatu")
     k.symuluj_komunikat("plik_zmieniony")
     e.odczekaj(40)
-    e.po_ochronie()
-    przed = P14._geometria_mapy(e)
-    przycisk = e.w("komunikat_plik_zmieniony").findChild(type(e.w("przycisk_skanuj")), "zamknij_komunikat")
-    P14._klik_w_punkt(e, przycisk.mapTo(e.okno, przycisk.rect().center()))
+    bez_ochrony_mapy(e, "komunikat z tla")
+    assert geometria(e) == przed and "komunikat_plik_zmieniony" in e.strefa()
+    zamknij_w_strefie(e, "komunikat_plik_zmieniony")
     e.odczekaj(40)
-    assert not ogolne(k) and P14._geometria_mapy(e)[0].y() < przed[0].y()  # mapa wrocila w gore po jego kliknieciu
-    assert not e.okno.ochrona_aktywna() and not e.mapa.przygaszona()
+    assert not ogolne(k) and "komunikat_plik_zmieniony" not in e.strefa() and geometria(e) == przed
+    bez_ochrony_mapy(e, "komunikat zamkniety przez technika")

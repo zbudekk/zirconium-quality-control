@@ -43,7 +43,7 @@ class Miniatura(QLabel):
         self.setObjectName(nazwa)
         self.setFixedSize(px + 4, px + 4)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setStyleSheet(f"background: #000000; border: 1px solid {styl.RAMKA}; border-radius: 4px; color: #b8bec6; font-size: 10px;")
+        self.setStyleSheet(f"background: #000000; border: 1px solid {styl.RAMKA}; border-radius: 4px; color: {styl.TEKST_SLABY}; font-size: 10px;")
         self.sha16: str | None = None
         self._px = px
 
@@ -183,7 +183,7 @@ class WidokPracyRano(QFrame):
         wiersz = QHBoxLayout()
         wiersz.setSpacing(8)
         status = znaczek(ST.status(zrodlo.status).napis, zrodlo.rgb, "praca_rano_status", r.status_pracy)
-        status.setStyleSheet(_styl_znaczka(zrodlo.rgb, r.status_pracy) + " border: 2px solid #3a4047;")
+        status.setStyleSheet(_styl_znaczka(zrodlo.rgb, r.status_pracy))
         wiersz.addWidget(status, 0, Qt.AlignmentFlag.AlignTop)
         # E3-P14 (poz. 7): gniazdo jest juz klikniete - opis w widoku mowi, co zrobic TERAZ (legenda zostaje przy "kliknij gniazdo")
         opis = NR.OPIS_W_WIDOKU.get(zrodlo.status, "").format(wybierz=ST.PRZYCISKI["wybierz_kandydata"]) or ST.status(zrodlo.status).opis

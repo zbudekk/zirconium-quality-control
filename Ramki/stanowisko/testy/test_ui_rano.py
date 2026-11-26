@@ -10,7 +10,7 @@ Kryteria paczki (plan etapu 3, 4.1, E3-A7; raport ``raporty/E3-A7_2026-11-18.md`
   (5) bez ramki i bez Excela program dziala dalej (komunikat, nie awaria),
   (6) zamiast przegladu z czlowiekiem: szesc zadan porannych T14 sterowaniem z testu i zrzuty PNG dla wlasciciela (G2) -
       zmienna ``E3_ZRZUTY`` = katalog zrzutow.
-Dodatkowo: przelacznik trybu Wieczor / Poranek (pasek stanu, pamiec po restarcie), nieznana przypisana recznie, konflikt,
+Dodatkowo: przelacznik trybu Wieczor / Poranek (pasek gorny nowego okna E3-U1a, pamiec po restarcie), nieznana przypisana recznie, konflikt,
 poprawka (Z9), uklad bez obciec przy 1920 x 1080 i 100 / 125 / 150 % (jak ``test_ui_rozdzielczosc``), przerwy petli okna
 ponizej 200 ms przy 3 plytkach x 23 prace (prawdziwy kontroler), okno zmaksymalizowane, 0 sciezek i nazw plikow na ekranie.
 """
@@ -533,18 +533,25 @@ def test_przelacznik_trybu_wieczor_poranek_i_pamiec_po_restarcie(tmp_path, zegar
     a = K.AtrapaKontrolera(katalog, zegar=zegar)
     try:
         e = ekrany(a)
-        assert a.stan().tryb == "wieczor" and not e.okno.rano() and e.w("przycisk_przelacz_tryb").text() == NR.PRZELACZ_NA.format(tryb=ST.NAZWY_TRYBOW["rano"])
-        e.klik("przycisk_przelacz_tryb")  # bez wybranej osoby tez dziala
-        assert a.stan().tryb == "rano" and e.okno.rano() and e.w("napis_tryb").text() == ST.NAZWY_TRYBOW["rano"]
-        assert e.w("przycisk_przelacz_tryb").text() == NR.PRZELACZ_NA.format(tryb=ST.NAZWY_TRYBOW["wieczor"]) and e.jest("rano_bez_plytek")
+        # E3-U1a: przelacznik to dwa przyciski na pasku gornym (``przycisk_tryb_wieczor`` / ``przycisk_tryb_rano``, napisy
+        # ``ST.NAZWY_TRYBOW``); wybrany = tryb ze stanu (``isChecked``), klika sie tryb DOCELOWY. Dawny przycisk "-> Poranek"
+        # i etykieta ``napis_tryb`` nie istnieja - to, co pokazywaly (tryb ze stanu, tryb docelowy), mowi teraz zaznaczenie.
+        wieczor, poranek = e.w("przycisk_tryb_wieczor"), e.w("przycisk_tryb_rano")
+        assert (wieczor.text(), poranek.text()) == (ST.NAZWY_TRYBOW["wieczor"], ST.NAZWY_TRYBOW["rano"])
+        assert poranek.toolTip() == NR.PRZELACZ_OPIS.format(tryb=ST.NAZWY_TRYBOW["rano"])
+        assert a.stan().tryb == "wieczor" and not e.okno.rano() and wieczor.isChecked() and not poranek.isChecked()
+        e.klik("przycisk_tryb_rano")  # bez wybranej osoby tez dziala
+        assert a.stan().tryb == "rano" and e.okno.rano() and poranek.isChecked() and not wieczor.isChecked()
+        assert e.jest("przycisk_tryb_wieczor") and e.jest("rano_bez_plytek")  # przelacznik widoczny takze w trybie porannym
         a.wybierz_operatora("Technik A")
         rano = a.symuluj_skan_rano(4, {1: "pewna"}, projekty={1: 305})
         assert a.stan().rano.plytka(rano) is not None and a.stan().plytka(rano) is None  # skan poranny poza stanem wieczoru
-        e.klik("przycisk_przelacz_tryb")
+        e.klik("przycisk_tryb_wieczor")
         assert a.stan().tryb == "wieczor" and not e.okno.rano() and e.jest("lista_plytek") and a.stan().rano is None
+        assert wieczor.isChecked() and not poranek.isChecked()
         wieczorny = a.symuluj_skan("czysta", numer=1)
         assert a.stan().plytka(wieczorny) is not None
-        e.klik("przycisk_przelacz_tryb")
+        e.klik("przycisk_tryb_rano")
         e.zamknij()
     finally:
         a.zamknij()
@@ -629,8 +636,9 @@ def usterki_rano(e: Ekran, rozmiar: tuple) -> list:
             usterki.append(f"mapa {skan_id} przycieta")
         if mapa.height() < mapa.minimumHeight() or mapa.width() < mapa.minimumWidth():
             usterki.append(f"mapa {skan_id} mniejsza niz minimum")
-    for nazwa in ("przycisk_zamknij_piec", "rano_potwierdz_kuwete", "przycisk_przelacz_tryb", "kandydat_1_wybierz", "kandydat_2_wybierz",
-                  "rano_strona_ostatni"):
+    # E3-U1a: przelacznik trybu = dwa przyciski paska gornego (dawny ``przycisk_przelacz_tryb``)
+    for nazwa in ("przycisk_zamknij_piec", "rano_potwierdz_kuwete", "przycisk_tryb_wieczor", "przycisk_tryb_rano", "kandydat_1_wybierz",
+                  "kandydat_2_wybierz", "rano_strona_ostatni"):
         w = okno.findChild(QWidget, nazwa)
         if w is not None and w.isVisibleTo(okno) and not UW._w_obszarze_przewijanym(okno, w) and UW._widoczny_wycinek(okno, w) != UW._w_oknie(okno, w):
             usterki.append(f"przyciety {nazwa}")
@@ -740,7 +748,7 @@ def test_t14_szesc_zadan_porannych(atrapa, ekrany, zegar):
 
     atrapa.wybierz_operatora("Technik B")
     e = ekrany(atrapa)
-    e.klik("przycisk_przelacz_tryb")
+    e.klik("przycisk_tryb_rano")  # E3-U1a: przelacznik trybu = tryb docelowy na pasku gornym
     K.indeks_rano_sztuczny(atrapa.sesja.baza, atrapa.sesja.teraz())
     # (1) dwie plytki pieca
     p4 = atrapa.symuluj_skan_rano(4, {1: "pewna", 2: "pewna", 3: "zolta", 4: "pewna", 5: "pewna"},
@@ -1048,7 +1056,7 @@ def test_k1_prawdziwy_kontroler_trzy_plytki_przez_skaner_i_petla_okna(tmp_path, 
         K.indeks_rano_sztuczny(st.k.sesja.baza, st.k.sesja.teraz())
         st.k.wybierz_operatora("Technik A")
         e = ekrany(st.k)
-        e.klik("przycisk_przelacz_tryb")
+        e.klik("przycisk_tryb_rano")  # E3-U1a: przelacznik trybu = tryb docelowy na pasku gornym
         assert st.k.stan().tryb == "rano" and e.okno.rano()
         czasy_ekranu = []
         prawdziwe = e.okno.pokaz_stan

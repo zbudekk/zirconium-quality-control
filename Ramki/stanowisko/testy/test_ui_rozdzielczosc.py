@@ -128,22 +128,32 @@ def usterki_rozdzielczosci(e, rozmiar: tuple) -> list:
             usterki.append(f"przyciety (zasloniety albo do przewiniecia) {nazwa}: widac {UW._widoczny_wycinek(okno, w)} z {UW._w_oknie(okno, w)}")
     if UW._widoczny_wycinek(okno, okno.mapa) != UW._w_oknie(okno, okno.mapa):
         usterki.append(f"mapa przycieta: {UW._widoczny_wycinek(okno, okno.mapa)} z {UW._w_oknie(okno, okno.mapa)}")
-    # panel pytania pokazanej plytki (pierwszy panel obszaru "uwagi") w calosci, z ostrzezeniem o decyzjach - bez przewijania
+    # pytanie pokazanej plytki (pozycja strefy pytan) w calosci, z ostrzezeniem o decyzjach - bez przewijania
     for nazwa in ("pytanie_ponowny_skan", "pytanie_ostrzezenie"):
         w = e.w(nazwa)
         if not w.isVisibleTo(okno) or UW._widoczny_wycinek(okno, w) != UW._w_oknie(okno, w):
-            usterki.append(f"panel pytania do przewiniecia: {nazwa} widac {UW._widoczny_wycinek(okno, w)} z {UW._w_oknie(okno, w)}")
-    if okno.uwagi.verticalScrollBar().isVisibleTo(okno) and len(okno.uwagi.panele()) == 1:
-        usterki.append("pasek przewijania pionowego przy jednym panelu pytania")
+            usterki.append(f"pytanie do przewiniecia: {nazwa} widac {UW._widoczny_wycinek(okno, w)} z {UW._w_oknie(okno, w)}")
+    panele = okno.strefa.panele()
+    if [p.objectName() for p in panele] != ["pytanie_ponowny_skan"]:
+        usterki.append(f"strefa pytan nie pokazuje pytania: {[p.objectName() for p in panele]}")
+    elif panele[0].przewijanie.verticalScrollBar().maximum() > 0:
+        usterki.append(f"tekst pytania wymaga przewijania o {panele[0].przewijanie.verticalScrollBar().maximum()} px")
+    u = okno.uklad()  # stale czesci szkieletu (SPEC p. 3): paski 52 / 32 px, kolumny i strefa pytan wg ukladu
+    stale = (e.w("pasek_gorny").height(), e.w("pasek_stanu").height(), e.w("lista_plytek").width(), e.w("ramka_pracy").width(),
+             e.w("strefa_komunikatow").height())
+    if stale != (52, 32, u.lewa, u.prawa, u.strefa):
+        usterki.append(f"szkielet {stale} zamiast {(52, 32, u.lewa, u.prawa, u.strefa)}")
     return usterki
 
 
 def test_ekran_1920x1080_przy_100_125_150_proc_10_plytek_x_19_prac_z_pytaniem(atrapa, zegar):
     """Kazdy rozmiar z ``ROZMIARY`` (od najwiekszego do najmniejszego i z powrotem - przelaczanie ukladu zwykly / zwarty):
-    zero usterek; panel pytania i otwarta praca na ekranie; przy 1920 x 1080 uklad zwykly, przy 125 % i 150 % - zwarty."""
+    zero usterek; pytanie w strefie pytan i otwarta praca na ekranie; uklad zwarty ponizej 1500 x 860 punktow (``motyw``):
+    przy 1920 x 1080 i 1536 x 864 zwykly, przy oknie zmaksymalizowanym 125 % i przy 150 % - zwarty. Mapa w kazdym rozmiarze
+    okna ma to samo miejsce przed i po przejsciu przez inne rozmiary (zalezy tylko od rozmiaru okna)."""
     from PySide6.QtGui import QGuiApplication
 
-    from stanowisko.ui import styl
+    from stanowisko.ui import motyw
 
     indeks_plytek(atrapa)
     atrapa.wybierz_operatora("Technik A")
@@ -160,12 +170,13 @@ def test_ekran_1920x1080_przy_100_125_150_proc_10_plytek_x_19_prac_z_pytaniem(at
         zrzuty = Path(os.environ["E3_ZRZUTY"]) if os.environ.get("E3_ZRZUTY") else None
         if zrzuty is not None:
             zrzuty.mkdir(parents=True, exist_ok=True)
-        wyniki = []
+        wyniki, miejsca = [], {}
         for nazwa, szer, wys in ROZMIARY + tuple(reversed(ROZMIARY[:-1])):
             usterki = usterki_rozdzielczosci(e, (szer, wys))
             assert e.jest("pytanie_ponowny_skan") and e.okno.pokazana_plytka() == ponowny
-            zwarty = szer < styl.PROG_ZWARTEGO[0] or wys < styl.PROG_ZWARTEGO[1]
-            assert e.okno.zwarty() == zwarty, (nazwa, szer, wys)
+            zwarty = szer < motyw.PROG_ZWARTEGO[0] or wys < motyw.PROG_ZWARTEGO[1]
+            assert e.okno.zwarty() == zwarty and e.okno.uklad() is motyw.uklad_dla(szer, wys), (nazwa, szer, wys)
+            assert miejsca.setdefault(nazwa, e.okno.miejsce_mapy()) == e.okno.miejsce_mapy(), nazwa  # mapa: miejsce tylko z rozmiaru okna
             wyniki.append(f"{nazwa} {szer}x{wys}: usterek {len(usterki)}, uklad {'zwarty' if zwarty else 'zwykly'}, "
                           f"mapa {e.mapa.width()}x{e.mapa.height()}, przycisk Ukruszona {e.w('przycisk_ukruszona').width()}x"
                           f"{e.w('przycisk_ukruszona').height()}")
