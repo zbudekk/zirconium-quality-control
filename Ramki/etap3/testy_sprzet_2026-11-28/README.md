@@ -2,14 +2,18 @@
 
 Na 28.11.2026 (wariant: laptop i skaner, bez ramek; program 0.3.9-rc2 - paczka E3-D1):
 
-- `DZIEN_TESTU_LAPTOP_I_SKANER.md` - dokument dnia dla wlasciciela, do wydruku (najwyzej 4 strony A4): A dzien
-  wczesniej (foldery, okno instalatora, pierwszy start, program ochronny), B sobota (kroki 2.x, proby a-f),
-  C pokaz dla szefa, D co zapisac i przywiezc. Napisy ekranu sprawdzone na instalacji 0.3.9-rc2 (raport
-  `Ramki/stanowisko/raporty/E3-D1_2026-11-26.md`).
-- `ARKUSZ_LAPTOP_I_SKANER.md` - arkusz do wypelniania dlugopisem (1-2 strony), numery A1-D jak w dokumencie dnia.
+- `DZIEN_TESTU_LAPTOP_I_SKANER.md` - dokument dnia dla wlasciciela, do wydruku (najwyzej 6 stron A4), samowystarczalny
+  (stary dokument nie jest potrzebny): A dzien wczesniej (foldery, pendrive, okno instalatora, pierwszy start, proba
+  pokazu, program ochronny), B sobota (kroki 2.1-2.7 z 2.3 / 2.4 / 2.5a w skrocie, pola wymagane okna "Dzien
+  skanera", proby a-f), C pokaz dla szefa z planem B na danych probnych, D co zapisac i przywiezc, ramka pytan
+  przed sobota. Napisy ekranu sprawdzone na instalacji 0.3.9-rc2 (raport `Ramki/stanowisko/raporty/E3-D1_2026-11-26.md`).
+- `ARKUSZ_LAPTOP_I_SKANER.md` - arkusz do wypelniania dlugopisem (najwyzej 2 strony), numery A1-D jak w dokumencie dnia.
+- `Pokaz_na_danych_probnych.cmd` - plan B pokazu: dwuklik uruchamia zainstalowany program z danymi probnymi
+  (`--atrapa`) bez okna konsoli; dane probne tylko w folderze tymczasowym, bez bazy i folderow pracy.
 - Pliki ponizej zostaja bez zmian tresci (na gorze `PIERWSZE_TESTY_NA_SPRZECIE.md` i `PYTANIA_DO_WLASCICIELA.md`
   zdanie, ze na 28.11 obowiazuje dokument dnia); kroki 2.x i narzedzia `narzedzia/` dalej sa w uzyciu.
-- Strony do druku (HTML / PDF) powstaja poza repo (`<PC-katalog>\konto3\DLA_WLASCICIELA_2026-11-28\`).
+- Strony do druku (HTML / PDF) i folder `narzedzia_dnia` (kopia `narzedzia/pole_skanu.cmd` i `pole_skanu.py`) powstaja
+  poza repo (`<PC-katalog>\konto3\DLA_WLASCICIELA_2026-11-28\`).
 
 Wczesniejsze pliki (wariant pelny z ramka):
 
