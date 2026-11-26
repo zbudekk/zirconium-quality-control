@@ -119,8 +119,8 @@ zamyka okno. Plik skanu: w `C:\Skany_test` albo w oknie "Otworz folder sesji" ->
 
 1. NAJPIERW karton (glowny pomiar): plaski karton na stolik, linia ciecia pod karton, skan, zapis (w oknie "Dzien
    skanera" przed skanem kliknij krok 12; plik w zlym kroku: "Przenies zaznaczony plik do innego kroku...").
-   Narzedzie, opis `karton`. Ma byc "PLYTKA NIE ROZPOZNANA" (to dobrze - to karton), a w punkcie 2 wymiar pola: "Dane
-   mieszcza sie w kole o srednicy ok. ... mm" albo "DANE NIE SA KOLEM: ... x ... mm" (przepisz OBIE liczby) i zdanie
+   W oknie karton dostanie czerwona ocene - to dobrze (to nie plytka), nic nie poprawiaj. Narzedzie, opis `karton`.
+   Ma byc "PLYTKA NIE ROZPOZNANA" (to dobrze - to karton), a w punkcie 2 wymiar pola: "Dane mieszcza sie w kole o srednicy ok. ... mm" albo "DANE NIE SA KOLEM: ... x ... mm" (przepisz OBIE liczby) i zdanie
    "Dane sa PLASKIE: ...". Nie ma tego zdania: karton byl wygiety albo widac stolik - liczby i tak przepisz.
 2. Potem skan pustej plytki nr 8 z B2 (opis `okr-test 8, pusta`): przepisz wiersz "program mowi" i wiersz o polu.
    "UWAGA: w skanie jest prawdopodobnie PODLOZE" = skan z podlozem - wroc do B2.
@@ -144,7 +144,9 @@ Kazdy skan ma w oknie ocene; ocena i notatka do arkusza B4. Zolta "Uwaga" przy k
 widocznych dolkow numeru i bez scianki bocznej za KWADRATOWA i nie ostrzega - mierzymy, jak czesto. Plytke nr 8 zeskanuj
 trzy razy, w kroku 12 okna (pola: "Ktora plytka" = `okragla testowa R54`, "Numer plytki" = `8`; w notatce: i, ii, iii):
 (i) pusta; (ii) z praca w gniezdzie obok dolkow numeru; (iii) z dolkami numeru zaklejonymi tasma papierowa. Gdy jest
-kwadratowa - jeden skan pustej dla porownania. Kazdy plik daj narzedziu z B3: numer - SAM ENTER (podany numer podpowiada
+kwadratowa - jeden skan pustej dla porownania; PRZED tym skanem zmien w kroku 12 "Numer plytki" z `8` na numer
+kwadratowej (nie ma numeru - wyczysc pole), a "Ktora plytka" na `kwadratowa` (okno podaje numer z pola programowi; z `8`
+oceniloby kwadratowa jak okragla nr 8). Kazdy plik daj narzedziu z B3: numer - SAM ENTER (podany numer podpowiada
 programowi ksztalt), opis np. `okr-test 8, dolki zaklejone`. Przepisz do arkusza B5 wiersze "program mowi" i
 "numer z dolkow". Dobrze: "okragla testowa (poza ramka)" ze "stary rozstaw R54"; przy (iii) numer z dolkow 0 albo
 "nie odczytany" (dolki zaklejone - tak ma byc). Zle, ale bardzo wazne: "kwadratowa" - zapisz, przy ktorym skanie.
@@ -211,10 +213,19 @@ z data i godzina na pendrive. [NIE SPRAWDZONE BEZ SPRZETU: czas pakowania prawdz
    skanem (to tez wynik dnia). Potem zamknij program "Stanowisko" krzyzykiem i dwuklik `Pokaz_na_danych_probnych.cmd`
    na pulpicie. Powiedz szefowi: **To sa dane probne, nie skan z dzisiaj.** Widac: 5 kafelkow ("Plytka bez
    numeru", "Plytka 4", "Plytka 3", "Plytka 2", "Plytka 1"), osoba "Technik A", na gorze pytanie "Podaj numer plytki -
-   skan z ..." ("Program nie odczytal numeru plytki ze skanu. ...") - kliknij "Pozniej". Kliknij kafelek "Plytka 1"
-   (ma prace czerwona "UBYTEK") i dalej punkty 2-5 jak wyzej; lista "Do dofrezowania: 1" ma juz jedna prace, na pasku
-   "plikow projektow: 16". Dane probne nie trafiaja do bazy ani do folderow skanow i projektow - po zamknieciu okna
-   znikaja. Powrot do zwyklej pracy: zamknij to okno krzyzykiem, ikona "Stanowisko", osoba `Tester`.
+   skan z ..." ("Program nie odczytal numeru plytki ze skanu. ...") - kliknij "Pozniej". Dalej krok po kroku:
+   a) Kliknij kafelek "Plytka 1" (na kafelku "UBYTEK 1"). Na gorze zolty komunikat "Plytka 1, skan z ...: Praca
+      niesprawdzona" ("Gniazdo 7: kontrola zakonczyla sie bledem programu - ...") - to tez dane probne, kliknij
+      "Zamknij". Na mapie jest jedno czerwone gniazdo - gniazdo 2 (pomaranczowe obok to inna praca).
+   b) Kliknij czerwone gniazdo: po prawej "Plytka 1 - gniazdo 2", "UKRUSZONA", "Najwiekszy ubytek: 0,62 mm" i "Decyzja:
+      Ukruszona - Technik A, ..." - w danych probnych decyzja juz jest, dlatego "Ukruszona" jest szare.
+   c) Kliknij "Cofnij decyzje" (klawisz C): wraca "UBYTEK", "Brak decyzji dla tej pracy", pod mapa "Do dofrezowania:
+      0" i "Lista jest pusta.". Powiedz: technik bierze prace do reki i decyduje.
+   d) Kliknij "Ukruszona" (klawisz U): znow "UKRUSZONA", "Decyzja: Ukruszona - Technik A, ...", "Do dofrezowania: 1",
+      w liscie wiersz z kuweta 9002, plytka 1, gniazdo 2.
+   e) Dalej punkty 3 ("Poranek", potem "Wieczor") i 5 (pasek; tu "plikow projektow: 16") jak wyzej.
+   f) Powrot do zwyklej pracy: zamknij to okno krzyzykiem, ikona "Stanowisko", osoba `Tester`. Dane probne nie trafiaja
+      do bazy ani do folderow skanow i projektow - po zamknieciu okna znikaja.
 
 Czego prototyp jeszcze nie robi (do powiedzenia wprost): Ramki z diodami sa w programie wylaczone, bo ich elektroniki
 jeszcze nie ma - dzis prace rozklada sie wedlug ekranu. Program pierwszy raz widzi prawdziwy skaner, wiec rozpoznanie
