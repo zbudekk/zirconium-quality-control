@@ -99,7 +99,6 @@ MAPA_BEZ_GNIAZD = "Płytka {napis}."
 LEGENDA = "Na tej płytce"
 LEGENDA_PUSTE = "Puste gniazdo"  # E3-U1a: pozycja legendy z obwodka przerywana
 POZA_GNIAZDEM = "Poza gniazdami: {n}"
-JESZCZE = "… i jeszcze {n} — zamknij powyższe, żeby je zobaczyć"  # ekran poranny (stary uklad do etapu U1b)
 # E3-U1a: strefa pytan i komunikatow o stalej wysokosci - jedna pozycja naraz, reszta w liczniku
 JESZCZE_KROTKO = "i jeszcze {n}"
 JESZCZE_OPIS = "Pokaż następne pytanie albo komunikat"

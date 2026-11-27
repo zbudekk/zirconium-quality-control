@@ -31,8 +31,10 @@ ROZMIARY = ((1920, 1080), (1600, 900), (1536, 864), (1280, 720))  # 100 %, okno 
 RANO_KANDYDACI = ("kandydat_1_wybierz", "kandydat_2_wybierz", "praca_rano_bez_projektu", "praca_rano_przypisz", "praca_rano_zamknij")
 # E3-U1a: przelacznik trybu = dwa przyciski paska gornego (``przycisk_tryb_wieczor`` / ``przycisk_tryb_rano``; dawny ``przycisk_przelacz_tryb``)
 TRYBY = ("przycisk_tryb_wieczor", "przycisk_tryb_rano")
-RANO_STALE = ("rano_potwierdz_kuwete", "rano_cofnij_kuwete", "przycisk_zamknij_piec", "kolejnosc_liczba", "kolejnosc_numer",
-              "rano_strona_rozkladanie", "rano_strona_wynik", "przycisk_skanuj") + TRYBY
+RANO_STALE = ("rano_potwierdz_kuwete", "rano_cofnij_kuwete", "przycisk_zamknij_piec", "rano_strona_rozkladanie", "rano_strona_wynik",
+              "przycisk_skanuj") + TRYBY
+# E3-U1b: kolejnosc kuwet stoi nad lista kuwet w kolumnie "Praca" - widoczna, gdy zadna praca nie jest otwarta (otwarta praca zajmuje kolumne)
+RANO_LISTA = ("kolejnosc_liczba", "kolejnosc_numer", "tabela_kuwet")
 WIECZOR_DECYZJE = ("przycisk_ukruszona", "przycisk_ok", "przycisk_cofnij", "przycisk_nastepna", "przycisk_zamknij_prace", "przycisk_skanuj",
                    "przycisk_zapisz_liste") + TRYBY
 WIECZOR_PYTANIE = ("odp_potwierdz_ponowny_skan", "odp_odrzuc_ponowny_skan")
@@ -166,6 +168,8 @@ def test_poz9_rano_to_ten_projekt_i_pozostale_przyciski_widoczne_bez_przewijania
     zrzut(e, f"po_p8_rano_kandydaci_{rozmiar[0]}x{rozmiar[1]}")
     e.klik("kandydat_1_wybierz")
     usterki += [f"T14 po wyborze: {u}" for u in niewidoczne_w_calosci(e, ("praca_rano_cofnij", "praca_rano_zamknij") + RANO_STALE)]
+    e.klik("praca_rano_zamknij")
+    usterki += [f"T14 praca zamknieta: {u}" for u in niewidoczne_w_calosci(e, RANO_STALE + RANO_LISTA)]
 
     k2, _ = swiat.rano()
     skany = k2.scenariusz_poranny()
@@ -178,6 +182,8 @@ def test_poz9_rano_to_ten_projekt_i_pozostale_przyciski_widoczne_bez_przewijania
         usterki += [f"piec pokazowy, {opis}: {u}" for u in niewidoczne_w_calosci(e2, nazwy + RANO_STALE)]
         if opis == "dwuznaczna":
             zrzut(e2, f"po_poz9_rano_piec_pokazowy_{rozmiar[0]}x{rozmiar[1]}")
+        e2.klik("praca_rano_zamknij")
+        usterki += [f"piec pokazowy, {opis}, praca zamknieta: {u}" for u in niewidoczne_w_calosci(e2, RANO_STALE + RANO_LISTA)]
     assert not usterki, f"okno {rozmiar[0]} x {rozmiar[1]}:\n" + "\n".join(usterki)
 
 
@@ -325,10 +331,12 @@ def test_n3_zamknij_piec_pyta_o_prace_nierozstrzygniete_i_nazywa_je_po_zamknieci
     assert k.stan().rano.otwarty and e.jest("pytanie_zamknij_mimo"), e.tekst()
     tekst = e.tekst_elementu("pytanie_zamknij_mimo")
     assert N.PLYTKA_NR.format(numer=4) in tekst and "gniazdo 3" in tekst and "1 " in tekst and "NIE" in tekst
-    przyciski = [b.objectName() for b in e.w("pytanie_zamknij_mimo").findChildren(type(e.w("zamknij_mimo_wroc")))]
-    # domyslna (wyrozniona) odpowiedz: powrot do rozstrzygania; runda 2 (P2): stoi po prawej - pod miejscem "Zamknij piec"
+    # E3-U1b: pytanie w strefie pytan nad mapami (przycisk "i jeszcze n" strefy nie jest odpowiedzia); odpowiedzi jedna pod druga
+    przyciski = [b.objectName() for b in e.w("pytanie_zamknij_mimo").findChildren(type(e.w("zamknij_mimo_wroc"))) if b.objectName() != "uwagi_jeszcze"]
     assert przyciski == ["zamknij_mimo_tak", "zamknij_mimo_wroc"]
-    assert _w_oknie(e, "zamknij_mimo_tak").right() < _w_oknie(e, "zamknij_mimo_wroc").left()
+    # runda 2 (P2): drugie klikniecie w miejsce "Zamknij piec" nie trafia w "Zamknij piec mimo to" (strefa jest daleko od przycisku -
+    # pelna proba dwukliku: ``test_n3_r2_*``); bylo: "Wroc" po prawej, pod miejscem przycisku w starym ukladzie
+    assert not _w_oknie(e, "przycisk_zamknij_piec").intersects(_w_oknie(e, "zamknij_mimo_tak"))
     assert e.w("zamknij_mimo_wroc").property("rola") == "glowny" and e.w("zamknij_mimo_tak").property("rola") != "glowny"
     assert not niewidoczne_w_calosci(e, ("zamknij_mimo_wroc", "zamknij_mimo_tak"))
     zrzut(e, "po_n3_pytanie_przed_zamknieciem")

@@ -106,6 +106,7 @@ def sciecie_mm(uk) -> tuple | None:
 
 class MapaPlytki(QWidget):
     klik = Signal(int)  # numer kliknietego gniazda
+    MARGINES = MARGINES_PX  # odstep plytki od krawedzi widzetu (E3-U1b: mapa poranna ma mniejszy - trzy plytki obok siebie)
 
     def __init__(self, rodzic=None):
         super().__init__(rodzic)
@@ -261,9 +262,9 @@ class MapaPlytki(QWidget):
             self._kratka(numery)
             return
         pol = (uk.d if uk.shape == "round" else uk.size) / 2
-        w, h = self.width() - 2 * MARGINES_PX, self.height() - 2 * MARGINES_PX - MIEJSCE_NA_PODPIS_PX
+        w, h = self.width() - 2 * self.MARGINES, self.height() - 2 * self.MARGINES - MIEJSCE_NA_PODPIS_PX
         s = max(1.0, min(w, h) / (2 * pol))
-        cx, cy = self.width() / 2, MARGINES_PX + h / 2
+        cx, cy = self.width() / 2, self.MARGINES + h / 2
 
         def px(x: float, y: float) -> QPointF:
             return QPointF(cx + x * s, cy - y * s)  # y plytki "do tylu" = w gore ekranu; przod plytki na dole
@@ -311,11 +312,11 @@ class MapaPlytki(QWidget):
     def _kratka(self, numery: list) -> None:
         """Uklad nieznany: gniazda jako kola w kratce (kolejnosc numerow), zeby kolory i podpisy byly widoczne."""
         wierszy = math.ceil(len(numery) / KOLUMN_KRATKI)
-        w, h = self.width() - 2 * MARGINES_PX, self.height() - 2 * MARGINES_PX
+        w, h = self.width() - 2 * self.MARGINES, self.height() - 2 * self.MARGINES
         bok = max(20.0, min(w / KOLUMN_KRATKI, h / max(1, wierszy)))
         x0 = (self.width() - bok * KOLUMN_KRATKI) / 2
         for i, nr in enumerate(numery):
-            srodek = QPointF(x0 + (i % KOLUMN_KRATKI + 0.5) * bok, MARGINES_PX + (i // KOLUMN_KRATKI + 0.5) * bok)
+            srodek = QPointF(x0 + (i % KOLUMN_KRATKI + 0.5) * bok, self.MARGINES + (i // KOLUMN_KRATKI + 0.5) * bok)
             sciezka = QPainterPath()
             sciezka.addEllipse(srodek, bok * 0.42, bok * 0.42)
             self._ksztalty[nr] = (sciezka, srodek, bok * 0.42, bok * 0.84)

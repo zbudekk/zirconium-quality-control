@@ -116,6 +116,20 @@ class Ekran(UW.Ekran):
         obraz = mapa.grab().toImage()
         return {nr: obraz.pixelColor(mapa.punkt_probny(nr).toPoint()).name() for nr in mapa.numery()}
 
+    def strefa_rano(self) -> list:
+        """Nazwy obiektow WSZYSTKICH pozycji strefy pytan trybu porannego (strefa pokazuje jedna naraz, E3-U1b)."""
+        self.zdarzenia()
+        pozycje, _ = self.rano.pozycje_strefy(self.okno._stan, self.okno._stan.rano)
+        return [u.nazwa for u in pozycje]
+
+    def pokaz_w_strefie(self, nazwa: str) -> None:
+        """Licznikiem "i jeszcze n" do pozycji ``nazwa`` strefy pytan (jak technik)."""
+        for _ in range(len(self.strefa_rano()) + 1):
+            if self.jest(nazwa):
+                return
+            self.klik("uwagi_jeszcze")
+        assert self.jest(nazwa), f"w strefie pytan nie ma {nazwa!r}: {self.strefa_rano()}"
+
     def wpisz(self, tekst: str) -> None:
         from PySide6.QtTest import QTest
 
@@ -284,7 +298,7 @@ def test_k3_trzy_sposoby_kolejnosci_kuwet(atrapa, ekrany):
     assert [w[0] for w in e.tabela("tabela_kuwet")] == [k["kuweta"] for k in plan["kuwety"]]
     assert [int(w[1]) for w in e.tabela("tabela_kuwet")] == [plan["liczba_prac"][k["kuweta"]] for k in plan["kuwety"]]
     pierwsza = plan["kuwety"][0]["kuweta"]
-    assert e.w("rano_kuweta_biezaca").text() == f"Kuweta {pierwsza}"
+    assert e.w("rano_kuweta_biezaca").text() == pierwsza  # E3-U1b: duzy numer biezacej kuwety (bylo "Kuweta n")
     # (b) wedlug numeru
     e.klik("kolejnosc_numer")
     plan_n = rano.plan_plytek(kolejnosc="numer")
@@ -298,7 +312,7 @@ def test_k3_trzy_sposoby_kolejnosci_kuwet(atrapa, ekrany):
     from PySide6.QtCore import Qt
 
     e.klawisz(Qt.Key.Key_Return)
-    assert atrapa.stan().rano.kuweta_biezaca == cel and e.w("rano_kuweta_biezaca").text() == f"Kuweta {cel}" and not e.jest("rano_bufor")
+    assert atrapa.stan().rano.kuweta_biezaca == cel and e.w("rano_kuweta_biezaca").text() == cel and not e.jest("rano_bufor")
     obwiedzione = {(s, nr) for s, m in e.mapy().items() for nr in m.biezace()}
     kuweta = next(k for k in atrapa.stan().rano.kuwety if k.biezaca)
     assert obwiedzione == set(kuweta.gniazda) and len(obwiedzione) == kuweta.prac == plan_n["liczba_prac"][cel]  # P4: gniazda z kontrolera
@@ -388,21 +402,23 @@ def test_k5_bez_ramki_i_excela_komunikat_program_dziala_dalej(atrapa, ekrany):
     assert not atrapa.stan().rano.ramka and not atrapa.stan().rano.excel
     rozstrzygnij_konflikt(e, atrapa, skany)
     zamknij_piec(e, pytanie=True)
-    assert e.jest("komunikat_excel_niedostepny")
+    assert "komunikat_excel_niedostepny" in e.strefa_rano() and "komunikat_ramka_niedostepna" in e.strefa_rano()
+    e.pokaz_w_strefie("komunikat_excel_niedostepny")
     kompletne = atrapa.stan().rano.kompletne
     assert kompletne and all(z.kuweta in e.tekst_elementu("komunikat_excel_niedostepny") for z in kompletne)  # wlasna lista kuwet (P1)
     # program dziala dalej: nastepny skan otwiera nowy piec, ekran pokazuje plytke, komunikat ramki zostaje
     nowy = atrapa.symuluj_skan_rano(4, {1: "pewna", 2: "zolta"}, projekty={1: 380, 2: (381, 382)})
     e.czekaj(lambda: list(e.mapy()) == [nowy], 5.0, "plytka nowego pieca")
     rano = atrapa.stan().rano
-    assert rano.otwarty and rano.nr_w_dniu == 3 and e.jest("komunikat_ramka_niedostepna") and e.w("rano_strona_rozkladanie").isChecked()
+    assert rano.otwarty and rano.nr_w_dniu == 3 and "komunikat_ramka_niedostepna" in e.strefa_rano() and e.w("rano_strona_rozkladanie").isChecked()
+    e.pokaz_w_strefie("komunikat_ramka_niedostepna")
     from PySide6.QtCore import Qt
     from PySide6.QtTest import QTest
     from PySide6.QtWidgets import QPushButton
 
     zamknij = e.w("komunikat_ramka_niedostepna").findChild(QPushButton, "zamknij_komunikat")  # komunikat ramki mozna zamknac
     QTest.mouseClick(zamknij, Qt.MouseButton.LeftButton)
-    assert not e.jest("komunikat_ramka_niedostepna") and atrapa.przetworz() == 0 and atrapa.stan().rano.otwarty
+    assert "komunikat_ramka_niedostepna" not in e.strefa_rano() and atrapa.przetworz() == 0 and atrapa.stan().rano.otwarty
 
 
 # ----------------------------------------------------------------------------
@@ -632,6 +648,8 @@ def usterki_rano(e: Ekran, rozmiar: tuple) -> list:
         if obszar.isVisibleTo(okno) and obszar.horizontalScrollBar().isVisibleTo(okno):
             usterki.append(f"pasek przewijania poziomego: {obszar.objectName() or type(obszar).__name__}")
     for skan_id, mapa in e.mapy().items():
+        if not mapa.isVisibleTo(okno):  # E3-U1b: mapy sa na zakladce "Rozkladanie kuwet" - na innej zakladce ukryte
+            continue
         if UW._widoczny_wycinek(okno, mapa) != UW._w_oknie(okno, mapa):
             usterki.append(f"mapa {skan_id} przycieta")
         if mapa.height() < mapa.minimumHeight() or mapa.width() < mapa.minimumWidth():
@@ -651,7 +669,7 @@ def test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec(atrapa, ekrany
     1001 uklad zwykly, ponizej progu - zwarty. Z ``E3_ZRZUTY``: zrzuty PNG dla wlasciciela (1920 x 1080 i 1536 x 864)."""
     from PySide6.QtGui import QGuiApplication
 
-    from stanowisko.ui import styl
+    from stanowisko.ui import motyw
 
     e = zbuduj_scene(atrapa, ekrany, scena, PELNY_EKRAN)
     dpr = QGuiApplication.primaryScreen().devicePixelRatio()
@@ -660,7 +678,7 @@ def test_uklad_poranny_1920x1080_przy_100_125_150_proc_bez_obciec(atrapa, ekrany
     for nazwa, szer, wys in ROZMIARY + tuple(reversed(ROZMIARY[:-1])):
         usterki = usterki_rano(e, (szer, wys))
         assert e.okno.rano()
-        assert e.okno.zwarty() == (szer < styl.PROG_ZWARTEGO[0] or wys < styl.PROG_ZWARTEGO[1])
+        assert e.okno.zwarty() == (szer < motyw.PROG_ZWARTEGO[0] or wys < motyw.PROG_ZWARTEGO[1])
         promien = min((m._ksztalt(nr)[2] for m in e.mapy().values() for nr in m.numery() if nr != 1), default=0)
         wyniki.append(f"{nazwa} {szer}x{wys}: usterek {len(usterki)}, promien gniazda {promien:.0f} px")
         assert not usterki, f"{scena} {nazwa} {szer}x{wys} (dpr {dpr}):\n" + "\n".join(usterki)
@@ -780,7 +798,7 @@ def test_t14_szesc_zadan_porannych(atrapa, ekrany, zegar):
     # (5) kuweta po numerze
     e.wpisz("3221")
     e.klawisz(Qt.Key.Key_Return)
-    assert e.w("rano_kuweta_biezaca").text() == "Kuweta 3221"
+    assert e.w("rano_kuweta_biezaca").text() == "3221"
     zadania.append("kuweta po numerze")
     # (6) zamknij piec i odczytaj braki
     zamknij_piec(e, pytanie=False)
@@ -818,10 +836,10 @@ def test_r2_b1_enter_niesie_kuwete_pokazana_odmowa_gdy_w_kontrolerze_inna(atrapa
         assert atrapa.wybierz_kuwete(inna)
     finally:
         e.lacznik.blockSignals(False)
-    assert e.w("rano_kuweta_biezaca").text() == f"Kuweta {pokazana}"
+    assert e.w("rano_kuweta_biezaca").text() == pokazana
     e.klawisz(Qt.Key.Key_Return)
     wpisy = lambda: [w["dane"] for w in atrapa.sesja.baza.wiersze("SELECT dane FROM zdarzenia WHERE typ = 'kuweta_potwierdzona'")]  # noqa: E731
-    assert wpisy() == [] and e.w("rano_kuweta_biezaca").text() == f"Kuweta {inna}" and inna in e.tekst()
+    assert wpisy() == [] and e.w("rano_kuweta_biezaca").text() == inna and inna in e.tekst()
     e.klawisz(Qt.Key.Key_Return)
     assert len(wpisy()) == 1 and inna in wpisy()[0]
     e.klawisz(Qt.Key.Key_Backspace)  # D3: panel mowi, co cofnieto
@@ -846,6 +864,7 @@ def test_r2_p1_zakladka_ostatni_zamkniety_piec_po_skanie_nastepnego(atrapa, ekra
     assert [w[0] for w in e.tabela("ostatni_tabela_kompletne")] == [z["kuweta"] for z in wynik["kompletne"]] and wynik["kompletne"]
     assert [w[0] for w in e.tabela("ostatni_tabela_braki")] == [z["kuweta"] for z in wynik["braki"]]
     assert not e.jest("ostatni_tabela_braki_biezace") and str(wynik["nr_w_dniu"]) in e.w("ostatni_rano_wynik_tytul").text()
+    e.pokaz_w_strefie("komunikat_excel_niedostepny")  # E3-U1b: strefa pytan pokazuje jedna pozycje naraz
     assert all(z["kuweta"] in e.tekst_elementu("komunikat_excel_niedostepny") for z in wynik["kompletne"])
 
 

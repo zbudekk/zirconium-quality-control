@@ -13,8 +13,8 @@ Klawiatura: przyciski i kafelki przyjmuja fokus TYLKO klawiszem Tab (nie kliknie
 Spacja, U / O / C / N, Esc i strzalki zawsze ida do okna (``PrzyciskEkranu``), dzieki czemu Spacja jest zawsze startem skanu,
 a nie "kliknieciem" przycisku. Klikniecie mysza oddaje fokus oknu.
 
-Ekran poranny (stary uklad do etapu U1b) uzywa stad: ``PanelUwagi`` z funkcjami ``panel_*``, ``ObszarPaneli``, ``UkladPlynny``,
-``etykieta``, ``przycisk``, ``znaczek``.
+E3-U1b: tryb poranny (``ekran_rano``) uzywa tych samych czesci co wieczor (strefa pytan, kafelek, tabela, przycisk ze skrotem,
+znacznik statusu); przejsciowe czesci starego ukladu porannego (``panel_*``, rozmiary ``styl``) zostaly usuniete.
 """
 from __future__ import annotations
 
@@ -141,7 +141,8 @@ def _przygotuj_przycisk(b: QPushButton, nazwa: str | None, rola: str | None, po_
 
 
 def przycisk(tekst: str, nazwa: str | None = None, rola: str | None = None, po_kliknieciu=None, wysokosc: int | None = None) -> QPushButton:
-    """Przycisk ekranu; ``wysokosc`` - najmniejsza wysokosc (None: wysokosc z napisu i dopelnienia arkusza - tak uzywa go ekran poranny)."""
+    """Przycisk ekranu; ``wysokosc`` - najmniejsza wysokosc (None: wysokosc z napisu i dopelnienia arkusza). Czesci okna uzywaja
+    ``guzik`` (wysokosc wg roli z ``motyw.WYSOKOSCI``)."""
     return _przygotuj_przycisk(PrzyciskEkranu(tekst), nazwa, rola, po_kliknieciu, wysokosc)
 
 
@@ -583,7 +584,7 @@ class UkladPlynny(QLayout):
 class ObszarPaneli(QScrollArea):
     """Panele (pytania, komunikaty) jeden pod drugim. Wysokosc = suma paneli, gdy jest miejsce; gdy brakuje - najmniej
     ``widocznych_min`` pierwszych paneli w calosci, reszta jest przewijana (nic nie jest uciete). Pusty obszar jest ukryty.
-    Uzywa go lista bledow programu i (do etapu U1b) ekran poranny."""
+    Uzywa go lista bledow programu."""
 
     def __init__(self, nazwa: str, widocznych_min: int = 1, odstep: int = 6):
         super().__init__()
@@ -797,20 +798,20 @@ class PanelUwagi(QFrame):
     = sygnal ``polecenie(nazwa, argumenty)``. Przyciski stoja obok tekstu (do dwoch - jeden pod drugim) albo pod nim.
     ``przewijany`` (strefa o stalej wysokosci): napisy sa w obszarze przewijanym - panel miesci sie w kazdej wysokosci,
     przyciski zostaja widoczne, nic nie jest uciete bez paska przewijania. ``licznik`` - (napis, funkcja): przycisk w wierszu
-    tytulu ("i jeszcze n"). ``r`` - rozmiary ekranu porannego (``styl.Rozmiary``) albo None."""
+    tytulu ("i jeszcze n"); ``ciasny`` - uklad zwarty okna (mniejsze odstepy)."""
 
     polecenie = Signal(str, tuple)
 
     def __init__(self, nazwa: str, poziom: str, tytul: str, tekst: str, przyciski, *, rada: str = "", ostrzezenie: str = "",
-                 wyjasnienie: str = "", przyciski_pod_tekstem: bool = False, waski: bool = False, r=None, przewijany: bool = False,
+                 wyjasnienie: str = "", przyciski_pod_tekstem: bool = False, waski: bool = False, przewijany: bool = False,
                  licznik: tuple | None = None, wysokosc_przycisku: int | None = None, ciasny: bool = False):
         super().__init__()
         self.setObjectName(nazwa)
         self.setProperty("rola", "uwaga_panel")
         self.setProperty("poziom", poziom if poziom in motyw.POZIOMY else motyw.POZIOM_DOMYSLNY)
-        zwarty = bool(getattr(r, "zwarty", False)) or ciasny  # ``ciasny``: strefa pytan w ukladzie zwartym okna
+        zwarty = ciasny  # strefa pytan w ukladzie zwartym okna
         if wysokosc_przycisku is None:
-            wysokosc_przycisku = getattr(r, "wysokosc_przycisku", 36)
+            wysokosc_przycisku = motyw.WYSOKOSC_PRZYCISKU
         uklad = QHBoxLayout(self)
         uklad.setContentsMargins(*((8, 6, 8, 6) if waski else (12, 6, 12, 6) if zwarty else (14, 10, 14, 10)))
         uklad.setSpacing(12 if zwarty else 16)
@@ -867,8 +868,7 @@ class PanelUwagi(QFrame):
             miejsce.addStretch(1)
         for nazwa_b, napis, nazwa_polecenia, argumenty, aktywny, rola in przyciski:
             wyslij = lambda p=nazwa_polecenia, a=tuple(argumenty): self.polecenie.emit(p, a)  # noqa: E731
-            # ekran poranny (``r``): wysokosc przycisku z jego arkusza i rozmiarow; nowe okno: z ``motyw.WYSOKOSCI`` (``guzik``)
-            b = przycisk(napis, nazwa_b, rola, wyslij) if r is not None else guzik(napis, nazwa_b, rola, wyslij)
+            b = guzik(napis, nazwa_b, rola, wyslij)  # wysokosc wg roli z ``motyw.WYSOKOSCI``
             b.setEnabled(aktywny)
             if rola not in ("cyfra", "lacze"):
                 b.setMinimumHeight(wysokosc_przycisku)
@@ -885,27 +885,6 @@ class PanelUwagi(QFrame):
     def z_uwagi(cls, u: Uwaga, **parametry) -> "PanelUwagi":
         return cls(u.nazwa, u.poziom, u.tytul, u.tekst, u.przyciski, rada=u.rada, ostrzezenie=u.ostrzezenie, wyjasnienie=u.wyjasnienie,
                    przyciski_pod_tekstem=u.pod_tekstem, **parametry)
-
-
-# funkcje ekranu porannego (stary uklad do etapu U1b): panel od razu z opisu
-def panel_pytania(pytanie, stan, typ_plytki: str | None, plytka: str = "", r=None) -> PanelUwagi:
-    return PanelUwagi.z_uwagi(uwaga_pytania(pytanie, stan, typ_plytki, plytka), r=r)
-
-
-def panel_numeru(skan_id: int, numery: tuple, obecny, jest_osoba: bool, wyjasnienie: str, plytka: str = "", r=None) -> PanelUwagi:
-    return PanelUwagi.z_uwagi(uwaga_numeru(skan_id, numery, obecny, jest_osoba, wyjasnienie, plytka), r=r)
-
-
-def panel_odmowy(tekst: str, r=None) -> PanelUwagi:
-    return PanelUwagi.z_uwagi(uwaga_odmowy(tekst), r=r)
-
-
-def panel_informacji(tekst: str, r=None) -> PanelUwagi:
-    return PanelUwagi.z_uwagi(uwaga_informacji(tekst), r=r)
-
-
-def panel_komunikatu(komunikaty: tuple, plytka: str = "", dodatek: str = "", r=None) -> PanelUwagi:
-    return PanelUwagi.z_uwagi(uwaga_komunikatu(komunikaty, plytka, dodatek), r=r)
 
 
 class Zaslona(QWidget):
@@ -1282,6 +1261,11 @@ class PasekStanu(QFrame):
         self.ramki = self._pole(NR.RAMKI, "napis_ramki", self.kropka_ramek, self.przycisk_test_led, self.przycisk_przejmij)
         self.pole_ramki = self.ramki.parentWidget()
         self.pole_ramki.setVisible(False)
+        # E3-U1b: stan Excela (makieta poranka) - tylko w trybie "Poranek"
+        self.kropka_excela = Kropka(None, 8)
+        self.excel = self._pole(NR.EXCEL_PASEK, "napis_excel", self.kropka_excela)
+        self.pole_excela = self.excel.parentWidget()
+        self.pole_excela.setVisible(False)
         u.addStretch(1)
         self.przycisk_bledy = guzik("", "przycisk_bledy", "stan_blad", self.przelacz_bledy.emit)
         self.przycisk_bledy.setToolTip(N.BLEDY_OPIS)
@@ -1322,7 +1306,8 @@ class PasekStanu(QFrame):
         sk, kol, an = stan.skaner, stan.kolejka, stan.analiza
         sygnatura = (stan.pula.napis, stan.pula.stan, getattr(stan.pula, "budowa_razem", None), getattr(stan.pula, "budowa_gotowe", None),
                      sk.dostepny, sk.dziala, sk.zajete, sk.czeka_na_skan, kol, kol.w_toku, kol.silnik_gotowy,
-                     None if an is None else round(an.udzial * 100), stan.zamkniety, getattr(stan, "ramki", None))
+                     None if an is None else round(an.udzial * 100), stan.zamkniety, getattr(stan, "ramki", None), stan.tryb,
+                     getattr(stan, "excel", None))
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
@@ -1378,6 +1363,31 @@ class PasekStanu(QFrame):
         self.kolejka.setText(N.ODSTEP_KOLEJKI.join(czesci))
         self.kolejka.setVisible(bool(czesci))
         self._ustaw_ramki(getattr(stan, "ramki", None))
+        self._ustaw_excel(stan)
+
+    def _ustaw_excel(self, stan) -> None:
+        """E3-U1b: "Excel: gotowy / do zatwierdzenia: n / przygotowuje... / blad - sprawdz / niedostepny" - tylko rano (makieta).
+        Tresc bledu Excela (ze stanu) w podpowiedzi; kolor kropki: akcent, gdy Excel dziala."""
+        rano = stan.tryb == "rano"
+        self.pole_excela.setVisible(rano)
+        if not rano:
+            return
+        ex = getattr(stan, "excel", None)
+        if ex is None:
+            klucz = "brak"
+        elif ex.blad:
+            klucz = "blad"
+        elif ex.w_toku:
+            klucz = "w_toku"
+        elif ex.do_zalatwienia:
+            klucz = "do_zatwierdzenia"
+        else:
+            klucz = "gotowy"
+        self.excel.setText(NR.EXCEL_PASEK_STANY[klucz].format(n=ex.do_zalatwienia if ex is not None else 0))
+        self.excel.setToolTip(NR.dla_technika(ex.blad) if ex is not None and ex.blad else "")
+        dobrze = klucz in ("gotowy", "do_zatwierdzenia", "w_toku")
+        ustaw_role(self.excel, "stan_wartosc" if dobrze else "stan_uwaga")
+        self.kropka_excela.ustaw(motyw.AKCENT if dobrze else None)
 
     def _ustaw_ramki(self, r) -> None:
         """E3-A12: "Ramki: W: gotowa, P: brak polaczenia" (podpowiedz: komunikaty i ostrzezenia klientow), przycisk "Przejmij

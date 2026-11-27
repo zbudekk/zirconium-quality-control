@@ -9,18 +9,24 @@ from __future__ import annotations
 import re
 
 # --- przelacznik trybu (pasek stanu) ----------------------------------------------------------------
-PRZELACZ_NA = "→ {tryb}"
 PRZELACZ_OPIS = "Przełącz program na tryb „{tryb}” — nowe skany trafią do tego trybu."
 
 # --- naglowek pieca --------------------------------------------------------------------------------
-PIEC_OTWARTY = "Piec {nr} · doba {doba} · otwarty od {godzina}"
-PIEC_ZAMKNIETY = "Piec {nr} · doba {doba} · zamknięty o {godzina} ({osoba})"
 PIEC_BRAK = "Jeszcze nie ma pieca — zeskanuj pierwszą płytkę poranną (piec otworzy się sam)."
 PIEC_Z_WCZORAJ = "Ten piec jest otwarty od poprzedniej doby — zamknij go, jeśli już rozłożony."
 PIEC_ZAMKNIETY_INFO = "Piec zamknięty — następny skan płytki porannej otworzy nowy piec."
-BLOKADY_TYTUL = "„Zamknij piec” teraz niemożliwe:"
-ZAMKNIJ_PIEC_SKROT = "Zamknij piec"
 LICZNIK = "{napis}: {n}"
+# E3-U1b (nowy uklad poranka, makieta ``Rano.dc.html``): lewa kolumna "Piec n"
+PIEC_TYTUL = "Piec {nr}"
+PIEC_TYTUL_BRAK = "Piec"
+PIEC_OPIS_OTWARTY = "doba {doba} · otwarty od {godzina}"
+PIEC_OPIS_ZAMKNIETY = "doba {doba} · zamknięty o {godzina} ({osoba})"
+BLOKADY_NAGLOWEK = "Do zamknięcia pieca brakuje:"
+BLOKADA_PUNKT = "• {tekst}"
+KAFELEK_PRAC = ("{n} praca", "{n} prace", "{n} prac")
+KAFELEK_ROZSTRZYGNIETE = "wszystkie rozstrzygnięte"
+KAFELEK_DO_ROZSTRZYGNIECIA = "do rozstrzygnięcia: {n}"
+KAFELEK_OPIS = "Kliknij, żeby otworzyć pierwszą pracę tej płytki bez rozstrzygnięcia."
 
 # --- plytki ---------------------------------------------------------------------------------------
 PLYTKA_NR = "Płytka {numer}"
@@ -31,26 +37,38 @@ PLYTKA_NIEAKTYWNA = "{plytka} ({godzina}) — {napis}"
 POZA_GNIAZDAMI = "Poza gniazdami: {n}"
 MAPA_BEZ_GNIAZD = "Płytka {napis}."
 ZMIEN_NUMER = "Zmień numer"
-LEGENDA = "Na płytkach:"
+LEGENDA_NAGLOWEK = "Na płytkach"  # E3-U1b: naglowek legendy w lewej kolumnie
 ZAB_KROTKO = "z. {zab}"
 
 # --- prawa kolumna: przelacznik stron ---------------------------------------------------------------
 STRONA_ROZKLADANIE = "Rozkładanie kuwet"
 STRONA_WYNIK = "Kompletne i braki"
 STRONA_OSTATNI = "Ostatni zamknięty piec"  # recenzja PR #26, P1: lista do Excela po otwarciu nastepnego pieca
+STRONA_EXCEL = "Excel"  # E3-U1b: zakladka z oknem "Excel: wskaz wiersz"
+STRONA_EXCEL_OPIS = "Okno „Excel: wskaż wiersz” — otwiera się po „Zamknij piec” albo przyciskiem „Excel: wskaż wiersz” przy wyniku pieca."
 
 # --- rozkladanie kuwet -----------------------------------------------------------------------------
-KUWETY_TYTUL = "Kuwety do rozłożenia: {n}"
-KUWETA_BIEZACA = "Kuweta {kuweta}"
-KUWETA_BIEZACA_OPIS = "{prac} · {plytki}"
-KUWETA_PRAC = "prac: {n}"
-KUWETA_PLYTKI = "płytki: {lista}"
+KUWETY_TYTUL = "Kuwety w tym piecu · {n}"  # E3-U1b: bylo "Kuwety do rozlozenia: {n}"
+TERAZ_ROZKLADASZ = "Teraz rozkładasz"  # E3-U1b
+KUWETA_BIEZACA = "Kuweta {kuweta}"  # opis duzego numeru biezacej kuwety (czytnik ekranu, podpowiedz; cytowany w instrukcjach)
+KUWETA_OPIS = "kuweta · {prac}"  # E3-U1b: obok duzego numeru biezacej kuwety
+KUWETA_PRACE = ("{n} praca", "{n} prace", "{n} prac")
+KUWETA_MIEJSCE = "{plytka} — {gniazda}"  # E3-U1b: gniazda biezacej kuwety na plytce (z ``KuwetaRano.gniazda``)
+KUWETA_GNIAZDO = "gniazdo {nr}"
+KUWETA_GNIAZDA = "gniazda {lista}"
+KUWETA_GNIAZDA_I = " i "
+KUWETA_BRAK_NUMERU = "—"
+INNA_KUWETA = "Inna kuweta — wpisz numer i naciśnij Enter"  # E3-U1b: pole numeru kuwety (cyfry z klawiatury okna)
+POLE_KUWETY_PUSTE = "np. 17"
+NA_RAMCE = "Na ramce porannej świecą gniazda bieżącej kuwety."
+# S3-16: "mozesz zamknac piec" tylko bez blokad; z blokadami - co jeszcze trzyma piec
+KUWETA_BRAK_BLOKADY = "Wszystkie kuwety rozłożone — zamknięcie pieca czeka jeszcze na: {lista}"
+KLIKNIJ_GNIAZDO = "Kliknij gniazdo na płytce, żeby zobaczyć pracę i rozstrzygnąć projekt."
 KUWETA_BRAK = "Wszystkie kuwety rozłożone — możesz zamknąć piec."
 KUWETA_BRAK_PIECA = "Kuwety pojawią się po skanach płytek pieca."
 BUFOR = "Wpisany numer kuwety: {bufor}▁  (Enter = wybierz, Backspace = popraw, Esc = wyczyść)"
-KUWETY_PODPOWIEDZ = "Cyfry i Enter = wybór kuwety po numerze. Gniazda bieżącej kuwety są obwiedzione na płytkach."
 POTWIERDZ_SKROT = "Rozłożona  [Enter]"
-COFNIJ_SKROT = "Cofnij  [Backspace]"
+COFNIJ_SKROT = "Cofnij  [Backspace]"  # napis cytowany w instrukcjach (makieta: "Cofnij poprzednia")
 KOLUMNY_KUWET = ("Kuweta", "Prac", "Płytki", "Stan")
 KUWETA_STAN_ROZLOZONA = "rozłożona"
 KUWETA_STAN_BIEZACA = "teraz"
@@ -145,6 +163,9 @@ RAMKA_STANY = {"gotowa": "gotowa", "brak_polaczenia": "brak połączenia", "inny
 RAMKA_PLYTKA = " (płytka {n})"
 RAMKI_ODSTEP = " · "
 TEST_LED = "Test LED"
+EXCEL_PASEK = "Excel"  # E3-U1b: pole Excela na pasku stanu (tryb Poranek)
+EXCEL_PASEK_STANY = {"brak": "niedostępny", "blad": "błąd — sprawdź", "w_toku": "przygotowuję…", "do_zatwierdzenia": "do zatwierdzenia: {n}",
+                     "gotowy": "gotowy"}
 TEST_LED_OPIS = "Ramki pokażą przez kilka sekund kolejne kolory na wszystkich diodach (sprawdzenie diod); potem wraca plan."
 PRZEJMIJ_RAMKE = "Przejmij ramkę {rola}"
 PRZEJMIJ_OPIS = "Ramka czekała na decyzję (drugi laptop albo zły klucz) — kliknij, jeśli ten laptop ma ją obsługiwać."

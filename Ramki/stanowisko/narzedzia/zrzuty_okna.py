@@ -1,4 +1,5 @@
-"""zrzuty_okna - zrzuty nowego okna programu "Stanowisko" (paczka E3-U1a) z danych sztucznych, bez ekranu.
+"""zrzuty_okna - zrzuty nowego okna programu "Stanowisko" (paczki E3-U1a - wieczor, E3-U1b - poranek) z danych sztucznych,
+bez ekranu.
 
 Okno jest prawdziwe (``stanowisko.ui.utworz_okno``), dane wylacznie sztuczne (``kontroler_api.AtrapaKontrolera`` - te same,
 ktore pokazuje ``py -3.12 -m stanowisko.aplikacja --atrapa``: fikcyjne kuwety, osoby "Technik A" / "Technik B"), zegar jest
@@ -112,6 +113,49 @@ def scena_bledy_programu(katalog: Path, rozmiar: tuple):
     return e, k
 
 
+def _poranek(katalog: Path, rozmiar: tuple, *, wybor: bool = True):
+    """Poranek z dwiema plytkami pieca (dane ``zrzuty_instrukcji.PIEC``); ``wybor`` - zolte gniazdo 3 plytki 4 rozstrzygniete."""
+    e, k, skany = Z._poranek(katalog, wybor=wybor, rozmiar=rozmiar)
+    e.czekaj(lambda: not e.okno.ekran_rano.ochrona_aktywna(), 5.0, "koniec przygaszenia map porannych")
+    return e, k, skany
+
+
+def scena_rano_rozkladanie(katalog: Path, rozmiar: tuple):
+    from PySide6.QtCore import Qt
+
+    e, k, _ = _poranek(katalog, rozmiar)
+    e.klawisz(Qt.Key.Key_Return)  # pierwsza kuweta rozlozona, nastepna biezaca (obwiedziona na mapach)
+    return e, k
+
+
+def scena_rano_kandydaci(katalog: Path, rozmiar: tuple):
+    e, k, skany = _poranek(katalog, rozmiar, wybor=False)
+    e.klik_gniazdo(3, skany[4])
+    e.czekaj(lambda: e.jest("kandydat_1_wybierz"), 5.0, "dwaj kandydaci")
+    return e, k
+
+
+def scena_rano_zamknij_mimo(katalog: Path, rozmiar: tuple):
+    e, k, _ = _poranek(katalog, rozmiar, wybor=False)
+    e.klik("przycisk_zamknij_piec")
+    e.czekaj(lambda: e.jest("pytanie_zamknij_mimo"), 5.0, 'pytanie "Zamknac piec mimo prac bez rozstrzygniecia?"')
+    return e, k
+
+
+def scena_rano_braki(katalog: Path, rozmiar: tuple):
+    e, k, _ = _poranek(katalog, rozmiar)
+    e.klik("przycisk_zamknij_piec")
+    e.czekaj(lambda: e.jest("tabela_braki"), 5.0, "lista brakow po zamknieciu pieca")
+    return e, k
+
+
+def scena_rano_excel(katalog: Path, rozmiar: tuple):
+    e, k, _ = Z.scena_rano_excel(katalog)
+    e.okno.resize(*rozmiar)
+    e.odczekaj(50)
+    return e, k
+
+
 # nazwa -> (scena, opis: co ma byc widac)
 ZRZUTY = {
     "wieczor_praca_czerwona": (scena_praca_czerwona, "wieczor: plytka 2 na mapie, otwarta praca czerwona (gniazdo 7) z obrazem odchylek i decyzjami"),
@@ -119,8 +163,17 @@ ZRZUTY = {
     "wieczor_bez_osoby": (scena_bez_osoby, "wieczor bez wybranej osoby: lista osob pod paskiem gornym, decyzje nieaktywne z wyjasnieniem"),
     "wieczor_analiza_nowego_skanu": (scena_analiza_nowego_skanu, 'wieczor w czasie analizy nowego skanu: mapa oznaczona "POPRZEDNIA PLYTKA"'),
     "wieczor_bledy_programu": (scena_bledy_programu, "wieczor: licznik bledow na pasku stanu i rozwinieta lista bledow programu"),
+    "rano_rozkladanie": (scena_rano_rozkladanie, 'poranek: piec z dwiema plytkami, "Teraz rozkladasz" z duzym numerem kuwety, gniazda kuwety '
+                                                 'obwiedzione na mapach, lista kuwet w kolumnie "Praca"'),
+    "rano_kandydaci": (scena_rano_kandydaci, 'poranek: zolte gniazdo otwarte - "Ktory to projekt?" z dwoma kandydatami, na dole "Przypisz '
+                                             'recznie" / "Bez projektu"'),
+    "rano_zamknij_mimo": (scena_rano_zamknij_mimo, 'poranek: "Zamknij piec" przy pracy bez rozstrzygniecia - pytanie w strefie pytan nad '
+                                                   'mapami (mapy w tym samym miejscu)'),
+    "rano_kompletne_braki": (scena_rano_braki, 'poranek po "Zamknij piec": zakladka "Kompletne i braki"'),
+    "rano_excel": (scena_rano_excel, 'poranek, tryb Excela "pytaj": zakladka "Excel" z propozycjami wierszy i "Zatwierdz wiersz"'),
 }
-PODSTAWOWE = ("wieczor_praca_czerwona", "wieczor_pytanie_ponowny_skan", "wieczor_bez_osoby")  # w kazdym rozmiarze z ROZMIARY
+PODSTAWOWE = ("wieczor_praca_czerwona", "wieczor_pytanie_ponowny_skan", "wieczor_bez_osoby", "rano_rozkladanie", "rano_kandydaci",
+              "rano_zamknij_mimo")  # w kazdym rozmiarze z ROZMIARY
 
 
 def zrob(nazwa: str, rozmiar: tuple, katalog_wyjscia: Path) -> Path:

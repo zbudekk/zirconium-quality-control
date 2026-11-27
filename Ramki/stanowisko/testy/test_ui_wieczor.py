@@ -65,13 +65,13 @@ def czcionka_ekranu() -> None:
     elementy na sobie) zaleza od metryk czcionki - bez tego roznia sie od pomiarow na prawdziwym ekranie Windows."""
     from PySide6.QtGui import QFontDatabase
 
-    from stanowisko.ui import styl
+    from stanowisko.ui import motyw
 
-    if styl.CZCIONKA in QFontDatabase.families() or not FONTY_WINDOWS.is_dir():
+    if motyw.CZCIONKI[-1] in QFontDatabase.families() or not FONTY_WINDOWS.is_dir():
         return
     for plik in sorted(FONTY_WINDOWS.glob("segoeui*.ttf")) + sorted(FONTY_WINDOWS.glob("seguisb*.ttf")) + sorted(FONTY_WINDOWS.glob("seguisym*.ttf")):
         QFontDatabase.addApplicationFont(str(plik))
-    assert styl.CZCIONKA in QFontDatabase.families(), "brak czcionki ekranu w trybie offscreen"
+    assert motyw.CZCIONKI[-1] in QFontDatabase.families(), "brak czcionki ekranu w trybie offscreen"
 
 
 # ----------------------------------------------------------------------------
@@ -274,7 +274,7 @@ class Ekran:
         if nazwa.startswith("poza_"):  # przyciski prac poza gniazdem sa czescia mapy
             self.po_ochronie()
         w = self.w(nazwa)
-        if self.okno.strefa.isAncestorOf(w) or self.okno.bledy.isAncestorOf(w):
+        if self.okno.w_nakladce(w):  # strefa pytan (wieczorna albo poranna - E3-U1b) albo lista bledow
             self.po_ochronie_nakladek()
             w = self.w(nazwa)
         assert w.isVisibleTo(self.okno), f"element {nazwa!r} nie jest widoczny\n{self.tekst()}"

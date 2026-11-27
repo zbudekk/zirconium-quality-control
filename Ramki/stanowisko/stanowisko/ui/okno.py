@@ -11,7 +11,9 @@ Szkielet (SPEC p. 3):
 4. prawa kolumna "Praca" (``wieczor.WidokPracy``) z decyzjami na stalym miejscu na dole;
 5. pasek stanu (``czesci.PasekStanu``): skaner, analiza i kolejka, projekty, ramki, licznik bledow programu (rozwija liste
    ``czesci.ListaBledow`` nad paskiem), wersja programu.
-Tryb "Poranek" do etapu U1b to dotychczasowy ``ekran_rano.EkranRano`` osadzony w tym szkielecie jako druga strona srodka.
+Tryb "Poranek" (E3-U1b) to ``ekran_rano.EkranRano`` - druga strona miedzy paskami, w tym samym szkielecie: lewa kolumna "Piec n",
+srodek ze strefa pytan o stalej wysokosci, zakladkami i mapami plytek, prawa kolumna "Praca"; bledy programu - ta sama lista
+nad paskiem stanu.
 
 Zasady (kontrakt ``kontroler_api`` / ``opisy_modulow/aplikacja.md``):
 * okno NICZEGO nie liczy i nie siega do ``session`` / ``baza`` / ``scanner``; kolory i napisy statusow bierze ze stanu
@@ -53,9 +55,9 @@ from .. import statusy as ST
 from . import czesci as C
 from . import motyw
 from . import napisy as N
-from . import styl
 from .czesci import (LOKALNE_NUMER_BEZ_ZMIAN, LOKALNE_POKAZ_NOWA, LOKALNE_ZAMKNIJ_INFORMACJE, LOKALNE_ZAMKNIJ_ODPOWIEDZ, do_obejrzenia, dzien,
                      etykieta, godzina, nazwa_plytki, sprawy_nowych_plytek, stan_obejrzenia)
+from .ekran_rano import LOKALNE as LOKALNE_RANO
 from .ekran_rano import EkranRano
 from .mapa import MapaPlytki, geometria_ukladu
 from .obraz import WczytywaczObrazow
@@ -257,6 +259,7 @@ class OknoStanowiska(QWidget):
         self.strona_rano = QWidget()
         self.strona_rano.setObjectName("strona_rano")
         self._rano_uklad = QVBoxLayout(self.strona_rano)
+        self._rano_uklad.setContentsMargins(0, 0, 0, 0)
         self.ekran_rano = EkranRano(self)
         self._rano_uklad.addWidget(self.ekran_rano)
         self._strony.addWidget(self.strona_rano)
@@ -278,7 +281,7 @@ class OknoStanowiska(QWidget):
 
     def _ustaw_uklad(self, u: motyw.Uklad) -> None:
         """Uklad okna dla jego rozmiaru (``motyw.uklad_dla``): szerokosci kolumn, stale wysokosci strefy / naglowka / listy,
-        odstepy. Ekran poranny (stary uklad) dostaje swoje rozmiary ``styl`` - zwykle albo zwarte."""
+        odstepy - dla obu trybow (ekran poranny: ``EkranRano.ustaw_uklad``)."""
         self._uklad = u
         self.pasek_gorny.ustaw_uklad(u)
         self.pasek_stanu.ustaw_uklad(u)
@@ -293,10 +296,7 @@ class OknoStanowiska(QWidget):
         self.pole_mapy.ustaw_odstep(u.odstep)
         self.lista.ustaw_uklad(u)
         self.widok.ustaw_uklad(u)
-        r = styl.rozmiary(u.zwarty)
-        self._rano_uklad.setContentsMargins(r.margines, r.margines, r.margines, r.margines)
-        self.ekran_rano.setStyleSheet(styl.arkusz(r))
-        self.ekran_rano.ustaw_tryb(r)
+        self.ekran_rano.ustaw_uklad(u)
         self._sygnatury.clear()
         self._odswiez()
 
@@ -373,11 +373,19 @@ class OknoStanowiska(QWidget):
             return
         rano = stan.tryb == K.TRYB_RANO
         powrot = False
+        wejscie_rano = False
         if rano != self.rano():  # zmiana trybu - druga strona srodka okna; tryb wieczorny przebudowany od nowa po powrocie
             self._strony.setCurrentWidget(self.strona_rano if rano else self.strona_wieczor)
             self._sygnatury.clear()
             self._mapa_podpis = None
             powrot = not rano
+            wejscie_rano = rano
+            # strefa ukrytego trybu pusta: jej przyciski (te same nazwy obiektow) nie stoja ukryte za strefa pokazanego trybu
+            if rano:
+                self.strefa.ustaw(None)
+                self._klucze_uwag, self._nr_uwagi = (), 0
+            else:
+                self.ekran_rano.wyjscie()
             if powrot:  # S3-15: po powrocie z trybu "Poranek" kursor gniazda jest wyzerowany
                 self._kursor = None
                 self.mapa.ustaw_kursor(None)
@@ -390,6 +398,8 @@ class OknoStanowiska(QWidget):
             self._z_tla = poprzednio
         if powrot and self.mapa.numery():  # S3-15: i ochrona 800 ms - klikniecie wycelowane w ekran poranny nie trafia w gniazdo
             self._wlacz_ochrone()
+        if wejscie_rano:  # E3-U1b: to samo przy wejsciu w tryb poranny - mapy plytek pieca stoja tam, gdzie byla mapa wieczorna
+            self.ekran_rano.wejscie()
 
     def pokazana_plytka(self) -> int | None:
         """``skan_id`` plytki, ktorej mapa jest na ekranie."""
@@ -431,8 +441,14 @@ class OknoStanowiska(QWidget):
         self.znak_poprzedniej.setVisible(poprzednia)
 
     def ochrona_nakladek_aktywna(self) -> bool:
-        """Trwa ochrona strefy pytan albo listy bledow (przygaszone, klikniecia pomijane) - do zrzutow i testow."""
-        return self._ochrona_strefy.isActive() or self._ochrona_bledow.isActive()
+        """Trwa ochrona strefy pytan (wieczornej albo porannej) albo listy bledow (przygaszone, klikniecia pomijane) - do zrzutow
+        i testow."""
+        return self._ochrona_strefy.isActive() or self._ochrona_bledow.isActive() or self.ekran_rano.ochrona_strefy_aktywna()
+
+    def w_nakladce(self, widzet) -> bool:
+        """Widzet lezy w strefie pytan (wieczornej albo porannej) albo na liscie bledow - przez chwile po zmianie w tle nie przyjmuje
+        klikniec (S3-3). Do testow i narzedzi, ktore klikaja jak technik."""
+        return any(x.isAncestorOf(widzet) for x in (self.strefa, self.bledy, self.ekran_rano.strefa))
 
     # --- wybor plytki i pracy ----------------------------------------------------------------------
     def _wybierz_plytke(self, stan) -> None:
@@ -769,9 +785,7 @@ class OknoStanowiska(QWidget):
         self.pasek_gorny.ustaw(stan)
         self.pasek_stanu.ustaw(stan)
         self._odswiez_osobe(stan)
-        if self.rano():  # ekran poranny pokazuje sam swoje czesci (takze bledy programu); wieczorny (niewidoczny) nie jest przebudowywany
-            self.bledy.setVisible(False)
-            self.pasek_stanu.ustaw_bledy(0, False)
+        if self.rano():  # ekran poranny pokazuje sam swoje czesci (bledy programu: ta sama lista okna); wieczorny nie jest przebudowywany
             self.ekran_rano.pokaz(stan)
             self._uloz_nakladki()
             return
@@ -991,7 +1005,9 @@ class OknoStanowiska(QWidget):
         """Przycisk pozycji strefy pytan albo listy bledow: polecenie kontrolera albo czynnosc samego okna (``LOKALNE_*``)."""
         poprzednio, self._w_poleceniu = self._w_poleceniu, True  # to czynnosc technika - zmiana strefy po niej nie wlacza ochrony
         try:
-            if nazwa == LOKALNE_NUMER_BEZ_ZMIAN and self.rano():
+            if nazwa in LOKALNE_RANO and self.rano():  # E3-U1b: pytanie ekranu porannego przed "Zamknij piec"
+                self.ekran_rano.odpowiedz_lokalna(nazwa)
+            elif nazwa == LOKALNE_NUMER_BEZ_ZMIAN and self.rano():
                 self.ekran_rano.numer_podany()
                 self._odswiez()
             elif nazwa == LOKALNE_NUMER_BEZ_ZMIAN:
