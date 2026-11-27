@@ -346,7 +346,8 @@ class PanelPieca(QFrame):
 class WierszKuwety(QFrame):
     """"Teraz rozkladasz": duzy numer biezacej kuwety, liczba prac, gniazda na plytkach, "Rozlozona [Enter]", "Cofnij poprzednia
     [Backspace]", pole wpisywanego numeru kuwety (cyfry z klawiatury okna). STALA wysokosc (``Uklad.kuweta``) - mapy pod nim nie
-    zmieniaja miejsca. W ukladzie zwartym pole numeru pokazuje sie w miejscu opisu kuwety, gdy osoba wpisuje cyfry."""
+    zmieniaja miejsca. W ukladzie zwartym pole numeru pokazuje sie w miejscu opisu kuwety, gdy osoba wpisuje cyfry. Napis "Na ramce
+    porannej swieca gniazda..." tylko przy ramkach wlaczonych (``stan.ramki`` jest i nie ``wylaczone``; E3-R1 runda 2)."""
 
     def __init__(self, ekran: "EkranRano"):
         super().__init__()
@@ -418,6 +419,7 @@ class WierszKuwety(QFrame):
         self.pole_blok.setFixedWidth(220)
         u.addWidget(self.pole_blok)
         self._zwarty = False
+        self._ramki_dzialaja = True  # do pierwszego ``ustaw``: jak dotad
         self._sygnatura = None
         self.ustaw_uklad(motyw.UKLAD_WYSOKI)
 
@@ -435,20 +437,24 @@ class WierszKuwety(QFrame):
         for b in (self.potwierdz, self.cofnij):
             b.setFixedHeight(wys)
         self.pole_blok.setVisible(not u.zwarty)
-        self.na_ramce.setVisible(not u.zwarty)
+        self.na_ramce.setVisible(not u.zwarty and self._ramki_dzialaja)
         # uklad zwarty: "Rozlozona" i "Cofnij poprzednia" obok siebie (wiersz nizszy - wiecej miejsca na mapy plytek)
         self._przyciski.setDirection(QBoxLayout.Direction.LeftToRight if u.zwarty else QBoxLayout.Direction.TopToBottom)
         self._sygnatura = None
 
     def ustaw(self, stan, bufor: str) -> None:
         rano = stan.rano
+        # E3-R1 runda 2 (P1): bez ramek (``stan.ramki`` None) i przy ramkach wylaczonych w ustawieniach - bez napisu o ramce porannej
+        ramki_dzialaja = stan.ramki is not None and not stan.ramki.wylaczone
         sygnatura = (rano.kuwety if rano is not None else None, rano.otwarty if rano is not None else None,
                      rano.sesja_pieca_id if rano is not None else None, rano.kuweta_do_cofniecia if rano is not None else None,
                      tuple(rano.blokady) if rano is not None else (), tuple((p.skan_id, p.numer) for p in rano.plytki) if rano is not None else (),
-                     stan.operator, bufor, self._zwarty)
+                     stan.operator, bufor, self._zwarty, ramki_dzialaja)
         if sygnatura == self._sygnatura:
             return
         self._sygnatura = sygnatura
+        self._ramki_dzialaja = ramki_dzialaja
+        self.na_ramce.setVisible(ramki_dzialaja and not self._zwarty)
         kuwety = rano.kuwety if rano is not None else ()
         biezaca = next((x for x in kuwety if x.biezaca), None)
         miejsca: list = []

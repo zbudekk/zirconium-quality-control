@@ -260,6 +260,28 @@ def test_ramki_wylaczone_gdy_program_zna_przelacznik(st, tmp_path):
     assert ("ramki", "wlaczone") not in wartosci and not [u for u in uwagi if "ramk" in u]  # bez wyboru: wzor (true)
 
 
+def test_ramki_wylaczone_gdy_program_nie_zna_przelacznika(st, tmp_path):
+    """Runda 2 (D3): program z paczki starszy niz E3-R1 (``SCHEMAT["ramki"]`` bez ``wlaczone`` - instalator pyta o to kod programu
+    z paczki): wybor "ramki wylaczone" NIE trafia do pliku (program odrzucilby nieznany klucz), uwaga mowi, ze program sprobuje
+    polaczyc sie z ramkami."""
+    from test_zbuduj_wydanie import zbuduj_paczke
+
+    skany = tmp_path / "Skany"
+    skany.mkdir()
+    paczka = zbuduj_paczke(tmp_path, "1.0")
+    ust_py = paczka / "program" / "stanowisko" / "ustawienia.py"
+    wiersze = ust_py.read_text(encoding="utf-8").splitlines(keepends=True)
+    bez = [w for w in wiersze if not w.lstrip().startswith('"wlaczone": (bool')]
+    assert len(bez) == len(wiersze) - 1
+    ust_py.write_text("".join(bez), encoding="utf-8")
+    dane = I.zapytaj_program(PYTHON, paczka / "program")
+    assert "wlaczone" not in dane["klucze_ramek"] and "port" in dane["klucze_ramek"]
+    wartosci, uwagi = I._wartosci_z_okna(PYTHON, paczka, st.katalog, str(skany), str(skany), ["A"], True)
+    assert ("ramki", "wlaczone") not in wartosci and "ramki wylaczone ([ramki] wlaczone = false)" not in uwagi
+    assert [u for u in uwagi if "ramk" in u] == ["ta wersja programu nie ma przelacznika ramek ([ramki] wlaczone) - program sprobuje "
+                                                "polaczyc sie z ramkami"]
+
+
 def test_r1_aktualizacja_starej_instalacji_bez_klucza_plik_bez_zmian_ramki_wlaczone(st, tmp_path):
     """E3-R1: instalacja sprzed przelacznika (ustawienia.toml bez klucza wlaczone) - aktualizacja nie dopisuje klucza (plik bajt
     w bajt), program czyta brak klucza jako ramki wlaczone (jak dotad, bez kodu 7)."""

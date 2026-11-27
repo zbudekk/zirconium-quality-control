@@ -121,6 +121,41 @@ def test_wlaczone_false_i_zly_typ(tmp_path):
         UST.wczytaj_ustawienia(plik_ustawien(tmp_path, 'wlaczone = "nie"'))
 
 
+def test_dopisany_drugi_wiersz_wlaczone_blad_po_polsku_z_kluczem_i_plikiem(tmp_path):
+    """Runda 2 (D2): technik dopisal ``wlaczone = true`` pod istniejacym ``wlaczone = false`` (zamiast zmienic wartosc) - program
+    nie wystartuje (TOML nie pozwala na dwa razy ten sam klucz); blad ustawien mowi po polsku, ktory klucz, w ktorym pliku i wierszu
+    jest drugi raz i co zrobic (zamiast samego "Cannot overwrite a value")."""
+    plik = plik_ustawien(tmp_path, "wlaczone = false\nwlaczone = true")
+    nr = plik.read_text(encoding="utf-8").splitlines().index("wlaczone = true") + 1
+    with pytest.raises(UST.BladUstawien) as e:
+        UST.wczytaj_ustawienia(plik)
+    tekst = str(e.value)
+    assert tekst.startswith("ustawienia.toml: [ramki] wlaczone: "), tekst
+    assert f"wiersz {nr}" in tekst and "drugi raz" in tekst and "zmie\u0144" in tekst and "Cannot" not in tekst, tekst
+    # klucz w innej sekcji (naglowek z komentarzem) - ta sama postac; inny blad skladni - jak dotad
+    wiersze = UST.PLIK_PRZYKLADU.read_text(encoding="utf-8").splitlines(keepends=True)
+    i = next(n for n, w in enumerate(wiersze) if w.startswith("[scanner]")) + 1
+    klucz = wiersze[i].split("=", 1)[0].strip()
+    (tmp_path / "u2.toml").write_text("".join(wiersze[:i + 1] + [wiersze[i]] + wiersze[i + 1:]), encoding="utf-8")
+    with pytest.raises(UST.BladUstawien, match=rf"^u2\.toml: \[scanner\] {klucz}: .*wiersz {i + 2}\b"):
+        UST.wczytaj_ustawienia(tmp_path / "u2.toml")
+    (tmp_path / "u3.toml").write_text("[ramki]\nwlaczone = \n", encoding="utf-8")
+    with pytest.raises(UST.BladUstawien, match="^u3\\.toml: b\u0142\u0105d sk\u0142adni TOML: "):
+        UST.wczytaj_ustawienia(tmp_path / "u3.toml")
+
+
+def test_podpowiedzi_jak_wlaczyc_ramki_mowia_zmien_a_nie_wpisz():
+    """Runda 2 (D2): w pliku po instalacji jest juz wiersz ``wlaczone = false`` - instrukcja, podpowiedz paska stanu, samokontrola
+    (``test_samokontrola``) i komentarz wzoru mowia "zmien ``wlaczone = false`` na ``wlaczone = true``", nie "wpisz"."""
+    from pathlib import Path
+
+    instrukcja = " ".join((Path(__file__).resolve().parents[1] / "instrukcje" / "instalacja_i_aktualizacja.md").read_text(encoding="utf-8").split())
+    assert "zmien `wlaczone = false` na `wlaczone = true`" in instrukcja and "wpisz w `C:\\Stanowisko\\ustawienia.toml`" not in instrukcja
+    assert "zmie\u0144 wlaczone = false na wlaczone = true" in NR.RAMKI_WYLACZONE_OPIS and "wpisz" not in NR.RAMKI_WYLACZONE_OPIS
+    wzor = next(w for w in UST.PLIK_PRZYKLADU.read_text(encoding="utf-8").splitlines() if w.startswith("wlaczone"))
+    assert "zmien false na true" in wzor and "wpisz true" not in wzor, wzor
+
+
 # ----------------------------------------------------------------------------- indicate
 
 def test_indicate_z_ustawien_wylaczone_bez_klientow(tmp_path, licznik, klienci):
@@ -217,13 +252,15 @@ def test_okno_pasek_ramki_wylaczone_neutralny_wieczor_i_rano(tmp_path, ekrany): 
             e.odczekaj(int((K.CZAS_NA_POLACZENIE_RAMEK_S + 0.5) * 1000))  # po czasie na polaczenie: komunikaty ramek bylyby juz widoczne
             assert e.jest("napis_ramki"), tryb
             napis = e.w("napis_ramki")
-            assert napis.text() == NR.RAMKI_WYLACZONE == "wyłączone", (tryb, napis.text())
+            assert napis.text() == NR.RAMKI_WYLACZONE == "wy\u0142\u0105czone", (tryb, napis.text())
             assert napis.property("rola") == "stan_wartosc", tryb  # zwykly kolor tekstu (nie "stan_uwaga" z tlem ostrzezenia)
             assert e.okno.pasek_stanu.kropka_ramek._hex is None  # kropka bez barwy (nie akcent "gotowa", nie kolor uwagi)
             assert not e.jest("przycisk_test_led") and not e.jest("przycisk_przejmij_ramke")
             assert NR.RAMKI_WYLACZONE_OPIS in napis.toolTip()  # podpowiedz: jak wlaczyc ramki
             assert not e.jest("komunikat_ramka_niedostepna") and not e.jest("komunikat_ramka_wieczorna_niedostepna")
             _bez_ramek_w_strefie(e)
+            if tryb == "rano":  # runda 2 (P1): bez stalego napisu "Na ramce porannej swieca gniazda..." (ramki nie ma)
+                assert not e.jest(NAPIS_NA_RAMCE)
     finally:
         k.zamknij()
 
@@ -236,6 +273,51 @@ def test_okno_bez_ramek_bez_przelacznika_jak_dotad(tmp_path, ekrany):  # noqa: F
         e = ekrany(k)
         e.odczekaj(100)
         assert not e.jest("napis_ramki") and e.jest("komunikat_ramka_niedostepna")
+        assert not e.jest(NAPIS_NA_RAMCE)  # runda 2 (P1): program bez ramek - bez napisu o swiecacych gniazdach ramki porannej
+    finally:
+        k.zamknij()
+
+
+NAPIS_NA_RAMCE = "rano_kuwety_podpowiedz"  # staly napis NR.NA_RAMCE pod numerem biezacej kuwety (ekran poranny)
+ELEMENTY_RANO = ("rano_kuweta_biezaca", "rano_kuweta_opis", "rano_kuweta_miejsca", "rano_potwierdz_kuwete", "rano_cofnij_kuwete",
+                 "rano_pole_kuwety", "tabela_kuwet", "przycisk_zamknij_piec")
+
+
+def _miejsca_rano(e) -> dict:
+    """Polozenie i rozmiar elementow wiersza "Teraz rozkladasz" i map plytek pieca (do porownania przed / po zmianie stanu ramek)."""
+    from PySide6.QtCore import QPoint, QRect
+
+    e.zdarzenia()
+    miejsca = {n: QRect(e.w(n).mapTo(e.okno, QPoint(0, 0)), e.w(n).size()) for n in ELEMENTY_RANO}
+    miejsca.update(e.okno.ekran_rano.miejsca_map())
+    return miejsca
+
+
+def test_okno_rano_napis_na_ramce_tylko_przy_ramkach_wlaczonych_uklad_bez_zmian(tmp_path, ekrany):  # noqa: F811
+    """Runda 2 (P1): staly napis "Na ramce porannej swieca gniazda biezacej kuwety." jest widoczny tylko przy ramkach wlaczonych
+    (``stan.ramki`` jest i nie ``wylaczone`` - jak dotad); przy ramkach wylaczonych w ustawieniach i w programie bez ramek
+    (``stan.ramki`` None) napisu nie ma. Uklad ekranu porannego (wiersz kuwety, przyciski, mapy plytek) nie przesuwa sie."""
+    k = K.AtrapaKontrolera(tmp_path / "k")
+    try:
+        k.scenariusz_poranny()
+        e = ekrany(k)
+
+        def ramki(stan) -> None:
+            k._stan_ramek = stan
+            k._odswiez_zywe()
+            e.zdarzenia()
+            e.odczekaj(40)
+
+        wlaczone = K.StanRamek(wieczorna=K.StanRamki("W", polaczona=True, plytka=1), poranna=K.StanRamki("P", polaczona=True, plytka=4))
+        ramki(wlaczone)
+        assert e.jest(NAPIS_NA_RAMCE) and e.w(NAPIS_NA_RAMCE).text() == NR.NA_RAMCE  # ramki wlaczone: jak dotad
+        poczatek = _miejsca_rano(e)
+        assert len(poczatek) == len(ELEMENTY_RANO) + 3  # + mapy plytek 4, 5, 6
+        for opis, stan, widoczny in (("wylaczone w ustawieniach", K.StanRamek(wylaczone=True), False), ("program bez ramek", None, False),
+                                     ("znow wlaczone", wlaczone, True)):
+            ramki(stan)
+            assert e.jest(NAPIS_NA_RAMCE) is widoczny, opis
+            assert _miejsca_rano(e) == poczatek, f"uklad porannego ekranu przesunal sie: {opis}"
     finally:
         k.zamknij()
 

@@ -1644,6 +1644,8 @@ def test_r1_ramki_wylaczone_wiersz_neutralny_bez_proby_polaczenia(kat, proby_ram
             s = wynik.sprawdzenie(kod)
             assert s.poziom == S.OK and "wylaczone w ustawieniach" in s.opis and s.rada == "", s
             assert "nieobecna" not in s.opis and "pominieto" not in s.opis
+            # runda 2 (D2): w pliku jest juz wiersz wlaczone = false - rada "zmien", nie "wpisz" (drugi wiersz = blad startu)
+            assert "zmien wlaczone = false na wlaczone = true" in s.opis, s.opis
         assert wynik.kod_wyjscia == 0
     assert proby_ramek == []
     kod, wyjscie = uruchom_main(capsys, "--ustawienia", kat.plik)

@@ -1066,7 +1066,8 @@ def _ramki(k: _Kontekst) -> list:
     r = k.ust["ramki"]
     if not UST.ramki_wlaczone(k.ust):  # E3-R1: wiersz neutralny (OK), zadnej proby polaczenia - takze bez --bez-sieci
         return [_ok(kod, f"ramka {nazwa}: ramki wylaczone w ustawieniach ([ramki] wlaczone = false) - bez proby polaczenia, program "
-                         "pracuje bez ramek (rozkladanie wedlug podpisow na ekranie), aby wlaczyc ramki: wlaczone = true")
+                         "pracuje bez ramek (rozkladanie wedlug podpisow na ekranie), aby wlaczyc ramki: zmien wlaczone = false na "
+                         "wlaczone = true")
                 for kod, _, _, nazwa in RAMKI]
     port, klucz, limit = r["port"], r.get("klucz", ""), k.limit_ramki_s
     bez_ramek = "bez ramek program dziala - rozkladanie wedlug podpisow na ekranie"
