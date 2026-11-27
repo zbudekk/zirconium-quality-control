@@ -784,11 +784,13 @@ class StanRamki:
 @dataclasses.dataclass(frozen=True)
 class StanRamek:
     """Ramki stanowiska (``stan.ramki``; None = program bez ramek): ``wieczorna`` / ``poranna`` (``StanRamki`` albo None, gdy tej ramki
-    nie ma w ustawieniach), ``test_led`` - trwa test diod."""
+    nie ma w ustawieniach), ``test_led`` - trwa test diod. ``wylaczone`` (E3-R1) - ramki wylaczone w ustawieniach (``[ramki]
+    wlaczone = false``, ``wylacz_ramki``): bez klientow, okno pokazuje neutralne "Ramki: wylaczone", bez komunikatow o ramkach."""
 
     wieczorna: StanRamki | None = None
     poranna: StanRamki | None = None
     test_led: bool = False
+    wylaczone: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -1263,6 +1265,7 @@ class KontrolerSesji(Kontroler):
         self.ramki = None
         self.excel = None
         self._stan_ramek: StanRamek | None = None
+        self._ramki_wylaczone = False  # E3-R1: ramki wylaczone w ustawieniach (``wylacz_ramki``)
         self._ramki_kontrola = 0.0
         self._klucze_ramek: dict = {}  # zrodlo -> klucze zdarzen ramki zapisanych w dzienniku (start_id:nr)
         self._klucze_od: dict = {}  # zrodlo -> najwyzszy id dziennika w chwili odczytu kluczy
@@ -1532,7 +1535,8 @@ class KontrolerSesji(Kontroler):
                 pytania += [p for p in plytka.pytania if not p.ukryte]
                 trwale += [k for k in plytka.komunikaty if not k.ukryte]
             pytania += [q for q in self._pytania_rano(rano) if not q.ukryte]
-            if not rano.ramka and ID_RAMKA_PORANNA not in self._ukryte and self._ramki_po_czasie_na_polaczenie():
+            if (not rano.ramka and not self._ramki_wylaczone and ID_RAMKA_PORANNA not in self._ukryte
+                    and self._ramki_po_czasie_na_polaczenie()):  # E3-R1: ramki wylaczone w ustawieniach - bez komunikatu
                 trwale.append(self._nowy_komunikat(ID_RAMKA_PORANNA, "ramka_niedostepna", czas=sw["data"]))
         if (self.tryb == TRYB_WIECZOR and self._klient("W") is not None and ID_RAMKA_WIECZORNA not in self._ukryte
                 and self._ramki_po_czasie_na_polaczenie()):
@@ -2062,6 +2066,7 @@ class KontrolerSesji(Kontroler):
         if self._zamkniety:
             return
         self.ramki = ramki
+        self._ramki_wylaczone = False
         self._ramki_od = time.monotonic()
         self._ramki_po_czasie = False
         self._stan_ramek = self._odczytaj_ramki()
@@ -2074,6 +2079,18 @@ class KontrolerSesji(Kontroler):
                 ramki.uruchom()
             except Exception:  # noqa: BLE001 - ramka to dodatek: program dziala dalej wedlug ekranu
                 LOG.exception("kontroler: klienci ramek nie wystartowali")
+
+    def wylacz_ramki(self) -> None:
+        """E3-R1: ramki wylaczone w ustawieniach (``[ramki] wlaczone = false``) - program bez klientow ramek (zadnej proby
+        polaczenia), ``stan.ramki`` = ``StanRamek(wylaczone=True)`` (okno: neutralne "Ramki: wylaczone"), bez komunikatow "ramka
+        nie jest podlaczona / nie odpowiada" (rozkladanie wedlug ekranu jak bez ramek). Ponowne ``podlacz_ramki`` znosi stan."""
+        if self._zamkniety:
+            return
+        self.podlacz_ramki(None)
+        self._ramki_wylaczone = True
+        self._stan_ramek = StanRamek(wylaczone=True)
+        if self._stan is not None:
+            self._odswiez()
 
     def podlacz_excel(self, excel: Any) -> None:
         """Excel: ``excel.Excel`` z ``baza`` TEGO programu (X4 sprawdzane w ``sesje_pieca`` - recenzja PR #27 D7, PR #30 D8) albo

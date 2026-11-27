@@ -33,6 +33,8 @@ python -m stanowisko.samokontrola [--ustawienia PLIK] [--sumy PLIK] [--json] [--
   przed sciezka, konce linii CRLF, ukosniki w obie strony). Bez opcji: sprawdzany jest `SUMY_PROGRAMU.sha256` z katalogu
   programu, a gdy go nie ma - OSTRZEZENIE "kopia robocza bez pliku sum". Opcja wskazujaca plik, ktorego nie ma = BLAD `sumy`.
 - `--bez-sieci`: bez proby polaczenia z ramkami (oba wiersze ramek = OSTRZEZENIE "pominieto").
+- E3-R1: `[ramki] wlaczone = false` - bez proby polaczenia (takze bez `--bez-sieci`), oba wiersze ramek = OK "ramki wylaczone
+  w ustawieniach" z podpowiedzia, jak je wlaczyc (wiersz neutralny: nie OSTRZEZENIE, nie BLAD; format wierszy bez zmian).
 - `--ustawienia PLIK`: domyslnie `ustawienia.toml` w katalogu programu (jak program).
 
 **API.** `samokontrola.wykonaj(ust, *, plik_ustawien=None, sumy=None, bez_sieci=False, korzen=None, limit_ramki_s=None)

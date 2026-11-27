@@ -103,7 +103,8 @@ i uruchamia `instalator.py zainstaluj`. E3-I1: opcje z okna (dzialaja tez z wier
 pliku ustawien (`ustawienia_ze_wzoru(..., wartosci)`: wartosc wiersza zastapiona, komentarz zostaje; klucza nieobecnego we wzorze
 - nowy wiersz pod naglowkiem sekcji); istniejacy plik zostaje bajt w bajt, a na ekranie jest wiersz "foldery i osoby podane w oknie
 NIE zostaly wpisane". `--ramki-wylaczone` wpisuje `[ramki] wlaczone = false` tylko, gdy kod programu z paczki zna ten klucz
-(zapytanie programu: `klucze_ramek`) - program odrzuca klucze nieznane; wersja 0.3.9-i1 go nie zna (POTRZEBUJE w raporcie E3-I1).
+(zapytanie programu: `klucze_ramek`) - program odrzuca klucze nieznane; zna go program od E3-R1 (26.11.2026; wersje 0.3.9-i1 i
+starsze nie znaja - wtedy uwaga w dzienniku, plik bez klucza). Aktualizacja: plik ustawien bez zmian (brak klucza = ramki wlaczone).
 Krok 2 z `--python-z-paczki` sprawdza Pythona paczki, a na poczatku kroku 5 instalator kopiuje katalog `python/` paczki do
 `<KATALOG>\python\<wersja>\` (`przygotuj_pythona`: pliki zgodne z sumami zostaja, brakujace i zmienione przez plik tymczasowy,
 na koniec kontrola sum calej kopii; blad zapisu = kod 6) - od tej chwili srodowisko wersji powstaje z KOPII (nie z pendrive'a):
@@ -326,8 +327,8 @@ Proby z pelna paczka (K1-K5): `raporty/E3-I1_2026-11-25.md`.
   jego usuniecia (instalator to wykrywa przed przelaczeniem).
 - Ikony na pulpicie zaleza od polityki komputera: PowerShell w trybie ograniczonym ma zapas (wlasny zapis `.lnk`); polityka, ktora
   zabrania zapisu na pulpicie albo uruchamiania programow z katalogu instalacji, zostaje - wtedy dwuklik `Stanowisko.cmd` (z konsola).
-- E3-I1, ramki: instalator nie wylacza ramek w programie 0.3.9-i1 (program nie ma klucza `[ramki] wlaczone`; zmiana `ustawienia.py`,
-  `indicate.py`, `samokontrola.py` i okna poza ta paczka). Samokontrola z okna idzie z `--bez-sieci` (bez proby polaczenia).
+- E3-I1, ramki: instalator nie wylacza ramek w programie 0.3.9-i1 (program nie ma klucza `[ramki] wlaczone`). Od E3-R1 program zna
+  klucz - nowa instalacja z okna = `wlaczone = false`. Samokontrola z okna idzie z `--bez-sieci` (bez proby polaczenia).
 - E3-I1, nie sprawdzone bez laptopa (lista: `instrukcje/instalacja_i_aktualizacja.md` punkt 8): antywirus, znacznik pochodzenia pliku
   z sieci / SmartScreen, ikony przy ograniczonej polityce, WDAC / AppLocker dla Pythona z pendrive'a, skalowanie ekranu.
 - E3-I1 runda 2: program ochronny (na PC probnym Bitdefender, "Advanced Threat Defense") zamknal cale drzewo procesow sesji

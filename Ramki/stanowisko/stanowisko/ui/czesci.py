@@ -1391,10 +1391,21 @@ class PasekStanu(QFrame):
 
     def _ustaw_ramki(self, r) -> None:
         """E3-A12: "Ramki: W: gotowa, P: brak polaczenia" (podpowiedz: komunikaty i ostrzezenia klientow), przycisk "Przejmij
-        ramke" przy ramce wstrzymanej (drugi laptop, zly klucz). Bez ramek pole ukryte."""
+        ramke" przy ramce wstrzymanej (drugi laptop, zly klucz). Bez ramek pole ukryte. E3-R1: ramki wylaczone w ustawieniach
+        (``r.wylaczone``) - neutralne "Ramki: wylaczone" (zwykly kolor tekstu, kropka bez barwy, bez przyciskow ramek)."""
         self.pole_ramki.setVisible(r is not None)
         if r is None:
             return
+        if getattr(r, "wylaczone", False):
+            self.ramki.setText(NR.RAMKI_WYLACZONE)
+            self.ramki.setToolTip(NR.RAMKI_WYLACZONE_OPIS)
+            ustaw_role(self.ramki, "stan_wartosc")
+            self.kropka_ramek.ustaw(None)
+            self._do_przejecia = None
+            self.przycisk_test_led.setVisible(False)
+            self.przycisk_przejmij.setVisible(False)
+            return
+        self.przycisk_test_led.setVisible(True)
         czesci, podpowiedz, dobrze, przejecie = [], [], True, None
         for x in (r.wieczorna, r.poranna):
             if x is None:

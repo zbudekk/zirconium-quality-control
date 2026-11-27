@@ -60,6 +60,9 @@ Rozmiary (A-P1): okno od 1500 x 860 punktow (np. 1600 x 900 przy skalowaniu 100 
   (`przycisk_przejmij_ramke`, `przejmij_ramke(rola)`) przy ramce wstrzymanej - tylko gdy program ma ramki (`stan.ramki`). Spacja
   przelacza ramke wieczorna w "skanowanie" (kontroler), po analizie ramka dostaje kolory gniazd mapy; bez ramki komunikat
   `ramka_wieczorna_niedostepna` i praca wedlug ekranu.
+- E3-R1 (ramki wylaczone w ustawieniach, `stan.ramki.wylaczone`): pole "Ramki" pokazuje neutralne "wylaczone" (rola `stan_wartosc` -
+  zwykly kolor tekstu, kropka bez barwy), bez "Test LED" i "Przejmij ramke"; podpowiedz - jak wlaczyc ramki
+  (`napisy_rano.RAMKI_WYLACZONE_OPIS`). Tak samo w trybie "Poranek" (wspolny pasek stanu).
 
 ## Pula per praca (E3-A5i, 19.11.2026)
 

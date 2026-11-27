@@ -204,7 +204,14 @@ def test_ustawienia_ze_wzoru_z_wartosciami_okna(tmp_path):
     assert d["sciezki"]["baza"] == (tmp_path / "Stanowisko").resolve().as_posix() + "/dane/stanowisko.sqlite"  # jak dotad
     wiersz = next(w for w in tekst.splitlines() if w.startswith("folder_eksportu_skanera"))
     assert wiersz.endswith("# obserwowany przez modul scanner (do potwierdzenia: Order Save Path)") or "#" in wiersz  # komentarz zostaje
-    assert tekst.splitlines()[tekst.splitlines().index("[ramki]") + 1] == "wlaczone = false"  # klucza nie bylo: zaraz pod naglowkiem
+    # E3-R1: wzor ma wiersz "wlaczone = true  # ..." - wartosc zamieniona w miejscu, komentarz (jak wlaczyc ramki) zostaje
+    wzor_ramki = next(w for w in WZOR.decode("utf-8").splitlines() if w.startswith("wlaczone"))
+    wiersz_ramki = next(w for w in tekst.splitlines() if w.startswith("wlaczone"))
+    assert wiersz_ramki == wzor_ramki.replace("wlaczone = true", "wlaczone = false", 1) and "#" in wiersz_ramki
+    # klucza, ktorego we wzorze nie ma (wzor sprzed E3-R1): wiersz zaraz pod naglowkiem sekcji
+    bez = "".join(w for w in WZOR.decode("utf-8").splitlines(keepends=True) if not w.startswith("wlaczone")).encode("utf-8")
+    tekst_bez = I.ustawienia_ze_wzoru(bez, tmp_path / "Stanowisko", {("ramki", "wlaczone"): False}).decode("utf-8")
+    assert tekst_bez.splitlines()[tekst_bez.splitlines().index("[ramki]") + 1] == "wlaczone = false"
     # bez wartosci: dokladnie to, co dawala wersja sprzed E3-I1 (zmiana tylko sciezek wzglednych)
     assert I.ustawienia_ze_wzoru(WZOR, tmp_path) == I.ustawienia_ze_wzoru(WZOR, tmp_path, {})
     pusty = tomllib.loads(I.ustawienia_ze_wzoru(WZOR, tmp_path, {}).decode("utf-8"))
@@ -228,30 +235,45 @@ def test_wartosci_okna_trafiaja_tylko_do_nowego_pliku_ustawien(st, tmp_path, cap
     assert ust["sciezki"]["folder_cyrkon"] == (st.katalog.resolve() / "dane" / "projekty").as_posix()
     assert (st.katalog / "dane" / "projekty").is_dir() and ust["sesja"]["operatorzy"] == ["Anna", "Piotr"]
     assert "folder projektow nie wybrany" in wyjscie
-    # program tej wersji nie zna przelacznika ramek: plik bez klucza (inaczej program by go odrzucil), uwaga w dzienniku
-    assert "wlaczone" not in ust["ramki"] and "nie ma przelacznika ramek" in st.dziennik()
-    # druga instalacja z innym wyborem: istniejacy plik zostaje bajt w bajt, a ekran mowi, ze wybor nie zostal wpisany
+    # E3-R1: program zna przelacznik ramek - NOWA instalacja wpisuje [ramki] wlaczone = false (pokaz bez elektroniki ramek)
+    assert ust["ramki"]["wlaczone"] is False and "ramki wylaczone ([ramki] wlaczone = false)" in st.dziennik()
+    assert "nie ma przelacznika ramek" not in st.dziennik()
+    # druga instalacja (aktualizacja) z innym wyborem: istniejacy plik zostaje bajt w bajt, a ekran mowi, ze wybor nie zostal wpisany
     suma = sha(st.katalog / "ustawienia.toml")
-    assert st.zainstaluj(__import__("test_zbuduj_wydanie").zbuduj_paczke(tmp_path, "2.0"), folder_skanow="X:/inne", osoby=["Ktos"]) == 0
+    assert st.zainstaluj(__import__("test_zbuduj_wydanie").zbuduj_paczke(tmp_path, "2.0"), folder_skanow="X:/inne", osoby=["Ktos"],
+                         ramki_wylaczone=True) == 0
     assert sha(st.katalog / "ustawienia.toml") == suma and "NIE zostaly wpisane" in capsys.readouterr().out
 
 
 def test_ramki_wylaczone_gdy_program_zna_przelacznik(st, tmp_path):
+    """E3-R1: program z paczki zna klucz [ramki] wlaczone (instalator pyta o to kod programu z paczki) - bez podmiany kodu."""
     from test_zbuduj_wydanie import zbuduj_paczke
 
     skany = tmp_path / "Skany"
     skany.mkdir()
     paczka = zbuduj_paczke(tmp_path, "1.0")
-    # program "nowszy": SCHEMAT [ramki] z kluczem wlaczone (instalator pyta o to kod programu z paczki)
-    ust_py = paczka / "program" / "stanowisko" / "ustawienia.py"
-    tekst = ust_py.read_text(encoding="utf-8").replace('"odpytywanie_s": (float, "indicate"),  # E3-A8i, opcjonalny',
-                                                     '"odpytywanie_s": (float, "indicate"),  # E3-A8i, opcjonalny\n        "wlaczone": (bool, "indicate"),')
-    assert '"wlaczone": (bool' in tekst
-    ust_py.write_text(tekst, encoding="utf-8")
     dane = I.zapytaj_program(PYTHON, paczka / "program")
     assert "wlaczone" in dane["klucze_ramek"] and "port" in dane["klucze_ramek"]
     wartosci, uwagi = I._wartosci_z_okna(PYTHON, paczka, st.katalog, str(skany), str(skany), ["A"], True)
     assert wartosci[("ramki", "wlaczone")] is False and "ramki wylaczone ([ramki] wlaczone = false)" in uwagi
+    wartosci, uwagi = I._wartosci_z_okna(PYTHON, paczka, st.katalog, str(skany), str(skany), ["A"], False)
+    assert ("ramki", "wlaczone") not in wartosci and not [u for u in uwagi if "ramk" in u]  # bez wyboru: wzor (true)
+
+
+def test_r1_aktualizacja_starej_instalacji_bez_klucza_plik_bez_zmian_ramki_wlaczone(st, tmp_path):
+    """E3-R1: instalacja sprzed przelacznika (ustawienia.toml bez klucza wlaczone) - aktualizacja nie dopisuje klucza (plik bajt
+    w bajt), program czyta brak klucza jako ramki wlaczone (jak dotad, bez kodu 7)."""
+    from test_zbuduj_wydanie import zbuduj_paczke
+
+    assert st.zainstaluj(zbuduj_paczke(tmp_path, "1.0")) in (0, I.KOD_WSTRZYMANA)
+    plik = st.katalog / "ustawienia.toml"
+    stary = "".join(w for w in plik.read_text(encoding="utf-8").splitlines(keepends=True) if not w.startswith("wlaczone"))
+    plik.write_text(stary, encoding="utf-8")
+    suma = sha(plik)
+    kod = st.zainstaluj(zbuduj_paczke(tmp_path, "2.0"), ramki_wylaczone=True)
+    assert kod in (0, I.KOD_WSTRZYMANA) and kod != I.KOD_USTAWIENIA and sha(plik) == suma
+    ust = UST.wczytaj_ustawienia(plik)
+    assert ust["ramki"]["wlaczone"] is True and UST.ramki_wlaczone(ust)
 
 
 # ---------------------------------------------------------------------------------------------------- Python z paczki

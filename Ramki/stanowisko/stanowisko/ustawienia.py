@@ -108,6 +108,7 @@ SCHEMAT: dict[str, dict[str, tuple[type, str]]] = {
         "poranna_host": (str, "indicate"),
         "klucz": (str, "indicate"),  # E3-A8i, opcjonalny: wspolny klucz laptopa i ramek (tajny - wartosc nie trafia do komunikatow)
         "odpytywanie_s": (float, "indicate"),  # E3-A8i, opcjonalny
+        "wlaczone": (bool, "aplikacja, indicate, samokontrola"),  # E3-R1, opcjonalny: false = program bez ramek
     },
     # E3-A1 (etap 3): sekcja w całości opcjonalna — wszystkie klucze mają wartość w DOMYSLNE_NOWYCH, plik sprzed etapu 3 jej nie ma
     "sesja": {
@@ -178,7 +179,9 @@ DOMYSLNE_NOWYCH = {
     # E3-A8i (18.11.2026): [ramki] klucz - wspolny klucz laptopa i ramek (naglowek X-Ramka-Klucz, ramka/README.md "Siec i klucz"),
     # tylko w lokalnym pliku, pusty = bez klucza; odpytywanie_s - najdluzsze czekanie w GET /zdarzenia; [sciezki] kalibracja_ramek -
     # lokalny plik kalibracji diod ramek (DW9).
-    "ramki": {"klucz": "", "odpytywanie_s": 25.0},
+    # E3-R1 (26.11.2026): [ramki] wlaczone - false = program nie laczy sie z ramkami (pasek stanu "Ramki: wylaczone", samokontrola
+    # bez proby polaczenia); brak klucza = true (instalacje sprzed E3-R1 bez zmian); instalator wpisuje false przy nowej instalacji.
+    "ramki": {"klucz": "", "odpytywanie_s": 25.0, "wlaczone": True},
     "sesja": {"operatorzy": [], "przechowuj_skany_dni": 0, "granica_doby_godz": 6, "zmiany_start_godz": [6, 14, 22],
               "ponowny_skan_okno_min": 60, "ponowny_skan_min_wspolnych": 0.5},
     "scanner": {"stabilizacja_ms": 300, "min_rozmiar_mb": 0.0, "min_trojkatow": 1, "wzorzec_pliku": "*.stl", "rekurencyjnie": True,
@@ -221,6 +224,11 @@ def uzupelnij_uklady_wbudowane(d: dict) -> list[str]:
             d["plytki"][nazwa] = f"{KATALOG_MODELI_WZGLEDNY}/{nazwa}"
             dopisane.append(nazwa)
     return dopisane
+
+
+def ramki_wlaczone(ust: dict) -> bool:
+    """E3-R1: czy program ma laczyc sie z ramkami (``[ramki] wlaczone``; brak klucza albo sekcji = True, jak przed E3-R1)."""
+    return (ust.get("ramki") or {}).get("wlaczone", True) is not False
 
 
 # Klucze tajne: wartosc nie trafia do komunikatu bledu (E3-A8i).

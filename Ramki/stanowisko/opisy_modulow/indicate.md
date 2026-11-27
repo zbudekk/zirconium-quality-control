@@ -122,6 +122,8 @@ wysyla je dalej (gdy program poda ten sam piec po migawce, ramka gasnie na chwil
   `[ramki] klucz = ""` (wspolny klucz z plikiem konfiguracji ramki, tylko w lokalnym `ustawienia.toml`; walidacja jak ramka,
   wartosc nie trafia do komunikatow), `[ramki] odpytywanie_s = 25.0` (0,5-25), `[sciezki] kalibracja_ramek =
   "dane/kalibracja_ramek.json"`.
+- E3-R1 (26.11.2026): `[ramki] wlaczone` (opcjonalny, brak = true). `false`: `Indicate.z_ustawien` zwraca `Indicate(wylaczone=True)`
+  bez klientow - bez watkow, bez kalibracji i identyfikatora laptopa, zadnej proby polaczenia (`klienci()` puste, `stan()` = {}).
 - Kalibracja: plik lokalny (format `ramka/kalibracja.py`, `python -m ramka.kalibracja --domyslna ...`). Brak pliku =
   wartosci startowe z geometrii `modele_plytek/*/uklad.json` (w pamieci, plik nie jest zapisywany) + ostrzezenie; zly plik =
   ramki bez planow (ciemno; plan zastany gaszony przy pierwszym kontakcie) + ostrzezenie - program dziala dalej.
