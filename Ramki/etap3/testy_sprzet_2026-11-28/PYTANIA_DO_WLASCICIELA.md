@@ -1,3 +1,5 @@
+**Na 28.11.2026 obowiazuje `DZIEN_TESTU_LAPTOP_I_SKANER.md` (wariant laptop i skaner, program 0.3.9-rc2) - ten plik zostaje bez zmian jako tlo.**
+
 # Pytania do wlasciciela przed testami na sprzecie 28-29.11.2026
 
 Odpowiedz najpozniej do srody 25.11.2026: dopisz odpowiedzi tutaj i przekaz sesji prowadzacej projekt.
