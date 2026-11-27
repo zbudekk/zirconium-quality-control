@@ -536,6 +536,54 @@ def test_excel_wskaz_wiersz_z_zakladki_kompletne_przy_otwartym_oknie_excela(tmp_
         k0.zamknij()
 
 
+def test_przycisk_zaleglego_pieca_przez_pokaz_excel_pokazuje_zakladke_excel(tmp_path, ekrany):
+    """Runda 3, D10 (do P2): przycisk zaleglego pieca ("Piec n (doba) - ile") na zakladce "Kompletne i braki" idzie przez
+    ``EkranRano.pokaz_excel`` - te sama funkcje co "Excel: wskaz wiersz" (przelaczenie na zakladke "Excel" takze przy oknie Excela
+    juz otwartym), nie przez gole polecenie ``excel_pokaz``. Okno Excela pieca 2 otwarte, piec 1 odlozony ("Pozniej") - osoba na
+    "Kompletne i braki" klika przycisk pieca 1: polecenie ``excel_pokaz`` z piecem 1, zakladka "Excel" z oknem pieca 1. Kontroler
+    nie podaje pieca okna wsrod zaleglych (``kontroler_api``: ``zalegle`` bez ``sid`` okna), wiec przy dzisiejszym kontrolerze
+    zakladke przelacza tez samo pokazanie okna innego pieca - dlatego test pilnuje rowniez drogi przez ``pokaz_excel``."""
+    import test_aplikacja_rano as TA
+    from stanowisko import kontroler_api as K
+
+    k0 = K.AtrapaKontrolera(tmp_path / "k", zegar=TR.ZegarRano())
+    k = UW.Szpieg(k0)
+    try:
+        k0.przelacz_tryb("rano")
+        k0.wybierz_operatora("Technik A")
+        e = ekrany(k)
+        TA._excel_pytaj(k0, tmp_path)
+        k0.symuluj_skan_rano(4, TA.PLYTKA_4[0], projekty=TA.PLYTKA_4[1])
+        TR.zamknij_piec(e, pytanie=False)
+        e.czekaj(lambda: e.jest("excel_panel") and k0.stan().excel.w_toku == 0, 10.0, "okno Excela pieca 1")
+        piec1 = k0.stan().excel.sesja_pieca_id
+        e.klik("excel_pozniej")
+        assert not e.jest("excel_panel")
+        k0.symuluj_skan_rano(5, {1: "pewna", 2: "pewna"}, projekty={1: 305, 2: 306})
+        TR.zamknij_piec(e, pytanie=False)
+        e.czekaj(lambda: e.jest("excel_panel") and k0.stan().excel.sesja_pieca_id != piec1, 10.0, "okno Excela pieca 2")
+        e.klik("rano_strona_wynik")
+        assert e.rano.strona() == "wynik" and k0.stan().excel.widoczne and [z[0] for z in k0.stan().excel.zalegle] == [piec1]
+        wywolania = []
+        oryginal = e.rano.pokaz_excel
+
+        def szpieg_pokaz_excel(sid):
+            wywolania.append(sid)
+            return oryginal(sid)
+
+        e.rano.pokaz_excel = szpieg_pokaz_excel
+        przycisk = f"wynik_excel_zalegly_{piec1}"
+        assert e.aktywny(przycisk)
+        e.klik(przycisk)
+        e.odczekaj(20)
+        assert wywolania == [piec1], f"przycisk zaleglego pieca ominal EkranRano.pokaz_excel: {wywolania}"
+        assert k.wyslane("excel_pokaz")[-1] == ("excel_pokaz", (piec1,))
+        assert e.rano.strona() == "excel" and e.jest("excel_panel") and e.w("rano_strona_excel").isChecked()
+        assert k0.stan().excel.sesja_pieca_id == piec1 and [p.kuweta for p in k0.stan().excel.pozycje] == ["3200", "3207"]
+    finally:
+        k0.zamknij()
+
+
 def kolory_zmiany(mapa, wybrane, obwodka) -> list:
     """Kolory pikseli mapy, ktore zmienia samo oznaczenie (``wybrane`` gniazdo albo ``obwodka`` gniazd kuwety) wobec mapy bez
     oznaczen - to, czym oznaczenie wyglada na ekranie (odczyt z obrazu widzetu)."""
@@ -590,6 +638,30 @@ def test_mapa_rano_obwodka_kuwety_inna_niz_pierscien_wybranego_gniazda_i_objasni
     # kontrast obu oznaczen na plytce (WGLEBIENIE) - pary w ``motyw.PARY_KONTRASTU`` (sprawdza ``test_ui_motyw``)
     pary = {(a, b) for _, a, b in motyw.PARY_KONTRASTU}
     assert (MR.KOLOR_BIEZACEJ, motyw.WGLEBIENIE) in pary and (motyw.AKCENT, motyw.WGLEBIENIE) in pary
+
+
+@pytest.mark.parametrize("dodatkowe", (0, 3))
+@pytest.mark.parametrize("rozmiar", ROZMIARY)
+def test_objasnienie_obwodek_widoczne_bez_przewijania(atrapa, ekrany, rozmiar, dodatkowe):
+    """Runda 3, P9: objasnienie oznaczen na mapach (biala obwodka - gniazda biezacej kuwety, niebieski pierscien - gniazdo wybrane)
+    widac w calosci bez przewijania w 6 rozmiarach okna (w tym 1536 x 784 i 1280 x 642 - okno zmaksymalizowane przy 125 / 150 %),
+    w piecu z 3 plytkami (scenariusz) i z 6 plytkami. W rundzie 2 objasnienie stalo na dole przewijanej lewej kolumny - przy 125 / 150 %
+    widac bylo z niego 0 px. Sprawdza polozenie w widocznym obszarze okna (przyciete przez rodzicow), nie samo ``isVisible``."""
+    from stanowisko.ui import mapa_rano as MR
+
+    skany = atrapa.scenariusz_poranny()
+    for nr in (1, 2, 3)[:dodatkowe]:
+        atrapa.symuluj_skan_rano(nr, {1: "pewna", 2: "pewna", 3: "pewna"})
+    e = ekrany(atrapa, rozmiar)
+    e.po_ochronie_rano()
+    assert len(e.mapy()) == 3 + dodatkowe and atrapa.stan().rano.obwodka(skany[4])
+    for nazwa, napis in (("rano_legenda_obwodka_kuwety", NR.LEGENDA_OBWODKA_KUWETY), ("rano_legenda_wybrane_gniazdo", NR.LEGENDA_WYBRANE_GNIAZDO)):
+        w = e.w(nazwa)
+        assert w.isVisibleTo(e.okno) and w.text() == napis, nazwa
+        for czesc in (w, *w.parentWidget().findChildren(MR.WzorOznaczenia)):
+            cala = UW._w_oknie(e.okno, czesc)
+            assert not cala.isEmpty() and UW._widoczny_wycinek(e.okno, czesc) == cala, (rozmiar, nazwa, cala, UW._widoczny_wycinek(e.okno, czesc))
+        assert not UW._w_obszarze_przewijanym(e.okno, w), nazwa  # nie zalezy od tego, jak daleko przewinieto liste plytek
 
 
 def liczby(tekst: str) -> list:

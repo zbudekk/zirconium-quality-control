@@ -5,7 +5,8 @@ rozkladanie kuwet wedlug ekranu, "Zamknij piec" z lista zlecen kompletnych i bra
 Ekran jest strona okna ``okno.OknoStanowiska`` miedzy paskiem gornym a paskiem stanu (te same paski, ta sama klawiatura, ten
 sam kontroler, ta sama lista bledow programu); okno pokazuje go, gdy ``stan.tryb == "rano"``. Uklad (jak wieczorem):
 1. lewa kolumna "Piec n" (``PanelPieca``): opis pieca, kafelki plytek pieca (numer, godzina, liczba prac, ile bez
-   rozstrzygniecia, liczniki klas, polecenia plytki), legenda "Na plytkach", na dole "Do zamkniecia pieca brakuje:" i "Zamknij
+   rozstrzygniecia, liczniki klas, polecenia plytki), legenda "Na plytkach", objasnienie oznaczen na mapach (poza polem
+   przewijanym), na dole "Do zamkniecia pieca brakuje:" i "Zamknij
    piec" (oraz "Otworz piec ponownie", "Cofnij przeniesienie");
 2. srodek: strefa pytan i komunikatow o STALEJ wysokosci (``czesci.StrefaKomunikatow`` - jedna pozycja naraz, "i jeszcze n"),
    zakladki "Rozkladanie kuwet" / "Kompletne i braki" / "Ostatni zamkniety piec" / "Excel", pod nimi: wiersz "Teraz
@@ -238,7 +239,8 @@ class KafelekPlytkiRano(QFrame):
 
 
 class PanelPieca(QFrame):
-    """Lewa kolumna "Piec n": naglowek, kafelki plytek, skany, ktore sie nie licza, legenda; na dole blokady i polecenia pieca."""
+    """Lewa kolumna "Piec n": naglowek, kafelki plytek, skany, ktore sie nie licza, legenda (pole przewijane); pod nim objasnienie
+    oznaczen na mapach (zawsze widoczne), na dole blokady i polecenia pieca."""
 
     def __init__(self, ekran: "EkranRano"):
         super().__init__()
@@ -285,20 +287,29 @@ class PanelPieca(QFrame):
         self._pozycje = QVBoxLayout()
         self._pozycje.setSpacing(4)
         lu.addLayout(self._pozycje)
-        for rodzaj, napis, nazwa in (("kuweta", NR.LEGENDA_OBWODKA_KUWETY, "rano_legenda_obwodka_kuwety"),
-                                     ("wybrane", NR.LEGENDA_WYBRANE_GNIAZDO, "rano_legenda_wybrane_gniazdo")):
-            pole = QWidget()  # runda 2 (P3): oznaczenia gniazd na mapach - obwodka biezacej kuwety i pierscien wybranego gniazda
-            pu = QHBoxLayout(pole)
-            pu.setContentsMargins(0, 0, 0, 0)
-            pu.setSpacing(6)
-            pu.addWidget(WzorOznaczenia(rodzaj), 0, Qt.AlignmentFlag.AlignVCenter)
-            pu.addWidget(etykieta(napis, "tresc", nazwa, zawijaj=True), 1)
-            lu.addWidget(pole)
         self.legenda.setVisible(False)
         wu.addWidget(self.legenda)
         wu.addStretch(1)
         self.przewijanie.setWidget(wnetrze)
         u.addWidget(self.przewijanie, 1)
+        # oznaczenia gniazd na mapach (runda 2, P3): obwodka biezacej kuwety i pierscien wybranego gniazda. Runda 3 (P9): POD polem
+        # przewijanym, nie w nim - widac je bez przewijania w kazdym rozmiarze okna, takze przy 125 / 150 % i piecu z wieloma plytkami
+        self.oznaczenia = QWidget()
+        self.oznaczenia.setObjectName("rano_oznaczenia")
+        ou = QVBoxLayout(self.oznaczenia)
+        ou.setContentsMargins(0, 0, 0, 0)
+        ou.setSpacing(4)
+        for rodzaj, napis, nazwa in (("kuweta", NR.LEGENDA_OBWODKA_KUWETY, "rano_legenda_obwodka_kuwety"),
+                                     ("wybrane", NR.LEGENDA_WYBRANE_GNIAZDO, "rano_legenda_wybrane_gniazdo")):
+            pole = QWidget()
+            pu = QHBoxLayout(pole)
+            pu.setContentsMargins(0, 0, 0, 0)
+            pu.setSpacing(6)
+            pu.addWidget(WzorOznaczenia(rodzaj), 0, Qt.AlignmentFlag.AlignVCenter)
+            pu.addWidget(etykieta(napis, "tresc", nazwa, zawijaj=True), 1)
+            ou.addWidget(pole)
+        self.oznaczenia.setVisible(False)
+        u.addWidget(self.oznaczenia)
         self.blokady_naglowek = etykieta(NR.BLOKADY_NAGLOWEK, "tresc", "rano_blokady_naglowek")
         self.blokady = etykieta("", "tresc_glowna", "rano_blokady", zawijaj=True)
         for w in (self.blokady_naglowek, self.blokady):
@@ -1252,6 +1263,7 @@ class EkranRano(QWidget):
                                                            for p in nieaktywne)) if nieaktywne else ""
         panel.nieaktywne.setText(tekst)
         panel.nieaktywne.setVisible(bool(tekst))
+        panel.oznaczenia.setVisible(bool(plytki))  # objasnienie oznaczen tam, gdzie sa mapy plytek
         # legenda "Na plytkach": liczniki klas pieca (napis na kolorze statusu) i statusy gniazd spoza licznikow (kropka i napis)
         liczniki = tuple((k, (rano.liczniki or {}).get(k, 0)) for k in KOLEJNOSC_KLAS) if rano is not None else ()
         pozycje: dict = {}
