@@ -52,7 +52,7 @@ from . import napisy_rano as NR
 from .czesci import Kropka, UkladPlynny, dzien, etykieta, godzina, guzik, przycisk_skrotu, wyczysc, znaczek
 from .kandydaci import WidokPracyRano, nazwa_plytki
 from .mapa import geometria_ukladu
-from .mapa_rano import MapaRano
+from .mapa_rano import MapaRano, WzorOznaczenia
 from .okno_excela import PanelExcela
 
 OCHRONA_MS = 800  # po zmianie zestawu plytek / wejsciu w tryb klikniecia map sa pomijane (jak A-P2 wieczorem)
@@ -99,8 +99,10 @@ def wypelnij(t: QTableWidget, wiersze: list, u: motyw.Uklad, widocznych: int | N
             if k == 0 and dane is not None:
                 pole.setData(Qt.ItemDataRole.UserRole, dane[i])
             t.setItem(i, k, pole)
-    t.verticalHeader().setDefaultSectionSize(u.wiersz_tabeli)
+    # najpierw minimum, potem domyslna: Qt przycina domyslna do minimum, a minimum moglo zostac z ukladu wysokiego (30 px) -
+    # wiersze ukladu zwartego mialy 30 px do pierwszej zmiany stanu, potem przeskakiwaly na 26 (runda 2, D6)
     t.verticalHeader().setMinimumSectionSize(u.wiersz_tabeli)
+    t.verticalHeader().setDefaultSectionSize(u.wiersz_tabeli)
     t.horizontalHeader().setFixedHeight(u.naglowek_tabeli)
     if widocznych is not None:
         t.setFixedHeight(u.naglowek_tabeli + max(1, min(widocznych, len(wiersze))) * u.wiersz_tabeli + 4)
@@ -133,15 +135,20 @@ def lista_gniazd(numery: list) -> str:
     return NR.KUWETA_GNIAZDA.format(lista=", ".join(napisy[:-1]) + NR.KUWETA_GNIAZDA_I + napisy[-1])
 
 
-def miejsca_kuwety(rano, kuweta) -> list:
-    """Gniazda biezacej kuwety na plytkach (z ``KuwetaRano.gniazda`` - kontroler): ["Plytka 4 - gniazda 2 i 9", ...]."""
+def miejsca_kuwety(rano, kuweta, krotko: bool = False) -> list:
+    """Gniazda biezacej kuwety na plytkach (z ``KuwetaRano.gniazda`` - kontroler): ["Plytka 4 - gniazda 2 i 9", ...];
+    ``krotko`` (uklad zwarty, jeden wiersz - runda 2 D5): ["Plytka 4: gn. 2, 9", ...]."""
     po_plytce: dict = {}
     for skan_id, nr in kuweta.gniazda:
         po_plytce.setdefault(skan_id, []).append(nr)
     wynik = []
     for skan_id, numery in po_plytce.items():
         p = rano.plytka(skan_id)
-        wynik.append(NR.KUWETA_MIEJSCE.format(plytka=nazwa_plytki(p.numer if p is not None else None), gniazda=lista_gniazd(sorted(numery))))
+        plytka = nazwa_plytki(p.numer if p is not None else None)
+        if krotko:
+            wynik.append(NR.KUWETA_MIEJSCE_KROTKO.format(plytka=plytka, gniazda=", ".join(str(n) for n in sorted(numery))))
+        else:
+            wynik.append(NR.KUWETA_MIEJSCE.format(plytka=plytka, gniazda=lista_gniazd(sorted(numery))))
     return wynik
 
 
@@ -278,6 +285,15 @@ class PanelPieca(QFrame):
         self._pozycje = QVBoxLayout()
         self._pozycje.setSpacing(4)
         lu.addLayout(self._pozycje)
+        for rodzaj, napis, nazwa in (("kuweta", NR.LEGENDA_OBWODKA_KUWETY, "rano_legenda_obwodka_kuwety"),
+                                     ("wybrane", NR.LEGENDA_WYBRANE_GNIAZDO, "rano_legenda_wybrane_gniazdo")):
+            pole = QWidget()  # runda 2 (P3): oznaczenia gniazd na mapach - obwodka biezacej kuwety i pierscien wybranego gniazda
+            pu = QHBoxLayout(pole)
+            pu.setContentsMargins(0, 0, 0, 0)
+            pu.setSpacing(6)
+            pu.addWidget(WzorOznaczenia(rodzaj), 0, Qt.AlignmentFlag.AlignVCenter)
+            pu.addWidget(etykieta(napis, "tresc", nazwa, zawijaj=True), 1)
+            lu.addWidget(pole)
         self.legenda.setVisible(False)
         wu.addWidget(self.legenda)
         wu.addStretch(1)
@@ -425,6 +441,7 @@ class WierszKuwety(QFrame):
         kuwety = rano.kuwety if rano is not None else ()
         biezaca = next((x for x in kuwety if x.biezaca), None)
         miejsca: list = []
+        miejsca_krotko: list = []
         if rano is None or rano.sesja_pieca_id is None or (not kuwety and rano.otwarty):
             numer, opis = NR.KUWETA_BRAK_NUMERU, NR.KUWETA_BRAK_PIECA
         elif biezaca is None and not rano.otwarty:
@@ -435,7 +452,10 @@ class WierszKuwety(QFrame):
         else:
             numer = biezaca.kuweta
             opis = NR.KUWETA_OPIS.format(prac=ST.odmiana(biezaca.prac, *NR.KUWETA_PRACE).format(n=biezaca.prac))
+            if biezaca.potwierdzona:  # D8: wybrana ponownie kuweta juz rozlozona
+                opis += NR.KUWETA_JUZ_ROZLOZONA
             miejsca = miejsca_kuwety(rano, biezaca)
+            miejsca_krotko = miejsca_kuwety(rano, biezaca, krotko=True)
         self.biezaca.setText(numer)
         # pelny opis ("Kuweta 3228" - tak numer nazywaja instrukcje) dla czytnika ekranu i w podpowiedzi
         opis_numeru = NR.KUWETA_BIEZACA.format(kuweta=numer) if biezaca is not None else ""
@@ -444,7 +464,7 @@ class WierszKuwety(QFrame):
         self.opis.setText(opis)
         self.miejsca.setText("\n".join(miejsca))
         self.miejsca.setVisible(bool(miejsca) and not self._zwarty)
-        self.miejsca_krotko.setText(NR.NIEROZSTRZYGNIETE_ODSTEP.join(miejsca))
+        self.miejsca_krotko.setText(NR.NIEROZSTRZYGNIETE_ODSTEP.join(miejsca_krotko))
         self.miejsca_krotko.setToolTip("\n".join(miejsca))
         self.miejsca_krotko.setVisible(bool(miejsca) and self._zwarty)
         jest_osoba = stan.operator is not None
@@ -562,7 +582,8 @@ class PoleMap(QWidget):
 # ----------------------------------------------------------------------------
 class PanelKuwet(QFrame):
     """"Kuwety w tym piecu": kolejnosc (od najliczniejszej / wedlug numeru) i lista kuwet pieca (klikniecie = wybor kuwety PO
-    NUMERZE zapisanym w wierszu - S3-16; po zmianie kolejnosci listy w tle klikniecia sa przez ``OCHRONA_MS`` pomijane)."""
+    NUMERZE zapisanym w wierszu - S3-16; gdy zmiana z tla przestawila to, co widac pod punktami listy - kolejnosc, przewiniecie
+    do nowej biezacej kuwety, wysokosc wierszy - klikniecia sa przez ``OCHRONA_MS`` pomijane, runda 2 P1)."""
 
     def __init__(self, ekran: "EkranRano"):
         super().__init__()
@@ -622,15 +643,16 @@ class PanelKuwet(QFrame):
             return
         self._sygnatura = sygnatura
         kolejnosc = tuple(x.kuweta for x in kuwety)
-        if z_tla and self._kolejnosc_widziana and kolejnosc != self._kolejnosc_widziana:
-            self._ochrona.start()  # S3-16: pod kursorem moze stac juz inna kuweta - klikniecie wycelowane w poprzednia nie trafia
+        widok_przed = self.widok()
+        zmiana_kolejnosci = bool(self._kolejnosc_widziana) and kolejnosc != self._kolejnosc_widziana
         self._kolejnosc_widziana = kolejnosc
         self.tytul.setText(NR.KUWETY_TYTUL.format(n=len(kuwety)))
         for k, b in self.przyciski_kolejnosci.items():
             b.setChecked(rano is not None and rano.kolejnosc == k)
         wiersze = []
         for x in kuwety:
-            stan_k = (NR.KUWETA_STAN_BIEZACA if x.biezaca else NR.KUWETA_STAN_ROZLOZONA if x.potwierdzona else
+            stan_k = ((NR.KUWETA_STAN_BIEZACA_ROZLOZONA if x.potwierdzona else NR.KUWETA_STAN_BIEZACA) if x.biezaca else
+                      NR.KUWETA_STAN_ROZLOZONA if x.potwierdzona else
                       NR.KUWETA_STAN_BRAKI if x.braki else NR.KUWETA_STAN_CZEKA)
             wiersze.append([x.kuweta, str(x.prac), ", ".join(map(str, x.plytki)), stan_k])
         wypelnij(self.tabela, wiersze, self._u_ukladu, widocznych=None, dane=list(kolejnosc))
@@ -638,6 +660,22 @@ class PanelKuwet(QFrame):
         if indeks is not None:
             self.tabela.selectRow(indeks)
             self.tabela.scrollToItem(self.tabela.item(indeks, 0), QAbstractItemView.ScrollHint.EnsureVisible)
+        # S3-16 (runda 2, P1): pod kursorem moze stac juz inna kuweta - po zmianie kolejnosci ALBO gdy lista przewinela sie do nowej
+        # biezacej kuwety ("Rozlozona" z ramki / drugiego stanowiska) czy zmienila wysokosc wierszy; klikniecie wycelowane w poprzednia
+        # kuwete nie trafia przez ``OCHRONA_MS``
+        if z_tla and (zmiana_kolejnosci or (widok_przed and self.widok() != widok_przed)):
+            self._ochrona.start()
+
+    def widok(self) -> tuple:
+        """Widoczne wiersze listy: (polozenie w polu, wysokosc, numer kuwety) - to, co osoba widzi pod kazdym punktem listy."""
+        t = self.tabela
+        wys = t.viewport().height()
+        pierwszy = t.rowAt(0)
+        if wys <= 0 or pierwszy < 0:
+            return ()
+        ostatni = t.rowAt(wys - 1)
+        ostatni = t.rowCount() - 1 if ostatni < 0 else ostatni
+        return tuple((t.rowViewportPosition(w), t.rowHeight(w), self.kuweta_w_wierszu(w)) for w in range(pierwszy, ostatni + 1))
 
     def kuweta_w_wierszu(self, wiersz: int) -> str | None:
         """Numer kuwety zapisany w wierszu listy (S3-16) albo None."""
@@ -758,7 +796,7 @@ class PanelWyniku(QScrollArea):
         """E3-A12: okno "Excel: wskaz wiersz" dla pokazanego zamknietego pieca."""
         rano = (self._stan.rano.ostatni_zamkniety if self._ostatni_piec else self._stan.rano) if self._stan is not None and self._stan.rano else None
         if rano is not None and rano.sesja_pieca_id is not None and self.ekran is not None:
-            self.ekran._polecenie("excel_pokaz", rano.sesja_pieca_id)
+            self.ekran.pokaz_excel(rano.sesja_pieca_id)
 
     def _cofnij(self) -> None:
         if self._ostatnie is None or self.ekran is None:
@@ -838,7 +876,7 @@ class PanelWyniku(QScrollArea):
             self._zalegle.addWidget(etykieta(NR.EXCEL_ZALEGLE, "tresc"))
             for sid, nr, d, ile in zalegle:
                 b = guzik(NR.EXCEL_ZALEGLY.format(nr=nr or "?", doba=dzien(d) if d else "?", ile=ile), f"{self._prefiks}_{sid}", "lacze",
-                          lambda sid=sid: self.ekran._polecenie("excel_pokaz", sid) if self.ekran is not None else None)
+                          lambda sid=sid: self.ekran.pokaz_excel(sid) if self.ekran is not None else None)
                 b.setEnabled(stan.operator is not None)
                 self._zalegle.addWidget(b)
         self.zalegle.setVisible(bool(zalegle))
@@ -1434,6 +1472,17 @@ class EkranRano(QWidget):
     def numer_podany(self) -> None:
         """Wybor numeru plytki zamkniety (numer podany albo "Bez zmian")."""
         self._numer_dla = None
+
+    def pokaz_excel(self, sesja_pieca_id: int):
+        """"Excel: wskaz wiersz" (wynik pieca, zalegly piec): polecenie ``excel_pokaz``; po udanym - zakladka "Excel" TAKZE wtedy,
+        gdy okno Excela bylo juz otwarte dla tego pieca, a osoba przeszla na inna zakladke (runda 2, P2; ``pokaz`` przelacza
+        zakladke sam tylko przy nowym oknie Excela albo innym piecu)."""
+        odpowiedz = self._polecenie("excel_pokaz", sesja_pieca_id)
+        if odpowiedz is not None and odpowiedz.ok and self._excel_widoczne and self._strona != "excel":
+            self._strona_przed_excelem = self._strona
+            self._strona = "excel"
+            self._odswiez()
+        return odpowiedz
 
     def _pokaz_strone(self, strona: str) -> None:
         if strona == "excel" and not self._excel_widoczne:

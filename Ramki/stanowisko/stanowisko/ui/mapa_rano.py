@@ -11,7 +11,8 @@ Widzet niczego nie liczy i nie zna statusow.
 from __future__ import annotations
 
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPen
+from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPainterPath, QPen
+from PySide6.QtWidgets import QWidget
 
 from . import motyw
 from . import napisy_rano as NR
@@ -19,7 +20,12 @@ from .mapa import MapaPlytki
 
 PROG_MINIATURY_PX = 25.0  # promien gniazda (px), od ktorego w gniezdzie jest miniatura i numer gniazda
 PROG_ZEBA_PX = 16.0  # od tego promienia - kuweta i zab
-KOLOR_BIEZACEJ = motyw.AKCENT  # obwodka gniazd biezacej kuwety
+# obwodka gniazd biezacej kuwety: biala z ciemnym brzegiem - INNA niz pierscien akcentu wybranego gniazda (SPEC p. 2; runda 2
+# recenzji PR #64, P3: obie w barwie akcentu nie dawaly sie odroznic); objasnienie w legendzie "Na plytkach" (``WzorOznaczenia``)
+KOLOR_BIEZACEJ = motyw.TEKST
+KOLOR_BIEZACEJ_BRZEG = motyw.TLO
+GRUBOSC_BIEZACEJ_PX = 4
+GRUBOSC_BRZEGU_BIEZACEJ_PX = 7
 
 
 def _czcionka(px: float, pogrubiona: bool = True) -> QFont:
@@ -150,9 +156,9 @@ class MapaRano(MapaPlytki):
             p.drawText(prostokat, int(Qt.AlignmentFlag.AlignCenter), wartosc)
         if self._biezacej(g):
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.setPen(QPen(QColor(motyw.TEKST), 7))
+            p.setPen(QPen(QColor(KOLOR_BIEZACEJ_BRZEG), GRUBOSC_BRZEGU_BIEZACEJ_PX))
             p.drawPath(sciezka)
-            p.setPen(QPen(QColor(KOLOR_BIEZACEJ), 4))
+            p.setPen(QPen(QColor(KOLOR_BIEZACEJ), GRUBOSC_BIEZACEJ_PX))
             p.drawPath(sciezka)
 
     # --- kontrola (testy) -----------------------------------------------------------------------------------------------
@@ -192,3 +198,32 @@ class MapaRano(MapaPlytki):
         if szer > 3 * promien:
             return QPointF(srodek.x() - 0.44 * szer, srodek.y())
         return QPointF(srodek.x() - 0.72 * promien, srodek.y() - 0.08 * promien)
+
+
+class WzorOznaczenia(QWidget):
+    """Wzor oznaczenia gniazda do legendy "Na plytkach" (runda 2, P3): ``kuweta`` - obwodka gniazd biezacej kuwety (jak
+    ``MapaRano``), ``wybrane`` - pierscien akcentu wybranego gniazda z przerwa w kolorze plytki (jak ``MapaPlytki``)."""
+
+    def __init__(self, rodzaj: str, bok: int = 22):
+        super().__init__()
+        self.rodzaj = rodzaj
+        self.setFixedSize(bok, bok)
+
+    def paintEvent(self, _zdarzenie) -> None:  # noqa: N802 - nazwa Qt
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        srodek = QPointF(self.width() / 2, self.height() / 2)
+        promien = self.width() / 2 - (6 if self.rodzaj == "wybrane" else 4)
+        sciezka = QPainterPath()
+        sciezka.addEllipse(srodek, promien, promien)
+        p.fillPath(sciezka, QColor(motyw.OBWODKA_MOCNA))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        if self.rodzaj == "kuweta":
+            p.setPen(QPen(QColor(KOLOR_BIEZACEJ_BRZEG), GRUBOSC_BRZEGU_BIEZACEJ_PX / 2))
+            p.drawPath(sciezka)
+            p.setPen(QPen(QColor(KOLOR_BIEZACEJ), GRUBOSC_BIEZACEJ_PX / 2))
+            p.drawPath(sciezka)
+        else:
+            p.setPen(QPen(QColor(motyw.AKCENT), 2))
+            p.drawEllipse(srodek, promien + 4, promien + 4)
+        p.end()

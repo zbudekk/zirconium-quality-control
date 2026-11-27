@@ -38,6 +38,9 @@ POZA_GNIAZDAMI = "Poza gniazdami: {n}"
 MAPA_BEZ_GNIAZD = "Płytka {napis}."
 ZMIEN_NUMER = "Zmień numer"
 LEGENDA_NAGLOWEK = "Na płytkach"  # E3-U1b: naglowek legendy w lewej kolumnie
+# runda 2 (P3): objasnienie oznaczen gniazd w legendzie "Na plytkach" (wzor obok napisu - ``mapa_rano.WzorOznaczenia``)
+LEGENDA_OBWODKA_KUWETY = "Biała obwódka — gniazda bieżącej kuwety"
+LEGENDA_WYBRANE_GNIAZDO = "Niebieski pierścień — gniazdo wybrane kliknięciem"
 ZAB_KROTKO = "z. {zab}"
 
 # --- prawa kolumna: przelacznik stron ---------------------------------------------------------------
@@ -57,6 +60,9 @@ KUWETA_MIEJSCE = "{plytka} — {gniazda}"  # E3-U1b: gniazda biezacej kuwety na 
 KUWETA_GNIAZDO = "gniazdo {nr}"
 KUWETA_GNIAZDA = "gniazda {lista}"
 KUWETA_GNIAZDA_I = " i "
+# runda 2 (D5): uklad zwarty - gniazda biezacej kuwety w jednym wierszu, krotszy zapis (pelny w podpowiedzi)
+KUWETA_MIEJSCE_KROTKO = "{plytka}: gn. {gniazda}"
+KUWETA_JUZ_ROZLOZONA = " · już rozłożona"  # runda 2 (D8): biezaca kuweta, ktora osoba juz potwierdzila (wybrana ponownie)
 KUWETA_BRAK_NUMERU = "—"
 INNA_KUWETA = "Inna kuweta — wpisz numer i naciśnij Enter"  # E3-U1b: pole numeru kuwety (cyfry z klawiatury okna)
 POLE_KUWETY_PUSTE = "np. 17"
@@ -72,6 +78,7 @@ COFNIJ_SKROT = "Cofnij  [Backspace]"  # napis cytowany w instrukcjach (makieta: 
 KOLUMNY_KUWET = ("Kuweta", "Prac", "Płytki", "Stan")
 KUWETA_STAN_ROZLOZONA = "rozłożona"
 KUWETA_STAN_BIEZACA = "teraz"
+KUWETA_STAN_BIEZACA_ROZLOZONA = "teraz, już rozłożona"  # runda 2 (D8)
 KUWETA_STAN_BRAKI = "braki"
 KUWETA_STAN_CZEKA = ""
 

@@ -450,3 +450,310 @@ def test_bledy_programu_rano_na_liscie_okna_nie_w_strefie(atrapa, ekrany):
     assert "komunikat_folder_skanera_niedostepny" not in e.strefa_rano()
     e.klik("przycisk_bledy")
     assert not e.jest("lista_bledow") and e.jest("przycisk_bledy")
+
+
+
+# ----------------------------------------------------------------------------
+# runda 2 (recenzja PR #64): P1 - P4
+# ----------------------------------------------------------------------------
+ROZMIARY_LISTY = ((1920, 1001), (1536, 784), (1280, 642))  # okno zmaksymalizowane przy 100 / 125 / 150 %
+
+
+def kuwety_pod_punktami(t, punkty: list) -> list:
+    """Numer kuwety w wierszu pod kazdym punktem pola listy (y w ``viewport``) - to, co widzi i w co celuje osoba."""
+    wynik = []
+    for y in punkty:
+        w = t.rowAt(y)
+        wynik.append(t.item(w, 0).text() if w >= 0 and t.item(w, 0) is not None else None)
+    return wynik
+
+
+@pytest.mark.parametrize("rozmiar", ROZMIARY_LISTY)
+def test_s3_16_lista_kuwet_przewinieta_w_tle_wstrzymuje_klikniecia(atrapa, ekrany, rozmiar):
+    """Runda 2, P1: "Rozlozona" z tla (ramka poranna / drugie stanowisko) zmienia biezaca kuwete i lista przewija sie do niej -
+    pod nieruchomym kursorem staje inna kuweta, chociaz kolejnosc listy sie nie zmienila. Za KAZDYM razem, gdy w ktoryms punkcie
+    pola listy stoi po zmianie inna kuweta, ochrona ``OCHRONA_MS`` jest aktywna i klikniecie w ten punkt nic nie wysyla
+    (pomiar recenzenta: 8 / 13 / 19 zmian bez ochrony na 33 kroki)."""
+    from PySide6.QtCore import QPoint, Qt
+    from PySide6.QtTest import QTest
+
+    k = UW.Szpieg(atrapa)
+    atrapa.scenariusz_poranny()
+    e = ekrany(k, rozmiar)
+    e.po_ochronie_rano()
+    t = e.w("tabela_kuwet")
+    panel = e.rano.kuwety
+    assert t.verticalScrollBar().maximum() > 0, "lista kuwet miesci sie w polu - proba bez sensu"
+    wys = t.viewport().height()
+    punkty = [wys * i // 8 for i in range(1, 8)]
+    zmian, bez_ochrony = 0, []
+    for krok in range(t.rowCount() + 2):
+        rano = atrapa.stan().rano
+        if rano.kuweta_biezaca is None:
+            break
+        przed = kuwety_pod_punktami(t, punkty)
+        assert atrapa.potwierdz_kuwete(rano.kuweta_biezaca).ok  # w tle - nie przez okno
+        e.zdarzenia()
+        e.odczekaj(20)
+        po = kuwety_pod_punktami(t, punkty)
+        if po == przed:
+            continue
+        zmian += 1
+        if not panel.ochrona_aktywna():
+            bez_ochrony.append((krok, przed, po))
+            continue
+        y = next(y for y, a, b in zip(punkty, przed, po) if a != b)
+        wyslane = len(k.wyslane("wybierz_kuwete"))
+        QTest.mouseClick(t.viewport(), Qt.MouseButton.LeftButton, pos=QPoint(20, y))
+        e.odczekaj(5)
+        assert len(k.wyslane("wybierz_kuwete")) == wyslane, f"krok {krok}: klikniecie w przesunieta liste wybralo kuwete"
+    assert zmian > 0 and bez_ochrony == [], f"zmian pod kursorem {zmian}, bez ochrony {len(bez_ochrony)}: {bez_ochrony[:3]}"
+
+
+def test_excel_wskaz_wiersz_z_zakladki_kompletne_przy_otwartym_oknie_excela(tmp_path, ekrany):
+    """Runda 2, P2: okno Excela juz otwarte dla pieca (zakladka "Excel" pokazala sie sama), osoba przeszla na "Kompletne i braki"
+    i klika "Excel: wskaz wiersz" - zakladka "Excel" pokazuje sie (wczesniej przycisk nic nie robil)."""
+    import test_aplikacja_rano as TA
+    from stanowisko import kontroler_api as K
+
+    k0 = K.AtrapaKontrolera(tmp_path / "k", zegar=TR.ZegarRano())
+    k = UW.Szpieg(k0)
+    try:
+        k0.przelacz_tryb("rano")
+        k0.wybierz_operatora("Technik A")
+        e = ekrany(k)
+        TA._excel_pytaj(k0, tmp_path)
+        k0.symuluj_skan_rano(4, TA.PLYTKA_4[0], projekty=TA.PLYTKA_4[1])
+        TR.zamknij_piec(e, pytanie=False)
+        e.czekaj(lambda: e.jest("excel_panel") and k0.stan().excel.w_toku == 0, 10.0, "okno Excela")
+        e.klik("rano_strona_wynik")
+        assert e.rano.strona() == "wynik" and not e.jest("excel_panel") and k0.stan().excel.widoczne
+        assert e.aktywny("przycisk_excel")
+        e.klik("przycisk_excel")
+        e.odczekaj(20)
+        assert k.wyslane("excel_pokaz") and e.rano.strona() == "excel" and e.jest("excel_panel") and e.w("rano_strona_excel").isChecked()
+    finally:
+        k0.zamknij()
+
+
+def kolory_zmiany(mapa, wybrane, obwodka) -> list:
+    """Kolory pikseli mapy, ktore zmienia samo oznaczenie (``wybrane`` gniazdo albo ``obwodka`` gniazd kuwety) wobec mapy bez
+    oznaczen - to, czym oznaczenie wyglada na ekranie (odczyt z obrazu widzetu)."""
+    plytka, geometria, obrazy = mapa._plytka, mapa._geometria, mapa._obrazy
+    mapa.ustaw_rano(plytka, geometria, None, frozenset(), obrazy)
+    bez = mapa.grab().toImage()
+    mapa.ustaw_rano(plytka, geometria, wybrane, frozenset(obwodka), obrazy)
+    z = mapa.grab().toImage()
+    kolory = []
+    for x in range(bez.width()):
+        for y in range(bez.height()):
+            if bez.pixel(x, y) != z.pixel(x, y):
+                kolory.append(z.pixelColor(x, y))
+    return kolory
+
+
+def blisko(kolor, hex_: str, tolerancja: int = 40) -> bool:
+    from PySide6.QtGui import QColor
+
+    w = QColor(hex_)
+    return abs(kolor.red() - w.red()) + abs(kolor.green() - w.green()) + abs(kolor.blue() - w.blue()) <= tolerancja
+
+
+def test_mapa_rano_obwodka_kuwety_inna_niz_pierscien_wybranego_gniazda_i_objasnienie(atrapa, ekrany):
+    """Runda 2, P3: gniazdo wybrane kliknieciem (pierscien akcentu - SPEC p. 2) i gniazda biezacej kuwety (obwodka) sa na mapie
+    porannej rozroznialne: w obwodce kuwety nie ma barwy akcentu, w pierscieniu wybranego jest. Legenda "Na plytkach" objasnia
+    oba oznaczenia (napis "Gniazda biezacej kuwety sa obwiedzione" zniknal z ekranu w U1b)."""
+    from stanowisko.ui import mapa_rano as MR
+    from stanowisko.ui import motyw
+
+    skany = atrapa.scenariusz_poranny()
+    e = ekrany(atrapa)
+    e.po_ochronie_rano()
+    rano = atrapa.stan().rano
+    p4 = skany[4]
+    obwodka = rano.obwodka(p4)
+    assert obwodka, "biezaca kuweta nie ma gniazd na plytce 4"
+    mapa = e.mapy()[p4]
+    inne = next(nr for nr in mapa.numery() if nr not in obwodka)
+    kuweta = kolory_zmiany(mapa, None, obwodka)
+    wybrane = kolory_zmiany(mapa, inne, ())
+    assert kuweta and wybrane
+    akcent_w_kuwecie = sum(blisko(c, motyw.AKCENT) for c in kuweta)
+    akcent_w_wybranym = sum(blisko(c, motyw.AKCENT) for c in wybrane)
+    assert akcent_w_kuwecie == 0, f"obwodka kuwety ma {akcent_w_kuwecie} z {len(kuweta)} pikseli w barwie akcentu (jak pierscien wybranego)"
+    assert akcent_w_wybranym > len(wybrane) // 3  # pierscien wybranego gniazda w barwie akcentu (SPEC)
+    assert sum(blisko(c, MR.KOLOR_BIEZACEJ) for c in kuweta) > len(kuweta) // 3
+    assert sum(blisko(c, MR.KOLOR_BIEZACEJ) for c in wybrane) == 0
+    # objasnienie na ekranie (legenda lewej kolumny)
+    for nazwa, napis in (("rano_legenda_obwodka_kuwety", NR.LEGENDA_OBWODKA_KUWETY), ("rano_legenda_wybrane_gniazdo", NR.LEGENDA_WYBRANE_GNIAZDO)):
+        assert e.jest(nazwa) and e.w(nazwa).text() == napis
+    # kontrast obu oznaczen na plytce (WGLEBIENIE) - pary w ``motyw.PARY_KONTRASTU`` (sprawdza ``test_ui_motyw``)
+    pary = {(a, b) for _, a, b in motyw.PARY_KONTRASTU}
+    assert (MR.KOLOR_BIEZACEJ, motyw.WGLEBIENIE) in pary and (motyw.AKCENT, motyw.WGLEBIENIE) in pary
+
+
+def liczby(tekst: str) -> list:
+    import re
+
+    return [int(x) for x in re.findall(r"\d+", tekst)]
+
+
+@pytest.mark.parametrize("rozmiar", ((1920, 1001), (1280, 642)))
+def test_napis_gniazd_biezacej_kuwety_wszystkie_gniazda_wszystkich_plytek(atrapa, ekrany, rozmiar):
+    """Runda 2, P4 (a): napis "Plytka 4 - gniazda 2 i 9; Plytka 5 - gniazdo 1" wymienia KAZDE gniazdo biezacej kuwety z
+    ``KuwetaRano.gniazda`` (kazda kuweta scenariusza po kolei biezaca; uklad wysoki - ``rano_kuweta_miejsca``, zwarty -
+    ``rano_kuweta_miejsca_krotko``, pelny tekst)."""
+    atrapa.scenariusz_poranny()
+    e = ekrany(atrapa, rozmiar)
+    zwarty = rozmiar[1] < 700
+    nazwa = "rano_kuweta_miejsca_krotko" if zwarty else "rano_kuweta_miejsca"
+    odstep = NR.NIEROZSTRZYGNIETE_ODSTEP if zwarty else "\n"
+    sprawdzone = wiele_gniazd = wiele_plytek = 0
+    for x in atrapa.stan().rano.kuwety:
+        assert atrapa.wybierz_kuwete(x.kuweta).ok
+        e.zdarzenia()
+        e.odczekaj(5)
+        rano = atrapa.stan().rano
+        biezaca = next(y for y in rano.kuwety if y.biezaca)
+        assert biezaca.kuweta == x.kuweta and e.w("rano_kuweta_biezaca").text() == x.kuweta
+        oczekiwane: dict = {}
+        for skan_id, nr in biezaca.gniazda:
+            oczekiwane.setdefault(rano.plytka(skan_id).numer, set()).add(nr)
+        if not oczekiwane:
+            continue
+        assert e.jest(nazwa)
+        wiersze = e.w(nazwa).text().split(odstep)
+        widziane = {liczby(w)[0]: set(liczby(w)[1:]) for w in wiersze}
+        assert len(wiersze) == len(oczekiwane) and widziane == oczekiwane, f"kuweta {x.kuweta}: {e.w(nazwa).text()!r} != {oczekiwane}"
+        sprawdzone += 1
+        wiele_gniazd += any(len(v) > 1 for v in oczekiwane.values())
+        wiele_plytek += len(oczekiwane) > 1
+    assert sprawdzone >= 8 and wiele_gniazd >= 1 and wiele_plytek >= 1, (sprawdzone, wiele_gniazd, wiele_plytek)
+
+
+def test_to_ten_projekt_drugiego_kandydata_zapisuje_drugiego(atrapa, ekrany):
+    """Runda 2, P4 (b): "To ten projekt" na karcie DRUGIEGO kandydata wysyla ``wybierz_kandydata(praca_id, sha16 drugiego)`` i praca
+    dostaje projekt drugiego kandydata (testy klikaly tylko pierwszego)."""
+    k = UW.Szpieg(atrapa)
+    skany = atrapa.scenariusz_poranny()
+    atrapa.wybierz_operatora("Technik A")
+    e = ekrany(k)
+    p4 = skany[4]
+    praca = atrapa.stan().rano.plytka(p4).gniazdo(9).praca
+    assert praca.klasa == "dwuznaczna" and len(praca.kandydaci) >= 2
+    pierwszy, drugi = praca.kandydaci[0], praca.kandydaci[1]
+    assert drugi.projekt_id is not None and drugi.projekt_id != pierwszy.projekt_id and drugi.sha16 != pierwszy.sha16
+    e.klik_rano(p4, 9)
+    assert e.aktywny("kandydat_2_wybierz")
+    e.klik("kandydat_2_wybierz")
+    assert k.wyslane("wybierz_kandydata") == [("wybierz_kandydata", (praca.praca_id, drugi.sha16))]
+    assert atrapa.stan().rano.plytka(p4).gniazdo(9).praca.projekt_id == drugi.projekt_id
+
+
+def test_rozlozona_i_cofnij_nieaktywne_bez_osoby(atrapa, ekrany):
+    """Runda 2, P4 (c): bez wybranej osoby "Rozlozona [Enter]" i "Cofnij [Backspace]" sa nieaktywne (z osoba - aktywne)."""
+    atrapa.scenariusz_poranny()
+    atrapa.wybierz_operatora("Technik A")
+    rano = atrapa.stan().rano
+    assert atrapa.potwierdz_kuwete(rano.kuweta_biezaca).ok  # jest co cofnac
+    e = ekrany(atrapa)
+    assert e.aktywny("rano_potwierdz_kuwete") and e.aktywny("rano_cofnij_kuwete")
+    assert atrapa.wybierz_operatora(None).ok
+    e.zdarzenia()
+    e.odczekaj(20)
+    rano = atrapa.stan().rano
+    assert rano.kuweta_biezaca is not None and rano.kuweta_do_cofniecia is not None and atrapa.stan().operator is None
+    assert e.jest("rano_potwierdz_kuwete") and not e.aktywny("rano_potwierdz_kuwete")
+    assert e.jest("rano_cofnij_kuwete") and not e.aktywny("rano_cofnij_kuwete")
+
+
+
+# ----------------------------------------------------------------------------
+# runda 2 (recenzja PR #64): uwagi D
+# ----------------------------------------------------------------------------
+@pytest.mark.parametrize("rozmiar", ROZMIARY_LISTY)
+def test_d6_wysokosc_wierszy_listy_kuwet_od_otwarcia_okna(atrapa, ekrany, rozmiar):
+    """Runda 2, D6: wiersze listy kuwet maja wysokosc z ukladu okna (``Uklad.wiersz_tabeli``: 30 / 26 px) od razu po otwarciu
+    okna, a nie dopiero po pierwszej zmianie stanu - wiersze nie przeskakuja pod kursorem (bylo: zwarty 30 -> 26 px)."""
+    from stanowisko.ui import motyw
+
+    atrapa.scenariusz_poranny()
+    e = ekrany(atrapa, rozmiar)
+    e.zdarzenia()
+    u = motyw.uklad_dla(*rozmiar)
+    t = e.w("tabela_kuwet")
+    przed = {t.rowHeight(i) for i in range(t.rowCount())}
+    assert przed == {u.wiersz_tabeli}, f"{rozmiar}: wiersze {przed}, uklad {u.nazwa} {u.wiersz_tabeli}"
+    assert atrapa.potwierdz_kuwete(atrapa.stan().rano.kuweta_biezaca).ok
+    e.zdarzenia()
+    e.odczekaj(20)
+    assert {t.rowHeight(i) for i in range(t.rowCount())} == {u.wiersz_tabeli}
+
+
+
+@pytest.mark.parametrize("rozmiar", ((1536, 784), (1280, 642)))
+def test_d6_wysokosc_wierszy_tabel_panelu_excela_w_ukladzie_zwartym(tmp_path, ekrany, rozmiar):
+    """Runda 2, D6 (panel Excela): wiersze tabel panelu Excela w ukladzie zwartym maja ``Uklad.wiersz_tabeli`` od pierwszego
+    pokazania (ta sama kolejnosc minimum / domyslna co w liscie kuwet)."""
+    import test_aplikacja_rano as TA
+    from PySide6.QtWidgets import QTableWidget
+    from stanowisko import kontroler_api as K
+    from stanowisko.ui import motyw
+
+    k0 = K.AtrapaKontrolera(tmp_path / "k", zegar=TR.ZegarRano())
+    try:
+        k0.przelacz_tryb("rano")
+        k0.wybierz_operatora("Technik A")
+        e = ekrany(k0, rozmiar)
+        TA._excel_pytaj(k0, tmp_path)
+        k0.symuluj_skan_rano(4, TA.PLYTKA_4[0], projekty=TA.PLYTKA_4[1])
+        TR.zamknij_piec(e, pytanie=False)
+        e.czekaj(lambda: e.jest("excel_panel") and k0.stan().excel.w_toku == 0, 10.0, "okno Excela")
+        u = motyw.uklad_dla(*rozmiar)
+        tabele = [t for t in e.w("excel_panel").findChildren(QTableWidget) if t.isVisible() and t.rowCount()]
+        assert tabele
+        wysokosci = {(t.objectName(), t.rowHeight(i)) for t in tabele for i in range(t.rowCount())}
+        assert {w for _, w in wysokosci} == {u.wiersz_tabeli}, f"{rozmiar}: {sorted(wysokosci)}"
+    finally:
+        k0.zamknij()
+
+
+def test_d8_kuweta_juz_rozlozona_wybrana_ponownie_widac_na_liscie_i_w_wierszu(atrapa, ekrany):
+    """Runda 2, D8: kuweta juz rozlozona i wybrana ponownie numerem jest biezaca - lista pokazuje "teraz, juz rozlozona", a wiersz
+    "Teraz rozkladasz" dopisek "juz rozlozona" (bylo: "teraz", jak kuweta jeszcze nierozlozona)."""
+    atrapa.scenariusz_poranny()
+    atrapa.wybierz_operatora("Technik A")
+    e = ekrany(atrapa)
+    kuweta = atrapa.stan().rano.kuweta_biezaca
+    assert NR.KUWETA_JUZ_ROZLOZONA not in e.w("rano_kuweta_opis").text()
+    assert atrapa.potwierdz_kuwete(kuweta).ok and atrapa.wybierz_kuwete(kuweta).ok
+    e.zdarzenia()
+    e.odczekaj(20)
+    x = next(y for y in atrapa.stan().rano.kuwety if y.kuweta == kuweta)
+    assert x.biezaca and x.potwierdzona
+    wiersz = next(w for w in e.tabela("tabela_kuwet") if w[0] == kuweta)
+    assert wiersz[3] == NR.KUWETA_STAN_BIEZACA_ROZLOZONA
+    assert e.w("rano_kuweta_biezaca").text() == kuweta and NR.KUWETA_JUZ_ROZLOZONA in e.w("rano_kuweta_opis").text()
+    inne = [w for w in e.tabela("tabela_kuwet") if w[0] != kuweta]
+    assert all(w[3] != NR.KUWETA_STAN_BIEZACA_ROZLOZONA for w in inne)
+
+
+@pytest.mark.parametrize("rozmiar", ((1536, 784), (1280, 642)))
+def test_d5_gniazda_biezacej_kuwety_w_ukladzie_zwartym_bez_wielokropka(atrapa, ekrany, rozmiar):
+    """Runda 2, D5: w ukladzie zwartym gniazda biezacej kuwety (jeden wiersz, zapis krotszy: "Plytka 4: gn. 2, 9") nie sa skracane
+    wielokropkiem dla zadnej kuwety scenariusza (bylo: 2 z 33 przy 1280 x 642 - numer gniazda na drugiej plytce nieczytelny)."""
+    atrapa.scenariusz_poranny()
+    e = ekrany(atrapa, rozmiar)
+    pole = e.w("rano_kuweta_miejsca_krotko")
+    skrocone, sprawdzone = [], 0
+    for x in atrapa.stan().rano.kuwety:
+        assert atrapa.wybierz_kuwete(x.kuweta).ok
+        e.zdarzenia()
+        e.odczekaj(5)
+        if not x.gniazda:
+            continue
+        assert e.jest("rano_kuweta_miejsca_krotko")
+        sprawdzone += 1
+        if pole.skrocona():
+            skrocone.append((x.kuweta, pole.text()))
+    assert sprawdzone >= 8 and skrocone == [], skrocone
